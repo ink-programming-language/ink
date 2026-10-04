@@ -57,7 +57,7 @@ namespace ink::semantic
     {
       Destination = static_cast<const parser::ParenExpr &>(*Destination).expression();
     }
-    if (State.Evaluating && parser::IndexExpr::classof(Destination))
+    if (State.Evaluating && (parser::IndexExpr::classof(Destination) || parser::MemberExpr::classof(Destination)))
     {
       return assignComptimeArray(State, Assignment, Depth + 1);
     }
@@ -85,6 +85,11 @@ namespace ink::semantic
       return {};
     }
     const Type &Target = AllocaInstruction::classof(Address) ? static_cast<const AllocaInstruction &>(*Address).allocatedType() : (!State.Evaluating ? static_cast<const PointerType &>(Address->type()).pointeeType() : Address->type());
+    if (ClassType::classof(&Target) && Assignment.op() != TokenKind::Assign)
+    {
+      State.report<core::DiagnosticKind::SemanticInvalidMember>(Node.getSourceRange(), "the in-place operator protocol is not enabled");
+      return {};
+    }
     AnalysisState::EvaluationGuard Expected(State, State.Evaluating, &Target);
     const ExpressionResult Right = analyzeSimpleItem(State, *Assignment.right(), Depth + 1);
     if (!Right || !Right.ValueObject || &Right.ValueObject->type() != &Target)

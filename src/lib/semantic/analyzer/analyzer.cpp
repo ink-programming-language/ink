@@ -54,7 +54,84 @@ namespace ink::semantic
         Succeeded = false;
       }
     }
-    return Succeeded ? Result : nullptr;
+    return Succeeded && validateRuntimeClassTypes(State, *Result, Root) ? Result : nullptr;
+  }
+
+  bool Analyzer::validateRuntimeClassTypes(AnalysisState &State, const Module &ModuleValue, const parser::ASTNodeBase &Root)
+  {
+    std::vector<const Value *> Values{&ModuleValue.entryBlock()};
+    std::vector<const Type *> Types;
+    while (!Values.empty())
+    {
+      const Value *Current = Values.back();
+      Values.pop_back();
+      Types.push_back(&Current->type());
+      if (Function::classof(Current))
+      {
+        for (const auto &Block : static_cast<const Function *>(Current)->blocks())
+        {
+          Values.push_back(Block.get());
+        }
+      }
+      else if (BasicBlock::classof(Current))
+      {
+        for (const auto &Child : static_cast<const BasicBlock *>(Current)->values())
+        {
+          Values.push_back(Child.get());
+        }
+      }
+    }
+    std::unordered_set<const Type *> Checked;
+    while (!Types.empty())
+    {
+      const Type *Current = Types.back();
+      Types.pop_back();
+      if (!Checked.insert(Current).second)
+      {
+        continue;
+      }
+      if (ClassType::classof(Current))
+      {
+        const auto &Class = static_cast<const ClassType &>(*Current);
+        if (!Class.isComplete())
+        {
+          const std::string Message = "class reachable from a function or stored value requires a complete definition: " + std::string(State.Context.namePool().text(Class.name()));
+          const auto Definition = State.Context.classState().Definitions.find(&Class);
+          if (Definition != State.Context.classState().Definitions.end())
+          {
+            State.Context.compilationContext().diagnosticEngine().report<core::DiagnosticKind::SemanticInvalidClass>(Definition->second.Input->lexedFile().sourceId(), Definition->second.Declaration->getSourceRange(), Message);
+          }
+          else
+          {
+            State.report<core::DiagnosticKind::SemanticInvalidClass>(Root.getSourceRange(), Message);
+          }
+          return false;
+        }
+        for (const ClassField &Field : Class.fields())
+        {
+          Types.push_back(Field.FieldType);
+        }
+      }
+      else if (PointerType::classof(Current))
+      {
+        Types.push_back(&static_cast<const PointerType *>(Current)->pointeeType());
+      }
+      else if (ReferenceType::classof(Current))
+      {
+        Types.push_back(&static_cast<const ReferenceType *>(Current)->referentType());
+      }
+      else if (ArrayType::classof(Current))
+      {
+        Types.push_back(&static_cast<const ArrayType *>(Current)->elementType());
+      }
+      else if (FunctionType::classof(Current))
+      {
+        const auto &Signature = static_cast<const FunctionType &>(*Current);
+        Types.push_back(&Signature.returnType());
+        Types.insert(Types.end(), Signature.parameterTypes().begin(), Signature.parameterTypes().end());
+      }
+    }
+    return true;
   }
 
   bool Analyzer::reportUnsupported(AnalysisState &State, const parser::ASTNodeBase &Node)

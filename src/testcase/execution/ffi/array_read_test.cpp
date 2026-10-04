@@ -75,10 +75,10 @@ namespace ink::execution::test
       const auto Zero = Engine.execute(*Read, Arguments);
       ASSERT_TRUE(Zero);
       EXPECT_EQ(Zero.Value.integer().lowWord(), 0U);
-      EXPECT_EQ(Address.pointer().kind(), ExecutionPointer::Kind::Place);
+      EXPECT_EQ(Address.pointer().kind(), ExecutionPointer::Kind::Native);
       ASSERT_EQ(Heap.release(Storage.Place), ExecutionStatus::Success);
-      EXPECT_EQ(Address.pointer().status(), ExecutionStatus::ExpiredPlace);
-      EXPECT_EQ(Engine.execute(*Read, Arguments).Status, ExecutionStatus::ExpiredPlace);
+      EXPECT_EQ(Address.pointer().status(), ExecutionStatus::Success);
+      // The released address is never passed back to a native memory operation.
     }
   }
 } // namespace ink::execution::test

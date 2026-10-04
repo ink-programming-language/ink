@@ -30,9 +30,9 @@ namespace ink::semantic
       return {};
     }
     std::vector<const Value *> Candidates;
-    if ((State.Evaluating || !CalleeNode->isComptime()) && parser::MemberExpr::classof(CalleeNode) && !resolveMemberFunctions(State, static_cast<const parser::MemberExpr &>(*CalleeNode), Candidates, CalleeDepth))
+    if ((State.Evaluating || !CalleeNode->isComptime()) && parser::MemberExpr::classof(CalleeNode))
     {
-      return {};
+      return analyzeMethodCall(State, static_cast<const parser::MemberExpr &>(*CalleeNode), Node, CalleeDepth);
     }
     if ((State.Evaluating || !CalleeNode->isComptime()) && parser::NameExpr::classof(CalleeNode))
     {
@@ -48,6 +48,10 @@ namespace ink::semantic
       if (!Callee)
       {
         return {};
+      }
+      if (Callee.ValueObject && ClassType::classof(Callee.ValueObject))
+      {
+        return analyzeClassConstruction(State, static_cast<const ClassType &>(*Callee.ValueObject), Node, Depth);
       }
       if (!Callee.ValueObject || !FunctionType::classof(&Callee.ValueObject->type()))
       {
@@ -104,6 +108,17 @@ namespace ink::semantic
     {
       return {};
     }
+
+    std::vector<const parser::Expr *> ArgumentNodes;
+    for (const auto &Argument : Node.arguments())
+    {
+      ArgumentNodes.push_back(Argument.value());
+    }
+    return finishCall(State, Candidates, Arguments, ArgumentNodes, Node);
+  }
+
+  Analyzer::ExpressionResult Analyzer::finishCall(AnalysisState &State, std::span<const Value *const> Candidates, std::span<const ExpressionResult> Arguments, std::span<const parser::Expr *const> ArgumentNodes, const parser::Expr &Node)
+  {
 
     const auto IsCFunction = [](const Value &Callee)
     {
@@ -191,6 +206,14 @@ namespace ink::semantic
       }
     }
     const auto Parameters = static_cast<const FunctionType &>(Selected->type()).parameterTypes();
+    if (Function::classof(Selected) && State.CurrentModule)
+    {
+      const auto Owner = State.Context.classState().MethodOwners.find(static_cast<const Function *>(Selected));
+      if (Owner != State.Context.classState().MethodOwners.end() && State.Context.classState().Definitions.at(Owner->second).Module != State.CurrentModule)
+      {
+        State.Context.recordModuleImport(*State.CurrentModule, static_cast<const Function &>(*Selected));
+      }
+    }
     if (State.Modules && State.CurrentFunction && Function::classof(Selected))
     {
       State.Modules->Dependencies[State.CurrentFunction].insert(static_cast<const Function *>(Selected));
@@ -218,7 +241,7 @@ namespace ink::semantic
     }
     for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
     {
-      const Value *Argument = convertExpression(State, Arguments[Index], *Parameters[Index], *Node.arguments()[Index].value(), IsCFunction(*Selected));
+      const Value *Argument = convertExpression(State, Arguments[Index], *Parameters[Index], *ArgumentNodes[Index], IsCFunction(*Selected));
       if (!Argument)
       {
         return {};

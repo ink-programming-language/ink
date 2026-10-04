@@ -2,6 +2,8 @@
 
 #include <cstdint>
 #include <limits>
+#include <map>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -9,24 +11,37 @@ namespace ink::execution
 {
   namespace
   {
-    bool arrayMetadataBytes(const StorageLayout &Layout, std::size_t &Bytes)
+    bool arrayMetadataBytes(const TypeDesc &Layout, std::size_t &Bytes)
     {
       Bytes = 0;
+      if (Layout.Kind == RuntimeKind::Class)
+      {
+        for (const auto &Field : Layout.classDesc().Fields)
+        {
+          std::size_t Child = 0;
+          if (!Field.Layout || !arrayMetadataBytes(*Field.Layout, Child) || Child > std::numeric_limits<std::size_t>::max() - sizeof(RuntimeValue) || Child + sizeof(RuntimeValue) > std::numeric_limits<std::size_t>::max() - Bytes)
+          {
+            return false;
+          }
+          Bytes += Child + sizeof(RuntimeValue);
+        }
+        return true;
+      }
       if (Layout.Kind != RuntimeKind::Array)
       {
         return true;
       }
       std::size_t ChildBytes = 0;
-      if (!Layout.ElementLayout || !arrayMetadataBytes(*Layout.ElementLayout, ChildBytes) || ChildBytes > std::numeric_limits<std::size_t>::max() - sizeof(RuntimeValue))
+      if (!Layout.arrayDesc().ElementLayout || !arrayMetadataBytes(*Layout.arrayDesc().ElementLayout, ChildBytes) || ChildBytes > std::numeric_limits<std::size_t>::max() - sizeof(RuntimeValue))
       {
         return false;
       }
       ChildBytes += sizeof(RuntimeValue);
-      if (Layout.ElementCount > std::numeric_limits<std::size_t>::max() / ChildBytes)
+      if (Layout.arrayDesc().ElementCount > std::numeric_limits<std::size_t>::max() / ChildBytes)
       {
         return false;
       }
-      Bytes = static_cast<std::size_t>(Layout.ElementCount) * ChildBytes;
+      Bytes = static_cast<std::size_t>(Layout.arrayDesc().ElementCount) * ChildBytes;
       return true;
     }
   } // namespace
@@ -42,10 +57,13 @@ namespace ink::execution
 
       std::vector<Slot> Slots;
       std::vector<std::size_t> FreeSlots;
+      std::map<std::uintptr_t, std::size_t> Addresses;
+      std::set<std::string, std::less<>> Strings;
       std::size_t LiveStorage = 0;
       std::size_t AllocatedStorage = 0;
       std::size_t LiveBytes = 0;
       std::size_t AllocatedBytes = 0;
+      std::size_t ReservedBytes = 0;
       std::size_t MaxStorage;
       std::size_t MaxBytes;
 
@@ -162,6 +180,11 @@ namespace ink::execution
     auto &Slot = State->Slots[Index];
     Slot.Storage = std::move(Storage);
     Slot.Bytes = Bytes;
+    const void *Address = Slot.Storage->objectKind() == ExecutionObjectKind::Cell ? static_cast<ExecutionCell *>(Slot.Storage.get())->data() : static_cast<ExecutionBuffer *>(Slot.Storage.get())->data();
+    if (Address)
+    {
+      State->Addresses.emplace(reinterpret_cast<std::uintptr_t>(Address), Index);
+    }
     ++State->AllocatedStorage;
     ++State->LiveStorage;
     State->AllocatedBytes += Bytes;
@@ -170,16 +193,16 @@ namespace ink::execution
     return ExecutionStorageRef(State, Index, Slot.Generation);
   }
 
-  ExecutionPlaceResult ExecutionMemoryManager::allocateCell(const StorageLayout &Layout, bool Writable, const RuntimeValue &Initial, bool Runtime)
+  ExecutionPlaceResult ExecutionMemoryManager::allocateCell(const TypeDesc &Layout, bool Writable, const RuntimeValue &Initial, bool Runtime)
   {
     if (Layout.Type == InvalidRuntimeType || (Initial.Initialized && Initial.Type != Layout.Type))
     {
       return {LastStatus = ExecutionStatus::TypeMismatch};
     }
     std::size_t Bytes = sizeof(ExecutionCell);
-    if (Layout.Kind == RuntimeKind::Array)
+    if (Layout.Kind == RuntimeKind::Array || Layout.Kind == RuntimeKind::Class)
     {
-      if (!Layout.ElementLayout || Layout.ElementLayout->Type != Layout.ElementType)
+      if (Layout.Kind == RuntimeKind::Array && (!Layout.arrayDesc().ElementLayout || Layout.arrayDesc().ElementLayout->Type != Layout.arrayDesc().ElementType))
       {
         return {LastStatus = ExecutionStatus::TypeMismatch};
       }
@@ -189,27 +212,36 @@ namespace ink::execution
         return {LastStatus = ExecutionStatus::BudgetExceeded};
       }
       Bytes += MetadataBytes;
-      if (Layout.Size > std::numeric_limits<std::size_t>::max() - Bytes)
+    }
+    if (Layout.Size != 0)
+    {
+      const std::size_t BackingBytes = std::max<std::size_t>(Layout.Size, 1);
+      if (BackingBytes > std::numeric_limits<std::size_t>::max() - Bytes)
       {
         return {LastStatus = ExecutionStatus::BudgetExceeded};
       }
-      Bytes += Layout.Size;
+      Bytes += BackingBytes;
     }
     if (!checkBudget(Bytes))
     {
       return {LastStatus};
     }
-    std::unique_ptr<ExecutionCell> Cell(new ExecutionCell(Layout, Writable, Runtime));
+    std::unique_ptr<ExecutionCell> Cell(new ExecutionCell(*this, Layout, Writable, Runtime));
     if (Initial.Initialized)
     {
       if (Runtime)
       {
-        Cell->Value = Initial;
         Cell->Initialized = true;
       }
-      else if (const ExecutionStatus Status = Cell->storeRuntime(Initial); Status != ExecutionStatus::Success)
+      else
       {
-        return {LastStatus = Status};
+        State->ReservedBytes += Bytes;
+        const ExecutionStatus Status = Cell->storeRuntime(Initial);
+        State->ReservedBytes -= Bytes;
+        if (Status != ExecutionStatus::Success)
+        {
+          return {LastStatus = Status};
+        }
       }
     }
     const ExecutionStorageRef Storage = ownStorage(std::move(Cell), Bytes);
@@ -229,14 +261,6 @@ namespace ink::execution
 
   ExecutionStatus ExecutionMemoryManager::validatePointer(const ExecutionPointer &Pointer) const noexcept
   {
-    if (Pointer.kind() == ExecutionPointer::Kind::Place && !owns(Pointer.place().storage()))
-    {
-      return ExecutionStatus::InvalidPlace;
-    }
-    if (Pointer.kind() == ExecutionPointer::Kind::Buffer && !owns(Pointer.bufferRef()))
-    {
-      return ExecutionStatus::InvalidPlace;
-    }
     return Pointer.status();
   }
 
@@ -288,6 +312,8 @@ namespace ink::execution
       return LastStatus = Status;
     }
     auto &Slot = State->Slots[Storage.Slot];
+    const void *Address = Slot.Storage->objectKind() == ExecutionObjectKind::Cell ? static_cast<ExecutionCell *>(Slot.Storage.get())->data() : static_cast<ExecutionBuffer *>(Slot.Storage.get())->data();
+    State->Addresses.erase(reinterpret_cast<std::uintptr_t>(Address));
     Slot.Storage.reset();
     --State->LiveStorage;
     State->LiveBytes -= Slot.Bytes;
@@ -313,42 +339,183 @@ namespace ink::execution
 
   ExecutionPointer ExecutionMemoryManager::pointerFromAddress(void *Address) const noexcept
   {
+    return ExecutionPointer::fromNative(Address);
+  }
+
+  ExecutionStorageRef ExecutionMemoryManager::storageFromAddress(const void *Address) const noexcept
+  {
     if (!Address)
     {
-      return ExecutionPointer::fromNative(nullptr);
+      return {};
     }
     const std::uintptr_t Requested = reinterpret_cast<std::uintptr_t>(Address);
-    ExecutionPointer OnePast = ExecutionPointer::fromNative(Address);
-    for (std::size_t Index = 0; Index < State->Slots.size(); ++Index)
+    auto Found = State->Addresses.upper_bound(Requested);
+    if (Found == State->Addresses.begin())
     {
-      const auto &Slot = State->Slots[Index];
-      if (!Slot.Storage)
-      {
-        continue;
-      }
-      const ExecutionStorageRef Reference(State, Index, Slot.Generation);
-      const ExecutionCell *Cell = Reference.cell();
-      const ExecutionBuffer *Buffer = Reference.buffer();
-      const void *Data = Cell ? Cell->data() : Buffer->data();
-      const std::size_t Size = Cell ? Cell->size() : Buffer->size();
+      return {};
+    }
+    --Found;
+    const auto &Slot = State->Slots[Found->second];
+    const std::size_t Size = Slot.Storage->objectKind() == ExecutionObjectKind::Cell ? static_cast<const ExecutionCell *>(Slot.Storage.get())->size() : static_cast<const ExecutionBuffer *>(Slot.Storage.get())->size();
+    return Requested - Found->first <= Size ? ExecutionStorageRef(State, Found->second, Slot.Generation) : ExecutionStorageRef{};
+  }
+
+  ExecutionStatus ExecutionMemoryManager::writeValueBytes(const TypeDesc &Layout, void *Destination, const RuntimeValue &Value)
+  {
+    if (Layout.Kind == RuntimeKind::Void)
+    {
+      return ExecutionStatus::Success;
+    }
+    if (Layout.Kind == RuntimeKind::String)
+    {
+      const std::string_view String = Value.string();
+      const char *Data = retainString(String);
       if (!Data)
       {
-        continue;
+        return lastStatus();
       }
-      const std::uintptr_t Begin = reinterpret_cast<std::uintptr_t>(Data);
-      if (Requested < Begin || Requested - Begin > Size)
-      {
-        continue;
-      }
-      const std::size_t Offset = static_cast<std::size_t>(Requested - Begin);
-      const ExecutionPointer Pointer = Cell ? ExecutionPointer::fromPlace(ExecutionPlace(Reference), Offset) : ExecutionPointer::fromBuffer(Reference, Offset);
-      if (Offset < Size)
-      {
-        return Pointer;
-      }
-      OnePast = Pointer;
+      const std::size_t Length = String.size();
+      std::memcpy(Destination, &Data, sizeof(Data));
+      std::memcpy(static_cast<std::byte *>(Destination) + sizeof(Data), &Length, sizeof(Length));
+      return ExecutionStatus::Success;
     }
-    // An interior address takes precedence over an adjacent one-past address.
-    return OnePast;
+    if (Layout.Kind == RuntimeKind::Array || Layout.Kind == RuntimeKind::Class)
+    {
+      const auto Elements = Value.aggregate();
+      for (std::size_t Index = 0; Index < Elements.size(); ++Index)
+      {
+        const TypeDesc &Element = Layout.Kind == RuntimeKind::Array ? *Layout.arrayDesc().ElementLayout : *Layout.classDesc().Fields[Index].Layout;
+        const std::size_t Offset = Layout.Kind == RuntimeKind::Array ? Index * Element.Size : Layout.classDesc().Fields[Index].Offset;
+        const ExecutionStatus Status = writeValueBytes(Element, static_cast<std::byte *>(Destination) + Offset, Elements[Index]);
+        if (Status != ExecutionStatus::Success)
+        {
+          return Status;
+        }
+      }
+      return ExecutionStatus::Success;
+    }
+    return writeStorage(Layout, Destination, Value);
+  }
+
+  const char *ExecutionMemoryManager::retainString(std::string_view String)
+  {
+    if (String.empty())
+    {
+      LastStatus = ExecutionStatus::Success;
+      return "";
+    }
+    if (const auto Found = State->Strings.find(String); Found != State->Strings.end())
+    {
+      LastStatus = ExecutionStatus::Success;
+      return Found->data();
+    }
+    if (String.size() == std::numeric_limits<std::size_t>::max() || String.size() + 1 > State->MaxBytes - State->AllocatedBytes - State->ReservedBytes)
+    {
+      LastStatus = ExecutionStatus::BudgetExceeded;
+      return nullptr;
+    }
+    const auto Stored = State->Strings.emplace(String).first;
+    State->AllocatedBytes += String.size() + 1;
+    State->LiveBytes += String.size() + 1;
+    LastStatus = ExecutionStatus::Success;
+    return Stored->data();
+  }
+
+  ExecutionStatus ExecutionMemoryManager::loadBytes(const void *Address, const TypeDesc &Layout, void *Destination) const
+  {
+    if (!Address)
+    {
+      return ExecutionStatus::InvalidPlace;
+    }
+    if (const ExecutionCell *Cell = storageFromAddress(Address).cell())
+    {
+      const std::size_t Offset = reinterpret_cast<std::uintptr_t>(Address) - reinterpret_cast<std::uintptr_t>(Cell->data());
+      return Cell->loadBytes(Offset, Layout, Destination);
+    }
+    std::memmove(Destination, Address, Layout.Size);
+    return ExecutionStatus::Success;
+  }
+
+  ExecutionStatus ExecutionMemoryManager::storeBytes(void *Address, const TypeDesc &Layout, const void *Source)
+  {
+    if (!Address)
+    {
+      return ExecutionStatus::InvalidPlace;
+    }
+    if (ExecutionCell *Cell = storageFromAddress(Address).cell())
+    {
+      const std::size_t Offset = reinterpret_cast<std::uintptr_t>(Address) - reinterpret_cast<std::uintptr_t>(Cell->data());
+      return Cell->storeBytes(Offset, Layout, Source);
+    }
+    std::memmove(Address, Source, Layout.Size);
+    return ExecutionStatus::Success;
+  }
+
+  RuntimeValueResult ExecutionMemoryManager::loadPointer(const ExecutionPointer &Pointer, const TypeDesc &Layout) const
+  {
+    if (!Pointer.address())
+    {
+      return {ExecutionStatus::InvalidPlace};
+    }
+    const ExecutionStorageRef Storage = storageFromAddress(Pointer.address());
+    if (const ExecutionCell *Cell = Storage.cell())
+    {
+      if (Cell->runtime())
+      {
+        return {ExecutionStatus::RuntimeValue};
+      }
+      const std::size_t Offset = reinterpret_cast<std::uintptr_t>(Pointer.address()) - reinterpret_cast<std::uintptr_t>(Cell->data());
+      if (Cell->layout().Domain == Layout.Domain && Cell->elementLayout(Offset, Layout.Type))
+      {
+        return Cell->loadElement(Offset, Layout.Type);
+      }
+      if (Layout.Kind != RuntimeKind::Integer || Layout.bitWidth() != 8)
+      {
+        return {ExecutionStatus::TypeMismatch};
+      }
+      if (Offset >= Cell->size())
+      {
+        return {ExecutionStatus::InvalidPlace};
+      }
+      if (!Cell->initialized())
+      {
+        return {ExecutionStatus::Uninitialized};
+      }
+    }
+    return readStorage(Layout, Pointer.address());
+  }
+
+  ExecutionStatus ExecutionMemoryManager::storePointer(const ExecutionPointer &Pointer, const TypeDesc &Layout, const RuntimeValue &Value)
+  {
+    if (!Pointer.address())
+    {
+      return ExecutionStatus::InvalidPlace;
+    }
+    const ExecutionStorageRef Storage = storageFromAddress(Pointer.address());
+    if (ExecutionCell *Cell = Storage.cell())
+    {
+      if (Cell->runtime())
+      {
+        return ExecutionStatus::RuntimeValue;
+      }
+      if (!Cell->writable() && Cell->initialized())
+      {
+        return ExecutionStatus::ReadOnly;
+      }
+      const std::size_t Offset = reinterpret_cast<std::uintptr_t>(Pointer.address()) - reinterpret_cast<std::uintptr_t>(Cell->data());
+      if (Cell->layout().Domain == Layout.Domain && Cell->elementLayout(Offset, Layout.Type))
+      {
+        return Cell->storeElement(Offset, Value);
+      }
+      if (Layout.Kind != RuntimeKind::Integer || Layout.bitWidth() != 8)
+      {
+        return ExecutionStatus::TypeMismatch;
+      }
+      if (Offset >= Cell->size())
+      {
+        return ExecutionStatus::InvalidPlace;
+      }
+    }
+    return writeStorage(Layout, Pointer.address(), Value);
   }
 } // namespace ink::execution

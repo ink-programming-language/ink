@@ -1,5 +1,7 @@
 #include "ink/execution/bridge/semantic_value_bridge.h"
 #include "ink/ir/constant/array_constant.h"
+#include "ink/ir/constant/class_constant.h"
+#include "ink/ir/analysis/type_layout.h"
 
 #include <limits>
 
@@ -36,82 +38,136 @@ namespace ink::execution
     }
     if (const auto Found = TypeIds.find(&Type); Found != TypeIds.end())
     {
-      return Found->second;
+      const TypeDesc *Layout = Types->get(Found->second);
+      synchronizeReflection();
+      return Layout && Layout->Kind == RuntimeKind::Invalid && !DefiningTypes.contains(&Type) ? defineType(Type, Found->second) : Found->second;
     }
-    StorageLayout Layout;
+    const RuntimeTypeId Id = Types->reserve();
+    if (Id == InvalidRuntimeType)
+    {
+      return Id;
+    }
+    TypeIds.emplace(&Type, Id);
+    return defineType(Type, Id);
+  }
+
+  RuntimeTypeId SemanticValueBridge::defineType(const ir::Type &Type, RuntimeTypeId Id)
+  {
+    struct DefinitionScope
+    {
+        std::unordered_set<const ir::Type *> &Active;
+        const ir::Type *Type;
+
+        ~DefinitionScope()
+        {
+          Active.erase(Type);
+        }
+    };
+    DefiningTypes.insert(&Type);
+    DefinitionScope Scope{DefiningTypes, &Type};
     const auto &Target = Context.compilationContext().targetContext();
+    const auto Computed = Type.typeKind() == ir::TypeKind::Void ? std::optional<ir::TypeLayout>(ir::TypeLayout{}) : ir::computeTypeLayout(Type, Target);
+    if (!Computed || Computed->Size > std::numeric_limits<std::size_t>::max() || Computed->Alignment > std::numeric_limits<std::size_t>::max())
+    {
+      TypeIds.erase(&Type);
+      return InvalidRuntimeType;
+    }
+    TypeDesc Layout;
+    Layout.Size = static_cast<std::size_t>(Computed->Size);
+    Layout.Alignment = static_cast<std::size_t>(Computed->Alignment);
+    std::vector<std::pair<const ir::Type *, RuntimeTypeId>> Deferred;
+    // Pointer and function layouts do not depend on the storage of their referenced
+    // types. Complete these layouts before following their reserved type identities.
+    const auto ReserveReference = [&](const ir::Type &Referenced)
+    {
+      if (const auto Found = TypeIds.find(&Referenced); Found != TypeIds.end())
+      {
+        return Found->second;
+      }
+      const RuntimeTypeId Reference = Types->reserve();
+      if (Reference != InvalidRuntimeType)
+      {
+        TypeIds.emplace(&Referenced, Reference);
+        Deferred.emplace_back(&Referenced, Reference);
+      }
+      return Reference;
+    };
     switch (Type.typeKind())
     {
     case ir::TypeKind::Void:
-      Layout.Kind = RuntimeKind::Void;
+      Layout.setKind(RuntimeKind::Void);
+      Layout.Name = "void";
       break;
     case ir::TypeKind::Bool:
-      Layout.Kind = RuntimeKind::Boolean;
-      Layout.BitWidth = 1;
-      Layout.Size = sizeof(bool);
-      Layout.Alignment = alignof(bool);
-      Layout.Native = Target.isNativeAbiCompatible();
+      Layout.setKind(RuntimeKind::Boolean);
+      Layout.Name = "bool";
+      Layout.setBitWidth(1);
+      Layout.Native = Target.isNativeAbiCompatible() && Layout.Size == sizeof(bool) && Layout.Alignment == alignof(bool);
       break;
     case ir::TypeKind::Integer:
     {
       const auto &Integer = static_cast<const ir::IntegerType &>(Type);
-      Layout.Kind = RuntimeKind::Integer;
-      Layout.BitWidth = Integer.bitWidth();
-      Layout.Signed = Integer.isSigned();
-      Layout.Size = (static_cast<std::size_t>(Layout.BitWidth) + 7) / 8;
-      Layout.Native = Target.isNativeAbiCompatible() && (Layout.BitWidth == 8 || Layout.BitWidth == 16 || Layout.BitWidth == 32 || Layout.BitWidth == 64);
-      if (Layout.Native)
-      {
-        switch (Layout.BitWidth)
-        {
-        case 8:
-          Layout.Alignment = alignof(std::uint8_t);
-          break;
-        case 16:
-          Layout.Alignment = alignof(std::uint16_t);
-          break;
-        case 32:
-          Layout.Alignment = alignof(std::uint32_t);
-          break;
-        case 64:
-          Layout.Alignment = alignof(std::uint64_t);
-          break;
-        }
-      }
+      Layout.setKind(RuntimeKind::Integer);
+      Layout.setBitWidth(Integer.bitWidth());
+      Layout.editInteger().Signed = Integer.isSigned();
+      Layout.Name = std::string(Integer.isSigned() ? "i" : "u") + std::to_string(Integer.bitWidth());
+      Layout.Native = Target.isNativeAbiCompatible() && (Layout.bitWidth() == 8 || Layout.bitWidth() == 16 || Layout.bitWidth() == 32 || Layout.bitWidth() == 64);
       break;
     }
     case ir::TypeKind::Float:
-      Layout.Kind = RuntimeKind::Float;
-      Layout.BitWidth = static_cast<const ir::FloatType &>(Type).bitWidth();
-      Layout.Size = Layout.BitWidth / 8;
-      Layout.Native = Target.isNativeAbiCompatible() && (Layout.BitWidth == 32 || Layout.BitWidth == 64);
-      Layout.Alignment = Layout.BitWidth == 32 ? alignof(float) : Layout.BitWidth == 64 ? alignof(double) : 1;
+      Layout.setKind(RuntimeKind::Float);
+      Layout.setBitWidth(static_cast<const ir::FloatType &>(Type).bitWidth());
+      Layout.Name = "f" + std::to_string(Layout.bitWidth());
+      Layout.Native = Target.isNativeAbiCompatible() && (Layout.bitWidth() == 32 || Layout.bitWidth() == 64);
       break;
     case ir::TypeKind::Pointer:
     {
       const auto &Pointer = static_cast<const ir::PointerType &>(Type);
-      Layout.Kind = RuntimeKind::Pointer;
-      Layout.Pointee = lowerType(Pointer.pointeeType());
-      Layout.Writable = Pointer.access() == ir::AccessKind::ReadWrite;
-      Layout.Size = Target.pointerByteWidth();
-      Layout.Alignment = Layout.Size;
+      Layout.setKind(RuntimeKind::Pointer);
+      Layout.editPointer().Pointee = ReserveReference(Pointer.pointeeType());
+      Layout.editPointer().Writable = Pointer.access() == ir::AccessKind::ReadWrite;
+      if (Layout.pointerDesc().Pointee == InvalidRuntimeType)
+      {
+        TypeIds.erase(&Type);
+        return InvalidRuntimeType;
+      }
       break;
     }
     case ir::TypeKind::Array:
     {
       const auto &Array = static_cast<const ir::ArrayType &>(Type);
-      Layout.ElementType = lowerType(Array.elementType());
-      const StorageLayout *Element = Types->get(Layout.ElementType);
-      if (!Element || Element->Kind == RuntimeKind::Invalid || Element->Kind == RuntimeKind::Void || Array.elementCount() > std::numeric_limits<std::size_t>::max() || (Element->Size != 0 && Array.elementCount() > std::numeric_limits<std::size_t>::max() / Element->Size))
+      Layout.setKind(RuntimeKind::Array);
+      Layout.editArray().ElementType = lowerType(Array.elementType());
+      const TypeDesc *Element = Types->get(Layout.arrayDesc().ElementType);
+      if (!Element || Element->Kind == RuntimeKind::Invalid || Element->Kind == RuntimeKind::Void)
       {
+        TypeIds.erase(&Type);
         return InvalidRuntimeType;
       }
-      Layout.Kind = RuntimeKind::Array;
-      Layout.ElementCount = Array.elementCount();
-      Layout.ElementLayout = std::make_shared<const StorageLayout>(*Element);
-      Layout.Size = Element->Size * static_cast<std::size_t>(Layout.ElementCount);
-      Layout.Alignment = Element->Alignment;
+      Layout.editArray().ElementCount = Array.elementCount();
       Layout.Native = Element->Native;
+      break;
+    }
+    case ir::TypeKind::Class:
+    {
+      const auto &Class = static_cast<const ir::ClassType &>(Type);
+      auto Description = std::make_shared<ClassDesc>();
+      Layout.setKind(RuntimeKind::Class);
+      Description->NominalIdentity = Class.identity();
+      Layout.Native = true;
+      for (std::size_t Index = 0; Index < Class.fields().size(); ++Index)
+      {
+        const RuntimeTypeId Field = lowerType(*Class.fields()[Index].FieldType);
+        const TypeDesc *FieldLayout = Types->get(Field);
+        if (!FieldLayout || FieldLayout->Kind == RuntimeKind::Invalid || FieldLayout->Kind == RuntimeKind::Void || Computed->FieldOffsets[Index] > std::numeric_limits<std::size_t>::max())
+        {
+          TypeIds.erase(&Type);
+          return InvalidRuntimeType;
+        }
+        Description->Fields.push_back({std::string(Type.context().namePool().text(Class.fields()[Index].FieldName)), Field, static_cast<std::size_t>(Computed->FieldOffsets[Index]), Class.fields()[Index].Visibility == ir::VisibilityKind::Private ? MemberVisibility::Private : MemberVisibility::Public});
+        Layout.Native = Layout.Native && FieldLayout->Native;
+      }
+      Layout.setDetails(std::move(Description));
       break;
     }
     case ir::TypeKind::Slice:
@@ -120,39 +176,51 @@ namespace ink::execution
       const ir::Type &Element = Slice.elementType();
       if (Slice.access() == ir::AccessKind::ReadOnly && Element.typeKind() == ir::TypeKind::Integer && static_cast<const ir::IntegerType &>(Element).bitWidth() == 8 && !static_cast<const ir::IntegerType &>(Element).isSigned())
       {
-        Layout.Kind = RuntimeKind::String;
-        Layout.Size = Target.pointerByteWidth() * 2;
-        Layout.Alignment = Target.pointerByteWidth();
+        Layout.setKind(RuntimeKind::String);
+        Layout.Name = "string";
       }
       break;
     }
     case ir::TypeKind::Function:
     {
       const auto &Function = static_cast<const ir::FunctionType &>(Type);
-      Layout.Kind = RuntimeKind::Function;
-      Layout.ReturnType = lowerType(Function.returnType());
+      Layout.setKind(RuntimeKind::Function);
+      Layout.editFunction().ReturnType = ReserveReference(Function.returnType());
       for (const ir::Type *Parameter : Function.parameterTypes())
       {
-        Layout.Parameters.push_back(lowerType(*Parameter));
+        Layout.editFunction().Parameters.push_back(ReserveReference(*Parameter));
       }
-      Layout.Size = sizeof(FunctionId);
-      Layout.Alignment = alignof(FunctionId);
       break;
     }
     default:
       break;
     }
-    const RuntimeTypeId Id = Types->append(std::move(Layout));
-    if (Id == InvalidRuntimeType)
+    if (Layout.Kind == RuntimeKind::Invalid)
     {
-      return Id;
+      TypeIds.erase(&Type);
+      return InvalidRuntimeType;
     }
-    TypeIds.emplace(&Type, Id);
+    if (!Types->define(Id, std::move(Layout)))
+    {
+      TypeIds.erase(&Type);
+      return InvalidRuntimeType;
+    }
     if (SourceTypes.size() <= Id)
     {
       SourceTypes.resize(static_cast<std::size_t>(Id) + 1, nullptr);
     }
     SourceTypes[Id] = &Type;
+    ReflectionTypeCount = std::numeric_limits<std::size_t>::max();
+    for (const auto &[Referenced, Reference] : Deferred)
+    {
+      const TypeDesc *ReferencedLayout = Types->get(Reference);
+      if (!ReferencedLayout || (ReferencedLayout->Kind == RuntimeKind::Invalid && defineType(*Referenced, Reference) == InvalidRuntimeType))
+      {
+        TypeIds.erase(&Type);
+        return InvalidRuntimeType;
+      }
+    }
+    synchronizeReflection();
     return Id;
   }
 
@@ -315,6 +383,20 @@ namespace ink::execution
       }
       return {ExecutionStatus::Success, RuntimeValue::fromArray(std::move(Elements), Type)};
     }
+    case ExecutionValueKind::Class:
+    {
+      std::vector<RuntimeValue> Elements;
+      for (const auto &Element : Value.fields())
+      {
+        RuntimeValueResult Converted = lowerValue(Element);
+        if (!Converted)
+        {
+          return Converted;
+        }
+        Elements.push_back(std::move(Converted.Value));
+      }
+      return {ExecutionStatus::Success, RuntimeValue::fromClass(std::move(Elements), Type)};
+    }
     case ExecutionValueKind::Pointer:
       return {ExecutionStatus::Success, RuntimeValue::fromPointer(Value.pointer(), Type)};
     case ExecutionValueKind::Function:
@@ -376,6 +458,20 @@ namespace ink::execution
       }
       return {ExecutionStatus::Success, RuntimeValue::fromArray(std::move(Elements), Type)};
     }
+    case ir::ValueKind::ClassConstant:
+    {
+      std::vector<RuntimeValue> Elements;
+      for (const ir::Constant *Element : static_cast<const ir::ClassConstant &>(Value).fields())
+      {
+        RuntimeValueResult Converted = lowerConstant(*Element);
+        if (!Converted)
+        {
+          return Converted;
+        }
+        Elements.push_back(std::move(Converted.Value));
+      }
+      return {ExecutionStatus::Success, RuntimeValue::fromClass(std::move(Elements), Type)};
+    }
     default:
       return {ExecutionStatus::UnsupportedOperation};
     }
@@ -388,7 +484,7 @@ namespace ink::execution
       return {ExecutionStatus::Uninitialized};
     }
     const ir::Type *Source = sourceType(Type);
-    const StorageLayout *Layout = Types->get(Type);
+    const TypeDesc *Layout = Types->get(Type);
     if (!Source || !Layout || Value.Type != Type)
     {
       return {ExecutionStatus::TypeMismatch};
@@ -407,9 +503,9 @@ namespace ink::execution
       Result = Heap.boolean(*Source, Value.Bits != 0);
       break;
     case RuntimeKind::Integer:
-      if (Layout->BitWidth > 64)
+      if (Layout->bitWidth() > 64)
       {
-        if (Value.kind() != RuntimeKind::Integer || Value.integer().bitWidth() != Layout->BitWidth)
+        if (Value.kind() != RuntimeKind::Integer || Value.integer().bitWidth() != Layout->bitWidth())
         {
           return {ExecutionStatus::TypeMismatch};
         }
@@ -421,7 +517,7 @@ namespace ink::execution
         {
           return {ExecutionStatus::TypeMismatch};
         }
-        Result = Heap.integer(*Source, ExecutionInteger(Layout->BitWidth, Value.Bits));
+        Result = Heap.integer(*Source, ExecutionInteger(Layout->bitWidth(), Value.Bits));
       }
       break;
     case RuntimeKind::Float:
@@ -429,7 +525,7 @@ namespace ink::execution
       {
         return {ExecutionStatus::TypeMismatch};
       }
-      Result = Heap.floating(*Source, ir::FloatBits(Layout->BitWidth, Value.Bits));
+      Result = Heap.floating(*Source, ir::FloatBits(Layout->bitWidth(), Value.Bits));
       break;
     case RuntimeKind::String:
       if (Value.kind() != RuntimeKind::String)
@@ -461,7 +557,7 @@ namespace ink::execution
     }
     case RuntimeKind::Array:
     {
-      if (Value.kind() != RuntimeKind::Array || Value.array().size() != Layout->ElementCount)
+      if (Value.kind() != RuntimeKind::Array || Value.array().size() != Layout->arrayDesc().ElementCount)
       {
         return {ExecutionStatus::TypeMismatch};
       }
@@ -472,7 +568,7 @@ namespace ink::execution
         {
           return {Element.pointer().status()};
         }
-        ExecutionValueResult Converted = raiseValue(Heap, Element, Layout->ElementType);
+        ExecutionValueResult Converted = raiseValue(Heap, Element, Layout->arrayDesc().ElementType);
         if (!Converted)
         {
           return Converted;
@@ -480,6 +576,30 @@ namespace ink::execution
         Elements.push_back(std::move(Converted.Value));
       }
       Result = Heap.array(*Source, std::move(Elements));
+      break;
+    }
+    case RuntimeKind::Class:
+    {
+      if (Value.kind() != RuntimeKind::Class || Value.fields().size() != Layout->classDesc().Fields.size())
+      {
+        return {ExecutionStatus::TypeMismatch};
+      }
+      std::vector<ExecutionValueRef> Fields;
+      for (std::size_t Index = 0; Index < Value.fields().size(); ++Index)
+      {
+        const RuntimeValue &Field = Value.fields()[Index];
+        if (Field.kind() == RuntimeKind::Pointer && Field.pointer().status() != ExecutionStatus::Success)
+        {
+          return {Field.pointer().status()};
+        }
+        ExecutionValueResult Converted = raiseValue(Heap, Field, Layout->classDesc().Fields[Index].Type);
+        if (!Converted)
+        {
+          return Converted;
+        }
+        Fields.push_back(std::move(Converted.Value));
+      }
+      Result = Heap.classValue(*Source, std::move(Fields));
       break;
     }
     case RuntimeKind::Invalid:

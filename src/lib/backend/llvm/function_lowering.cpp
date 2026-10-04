@@ -1,715 +1,672 @@
 #include "lowering_context.h"
 
-#include "ink/ir/analysis/type_layout.h"
+#include "ink/execution/support/execution_result.h"
+#include "ink/core/diagnostic.h"
+#include "ink/ir/instruction/add_instruction.h"
+#include "ink/ir/instruction/alloca_instruction.h"
+#include "ink/ir/instruction/array_element_pointer_instruction.h"
+#include "ink/ir/instruction/array_extract_instruction.h"
+#include "ink/ir/instruction/array_instruction.h"
+#include "ink/ir/instruction/branch_instruction.h"
+#include "ink/ir/instruction/c_string_instruction.h"
+#include "ink/ir/instruction/call_instruction.h"
+#include "ink/ir/instruction/class_instruction.h"
+#include "ink/ir/instruction/compare_instruction.h"
+#include "ink/ir/instruction/conditional_branch_instruction.h"
+#include "ink/ir/instruction/field_extract_instruction.h"
+#include "ink/ir/instruction/field_pointer_instruction.h"
+#include "ink/ir/instruction/load_instruction.h"
+#include "ink/ir/instruction/logical_and_instruction.h"
+#include "ink/ir/instruction/logical_not_instruction.h"
+#include "ink/ir/instruction/logical_or_instruction.h"
+#include "ink/ir/instruction/return_instruction.h"
+#include "ink/ir/instruction/store_instruction.h"
+#include "ink/ir/type/class_type.h"
 
-#include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/GlobalVariable.h>
-#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Instructions.h>
 
 #include <algorithm>
-#include <cstddef>
-#include <optional>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include <limits>
 
 namespace ink::backend::llvm
 {
   namespace
   {
-    struct BlockSuccessors
+    using execution::ExecutionStatus;
+
+    class FunctionLowering final
     {
-        std::size_t Values[2]{};
-        std::size_t Count = 0;
+      public:
+        FunctionLowering(LoweringContext &Context, const ir::Function &Source, ::llvm::Function &Target)
+            : Context(Context),
+              Source(Source),
+              Target(Target),
+              Builder(Context.Context)
+        {
+        }
+
+        bool lower();
+        bool lowerReflection();
+
+      private:
+        bool instruction(const ir::Value &Instruction);
+        ::llvm::Value *value(const ir::Value &Value);
+        void require(::llvm::Value *Condition, ExecutionStatus Status);
+        ::llvm::Value *memoryLoad(const ir::Type &Type, ::llvm::Value *Address);
+        bool memoryStore(const ir::Type &Type, ::llvm::Value *Value, ::llvm::Value *Address);
+        ::llvm::Value *offset(::llvm::Value *Address, std::uint64_t Bytes);
+        ::llvm::Value *checkedIndex(const ir::Value &Index, std::uint64_t Count);
+        bool call(const ir::CallInstruction &Call, ::llvm::Value *&Result);
+
+        LoweringContext &Context;
+        const ir::Function &Source;
+        ::llvm::Function &Target;
+        ::llvm::IRBuilder<> Builder;
+        std::unordered_map<const ir::BasicBlock *, ::llvm::BasicBlock *> Blocks;
+        std::unordered_map<const ir::Value *, ::llvm::Value *> Values;
+        std::unordered_map<const ir::Value *, ::llvm::Value *> Initialized;
     };
 
-    BlockSuccessors blockSuccessors(const ir::Function &FunctionValue, std::size_t BlockIndex)
+    void FunctionLowering::require(::llvm::Value *Condition, ExecutionStatus Status)
     {
-      BlockSuccessors Result;
-      const ir::Instruction &Terminator = *FunctionValue.Blocks[BlockIndex].Instructions.back();
-      if (Terminator.kind() == ir::InstructionKind::Branch)
-      {
-        Result.Values[0] = static_cast<const ir::BranchInstruction &>(Terminator).Target.Block.value();
-        Result.Count = 1;
-      }
-      else if (Terminator.kind() == ir::InstructionKind::ConditionalBranch)
-      {
-        const ir::ConditionalBranchInstruction &Branch = static_cast<const ir::ConditionalBranchInstruction &>(Terminator);
-        Result.Values[0] = Branch.TrueTarget.Block.value();
-        Result.Values[1] = Branch.FalseTarget.Block.value();
-        Result.Count = 2;
-      }
-      return Result;
+      auto *Continue = ::llvm::BasicBlock::Create(Context.Context, "valid", &Target);
+      auto *Failed = ::llvm::BasicBlock::Create(Context.Context, "invalid", &Target);
+      Builder.CreateCondBr(Condition, Continue, Failed);
+      Builder.SetInsertPoint(Failed);
+      const core::DiagnosticKind Kind = Status == ExecutionStatus::IndexOutOfBounds ? core::DiagnosticKind::ExecutionIndexOutOfBounds : Status == ExecutionStatus::TypeMismatch ? core::DiagnosticKind::ExecutionTypeMismatch : core::DiagnosticKind::ExecutionRuntimeValue;
+      const std::string Message = "inkc: error[" + std::string(core::diagnosticCode(Kind)) + "]: AOT execution failed: " + std::string(core::diagnosticDefaultMessage(Kind)) + "\n";
+      auto *Panic = ::llvm::cast<::llvm::Function>(Context.helper("ink_aot_panic", Builder.getVoidTy(), {Context.PointerType, Context.SizeType}).getCallee());
+      Panic->addFnAttr(::llvm::Attribute::NoReturn);
+      Panic->addFnAttr(::llvm::Attribute::Cold);
+      // Preserve completed C I/O before the OS-only panic terminates the process.
+      Builder.CreateCall(Context.helper("fflush", Builder.getInt32Ty(), {Context.PointerType}), {::llvm::ConstantPointerNull::get(Context.PointerType)});
+      Builder.CreateCall(Panic, {Builder.CreateGlobalString(Message, "diagnostic"), ::llvm::ConstantInt::get(Context.SizeType, Message.size())});
+      Builder.CreateUnreachable();
+      Builder.SetInsertPoint(Continue);
     }
 
-    std::vector<std::size_t> blockLoweringOrder(const ir::Function &FunctionValue)
+    bool FunctionLowering::lower()
     {
-      struct TraversalEntry
+      auto *Entry = ::llvm::BasicBlock::Create(Context.Context, "prologue", &Target);
+      Builder.SetInsertPoint(Entry);
+      for (const auto &Block : Source.blocks())
       {
-          std::size_t BlockIndex = 0;
-          std::size_t NextSuccessor = 0;
-      };
-
-      std::vector<bool> Visited(FunctionValue.Blocks.size(), false);
-      std::vector<std::size_t> PostOrder;
-      std::vector<TraversalEntry> Stack;
-      Visited[0] = true;
-      Stack.push_back({0, 0});
-      while (!Stack.empty())
-      {
-        TraversalEntry &Entry = Stack.back();
-        const BlockSuccessors Successors = blockSuccessors(FunctionValue, Entry.BlockIndex);
-        if (Entry.NextSuccessor < Successors.Count)
+        if (!Block->terminator())
         {
-          const std::size_t Successor = Successors.Values[Entry.NextSuccessor++];
-          if (!Visited[Successor])
+          return Context.fail("AOT function contains an unterminated block");
+        }
+        Blocks.emplace(Block.get(), ::llvm::BasicBlock::Create(Context.Context, "block", &Target));
+        for (const auto &Value : Block->values())
+        {
+          if (Value->type().typeKind() == ir::TypeKind::Void || ir::Function::classof(Value.get()) || ir::Module::classof(Value.get()))
           {
-            Visited[Successor] = true;
-            Stack.push_back({Successor, 0});
+            continue;
           }
-          continue;
+          ::llvm::Type *Type = Context.lowerType(Value->type());
+          if (!Type)
+          {
+            return false;
+          }
+          Values.emplace(Value.get(), Builder.CreateAlloca(Type, nullptr, "value"));
+          auto *Flag = Builder.CreateAlloca(Builder.getInt1Ty(), nullptr, "initialized");
+          Builder.CreateStore(Builder.getFalse(), Flag);
+          Initialized.emplace(Value.get(), Flag);
         }
-        PostOrder.push_back(Entry.BlockIndex);
-        Stack.pop_back();
       }
-      std::reverse(PostOrder.begin(), PostOrder.end());
-      for (std::size_t BlockIndex = 0; BlockIndex < FunctionValue.Blocks.size(); ++BlockIndex)
+      std::size_t Index = 0;
+      for (::llvm::Argument &Argument : Target.args())
       {
-        if (!Visited[BlockIndex])
+        if (Source.parameters()[Index]->parameterKind() == ir::ParameterKind::Variadic)
         {
-          PostOrder.push_back(BlockIndex);
+          return Context.fail("AOT does not support variadic Ink functions");
+        }
+        Values.emplace(Source.parameters()[Index++].get(), &Argument);
+      }
+      for (const auto &Parameter : Source.parameters())
+      {
+        if (!Values.at(Parameter.get()))
+        {
+          return false;
         }
       }
-      return PostOrder;
+      Builder.CreateBr(Blocks.at(Source.entryBlock()));
+      for (const auto &Block : Source.blocks())
+      {
+        Builder.SetInsertPoint(Blocks.at(Block.get()));
+        for (const auto &Value : Block->values())
+        {
+          if (!instruction(*Value))
+          {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    bool FunctionLowering::lowerReflection()
+    {
+      Builder.SetInsertPoint(::llvm::BasicBlock::Create(Context.Context, "entry", &Target));
+      std::vector<::llvm::Value *> Arguments;
+      for (std::size_t Index = 0; Index < Source.parameters().size(); ++Index)
+      {
+        auto *Slot = Builder.CreateGEP(Context.PointerType, Target.getArg(1), ::llvm::ConstantInt::get(Context.SizeType, Index));
+        auto *Address = Builder.CreateLoad(Context.PointerType, Slot);
+        auto *Argument = memoryLoad(Source.parameters()[Index]->type(), Address);
+        if (!Argument)
+        {
+          return false;
+        }
+        Arguments.push_back(Argument);
+      }
+      auto *Result = Builder.CreateCall(Context.Functions.at(&Source), Arguments);
+      if (Source.functionType().returnType().typeKind() != ir::TypeKind::Void && !memoryStore(Source.functionType().returnType(), Result, Target.getArg(0)))
+      {
+        return false;
+      }
+      Builder.CreateRetVoid();
+      return true;
+    }
+
+    ::llvm::Value *FunctionLowering::value(const ir::Value &Value)
+    {
+      if (ir::Constant::classof(&Value) || ir::Function::classof(&Value))
+      {
+        return Context.constant(Value);
+      }
+      const auto Found = Values.find(&Value);
+      if (Found == Values.end())
+      {
+        Context.fail("AOT encountered an unresolved instruction operand");
+        return nullptr;
+      }
+      if (ir::FunctionParameter::classof(&Value))
+      {
+        return Found->second;
+      }
+      require(Builder.CreateLoad(Builder.getInt1Ty(), Initialized.at(&Value)), ExecutionStatus::RuntimeValue);
+      return Builder.CreateLoad(Context.lowerType(Value.type()), Found->second);
+    }
+
+    ::llvm::Value *FunctionLowering::offset(::llvm::Value *Address, std::uint64_t Bytes)
+    {
+      return Builder.CreateGEP(Builder.getInt8Ty(), Address, ::llvm::ConstantInt::get(Context.SizeType, Bytes));
+    }
+
+    ::llvm::Value *FunctionLowering::memoryLoad(const ir::Type &Type, ::llvm::Value *Address)
+    {
+      ::llvm::Type *TargetType = Context.lowerType(Type);
+      if (!TargetType)
+      {
+        return nullptr;
+      }
+      if (Type.typeKind() == ir::TypeKind::Bool)
+      {
+        ::llvm::Value *Bits = Builder.CreateAlignedLoad(Builder.getInt8Ty(), Address, ::llvm::Align(1));
+        require(Builder.CreateICmpULE(Bits, Builder.getInt8(1)), ExecutionStatus::TypeMismatch);
+        return Builder.CreateTrunc(Bits, Builder.getInt1Ty());
+      }
+      if (Type.typeKind() == ir::TypeKind::Class)
+      {
+        const auto &Class = static_cast<const ir::ClassType &>(Type);
+        const auto Layout = Context.layout(Type);
+        if (!Layout)
+        {
+          return nullptr;
+        }
+        ::llvm::Value *Result = ::llvm::Constant::getNullValue(TargetType);
+        for (std::size_t Index = 0; Index < Class.fields().size(); ++Index)
+        {
+          ::llvm::Value *Field = memoryLoad(*Class.fields()[Index].FieldType, offset(Address, Layout->FieldOffsets[Index]));
+          if (!Field)
+          {
+            return nullptr;
+          }
+          Result = Builder.CreateInsertValue(Result, Field, {static_cast<unsigned>(Index)});
+        }
+        return Result;
+      }
+      if (Type.typeKind() == ir::TypeKind::Array)
+      {
+        const auto &Array = static_cast<const ir::ArrayType &>(Type);
+        const auto Layout = Context.layout(Array.elementType());
+        if (!Layout)
+        {
+          return nullptr;
+        }
+        ::llvm::Value *Result = ::llvm::Constant::getNullValue(TargetType);
+        for (std::uint64_t Index = 0; Index < Array.elementCount(); ++Index)
+        {
+          ::llvm::Value *Element = memoryLoad(Array.elementType(), offset(Address, Layout->Stride * Index));
+          if (!Element)
+          {
+            return nullptr;
+          }
+          Result = Builder.CreateInsertValue(Result, Element, {static_cast<unsigned>(Index)});
+        }
+        return Result;
+      }
+      return Builder.CreateAlignedLoad(TargetType, Address, ::llvm::Align(1));
+    }
+
+    bool FunctionLowering::memoryStore(const ir::Type &Type, ::llvm::Value *Value, ::llvm::Value *Address)
+    {
+      if (Type.typeKind() == ir::TypeKind::Bool)
+      {
+        Builder.CreateAlignedStore(Builder.CreateZExt(Value, Builder.getInt8Ty()), Address, ::llvm::Align(1));
+        return true;
+      }
+      if (Type.typeKind() == ir::TypeKind::Class)
+      {
+        const auto &Class = static_cast<const ir::ClassType &>(Type);
+        const auto Layout = Context.layout(Type);
+        if (!Layout)
+        {
+          return false;
+        }
+        for (std::size_t Index = 0; Index < Class.fields().size(); ++Index)
+        {
+          if (!memoryStore(*Class.fields()[Index].FieldType, Builder.CreateExtractValue(Value, {static_cast<unsigned>(Index)}), offset(Address, Layout->FieldOffsets[Index])))
+          {
+            return false;
+          }
+        }
+        return true;
+      }
+      if (Type.typeKind() == ir::TypeKind::Array)
+      {
+        const auto &Array = static_cast<const ir::ArrayType &>(Type);
+        const auto Layout = Context.layout(Array.elementType());
+        if (!Layout)
+        {
+          return false;
+        }
+        for (std::uint64_t Index = 0; Index < Array.elementCount(); ++Index)
+        {
+          if (!memoryStore(Array.elementType(), Builder.CreateExtractValue(Value, {static_cast<unsigned>(Index)}), offset(Address, Layout->Stride * Index)))
+          {
+            return false;
+          }
+        }
+        return true;
+      }
+      Builder.CreateAlignedStore(Value, Address, ::llvm::Align(1));
+      return true;
+    }
+
+    ::llvm::Value *FunctionLowering::checkedIndex(const ir::Value &Index, std::uint64_t Count)
+    {
+      ::llvm::Value *Result = value(Index);
+      if (!Result || !Result->getType()->isIntegerTy())
+      {
+        Context.fail("AOT array index must be an integer");
+        return nullptr;
+      }
+      const auto Width = Result->getType()->getIntegerBitWidth();
+      if (static_cast<const ir::IntegerType &>(Index.type()).isSigned())
+      {
+        require(Builder.CreateICmpSGE(Result, ::llvm::ConstantInt::get(Result->getType(), 0)), ExecutionStatus::IndexOutOfBounds);
+      }
+      // Compare before truncating wide indices so negative and overflowing values cannot wrap.
+      const auto CompareWidth = std::max<unsigned>(Width, Context.SizeType->getBitWidth());
+      auto *CompareType = ::llvm::IntegerType::get(Context.Context, CompareWidth);
+      ::llvm::Value *Extended = Builder.CreateZExtOrTrunc(Result, CompareType);
+      require(Builder.CreateICmpULT(Extended, ::llvm::ConstantInt::get(CompareType, Count)), ExecutionStatus::IndexOutOfBounds);
+      return Builder.CreateZExtOrTrunc(Result, Context.SizeType);
+    }
+
+    bool FunctionLowering::call(const ir::CallInstruction &Call, ::llvm::Value *&Result)
+    {
+      const ir::Function *Direct = Call.directCallee();
+      const bool Native = Direct && Direct->isNativeImport() && !Context.NativeDefinitions.contains(Direct);
+      ::llvm::FunctionType *Signature = Context.signature(Call.functionType(), Native);
+      ::llvm::Value *Callee = value(Call.callee());
+      if (!Signature || !Callee)
+      {
+        return false;
+      }
+      if (!Direct)
+      {
+        return Context.fail("AOT indirect calls are not yet supported");
+      }
+      std::vector<::llvm::Value *> Arguments;
+      for (std::size_t Index = 0; Index < Call.arguments().size(); ++Index)
+      {
+        const ir::Value &Argument = *Call.arguments()[Index];
+        const ir::Type &Parameter = *Call.functionType().parameterTypes()[Index];
+        ::llvm::Value *Item = value(Argument);
+        if (!Item)
+        {
+          return false;
+        }
+        if (Native && Parameter.typeKind() == ir::TypeKind::Pointer)
+        {
+          if (Argument.type().typeKind() == ir::TypeKind::Slice)
+          {
+            if (!ir::StringConstant::classof(&Argument) || !static_cast<const ir::StringConstant &>(Argument).tryGetCString())
+            {
+              return Context.fail("AOT implicit C string conversion requires a NUL-free string constant");
+            }
+            Item = Builder.CreateExtractValue(Item, {0});
+          }
+        }
+        Arguments.push_back(Item);
+      }
+      Result = Builder.CreateCall(Signature, Callee, Arguments);
+      return true;
+    }
+
+    bool FunctionLowering::instruction(const ir::Value &Instruction)
+    {
+      ::llvm::Value *Result = nullptr;
+      switch (Instruction.kind())
+      {
+        case ir::ValueKind::Function:
+        case ir::ValueKind::Module:
+          return true;
+        case ir::ValueKind::AllocaInstruction:
+        {
+          const auto Layout = Context.layout(static_cast<const ir::AllocaInstruction &>(Instruction).allocatedType());
+          if (!Layout)
+          {
+            return false;
+          }
+          auto *Storage = Builder.CreateAlloca(Builder.getInt8Ty(), ::llvm::ConstantInt::get(Context.SizeType, std::max<std::uint64_t>(Layout->Size, 1)), "object");
+          Storage->setAlignment(::llvm::Align(Layout->Alignment));
+          Result = Storage;
+          break;
+        }
+        case ir::ValueKind::CStringInstruction:
+        {
+          const auto &String = static_cast<const ir::CStringInstruction &>(Instruction).source();
+          ::llvm::Value *Constant = Context.constant(String);
+          if (!Constant)
+          {
+            return false;
+          }
+          auto *Size = ::llvm::ConstantInt::get(Context.SizeType, String.value().size() + 1);
+          Result = Builder.CreateAlloca(Builder.getInt8Ty(), Size, "cstring");
+          Builder.CreateMemCpy(Result, ::llvm::Align(1), Builder.CreateExtractValue(Constant, {0}), ::llvm::Align(1), Size);
+          break;
+        }
+        case ir::ValueKind::LoadInstruction:
+        {
+          const auto &Load = static_cast<const ir::LoadInstruction &>(Instruction);
+          ::llvm::Value *Pointer = value(Load.address());
+          const auto Layout = Context.layout(Load.type());
+          if (!Pointer || !Layout)
+          {
+            return false;
+          }
+          Result = memoryLoad(Load.type(), Pointer);
+          if (!Result)
+          {
+            return false;
+          }
+          break;
+        }
+        case ir::ValueKind::StoreInstruction:
+        {
+          const auto &Store = static_cast<const ir::StoreInstruction &>(Instruction);
+          ::llvm::Value *Pointer = value(Store.address());
+          ::llvm::Value *Stored = value(Store.storedValue());
+          const auto Layout = Context.layout(Store.storedValue().type());
+          if (!Pointer || !Layout || !Stored)
+          {
+            return false;
+          }
+          if (static_cast<const ir::PointerType &>(Store.address().type()).access() != ir::AccessKind::ReadWrite)
+          {
+            return Context.fail("AOT cannot store through a read-only pointer");
+          }
+          if (!memoryStore(Store.storedValue().type(), Stored, Pointer))
+          {
+            return false;
+          }
+          return true;
+        }
+        case ir::ValueKind::ClassInstruction:
+        {
+          const auto &Class = static_cast<const ir::ClassInstruction &>(Instruction);
+          ::llvm::Type *Type = Context.lowerType(Class.type());
+          if (!Type)
+          {
+            return false;
+          }
+          Result = ::llvm::Constant::getNullValue(Type);
+          for (std::size_t Index = 0; Index < Class.fields().size(); ++Index)
+          {
+            ::llvm::Value *Field = value(*Class.fields()[Index]);
+            if (!Field)
+            {
+              return false;
+            }
+            Result = Builder.CreateInsertValue(Result, Field, {static_cast<unsigned>(Index)});
+          }
+          break;
+        }
+        case ir::ValueKind::FieldExtractInstruction:
+        {
+          const auto &Extract = static_cast<const ir::FieldExtractInstruction &>(Instruction);
+          ::llvm::Value *Object = value(Extract.object());
+          if (!Object)
+          {
+            return false;
+          }
+          Result = Builder.CreateExtractValue(Object, {static_cast<unsigned>(Extract.fieldIndex())});
+          break;
+        }
+        case ir::ValueKind::FieldPointerInstruction:
+        {
+          const auto &Field = static_cast<const ir::FieldPointerInstruction &>(Instruction);
+          const ir::Type &ObjectType = static_cast<const ir::PointerType &>(Field.address().type()).pointeeType();
+          const auto Layout = Context.layout(ObjectType);
+          const auto FieldLayout = Context.layout(static_cast<const ir::PointerType &>(Field.type()).pointeeType());
+          ::llvm::Value *Pointer = value(Field.address());
+          if (!Layout || !FieldLayout || !Pointer || Field.fieldIndex() >= Layout->FieldOffsets.size())
+          {
+            return Context.fail("AOT field address has an invalid layout or index");
+          }
+          Result = offset(Pointer, Layout->FieldOffsets[Field.fieldIndex()]);
+          break;
+        }
+        case ir::ValueKind::ArrayInstruction:
+        {
+          const auto &Array = static_cast<const ir::ArrayInstruction &>(Instruction);
+          ::llvm::Type *Type = Context.lowerType(Array.type());
+          if (!Type)
+          {
+            return false;
+          }
+          Result = ::llvm::Constant::getNullValue(Type);
+          for (std::uint64_t Index = 0; Index < Array.arrayType().elementCount(); ++Index)
+          {
+            const ir::Value &Element = *Array.elements()[Array.repeated() ? 0 : Index];
+            ::llvm::Value *Item = value(Element);
+            if (!Item)
+            {
+              return false;
+            }
+            Result = Builder.CreateInsertValue(Result, Item, {static_cast<unsigned>(Index)});
+          }
+          break;
+        }
+        case ir::ValueKind::ArrayElementPointerInstruction:
+        {
+          const auto &Element = static_cast<const ir::ArrayElementPointerInstruction &>(Instruction);
+          const auto &Array = static_cast<const ir::ArrayType &>(static_cast<const ir::PointerType &>(Element.address().type()).pointeeType());
+          const auto Layout = Context.layout(Array.elementType());
+          ::llvm::Value *Pointer = value(Element.address());
+          ::llvm::Value *Index = checkedIndex(Element.index(), Array.elementCount());
+          if (!Layout || !Pointer || !Index)
+          {
+            return false;
+          }
+          Result = Builder.CreateGEP(Builder.getInt8Ty(), Pointer, Builder.CreateMul(Index, ::llvm::ConstantInt::get(Context.SizeType, Layout->Stride)));
+          break;
+        }
+        case ir::ValueKind::ArrayExtractInstruction:
+        {
+          const auto &Extract = static_cast<const ir::ArrayExtractInstruction &>(Instruction);
+          const auto &Array = static_cast<const ir::ArrayType &>(Extract.array().type());
+          ::llvm::Value *Object = value(Extract.array());
+          ::llvm::Value *Index = checkedIndex(Extract.index(), Array.elementCount());
+          if (!Index || !Object)
+          {
+            return false;
+          }
+          ::llvm::IRBuilder<> Prologue(&Target.getEntryBlock(), Target.getEntryBlock().begin());
+          auto *Temporary = Prologue.CreateAlloca(Object->getType());
+          Builder.CreateStore(Object, Temporary);
+          ::llvm::Value *Address = Builder.CreateGEP(Object->getType(), Temporary, {Builder.getInt32(0), Index});
+          Result = Builder.CreateLoad(Context.lowerType(Extract.type()), Address);
+          break;
+        }
+        case ir::ValueKind::AddInstruction:
+        case ir::ValueKind::LogicalAndInstruction:
+        case ir::ValueKind::LogicalOrInstruction:
+        {
+          const ir::Value *LeftSource = nullptr;
+          const ir::Value *RightSource = nullptr;
+          if (Instruction.kind() == ir::ValueKind::AddInstruction)
+          {
+            const auto &Add = static_cast<const ir::AddInstruction &>(Instruction);
+            LeftSource = &Add.left();
+            RightSource = &Add.right();
+          }
+          else if (Instruction.kind() == ir::ValueKind::LogicalAndInstruction)
+          {
+            const auto &And = static_cast<const ir::LogicalAndInstruction &>(Instruction);
+            LeftSource = &And.left();
+            RightSource = &And.right();
+          }
+          else
+          {
+            const auto &Or = static_cast<const ir::LogicalOrInstruction &>(Instruction);
+            LeftSource = &Or.left();
+            RightSource = &Or.right();
+          }
+          ::llvm::Value *Left = value(*LeftSource);
+          ::llvm::Value *Right = value(*RightSource);
+          if (!Left || !Right)
+          {
+            return false;
+          }
+          Result = Instruction.kind() == ir::ValueKind::AddInstruction ? Builder.CreateAdd(Left, Right) : Instruction.kind() == ir::ValueKind::LogicalAndInstruction ? Builder.CreateAnd(Left, Right) : Builder.CreateOr(Left, Right);
+          break;
+        }
+        case ir::ValueKind::LogicalNotInstruction:
+        {
+          ::llvm::Value *Operand = value(static_cast<const ir::LogicalNotInstruction &>(Instruction).operand());
+          if (!Operand)
+          {
+            return false;
+          }
+          Result = Builder.CreateNot(Operand);
+          break;
+        }
+        case ir::ValueKind::CompareInstruction:
+        {
+          const auto &Compare = static_cast<const ir::CompareInstruction &>(Instruction);
+          ::llvm::Value *Left = value(Compare.left());
+          ::llvm::Value *Right = value(Compare.right());
+          if (!Left || !Right)
+          {
+            return false;
+          }
+          const bool Signed = Compare.left().type().typeKind() == ir::TypeKind::Integer && static_cast<const ir::IntegerType &>(Compare.left().type()).isSigned();
+          ::llvm::CmpInst::Predicate Predicate = ::llvm::CmpInst::ICMP_EQ;
+          switch (Compare.predicate())
+          {
+            case ir::ComparisonPredicate::Equal:
+              Predicate = ::llvm::CmpInst::ICMP_EQ;
+              break;
+            case ir::ComparisonPredicate::NotEqual:
+              Predicate = ::llvm::CmpInst::ICMP_NE;
+              break;
+            case ir::ComparisonPredicate::Less:
+              Predicate = Signed ? ::llvm::CmpInst::ICMP_SLT : ::llvm::CmpInst::ICMP_ULT;
+              break;
+            case ir::ComparisonPredicate::LessEqual:
+              Predicate = Signed ? ::llvm::CmpInst::ICMP_SLE : ::llvm::CmpInst::ICMP_ULE;
+              break;
+            case ir::ComparisonPredicate::Greater:
+              Predicate = Signed ? ::llvm::CmpInst::ICMP_SGT : ::llvm::CmpInst::ICMP_UGT;
+              break;
+            case ir::ComparisonPredicate::GreaterEqual:
+              Predicate = Signed ? ::llvm::CmpInst::ICMP_SGE : ::llvm::CmpInst::ICMP_UGE;
+              break;
+          }
+          Result = Builder.CreateICmp(Predicate, Left, Right);
+          break;
+        }
+        case ir::ValueKind::CallInstruction:
+          if (!call(static_cast<const ir::CallInstruction &>(Instruction), Result))
+          {
+            return false;
+          }
+          break;
+        case ir::ValueKind::ReturnInstruction:
+        {
+          const ir::Value *Returned = static_cast<const ir::ReturnInstruction &>(Instruction).returnedValue();
+          ::llvm::Value *ReturnValue = Returned ? value(*Returned) : nullptr;
+          if (Returned && !ReturnValue)
+          {
+            return false;
+          }
+          if (ReturnValue)
+          {
+            Builder.CreateRet(ReturnValue);
+          }
+          else
+          {
+            Builder.CreateRetVoid();
+          }
+          return true;
+        }
+        case ir::ValueKind::BranchInstruction:
+          Builder.CreateBr(Blocks.at(&static_cast<const ir::BranchInstruction &>(Instruction).target()));
+          return true;
+        case ir::ValueKind::ConditionalBranchInstruction:
+        {
+          const auto &Branch = static_cast<const ir::ConditionalBranchInstruction &>(Instruction);
+          ::llvm::Value *Condition = value(Branch.condition());
+          if (!Condition)
+          {
+            return false;
+          }
+          Builder.CreateCondBr(Condition, Blocks.at(&Branch.trueTarget()), Blocks.at(&Branch.falseTarget()));
+          return true;
+        }
+        default:
+          return Context.fail("AOT encountered an unsupported instruction kind");
+      }
+      if (Instruction.type().typeKind() != ir::TypeKind::Void)
+      {
+        if (!Result)
+        {
+          return Context.fail("AOT instruction did not produce its declared value");
+        }
+        Builder.CreateStore(Result, Values.at(&Instruction));
+        Builder.CreateStore(Builder.getTrue(), Initialized.at(&Instruction));
+      }
+      return true;
     }
   } // namespace
 
-  class LoweringContext::FunctionLoweringContext final
+  bool LoweringContext::lowerFunction(const ir::Function &Function)
   {
-    public:
-      FunctionLoweringContext(LoweringContext &ModuleContext, const ir::Function &SourceFunction, ::llvm::Function &TargetFunction)
-          : ModuleContext(ModuleContext),
-            SourceFunction(SourceFunction),
-            TargetFunction(TargetFunction),
-            Builder(ModuleContext.Context)
-      {
-      }
-
-      bool lower();
-
-    private:
-      struct PendingPhi
-      {
-          const ir::PhiInstruction *Source = nullptr;
-          ::llvm::PHINode *Target = nullptr;
-      };
-
-      bool createPhiNodes();
-      bool lowerInstruction(const ir::Instruction &InstructionValue);
-      ::llvm::Value *lowerValue(const ir::Value &Value);
-      bool completePhiNodes();
-      ::llvm::Value *lowerMemoryLoad(const ir::Type &TypeValue, ::llvm::Value *Pointer, const std::string &Name);
-      bool lowerMemoryStore(const ir::Type &TypeValue, ::llvm::Value *StoredValue, ::llvm::Value *Pointer);
-      ::llvm::Value *offsetPointer(::llvm::Value *Pointer, std::size_t ByteOffset, const std::string &Name);
-      ::llvm::CmpInst::Predicate lowerComparePredicate(ir::ComparePredicate Predicate, ir::TypeKind OperandType);
-
-      LoweringContext &ModuleContext;
-      const ir::Function &SourceFunction;
-      ::llvm::Function &TargetFunction;
-      ::llvm::IRBuilder<> Builder;
-      std::unordered_map<std::size_t, ::llvm::Value *> Values;
-      std::unordered_map<const ::llvm::Value *, ::llvm::AllocaInst *> SliceAllocas;
-      std::vector<::llvm::BasicBlock *> Blocks;
-      std::vector<PendingPhi> PendingPhis;
-  };
-
-  bool LoweringContext::declareFunctions()
-  {
-    Functions.reserve(SourceModule.Functions.size());
-    for (const ir::Function &FunctionValue : SourceModule.Functions)
-    {
-      if (FunctionValue.Kind == ir::FunctionKind::Imported)
-      {
-        addFailure<core::DiagnosticKind::LLVMImportedFunctionUnsupported>(FunctionValue.Name);
-        return false;
-      }
-      if (FunctionValue.ResultType == nullptr)
-      {
-        addFailure<core::DiagnosticKind::LLVMFunctionMissingResultType>(FunctionValue.Name);
-        return false;
-      }
-      ::llvm::Type *ResultType = lowerType(*FunctionValue.ResultType);
-      if (ResultType == nullptr)
-      {
-        return false;
-      }
-      std::vector<::llvm::Type *> ParameterTypes;
-      ParameterTypes.reserve(FunctionValue.parameterCount());
-      for (std::size_t ParameterIndex = 0; ParameterIndex < FunctionValue.parameterCount(); ++ParameterIndex)
-      {
-        const ir::Type *ParameterType = FunctionValue.parameterType(ParameterIndex);
-        if (ParameterType == nullptr)
-        {
-          addFailure<core::DiagnosticKind::LLVMFunctionParameterMissingType>(FunctionValue.Name, ParameterIndex);
-          return false;
-        }
-        ::llvm::Type *LoweredParameterType = lowerType(*ParameterType);
-        if (LoweredParameterType == nullptr)
-        {
-          return false;
-        }
-        ParameterTypes.push_back(LoweredParameterType);
-      }
-      ::llvm::FunctionType *Signature = ::llvm::FunctionType::get(ResultType, ParameterTypes, false);
-      ::llvm::Function *Function = ::llvm::Function::Create(Signature, ::llvm::GlobalValue::ExternalLinkage, FunctionValue.Name.str(), TargetModule.get());
-      std::size_t ParameterIndex = 0;
-      for (::llvm::Argument &Argument : Function->args())
-      {
-        Argument.setName(valueName(ir::ValueId{ParameterIndex++}));
-      }
-      Functions.push_back(Function);
-    }
-    return true;
+    return FunctionLowering(*this, Function, *Functions.at(&Function)).lower();
   }
-
-  bool LoweringContext::lowerFunctions()
+  ::llvm::Function *LoweringContext::reflectionThunk(const ir::Function &Function)
   {
-    for (std::size_t FunctionIndex = 0; FunctionIndex < SourceModule.Functions.size(); ++FunctionIndex)
-    {
-      if (SourceModule.Functions[FunctionIndex].Kind != ir::FunctionKind::Definition)
-      {
-        continue;
-      }
-      FunctionLoweringContext FunctionLowering(*this, SourceModule.Functions[FunctionIndex], *Functions[FunctionIndex]);
-      if (!FunctionLowering.lower())
-      {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool LoweringContext::FunctionLoweringContext::lower()
-  {
-    std::size_t ParameterIndex = 0;
-    for (::llvm::Argument &Argument : TargetFunction.args())
-    {
-      Values.emplace(ParameterIndex++, &Argument);
-    }
-    Blocks.reserve(SourceFunction.Blocks.size());
-    for (const ir::BasicBlock &Block : SourceFunction.Blocks)
-    {
-      Blocks.push_back(::llvm::BasicBlock::Create(ModuleContext.Context, Block.Name.str(), &TargetFunction));
-    }
-    if (!createPhiNodes())
-    {
-      return false;
-    }
-    const std::vector<std::size_t> LoweringOrder = blockLoweringOrder(SourceFunction);
-    for (const std::size_t BlockIndex : LoweringOrder)
-    {
-      Builder.SetInsertPoint(Blocks[BlockIndex]);
-      for (const std::unique_ptr<ir::Instruction> &InstructionValue : SourceFunction.Blocks[BlockIndex].Instructions)
-      {
-        if (InstructionValue->kind() != ir::InstructionKind::Phi && !lowerInstruction(*InstructionValue))
-        {
-          return false;
-        }
-      }
-    }
-    return completePhiNodes();
-  }
-
-  bool LoweringContext::FunctionLoweringContext::createPhiNodes()
-  {
-    for (std::size_t BlockIndex = 0; BlockIndex < SourceFunction.Blocks.size(); ++BlockIndex)
-    {
-      Builder.SetInsertPoint(Blocks[BlockIndex]);
-      for (const std::unique_ptr<ir::Instruction> &InstructionValue : SourceFunction.Blocks[BlockIndex].Instructions)
-      {
-        if (InstructionValue->kind() != ir::InstructionKind::Phi)
-        {
-          break;
-        }
-        const ir::PhiInstruction &Phi = static_cast<const ir::PhiInstruction &>(*InstructionValue);
-        if (Phi.ResultType == nullptr)
-        {
-          ModuleContext.addFailure<core::DiagnosticKind::LLVMPhiMissingResultType>(SourceFunction.Name, Phi.Result.value());
-          return false;
-        }
-        ::llvm::Type *ResultType = ModuleContext.lowerType(*Phi.ResultType);
-        if (ResultType == nullptr)
-        {
-          return false;
-        }
-        ::llvm::PHINode *TargetPhi = Builder.CreatePHI(ResultType, static_cast<unsigned>(Phi.IncomingValues.size()), ModuleContext.valueName(Phi.Result));
-        Values.emplace(Phi.Result.value(), TargetPhi);
-        PendingPhis.push_back({&Phi, TargetPhi});
-      }
-    }
-    return true;
-  }
-
-  ::llvm::Value *LoweringContext::FunctionLoweringContext::lowerValue(const ir::Value &Value)
-  {
-    switch (Value.kind())
-    {
-    case ir::ValueKind::IntegerConstant:
-    case ir::ValueKind::FloatConstant:
-    case ir::ValueKind::StringConstant:
-    case ir::ValueKind::NullConstant:
-    case ir::ValueKind::ZeroInitializer:
-    case ir::ValueKind::AggregateConstant:
-      return ModuleContext.lowerConstant(static_cast<const ir::Constant &>(Value));
-    case ir::ValueKind::ValueOperand:
-    {
-      const ir::ValueId Id = static_cast<const ir::ValueOperand &>(Value).id();
-      const auto ValueIterator = Values.find(Id.value());
-      if (ValueIterator == Values.end())
-      {
-        ModuleContext.addFailure<core::DiagnosticKind::LLVMUnresolvedSSAValue>(Id.value());
-        return nullptr;
-      }
-      return ValueIterator->second;
-    }
-    case ir::ValueKind::GlobalAddressOperand:
-      return ModuleContext.lowerGlobalAddress(static_cast<const ir::GlobalAddressOperand &>(Value));
-    case ir::ValueKind::GlobalVariableAddressOperand:
-      return ModuleContext.lowerGlobalVariableAddress(static_cast<const ir::GlobalVariableAddressOperand &>(Value));
-    }
-    ModuleContext.addFailure<core::DiagnosticKind::LLVMUnknownValueKind>();
-    return nullptr;
-  }
-
-  bool LoweringContext::FunctionLoweringContext::lowerInstruction(const ir::Instruction &InstructionValue)
-  {
-    switch (InstructionValue.kind())
-    {
-    case ir::InstructionKind::Call:
-    {
-      const ir::CallInstruction &Call = static_cast<const ir::CallInstruction &>(InstructionValue);
-      if (!Call.Callee.valid() || Call.Callee.value() >= ModuleContext.Functions.size())
-      {
-        ModuleContext.addFailure<core::DiagnosticKind::LLVMInvalidCallTarget>(Call.Callee.value());
-        return false;
-      }
-      std::vector<::llvm::Value *> Arguments;
-      Arguments.reserve(Call.Arguments.size());
-      for (const ir::ValueHandle &Argument : Call.Arguments)
-      {
-        ::llvm::Value *LoweredArgument = lowerValue(*Argument);
-        if (LoweredArgument == nullptr)
-        {
-          return false;
-        }
-        Arguments.push_back(LoweredArgument);
-      }
-      const std::string Name = Call.Result.has_value() ? ModuleContext.valueName(*Call.Result) : std::string{};
-      ::llvm::CallInst *LoweredCall = Builder.CreateCall(ModuleContext.Functions[Call.Callee.value()], Arguments, Name);
-      if (Call.Result.has_value())
-      {
-        Values.emplace(Call.Result->value(), LoweredCall);
-      }
-      return true;
-    }
-    case ir::InstructionKind::Import:
-    {
-      const ir::ImportInstruction &Import = static_cast<const ir::ImportInstruction &>(InstructionValue);
-      ModuleContext.addFailure<core::DiagnosticKind::LLVMRuntimeModuleImportUnsupported>(Import.Module);
-      return false;
-    }
-    case ir::InstructionKind::Alloca:
-    {
-      const ir::AllocaInstruction &Alloca = static_cast<const ir::AllocaInstruction &>(InstructionValue);
-      ::llvm::Value *Size = lowerValue(*Alloca.Size);
-      ::llvm::Type *SliceType = Alloca.ResultType == nullptr ? nullptr : ModuleContext.lowerType(*Alloca.ResultType);
-      if (Size == nullptr || SliceType == nullptr)
-      {
-        return false;
-      }
-      ::llvm::AllocaInst *Storage = Builder.CreateAlloca(::llvm::Type::getInt8Ty(ModuleContext.Context), Size, ModuleContext.valueName(Alloca.Result) + ".storage");
-      Storage->setAlignment(::llvm::Align(1));
-      Builder.CreateMemSet(Storage, Builder.getInt8(0), Size, ::llvm::MaybeAlign(1));
-      ::llvm::Value *SliceWithData = Builder.CreateInsertValue(::llvm::UndefValue::get(SliceType), Storage, {0}, ModuleContext.valueName(Alloca.Result) + ".data");
-      ::llvm::Value *Slice = Builder.CreateInsertValue(SliceWithData, Size, {1}, ModuleContext.valueName(Alloca.Result));
-      Values.emplace(Alloca.Result.value(), Slice);
-      SliceAllocas.emplace(Slice, Storage);
-      return true;
-    }
-    case ir::InstructionKind::GetElementPointer:
-    {
-      const ir::GetElementPointerInstruction &GetElementPointer = static_cast<const ir::GetElementPointerInstruction &>(InstructionValue);
-      ::llvm::Value *Pointer = lowerValue(*GetElementPointer.Pointer);
-      ::llvm::Value *Index = lowerValue(*GetElementPointer.Index);
-      ::llvm::Type *ElementType = GetElementPointer.ElementType == nullptr ? nullptr : ModuleContext.lowerType(*GetElementPointer.ElementType);
-      if (Pointer == nullptr || Index == nullptr || ElementType == nullptr)
-      {
-        return false;
-      }
-      std::vector<::llvm::Value *> Indices{Index};
-      const ir::Type *IndexedType = GetElementPointer.ElementType;
-      for (const ir::ValueHandle &FieldIndexValue : GetElementPointer.FieldIndices)
-      {
-        const ir::IntegerConstant &FieldIndex = static_cast<const ir::IntegerConstant &>(*FieldIndexValue);
-        const ir::StructType &Struct = static_cast<const ir::StructType &>(*IndexedType);
-        const std::size_t LogicalIndex = static_cast<std::size_t>(FieldIndex.unsignedValue());
-        const std::vector<unsigned> *PhysicalIndices = ModuleContext.physicalFieldIndices(Struct, LogicalIndex);
-        if (PhysicalIndices == nullptr)
-        {
-          return false;
-        }
-        for (const unsigned PhysicalIndex : *PhysicalIndices)
-        {
-          Indices.push_back(::llvm::ConstantInt::get(::llvm::Type::getInt32Ty(ModuleContext.Context), PhysicalIndex));
-        }
-        IndexedType = Struct.fieldType(LogicalIndex);
-      }
-      ::llvm::Value *Result = Builder.CreateGEP(ElementType, Pointer, Indices, ModuleContext.valueName(GetElementPointer.Result));
-      Values.emplace(GetElementPointer.Result.value(), Result);
-      return true;
-    }
-    case ir::InstructionKind::Load:
-    {
-      const ir::LoadInstruction &Load = static_cast<const ir::LoadInstruction &>(InstructionValue);
-      ::llvm::Value *Pointer = lowerValue(*Load.Pointer);
-      if (Pointer == nullptr || Load.ResultType == nullptr)
-      {
-        return false;
-      }
-      ::llvm::Value *Result = lowerMemoryLoad(*Load.ResultType, Pointer, ModuleContext.valueName(Load.Result));
-      if (Result == nullptr)
-      {
-        return false;
-      }
-      Values.emplace(Load.Result.value(), Result);
-      return true;
-    }
-    case ir::InstructionKind::Store:
-    {
-      const ir::StoreInstruction &Store = static_cast<const ir::StoreInstruction &>(InstructionValue);
-      ::llvm::Value *StoredValue = lowerValue(*Store.StoredValue);
-      ::llvm::Value *Pointer = lowerValue(*Store.Pointer);
-      if (StoredValue == nullptr || Pointer == nullptr)
-      {
-        return false;
-      }
-      return lowerMemoryStore(Store.StoredValue->type(), StoredValue, Pointer);
-    }
-    case ir::InstructionKind::LifetimeEnd:
-    {
-      const ir::LifetimeEndInstruction &LifetimeEnd = static_cast<const ir::LifetimeEndInstruction &>(InstructionValue);
-      ::llvm::Value *Slice = lowerValue(*LifetimeEnd.Slice);
-      if (Slice == nullptr)
-      {
-        return false;
-      }
-      const auto Storage = SliceAllocas.find(Slice);
-      // LLVM lifetime markers accept only direct allocas; non-local slices do not receive an invalid optimization hint.
-      if (Storage != SliceAllocas.end())
-      {
-        Builder.CreateLifetimeEnd(Storage->second);
-      }
-      return true;
-    }
-    case ir::InstructionKind::SliceData:
-    {
-      const ir::SliceDataInstruction &SliceData = static_cast<const ir::SliceDataInstruction &>(InstructionValue);
-      ::llvm::Value *Slice = lowerValue(*SliceData.Slice);
-      if (Slice == nullptr)
-      {
-        return false;
-      }
-      ::llvm::Value *Result = Builder.CreateExtractValue(Slice, {0}, ModuleContext.valueName(SliceData.Result));
-      Values.emplace(SliceData.Result.value(), Result);
-      return true;
-    }
-    case ir::InstructionKind::SliceLength:
-    {
-      const ir::SliceLengthInstruction &SliceLength = static_cast<const ir::SliceLengthInstruction &>(InstructionValue);
-      ::llvm::Value *Slice = lowerValue(*SliceLength.Slice);
-      if (Slice == nullptr)
-      {
-        return false;
-      }
-      ::llvm::Value *Result = Builder.CreateExtractValue(Slice, {1}, ModuleContext.valueName(SliceLength.Result));
-      Values.emplace(SliceLength.Result.value(), Result);
-      return true;
-    }
-    case ir::InstructionKind::Phi:
-      return true;
-    case ir::InstructionKind::Add:
-    {
-      const ir::AddInstruction &Add = static_cast<const ir::AddInstruction &>(InstructionValue);
-      ::llvm::Value *Left = lowerValue(*Add.Left);
-      ::llvm::Value *Right = lowerValue(*Add.Right);
-      if (Left == nullptr || Right == nullptr)
-      {
-        return false;
-      }
-      ::llvm::Value *Result = Builder.CreateAdd(Left, Right, ModuleContext.valueName(Add.Result));
-      Values.emplace(Add.Result.value(), Result);
-      return true;
-    }
-    case ir::InstructionKind::Compare:
-    {
-      const ir::CompareInstruction &Compare = static_cast<const ir::CompareInstruction &>(InstructionValue);
-      ::llvm::Value *Left = lowerValue(*Compare.Left);
-      ::llvm::Value *Right = lowerValue(*Compare.Right);
-      if (Left == nullptr || Right == nullptr)
-      {
-        return false;
-      }
-      const ::llvm::CmpInst::Predicate Predicate = lowerComparePredicate(Compare.Predicate, Compare.Left->type().kind());
-      if (Predicate == ::llvm::CmpInst::BAD_ICMP_PREDICATE)
-      {
-        ModuleContext.addFailure<core::DiagnosticKind::LLVMUnsupportedComparison>();
-        return false;
-      }
-      ::llvm::Value *Result = Builder.CreateICmp(Predicate, Left, Right, ModuleContext.valueName(Compare.Result));
-      Values.emplace(Compare.Result.value(), Result);
-      return true;
-    }
-    case ir::InstructionKind::InsertValue:
-    {
-      const ir::InsertValueInstruction &Insert = static_cast<const ir::InsertValueInstruction &>(InstructionValue);
-      ::llvm::Value *Aggregate = lowerValue(*Insert.Aggregate);
-      ::llvm::Value *Element = lowerValue(*Insert.Element);
-      if (Aggregate == nullptr || Element == nullptr)
-      {
-        return false;
-      }
-      const ir::StructType &Struct = static_cast<const ir::StructType &>(*Insert.ResultType);
-      const std::vector<unsigned> *FieldIndices = ModuleContext.physicalFieldIndices(Struct, Insert.FieldIndex);
-      if (FieldIndices == nullptr)
-      {
-        return false;
-      }
-      ::llvm::Value *Result = Builder.CreateInsertValue(Aggregate, Element, *FieldIndices, ModuleContext.valueName(Insert.Result));
-      Values.emplace(Insert.Result.value(), Result);
-      return true;
-    }
-    case ir::InstructionKind::ExtractValue:
-    {
-      const ir::ExtractValueInstruction &Extract = static_cast<const ir::ExtractValueInstruction &>(InstructionValue);
-      ::llvm::Value *Aggregate = lowerValue(*Extract.Aggregate);
-      if (Aggregate == nullptr)
-      {
-        return false;
-      }
-      const ir::StructType &Struct = static_cast<const ir::StructType &>(Extract.Aggregate->type());
-      const std::vector<unsigned> *FieldIndices = ModuleContext.physicalFieldIndices(Struct, Extract.FieldIndex);
-      if (FieldIndices == nullptr)
-      {
-        return false;
-      }
-      ::llvm::Value *Result = Builder.CreateExtractValue(Aggregate, *FieldIndices, ModuleContext.valueName(Extract.Result));
-      Values.emplace(Extract.Result.value(), Result);
-      return true;
-    }
-    case ir::InstructionKind::Branch:
-    {
-      const ir::BranchInstruction &Branch = static_cast<const ir::BranchInstruction &>(InstructionValue);
-      Builder.CreateBr(Blocks[Branch.Target.Block.value()]);
-      return true;
-    }
-    case ir::InstructionKind::ConditionalBranch:
-    {
-      const ir::ConditionalBranchInstruction &Branch = static_cast<const ir::ConditionalBranchInstruction &>(InstructionValue);
-      ::llvm::Value *Condition = lowerValue(*Branch.Condition);
-      if (Condition == nullptr)
-      {
-        return false;
-      }
-      Builder.CreateCondBr(Condition, Blocks[Branch.TrueTarget.Block.value()], Blocks[Branch.FalseTarget.Block.value()]);
-      return true;
-    }
-    case ir::InstructionKind::Return:
-    {
-      const ir::ReturnInstruction &Return = static_cast<const ir::ReturnInstruction &>(InstructionValue);
-      if (!Return.ReturnValue)
-      {
-        Builder.CreateRetVoid();
-        return true;
-      }
-      ::llvm::Value *ReturnValue = lowerValue(*Return.ReturnValue);
-      if (ReturnValue == nullptr)
-      {
-        return false;
-      }
-      Builder.CreateRet(ReturnValue);
-      return true;
-    }
-    }
-    ModuleContext.addFailure<core::DiagnosticKind::LLVMUnknownInstructionKind>();
-    return false;
-  }
-
-  bool LoweringContext::FunctionLoweringContext::completePhiNodes()
-  {
-    for (const PendingPhi &Pending : PendingPhis)
-    {
-      for (const ir::PhiIncoming &Incoming : Pending.Source->IncomingValues)
-      {
-        ::llvm::Value *Value = lowerValue(*Incoming.Value);
-        if (Value == nullptr)
-        {
-          return false;
-        }
-        Pending.Target->addIncoming(Value, Blocks[Incoming.Predecessor.value()]);
-      }
-    }
-    return true;
-  }
-
-  ::llvm::Value *LoweringContext::FunctionLoweringContext::lowerMemoryLoad(const ir::Type &TypeValue, ::llvm::Value *Pointer, const std::string &Name)
-  {
-    ::llvm::Type *TargetType = ModuleContext.lowerType(TypeValue);
-    if (TargetType == nullptr)
+    if (!Functions.contains(&Function))
     {
       return nullptr;
     }
-    if (TypeValue.kind() != ir::TypeKind::Struct)
-    {
-      ::llvm::LoadInst *Result = Builder.CreateLoad(TargetType, Pointer, Name);
-      Result->setAlignment(::llvm::Align(1));
-      return Result;
-    }
-
-    const ir::StructType &Struct = static_cast<const ir::StructType &>(TypeValue);
-    const std::optional<ir::TypeLayout> Layout = ir::computeTypeLayout(Struct, ModuleContext.SourceModule.context().compilationContext().targetContext());
-    if (!Layout.has_value())
-    {
-      ModuleContext.addFailure<core::DiagnosticKind::LLVMStructLoadLayoutUnavailable>(Struct.name());
-      return nullptr;
-    }
-    ::llvm::Value *Result = ::llvm::UndefValue::get(TargetType);
-    for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldCount(); ++FieldIndex)
-    {
-      const std::string FieldName = Name + ".field." + std::to_string(FieldIndex);
-      ::llvm::Value *FieldPointer = offsetPointer(Pointer, Layout->FieldOffsets[FieldIndex], FieldName + ".address");
-      ::llvm::Value *FieldValue = FieldPointer == nullptr ? nullptr : lowerMemoryLoad(*Struct.fieldType(FieldIndex), FieldPointer, FieldName);
-      const std::vector<unsigned> *FieldIndices = ModuleContext.physicalFieldIndices(Struct, FieldIndex);
-      if (FieldValue == nullptr || FieldIndices == nullptr)
-      {
-        return nullptr;
-      }
-      const std::string AggregateName = FieldIndex + 1 == Struct.fieldCount() ? Name : Name + ".aggregate." + std::to_string(FieldIndex);
-      Result = Builder.CreateInsertValue(Result, FieldValue, *FieldIndices, AggregateName);
-    }
-    return Result;
-  }
-
-  bool LoweringContext::FunctionLoweringContext::lowerMemoryStore(const ir::Type &TypeValue, ::llvm::Value *StoredValue, ::llvm::Value *Pointer)
-  {
-    if (TypeValue.kind() != ir::TypeKind::Struct)
-    {
-      ::llvm::StoreInst *Result = Builder.CreateStore(StoredValue, Pointer);
-      Result->setAlignment(::llvm::Align(1));
-      return true;
-    }
-
-    const ir::StructType &Struct = static_cast<const ir::StructType &>(TypeValue);
-    const std::optional<ir::TypeLayout> Layout = ir::computeTypeLayout(Struct, ModuleContext.SourceModule.context().compilationContext().targetContext());
-    if (!Layout.has_value())
-    {
-      ModuleContext.addFailure<core::DiagnosticKind::LLVMStructStoreLayoutUnavailable>(Struct.name());
-      return false;
-    }
-    for (std::size_t FieldIndex = 0; FieldIndex < Struct.fieldCount(); ++FieldIndex)
-    {
-      const std::vector<unsigned> *FieldIndices = ModuleContext.physicalFieldIndices(Struct, FieldIndex);
-      if (FieldIndices == nullptr)
-      {
-        return false;
-      }
-      ::llvm::Value *FieldValue = Builder.CreateExtractValue(StoredValue, *FieldIndices);
-      ::llvm::Value *FieldPointer = offsetPointer(Pointer, Layout->FieldOffsets[FieldIndex], {});
-      if (FieldPointer == nullptr || !lowerMemoryStore(*Struct.fieldType(FieldIndex), FieldValue, FieldPointer))
-      {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  ::llvm::Value *LoweringContext::FunctionLoweringContext::offsetPointer(::llvm::Value *Pointer, std::size_t ByteOffset, const std::string &Name)
-  {
-    const core::TargetContext &Target = ModuleContext.SourceModule.context().compilationContext().targetContext();
-    if (ByteOffset > Target.maximumPointerSizeValue())
-    {
-      ModuleContext.addFailure<core::DiagnosticKind::LLVMStructFieldOffsetOutOfRange>(ByteOffset, Target.maximumPointerSizeValue());
-      return nullptr;
-    }
-    ::llvm::Type *IndexType = ModuleContext.lowerType(ModuleContext.SourceModule.context().getType(ir::TypeKind::PointerSize));
-    if (IndexType == nullptr)
-    {
-      return nullptr;
-    }
-    ::llvm::Constant *Offset = ::llvm::ConstantInt::get(static_cast<::llvm::IntegerType *>(IndexType), ByteOffset);
-    return Builder.CreateGEP(::llvm::Type::getInt8Ty(ModuleContext.Context), Pointer, Offset, Name);
-  }
-
-  bool LoweringContext::lowerLifecycleFunctions()
-  {
-    if (SourceModule.Initializer.has_value() && !appendLifecycleFunction("llvm.global_ctors", *Functions[SourceModule.Initializer->value()]))
-    {
-      return false;
-    }
-    if (SourceModule.Finalizer.has_value() && !appendLifecycleFunction("llvm.global_dtors", *Functions[SourceModule.Finalizer->value()]))
-    {
-      return false;
-    }
-    return true;
-  }
-
-  bool LoweringContext::appendLifecycleFunction(const char *GlobalName, ::llvm::Function &FunctionValue)
-  {
-    if (TargetModule->getNamedValue(GlobalName) != nullptr)
-    {
-      addFailure<core::DiagnosticKind::LLVMReservedLifecycleGlobalName>(GlobalName);
-      return false;
-    }
-    ::llvm::Type *PointerType = ::llvm::PointerType::getUnqual(Context);
-    ::llvm::StructType *EntryType = ::llvm::StructType::get(Context, {::llvm::Type::getInt32Ty(Context), PointerType, PointerType}, false);
-    ::llvm::Constant *Priority = ::llvm::ConstantInt::get(::llvm::Type::getInt32Ty(Context), 65535);
-    ::llvm::Constant *Data = ::llvm::ConstantPointerNull::get(static_cast<::llvm::PointerType *>(PointerType));
-    ::llvm::Constant *Entry = ::llvm::ConstantStruct::get(EntryType, {Priority, &FunctionValue, Data});
-    ::llvm::ArrayType *ArrayType = ::llvm::ArrayType::get(EntryType, 1);
-    ::llvm::Constant *Initializer = ::llvm::ConstantArray::get(ArrayType, {Entry});
-    new ::llvm::GlobalVariable(*TargetModule, ArrayType, false, ::llvm::GlobalValue::AppendingLinkage, Initializer, GlobalName);
-    return true;
-  }
-
-  ::llvm::CmpInst::Predicate LoweringContext::FunctionLoweringContext::lowerComparePredicate(ir::ComparePredicate Predicate, ir::TypeKind OperandType)
-  {
-    if (Predicate == ir::ComparePredicate::Equal)
-    {
-      return ::llvm::CmpInst::ICMP_EQ;
-    }
-    if (Predicate == ir::ComparePredicate::NotEqual)
-    {
-      return ::llvm::CmpInst::ICMP_NE;
-    }
-    const bool Signed = OperandType == ir::TypeKind::I32;
-    switch (Predicate)
-    {
-    case ir::ComparePredicate::LessThan:
-      return Signed ? ::llvm::CmpInst::ICMP_SLT : ::llvm::CmpInst::ICMP_ULT;
-    case ir::ComparePredicate::LessEqual:
-      return Signed ? ::llvm::CmpInst::ICMP_SLE : ::llvm::CmpInst::ICMP_ULE;
-    case ir::ComparePredicate::GreaterThan:
-      return Signed ? ::llvm::CmpInst::ICMP_SGT : ::llvm::CmpInst::ICMP_UGT;
-    case ir::ComparePredicate::GreaterEqual:
-      return Signed ? ::llvm::CmpInst::ICMP_SGE : ::llvm::CmpInst::ICMP_UGE;
-    case ir::ComparePredicate::Equal:
-    case ir::ComparePredicate::NotEqual:
-    case ir::ComparePredicate::Count:
-      return ::llvm::CmpInst::BAD_ICMP_PREDICATE;
-    }
-    return ::llvm::CmpInst::BAD_ICMP_PREDICATE;
+    auto *Signature = ::llvm::FunctionType::get(::llvm::Type::getVoidTy(Context), {PointerType, PointerType}, false);
+    auto *Thunk = ::llvm::Function::Create(Signature, ::llvm::GlobalValue::PrivateLinkage, "__ink_reflection_call", Module);
+    return FunctionLowering(*this, Function, *Thunk).lowerReflection() ? Thunk : nullptr;
   }
 } // namespace ink::backend::llvm

@@ -438,7 +438,7 @@ namespace ink::execution::test
     const auto *Layout = Image->Layouts->get(Image->SlotTypes[Image->Code[1].Operands[0]]);
     ASSERT_NE(Layout, nullptr);
     EXPECT_EQ(Layout->Kind, RuntimeKind::Integer);
-    EXPECT_EQ(Layout->BitWidth, 32U);
+    EXPECT_EQ(Layout->bitWidth(), 32U);
   }
 
   // Escaping integer addresses select width-specific loads and stores; unusual widths retain the generic payload path.

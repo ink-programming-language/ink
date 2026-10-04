@@ -5,7 +5,7 @@
 
 namespace ink::execution
 {
-  ::_ffi_type *ffiType(const StorageLayout &Layout, FfiTypeUsage Usage) noexcept
+  ::_ffi_type *ffiType(const TypeDesc &Layout, FfiTypeUsage Usage) noexcept
   {
     switch (Layout.Kind)
     {
@@ -14,21 +14,21 @@ namespace ink::execution
     case RuntimeKind::Boolean:
       return &ffi_type_uint8;
     case RuntimeKind::Integer:
-      switch (Layout.BitWidth)
+      switch (Layout.bitWidth())
       {
       case 8:
-        return Layout.Signed ? &ffi_type_sint8 : &ffi_type_uint8;
+        return Layout.isSigned() ? &ffi_type_sint8 : &ffi_type_uint8;
       case 16:
-        return Layout.Signed ? &ffi_type_sint16 : &ffi_type_uint16;
+        return Layout.isSigned() ? &ffi_type_sint16 : &ffi_type_uint16;
       case 32:
-        return Layout.Signed ? &ffi_type_sint32 : &ffi_type_uint32;
+        return Layout.isSigned() ? &ffi_type_sint32 : &ffi_type_uint32;
       case 64:
-        return Layout.Signed ? &ffi_type_sint64 : &ffi_type_uint64;
+        return Layout.isSigned() ? &ffi_type_sint64 : &ffi_type_uint64;
       default:
         return nullptr;
       }
     case RuntimeKind::Float:
-      switch (Layout.BitWidth)
+      switch (Layout.bitWidth())
       {
       case 32:
         return &ffi_type_float;

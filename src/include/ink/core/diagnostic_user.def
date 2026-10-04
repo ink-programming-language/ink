@@ -93,3 +93,9 @@ INK_DIAGNOSTIC(SemanticInvalidArrayIndex, 0x03000035U, Semantic, "INK-S0053", Us
 INK_DIAGNOSTIC(SemanticArrayIndexOutOfBounds, 0x03000036U, Semantic, "INK-S0054", User, Error, "array index out of bounds", "array index is outside the valid range [0, {ExpectedCount})", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(ExpectedCount, UnsignedInteger)))
 INK_DIAGNOSTIC(ExecutionIndexOutOfBounds, 0x05000019U, Execution, "INK-E0025", User, Error, "array index out of bounds", "{Context}: array index out of bounds", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 INK_DIAGNOSTIC(SemanticArrayTooLarge, 0x03000037U, Semantic, "INK-S0055", User, Error, "array exceeds materialization limit", "array length exceeds the configured materialization limit", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(SemanticInvalidClass, 0x03000038U, Semantic, "INK-S0056", User, Error, "invalid class declaration", "invalid class declaration: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(SemanticInvalidMember, 0x03000039U, Semantic, "INK-S0057", User, Error, "invalid class member access", "invalid member access: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(SemanticInvalidConstruction, 0x0300003AU, Semantic, "INK-S0058", User, Error, "invalid class construction", "invalid class construction: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+
+INK_DIAGNOSTIC(ExecutionAccessDenied, 0x05000020U, Execution, "INK-E0032", User, Error, "member access denied", "{Context}: member access denied", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(ExecutionAmbiguousMember, 0x05000021U, Execution, "INK-E0033", User, Error, "ambiguous reflected method", "{Context}: ambiguous reflected method", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))

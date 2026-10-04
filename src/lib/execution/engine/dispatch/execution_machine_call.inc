@@ -12,7 +12,7 @@ namespace ink::execution
       {
         return ExecutionStatus::RuntimeValue;
       }
-      Target = Linker.resolveFunction(static_cast<FunctionId>(Callee.Bits));
+      Target = Linker.resolveFunction(static_cast<FunctionId>(Callee.bits()));
     }
     const RuntimeFunctionDescriptor *Descriptor = Site.Target != InvalidFunction ? Frame.Function->CallDescriptors[Operation.Operands[1]] : Linker.descriptor(Target);
     if (!Descriptor || Descriptor->Signature != Site.Signature)
@@ -33,12 +33,21 @@ namespace ink::execution
       NativeArguments.reserve(Site.Arguments.size());
       for (SlotId Argument : Site.Arguments)
       {
-        NativeArguments.push_back(Frame.Slots[Argument]);
+        const Slot &Source = Frame.Slots[Argument];
+        const RuntimeValueResult Value = readStorage(*Source.Layout, Source.Data);
+        if (!Value)
+        {
+          return Value.Status;
+        }
+        NativeArguments.push_back(Value.Value);
       }
       const RuntimeValueResult NativeResult = callNative(*Descriptor, NativeArguments, true);
       if (NativeResult)
       {
-        Frame.Slots[Operation.Operands[0]] = NativeResult.Value;
+        Slot &Destination = Frame.Slots[Operation.Operands[0]];
+        const ExecutionStatus Status = importValue(*Destination.Layout, Destination.Data, NativeResult.Value);
+        Destination.Initialized = Status == ExecutionStatus::Success;
+        return Status;
       }
       return NativeResult.Status;
     }
@@ -62,14 +71,17 @@ namespace ink::execution
       return Status;
     }
     CallFrame Next;
-    Next.Function = Callee;
-    Next.Slots = Callee->Image->InitialSlots;
-    Next.Locals.resize(Callee->Image->LocalStorageCount);
     Next.ReturnSlot = Operation.Operands[0];
     Next.Nested = true;
+    Status = initializeFrame(Next, *Callee);
+    if (Status != ExecutionStatus::Success)
+    {
+      endCall(Next);
+      return Status;
+    }
     for (std::size_t Index = 0; Index < Site.Arguments.size(); ++Index)
     {
-      Next.Slots[Index] = Frame.Slots[Site.Arguments[Index]];
+      Next.Slots[Index].copyFrom(Frame.Slots[Site.Arguments[Index]].Data);
     }
     // Growing the stack can invalidate Frame; finish every caller access first.
     Stack.push_back(std::move(Next));

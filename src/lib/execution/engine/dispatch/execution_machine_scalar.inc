@@ -51,7 +51,7 @@ namespace ink::execution
     std::uint64_t Bits;
     if constexpr (Code == BytecodeOpcode::LogicalNot)
     {
-      Bits = Left.Bits ^ 1;
+      Bits = Left.bits() ^ 1;
     }
     else
     {
@@ -62,39 +62,38 @@ namespace ink::execution
       }
       if constexpr (Code == BytecodeOpcode::AddI8)
       {
-        Bits = static_cast<std::uint8_t>(Left.Bits + Right.Bits);
+        Bits = static_cast<std::uint8_t>(Left.bits() + Right.bits());
       }
       else if constexpr (Code == BytecodeOpcode::AddI16)
       {
-        Bits = static_cast<std::uint16_t>(Left.Bits + Right.Bits);
+        Bits = static_cast<std::uint16_t>(Left.bits() + Right.bits());
       }
       else if constexpr (Code == BytecodeOpcode::AddI32)
       {
-        Bits = static_cast<std::uint32_t>(Left.Bits + Right.Bits);
+        Bits = static_cast<std::uint32_t>(Left.bits() + Right.bits());
       }
       else if constexpr (Code == BytecodeOpcode::AddI64)
       {
-        Bits = Left.Bits + Right.Bits;
+        Bits = Left.bits() + Right.bits();
       }
       else if constexpr (Code == BytecodeOpcode::LogicalAnd)
       {
-        Bits = Left.Bits & Right.Bits;
+        Bits = Left.bits() & Right.bits();
       }
       else if constexpr (Code == BytecodeOpcode::LogicalOr)
       {
-        Bits = Left.Bits | Right.Bits;
+        Bits = Left.bits() | Right.bits();
       }
       else
       {
         const std::uint64_t Mask = signMask(Code);
-        const std::uint64_t LeftBits = Left.Bits ^ Mask;
-        const std::uint64_t RightBits = Right.Bits ^ Mask;
+        const std::uint64_t LeftBits = Left.bits() ^ Mask;
+        const std::uint64_t RightBits = Right.bits() ^ Mask;
         Bits = compareResult(LeftBits < RightBits ? -1 : LeftBits > RightBits ? 1 : 0, Operation.Operands[3]);
       }
     }
     Slot &Destination = Frame.Slots[Operation.Operands[0]];
-    Destination.Bits = Bits;
-    Destination.Initialized = true;
+    Destination.setBits(Bits);
     return ExecutionStatus::Success;
   }
 } // namespace ink::execution

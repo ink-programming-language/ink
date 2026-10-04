@@ -123,6 +123,28 @@ namespace ink::semantic
       const auto ImportedName = Import.path().front();
       const auto Alias = Import.alias().value_or(ImportedName);
       const auto *Binding = State.Resolver.lookupMember(Module, State.Context.namePool().find(ImportedName.Text));
+      if (Binding && Binding->targets().size() == 1 && ir::ClassType::classof(Binding->targets().front()))
+      {
+        auto *Class = static_cast<ir::ClassType *>(Binding->targets().front());
+        const auto &Definition = State.Context.classState().Definitions.at(Class);
+        if (Definition.Module != &Module || (State.CurrentModule != &Module && Definition.Declaration->visibility() == parser::DeclarationVisibility::Private))
+        {
+          State.report<core::DiagnosticKind::SemanticInvalidMember>(Import.range(), "class is private or not defined in the imported module");
+          Succeeded = false;
+          continue;
+        }
+        const auto Bound = State.Resolver.bind(State.Context.namePool().intern(Alias.Text), *Class);
+        if (Bound != NameResolver::BindResult::Inserted && Bound != NameResolver::BindResult::AlreadyBound)
+        {
+          State.report<core::DiagnosticKind::SemanticDuplicateName>(Alias.Range, Alias.Text);
+          Succeeded = false;
+        }
+        continue;
+      }
+      if (State.ClassImportsOnly)
+      {
+        continue;
+      }
       std::vector<ir::Function *> Functions;
       bool Private = false;
       if (Binding)

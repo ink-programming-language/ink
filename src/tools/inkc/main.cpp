@@ -7,6 +7,8 @@
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/context.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
+#include "ink/backend/llvm/llvm_backend.h"
+#include <llvm/IR/LLVMContext.h>
 #include "bytecode_commands.h"
 #include "source_modules.h"
 
@@ -25,6 +27,13 @@
 
 namespace
 {
+  struct NativeOptions
+  {
+      std::string IR;
+      std::string Object;
+      ink::backend::llvm::BackendOptions Backend;
+  };
+
   int reportError(std::string_view Message, ink::cli::ExitCode Code)
   {
     const std::string Prefix = Code == ink::cli::ExitCode::InternalError ? "inkc: internal error: " : "inkc: error: ";
@@ -198,7 +207,7 @@ namespace
     return static_cast<int>(std::bit_cast<std::int32_t>(Bits));
   }
 
-  int processSource(const std::string &InputFile, std::string Source, const std::string &EntryName, const std::string &ModuleRoot, const ink::tools::BytecodeOptions *Bytecode)
+  int processSource(const std::string &InputFile, std::string Source, const std::string &EntryName, const std::string &ModuleRoot, const ink::tools::BytecodeOptions *Bytecode, const NativeOptions *Native)
   {
     ink::core::CompilationContext Compilation;
     ink::core::FrontendContext Frontend(Compilation);
@@ -245,6 +254,17 @@ namespace
     {
       return reportError(Error, ink::cli::ExitCode::InvocationError);
     }
+    if (Native)
+    {
+      llvm::LLVMContext LLVMContext;
+      auto Lowered = ink::backend::llvm::lowerToLLVMIR(LLVMContext, *Module, Entry, Native->Backend);
+      if (!Lowered.succeeded())
+      {
+        return reportError(Lowered.error(), ink::cli::ExitCode::SourceError);
+      }
+      const bool Written = Native->IR.empty() ? Lowered.writeObject(Native->Object, Error) : Lowered.writeIR(Native->IR, Error);
+      return Written ? 0 : reportError(Error, ink::cli::ExitCode::InvocationError);
+    }
     Diagnostics.clear();
     const int ExitStatus = executeEntry(Context, *Entry, EntryName);
     if (!writeDiagnostics(Compilation.sourceManager(), Diagnostics.diagnostics(), HasInternalError))
@@ -266,23 +286,37 @@ namespace
     ink::tools::BytecodeOptions Bytecode;
     bool Interpret = false;
     bool RunBytecode = false;
+    NativeOptions Native;
+    std::string OptimizationLevel;
     Command.addOption("-i,--input", InputFile, "Input source or bytecode file; '-' reads source from standard input").typeName("FILE");
     ink::cli::Option &InterpretOption = Command.addFlag("--interpret", Interpret, "Interpret the source and execute its entry function");
     ink::cli::Option &EmitOption = Command.addOption("--emit-bytecode", Bytecode.Output, "Compile all runtime functions to a bytecode object file").typeName("FILE").excludes(InterpretOption);
     ink::cli::Option &LinkOption = Command.addOption("--link-bytecode", LinkInputs, "Link a bytecode object file; repeat for each input").repeatPolicy(ink::cli::RepeatPolicy::Append).typeName("FILE").excludes(InterpretOption).excludes(EmitOption);
-    Command.addFlag("--run-bytecode", RunBytecode, "Load a linked bytecode file and execute its saved entry").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption);
+    ink::cli::Option &RunOption = Command.addFlag("--run-bytecode", RunBytecode, "Load a linked bytecode file and execute its saved entry").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption);
+    ink::cli::Option &LLVMOption = Command.addOption("--emit-llvm", Native.IR, "Lower source to LLVM IR with a native entry wrapper").typeName("FILE").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption).excludes(RunOption);
+    ink::cli::Option &ObjectOption = Command.addOption("--emit-object", Native.Object, "Compile a native object; link it with ink_aot_runtime").typeName("FILE").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption).excludes(RunOption).excludes(LLVMOption);
+    Command.addOption("--opt-level", OptimizationLevel, "LLVM optimization level: 0, 1, 2 or 3 (default: 0)").typeName("LEVEL");
     Command.addOption("-o,--output", LinkOutput, "Output linked bytecode executable").typeName("FILE");
     Command.addOption("--module-root", ModuleRoot, "Root directory for source imports and module identities (default: input directory)").typeName("DIRECTORY");
     Command.addOption("--entry", EntryName, "Entry function name (default: main)").typeName("NAME");
-    Command.addOption("-oir", IrOutputFile, "Output IR file (not supported in interpretation or bytecode modes)").typeName("FILE").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption);
+    Command.addOption("-oir", IrOutputFile, "Reserved legacy IR output option").typeName("FILE").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption).excludes(LLVMOption).excludes(ObjectOption);
     const ink::cli::ParseResult ParsedArguments = Command.parse(ArgumentCount, ArgumentValues);
     if (ParsedArguments.ShouldExit)
     {
       return ink::cli::exitStatus(ParsedArguments.Code);
     }
-    if (!Interpret && Bytecode.Output.empty() && LinkInputs.empty() && !RunBytecode)
+    const bool EmitNative = !Native.IR.empty() || !Native.Object.empty();
+    if (!OptimizationLevel.empty())
     {
-      return reportError("select --interpret, --emit-bytecode, --link-bytecode or --run-bytecode", ink::cli::ExitCode::InvocationError);
+      if (!EmitNative || OptimizationLevel.size() != 1 || OptimizationLevel[0] < '0' || OptimizationLevel[0] > '3')
+      {
+        return reportError("--opt-level requires --emit-llvm or --emit-object and a level from 0 to 3", ink::cli::ExitCode::InvocationError);
+      }
+      Native.Backend.OptimizationLevel = static_cast<unsigned>(OptimizationLevel[0] - '0');
+    }
+    if (!Interpret && Bytecode.Output.empty() && LinkInputs.empty() && !RunBytecode && !EmitNative)
+    {
+      return reportError("select --interpret, --emit-bytecode, --link-bytecode, --run-bytecode, --emit-llvm or --emit-object", ink::cli::ExitCode::InvocationError);
     }
     if (!ModuleRoot.empty() && (RunBytecode || !LinkInputs.empty()))
     {
@@ -314,7 +348,7 @@ namespace
     {
       return reportError(Error, ink::cli::ExitCode::InvocationError);
     }
-    return processSource(InputFile, std::move(Source), EntryName, ModuleRoot, Bytecode.Output.empty() ? nullptr : &Bytecode);
+    return processSource(InputFile, std::move(Source), EntryName, ModuleRoot, Bytecode.Output.empty() ? nullptr : &Bytecode, EmitNative ? &Native : nullptr);
   }
 } // namespace
 
@@ -324,5 +358,10 @@ int main(int ArgumentCount, char **ArgumentValues)
   {
     return runCompiler(ArgumentCount, ArgumentValues);
   };
-  return ink::cli::runMain("inkc", Run);
+  const int Result = ink::cli::runMain("inkc", Run);
+  // Native imports can buffer output without touching the CLI streams during bytecode execution.
+  // Flush through the shared output sink while the host runtime is still active.
+  const bool OutputWritten = ink::cli::writeOutput(std::cout, "");
+  const bool ErrorWritten = ink::cli::writeOutput(std::cerr, "");
+  return OutputWritten && ErrorWritten ? Result : ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
 }

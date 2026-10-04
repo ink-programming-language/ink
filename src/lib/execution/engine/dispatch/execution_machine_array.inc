@@ -2,16 +2,17 @@ namespace ink::execution
 {
   namespace
   {
-    ExecutionStatus arrayIndex(const RuntimeValue &Value, const StorageLayout &Layout, std::uint64_t Count, std::size_t &Index)
+    ExecutionStatus arrayIndex(const RuntimeSlot &Value, const TypeDesc &Layout, std::uint64_t Count, std::size_t &Index)
     {
-      std::uint64_t Bits = Value.Bits;
-      if (Layout.BitWidth > 64)
+      std::uint64_t Bits = 0;
+      if (Layout.bitWidth() > 64)
       {
-        if (Layout.Signed && Value.integer().isNegative())
+        const ExecutionInteger Wide = Value.integer();
+        if (Layout.isSigned() && Wide.isNegative())
         {
           return ExecutionStatus::IndexOutOfBounds;
         }
-        const auto Integer = Value.integer().bits();
+        const auto Integer = Wide.bits();
         for (std::size_t Word = 1; Word < Integer.words().size(); ++Word)
         {
           if (Integer.words()[Word])
@@ -19,11 +20,15 @@ namespace ink::execution
             return ExecutionStatus::IndexOutOfBounds;
           }
         }
-        Bits = Value.integer().lowWord();
+        Bits = Wide.lowWord();
       }
-      else if (Layout.Signed && (Bits & (std::uint64_t{1} << (Layout.BitWidth - 1))))
+      else
       {
-        return ExecutionStatus::IndexOutOfBounds;
+        Bits = Value.bits();
+        if (Layout.isSigned() && (Bits & (std::uint64_t{1} << (Layout.bitWidth() - 1))))
+        {
+          return ExecutionStatus::IndexOutOfBounds;
+        }
       }
       if (Bits >= Count || Bits > std::numeric_limits<std::size_t>::max())
       {
@@ -38,52 +43,52 @@ namespace ink::execution
   {
     const ExecutableFunction &Image = *Frame.Function->Image;
     Slot &Destination = Frame.Slots[Operation.Operands[0]];
-    const RuntimeTypeId DestinationType = Destination.Type;
     if (Operation.Code == BytecodeOpcode::Array || Operation.Code == BytecodeOpcode::ArrayRepeat)
     {
-      const StorageLayout &Layout = *Image.Layouts->get(DestinationType);
-      if (Layout.ElementCount > Engine.Limits.MaxStorageBytes / sizeof(RuntimeValue))
+      const TypeDesc &Layout = *Destination.Layout;
+      if (Layout.arrayDesc().ElementCount > Engine.Limits.MaxStorageBytes / sizeof(RuntimeValue))
       {
         return ExecutionStatus::BudgetExceeded;
       }
-      const std::size_t Count = static_cast<std::size_t>(Layout.ElementCount);
+      const std::size_t Count = static_cast<std::size_t>(Layout.arrayDesc().ElementCount);
       const ExecutionStatus Status = Engine.consumeSteps(Count);
       if (Status != ExecutionStatus::Success)
       {
         return Status;
       }
-      std::vector<RuntimeValue> Elements;
-      Elements.reserve(Count);
       // Repeat evaluates and validates its source even when the array is empty.
       if (Operation.Code == BytecodeOpcode::ArrayRepeat)
       {
-        const RuntimeValue &Element = Frame.Slots[Operation.Operands[1]];
+        const Slot &Element = Frame.Slots[Operation.Operands[1]];
         const ExecutionStatus ElementStatus = validateValue(Element);
         if (ElementStatus != ExecutionStatus::Success)
         {
           return ElementStatus;
         }
-        Elements.assign(Count, Element);
+        for (std::size_t Index = 0; Index < Count; ++Index)
+        {
+          std::memcpy(Destination.Data + Index * Element.Layout->Size, Element.Data, Element.Layout->Size);
+        }
       }
       else
       {
         for (std::size_t Index = 0; Index < Count; ++Index)
         {
-          const RuntimeValue &Element = Frame.Slots[arraySourceSlot(Image, Operation.Operands[1] + Index * 4)];
+          const Slot &Element = Frame.Slots[arraySourceSlot(Image, Operation.Operands[1] + Index * 4)];
           const ExecutionStatus ElementStatus = validateValue(Element);
           if (ElementStatus != ExecutionStatus::Success)
           {
             return ElementStatus;
           }
-          Elements.push_back(Element);
+          std::memcpy(Destination.Data + Index * Element.Layout->Size, Element.Data, Element.Layout->Size);
         }
       }
-      Destination = RuntimeValue::fromArray(std::move(Elements), DestinationType);
+      Destination.Initialized = true;
       return ExecutionStatus::Success;
     }
-    const RuntimeValue &Object = Frame.Slots[Operation.Operands[1]];
-    const RuntimeValue &Subscript = Frame.Slots[Operation.Operands[2]];
-    for (const RuntimeValue *Value : {&Object, &Subscript})
+    const Slot &Object = Frame.Slots[Operation.Operands[1]];
+    const Slot &Subscript = Frame.Slots[Operation.Operands[2]];
+    for (const Slot *Value : {&Object, &Subscript})
     {
       const ExecutionStatus Status = validateValue(*Value);
       if (Status != ExecutionStatus::Success)
@@ -92,39 +97,20 @@ namespace ink::execution
       }
     }
     const bool Address = Operation.Code == BytecodeOpcode::ArrayElementPointer;
-    const StorageLayout &ObjectType = *Image.Layouts->get(Object.Type);
-    const StorageLayout &Array = Address ? *Image.Layouts->get(ObjectType.Pointee) : ObjectType;
+    const TypeDesc &ObjectType = *Object.Layout;
+    const TypeDesc &Array = Address ? *Image.Layouts->get(ObjectType.pointerDesc().Pointee) : ObjectType;
     std::size_t Index = 0;
-    const ExecutionStatus Status = arrayIndex(Subscript, *Image.Layouts->get(Subscript.Type), Array.ElementCount, Index);
+    const ExecutionStatus Status = arrayIndex(Subscript, *Subscript.Layout, Array.arrayDesc().ElementCount, Index);
     if (Status != ExecutionStatus::Success)
     {
       return Status;
     }
     if (!Address)
     {
-      if (Object.kind() != RuntimeKind::Array || Object.array().size() != Array.ElementCount)
-      {
-        return ExecutionStatus::TypeMismatch;
-      }
-      Destination = Object.array()[Index];
-      return validateValue(Destination);
+      Destination.copyFrom(Object.Data + Index * Array.arrayDesc().ElementLayout->Size);
+      return ExecutionStatus::Success;
     }
-    const ExecutionPointer &Pointer = Object.pointer();
-    if (Pointer.kind() != ExecutionPointer::Kind::Place)
-    {
-      return Pointer.kind() == ExecutionPointer::Kind::Null ? ExecutionStatus::InvalidPlace : ExecutionStatus::UnsupportedOperation;
-    }
-    const ExecutionCell &Cell = *Pointer.place().storage().cell();
-    if (Cell.layout().Domain != Array.Domain)
-    {
-      return ExecutionStatus::ForeignContext;
-    }
-    if (!Cell.elementLayout(Pointer.offset(), Array.Type) || !Array.ElementLayout || (Array.ElementLayout->Size && Index > (std::numeric_limits<std::size_t>::max() - Pointer.offset()) / Array.ElementLayout->Size))
-    {
-      return ExecutionStatus::InvalidPlace;
-    }
-    const std::size_t Offset = Pointer.offset() + Index * Array.ElementLayout->Size;
-    Destination = RuntimeValue::fromPointer(ExecutionPointer::fromPlace(Pointer.place(), Offset), DestinationType);
+    Destination.setPointer(static_cast<std::byte *>(Object.pointer()) + Index * Array.arrayDesc().ElementLayout->Size);
     return ExecutionStatus::Success;
   }
 } // namespace ink::execution

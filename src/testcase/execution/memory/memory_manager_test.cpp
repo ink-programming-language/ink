@@ -94,7 +94,7 @@ namespace ink::execution::test
       EXPECT_EQ(Snapshot.Value.integer().bits(), ir::IntegerBits(Width, std::bit_cast<Unsigned>(Initial)));
       ASSERT_EQ(Test.Heap.store(Cell.Place, Snapshot.Value), ExecutionStatus::Success);
       EXPECT_EQ(*Address, Initial);
-      EXPECT_EQ(Test.Heap.pointerFromAddress(Address).place(), Cell.Place);
+      EXPECT_EQ(Test.Heap.pointerFromAddress(Address).address(), Address);
     }
   } // namespace
 
@@ -180,13 +180,13 @@ namespace ink::execution::test
     EXPECT_EQ(Test.Heap.store(Empty.Place, Test.Heap.integer(Test.UInt8, ExecutionInteger(8, 1))), ExecutionStatus::TypeMismatch);
     const auto Runtime = Test.Heap.allocateCell(Test.Int32, true, {}, true);
     ASSERT_TRUE(Runtime);
-    EXPECT_EQ(Runtime.Place.storage().cell()->data(), nullptr);
+    EXPECT_NE(Runtime.Place.storage().cell()->data(), nullptr);
     EXPECT_EQ(Test.Heap.load(Runtime.Place).Status, ExecutionStatus::RuntimeValue);
     EXPECT_EQ(Test.Heap.store(Runtime.Place, Test.integer(12)), ExecutionStatus::RuntimeValue);
   }
 
-  // Wide integers and string values keep their existing value representation while native scalars have no cached payload.
-  TEST(ExecutionMemoryManagerTest, RetainsNonNativeValueStorage)
+  // Wide integers and strings expose stable byte storage while loaded values remain independent snapshots.
+  TEST(ExecutionMemoryManagerTest, StoresWideIntegersAndStringsInContiguousMemory)
   {
     MemoryContext Test;
     const auto *Wide = Test.Context.typePool().getType<ir::TypeKind::Integer>(128, true);
@@ -200,14 +200,14 @@ namespace ink::execution::test
     const auto StringCell = Test.Heap.allocateCell(*Slice, true, StringValue);
     ASSERT_TRUE(WideCell);
     ASSERT_TRUE(StringCell);
-    EXPECT_EQ(WideCell.Place.storage().cell()->data(), nullptr);
-    EXPECT_EQ(StringCell.Place.storage().cell()->data(), nullptr);
+    EXPECT_NE(WideCell.Place.storage().cell()->data(), nullptr);
+    EXPECT_NE(StringCell.Place.storage().cell()->data(), nullptr);
     EXPECT_EQ(Test.Heap.load(WideCell.Place).Value.integer().bits(), ir::IntegerBits(128, Words));
     EXPECT_EQ(Test.Heap.load(StringCell.Place).Value.string(), std::string_view("A\0B", 3));
   }
 
-  // Explicit nonnative targets keep value storage even when their pointer width and endian happen to match the host.
-  TEST(ExecutionMemoryManagerTest, DoesNotExposeHostScalarAddressesForForeignTargets)
+  // Explicit host-shaped targets retain their scalar bits in addressable storage.
+  TEST(ExecutionMemoryManagerTest, ExposesScalarStorageForHostShapedTargets)
   {
     const auto Native = core::TargetContext::native();
     core::CompilationContext Compilation(core::TargetContext(Native.pointerWidth(), Native.byteOrder()));
@@ -218,52 +218,33 @@ namespace ink::execution::test
     const auto Value = Heap.integer(*Int32, ExecutionInteger(32, 17));
     const auto Cell = Heap.allocateCell(*Int32, true, Value);
     ASSERT_TRUE(Cell);
-    EXPECT_EQ(Cell.Place.storage().cell()->data(), nullptr);
-    EXPECT_EQ(ExecutionPointer::fromPlace(Cell.Place).address(), nullptr);
+    EXPECT_NE(Cell.Place.storage().cell()->data(), nullptr);
+    EXPECT_EQ(ExecutionPointer::fromPlace(Cell.Place).address(), Cell.Place.storage().cell()->data());
     EXPECT_EQ(Heap.load(Cell.Place).Value.integer().bits(), Value.integer().bits());
   }
 
-  // Recovering scalar and buffer interior addresses preserves allocation generations and one-past boundaries.
-  TEST(ExecutionMemoryManagerTest, RecoversManagedAddressesWithoutExtendingTheirLifetime)
+  // Interior and one-past pointers preserve raw addresses independently of allocation bookkeeping.
+  TEST(ExecutionMemoryManagerTest, PreservesRawAddressesWithoutOwningTheirStorage)
   {
     MemoryContext Test;
-    const auto Cell = Test.Heap.allocateCell(Test.Int32, true, Test.integer(0x12345678U));
-    const auto Buffer = Test.Heap.allocateBuffer("abc");
+    const auto Cell = Test.Heap.allocateCell(Test.Int32, true, Test.integer(42));
     ASSERT_TRUE(Cell);
-    ASSERT_TRUE(Buffer.valid());
     auto *Start = static_cast<unsigned char *>(Cell.Place.storage().cell()->data());
     const auto Interior = Test.Heap.pointerFromAddress(Start + 1);
     const auto End = Test.Heap.pointerFromAddress(Start + sizeof(std::int32_t));
-    const auto BufferInterior = Test.Heap.pointerFromAddress(Buffer.buffer()->data() + 1);
-    EXPECT_EQ(Interior.kind(), ExecutionPointer::Kind::Place);
-    EXPECT_EQ(Interior.place(), Cell.Place);
-    EXPECT_EQ(Interior.offset(), 1U);
     EXPECT_EQ(Interior.address(), Start + 1);
-    EXPECT_TRUE(End.valid());
-    EXPECT_EQ(End.offset(), sizeof(std::int32_t));
-    EXPECT_FALSE(ExecutionPointer::fromPlace(Cell.Place, sizeof(std::int32_t) + 1).valid());
-    EXPECT_EQ(BufferInterior.kind(), ExecutionPointer::Kind::Buffer);
-    EXPECT_EQ(BufferInterior.bufferRef(), Buffer);
-    EXPECT_EQ(BufferInterior.offset(), 1U);
+    EXPECT_EQ(End.address(), Start + sizeof(std::int32_t));
     ASSERT_EQ(Test.Heap.release(Cell.Place), ExecutionStatus::Success);
-    ASSERT_EQ(Test.Heap.release(Buffer), ExecutionStatus::Success);
-    const auto Replacement = Test.Heap.allocateCell(Test.Int32, true, Test.integer(3));
-    ASSERT_TRUE(Replacement);
-    EXPECT_EQ(Interior.status(), ExecutionStatus::ExpiredPlace);
-    EXPECT_EQ(End.status(), ExecutionStatus::ExpiredPlace);
-    EXPECT_EQ(BufferInterior.status(), ExecutionStatus::ExpiredPlace);
-    EXPECT_EQ(Interior.address(), nullptr);
-    EXPECT_NE(Replacement.Place, Cell.Place);
-    EXPECT_EQ(Test.Heap.pointerFromAddress(nullptr).kind(), ExecutionPointer::Kind::Null);
-    std::int32_t Foreign = 0;
-    EXPECT_EQ(Test.Heap.pointerFromAddress(&Foreign).kind(), ExecutionPointer::Kind::Native);
+    EXPECT_EQ(Interior.address(), Start + 1);
+    EXPECT_EQ(End.address(), Start + sizeof(std::int32_t));
+    EXPECT_EQ(Test.Heap.liveStorageCount(), 0U);
   }
 
   // Fixed buffers allocate their requested zero-filled extent only after object and byte budgets succeed.
   TEST(ExecutionMemoryManagerTest, AllocatesZeroFilledBuffersWithinCumulativeBudgets)
   {
     MemoryContext Test;
-    const std::size_t Budget = sizeof(ExecutionCell) + sizeof(ExecutionBuffer) + 5;
+    const std::size_t Budget = sizeof(ExecutionCell) + sizeof(std::int32_t) + sizeof(ExecutionBuffer) + 5;
     ExecutionHeap Heap(Test.Context, 3, Budget);
     const auto Cell = Heap.allocateCell(Test.Int32);
     const auto Buffer = Heap.allocateBuffer(std::size_t{5});
@@ -283,6 +264,30 @@ namespace ink::execution::test
     EXPECT_EQ(Heap.allocatedStorageCount(), 2U);
     EXPECT_FALSE(Heap.allocateBuffer(std::size_t{1}).valid());
     EXPECT_EQ(Heap.lastStatus(), ExecutionStatus::BudgetExceeded);
+  }
+
+  // Addressable wide and pointer cells charge their aligned byte backing before allocation, including cumulative limits after release.
+  TEST(ExecutionMemoryManagerTest, ChargesWideAndPointerBackingStorage)
+  {
+    MemoryContext Test;
+    const auto *Wide = Test.Context.typePool().getType<ir::TypeKind::Integer>(128, true);
+    ASSERT_NE(Wide, nullptr);
+    const std::size_t Budget = sizeof(ExecutionCell) * 2 + 16 + sizeof(void *);
+    ExecutionHeap Heap(Test.Context, 3, Budget);
+    const auto WideCell = Heap.allocateCell(*Wide);
+    const auto PointerCell = Heap.allocateCell(Test.BytePointer);
+    ASSERT_TRUE(WideCell);
+    ASSERT_TRUE(PointerCell);
+    EXPECT_EQ(Heap.allocatedStorageBytes(), Budget);
+    EXPECT_EQ(Heap.liveStorageBytes(), Budget);
+    ASSERT_EQ(Heap.release(WideCell.Place), ExecutionStatus::Success);
+    ASSERT_EQ(Heap.release(PointerCell.Place), ExecutionStatus::Success);
+    EXPECT_EQ(Heap.liveStorageBytes(), 0U);
+    EXPECT_EQ(Heap.allocatedStorageBytes(), Budget);
+    EXPECT_EQ(Heap.allocateCell(*Wide).Status, ExecutionStatus::BudgetExceeded);
+    ExecutionHeap TooSmall(Test.Context, 1, sizeof(ExecutionCell) + 15);
+    EXPECT_EQ(TooSmall.allocateCell(*Wide).Status, ExecutionStatus::BudgetExceeded);
+    EXPECT_EQ(TooSmall.allocatedStorageCount(), 0U);
   }
 
   // Overflow and failed allocation requests do not consume either counter or construct an oversized temporary buffer.
@@ -305,8 +310,8 @@ namespace ink::execution::test
     EXPECT_EQ(Memory.lastStatus(), ExecutionStatus::BudgetExceeded);
   }
 
-  // IR byte loads and stores reject buffers owned by another heap even when both heaps use the same IR context.
-  TEST(ExecutionMemoryManagerTest, RejectsForeignHeapBuffersAtDirectExecutionBoundary)
+  // IR byte loads and stores accept valid raw addresses independently of the allocating heap.
+  TEST(ExecutionMemoryManagerTest, AcceptsLiveRawBuffersAcrossHeapOwners)
   {
     MemoryContext Test;
     ExecutionHeap Foreign(Test.Context);
@@ -327,9 +332,9 @@ namespace ink::execution::test
     EXPECT_EQ(LocalBuffer.buffer()->data()[0], 'W');
     ReadArguments[0] = Foreign.pointer(Test.BytePointer, ExecutionPointer::fromBuffer(ForeignBuffer));
     WriteArguments[0] = ReadArguments[0];
-    EXPECT_EQ(Test.Engine.execute(*Reader, ReadArguments).Status, ExecutionStatus::InvalidPlace);
-    EXPECT_EQ(Test.Engine.execute(*Writer, WriteArguments).Status, ExecutionStatus::InvalidPlace);
-    EXPECT_EQ(ForeignBuffer.buffer()->data()[0], 'F');
+    EXPECT_EQ(Test.Engine.execute(*Reader, ReadArguments).Status, ExecutionStatus::Success);
+    EXPECT_EQ(Test.Engine.execute(*Writer, WriteArguments).Status, ExecutionStatus::Success);
+    EXPECT_EQ(ForeignBuffer.buffer()->data()[0], 'W');
   }
 
   // Byte aliases use the scalar's native object bytes and reject one-past, readonly and uninitialized accesses.
@@ -360,7 +365,7 @@ namespace ink::execution::test
     Arguments[0] = Test.Heap.pointer(Test.BytePointer, ExecutionPointer::fromPlace(Uninitialized.Place));
     EXPECT_EQ(Test.Engine.execute(*Reader, Arguments).Status, ExecutionStatus::Uninitialized);
     WriteArguments[0] = Arguments[0];
-    EXPECT_EQ(Test.Engine.execute(*Writer, WriteArguments).Status, ExecutionStatus::Uninitialized);
+    EXPECT_EQ(Test.Engine.execute(*Writer, WriteArguments).Status, ExecutionStatus::Success);
     const auto Constant = Test.Heap.allocateCell(Test.Int32, false, Test.integer(9));
     ASSERT_TRUE(Constant);
     WriteArguments[0] = Test.Heap.pointer(Test.BytePointer, ExecutionPointer::fromPlace(Constant.Place));

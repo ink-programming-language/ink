@@ -7,6 +7,7 @@
 #include <deque>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace ink::execution
@@ -21,6 +22,8 @@ namespace ink::execution
       bool exchangeNativeImportResolution(bool Resolve) noexcept;
       std::shared_ptr<RuntimeTypeTable> types() const noexcept;
       RuntimeTypeId lowerType(const ir::Type &Type);
+      void synchronizeReflection();
+      void retainReflectionTypes();
       const ir::Type *sourceType(RuntimeTypeId Type) const noexcept;
       FunctionId lowerFunction(const ir::Function &Function);
       const ir::Function *sourceFunction(FunctionId Function) const noexcept;
@@ -30,14 +33,19 @@ namespace ink::execution
       ExecutionValueResult raiseValue(ExecutionHeap &Heap, const RuntimeValue &Value, RuntimeTypeId Type);
 
     private:
+      RuntimeTypeId defineType(const ir::Type &Type, RuntimeTypeId Id);
       void updateNativeExports();
       ir::IRContext &Context;
       std::shared_ptr<RuntimeTypeTable> Types;
       std::unordered_map<const ir::Type *, RuntimeTypeId> TypeIds;
+      std::unordered_set<const ir::Type *> DefiningTypes;
       std::vector<const ir::Type *> SourceTypes;
       std::unordered_map<const ir::Function *, FunctionId> FunctionIds;
       std::vector<const ir::Function *> SourceFunctions;
       std::deque<RuntimeFunctionDescriptor> Functions;
+      bool Reflecting = false;
+      std::uint64_t ReflectionRevision = 0;
+      std::size_t ReflectionTypeCount = 0;
       bool ResolveNativeImports = false;
       std::uint64_t NativeExportRevision = 0;
       std::unordered_map<std::string, const ir::Function *> NativeExports;

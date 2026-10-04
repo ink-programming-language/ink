@@ -11,6 +11,9 @@
 #include "ink/ir/instruction/array_instruction.h"
 #include "ink/ir/instruction/array_element_pointer_instruction.h"
 #include "ink/ir/instruction/array_extract_instruction.h"
+#include "ink/ir/instruction/class_instruction.h"
+#include "ink/ir/instruction/field_extract_instruction.h"
+#include "ink/ir/instruction/field_pointer_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/c_string_instruction.h"
@@ -135,6 +138,11 @@ namespace ink::ir
       // Resolved nominal identities are allocated directly in Context.typePool(), without a Decl node.
       // Callers reuse the returned object for the same type or instantiated type.
       const ClassType *createClassType(Name TypeName);
+      // Completes a nominal definition once; pointer recursion is legal, infinite value layouts are not.
+      bool defineClassType(const ClassType &ValueType, std::span<const ClassField> Fields, std::string_view Identity);
+      bool registerClassType(Module &ModuleValue, const ClassType &Class);
+      bool setClassMethod(const ClassType &Class, Function &Method);
+      bool setFieldInitializer(const ClassType &Class, std::size_t Field, Function &Initializer);
       const EnumType *createEnumType(Name TypeName);
       const InterfaceType *createInterfaceType(Name TypeName);
 
@@ -192,6 +200,9 @@ namespace ink::ir
       // Indices are local integers; execution checks negative and out-of-range indices.
       [[nodiscard]] std::unique_ptr<ArrayElementPointerInstruction> createDetachedArrayElementPointerInstruction(const Value &Address, const Value &Index);
       [[nodiscard]] std::unique_ptr<ArrayExtractInstruction> createDetachedArrayExtractInstruction(const Value &Array, const Value &Index);
+      [[nodiscard]] std::unique_ptr<ClassInstruction> createDetachedClassInstruction(const ClassType &ValueType, std::span<const Value *const> Fields);
+      [[nodiscard]] std::unique_ptr<FieldExtractInstruction> createDetachedFieldExtractInstruction(const Value &Object, std::size_t FieldIndex);
+      [[nodiscard]] std::unique_ptr<FieldPointerInstruction> createDetachedFieldPointerInstruction(const Value &Address, std::size_t FieldIndex);
       // Logical operations accept only local bool operands; And and Or are eager IR operations.
       [[nodiscard]] std::unique_ptr<LogicalNotInstruction> createDetachedLogicalNotInstruction(const Value &Operand);
       [[nodiscard]] std::unique_ptr<LogicalAndInstruction> createDetachedLogicalAndInstruction(const Value &Left, const Value &Right);
@@ -217,6 +228,9 @@ namespace ink::ir
       ArrayInstruction *createArrayInstruction(const ArrayType &ValueType, std::span<const Value *const> Elements, bool Repeated = false);
       ArrayElementPointerInstruction *createArrayElementPointerInstruction(const Value &Address, const Value &Index);
       ArrayExtractInstruction *createArrayExtractInstruction(const Value &Array, const Value &Index);
+      ClassInstruction *createClassInstruction(const ClassType &ValueType, std::span<const Value *const> Fields);
+      FieldExtractInstruction *createFieldExtractInstruction(const Value &Object, std::size_t FieldIndex);
+      FieldPointerInstruction *createFieldPointerInstruction(const Value &Address, std::size_t FieldIndex);
       LogicalNotInstruction *createLogicalNotInstruction(const Value &Operand);
       LogicalAndInstruction *createLogicalAndInstruction(const Value &Left, const Value &Right);
       LogicalOrInstruction *createLogicalOrInstruction(const Value &Left, const Value &Right);

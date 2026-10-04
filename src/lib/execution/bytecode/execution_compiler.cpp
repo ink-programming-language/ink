@@ -8,6 +8,9 @@
 #include "ink/ir/instruction/array_instruction.h"
 #include "ink/ir/instruction/array_element_pointer_instruction.h"
 #include "ink/ir/instruction/array_extract_instruction.h"
+#include "ink/ir/instruction/class_instruction.h"
+#include "ink/ir/instruction/field_extract_instruction.h"
+#include "ink/ir/instruction/field_pointer_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/c_string_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
@@ -50,11 +53,11 @@ namespace ink::execution
       return ExecutionPredicate::Equal;
     }
 
-    BytecodeOpcode memoryOpcode(const StorageLayout &Layout, bool Store)
+    BytecodeOpcode memoryOpcode(const TypeDesc &Layout, bool Store)
     {
       if (Layout.Kind == RuntimeKind::Integer)
       {
-        switch (Layout.BitWidth)
+        switch (Layout.bitWidth())
         {
         case 8:
           return Store ? BytecodeOpcode::StoreI8 : BytecodeOpcode::LoadI8;
@@ -300,6 +303,18 @@ namespace ink::execution
               case ir::ValueKind::LoadInstruction:
                 use(static_cast<const ir::LoadInstruction &>(Value).address(), LocalFunction);
                 break;
+              case ir::ValueKind::ClassInstruction:
+                for (const ir::Value *Field : static_cast<const ir::ClassInstruction &>(Value).fields())
+                {
+                  use(*Field);
+                }
+                break;
+              case ir::ValueKind::FieldExtractInstruction:
+                use(static_cast<const ir::FieldExtractInstruction &>(Value).object());
+                break;
+              case ir::ValueKind::FieldPointerInstruction:
+                use(static_cast<const ir::FieldPointerInstruction &>(Value).address());
+                break;
               case ir::ValueKind::ArrayInstruction:
                 for (const ir::Value *Element : static_cast<const ir::ArrayInstruction &>(Value).elements())
                 {
@@ -437,6 +452,38 @@ namespace ink::execution
               }
             }
             emit({BytecodeOpcode::Array, {Destination, Offset, index(Array.elements().size() * 4)}});
+            break;
+          }
+          case ir::ValueKind::ClassInstruction:
+          {
+            const auto &Class = static_cast<const ir::ClassInstruction &>(Value);
+            const auto Offset = index(Result->ConstantData.size());
+            if (Class.fields().size() > (InvalidSlot - Result->ConstantData.size()) / 4)
+            {
+              Status = ExecutionStatus::BudgetExceeded;
+              break;
+            }
+            for (const ir::Value *Element : Class.fields())
+            {
+              const SlotId SourceSlot = slot(*Element);
+              for (unsigned Byte = 0; Byte < 4; ++Byte)
+              {
+                Result->ConstantData.push_back(static_cast<char>((SourceSlot >> (Byte * 8)) & 0xff));
+              }
+            }
+            emit({BytecodeOpcode::Class, {Destination, Offset, index(Class.fields().size() * 4)}});
+            break;
+          }
+          case ir::ValueKind::FieldExtractInstruction:
+          {
+            const auto &Field = static_cast<const ir::FieldExtractInstruction &>(Value);
+            emit({BytecodeOpcode::FieldExtract, {Destination, slot(Field.object()), index(Field.fieldIndex())}});
+            break;
+          }
+          case ir::ValueKind::FieldPointerInstruction:
+          {
+            const auto &Field = static_cast<const ir::FieldPointerInstruction &>(Value);
+            emit({BytecodeOpcode::FieldPointer, {Destination, slot(Field.address()), index(Field.fieldIndex())}});
             break;
           }
           case ir::ValueKind::ArrayElementPointerInstruction:
@@ -584,6 +631,8 @@ namespace ink::execution
     {
       switch (Kind)
       {
+      case BytecodeOperandKind::FieldIndex:
+        return true;
       case BytecodeOperandKind::None:
         return Value == 0;
       case BytecodeOperandKind::WriteSlot:
@@ -608,30 +657,30 @@ namespace ink::execution
       return false;
     }
 
-    bool isKind(const StorageLayout *Layout, RuntimeKind Kind)
+    bool isKind(const TypeDesc *Layout, RuntimeKind Kind)
     {
       return Layout && Layout->Kind == Kind;
     }
 
-    BytecodeOpcode integerOpcode(const StorageLayout &Layout, bool Compare)
+    BytecodeOpcode integerOpcode(const TypeDesc &Layout, bool Compare)
     {
       if (Compare)
       {
-        switch (Layout.BitWidth)
+        switch (Layout.bitWidth())
         {
         case 8:
-          return Layout.Signed ? BytecodeOpcode::CompareSigned8 : BytecodeOpcode::CompareUnsigned8;
+          return Layout.isSigned() ? BytecodeOpcode::CompareSigned8 : BytecodeOpcode::CompareUnsigned8;
         case 16:
-          return Layout.Signed ? BytecodeOpcode::CompareSigned16 : BytecodeOpcode::CompareUnsigned16;
+          return Layout.isSigned() ? BytecodeOpcode::CompareSigned16 : BytecodeOpcode::CompareUnsigned16;
         case 32:
-          return Layout.Signed ? BytecodeOpcode::CompareSigned32 : BytecodeOpcode::CompareUnsigned32;
+          return Layout.isSigned() ? BytecodeOpcode::CompareSigned32 : BytecodeOpcode::CompareUnsigned32;
         case 64:
-          return Layout.Signed ? BytecodeOpcode::CompareSigned64 : BytecodeOpcode::CompareUnsigned64;
+          return Layout.isSigned() ? BytecodeOpcode::CompareSigned64 : BytecodeOpcode::CompareUnsigned64;
         default:
           return BytecodeOpcode::CompareWide;
         }
       }
-      switch (Layout.BitWidth)
+      switch (Layout.bitWidth())
       {
       case 8:
         return BytecodeOpcode::AddI8;
@@ -649,7 +698,7 @@ namespace ink::execution
     bool verifyCall(const ExecutableFunction &Function, const BytecodeInstruction &Value)
     {
       const ExecutionCallSite &Call = Function.Calls[Value.Operands[1]];
-      const StorageLayout *Signature = Function.Layouts->get(Call.Signature);
+      const TypeDesc *Signature = Function.Layouts->get(Call.Signature);
       if (!isKind(Signature, RuntimeKind::Function))
       {
         return false;
@@ -667,13 +716,13 @@ namespace ink::execution
       {
         return false;
       }
-      if (Signature->ReturnType != Function.SlotTypes[Value.Operands[0]] || Signature->Parameters.size() != Call.Arguments.size())
+      if (Signature->functionDesc().ReturnType != Function.SlotTypes[Value.Operands[0]] || Signature->functionDesc().Parameters.size() != Call.Arguments.size())
       {
         return false;
       }
       for (std::size_t Index = 0; Index < Call.Arguments.size(); ++Index)
       {
-        if (Call.Arguments[Index] >= Function.SlotTypes.size() || Function.SlotTypes[Call.Arguments[Index]] != Signature->Parameters[Index])
+        if (Call.Arguments[Index] >= Function.SlotTypes.size() || Function.SlotTypes[Call.Arguments[Index]] != Signature->functionDesc().Parameters[Index])
         {
           return false;
         }
@@ -693,7 +742,7 @@ namespace ink::execution
       case BytecodeOpcode::AllocaLocal:
       {
         const auto *Layout = SlotType(Value.Operands[0]);
-        return isKind(Layout, RuntimeKind::Pointer) && Layout->Writable && Layout->Pointee == Value.Operands[1];
+        return isKind(Layout, RuntimeKind::Pointer) && Layout->pointerDesc().Writable && Layout->pointerDesc().Pointee == Value.Operands[1];
       }
       case BytecodeOpcode::Load:
       case BytecodeOpcode::LoadLocal:
@@ -703,7 +752,7 @@ namespace ink::execution
       case BytecodeOpcode::LoadI64:
       {
         const auto *Address = SlotType(Value.Operands[1]);
-        if (!isKind(Address, RuntimeKind::Pointer) || Address->Pointee != Function.SlotTypes[Value.Operands[0]])
+        if (!isKind(Address, RuntimeKind::Pointer) || Address->pointerDesc().Pointee != Function.SlotTypes[Value.Operands[0]])
         {
           return false;
         }
@@ -717,7 +766,7 @@ namespace ink::execution
       case BytecodeOpcode::StoreI64:
       {
         const auto *Address = SlotType(Value.Operands[1]);
-        if (!isKind(SlotType(Value.Operands[0]), RuntimeKind::Void) || !isKind(Address, RuntimeKind::Pointer) || !Address->Writable || Address->Pointee != Function.SlotTypes[Value.Operands[2]])
+        if (!isKind(SlotType(Value.Operands[0]), RuntimeKind::Void) || !isKind(Address, RuntimeKind::Pointer) || !Address->pointerDesc().Writable || Address->pointerDesc().Pointee != Function.SlotTypes[Value.Operands[2]])
         {
           return false;
         }
@@ -726,48 +775,62 @@ namespace ink::execution
       case BytecodeOpcode::CString:
       {
         const auto *Pointer = SlotType(Value.Operands[0]);
-        if (!isKind(Pointer, RuntimeKind::Pointer) || !Pointer->Writable)
+        if (!isKind(Pointer, RuntimeKind::Pointer) || !Pointer->pointerDesc().Writable)
         {
           return false;
         }
-        const auto *Pointee = Function.Layouts->get(Pointer->Pointee);
-        return isKind(Pointee, RuntimeKind::Integer) && Pointee->BitWidth == 8 && !Pointee->Signed;
+        const auto *Pointee = Function.Layouts->get(Pointer->pointerDesc().Pointee);
+        return isKind(Pointee, RuntimeKind::Integer) && Pointee->bitWidth() == 8 && !Pointee->isSigned();
       }
       case BytecodeOpcode::Array:
+      case BytecodeOpcode::Class:
       {
         const auto *Array = SlotType(Value.Operands[0]);
         const std::size_t Offset = Value.Operands[1];
         const std::size_t Length = Value.Operands[2];
-        if (!isKind(Array, RuntimeKind::Array) || Length % 4 || Offset > Function.ConstantData.size() || Length > Function.ConstantData.size() - Offset || Array->ElementCount != Length / 4)
+        const bool Class = Value.Code == BytecodeOpcode::Class;
+        if (!isKind(Array, Class ? RuntimeKind::Class : RuntimeKind::Array) || Length % 4 || Offset > Function.ConstantData.size() || Length > Function.ConstantData.size() - Offset || (Class ? Array->classDesc().Fields.size() : Array->arrayDesc().ElementCount) != Length / 4)
         {
           return false;
         }
         for (std::size_t Byte = 0; Byte < Length; Byte += 4)
         {
           const SlotId Source = arraySourceSlot(Function, Offset + Byte);
-          if (Source >= Function.SlotTypes.size() || Function.SlotTypes[Source] != Array->ElementType)
+          if (Source >= Function.SlotTypes.size() || Function.SlotTypes[Source] != (Class ? Array->classDesc().Fields[Byte / 4].Type : Array->arrayDesc().ElementType))
           {
             return false;
           }
         }
         return true;
       }
+      case BytecodeOpcode::FieldExtract:
+      {
+        const auto *Class = SlotType(Value.Operands[1]);
+        return isKind(Class, RuntimeKind::Class) && Value.Operands[2] < Class->classDesc().Fields.size() && Class->classDesc().Fields[Value.Operands[2]].Type == Function.SlotTypes[Value.Operands[0]];
+      }
+      case BytecodeOpcode::FieldPointer:
+      {
+        const auto *Address = SlotType(Value.Operands[1]);
+        const auto *Destination = SlotType(Value.Operands[0]);
+        const auto *Class = isKind(Address, RuntimeKind::Pointer) ? Function.Layouts->get(Address->pointerDesc().Pointee) : nullptr;
+        return isKind(Class, RuntimeKind::Class) && Value.Operands[2] < Class->classDesc().Fields.size() && isKind(Destination, RuntimeKind::Pointer) && Destination->pointerDesc().Pointee == Class->classDesc().Fields[Value.Operands[2]].Type && Destination->pointerDesc().Writable == Address->pointerDesc().Writable;
+      }
       case BytecodeOpcode::ArrayRepeat:
       {
         const auto *Array = SlotType(Value.Operands[0]);
-        return isKind(Array, RuntimeKind::Array) && Array->ElementType == Function.SlotTypes[Value.Operands[1]];
+        return isKind(Array, RuntimeKind::Array) && Array->arrayDesc().ElementType == Function.SlotTypes[Value.Operands[1]];
       }
       case BytecodeOpcode::ArrayElementPointer:
       {
         const auto *Address = SlotType(Value.Operands[1]);
         const auto *Destination = SlotType(Value.Operands[0]);
-        const auto *Array = isKind(Address, RuntimeKind::Pointer) ? Function.Layouts->get(Address->Pointee) : nullptr;
-        return isKind(Array, RuntimeKind::Array) && isKind(Destination, RuntimeKind::Pointer) && Destination->Pointee == Array->ElementType && Destination->Writable == Address->Writable && isKind(SlotType(Value.Operands[2]), RuntimeKind::Integer);
+        const auto *Array = isKind(Address, RuntimeKind::Pointer) ? Function.Layouts->get(Address->pointerDesc().Pointee) : nullptr;
+        return isKind(Array, RuntimeKind::Array) && isKind(Destination, RuntimeKind::Pointer) && Destination->pointerDesc().Pointee == Array->arrayDesc().ElementType && Destination->pointerDesc().Writable == Address->pointerDesc().Writable && isKind(SlotType(Value.Operands[2]), RuntimeKind::Integer);
       }
       case BytecodeOpcode::ArrayExtract:
       {
         const auto *Array = SlotType(Value.Operands[1]);
-        return isKind(Array, RuntimeKind::Array) && Array->ElementType == Function.SlotTypes[Value.Operands[0]] && isKind(SlotType(Value.Operands[2]), RuntimeKind::Integer);
+        return isKind(Array, RuntimeKind::Array) && Array->arrayDesc().ElementType == Function.SlotTypes[Value.Operands[0]] && isKind(SlotType(Value.Operands[2]), RuntimeKind::Integer);
       }
       case BytecodeOpcode::AddI8:
       case BytecodeOpcode::AddI16:
@@ -801,9 +864,9 @@ namespace ink::execution
       case BytecodeOpcode::JumpIf:
         return isKind(SlotType(Value.Operands[1]), RuntimeKind::Boolean);
       case BytecodeOpcode::Return:
-        return Function.SlotTypes[Value.Operands[1]] == Function.Layouts->get(Function.Signature)->ReturnType;
+        return Function.SlotTypes[Value.Operands[1]] == Function.Layouts->get(Function.Signature)->functionDesc().ReturnType;
       case BytecodeOpcode::ReturnVoid:
-        return isKind(Function.Layouts->get(Function.Layouts->get(Function.Signature)->ReturnType), RuntimeKind::Void);
+        return isKind(Function.Layouts->get(Function.Layouts->get(Function.Signature)->functionDesc().ReturnType), RuntimeKind::Void);
       case BytecodeOpcode::Function:
         return isKind(SlotType(Value.Operands[0]), RuntimeKind::Function) && Function.InitialSlots[Value.Operands[0]].Initialized;
       case BytecodeOpcode::Count:
@@ -812,7 +875,7 @@ namespace ink::execution
       return false;
     }
 
-    bool validInitialValue(const RuntimeValue &Value, const StorageLayout &Layout)
+    bool validInitialValue(const RuntimeValue &Value, const TypeDesc &Layout)
     {
       if (!Value.Initialized)
       {
@@ -825,23 +888,37 @@ namespace ink::execution
       case RuntimeKind::Boolean:
         return !Value.Object && Value.Bits <= 1;
       case RuntimeKind::Integer:
-        if (Layout.BitWidth > 64)
+        if (Layout.bitWidth() > 64)
         {
-          return Value.Object && Value.kind() == RuntimeKind::Integer && Value.integer().bitWidth() == Layout.BitWidth && Value.integer().valid();
+          return Value.Object && Value.kind() == RuntimeKind::Integer && Value.integer().bitWidth() == Layout.bitWidth() && Value.integer().valid();
         }
-        return Layout.BitWidth != 0 && !Value.Object && (Layout.BitWidth == 64 || (Value.Bits >> Layout.BitWidth) == 0);
+        return Layout.bitWidth() != 0 && !Value.Object && (Layout.bitWidth() == 64 || (Value.Bits >> Layout.bitWidth()) == 0);
       case RuntimeKind::Float:
-        return !Value.Object && ((Layout.BitWidth == 16 || Layout.BitWidth == 32) ? (Value.Bits >> Layout.BitWidth) == 0 : Layout.BitWidth == 64);
+        return !Value.Object && ((Layout.bitWidth() == 16 || Layout.bitWidth() == 32) ? (Value.Bits >> Layout.bitWidth()) == 0 : Layout.bitWidth() == 64);
       case RuntimeKind::String:
         return Value.Object && Value.kind() == RuntimeKind::String;
       case RuntimeKind::Array:
-        if (!Value.Object || Value.kind() != RuntimeKind::Array || !Layout.ElementLayout || Value.array().size() != Layout.ElementCount)
+        if (!Value.Object || Value.kind() != RuntimeKind::Array || !Layout.arrayDesc().ElementLayout || Value.array().size() != Layout.arrayDesc().ElementCount)
         {
           return false;
         }
         for (const RuntimeValue &Element : Value.array())
         {
-          if (!Element.Initialized || Element.Type != Layout.ElementType || !validInitialValue(Element, *Layout.ElementLayout))
+          if (!Element.Initialized || Element.Type != Layout.arrayDesc().ElementType || !validInitialValue(Element, *Layout.arrayDesc().ElementLayout))
+          {
+            return false;
+          }
+        }
+        return true;
+      case RuntimeKind::Class:
+        if (!Value.Object || Value.kind() != RuntimeKind::Class || Value.fields().size() != Layout.classDesc().Fields.size())
+        {
+          return false;
+        }
+        for (std::size_t Index = 0; Index < Value.fields().size(); ++Index)
+        {
+          const RuntimeValue &Field = Value.fields()[Index];
+          if (!Field.Initialized || Field.Type != Layout.classDesc().Fields[Index].Type || !validInitialValue(Field, *Layout.classDesc().Fields[Index].Layout))
           {
             return false;
           }
@@ -869,14 +946,14 @@ namespace ink::execution
     {
       return ExecutionStatus::InvalidArguments;
     }
-    const StorageLayout *Signature = Function.Layouts->get(Function.Signature);
-    if (!isKind(Signature, RuntimeKind::Function) || !Function.Layouts->get(Signature->ReturnType) || Function.SlotTypes.size() < Signature->Parameters.size())
+    const TypeDesc *Signature = Function.Layouts->get(Function.Signature);
+    if (!isKind(Signature, RuntimeKind::Function) || !Function.Layouts->get(Signature->functionDesc().ReturnType) || Function.SlotTypes.size() < Signature->functionDesc().Parameters.size())
     {
       return ExecutionStatus::InvalidArguments;
     }
     for (std::size_t Index = 0; Index < Function.SlotTypes.size(); ++Index)
     {
-      const StorageLayout *Layout = Function.Layouts->get(Function.SlotTypes[Index]);
+      const TypeDesc *Layout = Function.Layouts->get(Function.SlotTypes[Index]);
       if (!Layout)
       {
         return ExecutionStatus::InvalidArguments;
@@ -885,7 +962,7 @@ namespace ink::execution
       {
         return ExecutionStatus::TypeMismatch;
       }
-      if (Index < Signature->Parameters.size() && (Function.SlotTypes[Index] != Signature->Parameters[Index] || Function.InitialSlots[Index].Initialized))
+      if (Index < Signature->functionDesc().Parameters.size() && (Function.SlotTypes[Index] != Signature->functionDesc().Parameters[Index] || Function.InitialSlots[Index].Initialized))
       {
         return ExecutionStatus::TypeMismatch;
       }
@@ -931,7 +1008,7 @@ namespace ink::execution
       }
       if (Value.Code == BytecodeOpcode::AllocaLocal)
       {
-        if (Function.InitialSlots[Value.Operands[0]].Initialized || Value.Operands[0] < Signature->Parameters.size() || LocalSlots[Value.Operands[0]] || LocalOwners[Value.Operands[2]] != InvalidSlot)
+        if (Function.InitialSlots[Value.Operands[0]].Initialized || Value.Operands[0] < Signature->functionDesc().Parameters.size() || LocalSlots[Value.Operands[0]] || LocalOwners[Value.Operands[2]] != InvalidSlot)
         {
           return ExecutionStatus::InvalidArguments;
         }
@@ -980,7 +1057,7 @@ namespace ink::execution
           }
         }
       }
-      if (Value.Code == BytecodeOpcode::Array)
+      if (Value.Code == BytecodeOpcode::Array || Value.Code == BytecodeOpcode::Class)
       {
         for (std::size_t Byte = 0; Byte < Value.Operands[2]; Byte += 4)
         {

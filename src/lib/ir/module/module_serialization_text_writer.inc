@@ -66,9 +66,27 @@ namespace ink::ir::archive
                 TypeAliases[Ref] = true;
               }
             }
+            if (R.Kind == Tag::Module)
+            {
+              for (auto Class : R.Fields)
+              {
+                TypeAliases[Class] = true;
+              }
+            }
+            if (R.Kind == Tag::Function && R.Fields.size() == 6)
+            {
+              TypeAliases[R.Fields[4]] = true;
+            }
+            if (R.Kind == Tag::Class && !R.Fields.empty())
+            {
+              for (std::size_t Index = 2; Index < R.Fields.size(); Index += 3)
+              {
+                TypeAliases[R.Fields[Index]] = true;
+              }
+            }
             if (isInstruction(R.Kind))
             {
-              for (std::size_t Index = R.Kind == Tag::Compare || R.Kind == Tag::ArrayValue ? 1 : 0; Index < R.Fields.size(); ++Index)
+              for (std::size_t Index = R.Kind == Tag::Compare || R.Kind == Tag::ArrayValue || R.Kind == Tag::FieldPointer || R.Kind == Tag::FieldExtract ? 1 : 0; Index < R.Fields.size(); ++Index)
               {
                 const auto Ref = R.Fields[Index];
                 Used[Ref] = true;
@@ -168,7 +186,22 @@ namespace ink::ir::archive
           switch (R.Kind)
           {
           case Tag::Class:
-            return "class " + core::archive::quote(R.Text);
+          {
+            if (R.Fields.empty())
+            {
+              return "class " + core::archive::quote(R.Text);
+            }
+            const std::string_view Text(R.Text);
+            std::string Result = "class " + core::archive::quote(Text.substr(0, R.Fields[0])) + " identity " + core::archive::quote(Text.substr(R.Fields[0], R.Fields[1])) + " {";
+            std::size_t Offset = static_cast<std::size_t>(R.Fields[0] + R.Fields[1]);
+            for (std::size_t Index = 2; Index < R.Fields.size(); Index += 3)
+            {
+              Result += (Index == 2 ? " " : ", ");
+              Result += (R.Fields[Index + 1] ? "private " : "public ") + core::archive::quote(Text.substr(Offset, R.Fields[Index + 2])) + ": " + type(R.Fields[Index]);
+              Offset += static_cast<std::size_t>(R.Fields[Index + 2]);
+            }
+            return Result + " }";
+          }
           case Tag::Enum:
             return "enum " + core::archive::quote(R.Text);
           case Tag::Interface:
@@ -236,9 +269,9 @@ namespace ink::ir::archive
           {
             return core::archive::quote(R.Text);
           }
-          if (R.Kind == Tag::ArrayConstant)
+          if (R.Kind == Tag::ArrayConstant || R.Kind == Tag::ClassConstant)
           {
-            std::string Text = "[";
+            std::string Text = R.Kind == Tag::ArrayConstant ? "[" : "{";
             for (std::size_t Index = 0; Index < R.Fields.size(); ++Index)
             {
               const auto Element = value(R.Fields[Index], Depth + 1);
@@ -253,7 +286,7 @@ namespace ink::ir::archive
               }
               Text += Element;
             }
-            return Text + "]";
+            return Text + (R.Kind == Tag::ArrayConstant ? "]" : "}");
           }
           return Names[Id];
         }
@@ -292,6 +325,10 @@ namespace ink::ir::archive
                 line(Depth + 1, "syntax " + Names[A] + " " + record(A).Text);
               }
             }
+          }
+          for (auto Class : record(Id).Fields)
+          {
+            line(Depth + 1, "reflect type " + type(Class));
           }
           for (auto Child : Children[Id])
           {
@@ -347,6 +384,10 @@ namespace ink::ir::archive
           if (R.Fields[3])
           {
             Header += R.Fields[3] == 1 ? " binding import" : " binding export";
+          }
+          if (R.Fields.size() == 6)
+          {
+            Header += " reflect " + type(R.Fields[4]) + (R.Fields[5] ? " initializer " + std::to_string(R.Fields[5] - 1) : " method");
           }
           line(Depth, Header + (Body ? " {" : ""));
           if (!Body)
@@ -408,6 +449,22 @@ namespace ink::ir::archive
               Text += value(F[Index]);
             }
             Text += "]";
+            break;
+          case Tag::ClassValue:
+            Text += "class.value " + type(R.Type) + " {";
+            for (std::size_t Index = 0; Index < F.size(); ++Index)
+            {
+              if (Index)
+              {
+                Text += ", ";
+              }
+              Text += value(F[Index]);
+            }
+            Text += "}";
+            break;
+          case Tag::FieldPointer:
+          case Tag::FieldExtract:
+            Text += std::string(R.Kind == Tag::FieldPointer ? "field.pointer " : "field.extract ") + type(R.Type) + ", " + std::to_string(F[0]) + ", " + operand(F[1]);
             break;
           case Tag::ArrayElementPointer:
             Text += "array.element " + type(R.Type) + ", " + operand(F[0]) + ", " + operand(F[1]);

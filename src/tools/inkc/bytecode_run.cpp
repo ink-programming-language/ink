@@ -37,9 +37,9 @@ namespace ink::tools
     {
       return bytecodeError("invalid bytecode entry");
     }
-    const StorageLayout &Signature = *Artifact.Image.Layouts->get(Descriptor->second.Signature);
-    const StorageLayout &Return = *Artifact.Image.Layouts->get(Signature.ReturnType);
-    if (!Signature.Parameters.empty() || (Return.Kind != RuntimeKind::Void && !(Return.Kind == RuntimeKind::Integer && Return.BitWidth == 32 && Return.Signed)))
+    const TypeDesc &Signature = *Artifact.Image.Layouts->get(Descriptor->second.Signature);
+    const TypeDesc &Return = *Artifact.Image.Layouts->get(Signature.functionDesc().ReturnType);
+    if (!Signature.functionDesc().Parameters.empty() || (Return.Kind != RuntimeKind::Void && !(Return.Kind == RuntimeKind::Integer && Return.bitWidth() == 32 && Return.isSigned())))
     {
       return bytecodeError("bytecode entry must take no arguments and return void or i32");
     }
@@ -57,7 +57,11 @@ namespace ink::tools
       {
         Compilation.diagnosticEngine().report(*Diagnostic);
         const core::FormattedDiagnostic Formatted = core::DiagnosticFormatter{}.format(*Diagnostic);
-        return bytecodeError(Formatted.Message, cli::ExitCode::SourceError);
+        if (!cli::writeOutput(std::cerr, "inkc: error[" + std::string(Diagnostic->code()) + "]: " + Formatted.Message + "\n"))
+        {
+          return cli::exitStatus(cli::ExitCode::InvocationError);
+        }
+        return cli::exitStatus(cli::ExitCode::SourceError);
       }
       return bytecodeError("bytecode execution was cancelled", cli::ExitCode::SourceError);
     }

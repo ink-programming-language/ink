@@ -30,15 +30,25 @@ namespace ink::execution
 
       // Initial and subsequent stored values use Layout's type domain; callers
       // must bridge values arriving from an independent execution image.
-      ExecutionPlaceResult allocateCell(const StorageLayout &Layout, bool Writable = true, const RuntimeValue &Initial = {}, bool Runtime = false);
+      ExecutionPlaceResult allocateCell(const TypeDesc &Layout, bool Writable = true, const RuntimeValue &Initial = {}, bool Runtime = false);
       ExecutionStatus chargeLocalAllocation() noexcept;
       ExecutionStatus validatePointer(const ExecutionPointer &Pointer) const noexcept;
       ExecutionStorageRef allocateBuffer(std::string_view Bytes, bool Terminate = true);
       ExecutionStorageRef allocateBuffer(std::size_t Size);
+      // Immutable string bytes outlive frames and native-layout value copies.
+      const char *retainString(std::string_view String);
+      // Convert an already validated boundary value, retaining string bytes in this heap.
+      ExecutionStatus writeValueBytes(const TypeDesc &Layout, void *Destination, const RuntimeValue &Value);
+      ExecutionStatus loadBytes(const void *Address, const TypeDesc &Layout, void *Destination) const;
+      ExecutionStatus storeBytes(void *Address, const TypeDesc &Layout, const void *Source);
       bool owns(const ExecutionStorageRef &Storage) const noexcept;
       ExecutionStatus release(const ExecutionStorageRef &Storage) noexcept;
       ExecutionStatus release(ExecutionPlace Place) noexcept;
       ExecutionPointer pointerFromAddress(void *Address) const noexcept;
+      // Allocation lookup is interpreter bookkeeping, independent of pointer values.
+      ExecutionStorageRef storageFromAddress(const void *Address) const noexcept;
+      RuntimeValueResult loadPointer(const ExecutionPointer &Pointer, const TypeDesc &Layout) const;
+      ExecutionStatus storePointer(const ExecutionPointer &Pointer, const TypeDesc &Layout, const RuntimeValue &Value);
 
     private:
       bool checkBudget(std::size_t Bytes) noexcept;

@@ -1,5 +1,7 @@
 #include "ink/execution/value/execution_value.h"
 #include "ink/execution/value/execution_array_value.h"
+#include "ink/execution/value/execution_class_value.h"
+#include "ink/ir/constant/class_constant.h"
 
 #include "ink/execution/value/execution_bool_value.h"
 #include "ink/execution/value/execution_float_value.h"
@@ -64,6 +66,8 @@ namespace ink::execution
       return ExecutionValueKind::Function;
     case ExecutionObjectKind::ArrayValue:
       return ExecutionValueKind::Array;
+    case ExecutionObjectKind::ClassValue:
+      return ExecutionValueKind::Class;
     case ExecutionObjectKind::Cell:
     case ExecutionObjectKind::Buffer:
       return ExecutionValueKind::Invalid;
@@ -114,6 +118,27 @@ namespace ink::execution
       }
       return true;
     }
+    case ExecutionValueKind::Class:
+    {
+      if (!ir::ClassType::classof(&ValueType))
+      {
+        return false;
+      }
+      const auto &Type = static_cast<const ir::ClassType &>(ValueType);
+      const auto Fields = static_cast<const ExecutionClassValue &>(*this).value();
+      if (!Type.isComplete() || Fields.size() != Type.fields().size())
+      {
+        return false;
+      }
+      for (std::size_t Index = 0; Index < Fields.size(); ++Index)
+      {
+        if (!Fields[Index].valid() || Fields[Index].type() != Type.fields()[Index].FieldType)
+        {
+          return false;
+        }
+      }
+      return true;
+    }
     case ExecutionValueKind::Pointer:
       return ValueType.typeKind() == ir::TypeKind::Pointer && static_cast<const ExecutionPointerValue &>(*this).value().valid();
     case ExecutionValueKind::Function:
@@ -151,6 +176,20 @@ namespace ink::execution
         Elements.push_back(Constant);
       }
       return Context.constantPool().getArrayConstant(static_cast<const ir::ArrayType &>(ValueType), Elements);
+    }
+    case ExecutionValueKind::Class:
+    {
+      std::vector<const ir::Constant *> Fields;
+      for (const auto &Field : static_cast<const ExecutionClassValue &>(*this).value())
+      {
+        const ir::Constant *Constant = Field.toConstant(Context);
+        if (!Constant)
+        {
+          return nullptr;
+        }
+        Fields.push_back(Constant);
+      }
+      return Context.constantPool().getClassConstant(static_cast<const ir::ClassType &>(ValueType), Fields);
     }
     default:
       return nullptr;
@@ -202,6 +241,12 @@ namespace ink::execution
   {
     assert(kind() == ExecutionValueKind::Array && "execution value is not an array");
     return static_cast<const ExecutionArrayValue &>(*Value).value();
+  }
+
+  std::span<const ExecutionValueRef> ExecutionValueRef::fields() const noexcept
+  {
+    assert(kind() == ExecutionValueKind::Class && "execution value is not a class");
+    return static_cast<const ExecutionClassValue &>(*Value).value();
   }
 
   const ir::Function *ExecutionValueRef::function() const noexcept

@@ -7,13 +7,18 @@
 #include "ink/ir/name/name.h"
 
 #include <vector>
+#include <limits>
 
 namespace ink::ir
 {
+  class ClassType;
+
   // A closed callable identity. Generic definitions must be instantiated before creating this value.
   class Function final : public Value
   {
     public:
+      ~Function() override;
+
       Name name() const noexcept
       {
         return FunctionName;
@@ -52,6 +57,16 @@ namespace ink::ir
       VisibilityKind visibility() const noexcept
       {
         return Visibility;
+      }
+
+      const ClassType *classOwner() const noexcept
+      {
+        return ClassOwner;
+      }
+
+      std::size_t initializerField() const noexcept
+      {
+        return InitializerField;
       }
 
       bool hasBody() const noexcept
@@ -96,6 +111,8 @@ namespace ink::ir
       {
       }
 
+      const ClassType *ClassOwner = nullptr;
+      std::size_t InitializerField = std::numeric_limits<std::size_t>::max();
       Name FunctionName;
       CallingConvention Convention;
       LanguageLinkage Linkage;

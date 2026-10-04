@@ -12,7 +12,7 @@ namespace ink::ir::test
 {
   namespace
   {
-    constexpr std::string_view LogicalModuleText = R"(ink-ir 4
+    constexpr std::string_view LogicalModuleText = R"(ink-ir 6
 module @Logic {
   define bool @compare(bool %left, bool %right, i32 %number, i32 %other) {
   entry:
@@ -161,7 +161,7 @@ module @Logic {
   // Forward dependencies resolve through logical and comparison nodes without confusing a predicate with an object ID.
   TEST(IRModuleSerializationTest, LogicalInstructionsResolveForwardOperands)
   {
-    constexpr std::string_view Text = R"(ink-ir 4
+    constexpr std::string_view Text = R"(ink-ir 6
 module @Forward {
   define bool @f(i32 %left, i32 %right) {
   entry:
@@ -221,7 +221,7 @@ module @Forward {
     IRContext Context(Compilation);
     for (const auto InstructionsText : Instructions)
     {
-      const auto Result = deserializeModuleText(Context, "ink-ir 4 module @Invalid { define bool @f(bool %flag, i32 %number) { entry: " + std::string(InstructionsText) + " } }");
+      const auto Result = deserializeModuleText(Context, "ink-ir 6 module @Invalid { define bool @f(bool %flag, i32 %number) { entry: " + std::string(InstructionsText) + " } }");
       EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << InstructionsText << ": " << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Context.modules().empty());

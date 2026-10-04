@@ -83,9 +83,9 @@ namespace ink::execution::test
       ASSERT_EQ(Initial.array().size(), 2U);
       EXPECT_EQ(Initial.array()[0].array().size(), Name == "empty" ? 0U : 2U);
       const auto *Layout = Function.Layouts->get(Initial.Type);
-      ASSERT_NE(Layout->ElementLayout, nullptr);
-      EXPECT_EQ(Layout->ElementLayout->Domain, Function.Layouts->domain());
-      EXPECT_EQ(Layout->ElementLayout->Type, Initial.array()[0].Type);
+      ASSERT_NE(Layout->arrayDesc().ElementLayout, nullptr);
+      EXPECT_EQ(Layout->arrayDesc().ElementLayout->Domain, Function.Layouts->domain());
+      EXPECT_EQ(Layout->arrayDesc().ElementLayout->Type, Initial.array()[0].Type);
     }
   }
 

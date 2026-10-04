@@ -50,19 +50,19 @@ namespace ink::execution::test
     {
       ExecutionImage Image;
       auto Layouts = std::make_shared<RuntimeTypeTable>();
-      StorageLayout Integer;
-      Integer.Kind = RuntimeKind::Integer;
-      Integer.BitWidth = 128;
+      TypeDesc Integer;
+      Integer.setKind(RuntimeKind::Integer);
+      Integer.setBitWidth(128);
       const RuntimeTypeId IntegerId = Layouts->append(Integer);
-      StorageLayout PointerLayout;
-      PointerLayout.Kind = RuntimeKind::Pointer;
-      PointerLayout.Pointee = IntegerId;
+      TypeDesc PointerLayout;
+      PointerLayout.setKind(RuntimeKind::Pointer);
+      PointerLayout.editPointer().Pointee = IntegerId;
       const RuntimeTypeId PointerId = Layouts->append(PointerLayout);
       const RuntimeTypeId Parameter = Pointer ? PointerId : IntegerId;
-      StorageLayout Signature;
-      Signature.Kind = RuntimeKind::Function;
-      Signature.ReturnType = Parameter;
-      Signature.Parameters = {Parameter};
+      TypeDesc Signature;
+      Signature.setKind(RuntimeKind::Function);
+      Signature.editFunction().ReturnType = Parameter;
+      Signature.editFunction().Parameters = {Parameter};
       const RuntimeTypeId SignatureId = Layouts->append(Signature);
       auto Function = std::make_unique<ExecutableFunction>();
       Function->Id = 0;
@@ -93,12 +93,12 @@ namespace ink::execution::test
   {
     ExecutionImage Image;
     auto Layouts = std::make_shared<RuntimeTypeTable>();
-    StorageLayout Void;
-    Void.Kind = RuntimeKind::Void;
+    TypeDesc Void;
+    Void.setKind(RuntimeKind::Void);
     const RuntimeTypeId VoidId = Layouts->append(Void);
-    StorageLayout Signature;
-    Signature.Kind = RuntimeKind::Function;
-    Signature.ReturnType = VoidId;
+    TypeDesc Signature;
+    Signature.setKind(RuntimeKind::Function);
+    Signature.editFunction().ReturnType = VoidId;
     const RuntimeTypeId SignatureId = Layouts->append(Signature);
     Image.Layouts = Layouts;
     RuntimeFunctionDescriptor Descriptor;

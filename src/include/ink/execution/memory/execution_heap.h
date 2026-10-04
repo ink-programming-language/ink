@@ -44,6 +44,7 @@ namespace ink::execution
       ExecutionValueRef floating(const ir::Type &Type, ir::FloatBits Value);
       ExecutionValueRef string(const ir::Type &Type, std::string_view Value);
       ExecutionValueRef array(const ir::Type &Type, std::vector<ExecutionValueRef> Elements);
+      ExecutionValueRef classValue(const ir::Type &Type, std::vector<ExecutionValueRef> Fields);
       ExecutionValueRef pointer(const ir::Type &Type, ExecutionPointer Value);
       ExecutionValueRef function(const ir::Function &Value);
       ExecutionValueRef voidValue(const ir::Type &Type);
@@ -59,7 +60,7 @@ namespace ink::execution
       ExecutionPointer pointerFromAddress(void *Address) const noexcept;
 
     private:
-      ExecutionValueRef ownValue(std::unique_ptr<ExecutionValue> Value, bool AllowExpiredPointer = false);
+      ExecutionValueRef ownValue(std::unique_ptr<ExecutionValue> Value);
       ExecutionValueRef pointerSnapshot(const ir::Type &Type, ExecutionPointer Value);
       ExecutionStatus validatePlace(ExecutionPlace Place) const noexcept;
 

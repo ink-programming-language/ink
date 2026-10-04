@@ -141,6 +141,33 @@ check_source_failure(branch_missing_return "func Choose(Flag: bool): i32 { if (F
 check_source_failure(comptime_division_by_zero "comptime var Result: i32 = 1 / 0; func main(): i32 { return 0; }" 1 "error\\[INK-E0019\\]: compile-time execution failed: division by zero")
 check_source_failure(comptime_invalid_shift "comptime var Result: i32 = 1 << 32; func main(): i32 { return 0; }" 1 "error\\[INK-E0020\\]: compile-time execution failed: invalid shift count")
 
+# Native modes share entry checks and reject conflicting output modes or invalid optimization settings.
+set(LLVMOutput "${RunDirectory}/native output.ll")
+set(ObjectOutput "${RunDirectory}/native output.obj")
+check_compiler(llvm_output 0 "^$" "^$" "" --emit-llvm "${LLVMOutput}" --opt-level 2 --entry custom -i "${Input}")
+file(READ "${LLVMOutput}" LLVMText)
+if(NOT LLVMText MATCHES "target triple" OR NOT LLVMText MATCHES "define.*@main")
+  message(FATAL_ERROR "LLVM output lacks its native target or entry wrapper; artifacts: ${RunDirectory}")
+endif()
+check_compiler(native_conflict 2 "^$" "--emit" "" --emit-llvm "${LLVMOutput}" --emit-object "${ObjectOutput}" -i "${Input}")
+check_compiler(native_interpret_conflict 2 "^$" "--interpret|--emit-object" "" --interpret --emit-object "${ObjectOutput}" -i "${Input}")
+check_compiler(native_invalid_optimization 2 "^$" "--opt-level" "" --emit-object "${ObjectOutput}" --opt-level 4 -i "${Input}")
+check_compiler(interpret_optimization 2 "^$" "--opt-level" "" --interpret --opt-level 2 -i "${Input}")
+check_compiler(native_missing_entry 2 "^$" "entry 'absent' was not found" "" --emit-object "${ObjectOutput}" --entry absent -i "${Input}")
+if(EXISTS "${ObjectOutput}")
+  message(FATAL_ERROR "Invalid native invocation created an object file; artifacts: ${RunDirectory}")
+endif()
+
+# An unresolved class in a function signature must fail during shared analysis in every execution mode.
+set(OpaqueInput "${RunDirectory}/opaque.ink")
+file(WRITE "${OpaqueInput}" "class Node; func take(P: *Node): i32 { return 0; } func main(): i32 { return 42; }")
+check_compiler(opaque_interpret 1 "^$" "INK-S0056" "" --interpret -i "${OpaqueInput}")
+check_compiler(opaque_bytecode 1 "^$" "INK-S0056" "" --emit-bytecode "${RunDirectory}/opaque.inkobj" -i "${OpaqueInput}")
+check_compiler(opaque_native 1 "^$" "INK-S0056" "" --emit-object "${ObjectOutput}" -i "${OpaqueInput}")
+if(EXISTS "${ObjectOutput}" OR EXISTS "${RunDirectory}/opaque.inkobj")
+  message(FATAL_ERROR "An incomplete class signature produced a compiled artifact; artifacts: ${RunDirectory}")
+endif()
+
 # Execution resource exhaustion follows the established internal-error panic policy.
 set(ENV{INK_EXECUTION_MAX_CALL_DEPTH} "8")
 check_source_failure(recursive_budget "func main(): i32 { return main(); }" panic "internal compiler error\\[INK-E0022\\]: execution of entry 'main' failed: execution budget exceeded")

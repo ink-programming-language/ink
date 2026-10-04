@@ -219,38 +219,105 @@ namespace ink::execution
         bool layouts()
         {
           std::size_t Count = 0;
-          if (!count(Count, 39, sizeof(StorageLayout) + 32))
+          if (!count(Count, 25, sizeof(TypeDesc) * 3 + 64))
           {
             return false;
           }
+          std::vector<TypeDesc> Values;
+          Values.reserve(Count);
           for (std::size_t Index = 0; Index < Count; ++Index)
           {
-            StorageLayout Layout;
-            std::size_t Parameters = 0;
-            if (!tag(Layout.Kind, archive::RuntimeKindTags) || !u32(Layout.BitWidth) || !boolean(Layout.Signed) || !size(Layout.Size) || !size(Layout.Alignment) || !boolean(Layout.Native) || !u32(Layout.Pointee) || !boolean(Layout.Writable) || !u32(Layout.ReturnType) || !count(Parameters, 4, sizeof(RuntimeTypeId)))
+            TypeDesc Layout;
+            RuntimeKind Kind = RuntimeKind::Invalid;
+            if (!tag(Kind, archive::RuntimeKindTags) || !size(Layout.Size) || !size(Layout.Alignment) || !boolean(Layout.Native) || !string(Layout.Name))
             {
               return false;
             }
-            Layout.Parameters.reserve(Parameters);
-            for (std::size_t Parameter = 0; Parameter < Parameters; ++Parameter)
+            Layout.setKind(Kind);
+            switch (Kind)
             {
-              RuntimeTypeId Type = InvalidRuntimeType;
-              if (!u32(Type))
+            case RuntimeKind::Integer:
+              if (!u32(Layout.editInteger().BitWidth) || !boolean(Layout.editInteger().Signed))
               {
                 return false;
               }
-              Layout.Parameters.push_back(Type);
-            }
-            if (Layout.Kind == RuntimeKind::Array && (!u32(Layout.ElementType) || !u64(Layout.ElementCount) || Layout.ElementType >= Index))
+              break;
+            case RuntimeKind::Float:
+              if (!u32(Layout.editFloat().BitWidth))
+              {
+                return false;
+              }
+              break;
+            case RuntimeKind::Pointer:
+              if (!u32(Layout.editPointer().Pointee) || !boolean(Layout.editPointer().Writable))
+              {
+                return false;
+              }
+              break;
+            case RuntimeKind::Function:
             {
-              return fail(BytecodeStatus::InvalidFormat, "Array element type must precede its array layout");
+              std::size_t Parameters = 0;
+              if (!u32(Layout.editFunction().ReturnType) || !count(Parameters, 4, sizeof(RuntimeTypeId)))
+              {
+                return false;
+              }
+              Layout.editFunction().Parameters.resize(Parameters);
+              for (RuntimeTypeId &Parameter : Layout.editFunction().Parameters)
+              {
+                if (!u32(Parameter))
+                {
+                  return false;
+                }
+              }
+              break;
             }
-            if (Layouts->append(std::move(Layout)) == InvalidRuntimeType)
+            case RuntimeKind::Array:
+              if (!u32(Layout.editArray().ElementType) || !u64(Layout.editArray().ElementCount) || Layout.arrayDesc().ElementType >= Count)
+              {
+                return fail(BytecodeStatus::InvalidFormat, "Array element type is outside the type table");
+              }
+              break;
+            case RuntimeKind::Class:
             {
-              return fail(BytecodeStatus::LimitExceeded, "Bytecode type table exhausted its ID space");
+              auto &Description = Layout.editClass();
+              std::size_t Fields = 0;
+              if (!string(Description.NominalIdentity) || !count(Fields, 21, sizeof(FieldDesc)))
+              {
+                return false;
+              }
+              Description.Fields.resize(Fields);
+              for (FieldDesc &Field : Description.Fields)
+              {
+                bool Private = false;
+                if (!string(Field.Name) || !u32(Field.Type) || !size(Field.Offset) || !boolean(Private) || !u32(Field.Initializer) || Field.Type >= Count)
+                {
+                  return fail(BytecodeStatus::InvalidFormat, "Class field has invalid reflection metadata");
+                }
+                Field.Visibility = Private ? MemberVisibility::Private : MemberVisibility::Public;
+              }
+              std::size_t Methods = 0;
+              if (!count(Methods, 14, sizeof(MethodDesc)))
+              {
+                return false;
+              }
+              Description.Methods.resize(Methods);
+              for (MethodDesc &Method : Description.Methods)
+              {
+                bool Private = false;
+                if (!string(Method.Name) || !u32(Method.Signature) || !u32(Method.Function) || !boolean(Private) || !boolean(Method.WritableReceiver) || Method.Signature >= Count)
+                {
+                  return fail(BytecodeStatus::InvalidFormat, "Class method has invalid reflection metadata");
+                }
+                Method.Visibility = Private ? MemberVisibility::Private : MemberVisibility::Public;
+              }
+              break;
             }
+            default:
+              break;
+            }
+            Values.push_back(std::move(Layout));
           }
-          return true;
+          return Layouts->defineAll(std::move(Values), Limits.MaxTypeDepth) || fail(BytecodeStatus::InvalidFormat, "Invalid, recursive by-value, or oversized aggregate layout");
         }
 
         bool descriptors(ExecutionImage &Image)
@@ -290,8 +357,8 @@ namespace ink::execution
           {
             return false;
           }
-          const StorageLayout *Layout = Layouts->get(Type);
-          if (!Layout || Payload > 4 || (!Initialized && (Payload != 0 || Bits != 0)) || (Payload != 0 && Bits != 0))
+          const TypeDesc *Layout = Layouts->get(Type);
+          if (!Layout || Payload > 5 || (!Initialized && (Payload != 0 || Bits != 0)) || (Payload != 0 && Bits != 0))
           {
             return fail(BytecodeStatus::InvalidFormat, "Malformed bytecode initial value");
           }
@@ -305,14 +372,15 @@ namespace ink::execution
           {
             return false;
           }
-          if (Payload == 4)
+          if (Payload == 4 || Payload == 5)
           {
             std::size_t Count = 0;
             if (!count(Count, 14, sizeof(RuntimeValue)))
             {
               return false;
             }
-            if (Layout->Kind != RuntimeKind::Array || Count != Layout->ElementCount)
+            const bool Class = Payload == 5;
+            if (Layout->Kind != (Class ? RuntimeKind::Class : RuntimeKind::Array) || Count != (Class ? Layout->classDesc().Fields.size() : Layout->arrayDesc().ElementCount))
             {
               return fail(BytecodeStatus::InvalidFormat, "Bytecode array constant has an invalid type or element count");
             }
@@ -325,13 +393,13 @@ namespace ink::execution
               {
                 return false;
               }
-              if (!Element.Initialized || Element.Type != Layout->ElementType)
+              if (!Element.Initialized || Element.Type != (Class ? Layout->classDesc().Fields[Index].Type : Layout->arrayDesc().ElementType))
               {
                 return fail(BytecodeStatus::InvalidFormat, "Bytecode array constant has an invalid element");
               }
               Elements.push_back(std::move(Element));
             }
-            Value = RuntimeValue::fromArray(std::move(Elements), Type);
+            Value = Class ? RuntimeValue::fromClass(std::move(Elements), Type) : RuntimeValue::fromArray(std::move(Elements), Type);
             return true;
           }
           if (Payload == 1)
@@ -343,7 +411,7 @@ namespace ink::execution
               return false;
             }
             const std::size_t Expected = static_cast<std::size_t>(Width / 64) + (Width % 64 != 0);
-            if (Layout->Kind != RuntimeKind::Integer || Width != Layout->BitWidth || Width <= 64 || Count != Expected)
+            if (Layout->Kind != RuntimeKind::Integer || Width != Layout->bitWidth() || Width <= 64 || Count != Expected)
             {
               return fail(BytecodeStatus::InvalidFormat, "Malformed bytecode wide integer constant");
             }

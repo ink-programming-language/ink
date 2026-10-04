@@ -4,6 +4,7 @@
 #include "ink/ir/context.h"
 #include "ink/semantic/name_resolve/scope_store.h"
 #include "ink/semantic/comptime_state.h"
+#include "ink/semantic/class_state.h"
 #include "ink/ir/function/function.h"
 
 #include <algorithm>
@@ -101,6 +102,11 @@ namespace ink::semantic
         return Comptime;
       }
 
+      ClassState &classState() noexcept
+      {
+        return Classes;
+      }
+
       std::span<const ir::Function *const> moduleImports(const ir::Module &Module) const noexcept
       {
         const auto Found = Imports.find(&Module);
@@ -156,6 +162,7 @@ namespace ink::semantic
 
       ir::IRContext IR;
       ComptimeState Comptime;
+      ClassState Classes;
       std::unique_ptr<ScopeStore> Scopes;
       std::unordered_map<const ir::Module *, std::vector<const ir::Function *>> Imports;
       std::unique_ptr<ModuleImportObserver> ImportObserver;

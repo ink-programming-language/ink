@@ -244,54 +244,37 @@ namespace ink::execution
       return ExecutionStatus::TypeMismatch;
     }
     const ExecutionPointer &Pointer = Value.pointer();
-    if (Pointer.kind() == ExecutionPointer::Kind::Place)
+    const ExecutionStorageRef Storage = Heap.memoryManager().storageFromAddress(Pointer.address());
+    if (const ExecutionCell *Cell = Storage.cell())
     {
-      const ExecutionStorageRef &Storage = Pointer.place().storage();
-      if (!Heap.owns(Storage))
-      {
-        return ExecutionStatus::ForeignContext;
-      }
-      const ExecutionCell &Cell = *Storage.cell();
-      if (Cell.layout().Domain != Heap.bridge().types()->domain())
-      {
-        return ExecutionStatus::ForeignContext;
-      }
-      if (Cell.runtime())
+      if (Cell->runtime())
       {
         return ExecutionStatus::RuntimeValue;
       }
-      if (!Cell.initialized())
+      if (Cell->layout().Domain != Heap.bridge().types()->domain())
+      {
+        return ExecutionStatus::ForeignContext;
+      }
+      if (!Cell->initialized())
       {
         return ExecutionStatus::Uninitialized;
       }
       const auto &Type = static_cast<const ir::PointerType &>(*Value.type());
-      if (Type.access() == ir::AccessKind::ReadWrite && !Cell.writable())
+      if (Type.access() == ir::AccessKind::ReadWrite && !Cell->writable())
       {
         return ExecutionStatus::ReadOnly;
       }
       const ir::Type &Pointee = Type.pointeeType();
-      const bool ByteAccess = ir::IntegerType::classof(&Pointee) && static_cast<const ir::IntegerType &>(Pointee).bitWidth() == 8 && !static_cast<const ir::IntegerType &>(Pointee).isSigned();
-      if (!ByteAccess && Pointee.typeKind() != ir::TypeKind::Void && !Cell.elementLayout(Pointer.offset(), Heap.bridge().lowerType(Pointee), true))
+      const bool ByteAccess = ir::IntegerType::classof(&Pointee) && static_cast<const ir::IntegerType &>(Pointee).bitWidth() == 8;
+      const std::size_t Offset = reinterpret_cast<std::uintptr_t>(Pointer.address()) - reinterpret_cast<std::uintptr_t>(Cell->data());
+      if (!ByteAccess && Pointee.typeKind() != ir::TypeKind::Void && !Cell->elementLayout(Offset, Heap.bridge().lowerType(Pointee), true))
       {
         return ExecutionStatus::TypeMismatch;
       }
-      if (!Cell.data())
-      {
-        return ExecutionStatus::UnsupportedExternalSignature;
-      }
     }
-    if (Pointer.kind() == ExecutionPointer::Kind::Buffer)
+    if (Storage.buffer())
     {
-      if (!Heap.owns(Pointer.bufferRef()))
-      {
-        return ExecutionStatus::ForeignContext;
-      }
-      const auto &Pointee = static_cast<const ir::PointerType &>(*Value.type()).pointeeType();
-      if (Pointee.typeKind() != ir::TypeKind::Void && (!ir::IntegerType::classof(&Pointee) || static_cast<const ir::IntegerType &>(Pointee).bitWidth() != 8))
-      {
-        return ExecutionStatus::UnsupportedExternalSignature;
-      }
-      Buffer = Pointer.bufferRef();
+      Buffer = Storage;
     }
     Scalar.Pointer = Pointer.address();
     Address = &Scalar.Pointer;

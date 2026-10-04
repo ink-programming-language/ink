@@ -15,6 +15,11 @@ namespace ink::semantic
       return reportUnsupported(State, Node);
     }
     const auto NameToken = static_cast<const parser::NameBindingPattern *>(Node.binding())->name();
+    if (State.CurrentClass && NameToken.Text == "this")
+    {
+      State.report<core::DiagnosticKind::SemanticDuplicateName>(NameToken.Range, NameToken.Text);
+      return false;
+    }
     const Name Symbol = State.Context.namePool().intern(NameToken.Text);
     if (State.Resolver.lookupLocal(Symbol) || State.Resolver.lookupLocal<Decl *>(Symbol))
     {
@@ -58,7 +63,7 @@ namespace ink::semantic
         return false;
       }
     }
-    if (!ValueType || (Comptime && ValueType->typeKind() != TypeKind::Integer && ValueType->typeKind() != TypeKind::Bool && ValueType->typeKind() != TypeKind::Float && ValueType->typeKind() != TypeKind::Array && !StringConstant::classof(Initial)))
+    if (!ValueType || (Comptime && ValueType->typeKind() != TypeKind::Integer && ValueType->typeKind() != TypeKind::Bool && ValueType->typeKind() != TypeKind::Float && ValueType->typeKind() != TypeKind::Array && ValueType->typeKind() != TypeKind::Class && !StringConstant::classof(Initial)))
     {
       return reportExecution(State, ExecutionStatus::UnsupportedOperation, Node);
     }

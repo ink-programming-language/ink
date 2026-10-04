@@ -15,6 +15,17 @@ namespace ink::semantic
 
   bool Analyzer::ensureModuleFunctionBody(AnalysisState &State, const ir::Function &FunctionValue, const parser::ASTNodeBase &Use)
   {
+    const auto Method = State.Context.classState().MethodOwners.find(&FunctionValue);
+    if (Method != State.Context.classState().MethodOwners.end() && !FunctionValue.entryBlock())
+    {
+      auto &Definition = State.Context.classState().Definitions.at(Method->second);
+      if (Definition.BodyAnalyzing)
+      {
+        State.report<core::DiagnosticKind::SemanticComptimeBodyDependency>(Use.getSourceRange(), State.Context.namePool().text(FunctionValue.name()));
+        return false;
+      }
+      return ensureClassDefinition(State, *Method->second, Use);
+    }
     if (!State.Modules)
     {
       return true;

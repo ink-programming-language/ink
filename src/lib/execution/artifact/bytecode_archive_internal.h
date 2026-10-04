@@ -12,8 +12,8 @@
 namespace ink::execution::archive
 {
   inline constexpr std::string_view Magic("INKBC\0\r\n", 8);
-  inline constexpr std::uint32_t FormatVersion = 2;
-  inline constexpr std::uint32_t InstructionVersion = 1;
+  inline constexpr std::uint32_t FormatVersion = 6;
+  inline constexpr std::uint32_t InstructionVersion = 3;
 
   // File tags are independent of enum declaration order. Existing tags must never change.
   inline constexpr std::array OpcodeTags = {
@@ -62,6 +62,9 @@ namespace ink::execution::archive
       std::pair{BytecodeOpcode::ArrayRepeat, 43U},
       std::pair{BytecodeOpcode::ArrayElementPointer, 44U},
       std::pair{BytecodeOpcode::ArrayExtract, 45U},
+      std::pair{BytecodeOpcode::Class, 46U},
+      std::pair{BytecodeOpcode::FieldExtract, 47U},
+      std::pair{BytecodeOpcode::FieldPointer, 48U},
   };
   static_assert(OpcodeTags.size() == static_cast<std::size_t>(BytecodeOpcode::Count), "Add an explicit archive tag for every opcode");
 
@@ -111,6 +114,7 @@ namespace ink::execution::archive
       std::pair{RuntimeKind::Pointer, 6U},
       std::pair{RuntimeKind::Function, 7U},
       std::pair{RuntimeKind::Array, 8U},
+      std::pair{RuntimeKind::Class, 9U},
   };
 
   inline constexpr std::array ArtifactKindTags = {

@@ -130,11 +130,11 @@ namespace ink::execution
       }
       RuntimeValueResult Executed = Machine->execute(Target, Values);
       ExecutionValueResult Raised = Executed ? Bridge.raiseValue(Heap, Executed.Value, ReturnType) : ExecutionValueResult{Executed.Status};
-      if (Raised && Executed.Value.kind() == RuntimeKind::Pointer && Executed.Value.pointer().kind() == ExecutionPointer::Kind::Buffer)
+      if (Raised && Executed.Value.kind() == RuntimeKind::Pointer)
       {
         for (FfiArgument &Argument : ConvertedStrings)
         {
-          if (Argument.bufferRef() == Executed.Value.pointer().bufferRef())
+          if (Argument.bufferRef().valid() && Argument.bufferRef() == Heap.memoryManager().storageFromAddress(Executed.Value.pointer().address()))
           {
             Argument.promoteBuffer();
           }

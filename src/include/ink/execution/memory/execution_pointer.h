@@ -5,21 +5,18 @@
 #include "ink/execution/memory/execution_storage_ref.h"
 
 #include <cstddef>
+#include <cstdint>
 
 namespace ink::execution
 {
-  class ExecutionBuffer;
-
-  // Managed pointers borrow heap storage and never extend its lifetime.
-  // Native addresses are execution-only and never become IR integer constants.
+  // A language pointer is one non-owning machine address. Allocation identities
+  // belong to the interpreter's bookkeeping, never to pointer values.
   class ExecutionPointer final
   {
     public:
       enum class Kind
       {
         Null,
-        Place,
-        Buffer,
         Native,
       };
 
@@ -29,43 +26,35 @@ namespace ink::execution
 
       Kind kind() const noexcept
       {
-        return PointerKind;
+        return Address ? Kind::Native : Kind::Null;
       }
 
-      ExecutionPlace place() const noexcept
+      void *address() const noexcept
       {
-        return Place;
+        return Address;
       }
 
-      ExecutionBuffer *buffer() const noexcept;
-
-      const ExecutionStorageRef &bufferRef() const noexcept
+      ExecutionPointer offsetBy(std::size_t Bytes) const noexcept
       {
-        return Buffer;
+        return fromNative(reinterpret_cast<void *>(reinterpret_cast<std::uintptr_t>(Address) + Bytes));
       }
 
-      std::size_t offset() const noexcept
+      // Copying a pointer never reads or validates its pointee.
+      ExecutionStatus status() const noexcept
       {
-        return Offset;
+        return ExecutionStatus::Success;
       }
-
-      // Native-backed places and buffers expose stable host addresses. A valid
-      // one-past pointer may be passed or compared, but must not be dereferenced.
-      void *address() const noexcept;
-      ExecutionStatus status() const noexcept;
 
       bool valid() const noexcept
       {
-        return status() == ExecutionStatus::Success;
+        return true;
       }
 
     private:
-      Kind PointerKind = Kind::Null;
-      ExecutionPlace Place;
-      ExecutionStorageRef Buffer;
-      std::size_t Offset = 0;
-      void *NativeAddress = nullptr;
+      void *Address = nullptr;
   };
+
+  static_assert(sizeof(ExecutionPointer) == sizeof(void *));
 } // namespace ink::execution
 
 #endif

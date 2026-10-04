@@ -35,11 +35,11 @@ inkc --interpret [--entry NAME] --input FILE
 | `-i FILE` / `--input FILE` | 必填源码文件；`-` 从 stdin 读取 |
 | `-oir FILE` | 保留识别的 IR 输出选项，与解释模式冲突；当前未提供 IR 输出模式 |
 
-必须选择解释、字节码编译、字节码链接或字节码运行中的一种模式。同时指定 `--interpret` 和 `-oir` 会作为参数冲突拒绝。
+必须选择解释、字节码编译、字节码链接、字节码运行、LLVM IR 输出或原生目标文件输出中的一种模式。同时指定 `--interpret` 和 `-oir` 会作为参数冲突拒绝。
 
 处理流程为源码 → tokenizer → parser AST → semantic IR → 选择入口 → `ExecutionEngine::execute()`。入口必须是模块内可唯一选择的零参数本地或导出函数，具有可执行 IR 函数体，返回 `void` 或有符号 `i32`。原生导入、仅声明而没有函数体的函数及编译期专用函数不能作为入口；程序实参传递尚未接入。
 
-解释器当前执行 Alloca、Store、Load、整数 Add、LogicalNot、LogicalAnd、LogicalOr、Compare、CString、Call、Branch、ConditionalBranch 和 Return，以及块内函数声明。支持 bool 条件的 if/else/else-if 与嵌套分支，条件可来自参数、局部变量、函数返回值或 bool 常量；分支指令只执行选中的路径。普通 if 的两个分支在定义处均进行语义检查，`comptime if` 只分析选中分支。非泛型函数的编译期调用共享同一 IR 执行路径；显式 `comptime` 语句块和静态循环仍可在语义分析期间求值或展开。源码循环、聚合执行及完整后端编译仍未实现。
+解释器执行内存读写、整数 Add、逻辑与比较、CString、调用、分支、返回、数组和 class 聚合构造及成员访问。支持 bool 条件的 if/else/else-if 与嵌套分支，普通 if 的两个分支在定义处均进行语义检查，`comptime if` 只分析选中分支。非泛型函数和 class 方法的编译期调用共享同一 IR 执行路径；显式 `comptime` 语句块和静态循环仍可在语义分析期间求值或展开。普通运行时源码循环尚未实现。
 
 源码支持 bool 的 `!`、`&&`、`||`；短路通过条件分支和临时 bool 存储实现，左侧只执行一次，右侧仅在需要时执行，普通函数仍在定义处检查两侧类型。IR 的 LogicalAnd/LogicalOr 直接处理已求值的操作数，不负责撤销或跳过先前求值。`==`、`!=`、`<`、`<=`、`>`、`>=` 接受完全同型整数，比较保留符号属性；bool 只接受 `==`、`!=`。IR 比较支持任意整数位宽，源码可使用已支持的 i/u8、16、32、64、128；浮点和指针比较尚未支持。
 
@@ -67,6 +67,27 @@ echo 'func main(): i32 { return 7; }' | ./build/src/tools/inkc/inkc --interpret 
 
 hello world 源码分别声明平台实际符号及 ABI：Windows 为 `_write(i32, *u8, u32): i32`，Linux 为 `write(i32, *u8, u64): i64`。main 向 stdout 写入 `hello, world\n` 并返回 0。Windows 示例沿用 CRT stdout 的默认文本模式，捕获的换行为 CRLF；Linux 捕获为 LF。解释器不添加输出标题或转换源程序的输出内容。
 
+## inkc LLVM IR 与原生目标文件
+
+```text
+inkc --emit-llvm FILE.ll [--opt-level 0|1|2|3] [--entry NAME] [--module-root DIRECTORY] -i SOURCE
+inkc --emit-object FILE.obj [--opt-level 0|1|2|3] [--entry NAME] [--module-root DIRECTORY] -i SOURCE
+```
+
+两种输出模式与解释及字节码模式互斥，优化级别默认 0，`--opt-level` 只用于这两种模式。输入和入口规则与源码解释模式一致；编译时完成语义检查和 `comptime` 求值，输出包含选择的入口及原生 `main` 包装。LLVM 验证失败或不支持的 lowering 返回错误，不生成成功结果。
+
+后端使用宿主 target，并验证 LLVM DataLayout 与共享 Ink 对象布局一致。class 按值传参、返回、复制和字段访问使用内部 Ink ABI；普通方法通过显式裸指针 `this` 操作同一对象。普通 class 没有隐藏对象头，字段按声明顺序和自然对齐排列。LLVM 直接生成地址计算和内存读写，整体赋值保留原地址；数组下标保留显式越界检查。无效裸指针访问属于未定义行为，不保证产生生命周期诊断。O0/O2 对照测试覆盖解释、持久化字节码及本机程序的返回值和副作用顺序。详细契约见 [对象内存 ABI](Ink-Classes.md#对象内存-abi-与裸指针)。
+
+目标文件需要链接本次构建的 `ink_aot_runtime` 和匹配配置的系统 C 运行库。该 runtime 仅提供通过 OS API 输出诊断并退出的 C 接口，不依赖 Ink Core、VM 或 spdlog。Windows 的 Developer PowerShell 中，单配置 Debug 构建示例：
+
+```powershell
+.\cmake-build-debug\src\tools\inkc\inkc.exe --emit-object point.obj --opt-level 2 -i point.ink
+cl /nologo /MDd point.obj .\cmake-build-debug\src\lib\backend\llvm\ink_aot_runtime.lib /Fe:point.exe /link /DEFAULTLIB:msvcrtd
+.\point.exe
+```
+
+库目录随生成器和配置变化，以构建产物为准。Release DLL CRT 对应 `/DEFAULTLIB:msvcrt`；静态 CRT 对应 `libcmt`，其 Debug 版本为 `libcmtd`。必须显式选择 CRT，即使优化后没有任何 runtime 引用。Linux 的对应命令为 `c++ point.o <ink_aot_runtime.a> -o point`。CLI 当前不自动链接可执行文件，不支持跨 target 编译、间接函数调用或按值 class 的 C 调用 ABI；本机导入和导出接受已实现的标量及裸指针，包括 `*Class` 和多级指针。指针所指数据的布局和生命周期由调用方负责。
+
 ## inkc 字节码编译、链接与运行
 
 ```text
@@ -81,13 +102,13 @@ inkc --run-bytecode -i EXECUTABLE
 
 跨文件使用 `from math import answer;`、`from math import answer as localAnswer;` 或 `import math as library;` 后调用 `library.answer()`。直接导入未写别名时使用模块路径末段作为绑定名。导入以目标声明为准，自动获得真实签名和重载集合；私有定义不能被导入或通过模块成员访问。普通 `func answer(): i32;` 会报告 `INK-S0028`，只能在 `import "C"` 下保留无函数体声明。
 
-模块身份由源码相对 `--module-root` 的路径去掉 `.ink` 后将目录分隔符替换为点确定，例如 `package/math.ink` 对应 `package.math`。生成对象或使用导入时，源文件扩展必须为 `.ink`，根目录内的目录名和文件基名不能包含点，以防 `package.math.ink` 与 `package/math.ink` 映射成相同身份；不含导入的单文件解释模式继续允许原有文件名。未指定源码根时使用入口文件的父目录，stdin 使用当前目录。`from .math import answer;` 的一个点表示当前包，更多点向上查找；不允许越过源码根。每个对象必须使用相同源码根独立编译，运行 `--interpret` 也支持该选项和源码导入。当前导入对象限于已实现的函数，泛型实例化尚未接入；闭合泛型符号元数据仍由库级构建 API 接收。
+模块身份由源码相对 `--module-root` 的路径去掉 `.ink` 后将目录分隔符替换为点确定，例如 `package/math.ink` 对应 `package.math`。生成对象或使用导入时，源文件扩展必须为 `.ink`，根目录内的目录名和文件基名不能包含点，以防 `package.math.ink` 与 `package/math.ink` 映射成相同身份；不含导入的单文件解释模式继续允许原有文件名。未指定源码根时使用入口文件的父目录，stdin 使用当前目录。`from .math import answer;` 的一个点表示当前包，更多点向上查找；不允许越过源码根。每个对象必须使用相同源码根独立编译，运行 `--interpret` 也支持该选项和源码导入。当前导入支持已实现的函数及 class，泛型实例化尚未接入；闭合泛型符号元数据仍由库级构建 API 接收。
 
 原生接口使用 `private import "C" func abs(Value: i32): i32;` 或 `public export "C" func sum(A: i32, B: i32): i32 { return A + B; }`。导入禁止函数体，导出必须在模块顶层提供函数体；`[abi("C")] func ... { ... }` 仅设置本地定义的 C ABI。`public/private` 独立控制 Ink 源码访问，允许 `private export`，且不会因此允许其他 Ink 模块通过模块导入访问私有函数。原生导出名为声明名，不能形成重载；跨模块重复导出报告 `INK-S0049`。仅设置 `[abi("C")]` 的本地函数仍可按参数列表重载。旧 `extern` 语法已移除，`link` 属性暂不支持。
 
 当前 CLI 输出字节码对象与镜像；本地 C ABI 和导出函数由 VM 执行，存档保留其 ABI、原生符号名与导出标记。尚不生成原生 DLL/SO，也不提供可传给 C 的本地函数地址。原生导入优先按声明原名及完整签名匹配当前程序已纳入的导出，包括 `private export`；同名签名不匹配报告 `INK-S0050`。未匹配的导入继续按原声明名查找宿主已加载符号。原生导入本身不触发 Ink 源码依赖发现，也不加载新的宿主动态库。
 
-链接入口默认查找公开的 `main`，也可通过 `--entry module#function` 或简单的 `module::function` 指定。入口必须是具有函数体的本地或导出函数，没有泛型实参、没有运行时参数、返回 void 或 i32；候选不唯一时拒绝。链接文件记录所选入口；`--run-bytecode` 直接使用文件中的入口。v2 文件要求同宿主 target/ABI，未被同程序导出满足的原生导入符号在实际调用时重新解析。
+链接入口默认查找公开的 `main`，也可通过 `--entry module#function` 或简单的 `module::function` 指定。入口必须是具有函数体的本地或导出函数，没有泛型实参、没有运行时参数、返回 void 或 i32；候选不唯一时拒绝。链接文件记录所选入口；`--run-bytecode` 直接使用文件中的入口。v6 文件要求同宿主 target/ABI，未被同程序导出满足的原生导入符号在实际调用时重新解析。
 
 成功编译和链接退出为 0；参数、归档读取或写入失败退出为 2；源码、链接符号或普通执行失败退出为 1。运行成功时 void 返回 0，i32 作为退出码。已有的执行资源和内部错误继续使用 Core ICE/panic 规则。协议与 API 见 [字节码文件格式](Ink-Bytecode-Format.md)。
 

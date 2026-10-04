@@ -2,17 +2,25 @@
 #define INK_EXECUTION_MEMORY_EXECUTION_STORAGE_H
 
 #include "ink/execution/runtime/runtime_value.h"
+#include "ink/execution/runtime/runtime_bytes.h"
 #include "ink/execution/support/execution_object.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <new>
 #include <string_view>
 #include <utility>
 #include <vector>
 
 namespace ink::execution
 {
+  // Read and write the common Ink object representation, including native FFI
+  // addresses. The caller supplies a valid address and a complete type layout.
+  ExecutionStatus validateStorageValue(const TypeDesc &Layout, const RuntimeValue &Value);
+  RuntimeValueResult readStorage(const TypeDesc &Layout, const void *Address);
+  ExecutionStatus writeStorage(const TypeDesc &Layout, void *Address, const RuntimeValue &Value);
+
   // Storage is owned exclusively by ExecutionMemoryManager. Borrowed pointers obtained
   // from a storage reference are valid only until its explicit release.
   class ExecutionStorage : public ExecutionObject
@@ -32,7 +40,7 @@ namespace ink::execution
         return Layout.Type;
       }
 
-      const StorageLayout &layout() const noexcept
+      const TypeDesc &layout() const noexcept
       {
         return Layout;
       }
@@ -58,56 +66,30 @@ namespace ink::execution
 
       RuntimeValueResult loadRuntime() const;
       ExecutionStatus storeRuntime(const RuntimeValue &Value);
-      const StorageLayout *elementLayout(std::size_t Offset, RuntimeTypeId Type, bool AllowOnePast = false) const noexcept;
+      const TypeDesc *elementLayout(std::size_t Offset, RuntimeTypeId Type, bool AllowOnePast = false) const noexcept;
       RuntimeValueResult loadElement(std::size_t Offset, RuntimeTypeId Type) const;
       ExecutionStatus storeElement(std::size_t Offset, const RuntimeValue &Value);
       ExecutionStatus loadBits(std::uint64_t &Bits) const noexcept;
       ExecutionStatus storeBits(std::uint64_t Bits) noexcept;
       ExecutionStatus loadBits(std::uint64_t &Bits, std::size_t Width) const noexcept;
       ExecutionStatus storeBits(std::uint64_t Bits, std::size_t Width) noexcept;
+      ExecutionStatus loadBytes(std::size_t Offset, const TypeDesc &Element, void *Destination) const;
+      ExecutionStatus storeBytes(std::size_t Offset, const TypeDesc &Element, const void *Source);
 
     private:
-      enum class NativeKind
+      ExecutionCell(ExecutionMemoryManager &Owner, const TypeDesc &Layout, bool Writable, bool Runtime);
+      bool isInitialized(std::size_t Offset, const TypeDesc &Element) const noexcept;
+      void markInitialized(std::size_t Offset, const TypeDesc &Element);
+
+      TypeDesc Layout;
+      ExecutionMemoryManager &Owner;
+      RuntimeBytes Bytes{nullptr, RuntimeBytesDeleter{}};
+      struct InitializedRange
       {
-        None,
-        Boolean,
-        Signed8,
-        Unsigned8,
-        Signed16,
-        Unsigned16,
-        Signed32,
-        Unsigned32,
-        Signed64,
-        Unsigned64,
-        Float32,
-        Float64,
+          std::size_t Start;
+          std::size_t End;
       };
-
-      union NativeScalar
-      {
-          bool Boolean;
-          std::int8_t Signed8;
-          std::uint8_t Unsigned8;
-          std::int16_t Signed16;
-          std::uint16_t Unsigned16;
-          std::int32_t Signed32;
-          std::uint32_t Unsigned32;
-          std::int64_t Signed64;
-          std::uint64_t Unsigned64 = 0;
-          float Float32;
-          double Float64;
-      };
-
-      ExecutionCell(const StorageLayout &Layout, bool Writable, bool Runtime);
-      void initializeNative() noexcept;
-
-      StorageLayout Layout;
-      // Only types without native storage retain a value object.
-      RuntimeValue Value;
-      NativeScalar Native;
-      std::unique_ptr<std::byte[]> NativeArray;
-      NativeKind NativeType = NativeKind::None;
-      std::size_t NativeSize = 0;
+      std::vector<InitializedRange> InitializedRanges;
       bool Writable;
       bool Runtime;
       bool Initialized = false;
@@ -118,7 +100,7 @@ namespace ink::execution
   };
 
   // Fixed byte storage includes the optional trailing NUL byte. It never moves
-  // while allocated; a language pointer contains only its non-owning identity.
+  // while allocated; a language pointer contains only its non-owning address.
   class ExecutionBuffer final : public ExecutionStorage
   {
     public:

@@ -1,6 +1,7 @@
 #include "module_serialization_internal.h"
 
 #include "ink/ir/ir_builder.h"
+#include "ink/ir/analysis/type_layout.h"
 #include "ink/parser/ast_walker.h"
 
 #include <algorithm>
@@ -40,7 +41,7 @@ namespace ink::ir::archive
 
     bool isPool(Tag Kind)
     {
-      return (Kind >= Tag::Meta && Kind <= Tag::StringConstant) || Kind == Tag::ArrayConstant;
+      return (Kind >= Tag::Meta && Kind <= Tag::StringConstant) || Kind == Tag::ArrayConstant || Kind == Tag::ClassConstant;
     }
 
     bool syntax(Tag Kind)
@@ -359,6 +360,30 @@ namespace ink::ir::archive
               ref(Entry, *Element);
             }
             break;
+          case ValueKind::ClassConstant:
+            Entry.Kind = Tag::ClassConstant;
+            for (const auto *Field : static_cast<const ClassConstant &>(Object).fields())
+            {
+              ref(Entry, *Field);
+            }
+            break;
+          case ValueKind::ClassInstruction:
+            Entry.Kind = Tag::ClassValue;
+            for (const auto *Field : static_cast<const ClassInstruction &>(Object).fields())
+            {
+              ref(Entry, *Field);
+            }
+            break;
+          case ValueKind::FieldPointerInstruction:
+            Entry.Kind = Tag::FieldPointer;
+            field(Entry, static_cast<const FieldPointerInstruction &>(Object).fieldIndex());
+            ref(Entry, static_cast<const FieldPointerInstruction &>(Object).address());
+            break;
+          case ValueKind::FieldExtractInstruction:
+            Entry.Kind = Tag::FieldExtract;
+            field(Entry, static_cast<const FieldExtractInstruction &>(Object).fieldIndex());
+            ref(Entry, static_cast<const FieldExtractInstruction &>(Object).object());
+            break;
           case ValueKind::ArrayInstruction:
             Entry.Kind = Tag::ArrayValue;
             field(Entry, static_cast<const ArrayInstruction &>(Object).repeated());
@@ -380,6 +405,10 @@ namespace ink::ir::archive
           case ValueKind::Module:
             Entry.Kind = Tag::Module;
             name(Entry, static_cast<const Module &>(Object).name());
+            for (const auto *Class : static_cast<const Module &>(Object).classTypes())
+            {
+              ref(Entry, *Class);
+            }
             break;
           case ValueKind::Function:
           {
@@ -395,6 +424,11 @@ namespace ink::ir::archive
             field(Entry, static_cast<unsigned>(FunctionValue.languageLinkage()));
             field(Entry, static_cast<unsigned>(FunctionValue.visibility()));
             field(Entry, static_cast<unsigned>(FunctionValue.binding()));
+            if (const ClassType *Owner = FunctionValue.classOwner())
+            {
+              ref(Entry, *Owner);
+              field(Entry, FunctionValue.initializerField() == std::numeric_limits<std::size_t>::max() ? 0 : FunctionValue.initializerField() + 1);
+            }
             break;
           }
           case ValueKind::BasicBlock:
@@ -545,9 +579,27 @@ namespace ink::ir::archive
             field(Entry, static_cast<unsigned>(static_cast<const ReferenceType &>(Object).access()));
             break;
           case TypeKind::Class:
+          {
             Entry.Kind = Tag::Class;
-            name(Entry, static_cast<const UserDefinedType &>(Object).name());
+            const auto &Class = static_cast<const ClassType &>(Object);
+            std::string Text(Root.context().namePool().text(Class.name()));
+            if (Class.isComplete())
+            {
+              field(Entry, Text.size());
+              field(Entry, Class.identity().size());
+              Text += Class.identity();
+              for (const ClassField &Field : Class.fields())
+              {
+                ref(Entry, *Field.FieldType);
+                field(Entry, static_cast<unsigned>(Field.Visibility));
+                const auto FieldName = Root.context().namePool().text(Field.FieldName);
+                field(Entry, FieldName.size());
+                Text += FieldName;
+              }
+            }
+            text(Entry, Text);
             break;
+          }
           case TypeKind::Enum:
             Entry.Kind = Tag::Enum;
             name(Entry, static_cast<const UserDefinedType &>(Object).name());
@@ -611,18 +663,21 @@ namespace ink::ir::archive
           for (std::size_t Position = 0; Position < Ready.size(); ++Position)
           {
             const auto Id = Ready[Position];
-            Values[Id] = create(Id);
-            if (!Values[Id] || &Values[Id]->type() != Values[record(Id).Type])
+            if (isType(record(Id).Kind) && !materialize(Id, Ready))
             {
-              Data.fail("Invalid IR object or mismatched result type at object " + std::to_string(Id) + " (" + std::string(tagInfo(static_cast<unsigned>(record(Id).Kind))->Text) + ")");
               return nullptr;
             }
-            for (auto User : Users[Id])
+          }
+          if (!completeClasses())
+          {
+            return nullptr;
+          }
+          for (std::size_t Position = 0; Position < Ready.size(); ++Position)
+          {
+            const auto Id = Ready[Position];
+            if (!isType(record(Id).Kind) && !materialize(Id, Ready))
             {
-              if (--Pending[User] == 0)
-              {
-                Ready.push_back(User);
-              }
+              return nullptr;
             }
           }
           if (Ready.size() != ValueCount)
@@ -665,6 +720,64 @@ namespace ink::ir::archive
         }
 
       private:
+        bool materialize(std::size_t Id, std::vector<std::size_t> &Ready)
+        {
+          Values[Id] = create(Id);
+          if (!Values[Id] || &Values[Id]->type() != Values[record(Id).Type])
+          {
+            return Data.fail("Invalid IR object or mismatched result type at object " + std::to_string(Id) + " (" + std::string(tagInfo(static_cast<unsigned>(record(Id).Kind))->Text) + ")");
+          }
+          for (auto User : Users[Id])
+          {
+            if (--Pending[User] == 0)
+            {
+              Ready.push_back(User);
+            }
+          }
+          return true;
+        }
+
+        bool completeClasses()
+        {
+          for (std::size_t Id = 1; Id < Values.size(); ++Id)
+          {
+            const auto &Entry = record(Id);
+            if (isType(Entry.Kind) && !Values[Id])
+            {
+              return Data.fail("Cyclic IR structural type dependencies");
+            }
+            if (Entry.Kind != Tag::Class || Entry.Fields.empty() || Data.TypeAliases.contains(Id))
+            {
+              continue;
+            }
+            const auto &Fields = Entry.Fields;
+            std::size_t Offset = static_cast<std::size_t>(Fields[0] + Fields[1]);
+            std::vector<ClassField> Members;
+            for (std::size_t Index = 2; Index < Fields.size(); Index += 3)
+            {
+              const auto *FieldType = as<Type>(Fields[Index]);
+              if (!FieldType)
+              {
+                return Data.fail("Class field type is unavailable");
+              }
+              Members.push_back({Context.namePool().intern(std::string_view(Entry.Text).substr(Offset, static_cast<std::size_t>(Fields[Index + 2]))), FieldType, static_cast<VisibilityKind>(Fields[Index + 1])});
+              Offset += static_cast<std::size_t>(Fields[Index + 2]);
+            }
+            if (!Builder.defineClassType(*as<ClassType>(Id), Members, std::string_view(Entry.Text).substr(static_cast<std::size_t>(Fields[0]), static_cast<std::size_t>(Fields[1]))))
+            {
+              return Data.fail("Invalid class definition or recursive value layout");
+            }
+          }
+          for (std::size_t Id = 1; Id < Values.size(); ++Id)
+          {
+            if (record(Id).Kind == Tag::Class && !record(Id).Fields.empty() && !computeTypeLayout(*as<ClassType>(Id), Context.compilationContext().targetContext()))
+            {
+              return Data.fail("Incomplete or overflowing class layout");
+            }
+          }
+          return true;
+        }
+
         const Record &record(std::size_t Id) const
         {
           return Data.Records[Id - 1];
@@ -773,6 +886,51 @@ namespace ink::ir::archive
             }
             switch (Entry.Kind)
             {
+            case Tag::Class:
+              if (!Entry.Fields.empty())
+              {
+                const auto &Fields = Entry.Fields;
+                if (Fields.size() < 2 || (Fields.size() - 2) % 3 || !Fields[0] || !Fields[1] || Fields[0] > Entry.Text.size() || Fields[1] > Entry.Text.size() - Fields[0])
+                {
+                  return Data.fail("Invalid class name or identity");
+                }
+                std::size_t Offset = static_cast<std::size_t>(Fields[0] + Fields[1]);
+                for (std::size_t Index = 2; Index < Fields.size(); Index += 3)
+                {
+                  if (!validId(Fields[Index]) || !isType(record(Fields[Index]).Kind) || Fields[Index + 1] > 1 || !Fields[Index + 2] || Fields[Index + 2] > Entry.Text.size() - Offset)
+                  {
+                    return Data.fail("Invalid class field metadata");
+                  }
+                  Offset += static_cast<std::size_t>(Fields[Index + 2]);
+                }
+                if (Offset != Entry.Text.size())
+                {
+                  return Data.fail("Trailing class field names");
+                }
+              }
+              break;
+            case Tag::Module:
+              for (auto Class : Entry.Fields)
+              {
+                if (!dependency(Id, Class, true) || record(Class).Kind != Tag::Class)
+                {
+                  return Data.fail("Invalid reflected class registration");
+                }
+              }
+              break;
+            case Tag::Function:
+              if (Entry.Fields.size() != 4 && (Entry.Fields.size() != 6 || !dependency(Id, Entry.Fields[4], true) || record(Entry.Fields[4]).Kind != Tag::Class))
+              {
+                return Data.fail("Invalid reflected function owner");
+              }
+              break;
+            case Tag::FieldPointer:
+            case Tag::FieldExtract:
+              if (Entry.Fields[0] > std::numeric_limits<std::size_t>::max() || !dependency(Id, Entry.Fields[1]))
+              {
+                return Data.fail("Invalid class field operand");
+              }
+              break;
             case Tag::Array:
             case Tag::Slice:
             case Tag::Pointer:
@@ -785,6 +943,8 @@ namespace ink::ir::archive
               break;
             case Tag::FunctionType:
             case Tag::ArrayConstant:
+            case Tag::ClassConstant:
+            case Tag::ClassValue:
             case Tag::ArrayElementPointer:
             case Tag::ArrayExtract:
             case Tag::Call:
@@ -1033,7 +1193,7 @@ namespace ink::ir::archive
           case Tag::Reference:
             return Fields[1] <= 1 ? Types.getType<TypeKind::Reference>(*as<Type>(Fields[0]), static_cast<AccessKind>(Fields[1])) : nullptr;
           case Tag::Class:
-            return Types.createClassType(NameValue());
+            return Types.createClassType(Context.namePool().intern(Fields.empty() ? std::string_view(Entry.Text) : std::string_view(Entry.Text).substr(0, static_cast<std::size_t>(Fields[0]))));
           case Tag::Enum:
             return Types.createEnumType(NameValue());
           case Tag::Interface:
@@ -1078,6 +1238,32 @@ namespace ink::ir::archive
               return Constants.getArrayConstant(*TypeValue, Elements);
             }
             return nullptr;
+          case Tag::ClassConstant:
+            if (const auto *TypeValue = as<ClassType>(Entry.Type))
+            {
+              std::vector<const Constant *> Members;
+              for (auto Field : Fields)
+              {
+                Members.push_back(as<Constant>(Field));
+              }
+              return Constants.getClassConstant(*TypeValue, Members);
+            }
+            return nullptr;
+          case Tag::ClassValue:
+            if (const auto *TypeValue = as<ClassType>(Entry.Type))
+            {
+              std::vector<const Value *> Members;
+              for (auto Field : Fields)
+              {
+                Members.push_back(Values[Field]);
+              }
+              return own(Id, Builder.createDetachedClassInstruction(*TypeValue, Members));
+            }
+            return nullptr;
+          case Tag::FieldPointer:
+            return own(Id, Builder.createDetachedFieldPointerInstruction(*Values[Fields[1]], static_cast<std::size_t>(Fields[0])));
+          case Tag::FieldExtract:
+            return own(Id, Builder.createDetachedFieldExtractInstruction(*Values[Fields[1]], static_cast<std::size_t>(Fields[0])));
           case Tag::ArrayValue:
             if (const auto *TypeValue = as<ArrayType>(Entry.Type))
             {
@@ -1096,6 +1282,13 @@ namespace ink::ir::archive
           case Tag::Module:
             if (auto *ModuleValue = Builder.createModule(NameValue()))
             {
+              for (auto Class : Fields)
+              {
+                if (!as<ClassType>(Class) || !Builder.registerClassType(*ModuleValue, *as<ClassType>(Class)))
+                {
+                  return nullptr;
+                }
+              }
               return own(Id, Builder.removeModule(*ModuleValue));
             }
             return nullptr;
@@ -1119,6 +1312,14 @@ namespace ink::ir::archive
             if (!FunctionValue || !Builder.setFunctionVisibility(*FunctionValue, static_cast<VisibilityKind>(Fields[2])))
             {
               return nullptr;
+            }
+            if (Fields.size() == 6)
+            {
+              const auto *Owner = as<ClassType>(Fields[4]);
+              if (!Owner || !(Fields[5] == 0 ? Builder.setClassMethod(*Owner, *FunctionValue) : Builder.setFieldInitializer(*Owner, static_cast<std::size_t>(Fields[5] - 1), *FunctionValue)))
+              {
+                return nullptr;
+              }
             }
             return own(Id, std::move(FunctionValue));
           }

@@ -1,6 +1,7 @@
 #include "../analyzer_internal.h"
 
 #include "ink/execution/ffi/ffi_type.h"
+#include "ink/ir/analysis/type_layout.h"
 #include "ink/parser/ast.h"
 
 #include <algorithm>
@@ -86,6 +87,11 @@ namespace ink::semantic
 
   std::unique_ptr<Function> Analyzer::declareFunction(AnalysisState &State, const parser::FunctionDecl &Node)
   {
+    if (State.CurrentClass && Node.name().Text == "this")
+    {
+      State.report<core::DiagnosticKind::SemanticDuplicateName>(Node.name().Range, Node.name().Text);
+      return nullptr;
+    }
     if (State.Evaluating)
     {
       reportExecution(State, execution::ExecutionStatus::UnsupportedOperation, Node);
@@ -103,6 +109,11 @@ namespace ink::semantic
       return nullptr;
     }
     const FunctionBinding Binding = Node.nativeSymbolKind() == parser::NativeSymbolKind::Import ? FunctionBinding::Import : (Node.nativeSymbolKind() == parser::NativeSymbolKind::Export ? FunctionBinding::Export : FunctionBinding::Local);
+    if (State.DeclaringClass && (*Linkage != LanguageLinkage::Ink || Binding != FunctionBinding::Local || Node.name().Text == "this"))
+    {
+      State.report<core::DiagnosticKind::SemanticInvalidClass>(Node.getSourceRange(), "instance methods require Ink linkage and cannot be named this");
+      return nullptr;
+    }
     if (Binding == FunctionBinding::Import && Node.body())
     {
       State.report<core::DiagnosticKind::SemanticNativeImportHasBody>(Node.getSourceRange(), Node.name().Text);
@@ -134,11 +145,18 @@ namespace ink::semantic
     std::vector<const Type *> ParameterTypes;
     std::vector<Name> ParameterNames;
     std::unordered_set<Name> SeenNames;
+    if (State.DeclaringClass)
+    {
+      const Name ReceiverName = State.Context.namePool().intern("this");
+      ParameterNames.push_back(ReceiverName);
+      ParameterTypes.push_back(State.Context.typePool().getType<TypeKind::Pointer>(*State.DeclaringClass, AccessKind::ReadWrite));
+      SeenNames.insert(ReceiverName);
+    }
     for (const parser::Parameter &Parameter : Node.parameters())
     {
       const Name ParameterName = State.Context.namePool().intern(Parameter.name().Text);
       ParameterNames.push_back(ParameterName);
-      if (!SeenNames.insert(ParameterName).second)
+      if (!SeenNames.insert(ParameterName).second || (State.CurrentClass && !State.DeclaringClass && Parameter.name().Text == "this"))
       {
         State.report<core::DiagnosticKind::SemanticDuplicateParameterName>(Parameter.name().Range, Parameter.name().Text);
         Succeeded = false;
@@ -159,6 +177,11 @@ namespace ink::semantic
         State.report<core::DiagnosticKind::SemanticTypeMismatch>(Parameter.type()->getSourceRange(), "runtime parameter type", ParameterType->typeKind() == TypeKind::Void ? "void" : "type");
         Succeeded = false;
       }
+      else if ((ClassType::classof(ParameterType) || ArrayType::classof(ParameterType)) && !computeTypeLayout(*ParameterType, State.Context.compilationContext().targetContext()))
+      {
+        State.report<core::DiagnosticKind::SemanticInvalidClass>(Parameter.type()->getSourceRange(), "by-value parameters require a complete finite layout");
+        Succeeded = false;
+      }
     }
     const Type *ReturnType = analyzeType(State, *Node.returnType()->expression());
     if (!ReturnType)
@@ -168,6 +191,11 @@ namespace ink::semantic
     else if (ReturnType->typeKind() == TypeKind::Meta)
     {
       State.report<core::DiagnosticKind::SemanticUnsupported>(Node.returnType()->getSourceRange(), "type-valued function returns");
+      Succeeded = false;
+    }
+    else if ((ClassType::classof(ReturnType) || ArrayType::classof(ReturnType)) && !computeTypeLayout(*ReturnType, State.Context.compilationContext().targetContext()))
+    {
+      State.report<core::DiagnosticKind::SemanticInvalidClass>(Node.returnType()->getSourceRange(), "by-value returns require a complete finite layout");
       Succeeded = false;
     }
     if (!Succeeded)
@@ -209,7 +237,8 @@ namespace ink::semantic
       return nullptr;
     }
 
-    const Name FunctionName = State.Context.namePool().intern(Node.name().Text);
+    const Name BoundName = State.Context.namePool().intern(Node.name().Text);
+    const Name FunctionName = State.DeclaringClass ? State.Context.namePool().intern(State.Context.classState().Definitions.at(State.DeclaringClass).Identity + "." + std::string(Node.name().Text)) : BoundName;
     auto FunctionOwner = State.Builder.createFunction(FunctionName, *Signature, {}, ParameterNames, CallingConvention::C, *Linkage, Binding);
     if (!FunctionOwner || !State.Builder.insertBlock())
     {
@@ -224,7 +253,7 @@ namespace ink::semantic
     }
     // Bind before checking the body so recursive lookup can see this function.
     // The detached owner removes all bindings and child values on any failure.
-    if (State.Resolver.bind(FunctionName, FunctionValue) != NameResolver::BindResult::Inserted)
+    if (State.Resolver.bind(BoundName, FunctionValue) != NameResolver::BindResult::Inserted)
     {
       State.report<core::DiagnosticKind::SemanticDuplicateName>(Node.name().Range, Node.name().Text);
       return nullptr;
@@ -255,6 +284,7 @@ namespace ink::semantic
     }
     AnalysisState FunctionState(State.Context, State.Resolver.currentScope(), State.Input);
     FunctionState.CurrentModule = State.CurrentModule;
+    FunctionState.CurrentClass = State.CurrentClass;
     FunctionState.Modules = State.Modules;
     FunctionState.Frame = State.Frame;
     AnalysisState::FrameGuard Frame(FunctionState, execution::ExecutionFrameKind::Analysis);

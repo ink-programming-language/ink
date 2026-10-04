@@ -128,6 +128,8 @@ namespace ink::semantic
       return "[" + describeType(static_cast<const ArrayType &>(ValueType).elementType()) + "; " + std::to_string(static_cast<const ArrayType &>(ValueType).elementCount()) + "]";
     case TypeKind::Function:
       return "function";
+    case TypeKind::Class:
+      return std::string(static_cast<const ClassType &>(ValueType).identity());
     default:
       return "non-scalar value";
     }

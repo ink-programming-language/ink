@@ -41,55 +41,34 @@ namespace ink::execution
 
   ExecutionStatus FfiArgument::preparePointer(ExecutionMemoryManager &Memory, const FfiValueLayout &Layout, const ExecutionPointer &Pointer)
   {
-    const ExecutionStatus Status = Pointer.status();
-    if (Status != ExecutionStatus::Success)
+    const ExecutionStorageRef Storage = Memory.storageFromAddress(Pointer.address());
+    if (const ExecutionCell *Cell = Storage.cell())
     {
-      return Status;
-    }
-    if (Pointer.kind() == ExecutionPointer::Kind::Place)
-    {
-      const ExecutionStorageRef &Storage = Pointer.place().storage();
-      if (!Memory.owns(Storage))
-      {
-        return ExecutionStatus::ForeignContext;
-      }
-      const ExecutionCell &Cell = *Storage.cell();
-      if (Cell.layout().Domain != Layout.Domain)
-      {
-        return ExecutionStatus::ForeignContext;
-      }
-      if (Cell.runtime())
+      if (Cell->runtime())
       {
         return ExecutionStatus::RuntimeValue;
       }
-      if (!Cell.initialized())
-      {
-        return ExecutionStatus::Uninitialized;
-      }
-      if (Layout.Writable && !Cell.writable())
-      {
-        return ExecutionStatus::ReadOnly;
-      }
-      if (!Layout.BytePointer && !Layout.VoidPointer && !Cell.elementLayout(Pointer.offset(), Layout.Pointee, true))
-      {
-        return ExecutionStatus::TypeMismatch;
-      }
-      if (!Cell.data())
-      {
-        return ExecutionStatus::UnsupportedExternalSignature;
-      }
-    }
-    if (Pointer.kind() == ExecutionPointer::Kind::Buffer)
-    {
-      if (!Memory.owns(Pointer.bufferRef()))
+      if (Cell->layout().Domain != Layout.Domain)
       {
         return ExecutionStatus::ForeignContext;
       }
-      if (!Layout.VoidPointer && !Layout.ByteBufferPointer)
+      if (!Cell->initialized())
       {
-        return ExecutionStatus::UnsupportedExternalSignature;
+        return ExecutionStatus::Uninitialized;
       }
-      Buffer = Pointer.bufferRef();
+      if (Layout.Writable && !Cell->writable())
+      {
+        return ExecutionStatus::ReadOnly;
+      }
+      const std::size_t Offset = reinterpret_cast<std::uintptr_t>(Pointer.address()) - reinterpret_cast<std::uintptr_t>(Cell->data());
+      if (!Layout.BytePointer && !Layout.VoidPointer && !Cell->elementLayout(Offset, Layout.Pointee, true))
+      {
+        return ExecutionStatus::TypeMismatch;
+      }
+    }
+    if (Storage.buffer())
+    {
+      Buffer = Storage;
     }
     Scalar.Pointer = Pointer.address();
     Address = &Scalar.Pointer;

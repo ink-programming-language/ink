@@ -4,12 +4,14 @@ file(GLOB_RECURSE INK_PARSER_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOU
 file(GLOB_RECURSE INK_IR_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/ir/*_test.cpp")
 file(GLOB_RECURSE INK_SEMANTIC_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/semantic/*_test.cpp")
 file(GLOB_RECURSE INK_EXECUTION_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/execution/*_test.cpp")
+file(GLOB_RECURSE INK_BACKEND_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/backend/*_test.cpp")
 list(SORT INK_CORE_TEST_SOURCES)
 list(SORT INK_TOKENIZER_TEST_SOURCES)
 list(SORT INK_PARSER_TEST_SOURCES)
 list(SORT INK_IR_TEST_SOURCES)
 list(SORT INK_SEMANTIC_TEST_SOURCES)
 list(SORT INK_EXECUTION_TEST_SOURCES)
+list(SORT INK_BACKEND_TEST_SOURCES)
 
 # Preserve the tokenizer tests' C++17 UTF-8 literal behavior while linking every test into one executable.
 add_library(ink_tokenizer_test_objects OBJECT ${INK_TOKENIZER_TEST_SOURCES})
@@ -24,12 +26,13 @@ target_compile_features(ink_ir_test_objects PRIVATE cxx_std_20)
 target_link_libraries(ink_ir_test_objects PRIVATE ink::ir ink::llvm GTest::gtest GTest::gmock)
 ink_disable_exceptions(ink_ir_test_objects)
 
-add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_SEMANTIC_TEST_SOURCES} ${INK_EXECUTION_TEST_SOURCES})
+add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_SEMANTIC_TEST_SOURCES} ${INK_EXECUTION_TEST_SOURCES} ${INK_BACKEND_TEST_SOURCES})
 # Expose the C ABI fixtures to the same process symbol lookup used by compile-time external calls.
 set_target_properties(ink_tests PROPERTIES ENABLE_EXPORTS ON)
 add_dependencies(ink_tests ink_tokenize ink_parse inkc)
+add_dependencies(ink_tests ink_aot_runtime)
 target_compile_features(ink_tests PRIVATE cxx_std_20)
-target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink_ir_test_objects ink::parser ink::semantic ink::llvm LLVMBitstreamReader GTest::gtest_main GTest::gmock spdlog::spdlog)
+target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink_ir_test_objects ink::parser ink::semantic ink::llvm_backend ink::llvm LLVMBitstreamReader GTest::gtest_main GTest::gmock spdlog::spdlog)
 ink_disable_exceptions(ink_tests)
 
 if(MSVC)
@@ -57,4 +60,6 @@ add_test(NAME ArrayReadProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<
 set_tests_properties(ArrayReadProcessTest PROPERTIES TIMEOUT 120 LABELS "execution;arrays;ffi;bytecode;cli")
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/source_program_tests.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/execution/class_program_tests.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/multifile_program_tests.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/backend/tests.cmake")

@@ -21,6 +21,10 @@ namespace ink::execution
     public:
       ExecutionStorageRef() = default;
       bool valid() const noexcept;
+      bool hasIdentity() const noexcept
+      {
+        return Generation != 0;
+      }
       ExecutionStatus status() const noexcept;
       ExecutionStorage *get() const noexcept;
       ExecutionCell *cell() const noexcept;

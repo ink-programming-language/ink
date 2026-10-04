@@ -11,7 +11,7 @@ namespace ink::ir::test
 {
   namespace
   {
-    constexpr std::string_view EmptyModuleText = R"(ink-ir 4
+    constexpr std::string_view EmptyModuleText = R"(ink-ir 6
 module @"Example" {
 }
 )";
@@ -228,7 +228,7 @@ module @"Example" {
     const auto *Sum = Builder.createAddInstruction(*FunctionValue->parameters()[0], *One);
     ASSERT_NE(Sum, nullptr);
     ASSERT_NE(Builder.createReturnInstruction(Sum), nullptr);
-    constexpr std::string_view Expected = R"(ink-ir 4
+    constexpr std::string_view Expected = R"(ink-ir 6
 module @Example {
   define i32 @addOne(i32 %x) {
   entry:
@@ -251,7 +251,7 @@ module @Example {
   {
     core::CompilationContext Compilation;
     IRContext Context(Compilation);
-    const auto Parsed = deserializeModuleText(Context, "ink-ir 4 module @Visibility { declare void @Default() declare void @Public() visibility public declare void @Private() visibility private }");
+    const auto Parsed = deserializeModuleText(Context, "ink-ir 6 module @Visibility { declare void @Default() declare void @Public() visibility public declare void @Private() visibility private }");
     ASSERT_TRUE(Parsed.succeeded()) << Parsed.Message;
     for (bool Binary : {false, true})
     {
@@ -277,7 +277,7 @@ module @Example {
   {
     core::CompilationContext Compilation;
     IRContext Context(Compilation);
-    const auto Parsed = deserializeModuleText(Context, "ink-ir 4 module @Visibility { declare void @Private() visibility private }");
+    const auto Parsed = deserializeModuleText(Context, "ink-ir 6 module @Visibility { declare void @Private() visibility private }");
     ASSERT_TRUE(Parsed.succeeded()) << Parsed.Message;
     const auto Saved = serializeModuleBinary(*Parsed.ModuleValue);
     ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
@@ -313,7 +313,7 @@ module @Example {
     EXPECT_EQ(deserializeModuleText(Context, "ink-ir 3 module @Legacy {}").Status, ModuleArchiveStatus::UnsupportedVersion);
     for (std::string_view Visibility : {"unknown", "private visibility public"})
     {
-      const auto Invalid = deserializeModuleText(Context, "ink-ir 4 module @Invalid { declare void @f() visibility " + std::string(Visibility) + " }");
+      const auto Invalid = deserializeModuleText(Context, "ink-ir 6 module @Invalid { declare void @f() visibility " + std::string(Visibility) + " }");
       EXPECT_EQ(Invalid.Status, ModuleArchiveStatus::InvalidArchive);
     }
     EXPECT_EQ(Context.modules().size(), 1U);
@@ -322,7 +322,7 @@ module @Example {
   // Native direction round-trips independently of source visibility and C ABI callbacks in both archive formats.
   TEST(IRModuleSerializationTest, PreservesNativeBindingsAndPrivateExports)
   {
-    constexpr std::string_view Text = R"(ink-ir 4
+    constexpr std::string_view Text = R"(ink-ir 6
 module @Native {
   declare void @Imported() linkage c visibility private binding import
   define void @Callback() linkage c binding local {
@@ -388,10 +388,10 @@ module @Native {
     };
     for (std::string_view FunctionText : InvalidFunctions)
     {
-      EXPECT_EQ(deserializeModuleText(Context, "ink-ir 4 module @Invalid { " + std::string(FunctionText) + " }").Status, ModuleArchiveStatus::InvalidArchive) << FunctionText;
+      EXPECT_EQ(deserializeModuleText(Context, "ink-ir 6 module @Invalid { " + std::string(FunctionText) + " }").Status, ModuleArchiveStatus::InvalidArchive) << FunctionText;
     }
     EXPECT_TRUE(Context.modules().empty());
-    const auto Parsed = deserializeModuleText(Context, "ink-ir 4 module @Native { declare void @Imported() linkage c binding import }");
+    const auto Parsed = deserializeModuleText(Context, "ink-ir 6 module @Native { declare void @Imported() linkage c binding import }");
     ASSERT_TRUE(Parsed.succeeded()) << Parsed.Message;
     const auto Saved = serializeModuleBinary(*Parsed.ModuleValue);
     ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
@@ -450,7 +450,7 @@ module @Native {
   // Forward operands and functions resolve after parsing, while comments and quoted symbols remain editable.
   TEST(IRModuleSerializationTest, ReadsForwardReferencesAndComments)
   {
-    constexpr std::string_view Text = R"(ink-ir 4
+    constexpr std::string_view Text = R"(ink-ir 6
 ; A hand-written module needs no object table.
 module @Example {
   define i32 @main(i32 %x) {
@@ -510,7 +510,7 @@ module @Example {
   // Equivalent structural aliases compare restored types rather than incidental archive IDs.
   TEST(IRModuleSerializationTest, ResolvesEquivalentTypeAliases)
   {
-    constexpr std::string_view Text = R"(ink-ir 4
+    constexpr std::string_view Text = R"(ink-ir 6
 module @Aliases {
   type !left = i32
   type !right = i32
@@ -536,7 +536,7 @@ module @Aliases {
   // Repeated aliases must charge copied field storage rather than bypassing the allocation budget.
   TEST(IRModuleSerializationTest, ChargesRepeatedTypeAliasFields)
   {
-    std::string Text = "ink-ir 4 module @Budget { type !large = fn(";
+    std::string Text = "ink-ir 6 module @Budget { type !large = fn(";
     for (unsigned Index = 0; Index < 256; ++Index)
     {
       if (Index)
@@ -710,15 +710,15 @@ module @Aliases {
     ASSERT_TRUE(Original.succeeded()) << Original.Message;
     const std::string_view Invalid[] = {
         "other 2 module @A {}",
-        "ink-ir 4 module @A {",
-        "ink-ir 4 module @A {} junk",
-        "ink-ir 4 module @\"Bad\\qEscape\" {}",
-        "ink-ir 4 module @\"Bad\\xzzEscape\" {}",
-        "ink-ir 4 module @\"Unclosed {}",
-        "ink-ir 4 module @A { unknown }",
-        "ink-ir 4 module @A { declare void @f() declare void @f() }",
-        "ink-ir 4 module @A { define i32 @f() { ^entry: ret i32 %missing } }",
-        "ink-ir 4 module @A { define i32 @f(i32 %x, i32 %x) { ^entry: ret i32 %x } }",
+        "ink-ir 6 module @A {",
+        "ink-ir 6 module @A {} junk",
+        "ink-ir 6 module @\"Bad\\qEscape\" {}",
+        "ink-ir 6 module @\"Bad\\xzzEscape\" {}",
+        "ink-ir 6 module @\"Unclosed {}",
+        "ink-ir 6 module @A { unknown }",
+        "ink-ir 6 module @A { declare void @f() declare void @f() }",
+        "ink-ir 6 module @A { define i32 @f() { ^entry: ret i32 %missing } }",
+        "ink-ir 6 module @A { define i32 @f(i32 %x, i32 %x) { ^entry: ret i32 %x } }",
     };
     for (auto Text : Invalid)
     {
@@ -790,7 +790,7 @@ module @Aliases {
     };
     for (auto Body : Bodies)
     {
-      const auto Result = deserializeModuleText(Context, "ink-ir 4 module @Root { " + std::string(Body) + " }");
+      const auto Result = deserializeModuleText(Context, "ink-ir 6 module @Root { " + std::string(Body) + " }");
       EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << Body << ": " << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Context.modules().empty());
@@ -800,7 +800,7 @@ module @Aliases {
   // Appending a value after a terminator fails during attachment and rolls back the detached tree.
   TEST(IRModuleSerializationTest, RollsBackAfterLateAttachmentFailure)
   {
-    constexpr std::string_view Text = R"(ink-ir 4
+    constexpr std::string_view Text = R"(ink-ir 6
 module @Root {
   define void @Main() {
   ^entry:

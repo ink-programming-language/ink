@@ -33,8 +33,8 @@ namespace ink::execution
       {
         return {ExecutionStatus::UnsupportedExternalSignature};
       }
-      const StorageLayout *Signature = Bridge.types()->get(Descriptor->Signature);
-      if (!Signature || Signature->Parameters.size() != Arguments.size())
+      const TypeDesc *Signature = Bridge.types()->get(Descriptor->Signature);
+      if (!Signature || Signature->functionDesc().Parameters.size() != Arguments.size())
       {
         return {ExecutionStatus::InvalidArguments};
       }
@@ -53,7 +53,7 @@ namespace ink::execution
         }
         Values.push_back(std::move(Converted.Value));
       }
-      const RuntimeTypeId ReturnType = Signature->ReturnType;
+      const RuntimeTypeId ReturnType = Signature->functionDesc().ReturnType;
       const RuntimeValueResult Result = Call(Heap.memoryManager(), *Bridge.types(), *Descriptor, Values);
       return Result ? Bridge.raiseValue(Heap, Result.Value, ReturnType) : ExecutionValueResult{Result.Status};
     }

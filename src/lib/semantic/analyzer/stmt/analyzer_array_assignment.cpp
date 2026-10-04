@@ -1,6 +1,7 @@
 #include "../analyzer_internal.h"
 
 #include "ink/parser/ast.h"
+#include "ink/ir/constant/class_constant.h"
 
 #include <algorithm>
 #include <vector>
@@ -33,9 +34,9 @@ namespace ink::semantic
 
   Analyzer::ExpressionResult Analyzer::assignComptimeArray(AnalysisState &State, const parser::AssignmentItem &Node, std::size_t Depth)
   {
-    std::vector<const parser::IndexExpr *> Indices;
+    std::vector<const parser::Expr *> Indices;
     const parser::Expr *Root = Node.left();
-    while (parser::ParenExpr::classof(Root) || parser::IndexExpr::classof(Root))
+    while (parser::ParenExpr::classof(Root) || parser::IndexExpr::classof(Root) || parser::MemberExpr::classof(Root))
     {
       if (++Depth >= State.ExpressionDepthLimit)
       {
@@ -45,6 +46,17 @@ namespace ink::semantic
       if (parser::ParenExpr::classof(Root))
       {
         Root = static_cast<const parser::ParenExpr &>(*Root).expression();
+      }
+      else if (parser::MemberExpr::classof(Root))
+      {
+        const auto &Member = static_cast<const parser::MemberExpr &>(*Root);
+        if (Member.access() != TokenKind::Dot)
+        {
+          State.report<core::DiagnosticKind::SemanticInvalidMember>(Member.getSourceRange(), "compile-time bindings use dot field access");
+          return {};
+        }
+        Indices.push_back(&Member);
+        Root = Member.object();
       }
       else
       {
@@ -88,8 +100,27 @@ namespace ink::semantic
     const Type *ElementType = &Initial.Value->type();
     std::vector<std::size_t> Path;
     std::reverse(Indices.begin(), Indices.end());
-    for (const parser::IndexExpr *Index : Indices)
+    for (const parser::Expr *Projection : Indices)
     {
+      if (parser::MemberExpr::classof(Projection))
+      {
+        const auto &Member = static_cast<const parser::MemberExpr &>(*Projection);
+        if (!ClassType::classof(ElementType))
+        {
+          State.report<core::DiagnosticKind::SemanticInvalidMember>(Member.getSourceRange(), "field projection requires a class value");
+          return {};
+        }
+        const auto &Class = static_cast<const ClassType &>(*ElementType);
+        const auto Index = lookupClassField(State, Class, Member);
+        if (!Index)
+        {
+          return {};
+        }
+        Path.push_back(*Index);
+        ElementType = Class.fields()[*Index].FieldType;
+        continue;
+      }
+      const auto *Index = static_cast<const parser::IndexExpr *>(Projection);
       if (!ArrayType::classof(ElementType))
       {
         State.report<core::DiagnosticKind::SemanticTypeMismatch>(Index->object()->getSourceRange(), "array", describeType(*ElementType));
@@ -132,12 +163,11 @@ namespace ink::semantic
       return {};
     }
     const Constant *Previous = Current.Value;
-    std::vector<const ArrayConstant *> Parents;
+    std::vector<const Constant *> Parents;
     for (const std::size_t Index : Path)
     {
-      const auto &Array = static_cast<const ArrayConstant &>(*Previous);
-      Parents.push_back(&Array);
-      Previous = Array.elements()[Index];
+      Parents.push_back(Previous);
+      Previous = ClassConstant::classof(Previous) ? static_cast<const ClassConstant *>(Previous)->fields()[Index] : static_cast<const ArrayConstant *>(Previous)->elements()[Index];
     }
     const Constant *Stored = static_cast<const Constant *>(Right.ValueObject);
     if (Node.op() != TokenKind::Assign)
@@ -153,9 +183,10 @@ namespace ink::semantic
     for (std::size_t Index = Path.size(); Index > 0; --Index)
     {
       const auto &Parent = *Parents[Index - 1];
-      std::vector<const Constant *> Elements(Parent.elements().begin(), Parent.elements().end());
+      const auto Children = ClassConstant::classof(&Parent) ? static_cast<const ClassConstant &>(Parent).fields() : static_cast<const ArrayConstant &>(Parent).elements();
+      std::vector<const Constant *> Elements(Children.begin(), Children.end());
       Elements[Path[Index - 1]] = Updated;
-      Updated = State.Context.constantPool().getArrayConstant(Parent.arrayType(), Elements);
+      Updated = ClassConstant::classof(&Parent) ? static_cast<const Constant *>(State.Context.constantPool().getClassConstant(static_cast<const ClassConstant &>(Parent).classType(), Elements)) : State.Context.constantPool().getArrayConstant(static_cast<const ArrayConstant &>(Parent).arrayType(), Elements);
     }
     return reportExecution(State, Execution.Engine.store(Place.Place, *Updated), Node) ? ExpressionResult{Stored} : ExpressionResult{};
   }

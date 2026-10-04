@@ -342,9 +342,9 @@ namespace ink::semantic::test
     expectArrayExecutionFailure("func Pick(A: [i32; 1], Index: i32): i32 { return A[Index]; } func Entry(): i32 { return Pick([42], 1); }", ExecutionStatus::IndexOutOfBounds);
   }
 
-  // An escaped element address retains its expired allocation identity after the owning function returns.
-  TEST(SemanticArrayTest, RejectsExpiredArrayElementAddress)
+  // An escaped element address may be copied and discarded without dereferencing its expired storage.
+  TEST(SemanticArrayTest, AllowsDiscardingEscapedArrayElementAddress)
   {
-    expectArrayExecutionFailure("func Escape(): *i32 { var A = [42]; return &A[0]; } func Entry(): i32 { return *Escape(); }", ExecutionStatus::ExpiredPlace);
+    expectArrayExecution("func Escape(): *i32 { var A = [42]; return &A[0]; } func Entry(): i32 { var Address = Escape(); return 42; }", 42);
   }
 } // namespace ink::semantic::test

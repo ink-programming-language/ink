@@ -1,6 +1,8 @@
 #include "ink/execution/memory/execution_storage.h"
+#include "ink/execution/memory/execution_memory_manager.h"
 
 #include <bit>
+#include <array>
 #include <cstring>
 #include <limits>
 #include <utility>
@@ -21,7 +23,7 @@ namespace ink::execution
       return Result;
     }
 
-    ExecutionStatus validateArrayElement(const StorageLayout &Layout, const RuntimeValue &Value)
+    ExecutionStatus validateArrayElement(const TypeDesc &Layout, const RuntimeValue &Value)
     {
       if (!Value.Initialized || Value.Type != Layout.Type)
       {
@@ -29,14 +31,30 @@ namespace ink::execution
       }
       switch (Layout.Kind)
       {
+      case RuntimeKind::Void:
+        return !Value.Object && Value.Bits == 0 ? ExecutionStatus::Success : ExecutionStatus::TypeMismatch;
+      case RuntimeKind::Class:
+        if (Value.kind() != RuntimeKind::Class || Value.fields().size() != Layout.classDesc().Fields.size())
+        {
+          return ExecutionStatus::TypeMismatch;
+        }
+        for (std::size_t Index = 0; Index < Value.fields().size(); ++Index)
+        {
+          const ExecutionStatus Status = validateArrayElement(*Layout.classDesc().Fields[Index].Layout, Value.fields()[Index]);
+          if (Status != ExecutionStatus::Success)
+          {
+            return Status;
+          }
+        }
+        return ExecutionStatus::Success;
       case RuntimeKind::Array:
-        if (!Layout.ElementLayout || Value.kind() != RuntimeKind::Array || Value.array().size() != Layout.ElementCount)
+        if (!Layout.arrayDesc().ElementLayout || Value.kind() != RuntimeKind::Array || Value.array().size() != Layout.arrayDesc().ElementCount)
         {
           return ExecutionStatus::TypeMismatch;
         }
         for (const RuntimeValue &Element : Value.array())
         {
-          const ExecutionStatus Status = validateArrayElement(*Layout.ElementLayout, Element);
+          const ExecutionStatus Status = validateArrayElement(*Layout.arrayDesc().ElementLayout, Element);
           if (Status != ExecutionStatus::Success)
           {
             return Status;
@@ -46,95 +64,75 @@ namespace ink::execution
       case RuntimeKind::Boolean:
         return !Value.Object && Value.Bits <= 1 ? ExecutionStatus::Success : ExecutionStatus::TypeMismatch;
       case RuntimeKind::Integer:
-        return (Layout.BitWidth > 64 ? Value.kind() == RuntimeKind::Integer && Value.integer().bitWidth() == Layout.BitWidth : !Value.Object) ? ExecutionStatus::Success : ExecutionStatus::TypeMismatch;
+        return (Layout.bitWidth() > 64 ? Value.kind() == RuntimeKind::Integer && Value.integer().bitWidth() == Layout.bitWidth() : !Value.Object) ? ExecutionStatus::Success : ExecutionStatus::TypeMismatch;
       case RuntimeKind::Float:
       case RuntimeKind::Function:
         return !Value.Object ? ExecutionStatus::Success : ExecutionStatus::TypeMismatch;
       case RuntimeKind::Pointer:
-        return Value.kind() == RuntimeKind::Pointer ? Value.pointer().status() : ExecutionStatus::TypeMismatch;
+        return Layout.Size != sizeof(void *) ? ExecutionStatus::UnsupportedOperation : Value.kind() == RuntimeKind::Pointer ? ExecutionStatus::Success : ExecutionStatus::TypeMismatch;
       case RuntimeKind::String:
-        return Value.kind() == RuntimeKind::String ? ExecutionStatus::Success : ExecutionStatus::TypeMismatch;
+        return Layout.Size != sizeof(void *) + sizeof(std::size_t) ? ExecutionStatus::UnsupportedOperation : Value.kind() == RuntimeKind::String ? ExecutionStatus::Success : ExecutionStatus::TypeMismatch;
       default:
         return ExecutionStatus::TypeMismatch;
       }
     }
 
-    const StorageLayout *findElementLayout(const StorageLayout &Layout, std::size_t Offset, RuntimeTypeId Type, bool AllowOnePast) noexcept
+    const TypeDesc *findElementLayout(const TypeDesc &Layout, std::size_t Offset, RuntimeTypeId Type, bool AllowOnePast) noexcept
     {
       if (Layout.Type == Type && (Offset == 0 || (AllowOnePast && Offset == Layout.Size)))
       {
         return &Layout;
       }
-      if (Layout.Kind != RuntimeKind::Array || !Layout.ElementLayout || Layout.ElementCount == 0 || Offset > Layout.Size || (Layout.Size != 0 && !AllowOnePast && Offset == Layout.Size))
+      if (Layout.Kind == RuntimeKind::Class)
       {
-        return nullptr;
-      }
-      return findElementLayout(*Layout.ElementLayout, Layout.ElementLayout->Size == 0 ? 0 : Offset % Layout.ElementLayout->Size, Type, AllowOnePast);
-    }
-
-    const RuntimeValue *findElementValue(const StorageLayout &Layout, const RuntimeValue &Value, std::size_t Offset, RuntimeTypeId Type)
-    {
-      if (Layout.Type == Type && Offset == 0)
-      {
-        return &Value;
-      }
-      if (Value.kind() != RuntimeKind::Array || !Layout.ElementLayout)
-      {
-        return nullptr;
-      }
-      const std::size_t Index = Layout.ElementLayout->Size == 0 ? 0 : Offset / Layout.ElementLayout->Size;
-      return Index < Value.array().size() ? findElementValue(*Layout.ElementLayout, Value.array()[Index], Layout.ElementLayout->Size == 0 ? 0 : Offset % Layout.ElementLayout->Size, Type) : nullptr;
-    }
-
-    RuntimeValue replaceElementValue(const StorageLayout &Layout, const RuntimeValue &OldValue, std::size_t Offset, const RuntimeValue &NewValue)
-    {
-      if (Layout.Type == NewValue.Type && Offset == 0)
-      {
-        return NewValue;
-      }
-      std::vector<RuntimeValue> Elements;
-      if (OldValue.kind() == RuntimeKind::Array)
-      {
-        Elements.assign(OldValue.array().begin(), OldValue.array().end());
-      }
-      else
-      {
-        Elements.resize(static_cast<std::size_t>(Layout.ElementCount));
-        for (RuntimeValue &Element : Elements)
+        for (std::size_t Index = 0; Index < Layout.classDesc().Fields.size(); ++Index)
         {
-          Element.Type = Layout.ElementType;
+          const std::size_t Start = Layout.classDesc().Fields[Index].Offset;
+          const TypeDesc &Field = *Layout.classDesc().Fields[Index].Layout;
+          if (Offset >= Start && Offset - Start <= Field.Size)
+          {
+            if (const TypeDesc *Found = findElementLayout(Field, Offset - Start, Type, AllowOnePast))
+            {
+              return Found;
+            }
+          }
         }
+        return nullptr;
       }
-      const std::size_t Index = Layout.ElementLayout->Size == 0 ? 0 : Offset / Layout.ElementLayout->Size;
-      Elements[Index] = replaceElementValue(*Layout.ElementLayout, Elements[Index], Layout.ElementLayout->Size == 0 ? 0 : Offset % Layout.ElementLayout->Size, NewValue);
-      const bool Initialized = std::all_of(Elements.begin(), Elements.end(), [](const RuntimeValue &Element)
+      if (Layout.Kind != RuntimeKind::Array || !Layout.arrayDesc().ElementLayout || Layout.arrayDesc().ElementCount == 0 || Offset > Layout.Size || (Layout.Size != 0 && !AllowOnePast && Offset == Layout.Size))
       {
-        return Element.Initialized;
-      });
-      RuntimeValue Result = RuntimeValue::fromArray(std::move(Elements), Layout.Type);
-      Result.Initialized = Initialized;
-      return Result;
+        return nullptr;
+      }
+      return findElementLayout(*Layout.arrayDesc().ElementLayout, Layout.arrayDesc().ElementLayout->Size == 0 ? 0 : Offset % Layout.arrayDesc().ElementLayout->Size, Type, AllowOnePast);
     }
 
-    RuntimeValue emptyArrayValue(const StorageLayout &Layout)
+    RuntimeValueResult readNativeArray(const TypeDesc &Layout, const std::byte *Data)
     {
-      if (Layout.ElementCount == 0)
+      if (Layout.Kind == RuntimeKind::Void)
       {
-        return RuntimeValue::fromArray({}, Layout.Type);
+        return {ExecutionStatus::Success, RuntimeValue::fromBits(0, Layout.Type)};
       }
-      const RuntimeValue Element = emptyArrayValue(*Layout.ElementLayout);
-      return RuntimeValue::fromArray(std::vector<RuntimeValue>(static_cast<std::size_t>(Layout.ElementCount), Element), Layout.Type);
-    }
-
-    RuntimeValueResult readNativeArray(const StorageLayout &Layout, const std::byte *Data)
-    {
+      if (Layout.Kind == RuntimeKind::Class)
+      {
+        std::vector<RuntimeValue> Fields;
+        for (std::size_t Index = 0; Index < Layout.classDesc().Fields.size(); ++Index)
+        {
+          RuntimeValueResult Field = readNativeArray(*Layout.classDesc().Fields[Index].Layout, Data + Layout.classDesc().Fields[Index].Offset);
+          if (!Field)
+          {
+            return Field;
+          }
+          Fields.push_back(std::move(Field.Value));
+        }
+        return {ExecutionStatus::Success, RuntimeValue::fromClass(std::move(Fields), Layout.Type)};
+      }
       if (Layout.Kind == RuntimeKind::Array)
       {
         std::vector<RuntimeValue> Elements;
-        Elements.reserve(static_cast<std::size_t>(Layout.ElementCount));
-        for (std::uint64_t Index = 0; Index < Layout.ElementCount; ++Index)
+        Elements.reserve(static_cast<std::size_t>(Layout.arrayDesc().ElementCount));
+        for (std::uint64_t Index = 0; Index < Layout.arrayDesc().ElementCount; ++Index)
         {
-          RuntimeValueResult Element = readNativeArray(*Layout.ElementLayout, Data + Index * Layout.ElementLayout->Size);
+          RuntimeValueResult Element = readNativeArray(*Layout.arrayDesc().ElementLayout, Data + Index * Layout.arrayDesc().ElementLayout->Size);
           if (!Element)
           {
             return Element;
@@ -143,23 +141,52 @@ namespace ink::execution
         }
         return {ExecutionStatus::Success, RuntimeValue::fromArray(std::move(Elements), Layout.Type)};
       }
-      std::uint64_t Bits = 0;
-      switch (Layout.Size)
+      if (Layout.Kind == RuntimeKind::Pointer)
       {
-      case 1:
-        Bits = readNativeBits<std::uint8_t>(Data);
-        break;
-      case 2:
-        Bits = readNativeBits<std::uint16_t>(Data);
-        break;
-      case 4:
-        Bits = readNativeBits<std::uint32_t>(Data);
-        break;
-      case 8:
-        Bits = readNativeBits<std::uint64_t>(Data);
-        break;
-      default:
+        if (Layout.Size != sizeof(void *))
+        {
+          return {ExecutionStatus::UnsupportedOperation};
+        }
+        return {ExecutionStatus::Success, RuntimeValue::fromPointer(ExecutionPointer::fromNative(readNativeBits<void *>(Data)), Layout.Type)};
+      }
+      if (Layout.Kind == RuntimeKind::String)
+      {
+        if (Layout.Size != sizeof(void *) + sizeof(std::size_t))
+        {
+          return {ExecutionStatus::UnsupportedOperation};
+        }
+        const char *Bytes = readNativeBits<const char *>(Data);
+        const std::size_t Length = readNativeBits<std::size_t>(Data + sizeof(void *));
+        return {ExecutionStatus::Success, RuntimeValue::fromString(Length ? std::string_view(Bytes, Length) : std::string_view{}, Layout.Type)};
+      }
+      const std::size_t Count = Layout.Kind == RuntimeKind::Integer ? (static_cast<std::size_t>(Layout.bitWidth()) + 7) / 8 : Layout.Size;
+      if (Count > Layout.Size)
+      {
+        return {ExecutionStatus::TypeMismatch};
+      }
+      if (Layout.Kind == RuntimeKind::Integer && Layout.bitWidth() > 64)
+      {
+        std::vector<std::uint64_t> Words((static_cast<std::size_t>(Layout.bitWidth()) + 63) / 64);
+        for (std::size_t Index = 0; Index < Count; ++Index)
+        {
+          const std::size_t Byte = std::endian::native == std::endian::little ? Index : Count - 1 - Index;
+          Words[Index / 8] |= static_cast<std::uint64_t>(std::to_integer<unsigned char>(Data[Byte])) << ((Index % 8) * 8);
+        }
+        return {ExecutionStatus::Success, RuntimeValue::fromInteger(ExecutionInteger(ir::IntegerBits(Layout.bitWidth(), Words)), Layout.Type)};
+      }
+      if (Count > sizeof(std::uint64_t))
+      {
         return {ExecutionStatus::UnsupportedOperation};
+      }
+      std::uint64_t Bits = 0;
+      for (std::size_t Index = 0; Index < Count; ++Index)
+      {
+        const std::size_t Byte = std::endian::native == std::endian::little ? Index : Count - 1 - Index;
+        Bits |= static_cast<std::uint64_t>(std::to_integer<unsigned char>(Data[Byte])) << (Index * 8);
+      }
+      if (Layout.Kind == RuntimeKind::Integer && Layout.bitWidth() < 64)
+      {
+        Bits &= (std::uint64_t{1} << Layout.bitWidth()) - 1;
       }
       if (Layout.Kind == RuntimeKind::Boolean && Bits > 1)
       {
@@ -168,284 +195,216 @@ namespace ink::execution
       return {ExecutionStatus::Success, RuntimeValue::fromBits(Bits, Layout.Type)};
     }
 
-    void writeNativeArray(const StorageLayout &Layout, std::byte *Data, const RuntimeValue &Value)
+    void writeNativeArray(const TypeDesc &Layout, std::byte *Data, const RuntimeValue &Value)
     {
+      if (Layout.Kind == RuntimeKind::Class)
+      {
+        for (std::size_t Index = 0; Index < Value.fields().size(); ++Index)
+        {
+          writeNativeArray(*Layout.classDesc().Fields[Index].Layout, Data + Layout.classDesc().Fields[Index].Offset, Value.fields()[Index]);
+        }
+        return;
+      }
       if (Layout.Kind == RuntimeKind::Array)
       {
         for (std::size_t Index = 0; Index < Value.array().size(); ++Index)
         {
-          writeNativeArray(*Layout.ElementLayout, Data + Index * Layout.ElementLayout->Size, Value.array()[Index]);
+          writeNativeArray(*Layout.arrayDesc().ElementLayout, Data + Index * Layout.arrayDesc().ElementLayout->Size, Value.array()[Index]);
         }
         return;
       }
-      switch (Layout.Size)
+      if (Layout.Kind == RuntimeKind::Pointer)
       {
-      case 1:
-      {
-        const std::uint8_t Bits = static_cast<std::uint8_t>(Value.Bits);
-        std::memcpy(Data, &Bits, sizeof(Bits));
-        break;
+        void *Pointer = Value.pointer().address();
+        std::memcpy(Data, &Pointer, sizeof(Pointer));
+        return;
       }
-      case 2:
+      if (Layout.Kind == RuntimeKind::String)
       {
-        const std::uint16_t Bits = static_cast<std::uint16_t>(Value.Bits);
-        std::memcpy(Data, &Bits, sizeof(Bits));
-        break;
+        const std::string_view String = Value.string();
+        const char *Pointer = String.data();
+        const std::size_t Length = String.size();
+        std::memcpy(Data, &Pointer, sizeof(Pointer));
+        std::memcpy(Data + sizeof(Pointer), &Length, sizeof(Length));
+        return;
       }
-      case 4:
+      const std::size_t Count = Layout.Kind == RuntimeKind::Integer ? (static_cast<std::size_t>(Layout.bitWidth()) + 7) / 8 : Layout.Size;
+      std::memset(Data, 0, Layout.Size);
+      const bool Wide = Layout.Kind == RuntimeKind::Integer && Layout.bitWidth() > 64;
+      const ir::IntegerBits Integer = Wide ? Value.integer().bits() : ir::IntegerBits(64, Value.Bits);
+      for (std::size_t Index = 0; Index < Count; ++Index)
       {
-        const std::uint32_t Bits = static_cast<std::uint32_t>(Value.Bits);
-        std::memcpy(Data, &Bits, sizeof(Bits));
-        break;
-      }
-      case 8:
-        std::memcpy(Data, &Value.Bits, sizeof(Value.Bits));
-        break;
+        const std::size_t Byte = std::endian::native == std::endian::little ? Index : Count - 1 - Index;
+        Data[Byte] = static_cast<std::byte>(Integer.words()[Index / 8] >> ((Index % 8) * 8));
       }
     }
   } // namespace
 
-  ExecutionCell::ExecutionCell(const StorageLayout &Layout, bool Writable, bool Runtime)
-      : ExecutionStorage(ExecutionObjectKind::Cell),
-        Layout(Layout),
-        Writable(Writable),
-        Runtime(Runtime)
+  ExecutionStatus validateStorageValue(const TypeDesc &Layout, const RuntimeValue &Value)
   {
-    if (Layout.Native && !Runtime)
-    {
-      initializeNative();
-    }
-    // Zero-sized aggregates contain no uninitialized scalar leaves. Equal-typed
-    // empty subarrays share an address and an equivalent immutable value.
-    if (Layout.Kind == RuntimeKind::Array && Layout.Size == 0 && !Runtime)
-    {
-      Value = emptyArrayValue(Layout);
-    }
+    return validateArrayElement(Layout, Value);
   }
 
-  void ExecutionCell::initializeNative() noexcept
+  RuntimeValueResult readStorage(const TypeDesc &Layout, const void *Address)
   {
-    if (Layout.Kind == RuntimeKind::Array)
+    return readNativeArray(Layout, static_cast<const std::byte *>(Address));
+  }
+
+  ExecutionStatus writeStorage(const TypeDesc &Layout, void *Address, const RuntimeValue &Value)
+  {
+    const ExecutionStatus Status = validateArrayElement(Layout, Value);
+    if (Status == ExecutionStatus::Success)
     {
-      NativeArray = std::make_unique<std::byte[]>(std::max<std::size_t>(Layout.Size, 1));
-      NativeSize = Layout.Size;
-      return;
+      writeNativeArray(Layout, static_cast<std::byte *>(Address), Value);
     }
-    if (Layout.Kind == RuntimeKind::Boolean)
-    {
-      NativeType = NativeKind::Boolean;
-      NativeSize = sizeof(Native.Boolean);
-      Native.Boolean = false;
-      return;
-    }
-    if (Layout.Kind == RuntimeKind::Float)
-    {
-      switch (Layout.BitWidth)
-      {
-      case 32:
-        NativeType = NativeKind::Float32;
-        NativeSize = sizeof(Native.Float32);
-        Native.Float32 = 0.0F;
-        return;
-      case 64:
-        NativeType = NativeKind::Float64;
-        NativeSize = sizeof(Native.Float64);
-        Native.Float64 = 0.0;
-        return;
-      default:
-        return;
-      }
-    }
-    if (Layout.Kind != RuntimeKind::Integer)
-    {
-      return;
-    }
-    if (Layout.Signed)
-    {
-      switch (Layout.BitWidth)
-      {
-      case 8:
-        NativeType = NativeKind::Signed8;
-        NativeSize = sizeof(Native.Signed8);
-        Native.Signed8 = 0;
-        return;
-      case 16:
-        NativeType = NativeKind::Signed16;
-        NativeSize = sizeof(Native.Signed16);
-        Native.Signed16 = 0;
-        return;
-      case 32:
-        NativeType = NativeKind::Signed32;
-        NativeSize = sizeof(Native.Signed32);
-        Native.Signed32 = 0;
-        return;
-      case 64:
-        NativeType = NativeKind::Signed64;
-        NativeSize = sizeof(Native.Signed64);
-        Native.Signed64 = 0;
-        return;
-      default:
-        return;
-      }
-    }
-    switch (Layout.BitWidth)
-    {
-    case 8:
-      NativeType = NativeKind::Unsigned8;
-      NativeSize = sizeof(Native.Unsigned8);
-      Native.Unsigned8 = 0;
-      return;
-    case 16:
-      NativeType = NativeKind::Unsigned16;
-      NativeSize = sizeof(Native.Unsigned16);
-      Native.Unsigned16 = 0;
-      return;
-    case 32:
-      NativeType = NativeKind::Unsigned32;
-      NativeSize = sizeof(Native.Unsigned32);
-      Native.Unsigned32 = 0;
-      return;
-    case 64:
-      NativeType = NativeKind::Unsigned64;
-      NativeSize = sizeof(Native.Unsigned64);
-      Native.Unsigned64 = 0;
-      return;
-    default:
-      return;
-    }
+    return Status;
+  }
+
+  ExecutionCell::ExecutionCell(ExecutionMemoryManager &Owner, const TypeDesc &Layout, bool Writable, bool Runtime)
+      : ExecutionStorage(ExecutionObjectKind::Cell),
+        Layout(Layout),
+        Owner(Owner),
+        Bytes(allocateRuntimeBytes(Layout.Size, Layout.Alignment)),
+        Writable(Writable),
+        Runtime(Runtime),
+        Initialized(!Runtime && Layout.Kind == RuntimeKind::Array && Layout.Size == 0)
+  {
   }
 
   void *ExecutionCell::data() noexcept
   {
-    return const_cast<void *>(std::as_const(*this).data());
+    return Bytes.get();
   }
 
   const void *ExecutionCell::data() const noexcept
   {
-    if (NativeArray)
-    {
-      return NativeArray.get();
-    }
-    // A union and its active scalar member have the same address. Its real
-    // native object type is established once by initializeNative().
-    return NativeType == NativeKind::None ? nullptr : &Native;
+    return Bytes.get();
   }
 
   std::size_t ExecutionCell::size() const noexcept
   {
-    return Layout.Kind == RuntimeKind::Array ? Layout.Size : NativeSize;
+    return Layout.Size;
   }
 
-  RuntimeValueResult ExecutionCell::loadRuntime() const
+  const TypeDesc *ExecutionCell::elementLayout(std::size_t Offset, RuntimeTypeId Type, bool AllowOnePast) const noexcept
   {
-    if (Runtime)
-    {
-      return {ExecutionStatus::RuntimeValue};
-    }
-    if (!Initialized)
-    {
-      return {ExecutionStatus::Uninitialized};
-    }
-    if (NativeArray)
-    {
-      return readNativeArray(Layout, NativeArray.get());
-    }
-    if (NativeType == NativeKind::None)
-    {
-      return {ExecutionStatus::Success, Value};
-    }
-    std::uint64_t Bits = 0;
-    const ExecutionStatus Status = loadBits(Bits);
-    return Status == ExecutionStatus::Success ? RuntimeValueResult{Status, RuntimeValue::fromBits(Bits, Layout.Type)} : RuntimeValueResult{Status};
+    return findElementLayout(Layout, Offset, Type, AllowOnePast);
   }
 
-  ExecutionStatus ExecutionCell::storeRuntime(const RuntimeValue &NewValue)
+  bool ExecutionCell::isInitialized(std::size_t Offset, const TypeDesc &Element) const noexcept
+  {
+    if (Initialized || Element.Size == 0)
+    {
+      return true;
+    }
+    for (const InitializedRange &Range : InitializedRanges)
+    {
+      if (Offset >= Range.Start && Offset + Element.Size <= Range.End)
+      {
+        return true;
+      }
+    }
+    if (Element.Kind == RuntimeKind::Array)
+    {
+      for (std::uint64_t Index = 0; Index < Element.arrayDesc().ElementCount; ++Index)
+      {
+        if (!isInitialized(Offset + static_cast<std::size_t>(Index) * Element.arrayDesc().ElementLayout->Size, *Element.arrayDesc().ElementLayout))
+        {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (Element.Kind == RuntimeKind::Class && !Element.classDesc().Fields.empty())
+    {
+      for (std::size_t Index = 0; Index < Element.classDesc().Fields.size(); ++Index)
+      {
+        if (!isInitialized(Offset + Element.classDesc().Fields[Index].Offset, *Element.classDesc().Fields[Index].Layout))
+        {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  void ExecutionCell::markInitialized(std::size_t Offset, const TypeDesc &Element)
+  {
+    if (Initialized)
+    {
+      return;
+    }
+    if (Offset == 0 && Element.Type == Layout.Type)
+    {
+      Initialized = true;
+    }
+    else
+    {
+      InitializedRange Added{Offset, Offset + Element.Size};
+      auto Current = InitializedRanges.begin();
+      while (Current != InitializedRanges.end())
+      {
+        if (Added.Start <= Current->End && Current->Start <= Added.End)
+        {
+          Added.Start = std::min(Added.Start, Current->Start);
+          Added.End = std::max(Added.End, Current->End);
+          Current = InitializedRanges.erase(Current);
+        }
+        else
+        {
+          ++Current;
+        }
+      }
+      InitializedRanges.push_back(Added);
+      Initialized = isInitialized(0, Layout);
+    }
+    if (Initialized)
+    {
+      InitializedRanges.clear();
+    }
+  }
+
+  ExecutionStatus ExecutionCell::loadBytes(std::size_t Offset, const TypeDesc &Element, void *Destination) const
   {
     if (Runtime)
     {
       return ExecutionStatus::RuntimeValue;
     }
-    if (!Writable && Initialized)
+    if (Offset > Layout.Size || Element.Size > Layout.Size - Offset)
     {
-      return ExecutionStatus::ReadOnly;
+      return Element.Kind == RuntimeKind::Integer && Element.bitWidth() == 8 ? ExecutionStatus::InvalidPlace : ExecutionStatus::TypeMismatch;
     }
-    if (!NewValue.Initialized || NewValue.Type != Layout.Type)
+    if (!isInitialized(Offset, Element))
     {
-      return ExecutionStatus::TypeMismatch;
+      return ExecutionStatus::Uninitialized;
     }
-    switch (Layout.Kind)
-    {
-    case RuntimeKind::Array:
-    {
-      const ExecutionStatus Status = validateArrayElement(Layout, NewValue);
-      if (Status != ExecutionStatus::Success)
-      {
-        return Status;
-      }
-      if (NativeArray)
-      {
-        writeNativeArray(Layout, NativeArray.get(), NewValue);
-      }
-      Value = NewValue;
-      Initialized = true;
-      return ExecutionStatus::Success;
-    }
-    case RuntimeKind::Boolean:
-      if (NewValue.Object || NewValue.Bits > 1)
-      {
-        return ExecutionStatus::TypeMismatch;
-      }
-      break;
-    case RuntimeKind::Integer:
-      if (Layout.BitWidth > 64 ? NewValue.kind() != RuntimeKind::Integer || NewValue.integer().bitWidth() != Layout.BitWidth : static_cast<bool>(NewValue.Object))
-      {
-        return ExecutionStatus::TypeMismatch;
-      }
-      break;
-    case RuntimeKind::Float:
-    case RuntimeKind::Void:
-    case RuntimeKind::Function:
-      if (NewValue.Object)
-      {
-        return ExecutionStatus::TypeMismatch;
-      }
-      break;
-    case RuntimeKind::Pointer:
-      if (NewValue.kind() != RuntimeKind::Pointer)
-      {
-        return ExecutionStatus::TypeMismatch;
-      }
-      if (const ExecutionStatus Status = NewValue.pointer().status(); Status != ExecutionStatus::Success)
-      {
-        return Status;
-      }
-      break;
-    case RuntimeKind::String:
-      if (NewValue.kind() != RuntimeKind::String)
-      {
-        return ExecutionStatus::TypeMismatch;
-      }
-      break;
-    case RuntimeKind::Invalid:
-      return ExecutionStatus::TypeMismatch;
-    }
-    if (NativeType != NativeKind::None)
-    {
-      return storeBits(NewValue.Bits);
-    }
-    Value = NewValue;
-    Initialized = true;
+    std::memmove(Destination, Bytes.get() + Offset, Element.Size);
     return ExecutionStatus::Success;
   }
 
-  ExecutionStatus ExecutionCell::loadBits(std::uint64_t &Bits) const noexcept
+  ExecutionStatus ExecutionCell::storeBytes(std::size_t Offset, const TypeDesc &Element, const void *Source)
   {
-    return loadBits(Bits, NativeSize);
+    if (Runtime)
+    {
+      return ExecutionStatus::RuntimeValue;
+    }
+    if (Offset > Layout.Size || Element.Size > Layout.Size - Offset)
+    {
+      return Element.Kind == RuntimeKind::Integer && Element.bitWidth() == 8 ? ExecutionStatus::InvalidPlace : ExecutionStatus::TypeMismatch;
+    }
+    if (!Writable && isInitialized(Offset, Element))
+    {
+      return ExecutionStatus::ReadOnly;
+    }
+    std::memmove(Bytes.get() + Offset, Source, Element.Size);
+    markInitialized(Offset, Element);
+    return ExecutionStatus::Success;
   }
 
-  const StorageLayout *ExecutionCell::elementLayout(std::size_t Offset, RuntimeTypeId Type, bool AllowOnePast) const noexcept
+  RuntimeValueResult ExecutionCell::loadRuntime() const
   {
-    return findElementLayout(Layout, Offset, Type, AllowOnePast);
+    return loadElement(0, Layout.Type);
   }
 
   RuntimeValueResult ExecutionCell::loadElement(std::size_t Offset, RuntimeTypeId Type) const
@@ -454,66 +413,66 @@ namespace ink::execution
     {
       return {ExecutionStatus::RuntimeValue};
     }
-    const StorageLayout *Element = elementLayout(Offset, Type);
+    const TypeDesc *Element = elementLayout(Offset, Type);
     if (!Element)
     {
       return {ExecutionStatus::TypeMismatch};
     }
-    if (Type == Layout.Type && Offset == 0)
-    {
-      return loadRuntime();
-    }
-    const RuntimeValue *Stored = findElementValue(Layout, Value, Offset, Type);
-    if (!Stored || !Stored->Initialized)
+    if (!isInitialized(Offset, *Element))
     {
       return {ExecutionStatus::Uninitialized};
     }
-    return NativeArray ? readNativeArray(*Element, NativeArray.get() + Offset) : RuntimeValueResult{ExecutionStatus::Success, *Stored};
+    return readStorage(*Element, Bytes.get() + Offset);
   }
 
-  ExecutionStatus ExecutionCell::storeElement(std::size_t Offset, const RuntimeValue &NewValue)
+  ExecutionStatus ExecutionCell::storeRuntime(const RuntimeValue &Value)
+  {
+    return Value.Type == Layout.Type ? storeElement(0, Value) : ExecutionStatus::TypeMismatch;
+  }
+
+  ExecutionStatus ExecutionCell::storeElement(std::size_t Offset, const RuntimeValue &Value)
   {
     if (Runtime)
     {
       return ExecutionStatus::RuntimeValue;
     }
-    if (!Writable && Initialized)
-    {
-      return ExecutionStatus::ReadOnly;
-    }
-    const StorageLayout *Element = elementLayout(Offset, NewValue.Type);
+    const TypeDesc *Element = elementLayout(Offset, Value.Type);
     if (!Element)
     {
       return ExecutionStatus::TypeMismatch;
     }
-    if (Layout.Type == NewValue.Type && Offset == 0)
-    {
-      return storeRuntime(NewValue);
-    }
-    const RuntimeValue *Previous = findElementValue(Layout, Value, Offset, NewValue.Type);
-    if (!Writable && Previous && Previous->Initialized)
+    if (!Writable && isInitialized(Offset, *Element))
     {
       return ExecutionStatus::ReadOnly;
     }
-    const ExecutionStatus Status = validateArrayElement(*Element, NewValue);
+    ExecutionStatus Status = validateArrayElement(*Element, Value);
     if (Status != ExecutionStatus::Success)
     {
       return Status;
     }
-    if (NativeArray && Initialized)
+    // Boundary conversion can exhaust the string budget. Publish the bytes only
+    // after every owned string has been retained successfully.
+    std::array<std::byte, sizeof(void *) + sizeof(std::size_t)> Inline{};
+    RuntimeBytes Temporary{nullptr, RuntimeBytesDeleter{}};
+    std::byte *Encoded = Inline.data();
+    if (Element->Size > Inline.size())
     {
-      // Native bytes are authoritative; immutable snapshots are reconstructed
-      // on load, so a scalar store never copies the complete initialized array.
-      writeNativeArray(*Element, NativeArray.get() + Offset, NewValue);
-      return ExecutionStatus::Success;
+      Temporary = allocateRuntimeBytes(Element->Size, Element->Alignment);
+      Encoded = Temporary.get();
     }
-    Value = replaceElementValue(Layout, Value, Offset, NewValue);
-    if (NativeArray)
+    Status = Owner.writeValueBytes(*Element, Encoded, Value);
+    if (Status != ExecutionStatus::Success)
     {
-      writeNativeArray(*Element, NativeArray.get() + Offset, NewValue);
+      return Status;
     }
-    Initialized = Value.Initialized;
+    std::memcpy(Bytes.get() + Offset, Encoded, Element->Size);
+    markInitialized(Offset, *Element);
     return ExecutionStatus::Success;
+  }
+
+  ExecutionStatus ExecutionCell::loadBits(std::uint64_t &Bits) const noexcept
+  {
+    return loadBits(Bits, Layout.Size);
   }
 
   ExecutionStatus ExecutionCell::loadBits(std::uint64_t &Bits, std::size_t Width) const noexcept
@@ -526,28 +485,21 @@ namespace ink::execution
     {
       return ExecutionStatus::Uninitialized;
     }
-    if (Width != NativeSize)
+    if (Width != Layout.Size)
     {
       return ExecutionStatus::TypeMismatch;
     }
-    switch (Width)
+    if (Width > sizeof(Bits))
     {
-    case 1:
-      Bits = readNativeBits<std::uint8_t>(data());
-      break;
-    case 2:
-      Bits = readNativeBits<std::uint16_t>(data());
-      break;
-    case 4:
-      Bits = readNativeBits<std::uint32_t>(data());
-      break;
-    case 8:
-      Bits = readNativeBits<std::uint64_t>(data());
-      break;
-    default:
       return ExecutionStatus::UnsupportedOperation;
     }
-    return NativeType == NativeKind::Boolean && Bits > 1 ? ExecutionStatus::TypeMismatch : ExecutionStatus::Success;
+    Bits = RuntimeSlot{Bytes.get(), &Layout, true}.bits();
+    return Layout.Kind == RuntimeKind::Boolean && Bits > 1 ? ExecutionStatus::TypeMismatch : ExecutionStatus::Success;
+  }
+
+  ExecutionStatus ExecutionCell::storeBits(std::uint64_t Bits) noexcept
+  {
+    return storeBits(Bits, Layout.Size);
   }
 
   ExecutionStatus ExecutionCell::storeBits(std::uint64_t Bits, std::size_t Width) noexcept
@@ -560,97 +512,15 @@ namespace ink::execution
     {
       return ExecutionStatus::ReadOnly;
     }
-    if (Width != NativeSize || (NativeType == NativeKind::Boolean && Bits > 1))
+    if (Width != Layout.Size || (Layout.Kind == RuntimeKind::Boolean && Bits > 1))
     {
       return ExecutionStatus::TypeMismatch;
     }
-    switch (Width)
+    if (Width > sizeof(Bits))
     {
-    case 1:
-    {
-      const std::uint8_t Narrow = static_cast<std::uint8_t>(Bits);
-      std::memcpy(data(), &Narrow, sizeof(Narrow));
-      break;
-    }
-    case 2:
-    {
-      const std::uint16_t Narrow = static_cast<std::uint16_t>(Bits);
-      std::memcpy(data(), &Narrow, sizeof(Narrow));
-      break;
-    }
-    case 4:
-    {
-      const std::uint32_t Narrow = static_cast<std::uint32_t>(Bits);
-      std::memcpy(data(), &Narrow, sizeof(Narrow));
-      break;
-    }
-    case 8:
-      std::memcpy(data(), &Bits, sizeof(Bits));
-      break;
-    default:
       return ExecutionStatus::UnsupportedOperation;
     }
-    Initialized = true;
-    return ExecutionStatus::Success;
-  }
-
-  ExecutionStatus ExecutionCell::storeBits(std::uint64_t Bits) noexcept
-  {
-    if (Runtime)
-    {
-      return ExecutionStatus::RuntimeValue;
-    }
-    if (!Writable && Initialized)
-    {
-      return ExecutionStatus::ReadOnly;
-    }
-    switch (NativeType)
-    {
-    case NativeKind::Boolean:
-      if (Bits > 1)
-      {
-        return ExecutionStatus::TypeMismatch;
-      }
-      Native.Boolean = Bits != 0;
-      break;
-    case NativeKind::Signed8:
-      Native.Signed8 = std::bit_cast<std::int8_t>(static_cast<std::uint8_t>(Bits));
-      break;
-    case NativeKind::Unsigned8:
-      Native.Unsigned8 = static_cast<std::uint8_t>(Bits);
-      break;
-    case NativeKind::Signed16:
-      Native.Signed16 = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(Bits));
-      break;
-    case NativeKind::Unsigned16:
-      Native.Unsigned16 = static_cast<std::uint16_t>(Bits);
-      break;
-    case NativeKind::Signed32:
-      Native.Signed32 = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(Bits));
-      break;
-    case NativeKind::Unsigned32:
-      Native.Unsigned32 = static_cast<std::uint32_t>(Bits);
-      break;
-    case NativeKind::Signed64:
-      Native.Signed64 = std::bit_cast<std::int64_t>(Bits);
-      break;
-    case NativeKind::Unsigned64:
-      Native.Unsigned64 = Bits;
-      break;
-    case NativeKind::Float32:
-    {
-      const std::uint32_t FloatBits = static_cast<std::uint32_t>(Bits);
-      std::memcpy(&Native.Float32, &FloatBits, sizeof(FloatBits));
-      break;
-    }
-    case NativeKind::Float64:
-    {
-      std::memcpy(&Native.Float64, &Bits, sizeof(Bits));
-      break;
-    }
-    case NativeKind::None:
-      return ExecutionStatus::UnsupportedOperation;
-    }
+    RuntimeSlot{Bytes.get(), &Layout, true}.setBits(Bits);
     Initialized = true;
     return ExecutionStatus::Success;
   }

@@ -55,6 +55,19 @@ namespace ink::semantic
       return nullptr;
     }
     TypePool &Types = State.Context.typePool();
+    if (parser::MemberExpr::classof(&Node))
+    {
+      const ExpressionResult Resolved = analyzeMemberExpr(State, static_cast<const parser::MemberExpr &>(Node), Depth);
+      if (Resolved.ValueObject && Type::classof(Resolved.ValueObject))
+      {
+        return static_cast<const Type *>(Resolved.ValueObject);
+      }
+      if (Resolved)
+      {
+        State.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "type", "value");
+      }
+      return nullptr;
+    }
     if (parser::ArrayRepeatExpr::classof(&Node))
     {
       const auto &Array = static_cast<const parser::ArrayRepeatExpr &>(Node);

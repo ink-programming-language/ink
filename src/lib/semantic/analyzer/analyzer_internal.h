@@ -68,10 +68,13 @@ namespace ink::semantic
       const std::size_t ExpressionDepthLimit = core::ConfigManager::getSize<core::ConfigKind::SemanticExpressionDepthLimit>();
       std::size_t BlockDepth = 0;
       ir::Function *CurrentFunction = nullptr;
+      const ir::ClassType *CurrentClass = nullptr;
+      const ir::ClassType *DeclaringClass = nullptr;
       bool Terminated = false;
       execution::ExecutionFrame *Frame = nullptr;
       bool Evaluating = false;
       bool ComptimeFunction = false;
+      bool ClassImportsOnly = false;
       const ir::Type *ExpectedType = nullptr;
       std::size_t LoopDepth = 0;
       bool Breaking = false;

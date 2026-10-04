@@ -33,6 +33,10 @@ namespace ink::semantic
     {
       return resolveAddress(State, *static_cast<const parser::ParenExpr &>(Node).expression(), Depth + 1, RequireInitialized);
     }
+    if (parser::MemberExpr::classof(&Node))
+    {
+      return resolveFieldAddress(State, static_cast<const parser::MemberExpr &>(Node), Depth);
+    }
     if (parser::IndexExpr::classof(&Node))
     {
       const auto &Index = static_cast<const parser::IndexExpr &>(Node);

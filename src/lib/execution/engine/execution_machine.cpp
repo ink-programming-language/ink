@@ -2,9 +2,15 @@
 
 #include "ink/execution/engine/execution_engine.h"
 #include "ink/execution/engine/execution_linker.h"
+#include "ink/core/object_layout.h"
 
 namespace ink::execution
 {
+  const RuntimeTypeTable *ExecutionMachine::types() const noexcept
+  {
+    return Linker.layouts();
+  }
+
   ExecutionMachine::ExecutionMachine(ExecutionEngine &Engine, ExecutionLinker &Linker)
       : Engine(Engine),
         Linker(Linker)
@@ -19,6 +25,7 @@ namespace ink::execution
   void ExecutionMachine::clearCode() noexcept
   {
     Functions.clear();
+    PreparedBytes = 0;
     NativeCalls.clear();
   }
 
@@ -36,6 +43,56 @@ namespace ink::execution
     }
     auto Prepared = std::make_unique<PreparedFunction>();
     Prepared->Image = Image;
+    core::ObjectLayoutBuilder FrameLayout(Engine.Limits.MaxStorageBytes);
+    for (RuntimeTypeId Type : Image->SlotTypes)
+    {
+      const TypeDesc &Layout = *Image->Layouts->get(Type);
+      const auto Offset = FrameLayout.append(Layout.Size, Layout.Alignment);
+      if (!Offset)
+      {
+        Status = ExecutionStatus::BudgetExceeded;
+        return nullptr;
+      }
+      Prepared->SlotOffsets.push_back(static_cast<std::size_t>(*Offset));
+    }
+    Prepared->LocalLayouts.resize(Image->LocalStorageCount);
+    Prepared->LocalOffsets.resize(Image->LocalStorageCount);
+    for (const BytecodeInstruction &Operation : Image->Code)
+    {
+      if (Operation.Code == BytecodeOpcode::AllocaLocal)
+      {
+        const TypeDesc &Layout = *Image->Layouts->get(Operation.Operands[1]);
+        const auto Offset = FrameLayout.append(Layout.Size, Layout.Alignment);
+        if (!Offset)
+        {
+          Status = ExecutionStatus::BudgetExceeded;
+          return nullptr;
+        }
+        Prepared->LocalLayouts[Operation.Operands[2]] = &Layout;
+        Prepared->LocalOffsets[Operation.Operands[2]] = static_cast<std::size_t>(*Offset);
+      }
+    }
+    const auto FrameSize = FrameLayout.size();
+    if (!FrameSize || *FrameSize > Engine.Limits.MaxStorageBytes - PreparedBytes)
+    {
+      Status = ExecutionStatus::BudgetExceeded;
+      return nullptr;
+    }
+    Prepared->FrameSize = static_cast<std::size_t>(*FrameSize);
+    Prepared->FrameAlignment = static_cast<std::size_t>(FrameLayout.alignment());
+    Prepared->InitialBytes = allocateRuntimeBytes(Prepared->FrameSize, Prepared->FrameAlignment);
+    for (std::size_t Index = 0; Index < Image->InitialSlots.size(); ++Index)
+    {
+      const RuntimeValue &Value = Image->InitialSlots[Index];
+      if (Value.Initialized)
+      {
+        Status = importValue(*Image->Layouts->get(Value.Type), Prepared->InitialBytes.get() + Prepared->SlotOffsets[Index], Value);
+        if (Status != ExecutionStatus::Success)
+        {
+          return nullptr;
+        }
+      }
+    }
     Prepared->CallTargets.resize(Image->Calls.size(), nullptr);
     for (const ExecutionCallSite &Call : Image->Calls)
     {
@@ -70,34 +127,57 @@ namespace ink::execution
         break;
       case BytecodeOpcode::LoadI8:
       case BytecodeOpcode::StoreI8:
-        Plan.ScalarBytes = 1;
-        break;
       case BytecodeOpcode::LoadI16:
       case BytecodeOpcode::StoreI16:
-        Plan.ScalarBytes = 2;
-        break;
       case BytecodeOpcode::LoadI32:
       case BytecodeOpcode::StoreI32:
-        Plan.ScalarBytes = 4;
-        break;
       case BytecodeOpcode::LoadI64:
       case BytecodeOpcode::StoreI64:
-        Plan.ScalarBytes = 8;
+      case BytecodeOpcode::Load:
+      case BytecodeOpcode::Store:
+        Plan.Layout = Image->Layouts->get(Image->Layouts->get(Image->SlotTypes[Operation.Operands[1]])->pointerDesc().Pointee);
         break;
       default:
         break;
       }
-      if (Plan.ScalarBytes || Operation.Code == BytecodeOpcode::Load || Operation.Code == BytecodeOpcode::Store)
-      {
-        const StorageLayout &Pointer = *Image->Layouts->get(Image->SlotTypes[Operation.Operands[1]]);
-        Plan.Layout = Image->Layouts->get(Pointer.Pointee);
-        Plan.Writable = Pointer.Writable;
-      }
       Prepared->Operations.push_back(Plan);
     }
     PreparedFunction *Result = Prepared.get();
+    PreparedBytes += Prepared->FrameSize;
     Functions.emplace(Function, std::move(Prepared));
     return Result;
+  }
+
+  ExecutionStatus ExecutionMachine::initializeFrame(CallFrame &Frame, PreparedFunction &Function)
+  {
+    if (Function.FrameSize > Engine.Limits.MaxStorageBytes - ActiveFrameBytes)
+    {
+      return ExecutionStatus::BudgetExceeded;
+    }
+    Frame.Function = &Function;
+    Frame.Bytes = allocateRuntimeBytes(Function.FrameSize, Function.FrameAlignment);
+    ActiveFrameBytes += Function.FrameSize;
+    std::memcpy(Frame.Bytes.get(), Function.InitialBytes.get(), Function.FrameSize);
+    Frame.Slots.reserve(Function.SlotOffsets.size());
+    for (std::size_t Index = 0; Index < Function.SlotOffsets.size(); ++Index)
+    {
+      Frame.Slots.push_back({Frame.Bytes.get() + Function.SlotOffsets[Index], Function.Image->Layouts->get(Function.Image->SlotTypes[Index]), Function.Image->InitialSlots[Index].Initialized});
+    }
+    Frame.Locals.reserve(Function.LocalOffsets.size());
+    for (std::size_t Index = 0; Index < Function.LocalOffsets.size(); ++Index)
+    {
+      Frame.Locals.push_back({Frame.Bytes.get() + Function.LocalOffsets[Index], Function.LocalLayouts[Index], false});
+    }
+    return ExecutionStatus::Success;
+  }
+
+  ExecutionStatus ExecutionMachine::importValue(const TypeDesc &Layout, void *Destination, const RuntimeValue &Value)
+  {
+    return Engine.Heap.memoryManager().writeValueBytes(Layout, Destination, Value);
+  }
+  ExecutionStatus ExecutionMachine::validateValue(const Slot &Value) const noexcept
+  {
+    return Value.Initialized ? ExecutionStatus::Success : ExecutionStatus::RuntimeValue;
   }
 
   ExecutionStatus ExecutionMachine::validateValue(const RuntimeValue &Value) const noexcept
@@ -106,9 +186,9 @@ namespace ink::execution
     {
       return ExecutionStatus::RuntimeValue;
     }
-    if (Value.kind() == RuntimeKind::Array)
+    if (Value.kind() == RuntimeKind::Array || Value.kind() == RuntimeKind::Class)
     {
-      for (const RuntimeValue &Element : Value.array())
+      for (const RuntimeValue &Element : Value.aggregate())
       {
         const ExecutionStatus Status = validateValue(Element);
         if (Status != ExecutionStatus::Success)
@@ -120,7 +200,7 @@ namespace ink::execution
     return Value.kind() == RuntimeKind::Pointer ? Engine.Heap.memoryManager().validatePointer(Value.pointer()) : ExecutionStatus::Success;
   }
 
-  ExecutionStatus ExecutionMachine::validateArgument(const RuntimeValue &Value, const StorageLayout &Layout)
+  ExecutionStatus ExecutionMachine::validateArgument(const RuntimeValue &Value, const TypeDesc &Layout)
   {
     const ExecutionStatus Status = validateValue(Value);
     if (Status != ExecutionStatus::Success)
@@ -137,29 +217,48 @@ namespace ink::execution
       Valid = !Value.Object && Value.Bits <= 1;
       break;
     case RuntimeKind::Integer:
-      Valid = Layout.BitWidth > 64 ? Value.kind() == RuntimeKind::Integer && Value.integer().valid() && Value.integer().bitWidth() == Layout.BitWidth : Layout.BitWidth != 0 && !Value.Object && (Layout.BitWidth == 64 || (Value.Bits >> Layout.BitWidth) == 0);
+      Valid = Layout.bitWidth() > 64 ? Value.kind() == RuntimeKind::Integer && Value.integer().valid() && Value.integer().bitWidth() == Layout.bitWidth() : Layout.bitWidth() != 0 && !Value.Object && (Layout.bitWidth() == 64 || (Value.Bits >> Layout.bitWidth()) == 0);
       break;
     case RuntimeKind::Float:
-      Valid = !Value.Object && ((Layout.BitWidth == 16 || Layout.BitWidth == 32) ? (Value.Bits >> Layout.BitWidth) == 0 : Layout.BitWidth == 64);
+      Valid = !Value.Object && ((Layout.bitWidth() == 16 || Layout.bitWidth() == 32) ? (Value.Bits >> Layout.bitWidth()) == 0 : Layout.bitWidth() == 64);
       break;
     case RuntimeKind::String:
       Valid = Value.kind() == RuntimeKind::String;
       break;
     case RuntimeKind::Array:
-      if (Value.kind() != RuntimeKind::Array || Value.array().size() != Layout.ElementCount || !Layout.ElementLayout)
+      if (Value.kind() != RuntimeKind::Array || Value.array().size() != Layout.arrayDesc().ElementCount || !Layout.arrayDesc().ElementLayout)
       {
         break;
       }
       for (const RuntimeValue &Element : Value.array())
       {
-        if (Element.Type != Layout.ElementType)
+        if (Element.Type != Layout.arrayDesc().ElementType)
         {
           return ExecutionStatus::TypeMismatch;
         }
-        const ExecutionStatus ElementStatus = validateArgument(Element, *Layout.ElementLayout);
+        const ExecutionStatus ElementStatus = validateArgument(Element, *Layout.arrayDesc().ElementLayout);
         if (ElementStatus != ExecutionStatus::Success)
         {
           return ElementStatus;
+        }
+      }
+      Valid = true;
+      break;
+    case RuntimeKind::Class:
+      if (Value.kind() != RuntimeKind::Class || Value.fields().size() != Layout.classDesc().Fields.size())
+      {
+        break;
+      }
+      for (std::size_t Index = 0; Index < Value.fields().size(); ++Index)
+      {
+        if (Value.fields()[Index].Type != Layout.classDesc().Fields[Index].Type)
+        {
+          return ExecutionStatus::TypeMismatch;
+        }
+        const ExecutionStatus FieldStatus = validateArgument(Value.fields()[Index], *Layout.classDesc().Fields[Index].Layout);
+        if (FieldStatus != ExecutionStatus::Success)
+        {
+          return FieldStatus;
         }
       }
       Valid = true;
@@ -204,6 +303,10 @@ namespace ink::execution
 
   void ExecutionMachine::endCall(CallFrame &Frame) noexcept
   {
+    if (Frame.Bytes)
+    {
+      ActiveFrameBytes -= Frame.Function->FrameSize;
+    }
     for (const ExecutionStorageRef &Storage : Frame.Storage)
     {
       Engine.Heap.memoryManager().release(Storage);
@@ -244,8 +347,8 @@ namespace ink::execution
     {
       return {ExecutionStatus::InvalidArguments};
     }
-    const StorageLayout *Signature = Layouts->get(Descriptor->Signature);
-    if (!Signature || Signature->Kind != RuntimeKind::Function || !Layouts->get(Signature->ReturnType))
+    const TypeDesc *Signature = Layouts->get(Descriptor->Signature);
+    if (!Signature || Signature->Kind != RuntimeKind::Function || !Layouts->get(Signature->functionDesc().ReturnType))
     {
       return {ExecutionStatus::TypeMismatch};
     }

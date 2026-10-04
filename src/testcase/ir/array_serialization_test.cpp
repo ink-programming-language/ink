@@ -10,7 +10,7 @@ namespace ink::ir::test
 {
   namespace
   {
-    constexpr std::string_view ArrayModuleText = R"(ink-ir 4
+    constexpr std::string_view ArrayModuleText = R"(ink-ir 6
 module @Arrays {
   type !pair = [2 x i32]
   type !nested = [2 x !pair]
@@ -97,7 +97,7 @@ module @Arrays {
     }
   }
 
-  // Array wire records append IDs 56-59 while retaining version 4 and every existing tag identity.
+  // Array wire records append IDs 56-59 while retaining existing wire identities at version 6 and every existing tag identity.
   TEST(IRModuleSerializationTest, ArraysUseAppendedStableWireTags)
   {
     core::CompilationContext Compilation;
@@ -106,7 +106,7 @@ module @Arrays {
     ASSERT_TRUE(Parsed.succeeded()) << Parsed.Message;
     const auto Encoded = serializeModuleBinary(*Parsed.ModuleValue);
     ASSERT_TRUE(Encoded.succeeded()) << Encoded.Message;
-    EXPECT_EQ(llvm::support::endian::read32le(Encoded.Bytes.data() + 4), 4U);
+    EXPECT_EQ(llvm::support::endian::read32le(Encoded.Bytes.data() + 4), ModuleBinaryVersion);
     std::array<std::size_t, 4> Counts{};
     for (const auto &Record : arrayBinaryRecords(Encoded.Bytes))
     {
@@ -144,7 +144,7 @@ module @Arrays {
     IRContext Context(Compilation);
     for (const auto Instructions : Invalid)
     {
-      const auto Result = deserializeModuleText(Context, "ink-ir 4 module @Invalid { define void @f(i32 %number, bool %flag) { entry: " + std::string(Instructions) + " ret void } }");
+      const auto Result = deserializeModuleText(Context, "ink-ir 6 module @Invalid { define void @f(i32 %number, bool %flag) { entry: " + std::string(Instructions) + " ret void } }");
       EXPECT_EQ(Result.Status, ModuleArchiveStatus::InvalidArchive) << Instructions << ": " << Result.Message;
       EXPECT_EQ(Result.ModuleValue, nullptr);
       EXPECT_TRUE(Context.modules().empty());
@@ -222,11 +222,11 @@ module @Arrays {
     IRContext Context(Compilation);
     ModuleArchiveLimits Limits;
     Limits.MaxFields = 4;
-    const auto TooMany = deserializeModuleText(Context, "ink-ir 4 module @M { define [5 x i32] @f() { entry: ret [5 x i32] [1, 2, 3, 4, 5] } }", Limits);
+    const auto TooMany = deserializeModuleText(Context, "ink-ir 6 module @M { define [5 x i32] @f() { entry: ret [5 x i32] [1, 2, 3, 4, 5] } }", Limits);
     EXPECT_EQ(TooMany.Status, ModuleArchiveStatus::LimitExceeded);
     Limits = {};
     Limits.MaxNestingDepth = 4;
-    const auto TooDeep = deserializeModuleText(Context, "ink-ir 4 module @M { type !a = [1 x i32] type !b = [1 x !a] type !c = [1 x !b] type !d = [1 x !c] type !e = [1 x !d] define !e @f() { entry: ret !e [[[[[1]]]]] } }", Limits);
+    const auto TooDeep = deserializeModuleText(Context, "ink-ir 6 module @M { type !a = [1 x i32] type !b = [1 x !a] type !c = [1 x !b] type !d = [1 x !c] type !e = [1 x !d] define !e @f() { entry: ret !e [[[[[1]]]]] } }", Limits);
     EXPECT_EQ(TooDeep.Status, ModuleArchiveStatus::LimitExceeded);
     EXPECT_TRUE(Context.modules().empty());
   }

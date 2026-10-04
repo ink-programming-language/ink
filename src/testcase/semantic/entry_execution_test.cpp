@@ -216,11 +216,11 @@ namespace ink::semantic::test
     expectInteger(Engine.execute(*Entry), SizeWidth, 5);
   }
 
-  // Returning a pointer into a callee's CString preserves provenance so use after that activation ends is rejected.
-  TEST(SemanticEntryExecutionTest, RejectsEscapedCStringPointerBeforeNativeDereference)
+  // A callee-local CString address may escape without being dereferenced or kept alive.
+  TEST(SemanticEntryExecutionTest, AllowsDiscardingEscapedCStringPointer)
   {
     const std::uint32_t SizeWidth = sizeof(std::size_t) * 8;
-    const std::string Source = "import \"C\" func strchr(Text: *u8, Needle: i32): *u8; import \"C\" func strlen(Text: *u8): u" + std::to_string(SizeWidth) + "; func Find(): *u8 { return strchr(\"prefix:tail\", 58); } func Entry(): u" + std::to_string(SizeWidth) + " { var Tail = Find(); return strlen(Tail); }";
+    const std::string Source = "import \"C\" func strchr(Text: *u8, Needle: i32): *u8; import \"C\" func strlen(Text: *u8): u" + std::to_string(SizeWidth) + "; func Find(): *u8 { return strchr(\"prefix:tail\", 58); } func Entry(): u" + std::to_string(SizeWidth) + " { var Tail = Find(); return 0; }";
     EntryAnalysis Input(Source);
     ASSERT_TRUE(Input.Parsed.succeeded());
     Module *Module = Input.analyze();
@@ -229,7 +229,7 @@ namespace ink::semantic::test
     const Function *Entry = Input.function(*Module, "Entry");
     ASSERT_NE(Entry, nullptr);
     ExecutionEngine Engine(Input.Context.irContext());
-    EXPECT_EQ(Engine.execute(*Entry).Status, ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Engine.execute(*Entry).Status, ExecutionStatus::Success);
     EXPECT_EQ(Engine.heap().liveStorageCount(), 0U);
     EXPECT_EQ(Engine.heap().liveValueCount(), 0U);
   }

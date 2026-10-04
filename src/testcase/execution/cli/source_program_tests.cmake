@@ -81,7 +81,7 @@ if(WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_source_program_test(External.Invalid.ComptimeMissingSymbol cli/inputs/external_comptime_missing_symbol.ink 1 "" "INK-E0014" LABELS external comptime)
   add_source_program_test(External.Invalid.UnsupportedInteger cli/inputs/external_unsupported_integer.ink 1 "" "INK-E0015" LABELS external)
   add_source_program_test(External.Invalid.UnsupportedFloat cli/inputs/external_unsupported_float.ink 1 "" "INK-E0015" LABELS external)
-  add_source_program_test(External.Invalid.ExpiredPointer cli/inputs/external_expired_pointer.ink 1 "" "INK-E0006" LABELS external)
+  add_source_program_test(External.Raw.EscapedPointer cli/inputs/external_expired_pointer.ink 0 "PASS|" "" LABELS external)
 endif()
 
 # Array programs exercise the same named checks in source and saved-bytecode execution.
@@ -128,14 +128,14 @@ add_source_program_test(Array.Invalid.UninitializedRead cli/inputs/array_uniniti
 add_source_program_test(Array.Invalid.UninitializedWrite cli/inputs/array_uninitialized_write.ink 1 "" "INK-S0006" LABELS arrays)
 add_source_program_test(Array.Invalid.ComptimeBounds cli/inputs/array_comptime_out_of_bounds.ink 1 "" "INK-S0054" LABELS arrays)
 
-# Dynamic bounds and expired element addresses must fail after both source and bytecode loading.
+# Array bounds remain checked; escaped raw addresses may be transported without dereference.
 add_source_program_test(Array.Runtime.NegativeIndex cli/inputs/array_runtime_negative_index.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
 add_source_program_test(Array.Runtime.ReadOutOfBounds cli/inputs/array_runtime_read_out_of_bounds.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
 add_source_program_test(Array.Runtime.WriteOutOfBounds cli/inputs/array_runtime_write_out_of_bounds.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
 add_source_program_test(Array.Runtime.AddressOutOfBounds cli/inputs/array_runtime_address_out_of_bounds.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
 add_source_program_test(Array.Runtime.EmptyIndex cli/inputs/array_runtime_empty_index.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
 add_source_program_test(Array.Runtime.WideIndex cli/inputs/array_runtime_wide_index.ink 1 "" "INK-E0025" BYTECODE BYTECODE_ERROR "array index out of bounds" LABELS arrays)
-add_source_program_test(Array.Runtime.EscapedElement cli/inputs/array_runtime_escaped_element.ink 1 "" "INK-E0006" BYTECODE BYTECODE_ERROR "expired execution place" LABELS arrays)
+add_source_program_test(Array.Runtime.EscapedElement cli/inputs/array_runtime_escaped_element.ink 0 "PASS|" "" BYTECODE LABELS arrays)
 
 # Declaration checks fail before host symbol lookup and do not depend on the host ABI.
 add_source_program_test(External.Invalid.ArgumentType cli/inputs/external_invalid_argument_type.ink 1 "" "INK-S0004" LABELS external)

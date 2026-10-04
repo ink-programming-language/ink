@@ -305,6 +305,46 @@ namespace ink::ir::archive
             record(Id).Kind = Word == "class" ? Tag::Class : Word == "enum" ? Tag::Enum
                                                                             : Tag::Interface;
             record(Id).Text = Text;
+            if (Word == "class" && Lex.take("identity"))
+            {
+              const auto Identity = string();
+              if (!Data.fields(2) || !Data.string(Text.size() + Identity.size()))
+              {
+                return;
+              }
+              record(Id).Fields = {Text.size(), Identity.size()};
+              record(Id).Text += Identity;
+              Lex.expect("{");
+              bool First = true;
+              while (good() && !Lex.take("}"))
+              {
+                if (!First)
+                {
+                  Lex.expect(",");
+                }
+                First = false;
+                const bool Private = Lex.take("private");
+                if (!Private)
+                {
+                  Lex.expect("public");
+                }
+                const auto FieldName = string();
+                Lex.expect(":");
+                const auto FieldType = type();
+                if (Data.Limits.MaxFields < 3 || record(Id).Fields.size() > Data.Limits.MaxFields - 3 || !Data.fields(3) || !Data.string(FieldName.size()))
+                {
+                  Data.fail("Class field limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                  return;
+                }
+                if (FieldName.size() > Data.Limits.MaxStringBytes - record(Id).Text.size())
+                {
+                  Data.fail("Class name storage limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                  return;
+                }
+                record(Id).Fields.insert(record(Id).Fields.end(), {FieldType, Private, FieldName.size()});
+                record(Id).Text += FieldName;
+              }
+            }
           }
           else
           {
@@ -349,6 +389,29 @@ namespace ink::ir::archive
             return {};
           }
           const auto Kind = record(Expected).Kind;
+          if (Kind == Tag::Class)
+          {
+            Lex.expect("{");
+            std::vector<Operand> Fields;
+            const auto Types = record(Expected).Fields;
+            while (good() && !Lex.take("}"))
+            {
+              if (!Fields.empty())
+              {
+                Lex.expect(",");
+              }
+              const auto Index = 2 + Fields.size() * 3;
+              if (Index >= Types.size() || !Data.fields(1))
+              {
+                Lex.fail("Invalid class constant field count");
+                return {};
+              }
+              Fields.push_back(value(Types[Index], Depth + 1));
+            }
+            const auto Id = add(Tag::ClassConstant, Expected);
+            operands(Id, Fields);
+            return {Id, Expected, {}};
+          }
           if (Kind == Tag::Array)
           {
             const auto ElementType = record(Expected).Fields[0];
@@ -507,6 +570,41 @@ namespace ink::ir::archive
             Values.push_back(value(Result));
             Lex.expect(",");
             Values.push_back(value(Result));
+          }
+          else if (Opcode == "class.value")
+          {
+            Kind = Tag::ClassValue;
+            Result = type();
+            if (!good() || record(Result).Kind != Tag::Class)
+            {
+              Lex.fail("Expected class result type");
+              return;
+            }
+            const auto Types = record(Result).Fields;
+            Lex.expect("{");
+            while (good() && !Lex.take("}"))
+            {
+              if (!Values.empty())
+              {
+                Lex.expect(",");
+              }
+              const auto Index = 2 + Values.size() * 3;
+              if (Index >= Types.size() || !Data.fields(1))
+              {
+                Lex.fail("Invalid class constructor field count");
+                return;
+              }
+              Values.push_back(value(Types[Index]));
+            }
+          }
+          else if (Opcode == "field.pointer" || Opcode == "field.extract")
+          {
+            Kind = Opcode == "field.pointer" ? Tag::FieldPointer : Tag::FieldExtract;
+            Result = type();
+            Lex.expect(",");
+            Fields.push_back(Lex.number());
+            Lex.expect(",");
+            Values.push_back(operand());
           }
           else if (Opcode == "array" || Opcode == "array.repeat")
           {
@@ -768,6 +866,31 @@ namespace ink::ir::archive
               Lex.expect("local");
             }
           }
+          if (Lex.take("reflect"))
+          {
+            const auto Owner = type();
+            const bool Initializer = Lex.take("initializer");
+            std::uint64_t Field = 0;
+            if (Initializer)
+            {
+              Field = Lex.number();
+              if (Field == std::numeric_limits<std::uint64_t>::max())
+              {
+                Lex.fail("Invalid initializer field index");
+                return;
+              }
+              ++Field;
+            }
+            else
+            {
+              Lex.expect("method");
+            }
+            if (!Data.fields(2))
+            {
+              return;
+            }
+            record(Id).Fields.insert(record(Id).Fields.end(), {Owner, Field});
+          }
           if ((Body && record(Id).Fields[3] == 1) || (!Body && record(Id).Fields[3] == 2))
           {
             Lex.fail("Native import must be a declaration and native export must have a body");
@@ -892,6 +1015,17 @@ namespace ink::ir::archive
             if (Lex.token() == "type")
             {
               typeDefinition();
+            }
+            else if (Lex.take("reflect"))
+            {
+              Lex.expect("type");
+              const auto Class = type();
+              if (!Data.fields(1) || record(Id).Fields.size() >= Data.Limits.MaxFields)
+              {
+                Data.fail("Module reflected type limit exceeded", ModuleArchiveStatus::LimitExceeded);
+                return;
+              }
+              record(Id).Fields.push_back(Class);
             }
             else if (Lex.token() == "syntax")
             {

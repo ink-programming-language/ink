@@ -184,8 +184,8 @@ namespace ink::execution::test
     EXPECT_EQ(Engine.heap().liveStorageCount(), 0U);
   }
 
-  // A returned array cannot conceal a pointer into the just-ended function activation.
-  TEST(ArrayBytecodeTest, RejectsEscapedLocalPointerInsideArray)
+  // Returning an array copies raw pointer fields without extending the storage lifetime.
+  TEST(ArrayBytecodeTest, CopiesRawPointerInsideReturnedArray)
   {
     ArtifactContext Test;
     ExecutionEngine Engine(Test.Context);
@@ -198,7 +198,7 @@ namespace ink::execution::test
     const ir::Value *Elements[] = {Storage};
     const auto *Result = Test.Builder.createArrayInstruction(*Array, Elements);
     ASSERT_NE(Test.Builder.createReturnInstruction(Result), nullptr);
-    EXPECT_EQ(Engine.execute(*Function).Status, ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Engine.execute(*Function).Status, ExecutionStatus::Success);
     EXPECT_EQ(Engine.heap().liveStorageCount(), 0U);
   }
 

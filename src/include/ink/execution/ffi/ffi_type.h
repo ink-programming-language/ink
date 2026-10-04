@@ -10,7 +10,7 @@ namespace ink::ir
 
 namespace ink::execution
 {
-  struct StorageLayout;
+  struct TypeDesc;
   enum class FfiTypeUsage
   {
     Argument,
@@ -20,7 +20,7 @@ namespace ink::execution
   // Maps a supported native C type, or returns null when no conversion exists.
   // Void is return-only; pointer payload validation belongs to FfiArgument.
   ::_ffi_type *ffiType(const ir::Type &Type, FfiTypeUsage Usage) noexcept;
-  ::_ffi_type *ffiType(const StorageLayout &Layout, FfiTypeUsage Usage) noexcept;
+  ::_ffi_type *ffiType(const TypeDesc &Layout, FfiTypeUsage Usage) noexcept;
 } // namespace ink::execution
 
 #endif

@@ -1,5 +1,7 @@
 #include "ink/execution/memory/execution_heap.h"
 #include "ink/execution/value/execution_array_value.h"
+#include "ink/execution/value/execution_class_value.h"
+#include "ink/ir/constant/class_constant.h"
 #include "ink/ir/constant/array_constant.h"
 
 #include "ink/execution/value/execution_bool_value.h"
@@ -87,7 +89,7 @@ namespace ink::execution
     return Bridge;
   }
 
-  ExecutionValueRef ExecutionHeap::ownValue(std::unique_ptr<ExecutionValue> Value, bool AllowExpiredPointer)
+  ExecutionValueRef ExecutionHeap::ownValue(std::unique_ptr<ExecutionValue> Value)
   {
     if (!Value || !Value->type() || &Value->type()->context() != &Context)
     {
@@ -96,21 +98,8 @@ namespace ink::execution
     }
     if (!Value->valid())
     {
-      bool ExpiredSnapshot = false;
-      if (AllowExpiredPointer && Value->kind() == ExecutionValueKind::Pointer && Value->type()->typeKind() == ir::TypeKind::Pointer)
-      {
-        const ExecutionPointer &Pointer = static_cast<const ExecutionPointerValue &>(*Value).value();
-        ExpiredSnapshot = Pointer.status() == ExecutionStatus::ExpiredPlace && ((Pointer.kind() == ExecutionPointer::Kind::Place && Memory.owns(Pointer.place().storage())) || (Pointer.kind() == ExecutionPointer::Kind::Buffer && Memory.owns(Pointer.bufferRef())));
-      }
-      if (!ExpiredSnapshot)
-      {
-        LastStatus = Value->kind() == ExecutionValueKind::Pointer ? static_cast<const ExecutionPointerValue &>(*Value).value().status() : ExecutionStatus::TypeMismatch;
-        if (LastStatus == ExecutionStatus::Success)
-        {
-          LastStatus = ExecutionStatus::TypeMismatch;
-        }
-        return {};
-      }
+      LastStatus = ExecutionStatus::TypeMismatch;
+      return {};
     }
     const std::weak_ptr<ExecutionHeapState> Owner = State;
     std::shared_ptr<const ExecutionValue> Shared(Value.release(), [Owner](const ExecutionValue *Object)
@@ -157,6 +146,20 @@ namespace ink::execution
       }
       return array(Value.type(), std::move(Elements));
     }
+    case ir::ValueKind::ClassConstant:
+    {
+      std::vector<ExecutionValueRef> Fields;
+      for (const ir::Constant *Field : static_cast<const ir::ClassConstant &>(Value).fields())
+      {
+        ExecutionValueRef Converted = fromConstant(*Field);
+        if (!Converted)
+        {
+          return {};
+        }
+        Fields.push_back(std::move(Converted));
+      }
+      return classValue(Value.type(), std::move(Fields));
+    }
     default:
       LastStatus = ExecutionStatus::UnsupportedOperation;
       return {};
@@ -193,25 +196,14 @@ namespace ink::execution
     return ownValue(std::unique_ptr<ExecutionValue>(new ExecutionArrayValue(Type, std::move(Elements))));
   }
 
+  ExecutionValueRef ExecutionHeap::classValue(const ir::Type &Type, std::vector<ExecutionValueRef> Fields)
+  {
+    return ownValue(std::unique_ptr<ExecutionValue>(new ExecutionClassValue(Type, std::move(Fields))));
+  }
+
   ExecutionValueRef ExecutionHeap::pointerSnapshot(const ir::Type &Type, ExecutionPointer Value)
   {
-    if ((Value.kind() == ExecutionPointer::Kind::Place && !Memory.owns(Value.place().storage())) || (Value.kind() == ExecutionPointer::Kind::Buffer && !Memory.owns(Value.bufferRef())))
-    {
-      LastStatus = ExecutionStatus::InvalidPlace;
-      return {};
-    }
-    if (Value.kind() == ExecutionPointer::Kind::Place)
-    {
-      const ExecutionCell *Cell = Value.place().storage().cell();
-      if (Cell && Cell->layout().Domain != Bridge.types()->domain())
-      {
-        LastStatus = ExecutionStatus::TypeMismatch;
-        return {};
-      }
-    }
-    // A result may transport an expired identity after its stack frame ends.
-    // It remains invalid to dereference, store or lower back into execution.
-    return ownValue(std::unique_ptr<ExecutionValue>(new ExecutionPointerValue(Type, std::move(Value))), true);
+    return pointer(Type, Value);
   }
 
   ExecutionValueRef ExecutionHeap::function(const ir::Function &Value)
@@ -235,7 +227,7 @@ namespace ink::execution
       return {LastStatus = ExecutionStatus::TypeMismatch};
     }
     const RuntimeTypeId TypeId = Bridge.lowerType(Type);
-    const StorageLayout *Layout = Bridge.types()->get(TypeId);
+    const TypeDesc *Layout = Bridge.types()->get(TypeId);
     if (!Layout)
     {
       return {LastStatus = ExecutionStatus::Overflow};

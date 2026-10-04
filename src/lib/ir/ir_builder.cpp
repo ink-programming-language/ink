@@ -1,4 +1,5 @@
 #include "ink/ir/ir_builder.h"
+#include "ink/ir/analysis/type_layout.h"
 
 #include <algorithm>
 
@@ -15,6 +16,8 @@ namespace ink::ir
       }
       switch (ElementType->typeKind())
       {
+      case TypeKind::Class:
+        return computeTypeLayout(*ElementType, ElementType->context().compilationContext().targetContext()).has_value();
       case TypeKind::Bool:
       case TypeKind::Integer:
       case TypeKind::Float:

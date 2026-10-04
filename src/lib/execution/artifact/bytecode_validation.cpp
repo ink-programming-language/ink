@@ -1,7 +1,10 @@
+#include "ink/core/target_context.h"
+#include "ink/core/object_layout.h"
 #include "bytecode_internal.h"
 
 #include "ink/execution/bytecode/execution_compiler.h"
 
+#include <algorithm>
 #include <limits>
 #include <string_view>
 #include <unordered_map>
@@ -23,56 +26,69 @@ namespace ink::execution
 
     std::size_t integerAlignment(std::uint32_t Width)
     {
-      switch (Width)
-      {
-      case 8:
-        return alignof(std::uint8_t);
-      case 16:
-        return alignof(std::uint16_t);
-      case 32:
-        return alignof(std::uint32_t);
-      case 64:
-        return alignof(std::uint64_t);
-      default:
-        return 1;
-      }
+      return static_cast<std::size_t>(core::TargetContext::native().integerAlignment(Width));
     }
 
-    bool validLayout(const StorageLayout &Layout, const RuntimeTypeTable &Types)
+    bool validLayout(const TypeDesc &Layout, const RuntimeTypeTable &Types)
     {
-      if (Layout.Kind != RuntimeKind::Array && (Layout.ElementType != InvalidRuntimeType || Layout.ElementCount || Layout.ElementLayout))
-      {
-        return false;
-      }
-      if (Layout.Domain != Types.domain() || (Layout.Kind != RuntimeKind::Integer && Layout.Signed) || (Layout.Kind != RuntimeKind::Pointer && (Layout.Pointee != InvalidRuntimeType || Layout.Writable)) || (Layout.Kind != RuntimeKind::Function && (Layout.ReturnType != InvalidRuntimeType || !Layout.Parameters.empty())))
+      if (!Layout.validDetails() || Layout.Domain != Types.domain())
       {
         return false;
       }
       switch (Layout.Kind)
       {
       case RuntimeKind::Void:
-        return Layout.BitWidth == 0 && Layout.Size == 0 && Layout.Alignment == 1 && !Layout.Native;
+        return Layout.bitWidth() == 0 && Layout.Size == 0 && Layout.Alignment == 1 && !Layout.Native;
       case RuntimeKind::Boolean:
-        return Layout.BitWidth == 1 && Layout.Size == sizeof(bool) && Layout.Alignment == alignof(bool) && Layout.Native;
+        return Layout.bitWidth() == 1 && Layout.Size == sizeof(bool) && Layout.Alignment == alignof(bool) && Layout.Native;
       case RuntimeKind::Integer:
-        return Layout.BitWidth != 0 && Layout.Size == (static_cast<std::uint64_t>(Layout.BitWidth) + 7) / 8 && Layout.Alignment == integerAlignment(Layout.BitWidth) && Layout.Native == nativeInteger(Layout.BitWidth);
+        return Layout.bitWidth() != 0 && Layout.Size == (((static_cast<std::uint64_t>(Layout.bitWidth()) + 7) / 8 + integerAlignment(Layout.bitWidth()) - 1) & ~(static_cast<std::uint64_t>(integerAlignment(Layout.bitWidth())) - 1)) && Layout.Alignment == integerAlignment(Layout.bitWidth()) && Layout.Native == nativeInteger(Layout.bitWidth());
       case RuntimeKind::Float:
-        return (Layout.BitWidth == 16 || Layout.BitWidth == 32 || Layout.BitWidth == 64) && Layout.Size == Layout.BitWidth / 8 && Layout.Alignment == (Layout.BitWidth == 32 ? alignof(float) : Layout.BitWidth == 64 ? alignof(double) : 1) && Layout.Native == (Layout.BitWidth != 16);
+        return (Layout.bitWidth() == 16 || Layout.bitWidth() == 32 || Layout.bitWidth() == 64) && Layout.Size == Layout.bitWidth() / 8 && Layout.Alignment == core::TargetContext::native().floatAlignment(Layout.bitWidth()) && Layout.Native == (Layout.bitWidth() != 16);
       case RuntimeKind::String:
-        return Layout.BitWidth == 0 && Layout.Size == sizeof(void *) * 2 && Layout.Alignment == sizeof(void *) && !Layout.Native;
+        return Layout.bitWidth() == 0 && Layout.Size == sizeof(void *) * 2 && Layout.Alignment == sizeof(void *) && !Layout.Native;
       case RuntimeKind::Array:
       {
-        const StorageLayout *Element = Types.get(Layout.ElementType);
-        return Element && Layout.ElementType < Layout.Type && Element->Kind != RuntimeKind::Void && Element->Kind != RuntimeKind::Invalid && Layout.ElementLayout && Layout.ElementLayout->Domain == Types.domain() && Layout.ElementLayout->Type == Layout.ElementType && Layout.BitWidth == 0 && (!Element->Size || Layout.ElementCount <= std::numeric_limits<std::size_t>::max() / Element->Size) && Layout.Size == Element->Size * Layout.ElementCount && Layout.Alignment == Element->Alignment && Layout.Native == Element->Native;
+        const TypeDesc *Element = Types.get(Layout.arrayDesc().ElementType);
+        return Element && Element->Kind != RuntimeKind::Void && Element->Kind != RuntimeKind::Invalid && Layout.arrayDesc().ElementLayout && Layout.arrayDesc().ElementLayout->Domain == Types.domain() && Layout.arrayDesc().ElementLayout->Type == Layout.arrayDesc().ElementType && Layout.bitWidth() == 0 && (!Element->Size || Layout.arrayDesc().ElementCount <= std::numeric_limits<std::size_t>::max() / Element->Size) && Layout.Size == Element->Size * Layout.arrayDesc().ElementCount && Layout.Alignment == Element->Alignment && Layout.Native == Element->Native;
       }
-      case RuntimeKind::Pointer:
-        return Layout.BitWidth == 0 && Layout.Size == sizeof(void *) && Layout.Alignment == sizeof(void *) && !Layout.Native && Types.get(Layout.Pointee);
-      case RuntimeKind::Function:
-        if (Layout.BitWidth != 0 || Layout.Size != sizeof(FunctionId) || Layout.Alignment != alignof(FunctionId) || Layout.Native || !Types.get(Layout.ReturnType))
+      case RuntimeKind::Class:
+      {
+        if (!validName(Layout.classDesc().NominalIdentity) || Layout.bitWidth())
         {
           return false;
         }
-        for (RuntimeTypeId Parameter : Layout.Parameters)
+        core::ObjectLayoutBuilder Object(std::numeric_limits<std::size_t>::max());
+        bool Native = true;
+        for (std::size_t Index = 0; Index < Layout.classDesc().Fields.size(); ++Index)
+        {
+          if (!validName(Layout.classDesc().Fields[Index].Name))
+          {
+            return false;
+          }
+          const TypeDesc *Field = Types.get(Layout.classDesc().Fields[Index].Type);
+          const auto &Owned = Layout.classDesc().Fields[Index].Layout;
+          if (!Field || Field->Kind == RuntimeKind::Invalid || Field->Kind == RuntimeKind::Void || !Owned || Owned->Domain != Types.domain() || Owned->Type != Field->Type || Owned->Size != Field->Size || Owned->Alignment != Field->Alignment || !Field->Alignment)
+          {
+            return false;
+          }
+          const auto Offset = Object.append(Field->Size, Field->Alignment);
+          if (!Offset || Layout.classDesc().Fields[Index].Offset != *Offset)
+          {
+            return false;
+          }
+          Native = Native && Field->Native;
+        }
+        return Object.size() && Layout.Size == *Object.size() && Layout.Alignment == Object.alignment() && Layout.Native == Native;
+      }
+      case RuntimeKind::Pointer:
+        return Layout.bitWidth() == 0 && Layout.Size == sizeof(void *) && Layout.Alignment == sizeof(void *) && !Layout.Native && Types.get(Layout.pointerDesc().Pointee);
+      case RuntimeKind::Function:
+        if (Layout.bitWidth() != 0 || Layout.Size != sizeof(void *) || Layout.Alignment != sizeof(void *) || Layout.Native || !Types.get(Layout.functionDesc().ReturnType))
+        {
+          return false;
+        }
+        for (RuntimeTypeId Parameter : Layout.functionDesc().Parameters)
         {
           const auto *Type = Types.get(Parameter);
           if (!Type || Type->Kind == RuntimeKind::Void)
@@ -87,18 +103,131 @@ namespace ink::execution
       return false;
     }
 
-    bool nativeType(const StorageLayout &Layout, bool Return)
+    bool validReflection(const TypeDesc &Layout, const ExecutionImage &Image)
     {
-      return (Return && Layout.Kind == RuntimeKind::Void) || Layout.Kind == RuntimeKind::Boolean || (Layout.Kind == RuntimeKind::Integer && nativeInteger(Layout.BitWidth)) || (Layout.Kind == RuntimeKind::Float && (Layout.BitWidth == 32 || Layout.BitWidth == 64)) || Layout.Kind == RuntimeKind::Pointer;
-    }
-
-    bool nativeSignature(const StorageLayout &Signature, const RuntimeTypeTable &Types)
-    {
-      if (!nativeType(*Types.get(Signature.ReturnType), true) || Signature.Parameters.size() > std::numeric_limits<unsigned int>::max())
+      if (Layout.Kind != RuntimeKind::Class)
+      {
+        return Layout.Name.find('\0') == std::string::npos;
+      }
+      if (Layout.Name != Layout.classDesc().NominalIdentity)
       {
         return false;
       }
-      for (RuntimeTypeId Parameter : Signature.Parameters)
+      const auto &Types = *Image.Layouts;
+      std::unordered_set<std::string> Names;
+      for (const auto &Field : Layout.classDesc().Fields)
+      {
+        if (!Names.insert(Field.Name).second || Field.Visibility > MemberVisibility::Private)
+        {
+          return false;
+        }
+        if (Field.Initializer != InvalidFunction)
+        {
+          const auto Found = Image.Descriptors.find(Field.Initializer);
+          const auto *Signature = Found == Image.Descriptors.end() ? nullptr : Types.get(Found->second.Signature);
+          if (!Signature || Signature->Kind != RuntimeKind::Function || Signature->functionDesc().ReturnType != Field.Type || !Signature->functionDesc().Parameters.empty())
+          {
+            return false;
+          }
+        }
+      }
+      Names.clear();
+      for (const auto &Method : Layout.classDesc().Methods)
+      {
+        const auto *Signature = Types.get(Method.Signature);
+        if (!validName(Method.Name) || Method.Visibility > MemberVisibility::Private || !Names.insert(Method.Name + ":" + std::to_string(Method.Signature)).second || !Signature || Signature->Kind != RuntimeKind::Function || Signature->functionDesc().Parameters.empty())
+        {
+          return false;
+        }
+        const auto *Receiver = Types.get(Signature->functionDesc().Parameters.front());
+        if (!Receiver || Receiver->Kind != RuntimeKind::Pointer || Receiver->pointerDesc().Pointee != Layout.Type || Receiver->pointerDesc().Writable != Method.WritableReceiver)
+        {
+          return false;
+        }
+        const auto Found = Image.Descriptors.find(Method.Function);
+        if (Method.Function == InvalidFunction ? Method.Visibility != MemberVisibility::Private : Found == Image.Descriptors.end() || Found->second.Signature != Method.Signature)
+        {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    bool validAggregateDepth(const RuntimeTypeTable &Types, std::size_t Maximum)
+    {
+      if (Maximum == 0)
+      {
+        return false;
+      }
+      struct Visit
+      {
+          RuntimeTypeId Type;
+          std::size_t Child = 0;
+      };
+      std::vector<std::uint8_t> States(Types.size());
+      std::vector<std::size_t> Depths(Types.size());
+      std::vector<Visit> Stack;
+      for (std::size_t Root = 0; Root < Types.size(); ++Root)
+      {
+        if (States[Root] == 2)
+        {
+          continue;
+        }
+        States[Root] = 1;
+        Stack.push_back({static_cast<RuntimeTypeId>(Root)});
+        while (!Stack.empty())
+        {
+          if (Stack.size() > Maximum)
+          {
+            return false;
+          }
+          Visit &Current = Stack.back();
+          const TypeDesc &Layout = *Types.get(Current.Type);
+          const std::size_t Count = Layout.Kind == RuntimeKind::Class ? Layout.classDesc().Fields.size() : Layout.Kind == RuntimeKind::Array ? 1 : 0;
+          if (Current.Child < Count)
+          {
+            const RuntimeTypeId Child = Layout.Kind == RuntimeKind::Class ? Layout.classDesc().Fields[Current.Child++].Type : (++Current.Child, Layout.arrayDesc().ElementType);
+            if (!Types.get(Child) || States[Child] == 1)
+            {
+              return false;
+            }
+            if (States[Child] == 0)
+            {
+              States[Child] = 1;
+              Stack.push_back({Child});
+            }
+            continue;
+          }
+          std::size_t Depth = 1;
+          for (std::size_t Index = 0; Index < Count; ++Index)
+          {
+            const RuntimeTypeId Child = Layout.Kind == RuntimeKind::Class ? Layout.classDesc().Fields[Index].Type : Layout.arrayDesc().ElementType;
+            if (Depths[Child] >= Maximum)
+            {
+              return false;
+            }
+            Depth = std::max(Depth, Depths[Child] + 1);
+          }
+          Depths[Current.Type] = Depth;
+          States[Current.Type] = 2;
+          Stack.pop_back();
+        }
+      }
+      return true;
+    }
+
+    bool nativeType(const TypeDesc &Layout, bool Return)
+    {
+      return (Return && Layout.Kind == RuntimeKind::Void) || Layout.Kind == RuntimeKind::Boolean || (Layout.Kind == RuntimeKind::Integer && nativeInteger(Layout.bitWidth())) || (Layout.Kind == RuntimeKind::Float && (Layout.bitWidth() == 32 || Layout.bitWidth() == 64)) || Layout.Kind == RuntimeKind::Pointer;
+    }
+
+    bool nativeSignature(const TypeDesc &Signature, const RuntimeTypeTable &Types)
+    {
+      if (!nativeType(*Types.get(Signature.functionDesc().ReturnType), true) || Signature.functionDesc().Parameters.size() > std::numeric_limits<unsigned int>::max())
+      {
+        return false;
+      }
+      for (RuntimeTypeId Parameter : Signature.functionDesc().Parameters)
       {
         if (!nativeType(*Types.get(Parameter), false))
         {
@@ -113,7 +242,7 @@ namespace ink::execution
       return Character >= '0' && Character <= '9' ? Character - '0' : Character >= 'a' && Character <= 'f' ? Character - 'a' + 10 : -1;
     }
 
-    bool genericConstant(const BytecodeGenericArgument &Argument, const StorageLayout &Type)
+    bool genericConstant(const BytecodeGenericArgument &Argument, const TypeDesc &Type)
     {
       if (Type.Kind == RuntimeKind::Boolean)
       {
@@ -123,7 +252,7 @@ namespace ink::execution
       {
         return false;
       }
-      if (Type.Kind == RuntimeKind::String ? Argument.Value.size() % 2 != 0 : Argument.Value.size() != (static_cast<std::uint64_t>(Type.BitWidth) + 3) / 4)
+      if (Type.Kind == RuntimeKind::String ? Argument.Value.size() % 2 != 0 : Argument.Value.size() != (static_cast<std::uint64_t>(Type.bitWidth()) + 3) / 4)
       {
         return false;
       }
@@ -134,7 +263,7 @@ namespace ink::execution
           return false;
         }
       }
-      return Type.Kind == RuntimeKind::String || Type.BitWidth % 4 == 0 || static_cast<unsigned>(hexDigit(Argument.Value.front())) < (1U << (Type.BitWidth % 4));
+      return Type.Kind == RuntimeKind::String || Type.bitWidth() % 4 == 0 || static_cast<unsigned>(hexDigit(Argument.Value.front())) < (1U << (Type.bitWidth() % 4));
     }
 
     BytecodeResult validateFunction(const ExecutableFunction &Function, const BytecodeArtifact &Artifact)
@@ -174,9 +303,9 @@ namespace ink::execution
             return {BytecodeStatus::InvalidImage, "Bytecode function constant refers to a missing or incompatible function"};
           }
         }
-        if (Type.Kind == RuntimeKind::Array)
+        if (Type.Kind == RuntimeKind::Array || Type.Kind == RuntimeKind::Class)
         {
-          for (const RuntimeValue &Element : Value.array())
+          for (const RuntimeValue &Element : Value.aggregate())
           {
             Pending.push_back(&Element);
           }
@@ -185,14 +314,14 @@ namespace ink::execution
       // Call records are validated even when no instruction happens to reference them.
       for (const ExecutionCallSite &Call : Function.Calls)
       {
-        const StorageLayout *Signature = Types.get(Call.Signature);
-        if (!Signature || Signature->Kind != RuntimeKind::Function || Call.Arguments.size() != Signature->Parameters.size())
+        const TypeDesc *Signature = Types.get(Call.Signature);
+        if (!Signature || Signature->Kind != RuntimeKind::Function || Call.Arguments.size() != Signature->functionDesc().Parameters.size())
         {
           return {BytecodeStatus::InvalidImage, "Bytecode call record has an invalid signature"};
         }
         for (std::size_t Index = 0; Index < Call.Arguments.size(); ++Index)
         {
-          if (Call.Arguments[Index] >= Function.SlotTypes.size() || Function.SlotTypes[Call.Arguments[Index]] != Signature->Parameters[Index])
+          if (Call.Arguments[Index] >= Function.SlotTypes.size() || Function.SlotTypes[Call.Arguments[Index]] != Signature->functionDesc().Parameters[Index])
           {
             return {BytecodeStatus::InvalidImage, "Bytecode call record has an invalid argument slot"};
           }
@@ -228,15 +357,30 @@ namespace ink::execution
       if (Artifact.Image.Layouts)
       {
         const auto &Types = *Artifact.Image.Layouts;
-        if (!Usage.records(Types.size(), sizeof(StorageLayout)))
+        if (!Usage.records(Types.size(), sizeof(TypeDesc) * 2 + sizeof(void *) * 2))
         {
           return {BytecodeStatus::LimitExceeded, "Bytecode type table exceeds the configured storage limits"};
         }
         for (std::size_t Index = 0; Index < Types.size(); ++Index)
         {
-          if (!Usage.records(Types.get(static_cast<RuntimeTypeId>(Index))->Parameters.size(), sizeof(RuntimeTypeId)))
+          const TypeDesc &Layout = *Types.get(static_cast<RuntimeTypeId>(Index));
+          if (!Usage.string(Layout.Name) || !Usage.records(Layout.classDesc().Methods.size(), sizeof(MethodDesc)) || !Usage.records(Layout.functionDesc().Parameters.size(), sizeof(RuntimeTypeId)) || !Usage.string(Layout.classDesc().NominalIdentity) || !Usage.records(Layout.classDesc().Fields.size(), sizeof(RuntimeTypeId) + sizeof(std::size_t) + sizeof(TypeDesc) + sizeof(void *) * 2))
           {
             return {BytecodeStatus::LimitExceeded, "Bytecode signature parameters exceed the configured storage limits"};
+          }
+          for (const MethodDesc &Method : Layout.classDesc().Methods)
+          {
+            if (!Usage.string(Method.Name))
+            {
+              return {BytecodeStatus::LimitExceeded, "Bytecode method names exceed the string limit"};
+            }
+          }
+          for (const FieldDesc &Field : Layout.classDesc().Fields)
+          {
+            if (!Usage.string(Field.Name))
+            {
+              return {BytecodeStatus::LimitExceeded, "Bytecode field names exceed the configured string limit"};
+            }
           }
         }
       }
@@ -293,13 +437,13 @@ namespace ink::execution
             {
               return {BytecodeStatus::LimitExceeded, "Bytecode integer constants exceed the configured storage limits"};
             }
-            if (Current.kind() == RuntimeKind::Array)
+            if (Current.kind() == RuntimeKind::Array || Current.kind() == RuntimeKind::Class)
             {
-              if (!Usage.records(Current.array().size(), sizeof(RuntimeValue) + sizeof(RuntimeValue *)))
+              if (!Usage.records(Current.aggregate().size(), sizeof(RuntimeValue) + sizeof(RuntimeValue *)))
               {
                 return {BytecodeStatus::LimitExceeded, "Bytecode array constants exceed the configured storage limits"};
               }
-              for (const RuntimeValue &Element : Current.array())
+              for (const RuntimeValue &Element : Current.aggregate())
               {
                 Pending.push_back(&Element);
               }
@@ -334,8 +478,8 @@ namespace ink::execution
     const RuntimeTypeTable &Types = *Artifact.Image.Layouts;
     for (std::size_t Index = 0; Index < Types.size(); ++Index)
     {
-      const StorageLayout &Layout = *Types.get(static_cast<RuntimeTypeId>(Index));
-      if (Layout.Type != Index || !validLayout(Layout, Types))
+      const TypeDesc &Layout = *Types.get(static_cast<RuntimeTypeId>(Index));
+      if (Layout.Type != Index || !validLayout(Layout, Types) || !validReflection(Layout, Artifact.Image))
       {
         return {BytecodeStatus::InvalidImage, "Bytecode layout does not match its runtime kind or native target"};
       }
@@ -343,6 +487,10 @@ namespace ink::execution
       {
         return {BytecodeStatus::LimitExceeded, "Bytecode layout exceeds the allocation limit"};
       }
+    }
+    if (!Usage.allocation(Types.size(), sizeof(std::size_t) * 3 + sizeof(std::uint8_t)) || !validAggregateDepth(Types, Limits.MaxTypeDepth))
+    {
+      return {BytecodeStatus::LimitExceeded, "Aggregate layouts exceed the nesting or allocation limit"};
     }
     std::vector<std::string> Identities;
     if (const auto Result = artifact_detail::typeIdentities(Types, Limits, Identities, &Usage); !Result)
@@ -360,7 +508,34 @@ namespace ink::execution
       {
         return {BytecodeStatus::LimitExceeded, "Bytecode validation identities exceed the allocation limit"};
       }
-      IdentityTypes.emplace(Identities[Index], static_cast<RuntimeTypeId>(Index));
+      const auto [Existing, Inserted] = IdentityTypes.emplace(Identities[Index], static_cast<RuntimeTypeId>(Index));
+      const TypeDesc &Layout = *Types.get(static_cast<RuntimeTypeId>(Index));
+      if (!Inserted && Layout.Kind == RuntimeKind::Class)
+      {
+        const TypeDesc &Previous = *Types.get(Existing->second);
+        if (Layout.Size != Previous.Size || Layout.Alignment != Previous.Alignment || Layout.Native != Previous.Native || Layout.classDesc().Fields.size() != Previous.classDesc().Fields.size() || Layout.classDesc().Methods.size() != Previous.classDesc().Methods.size())
+        {
+          return {BytecodeStatus::InvalidImage, "Conflicting definitions of the same nominal class"};
+        }
+        for (std::size_t Field = 0; Field < Layout.classDesc().Fields.size(); ++Field)
+        {
+          const auto &CurrentField = Layout.classDesc().Fields[Field];
+          const auto &PreviousField = Previous.classDesc().Fields[Field];
+          if (CurrentField.Name != PreviousField.Name || CurrentField.Offset != PreviousField.Offset || CurrentField.Visibility != PreviousField.Visibility || CurrentField.Initializer != PreviousField.Initializer || Identities[CurrentField.Type] != Identities[PreviousField.Type])
+          {
+            return {BytecodeStatus::InvalidImage, "Conflicting field types of the same nominal class"};
+          }
+        }
+        for (std::size_t MethodIndex = 0; MethodIndex < Layout.classDesc().Methods.size(); ++MethodIndex)
+        {
+          const auto &Method = Layout.classDesc().Methods[MethodIndex];
+          const auto &PreviousMethod = Previous.classDesc().Methods[MethodIndex];
+          if (Method.Name != PreviousMethod.Name || Method.Visibility != PreviousMethod.Visibility || Method.WritableReceiver != PreviousMethod.WritableReceiver || Method.Function != PreviousMethod.Function || Identities[Method.Signature] != Identities[PreviousMethod.Signature])
+          {
+            return {BytecodeStatus::InvalidImage, "Conflicting methods of the same nominal class"};
+          }
+        }
+      }
     }
     std::unordered_map<FunctionId, const BytecodeSymbol *> Symbols;
     std::unordered_set<std::string> Definitions;
@@ -373,7 +548,7 @@ namespace ink::execution
         return {BytecodeStatus::InvalidImage, "Bytecode symbol has an invalid identity or descriptor"};
       }
       const RuntimeFunctionDescriptor &Descriptor = Found->second;
-      const StorageLayout *Signature = Types.get(Descriptor.Signature);
+      const TypeDesc *Signature = Types.get(Descriptor.Signature);
       if (!Signature || Signature->Kind != RuntimeKind::Function || Symbol.Identity.Signature != Identities[Descriptor.Signature])
       {
         return {BytecodeStatus::SignatureMismatch, "Bytecode symbol signature differs from its function descriptor"};

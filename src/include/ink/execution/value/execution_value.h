@@ -32,6 +32,7 @@ namespace ink::execution
     Pointer,
     Function,
     Array,
+    Class,
   };
 
   // Immutable execution payloads are shared through ExecutionValueRef. Their
@@ -49,7 +50,7 @@ namespace ink::execution
       }
 
       bool valid() const noexcept;
-      // Local scalar constants and arrays of those constants can be frozen into IR.
+      // Local scalar constants and aggregates of those constants can be frozen into IR.
       const ir::Constant *toConstant(ir::IRContext &Context) const;
 
     protected:
@@ -93,6 +94,7 @@ namespace ink::execution
       ir::FloatBits floating() const noexcept;
       std::string_view string() const noexcept;
       std::span<const ExecutionValueRef> array() const noexcept;
+      std::span<const ExecutionValueRef> fields() const noexcept;
       const ExecutionPointer &pointer() const noexcept;
       const ir::Function *function() const noexcept;
 

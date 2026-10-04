@@ -33,9 +33,9 @@ namespace ink::tools
           continue;
         }
         const RuntimeFunctionDescriptor &Descriptor = Read.Artifact->Image.Descriptors.find(Symbol.Function)->second;
-        const StorageLayout &Signature = *Read.Artifact->Image.Layouts->get(Descriptor.Signature);
-        const StorageLayout &Return = *Read.Artifact->Image.Layouts->get(Signature.ReturnType);
-        if (!Signature.Parameters.empty() || !Symbol.Identity.GenericArguments.empty() || (Return.Kind != RuntimeKind::Void && !(Return.Kind == RuntimeKind::Integer && Return.BitWidth == 32 && Return.Signed)))
+        const TypeDesc &Signature = *Read.Artifact->Image.Layouts->get(Descriptor.Signature);
+        const TypeDesc &Return = *Read.Artifact->Image.Layouts->get(Signature.functionDesc().ReturnType);
+        if (!Signature.functionDesc().Parameters.empty() || !Symbol.Identity.GenericArguments.empty() || (Return.Kind != RuntimeKind::Void && !(Return.Kind == RuntimeKind::Integer && Return.bitWidth() == 32 && Return.isSigned())))
         {
           continue;
         }

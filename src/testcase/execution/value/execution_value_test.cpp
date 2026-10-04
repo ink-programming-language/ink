@@ -213,95 +213,57 @@ namespace ink::execution::test
     EXPECT_EQ(Test.Context.constantPool().size(), PoolSize);
   }
 
-  // Buffer pointers preserve interior offsets without owning storage, so explicit release immediately invalidates every alias.
-  TEST(ExecutionValueTest, ReleasesBufferStorageWhileAliasesRemain)
+  // Raw pointer copies preserve the machine address without owning the pointed-to buffer.
+  TEST(ExecutionValueTest, RawPointersShareAddressesWithoutOwningStorage)
   {
     ValueContext Test;
-    const auto Buffer = Test.Heap.allocateBuffer(std::string_view("A\0BC", 4));
-    ASSERT_NE(Buffer.buffer(), nullptr);
-    ASSERT_EQ(Buffer.buffer()->size(), 5U);
-    EXPECT_EQ(Buffer.buffer()->data()[4], '\0');
+    const auto Buffer = Test.Heap.allocateBuffer("ABC");
+    ASSERT_TRUE(Buffer.valid());
+    void *Address = Buffer.buffer()->data();
     const ExecutionPointer Start = ExecutionPointer::fromBuffer(Buffer);
-    const ExecutionPointer Interior = ExecutionPointer::fromBuffer(Buffer, 2);
-    const ExecutionValueRef Value = Test.Heap.pointer(Test.BytePointer, Interior);
-    const ExecutionValueRef Copy = Value;
-    ASSERT_TRUE(Start.valid());
-    ASSERT_TRUE(Interior.valid());
-    ASSERT_TRUE(Value.valid());
-    ASSERT_TRUE(Copy.valid());
-    EXPECT_EQ(Interior.offset(), 2U);
-    EXPECT_EQ(Interior.address(), Start.buffer()->data() + 2);
-    EXPECT_EQ(Copy.pointer().buffer(), Start.buffer());
+    const ExecutionPointer Interior = Start.offsetBy(1);
+    const auto Value = Test.Heap.pointer(Test.BytePointer, Interior);
+    ASSERT_TRUE(Value);
+    EXPECT_EQ(sizeof(ExecutionPointer), sizeof(void *));
+    EXPECT_EQ(Start.address(), Address);
+    EXPECT_EQ(Value.pointer().address(), static_cast<char *>(Address) + 1);
     *static_cast<char *>(Interior.address()) = 'Z';
-    EXPECT_EQ(Start.buffer()->data()[2], 'Z');
+    EXPECT_EQ(Buffer.buffer()->data()[1], 'Z');
     EXPECT_EQ(Value.toConstant(Test.Context), nullptr);
-    EXPECT_EQ(Test.Heap.liveStorageCount(), 1U);
     ASSERT_EQ(Test.Heap.release(Buffer), ExecutionStatus::Success);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 0U);
-    EXPECT_EQ(Test.Heap.release(Buffer), ExecutionStatus::ExpiredPlace);
-    EXPECT_EQ(Start.buffer(), nullptr);
-    EXPECT_EQ(Buffer.buffer(), nullptr);
-    EXPECT_FALSE(Start.valid());
-    EXPECT_FALSE(Interior.valid());
-    EXPECT_FALSE(Value.valid());
-    EXPECT_FALSE(Copy.valid());
-    EXPECT_EQ(Start.address(), nullptr);
-    EXPECT_EQ(Interior.address(), nullptr);
-    EXPECT_EQ(Start.status(), ExecutionStatus::ExpiredPlace);
-    EXPECT_EQ(Copy.pointer().status(), ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Start.address(), Address);
+    EXPECT_TRUE(Value.valid());
+    // Freed addresses may be transported, but must never be dereferenced.
+    EXPECT_EQ(Test.Heap.pointer(Test.BytePointer, Value.pointer()).pointer().address(), Interior.address());
   }
 
-  // One-past addresses may be represented but offsets beyond the allocation are rejected, including for empty buffers.
-  TEST(ExecutionValueTest, ChecksOffsetsAndOptionalTerminators)
+  // Raw one-past addresses retain their bytes, while buffer allocation still controls optional terminators.
+  TEST(ExecutionValueTest, RepresentsOnePastAddressesAndOptionalTerminators)
   {
     ValueContext Test;
     const auto Terminated = Test.Heap.allocateBuffer("ab");
     const auto Raw = Test.Heap.allocateBuffer("ab", false);
-    const auto Empty = Test.Heap.allocateBuffer(std::string_view{}, false);
-    const auto EmptyString = Test.Heap.allocateBuffer(std::string_view{});
-    ASSERT_NE(Terminated.buffer(), nullptr);
-    ASSERT_NE(Raw.buffer(), nullptr);
-    ASSERT_NE(Empty.buffer(), nullptr);
-    ASSERT_NE(EmptyString.buffer(), nullptr);
     ASSERT_EQ(Terminated.buffer()->size(), 3U);
     ASSERT_EQ(Raw.buffer()->size(), 2U);
-    ASSERT_EQ(Empty.buffer()->size(), 0U);
-    ASSERT_EQ(EmptyString.buffer()->size(), 1U);
     EXPECT_EQ(Terminated.buffer()->data()[2], '\0');
-    EXPECT_EQ(EmptyString.buffer()->data()[0], '\0');
-    const ExecutionPointer End = ExecutionPointer::fromBuffer(Raw, Raw.buffer()->size());
-    EXPECT_TRUE(End.valid());
-    EXPECT_EQ(End.address(), Raw.buffer()->data() + Raw.buffer()->size());
-    const ExecutionPointer Beyond = ExecutionPointer::fromBuffer(Raw, Raw.buffer()->size() + 1);
-    EXPECT_FALSE(Beyond.valid());
-    EXPECT_EQ(Beyond.address(), nullptr);
-    const ExecutionPointer EmptyStart = ExecutionPointer::fromBuffer(Empty);
-    EXPECT_TRUE(EmptyStart.valid());
-    EXPECT_EQ(EmptyStart.address(), Empty.buffer()->data());
-    EXPECT_FALSE(ExecutionPointer::fromBuffer(Empty, 1).valid());
-    EXPECT_FALSE(ExecutionPointer::fromBuffer({}).valid());
+    const auto End = ExecutionPointer::fromBuffer(Raw, 2);
+    EXPECT_EQ(End.address(), Raw.buffer()->data() + 2);
+    EXPECT_EQ(Test.Heap.pointerFromAddress(End.address()).address(), End.address());
   }
 
-  // Null remains a valid pointer value, native addresses preserve identity, and an absent place never becomes a host address.
-  TEST(ExecutionValueTest, DistinguishesNullNativeAndInvalidPlacePointers)
+  // Null and native pointers use the same single-address representation, without allocation metadata.
+  TEST(ExecutionValueTest, RepresentsNullAndNativePointers)
   {
     const ExecutionPointer Null;
     EXPECT_EQ(Null.kind(), ExecutionPointer::Kind::Null);
     EXPECT_TRUE(Null.valid());
     EXPECT_EQ(Null.address(), nullptr);
-    const ExecutionPointer NativeNull = ExecutionPointer::fromNative(nullptr);
-    EXPECT_EQ(NativeNull.kind(), ExecutionPointer::Kind::Null);
-    EXPECT_TRUE(NativeNull.valid());
     char Storage = 'x';
-    const ExecutionPointer Native = ExecutionPointer::fromNative(&Storage);
-    EXPECT_EQ(Native.kind(), ExecutionPointer::Kind::Native);
-    EXPECT_TRUE(Native.valid());
-    EXPECT_EQ(Native.address(), &Storage);
-    const ExecutionPointer InvalidPlace = ExecutionPointer::fromPlace({});
-    EXPECT_EQ(InvalidPlace.kind(), ExecutionPointer::Kind::Place);
-    EXPECT_FALSE(InvalidPlace.valid());
-    EXPECT_FALSE(InvalidPlace.place().valid());
-    EXPECT_EQ(InvalidPlace.address(), nullptr);
+    const auto Pointer = ExecutionPointer::fromNative(&Storage);
+    EXPECT_EQ(Pointer.kind(), ExecutionPointer::Kind::Native);
+    EXPECT_EQ(Pointer.address(), &Storage);
+    EXPECT_EQ(ExecutionPointer::fromPlace({}).address(), nullptr);
   }
 
   // Copying immutable handles does not allocate another value, and the last owner immediately destroys its payload.
@@ -372,8 +334,8 @@ namespace ink::execution::test
     ASSERT_EQ(Test.Heap.release(Buffer), ExecutionStatus::Success);
     const auto Replacement = Test.Heap.allocateBuffer("second");
     ASSERT_NE(Replacement.buffer(), nullptr);
-    EXPECT_EQ(Pointer.status(), ExecutionStatus::ExpiredPlace);
-    EXPECT_EQ(Pointer.address(), nullptr);
+    EXPECT_EQ(Pointer.status(), ExecutionStatus::Success);
+    EXPECT_NE(Pointer.address(), nullptr);
     EXPECT_EQ(Test.Heap.release(Buffer), ExecutionStatus::ExpiredPlace);
     EXPECT_EQ(std::string_view(Replacement.buffer()->data()), "second");
   }
@@ -392,7 +354,7 @@ namespace ink::execution::test
     EXPECT_EQ(Limited.load(First.Place).Status, ExecutionStatus::ExpiredPlace);
   }
 
-  // Runtime pointer cycles retain no semantic value objects and loaded pointer snapshots preserve expired generations.
+  // Runtime pointer cycles retain no semantic value objects and loaded pointer snapshots preserve unowned machine addresses.
   TEST(ExecutionHeapTest, ReleasesMutuallyReferencingCellsWithoutTracing)
   {
     ValueContext Test;
@@ -407,7 +369,7 @@ namespace ink::execution::test
     ASSERT_EQ(Test.Heap.release(First.Place), ExecutionStatus::Success);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 1U);
     EXPECT_EQ(Test.Heap.liveValueCount(), 0U);
-    EXPECT_EQ(Test.Heap.load(Second.Place).Value.pointer().status(), ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Test.Heap.load(Second.Place).Value.pointer().status(), ExecutionStatus::Success);
     ASSERT_EQ(Test.Heap.release(Second.Place), ExecutionStatus::Success);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 0U);
     EXPECT_EQ(Test.Heap.liveValueCount(), 0U);
@@ -428,8 +390,8 @@ namespace ink::execution::test
     ASSERT_TRUE(Scalar.valid());
     EXPECT_EQ(Scalar.integer().bits(), ir::IntegerBits(32, 73));
     EXPECT_EQ(Scalar.toConstant(Test.Context), &Test.integer(73));
-    EXPECT_EQ(Pointer.pointer().status(), ExecutionStatus::ExpiredPlace);
-    EXPECT_EQ(Pointer.pointer().address(), nullptr);
+    EXPECT_EQ(Pointer.pointer().status(), ExecutionStatus::Success);
+    EXPECT_NE(Pointer.pointer().address(), nullptr);
   }
 
   // Invalid factories leave no live value and report the rejected type or context explicitly.

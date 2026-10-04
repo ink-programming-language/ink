@@ -141,9 +141,8 @@ namespace ink::execution::test
     ASSERT_TRUE(Before);
     const auto Address = Test.nativeAddress(Cell.Place, Test.BytePointer, reinterpret_cast<NativeSymbol>(&inkTestNativeStorageInteriorAddress));
     ASSERT_TRUE(Address);
-    EXPECT_EQ(Address.Value.pointer().kind(), ExecutionPointer::Kind::Place);
-    EXPECT_EQ(Address.Value.pointer().place(), Cell.Place);
-    EXPECT_EQ(Address.Value.pointer().offset(), 1U);
+    EXPECT_EQ(Address.Value.pointer().kind(), ExecutionPointer::Kind::Native);
+    EXPECT_EQ(ExecutionPlace(Test.Engine.heap().memoryManager().storageFromAddress(Address.Value.pointer().address())), Cell.Place);
     std::array<unsigned char, sizeof(std::int32_t)> ExpectedBytes{};
     const std::uint32_t InitialBits = 0x12345678;
     std::memcpy(ExpectedBytes.data(), &InitialBits, sizeof(InitialBits));
@@ -174,7 +173,6 @@ namespace ink::execution::test
     ASSERT_TRUE(Cell);
     const auto Address = Test.nativeAddress(Cell.Place, Test.Int32Pointer, reinterpret_cast<NativeSymbol>(&inkTestNativeStorageInteriorAddress));
     ASSERT_TRUE(Address);
-    EXPECT_EQ(Address.Value.pointer().offset(), 1U);
     auto Reader = Test.reader(Test.Int32Pointer);
     auto Writer = Test.writer(Test.Int32Pointer);
     ASSERT_NE(Reader, nullptr);
@@ -196,9 +194,8 @@ namespace ink::execution::test
     ASSERT_TRUE(Cell);
     const auto Address = Test.nativeAddress(Cell.Place, Test.BytePointer, reinterpret_cast<NativeSymbol>(&inkTestNativeStorageOnePastAddress));
     ASSERT_TRUE(Address);
-    EXPECT_EQ(Address.Value.pointer().kind(), ExecutionPointer::Kind::Place);
-    EXPECT_EQ(Address.Value.pointer().place(), Cell.Place);
-    EXPECT_EQ(Address.Value.pointer().offset(), sizeof(std::int32_t));
+    EXPECT_EQ(Address.Value.pointer().kind(), ExecutionPointer::Kind::Native);
+    EXPECT_EQ(ExecutionPlace(Test.Engine.heap().memoryManager().storageFromAddress(Address.Value.pointer().address())), Cell.Place);
     EXPECT_EQ(Address.Value.pointer().status(), ExecutionStatus::Success);
     auto Reader = Test.reader(Test.BytePointer);
     auto Writer = Test.writer(Test.BytePointer);
@@ -254,9 +251,8 @@ namespace ink::execution::test
     const ExecutionValueRef Arguments[] = {Address.Value};
     const auto Returned = callExternalFunction(Test.Engine.heap(), Cache, *Identity, Arguments);
     ASSERT_TRUE(Returned);
-    EXPECT_EQ(Returned.Value.pointer().kind(), ExecutionPointer::Kind::Place);
-    EXPECT_EQ(Returned.Value.pointer().place(), Cell.Place);
-    EXPECT_EQ(Returned.Value.pointer().offset(), sizeof(std::int32_t));
+    EXPECT_EQ(Returned.Value.pointer().kind(), ExecutionPointer::Kind::Native);
+    EXPECT_EQ(ExecutionPlace(Test.Engine.heap().memoryManager().storageFromAddress(Returned.Value.pointer().address())), Cell.Place);
     EXPECT_EQ(Returned.Value.pointer().address(), Address.Value.pointer().address());
     auto Reader = Test.reader(Test.Int32Pointer);
     auto Writer = Test.writer(Test.Int32Pointer);
@@ -271,8 +267,8 @@ namespace ink::execution::test
     EXPECT_EQ(Loaded.Value.integer().bits(), ir::IntegerBits(32, 0x12345678));
   }
 
-  // An untyped byte allocation cannot masquerade as an aligned native scalar pointer even when the IR type is local.
-  TEST(ExecutionNativeOffsetTest, RejectsWideTypedPointerForByteBuffer)
+  // Marshalling transports raw pointer bits; valid alignment and access extent remain the caller's responsibility.
+  TEST(ExecutionNativeOffsetTest, MarshalsRawAddressesWithoutInferringBufferElementTypes)
   {
     NativeOffsetContext Test;
     const auto Buffer = Test.Engine.heap().allocateBuffer("A", false);
@@ -280,8 +276,8 @@ namespace ink::execution::test
     const auto Forged = Test.Engine.heap().pointer(Test.Int32Pointer, ExecutionPointer::fromBuffer(Buffer));
     ASSERT_TRUE(Forged);
     FfiArgument Argument;
-    EXPECT_EQ(Argument.prepare(Test.Engine.heap(), Test.Int32Pointer, Forged), ExecutionStatus::UnsupportedExternalSignature);
-    EXPECT_EQ(Argument.address(), nullptr);
+    EXPECT_EQ(Argument.prepare(Test.Engine.heap(), Test.Int32Pointer, Forged), ExecutionStatus::Success);
+    EXPECT_NE(Argument.address(), nullptr);
     const auto BytePointer = Test.Engine.heap().pointer(Test.BytePointer, ExecutionPointer::fromBuffer(Buffer));
     ASSERT_TRUE(BytePointer);
     EXPECT_EQ(Argument.prepare(Test.Engine.heap(), Test.BytePointer, BytePointer), ExecutionStatus::Success);

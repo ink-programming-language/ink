@@ -63,6 +63,29 @@ namespace ink::core
         return NativeAbiCompatible;
       }
 
+      // Native scalar alignment is part of the target ABI, independent of
+      // pointer width. Wide integers follow the supported LLVM native targets.
+      constexpr std::uint64_t integerAlignment(std::uint32_t Bits) const noexcept
+      {
+        const std::uint64_t Bytes = (static_cast<std::uint64_t>(Bits) + 7) / 8;
+        if (NativeAbiCompatible && Bits > 32 && Bits <= 64)
+        {
+          return alignof(std::uint64_t);
+        }
+        const std::uint64_t Maximum = Width == PointerWidth::Bits64 ? 16 : pointerByteWidth();
+        std::uint64_t Alignment = 1;
+        while (Alignment < Bytes && Alignment < Maximum)
+        {
+          Alignment *= 2;
+        }
+        return Alignment;
+      }
+
+      constexpr std::uint64_t floatAlignment(std::uint32_t Bits) const noexcept
+      {
+        return NativeAbiCompatible && Bits == 64 ? alignof(double) : NativeAbiCompatible && Bits == 32 ? alignof(float) : integerAlignment(Bits);
+      }
+
       constexpr bool operator==(const TargetContext &Other) const noexcept
       {
         return Width == Other.Width && Order == Other.Order && NativeAbiCompatible == Other.NativeAbiCompatible;

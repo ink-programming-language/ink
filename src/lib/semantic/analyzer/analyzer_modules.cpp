@@ -90,6 +90,53 @@ namespace ink::semantic
     {
       return nullptr;
     }
+    // Publish nominal identities before field types and function signatures are resolved.
+    for (unsigned Phase = 0; Phase != 3; ++Phase)
+    {
+      for (const auto &Module : Modules)
+      {
+        for (const parser::Stmt *Statement : Module->Source->Input->Unit->root()->statements())
+        {
+          if (!parser::DeclStmt::classof(Statement))
+          {
+            continue;
+          }
+          const auto *Declaration = static_cast<const parser::DeclStmt *>(Statement)->declaration();
+          if (!parser::ClassDecl::classof(Declaration))
+          {
+            continue;
+          }
+          const auto &Class = static_cast<const parser::ClassDecl &>(*Declaration);
+          if (!(Phase == 0 ? registerClass(*Module->State, Class) : Phase == 1 ? defineClass(*Module->State, Class) : declareClassMembers(*Module->State, Class)))
+          {
+            Succeeded = false;
+          }
+        }
+      }
+      if (!Succeeded)
+      {
+        return nullptr;
+      }
+      if (Phase == 0)
+      {
+        for (const auto &Module : Modules)
+        {
+          Module->State->ClassImportsOnly = true;
+          for (const parser::Stmt *Statement : Module->Source->Input->Unit->root()->statements())
+          {
+            if ((parser::DirectImportStmt::classof(Statement) || parser::FromImportStmt::classof(Statement)) && !analyzeStmt(*Module->State, *Statement))
+            {
+              Succeeded = false;
+            }
+          }
+          Module->State->ClassImportsOnly = false;
+        }
+        if (!Succeeded)
+        {
+          return nullptr;
+        }
+      }
+    }
     // All modules own their original function identities before any cross-module binding is created.
     std::unordered_map<std::string, const ir::Function *> NativeExports;
     for (const auto &Module : Modules)
@@ -191,6 +238,13 @@ namespace ink::semantic
         {
           return nullptr;
         }
+      }
+    }
+    for (const auto &Module : Modules)
+    {
+      if (!validateRuntimeClassTypes(*Module->State, *Module->Owner, *Module->Source->Input->Unit->root()))
+      {
+        return nullptr;
       }
     }
     return Succeeded ? Entry->second->Owner : nullptr;

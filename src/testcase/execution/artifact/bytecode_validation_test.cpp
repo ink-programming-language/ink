@@ -23,7 +23,7 @@ namespace ink::execution::test
       return Types;
     }
 
-    const StorageLayout *integerLayout(const BytecodeArtifact &Artifact)
+    const TypeDesc *integerLayout(const BytecodeArtifact &Artifact)
     {
       for (std::size_t Index = 0; Index < Artifact.Image.Layouts->size(); ++Index)
       {
@@ -36,14 +36,14 @@ namespace ink::execution::test
       return nullptr;
     }
 
-    StorageLayout pointerLayout(RuntimeTypeId Pointee)
+    TypeDesc pointerLayout(RuntimeTypeId Pointee)
     {
-      StorageLayout Layout;
-      Layout.Kind = RuntimeKind::Pointer;
+      TypeDesc Layout;
+      Layout.setKind(RuntimeKind::Pointer);
       Layout.Size = sizeof(void *);
       Layout.Alignment = sizeof(void *);
-      Layout.Pointee = Pointee;
-      Layout.Writable = true;
+      Layout.editPointer().Pointee = Pointee;
+      Layout.editPointer().Writable = true;
       return Layout;
     }
   } // namespace
@@ -97,18 +97,18 @@ namespace ink::execution::test
       ASSERT_TRUE(Object) << Object.Message;
       const auto *Integer = integerLayout(*Object.Artifact);
       ASSERT_NE(Integer, nullptr);
-      StorageLayout Layout = *Integer;
+      TypeDesc Layout = *Integer;
       if (Case == 0)
       {
-        Layout.BitWidth = 0;
+        Layout.setBitWidth(0);
         Layout.Size = 0;
         Layout.Alignment = 1;
         Layout.Native = false;
       }
       else if (Case == 1)
       {
-        Layout.BitWidth = std::numeric_limits<std::uint32_t>::max();
-        Layout.Size = (static_cast<std::uint64_t>(Layout.BitWidth) + 7) / 8;
+        Layout.setBitWidth(std::numeric_limits<std::uint32_t>::max());
+        Layout.Size = (static_cast<std::uint64_t>(Layout.bitWidth()) + 7) / 8;
         Layout.Alignment = 1;
         Layout.Native = false;
       }
@@ -133,7 +133,13 @@ namespace ink::execution::test
         Layout.Kind = static_cast<RuntimeKind>(255);
       }
       auto Types = extendLayouts(*Object.Artifact);
-      ASSERT_NE(Types->append(std::move(Layout)), InvalidRuntimeType);
+      const auto Added = Types->append(std::move(Layout));
+      if (Case == 6)
+      {
+        EXPECT_EQ(Added, InvalidRuntimeType);
+        continue;
+      }
+      ASSERT_NE(Added, InvalidRuntimeType);
       EXPECT_FALSE(validateBytecodeArtifact(*Object.Artifact));
       const auto Serialized = serializeBytecodeArtifact(*Object.Artifact);
       EXPECT_FALSE(Serialized);
@@ -260,8 +266,8 @@ namespace ink::execution::test
       }
       else
       {
-        StorageLayout Narrow = *Integer;
-        Narrow.BitWidth = 3;
+        TypeDesc Narrow = *Integer;
+        Narrow.setBitWidth(3);
         Narrow.Size = 1;
         Narrow.Alignment = 1;
         Narrow.Native = false;

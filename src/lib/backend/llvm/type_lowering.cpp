@@ -1,300 +1,250 @@
 #include "lowering_context.h"
 
-#include "ink/ir/analysis/type_layout.h"
+#include "ink/ir/constant/class_constant.h"
+#include "ink/ir/type/class_type.h"
 
-#include <llvm/IR/DataLayout.h>
+#include <llvm/ADT/APFloat.h>
+#include <llvm/ADT/APInt.h>
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/Type.h>
+#include <llvm/IR/GlobalVariable.h>
 
-#include <cstdint>
 #include <limits>
-#include <optional>
-#include <vector>
 
 namespace ink::backend::llvm
 {
-  namespace
+  ::llvm::Type *LoweringContext::lowerType(const ir::Type &Type)
   {
-    std::uint64_t fixedSize(::llvm::TypeSize Size)
+    if (const auto Found = Types.find(&Type); Found != Types.end())
     {
-      return Size.getFixedValue();
+      return Found->second;
     }
-  } // namespace
-
-  bool LoweringContext::declareStructTypes()
-  {
-    for (const ir::StructType *TypeValue : SourceModule.StructTypes)
+    if (!Defining.insert(&Type).second)
     {
-      if (TypeValue == nullptr)
-      {
-        addFailure<core::DiagnosticKind::LLVMNullStructTypeDeclaration>();
-        return false;
-      }
-      StructLowering Lowering;
-      Lowering.Type = ::llvm::StructType::create(Context, TypeValue->name().str());
-      const auto Inserted = StructTypes.emplace(TypeValue, std::move(Lowering));
-      Types.emplace(TypeValue, Inserted.first->second.Type);
-    }
-    for (const ir::StructType *TypeValue : SourceModule.StructTypes)
-    {
-      if (!defineStructType(*TypeValue))
-      {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool LoweringContext::defineStructType(const ir::StructType &TypeValue)
-  {
-    auto StructIterator = StructTypes.find(&TypeValue);
-    if (StructIterator == StructTypes.end())
-    {
-      addFailure<core::DiagnosticKind::LLVMUndeclaredStructType>(TypeValue.name());
-      return false;
-    }
-    StructLowering &Lowering = StructIterator->second;
-    if (Lowering.Defined)
-    {
-      return true;
-    }
-    if (Lowering.Defining)
-    {
-      addFailure<core::DiagnosticKind::LLVMRecursiveByValueStructType>(TypeValue.name());
-      return false;
-    }
-    Lowering.Defining = true;
-
-    std::vector<::llvm::Type *> LogicalFields;
-    LogicalFields.reserve(TypeValue.fieldCount());
-    for (std::size_t FieldIndex = 0; FieldIndex < TypeValue.fieldCount(); ++FieldIndex)
-    {
-      const ir::StructField &Field = TypeValue.fields()[FieldIndex];
-      if (Field.type() == nullptr)
-      {
-        addFailure<core::DiagnosticKind::LLVMStructFieldMissingType>(TypeValue.name(), FieldIndex);
-        return false;
-      }
-      ::llvm::Type *FieldType = lowerType(*Field.type());
-      if (FieldType == nullptr)
-      {
-        return false;
-      }
-      LogicalFields.push_back(FieldType);
-    }
-
-    const std::optional<ir::TypeLayout> InkLayout = ir::computeTypeLayout(TypeValue, SourceModule.context().compilationContext().targetContext());
-    if (!InkLayout.has_value())
-    {
-      addFailure<core::DiagnosticKind::LLVMStructLayoutUnavailable>(TypeValue.name());
-      return false;
-    }
-    ::llvm::StructType *NaturalType = ::llvm::StructType::get(Context, LogicalFields, false);
-    const ::llvm::StructLayout *NaturalLayout = TargetModule->getDataLayout().getStructLayout(NaturalType);
-    bool MatchesNaturalLayout = fixedSize(NaturalLayout->getSizeInBytes()) == InkLayout->StrideSize && NaturalLayout->getAlignment().value() == InkLayout->Alignment;
-    for (std::size_t FieldIndex = 0; MatchesNaturalLayout && FieldIndex < InkLayout->FieldOffsets.size(); ++FieldIndex)
-    {
-      MatchesNaturalLayout = fixedSize(NaturalLayout->getElementOffset(static_cast<unsigned>(FieldIndex))) == InkLayout->FieldOffsets[FieldIndex];
-    }
-
-    if (MatchesNaturalLayout)
-    {
-      Lowering.FieldIndices.reserve(LogicalFields.size());
-      for (std::size_t FieldIndex = 0; FieldIndex < LogicalFields.size(); ++FieldIndex)
-      {
-        Lowering.FieldIndices.push_back({static_cast<unsigned>(FieldIndex)});
-      }
-      Lowering.Type->setBody(LogicalFields, false);
-      Lowering.Defining = false;
-      Lowering.Defined = true;
-      return true;
-    }
-
-    std::vector<::llvm::Type *> PhysicalFields;
-    std::vector<unsigned> PhysicalFieldIndices;
-    std::uint64_t CurrentOffset = 0;
-    PhysicalFieldIndices.reserve(LogicalFields.size());
-    for (std::size_t FieldIndex = 0; FieldIndex < LogicalFields.size(); ++FieldIndex)
-    {
-      const std::uint64_t DesiredOffset = InkLayout->FieldOffsets[FieldIndex];
-      if (CurrentOffset > DesiredOffset)
-      {
-        addFailure<core::DiagnosticKind::LLVMStructLayoutUnrepresentable>(TypeValue.name());
-        return false;
-      }
-      if (CurrentOffset < DesiredOffset)
-      {
-        PhysicalFields.push_back(::llvm::ArrayType::get(::llvm::Type::getInt8Ty(Context), DesiredOffset - CurrentOffset));
-        CurrentOffset = DesiredOffset;
-      }
-      PhysicalFieldIndices.push_back(static_cast<unsigned>(PhysicalFields.size()));
-      PhysicalFields.push_back(LogicalFields[FieldIndex]);
-      CurrentOffset += fixedSize(TargetModule->getDataLayout().getTypeAllocSize(LogicalFields[FieldIndex]));
-    }
-    if (CurrentOffset > InkLayout->StrideSize)
-    {
-      addFailure<core::DiagnosticKind::LLVMStructStrideUnrepresentable>(TypeValue.name());
-      return false;
-    }
-    if (CurrentOffset < InkLayout->StrideSize)
-    {
-      PhysicalFields.push_back(::llvm::ArrayType::get(::llvm::Type::getInt8Ty(Context), InkLayout->StrideSize - CurrentOffset));
-    }
-
-    Lowering.FieldIndices.reserve(PhysicalFieldIndices.size());
-    if (InkLayout->Alignment == 1)
-    {
-      Lowering.Type->setBody(PhysicalFields, true);
-      for (const unsigned FieldIndex : PhysicalFieldIndices)
-      {
-        Lowering.FieldIndices.push_back({FieldIndex});
-      }
-    }
-    else
-    {
-      ::llvm::Type *AlignmentCarrier = alignmentCarrierType(InkLayout->Alignment);
-      if (AlignmentCarrier == nullptr)
-      {
-        return false;
-      }
-      Lowering.PayloadType = ::llvm::StructType::get(Context, PhysicalFields, true);
-      ::llvm::ArrayType *AlignmentMarker = ::llvm::ArrayType::get(AlignmentCarrier, 0);
-      Lowering.Type->setBody({Lowering.PayloadType, AlignmentMarker}, false);
-      for (const unsigned FieldIndex : PhysicalFieldIndices)
-      {
-        Lowering.FieldIndices.push_back({0, FieldIndex});
-      }
-    }
-
-    const ::llvm::StructLayout *RepresentedLayout = TargetModule->getDataLayout().getStructLayout(Lowering.Type);
-    if (fixedSize(RepresentedLayout->getSizeInBytes()) != InkLayout->StrideSize || RepresentedLayout->getAlignment().value() != InkLayout->Alignment)
-    {
-      addFailure<core::DiagnosticKind::LLVMStructAlignmentUnpreserved>(TypeValue.name());
-      return false;
-    }
-    Lowering.Defining = false;
-    Lowering.Defined = true;
-    return true;
-  }
-
-  ::llvm::Type *LoweringContext::lowerType(const ir::Type &TypeValue)
-  {
-    const auto Existing = Types.find(&TypeValue);
-    if (Existing != Types.end())
-    {
-      if (TypeValue.kind() == ir::TypeKind::Struct && !defineStructType(static_cast<const ir::StructType &>(TypeValue)))
-      {
-        return nullptr;
-      }
-      return Existing->second;
-    }
-
-    ::llvm::Type *Result = nullptr;
-    switch (TypeValue.kind())
-    {
-    case ir::TypeKind::Void:
-      Result = ::llvm::Type::getVoidTy(Context);
-      break;
-    case ir::TypeKind::Bool:
-      Result = ::llvm::Type::getInt1Ty(Context);
-      break;
-    case ir::TypeKind::Byte:
-      Result = ::llvm::Type::getInt8Ty(Context);
-      break;
-    case ir::TypeKind::I32:
-      Result = ::llvm::Type::getInt32Ty(Context);
-      break;
-    case ir::TypeKind::PointerSize:
-      Result = ::llvm::IntegerType::get(Context, static_cast<unsigned>(SourceModule.context().compilationContext().targetContext().pointerWidth()));
-      break;
-    case ir::TypeKind::BytePointer:
-    case ir::TypeKind::ConstBytePointer:
-      Result = ::llvm::PointerType::getUnqual(Context);
-      break;
-    case ir::TypeKind::ByteSlice:
-    case ir::TypeKind::ConstByteSlice:
-    {
-      const ir::Type &PointerSizeType = SourceModule.context().getType(ir::TypeKind::PointerSize);
-      ::llvm::Type *LengthType = lowerType(PointerSizeType);
-      if (LengthType == nullptr)
-      {
-        return nullptr;
-      }
-      Result = ::llvm::StructType::get(Context, {::llvm::PointerType::getUnqual(Context), LengthType}, false);
-      Types.emplace(&SourceModule.context().getType(ir::TypeKind::ByteSlice), Result);
-      Types.emplace(&SourceModule.context().getType(ir::TypeKind::ConstByteSlice), Result);
-      break;
-    }
-    case ir::TypeKind::F16:
-      Result = ::llvm::Type::getHalfTy(Context);
-      break;
-    case ir::TypeKind::F32:
-      Result = ::llvm::Type::getFloatTy(Context);
-      break;
-    case ir::TypeKind::F64:
-      Result = ::llvm::Type::getDoubleTy(Context);
-      break;
-    case ir::TypeKind::Struct:
-    {
-      const ir::StructType &Struct = static_cast<const ir::StructType &>(TypeValue);
-      const auto StructIterator = StructTypes.find(&Struct);
-      if (StructIterator == StructTypes.end())
-      {
-        addFailure<core::DiagnosticKind::LLVMUndeclaredStructType>(Struct.name());
-        return nullptr;
-      }
-      if (!defineStructType(Struct))
-      {
-        return nullptr;
-      }
-      Result = StructIterator->second.Type;
-      break;
-    }
-    case ir::TypeKind::Count:
-      addFailure<core::DiagnosticKind::LLVMUnknownTypeKind>();
+      fail("AOT rejects a recursive class stored by value");
       return nullptr;
     }
-    Types.emplace(&TypeValue, Result);
+    ::llvm::Type *Result = nullptr;
+    switch (Type.typeKind())
+    {
+      case ir::TypeKind::Void:
+        Result = ::llvm::Type::getVoidTy(Context);
+        break;
+      case ir::TypeKind::Bool:
+        Result = ::llvm::Type::getInt1Ty(Context);
+        break;
+      case ir::TypeKind::Integer:
+        Result = ::llvm::IntegerType::get(Context, static_cast<const ir::IntegerType &>(Type).bitWidth());
+        break;
+      case ir::TypeKind::Float:
+        switch (static_cast<const ir::FloatType &>(Type).bitWidth())
+        {
+          case 16:
+            Result = ::llvm::Type::getHalfTy(Context);
+            break;
+          case 32:
+            Result = ::llvm::Type::getFloatTy(Context);
+            break;
+          case 64:
+            Result = ::llvm::Type::getDoubleTy(Context);
+            break;
+        }
+        break;
+      case ir::TypeKind::Pointer:
+      case ir::TypeKind::Reference:
+      case ir::TypeKind::Function:
+        Result = PointerType;
+        break;
+      case ir::TypeKind::Slice:
+        Result = ::llvm::StructType::get(Context, {PointerType, SizeType});
+        break;
+      case ir::TypeKind::Array:
+      {
+        const auto &Array = static_cast<const ir::ArrayType &>(Type);
+        if (::llvm::Type *Element = lowerType(Array.elementType()); Element && !Element->isVoidTy() && layout(Type))
+        {
+          Result = ::llvm::ArrayType::get(Element, Array.elementCount());
+        }
+        break;
+      }
+      case ir::TypeKind::Class:
+      {
+        const auto &Class = static_cast<const ir::ClassType &>(Type);
+        if (!Class.isComplete() || !layout(Class))
+        {
+          fail("AOT requires a complete class layout");
+          break;
+        }
+        std::vector<::llvm::Type *> Fields;
+        for (const auto &Field : Class.fields())
+        {
+          ::llvm::Type *FieldType = Field.FieldType ? lowerType(*Field.FieldType) : nullptr;
+          if (!FieldType || FieldType->isVoidTy())
+          {
+            return nullptr;
+          }
+          Fields.push_back(FieldType);
+        }
+        // SSA aggregates are logical values. Memory operations use the shared explicit field offsets.
+        Result = ::llvm::StructType::create(Context, Fields, "ink.class." + std::to_string(Types.size()));
+        break;
+      }
+      default:
+        break;
+    }
+    Defining.erase(&Type);
+    if (!Result)
+    {
+      fail("AOT encountered an unsupported runtime type");
+      return nullptr;
+    }
+    Types.emplace(&Type, Result);
     return Result;
   }
 
-  ::llvm::Type *LoweringContext::alignmentCarrierType(std::size_t Alignment)
+  bool LoweringContext::nativeType(const ir::Type &Type, bool Return)
   {
-    switch (Alignment)
+    switch (Type.typeKind())
     {
-    case 1:
-      return ::llvm::Type::getInt8Ty(Context);
-    case 2:
-      return ::llvm::Type::getInt16Ty(Context);
-    case 4:
-      return ::llvm::Type::getInt32Ty(Context);
-    case 8:
-      return ::llvm::Type::getInt64Ty(Context);
-    default:
-      break;
+      case ir::TypeKind::Void:
+        return Return;
+      case ir::TypeKind::Bool:
+        return true;
+      case ir::TypeKind::Integer:
+      {
+        const auto Width = static_cast<const ir::IntegerType &>(Type).bitWidth();
+        return Width == 8 || Width == 16 || Width == 32 || Width == 64;
+      }
+      case ir::TypeKind::Float:
+      {
+        const auto Width = static_cast<const ir::FloatType &>(Type).bitWidth();
+        return Width == 32 || Width == 64;
+      }
+      case ir::TypeKind::Pointer:
+        return true;
+      default:
+        return false;
     }
-    if (Alignment > static_cast<std::size_t>(std::numeric_limits<unsigned>::max()) / 8U)
-    {
-      addFailure<core::DiagnosticKind::LLVMStructAlignmentUnrepresentable>(Alignment);
-      return nullptr;
-    }
-    ::llvm::Type *Carrier = ::llvm::FixedVectorType::get(::llvm::Type::getInt8Ty(Context), static_cast<unsigned>(Alignment));
-    if (TargetModule->getDataLayout().getABITypeAlign(Carrier).value() != Alignment)
-    {
-      addFailure<core::DiagnosticKind::LLVMStructAlignmentMismatch>(Alignment);
-      return nullptr;
-    }
-    return Carrier;
   }
 
-  const std::vector<unsigned> *LoweringContext::physicalFieldIndices(const ir::StructType &TypeValue, std::size_t LogicalIndex)
+  ::llvm::FunctionType *LoweringContext::signature(const ir::FunctionType &Type, bool Native)
   {
-    const auto StructIterator = StructTypes.find(&TypeValue);
-    if (StructIterator == StructTypes.end() || !StructIterator->second.Defined || LogicalIndex >= StructIterator->second.FieldIndices.size())
+    if (Native && !nativeType(Type.returnType(), true))
     {
-      addFailure<core::DiagnosticKind::LLVMInvalidStructFieldIndex>(TypeValue.name(), LogicalIndex);
+      fail("AOT C ABI supports only scalar and raw pointer results");
       return nullptr;
     }
-    return &StructIterator->second.FieldIndices[LogicalIndex];
+    ::llvm::Type *Result = lowerType(Type.returnType());
+    if (!Result)
+    {
+      return nullptr;
+    }
+    std::vector<::llvm::Type *> Parameters;
+    for (const ir::Type *Parameter : Type.parameterTypes())
+    {
+      if (Native && !nativeType(*Parameter))
+      {
+        fail("AOT C ABI does not support class values passed by value");
+        return nullptr;
+      }
+      ::llvm::Type *ParameterType = lowerType(*Parameter);
+      if (!ParameterType || ParameterType->isVoidTy())
+      {
+        return nullptr;
+      }
+      Parameters.push_back(ParameterType);
+    }
+    return ::llvm::FunctionType::get(Result, Parameters, false);
+  }
+
+  ::llvm::Constant *LoweringContext::constant(const ir::Value &Value)
+  {
+    if (const auto Found = Constants.find(&Value); Found != Constants.end())
+    {
+      return Found->second;
+    }
+    ::llvm::Type *Type = lowerType(Value.type());
+    if (!Type)
+    {
+      return nullptr;
+    }
+    ::llvm::Constant *Result = nullptr;
+    switch (Value.kind())
+    {
+      case ir::ValueKind::IntegerConstant:
+      {
+        const ir::IntegerBits &Bits = static_cast<const ir::IntegerConstant &>(Value).value();
+        Result = ::llvm::ConstantInt::get(Context, ::llvm::APInt(Bits.bitWidth(), ::llvm::ArrayRef<std::uint64_t>(Bits.words().data(), Bits.words().size())));
+        break;
+      }
+      case ir::ValueKind::BoolConstant:
+        Result = ::llvm::ConstantInt::get(Type, static_cast<const ir::BoolConstant &>(Value).value());
+        break;
+      case ir::ValueKind::FloatConstant:
+      {
+        const ir::FloatBits &Bits = static_cast<const ir::FloatConstant &>(Value).value();
+        const ::llvm::fltSemantics &Semantics = Bits.bitWidth() == 16 ? ::llvm::APFloat::IEEEhalf() : Bits.bitWidth() == 32 ? ::llvm::APFloat::IEEEsingle() : ::llvm::APFloat::IEEEdouble();
+        Result = ::llvm::ConstantFP::get(Context, ::llvm::APFloat(Semantics, ::llvm::APInt(Bits.bitWidth(), Bits.bits())));
+        break;
+      }
+      case ir::ValueKind::StringConstant:
+      {
+        const auto &String = static_cast<const ir::StringConstant &>(Value);
+        const std::string_view Data = String.value();
+        auto *Bytes = ::llvm::ConstantDataArray::getString(Context, ::llvm::StringRef(Data.data(), Data.size()), true);
+        auto *Global = new ::llvm::GlobalVariable(Module, Bytes->getType(), true, ::llvm::GlobalValue::PrivateLinkage, Bytes, "ink.string");
+        Global->setAlignment(::llvm::Align(1));
+        Result = ::llvm::ConstantStruct::get(static_cast<::llvm::StructType *>(Type), {Global, ::llvm::ConstantInt::get(SizeType, Data.size())});
+        break;
+      }
+      case ir::ValueKind::ArrayConstant:
+      {
+        std::vector<::llvm::Constant *> Elements;
+        for (const auto *Element : static_cast<const ir::ArrayConstant &>(Value).elements())
+        {
+          ::llvm::Constant *Item = constant(*Element);
+          if (!Item)
+          {
+            return nullptr;
+          }
+          Elements.push_back(Item);
+        }
+        Result = ::llvm::ConstantArray::get(static_cast<::llvm::ArrayType *>(Type), Elements);
+        break;
+      }
+      case ir::ValueKind::ClassConstant:
+      {
+        std::vector<::llvm::Constant *> Fields;
+        for (const auto *Field : static_cast<const ir::ClassConstant &>(Value).fields())
+        {
+          ::llvm::Constant *Item = constant(*Field);
+          if (!Item)
+          {
+            return nullptr;
+          }
+          Fields.push_back(Item);
+        }
+        Result = ::llvm::ConstantStruct::get(static_cast<::llvm::StructType *>(Type), Fields);
+        break;
+      }
+      case ir::ValueKind::Function:
+      {
+        const auto Found = Functions.find(static_cast<const ir::Function *>(&Value));
+        if (Found != Functions.end())
+        {
+          Result = Found->second;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+    if (!Result)
+    {
+      fail("AOT cannot lower this constant or function reference");
+      return nullptr;
+    }
+    Constants.emplace(&Value, Result);
+    return Result;
   }
 } // namespace ink::backend::llvm

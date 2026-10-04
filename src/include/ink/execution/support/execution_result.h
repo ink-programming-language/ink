@@ -41,6 +41,8 @@ namespace ink::execution
     BudgetExceeded,
     Cancelled,
     IndexOutOfBounds,
+    AccessDenied,
+    AmbiguousMember,
   };
 
   // Frozen result at the compile-time semantic boundary; IR execution returns

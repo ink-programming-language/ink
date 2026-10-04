@@ -230,8 +230,8 @@ namespace ink::execution::test
     EXPECT_EQ(Test.Heap.allocatedStorageCount(), 1U);
   }
 
-  // A returned cell address stays managed and expires at the original release boundary even after its slot is reused.
-  TEST(ExecutionNativeStorageTest, NativeReturnedCellAddressRetainsManagedLifetime)
+  // A native identity call transports raw addresses without acquiring ownership or reading the pointee.
+  TEST(ExecutionNativeStorageTest, NativeReturnedCellAddressRemainsAnUnownedAddress)
   {
     NativeStorageContext Test;
     const auto Cell = Test.Heap.allocateCell(Test.Int32, true, Test.integer(Test.Int32, 9));
@@ -248,21 +248,21 @@ namespace ink::execution::test
     ASSERT_TRUE(Result);
     ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Pointer);
     const auto &Returned = Result.Value.pointer();
-    EXPECT_EQ(Returned.kind(), ExecutionPointer::Kind::Place);
-    EXPECT_EQ(Returned.place(), Cell.Place);
+    EXPECT_EQ(Returned.kind(), ExecutionPointer::Kind::Native);
+    EXPECT_EQ(ExecutionPlace(Test.Heap.memoryManager().storageFromAddress(Returned.address())), Cell.Place);
     EXPECT_EQ(Returned.address(), Arguments[0].pointer().address());
     EXPECT_EQ(Test.Heap.allocatedStorageCount(), 1U);
-    ASSERT_EQ(Test.Heap.store(Returned.place(), Test.integer(Test.Int32, 81)), ExecutionStatus::Success);
+    ASSERT_EQ(Test.Heap.store(ExecutionPlace(Test.Heap.memoryManager().storageFromAddress(Returned.address())), Test.integer(Test.Int32, 81)), ExecutionStatus::Success);
     const auto Loaded = Test.Heap.load(Cell.Place);
     ASSERT_TRUE(Loaded);
     EXPECT_EQ(Loaded.Value.integer().bits(), ir::IntegerBits(32, 81));
     ASSERT_EQ(Test.Heap.release(Cell.Place), ExecutionStatus::Success);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 0U);
-    EXPECT_EQ(Returned.status(), ExecutionStatus::ExpiredPlace);
-    EXPECT_EQ(Returned.address(), nullptr);
-    EXPECT_EQ(callExternalFunction(Test.Heap, Cache, *Function, Arguments).Status, ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Returned.status(), ExecutionStatus::Success);
+    EXPECT_EQ(Returned.address(), Arguments[0].pointer().address());
+    EXPECT_EQ(callExternalFunction(Test.Heap, Cache, *Function, Arguments).Status, ExecutionStatus::Success);
     ASSERT_TRUE(Test.Heap.allocateCell(Test.Int32, true, Test.integer(Test.Int32, 100)));
-    EXPECT_EQ(Returned.status(), ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Returned.status(), ExecutionStatus::Success);
   }
 
   // Every native signed and unsigned integer width shares its exact host representation with C pointer parameters.
@@ -397,8 +397,8 @@ namespace ink::execution::test
     EXPECT_EQ(Test.Heap.load(Cell.Place).Status, ExecutionStatus::Uninitialized);
   }
 
-  // A pointer borrowed from another heap is rejected even when its IR type belongs to the caller's context.
-  TEST(ExecutionNativeStorageTest, RejectsCellArgumentsOwnedByAnotherHeap)
+  // A valid raw address can cross FFI independently of the heap that allocated its storage.
+  TEST(ExecutionNativeStorageTest, AcceptsRawAddressesFromAnotherHeap)
   {
     NativeStorageContext Test;
     ExecutionHeap Other(Test.Context);
@@ -407,15 +407,15 @@ namespace ink::execution::test
     const auto Pointer = Test.pointer(Test.Int32Pointer, Cell.Place);
     ASSERT_TRUE(Pointer);
     FfiArgument Argument;
-    EXPECT_EQ(Argument.prepare(Test.Heap, Test.Int32Pointer, Pointer), ExecutionStatus::ForeignContext);
-    EXPECT_EQ(Argument.address(), nullptr);
+    EXPECT_EQ(Argument.prepare(Test.Heap, Test.Int32Pointer, Pointer), ExecutionStatus::Success);
+    EXPECT_NE(Argument.address(), nullptr);
     const auto Loaded = Other.load(Cell.Place);
     ASSERT_TRUE(Loaded);
     EXPECT_EQ(Loaded.Value.integer().bits(), ir::IntegerBits(32, 19));
   }
 
-  // Wide interpreted integers retain normal Ink values but cannot expose an unsupported native storage layout to C.
-  TEST(ExecutionNativeStorageTest, RejectsCellsWithoutSupportedNativeLayout)
+  // Wide integers expose aligned target bytes through raw pointer parameters.
+  TEST(ExecutionNativeStorageTest, PassesAlignedWideIntegerAddresses)
   {
     NativeStorageContext Test;
     const auto &Wide = Test.integerType(128, true);
@@ -424,10 +424,10 @@ namespace ink::execution::test
     ASSERT_TRUE(Cell);
     const auto Pointer = Test.pointer(PointerType, Cell.Place);
     ASSERT_TRUE(Pointer);
-    EXPECT_EQ(Pointer.pointer().address(), nullptr);
+    EXPECT_NE(Pointer.pointer().address(), nullptr);
     FfiArgument Argument;
-    EXPECT_EQ(Argument.prepare(Test.Heap, PointerType, Pointer), ExecutionStatus::UnsupportedExternalSignature);
-    EXPECT_EQ(Argument.address(), nullptr);
+    EXPECT_EQ(Argument.prepare(Test.Heap, PointerType, Pointer), ExecutionStatus::Success);
+    EXPECT_NE(Argument.address(), nullptr);
     const auto Loaded = Test.Heap.load(Cell.Place);
     ASSERT_TRUE(Loaded);
     EXPECT_EQ(Loaded.Value.integer().bits(), ir::IntegerBits(128, 23));

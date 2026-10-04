@@ -13,8 +13,9 @@ namespace ink::execution
 {
   struct RuntimePayload;
 
-  // Scalar instructions use Bits directly. Only wide integers, pointers and
-  // strings and arrays retain an immutable, owned payload shared by value snapshots.
+  // Owned values for archive constants and semantic/native boundary conversion.
+  // The VM uses RuntimeSlot views over native-layout frame bytes; it does not
+  // build RuntimeValue trees for loads, stores or internal calls.
   // Type is relative to its execution image's type table. Crossing independent
   // type domains requires semantic bridging, never copying numeric IDs alone.
   struct RuntimeValue
@@ -24,10 +25,13 @@ namespace ink::execution
       static RuntimeValue fromPointer(ExecutionPointer Value, RuntimeTypeId Type = InvalidRuntimeType);
       static RuntimeValue fromString(std::string_view Value, RuntimeTypeId Type = InvalidRuntimeType);
       static RuntimeValue fromArray(std::vector<RuntimeValue> Elements, RuntimeTypeId Type = InvalidRuntimeType);
+      static RuntimeValue fromClass(std::vector<RuntimeValue> Fields, RuntimeTypeId Type = InvalidRuntimeType);
       const ExecutionInteger &integer() const noexcept;
       const ExecutionPointer &pointer() const noexcept;
       std::string_view string() const noexcept;
       std::span<const RuntimeValue> array() const noexcept;
+      std::span<const RuntimeValue> fields() const noexcept;
+      std::span<const RuntimeValue> aggregate() const noexcept;
       RuntimeKind kind() const noexcept;
 
       RuntimeTypeId Type = InvalidRuntimeType;

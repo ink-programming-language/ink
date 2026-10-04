@@ -16,25 +16,15 @@ namespace ink::execution
     {
       return ExecutionStatus::ForeignContext;
     }
-    if (Value.kind() == ExecutionValueKind::Pointer)
+    if (Value.kind() == ExecutionValueKind::Class || Value.kind() == ExecutionValueKind::Array)
     {
-      const ExecutionPointer &Pointer = Value.pointer();
-      if (Pointer.kind() == ExecutionPointer::Kind::Place)
+      for (const ExecutionValueRef &Field : Value.kind() == ExecutionValueKind::Class ? Value.fields() : Value.array())
       {
-        const ExecutionStatus Status = validatePlace(Pointer.place());
+        const ExecutionStatus Status = validateValue(Field);
         if (Status != ExecutionStatus::Success)
         {
           return Status;
         }
-      }
-      else if (Pointer.kind() == ExecutionPointer::Kind::Buffer && !Heap.owns(Pointer.bufferRef()))
-      {
-        return ExecutionStatus::InvalidPlace;
-      }
-      const ExecutionStatus Status = Pointer.status();
-      if (Status != ExecutionStatus::Success)
-      {
-        return Status;
       }
     }
     return Value.valid() ? ExecutionStatus::Success : ExecutionStatus::TypeMismatch;
@@ -76,53 +66,19 @@ namespace ink::execution
     {
       return {ExecutionStatus::TypeMismatch};
     }
-    const ExecutionPointer &Pointer = Address.pointer();
     const ir::Type &Pointee = static_cast<const ir::PointerType &>(*Address.type()).pointeeType();
-    if (Pointer.kind() == ExecutionPointer::Kind::Place)
+    const RuntimeTypeId Type = Heap.bridge().lowerType(Pointee);
+    const TypeDesc *Layout = Heap.bridge().types()->get(Type);
+    if (!Layout)
     {
-      const ExecutionCell &Cell = *Pointer.place().storage().cell();
-      if (Cell.layout().Domain != Heap.bridge().types()->domain())
-      {
-        return {ExecutionStatus::TypeMismatch};
-      }
-      if (Pointer.offset() == 0 && &Pointee == Heap.bridge().sourceType(Cell.type()))
-      {
-        return loadValue(Pointer.place());
-      }
-      if (!Cell.data() || !ir::IntegerType::classof(&Pointee) || static_cast<const ir::IntegerType &>(Pointee).bitWidth() != 8 || static_cast<const ir::IntegerType &>(Pointee).isSigned())
-      {
-        return {ExecutionStatus::TypeMismatch};
-      }
-      if (Pointer.offset() >= Cell.size())
-      {
-        return {ExecutionStatus::InvalidPlace};
-      }
-      if (!Cell.initialized())
-      {
-        return {ExecutionStatus::Uninitialized};
-      }
-      if (consumeStep() != ExecutionStatus::Success)
-      {
-        return {LastStatus};
-      }
-      const auto Byte = static_cast<const unsigned char *>(Cell.data())[Pointer.offset()];
-      return {ExecutionStatus::Success, Heap.integer(Pointee, ExecutionInteger(8, Byte))};
+      return {ExecutionStatus::TypeMismatch};
     }
-    if (Pointer.kind() == ExecutionPointer::Kind::Buffer)
+    if (consumeStep() != ExecutionStatus::Success)
     {
-      if (Pointer.offset() >= Pointer.buffer()->size())
-      {
-        return {ExecutionStatus::InvalidPlace};
-      }
-      if (!ir::IntegerType::classof(&Pointee) || static_cast<const ir::IntegerType &>(Pointee).bitWidth() != 8)
-      {
-        return {ExecutionStatus::UnsupportedOperation};
-      }
-      const auto Byte = static_cast<unsigned char>(Pointer.buffer()->data()[Pointer.offset()]);
-      return {ExecutionStatus::Success, Heap.integer(Pointee, ExecutionInteger(8, Byte))};
+      return {LastStatus};
     }
-    // Opaque native addresses can cross FFI, but are not unchecked host loads.
-    return {Pointer.kind() == ExecutionPointer::Kind::Null ? ExecutionStatus::InvalidPlace : ExecutionStatus::UnsupportedOperation};
+    const RuntimeValueResult Loaded = Heap.memoryManager().loadPointer(Address.pointer(), *Layout);
+    return Loaded ? Heap.bridge().raiseValue(Heap, Loaded.Value, Type) : ExecutionValueResult{Loaded.Status};
   }
 
   ExecutionStatus ExecutionEngine::storePointer(const ExecutionValueRef &Address, const ExecutionValueRef &Value)
@@ -150,54 +106,17 @@ namespace ink::execution
     {
       return ExecutionStatus::TypeMismatch;
     }
-    const ExecutionPointer &Pointer = Address.pointer();
-    if (Pointer.kind() == ExecutionPointer::Kind::Place)
+    const RuntimeTypeId Pointee = Heap.bridge().lowerType(Type.pointeeType());
+    const TypeDesc *Layout = Heap.bridge().types()->get(Pointee);
+    if (!Layout)
     {
-      ExecutionCell &Cell = *Pointer.place().storage().cell();
-      if (Cell.layout().Domain != Heap.bridge().types()->domain())
-      {
-        return ExecutionStatus::TypeMismatch;
-      }
-      if (Pointer.offset() == 0 && Value.type() == Heap.bridge().sourceType(Cell.type()))
-      {
-        return storeValue(Pointer.place(), Value);
-      }
-      if (!Cell.data() || Value.kind() != ExecutionValueKind::Integer || Value.integer().bitWidth() != 8 || static_cast<const ir::IntegerType &>(*Value.type()).isSigned())
-      {
-        return ExecutionStatus::TypeMismatch;
-      }
-      if (Pointer.offset() >= Cell.size())
-      {
-        return ExecutionStatus::InvalidPlace;
-      }
-      if (!Cell.writable())
-      {
-        return ExecutionStatus::ReadOnly;
-      }
-      if (!Cell.initialized())
-      {
-        return ExecutionStatus::Uninitialized;
-      }
-      if (consumeStep() != ExecutionStatus::Success)
-      {
-        return LastStatus;
-      }
-      static_cast<unsigned char *>(Cell.data())[Pointer.offset()] = static_cast<unsigned char>(Value.integer().bits().words()[0]);
-      return ExecutionStatus::Success;
+      return ExecutionStatus::TypeMismatch;
     }
-    if (Pointer.kind() == ExecutionPointer::Kind::Buffer)
+    if (consumeStep() != ExecutionStatus::Success)
     {
-      if (Pointer.offset() >= Pointer.buffer()->size())
-      {
-        return ExecutionStatus::InvalidPlace;
-      }
-      if (Value.kind() != ExecutionValueKind::Integer || Value.integer().bitWidth() != 8)
-      {
-        return ExecutionStatus::UnsupportedOperation;
-      }
-      Pointer.buffer()->data()[Pointer.offset()] = static_cast<char>(Value.integer().bits().words()[0]);
-      return ExecutionStatus::Success;
+      return LastStatus;
     }
-    return Pointer.kind() == ExecutionPointer::Kind::Null ? ExecutionStatus::InvalidPlace : ExecutionStatus::UnsupportedOperation;
+    const RuntimeValueResult Stored = Heap.bridge().lowerValue(Value);
+    return Stored ? Heap.memoryManager().storePointer(Address.pointer(), *Layout, Stored.Value) : Stored.Status;
   }
 } // namespace ink::execution

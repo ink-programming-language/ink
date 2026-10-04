@@ -36,6 +36,12 @@ namespace ink::execution
     case ExecutionStatus::RuntimeValue:
       Entry = core::makeDiagnostic<core::DiagnosticKind::ExecutionRuntimeValue>(Span, Context);
       break;
+    case ExecutionStatus::AccessDenied:
+      Entry = core::makeDiagnostic<core::DiagnosticKind::ExecutionAccessDenied>(Span, Context);
+      break;
+    case ExecutionStatus::AmbiguousMember:
+      Entry = core::makeDiagnostic<core::DiagnosticKind::ExecutionAmbiguousMember>(Span, Context);
+      break;
     case ExecutionStatus::ReadOnly:
       Entry = core::makeDiagnostic<core::DiagnosticKind::ExecutionReadOnly>(Span, Context);
       break;

@@ -136,7 +136,7 @@ namespace ink::execution::test
   }
 
   // A returned stack place retains its identity but becomes unreadable after the allocating function exits.
-  TEST(IRExecutionTest, RejectsLoadThroughEscapedStackPlace)
+  TEST(IRExecutionTest, ReturnsRawStackAddressWithoutExtendingItsLifetime)
   {
     IRExecutionContext Test;
     const auto *Pointer = Test.Context.typePool().getType<ir::TypeKind::Pointer>(Test.Int32, ir::AccessKind::ReadWrite);
@@ -158,9 +158,10 @@ namespace ink::execution::test
     const auto Escaped = Test.Engine.execute(*Escape);
     ASSERT_TRUE(Escaped);
     ASSERT_EQ(Escaped.Value.kind(), ExecutionValueKind::Pointer);
-    EXPECT_EQ(Escaped.Value.pointer().kind(), ExecutionPointer::Kind::Place);
-    const ExecutionValueRef Arguments[] = {Escaped.Value};
-    EXPECT_EQ(Test.Engine.execute(*Read, Arguments).Status, ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Escaped.Value.pointer().kind(), ExecutionPointer::Kind::Native);
+    EXPECT_NE(Escaped.Value.pointer().address(), nullptr);
+    EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
+    // Dereferencing the returned address would be undefined behavior.
   }
 
   // Entry execution validates body availability, argument count, exact types and context ownership before interpreting instructions.

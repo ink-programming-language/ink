@@ -45,6 +45,7 @@ namespace ink::semantic
       }
 
       std::vector<std::unique_ptr<ir::AllocaInstruction>> Bindings;
+      std::vector<std::unique_ptr<ir::Value>> Projections;
       execution::ExecutionEngine Engine;
       std::unordered_map<const ir::Value *, Variable> Variables;
       std::unordered_map<const ir::Value *, FunctionDefinition> Functions;

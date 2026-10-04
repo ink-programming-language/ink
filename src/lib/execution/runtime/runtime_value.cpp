@@ -7,6 +7,11 @@
 
 namespace ink::execution
 {
+  struct RuntimeClassPayload
+  {
+      std::vector<RuntimeValue> Fields;
+  };
+
   struct RuntimePayload
   {
       explicit RuntimePayload(ExecutionInteger Value)
@@ -29,7 +34,12 @@ namespace ink::execution
       {
       }
 
-      std::variant<ExecutionInteger, ExecutionPointer, std::string, std::vector<RuntimeValue>> Value;
+      explicit RuntimePayload(RuntimeClassPayload Fields)
+          : Value(std::move(Fields))
+      {
+      }
+
+      std::variant<ExecutionInteger, ExecutionPointer, std::string, std::vector<RuntimeValue>, RuntimeClassPayload> Value;
   };
 
   RuntimeValue RuntimeValue::fromBits(std::uint64_t Bits, RuntimeTypeId Type) noexcept
@@ -89,6 +99,24 @@ namespace ink::execution
     return *std::get_if<std::vector<RuntimeValue>>(&Object->Value);
   }
 
+  RuntimeValue RuntimeValue::fromClass(std::vector<RuntimeValue> Fields, RuntimeTypeId Type)
+  {
+    RuntimeValue Result = fromBits(0, Type);
+    Result.Object = std::make_shared<const RuntimePayload>(RuntimeClassPayload{std::move(Fields)});
+    return Result;
+  }
+
+  std::span<const RuntimeValue> RuntimeValue::fields() const noexcept
+  {
+    assert(kind() == RuntimeKind::Class && "runtime payload is not a class");
+    return std::get_if<RuntimeClassPayload>(&Object->Value)->Fields;
+  }
+
+  std::span<const RuntimeValue> RuntimeValue::aggregate() const noexcept
+  {
+    return kind() == RuntimeKind::Class ? fields() : array();
+  }
+
   const ExecutionPointer &RuntimeValue::pointer() const noexcept
   {
     assert(kind() == RuntimeKind::Pointer && "runtime payload is not a pointer");
@@ -117,6 +145,8 @@ namespace ink::execution
       return RuntimeKind::String;
     case 3:
       return RuntimeKind::Array;
+    case 4:
+      return RuntimeKind::Class;
     default:
       return RuntimeKind::Invalid;
     }

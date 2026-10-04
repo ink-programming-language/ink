@@ -2,7 +2,7 @@ namespace ink::execution
 {
   FORCE_INLINE ExecutionStatus ExecutionMachine::executeFunction(const BytecodeInstruction &Operation, CallFrame &Frame)
   {
-    Frame.Slots[Operation.Operands[0]] = Frame.Function->Image->InitialSlots[Operation.Operands[0]];
+    Frame.Slots[Operation.Operands[0]].copyFrom(Frame.Function->InitialBytes.get() + Frame.Function->SlotOffsets[Operation.Operands[0]]);
     return ExecutionStatus::Success;
   }
 
@@ -18,7 +18,7 @@ namespace ink::execution
     {
       return ExecutionStatus::RuntimeValue;
     }
-    Frame.PC = Frame.Slots[Operation.Operands[1]].Bits ? Operation.Operands[2] : Operation.Operands[3];
+    Frame.PC = Frame.Slots[Operation.Operands[1]].bits() ? Operation.Operands[2] : Operation.Operands[3];
     return ExecutionStatus::Success;
   }
 
@@ -26,11 +26,11 @@ namespace ink::execution
   {
     CallFrame &Frame = Stack.back();
     const ExecutableFunction &Image = *Frame.Function->Image;
-    Slot Returned = RuntimeValue::fromBits(0, Image.Layouts->get(Image.Signature)->ReturnType);
+    const Slot *Returned = nullptr;
     if (Operation.Code == BytecodeOpcode::Return)
     {
-      Returned = Frame.Slots[Operation.Operands[1]];
-      const ExecutionStatus Status = validateValue(Returned);
+      Returned = &Frame.Slots[Operation.Operands[1]];
+      const ExecutionStatus Status = validateValue(*Returned);
       if (Status != ExecutionStatus::Success)
       {
         return Status;
@@ -39,14 +39,26 @@ namespace ink::execution
     const SlotId ReturnSlot = Frame.ReturnSlot;
     if (Stack.size() == 1)
     {
-      Result = {ExecutionStatus::Success, Returned};
+      Result = Returned ? readStorage(*Returned->Layout, Returned->Data) : RuntimeValueResult{ExecutionStatus::Success, RuntimeValue::fromBits(0, Image.Layouts->get(Image.Signature)->functionDesc().ReturnType)};
+      if (!Result)
+      {
+        return Result.Status;
+      }
+    }
+    else
+    {
+      Slot &Destination = Stack[Stack.size() - 2].Slots[ReturnSlot];
+      if (Returned)
+      {
+        Destination.copyFrom(Returned->Data);
+      }
+      else
+      {
+        Destination.Initialized = true;
+      }
     }
     endCall(Frame);
     Stack.pop_back();
-    if (!Stack.empty())
-    {
-      Stack.back().Slots[ReturnSlot] = std::move(Returned);
-    }
     return ExecutionStatus::Success;
   }
 

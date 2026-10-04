@@ -4,6 +4,7 @@
 #include "ink/execution/bytecode/execution_compiler.h"
 #include "ink/ir/context.h"
 #include "ink/ir/function/function.h"
+#include "ink/ir/type/class_type.h"
 
 #include <unordered_set>
 #include <utility>
@@ -12,9 +13,9 @@ namespace ink::execution
 {
   BytecodeArtifactResult buildBytecodeObject(std::string_view ModuleName, SemanticValueBridge &Bridge, std::span<const BytecodeFunctionInput> Functions, BytecodeLimits Limits)
   {
-    if (ModuleName.empty() || Functions.empty())
+    if (ModuleName.empty())
     {
-      return {BytecodeStatus::InvalidInput, "A bytecode object requires a module name and function metadata"};
+      return {BytecodeStatus::InvalidInput, "A bytecode object requires a module name"};
     }
     if (Functions.size() > Limits.MaxRecords || ModuleName.size() > Limits.MaxStringBytes)
     {
@@ -31,6 +32,73 @@ namespace ink::execution
         }
     };
     ResolutionGuard Resolution{Bridge, Bridge.exchangeNativeImportResolution(false)};
+    std::vector<BytecodeFunctionInput> ReflectedFunctions(Functions.begin(), Functions.end());
+    std::unordered_set<const ir::Function *> Registered;
+    std::unordered_set<const ir::Module *> DefiningModules;
+    const auto Owner = [](const ir::Function &Function) -> const ir::Module *
+    {
+      for (const ir::Value *Value = Function.outer(); Value; Value = Value->outer())
+      {
+        if (ir::Module::classof(Value))
+        {
+          return static_cast<const ir::Module *>(Value);
+        }
+      }
+      return nullptr;
+    };
+    for (const auto &Input : Functions)
+    {
+      if (!Input.Function)
+      {
+        return {BytecodeStatus::InvalidInput, "Missing function declaration"};
+      }
+      Registered.insert(Input.Function);
+      if (Input.Kind == BytecodeSymbolKind::Definition)
+      {
+        DefiningModules.insert(Owner(*Input.Function));
+      }
+      Bridge.lowerFunction(*Input.Function);
+    }
+    Bridge.retainReflectionTypes();
+    const auto RegisterReflection = [&](FunctionId Id)
+    {
+      const ir::Function *Function = Bridge.sourceFunction(Id);
+      if (!Function || Registered.contains(Function))
+      {
+        return;
+      }
+      const ir::Module *Module = Owner(*Function);
+      const bool Local = DefiningModules.contains(Module);
+      if (!Local && Function->visibility() == ir::VisibilityKind::Private)
+      {
+        return;
+      }
+      Registered.insert(Function);
+      BytecodeFunctionInput Input;
+      Input.Function = Function;
+      Input.Identity.Module = Local ? std::string(ModuleName) : Module ? std::string(Module->context().namePool().text(Module->name())) : std::string(ModuleName);
+      Input.Identity.Name = Function->context().namePool().text(Function->name());
+      Input.Kind = Function->isNativeImport() ? BytecodeSymbolKind::Native : Local ? BytecodeSymbolKind::Definition : BytecodeSymbolKind::Import;
+      Input.Visibility = Function->visibility() == ir::VisibilityKind::Private ? BytecodeVisibility::Private : BytecodeVisibility::Public;
+      ReflectedFunctions.push_back(std::move(Input));
+    };
+    for (std::size_t Index = 0; Index < Bridge.types()->size(); ++Index)
+    {
+      const auto &Layout = *Bridge.types()->get(static_cast<RuntimeTypeId>(Index));
+      if (Layout.Kind != RuntimeKind::Class)
+      {
+        continue;
+      }
+      for (const auto &Field : Layout.classDesc().Fields)
+      {
+        RegisterReflection(Field.Initializer);
+      }
+      for (const auto &Method : Layout.classDesc().Methods)
+      {
+        RegisterReflection(Method.Function);
+      }
+    }
+    Functions = ReflectedFunctions;
     auto Artifact = std::make_unique<BytecodeArtifact>();
     Artifact->ModuleName = ModuleName;
     Artifact->Target = nativeBytecodeTarget();
@@ -112,9 +180,26 @@ namespace ink::execution
     // Freeze the type domain as well as code; later use of the compiler bridge must
     // not append types to an artifact already handed to a caller.
     auto Types = std::make_shared<RuntimeTypeTable>();
+    std::vector<TypeDesc> Layouts;
+    Layouts.reserve(Artifact->Image.Layouts->size());
     for (std::size_t Index = 0; Index < Artifact->Image.Layouts->size(); ++Index)
     {
-      Types->append(*Artifact->Image.Layouts->get(static_cast<RuntimeTypeId>(Index)));
+      TypeDesc Layout = *Artifact->Image.Layouts->get(static_cast<RuntimeTypeId>(Index));
+      if (Layout.Kind == RuntimeKind::Class)
+      {
+        for (auto &Method : Layout.editClass().Methods)
+        {
+          if (Method.Visibility == MemberVisibility::Private && !Artifact->Image.Descriptors.contains(Method.Function))
+          {
+            Method.Function = InvalidFunction;
+          }
+        }
+      }
+      Layouts.push_back(std::move(Layout));
+    }
+    if (!Types->defineAll(std::move(Layouts), Limits.MaxTypeDepth))
+    {
+      return {BytecodeStatus::InvalidImage, "Could not freeze bytecode aggregate layouts"};
     }
     Artifact->Image.Layouts = Types;
     for (auto &[Id, Function] : Artifact->Image.Functions)

@@ -28,33 +28,39 @@ namespace ink::execution::test
 
         RuntimeTypeId scalar(RuntimeKind Kind, std::uint32_t Width, bool Signed = false)
         {
-          StorageLayout Layout;
-          Layout.Kind = Kind;
-          Layout.BitWidth = Width;
+          TypeDesc Layout;
+          Layout.setKind(Kind);
+          if (Kind == RuntimeKind::Integer || Kind == RuntimeKind::Float)
+          {
+            Layout.setBitWidth(Width);
+          }
           Layout.Size = Width / 8;
           Layout.Alignment = Layout.Size == 0 ? 1 : Layout.Size;
-          Layout.Signed = Signed;
+          if (Kind == RuntimeKind::Integer)
+          {
+            Layout.editInteger().Signed = Signed;
+          }
           Layout.Native = Kind == RuntimeKind::Integer || Kind == RuntimeKind::Float || Kind == RuntimeKind::Boolean;
           return Types.append(std::move(Layout));
         }
 
         RuntimeTypeId pointer(RuntimeTypeId Pointee)
         {
-          StorageLayout Layout;
-          Layout.Kind = RuntimeKind::Pointer;
+          TypeDesc Layout;
+          Layout.setKind(RuntimeKind::Pointer);
           Layout.Size = sizeof(void *);
           Layout.Alignment = alignof(void *);
-          Layout.Pointee = Pointee;
-          Layout.Writable = true;
+          Layout.editPointer().Pointee = Pointee;
+          Layout.editPointer().Writable = true;
           return Types.append(std::move(Layout));
         }
 
         RuntimeFunctionDescriptor function(std::string_view Symbol, RuntimeTypeId Return, std::initializer_list<RuntimeTypeId> Parameters)
         {
-          StorageLayout Layout;
-          Layout.Kind = RuntimeKind::Function;
-          Layout.ReturnType = Return;
-          Layout.Parameters = Parameters;
+          TypeDesc Layout;
+          Layout.setKind(RuntimeKind::Function);
+          Layout.editFunction().ReturnType = Return;
+          Layout.editFunction().Parameters = Parameters;
           RuntimeFunctionDescriptor Function;
           Function.Id = NextFunction++;
           Function.Signature = Types.append(std::move(Layout));
@@ -156,13 +162,12 @@ namespace ink::execution::test
     const auto Result = Test.Calls.invoke(Test.Memory, Test.Types, Symbols, Function, Arguments);
     ASSERT_TRUE(Result);
     ASSERT_EQ(Result.Value.kind(), RuntimeKind::Pointer);
-    EXPECT_EQ(Result.Value.pointer().kind(), ExecutionPointer::Kind::Buffer);
-    EXPECT_EQ(Result.Value.pointer().offset(), 1U);
+    EXPECT_EQ(Result.Value.pointer().kind(), ExecutionPointer::Kind::Native);
     EXPECT_EQ(std::string_view(static_cast<const char *>(Result.Value.pointer().address())), "ZC");
     EXPECT_EQ(Arguments[0].string(), "ABC");
     EXPECT_EQ(Test.Memory.liveStorageCount(), 1U);
-    EXPECT_EQ(Test.Memory.release(Result.Value.pointer().bufferRef()), ExecutionStatus::Success);
-    EXPECT_EQ(Result.Value.pointer().status(), ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Test.Memory.release(Test.Memory.storageFromAddress(Result.Value.pointer().address())), ExecutionStatus::Success);
+    EXPECT_EQ(Result.Value.pointer().status(), ExecutionStatus::Success);
   }
 
   // Native pointers cannot reinterpret a same-size floating cell as an integer cell.
@@ -224,9 +229,9 @@ namespace ink::execution::test
   {
     RuntimeCallContext Test;
     RuntimeTypeTable ForeignTypes;
-    StorageLayout ForeignFloat;
-    ForeignFloat.Kind = RuntimeKind::Float;
-    ForeignFloat.BitWidth = 32;
+    TypeDesc ForeignFloat;
+    ForeignFloat.setKind(RuntimeKind::Float);
+    ForeignFloat.setBitWidth(32);
     ForeignFloat.Size = sizeof(float);
     ForeignFloat.Alignment = alignof(float);
     ForeignFloat.Native = true;
@@ -255,7 +260,7 @@ namespace ink::execution::test
     RuntimeValue Arguments[] = {RuntimeValue::fromString("ABC", Test.String)};
     const auto Result = Test.Calls.invoke(Test.Memory, Test.Types, Symbols, Function, Arguments);
     ASSERT_TRUE(Result);
-    ASSERT_EQ(Test.Memory.release(Result.Value.pointer().bufferRef()), ExecutionStatus::Success);
+    ASSERT_EQ(Test.Memory.release(Test.Memory.storageFromAddress(Result.Value.pointer().address())), ExecutionStatus::Success);
     Arguments[0] = RuntimeValue::fromString("ABC", Test.Int32);
     EXPECT_EQ(Test.Calls.invoke(Test.Memory, Test.Types, Symbols, Function, Arguments).Status, ExecutionStatus::TypeMismatch);
     EXPECT_EQ(Test.Memory.liveStorageCount(), 0U);
@@ -269,15 +274,15 @@ namespace ink::execution::test
     std::optional<RuntimeTypeTable> Types(std::in_place);
     auto Describe = [&](std::string_view Symbol)
     {
-      StorageLayout Integer;
-      Integer.Kind = RuntimeKind::Integer;
-      Integer.BitWidth = 32;
-      Integer.Signed = true;
+      TypeDesc Integer;
+      Integer.setKind(RuntimeKind::Integer);
+      Integer.setBitWidth(32);
+      Integer.editInteger().Signed = true;
       const RuntimeTypeId Int32 = Types->append(Integer);
-      StorageLayout Signature;
-      Signature.Kind = RuntimeKind::Function;
-      Signature.ReturnType = Int32;
-      Signature.Parameters = {Int32};
+      TypeDesc Signature;
+      Signature.setKind(RuntimeKind::Function);
+      Signature.editFunction().ReturnType = Int32;
+      Signature.editFunction().Parameters = {Int32};
       RuntimeFunctionDescriptor Function;
       Function.Id = 0;
       Function.Signature = Types->append(Signature);

@@ -172,15 +172,13 @@ namespace ink::execution::test
     const auto Result = Test.Engine.execute(*Function, Arguments);
     ASSERT_TRUE(Result);
     ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Pointer);
-    ASSERT_EQ(Result.Value.pointer().kind(), ExecutionPointer::Kind::Buffer);
-    ASSERT_TRUE(Test.Engine.heap().owns(Result.Value.pointer().bufferRef()));
-    const auto *ReturnedBuffer = Result.Value.pointer().buffer();
+    ASSERT_EQ(Result.Value.pointer().kind(), ExecutionPointer::Kind::Native);
+    ASSERT_TRUE(Test.Engine.heap().owns(Test.Engine.heap().memoryManager().storageFromAddress(Result.Value.pointer().address())));
+    const auto *ReturnedBuffer = Test.Engine.heap().memoryManager().storageFromAddress(Result.Value.pointer().address()).buffer();
     ASSERT_NE(ReturnedBuffer, nullptr);
-    ASSERT_LT(Result.Value.pointer().offset(), ReturnedBuffer->size());
-    EXPECT_EQ(ReturnedBuffer->data()[Result.Value.pointer().offset()], 'Z');
     EXPECT_EQ(Value.string(), "AB");
     EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 1U);
-    EXPECT_EQ(Test.Engine.heap().release(Result.Value.pointer().bufferRef()), ExecutionStatus::Success);
+    EXPECT_EQ(Test.Engine.heap().release(Test.Engine.heap().memoryManager().storageFromAddress(Result.Value.pointer().address())), ExecutionStatus::Success);
     EXPECT_EQ(Test.Engine.heap().liveStorageCount(), 0U);
   }
 

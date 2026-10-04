@@ -30,23 +30,23 @@ namespace ink::execution
         FfiValueLayout Return;
     };
 
-    FfiValueLayout valueLayout(const RuntimeTypeTable &Types, const StorageLayout &Type)
+    FfiValueLayout valueLayout(const RuntimeTypeTable &Types, const TypeDesc &Type)
     {
       FfiValueLayout Result;
       Result.Domain = Type.Domain;
       Result.Type = Type.Type;
       Result.Kind = Type.Kind;
-      Result.BitWidth = Type.BitWidth;
-      Result.Signed = Type.Signed;
-      Result.Pointee = Type.Pointee;
-      Result.Writable = Type.Writable;
+      Result.BitWidth = Type.bitWidth();
+      Result.Signed = Type.isSigned();
+      Result.Pointee = Type.pointerDesc().Pointee;
+      Result.Writable = Type.pointerDesc().Writable;
       if (Type.Kind == RuntimeKind::Pointer)
       {
-        if (const StorageLayout *Pointee = Types.get(Type.Pointee))
+        if (const TypeDesc *Pointee = Types.get(Type.pointerDesc().Pointee))
         {
           Result.VoidPointer = Pointee->Kind == RuntimeKind::Void;
-          Result.ByteBufferPointer = Pointee->Kind == RuntimeKind::Integer && Pointee->BitWidth == 8;
-          Result.BytePointer = Result.ByteBufferPointer && !Pointee->Signed;
+          Result.ByteBufferPointer = Pointee->Kind == RuntimeKind::Integer && Pointee->bitWidth() == 8;
+          Result.BytePointer = Result.ByteBufferPointer && !Pointee->isSigned();
         }
       }
       return Result;
@@ -62,18 +62,18 @@ namespace ink::execution
       {
         return ExecutionStatus::UnsupportedExternalSignature;
       }
-      const StorageLayout *Signature = Types.get(Function.Signature);
+      const TypeDesc *Signature = Types.get(Function.Signature);
       if (!Signature || Signature->Kind != RuntimeKind::Function)
       {
         return ExecutionStatus::UnsupportedExternalSignature;
       }
-      if (Signature->Parameters.size() != Arguments.size() || Arguments.size() > std::numeric_limits<unsigned int>::max())
+      if (Signature->functionDesc().Parameters.size() != Arguments.size() || Arguments.size() > std::numeric_limits<unsigned int>::max())
       {
         return ExecutionStatus::InvalidArguments;
       }
       for (const RuntimeValue &Argument : Arguments)
       {
-        const StorageLayout *Type = Types.get(Argument.Type);
+        const TypeDesc *Type = Types.get(Argument.Type);
         if (!Argument.Initialized || !Type)
         {
           return ExecutionStatus::InvalidArguments;
@@ -89,19 +89,19 @@ namespace ink::execution
     ExecutionStatus preparePlan(const RuntimeTypeTable &Types, const RuntimeFunctionDescriptor &Function, NativeCallPlan &Plan)
     {
       Plan.Signature = Function.Signature;
-      const StorageLayout &Signature = *Types.get(Function.Signature);
-      const StorageLayout *Return = Types.get(Signature.ReturnType);
+      const TypeDesc &Signature = *Types.get(Function.Signature);
+      const TypeDesc *Return = Types.get(Signature.functionDesc().ReturnType);
       ffi_type *NativeReturn = Return ? ffiType(*Return, FfiTypeUsage::Return) : nullptr;
       if (!NativeReturn)
       {
         return ExecutionStatus::UnsupportedExternalSignature;
       }
       Plan.Return = valueLayout(Types, *Return);
-      Plan.NativeArguments.resize(Signature.Parameters.size());
-      Plan.Arguments.reserve(Signature.Parameters.size());
-      for (std::size_t Index = 0; Index < Signature.Parameters.size(); ++Index)
+      Plan.NativeArguments.resize(Signature.functionDesc().Parameters.size());
+      Plan.Arguments.reserve(Signature.functionDesc().Parameters.size());
+      for (std::size_t Index = 0; Index < Signature.functionDesc().Parameters.size(); ++Index)
       {
-        const StorageLayout *Argument = Types.get(Signature.Parameters[Index]);
+        const TypeDesc *Argument = Types.get(Signature.functionDesc().Parameters[Index]);
         Plan.NativeArguments[Index] = Argument ? ffiType(*Argument, FfiTypeUsage::Argument) : nullptr;
         if (!Plan.NativeArguments[Index])
         {
@@ -155,11 +155,11 @@ namespace ink::execution
         {
           return {Status};
         }
-        if (Pointer.kind() == ExecutionPointer::Kind::Buffer)
+        if (const ExecutionStorageRef Storage = Memory.storageFromAddress(Pointer.address()); Storage.buffer())
         {
           for (FfiArgument &Argument : Arguments)
           {
-            if (Argument.bufferRef() == Pointer.bufferRef())
+            if (Argument.bufferRef() == Storage)
             {
               Argument.promoteBuffer();
             }

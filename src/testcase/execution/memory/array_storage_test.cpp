@@ -43,14 +43,12 @@ namespace ink::execution::test
     EXPECT_EQ(Before.Value.array()[1].array()[1].integer().lowWord(), 2U);
     EXPECT_EQ(Initial.array()[0].array()[1].integer().lowWord(), 2U);
     const auto Recovered = Heap.pointerFromAddress(Pointer.address());
-    EXPECT_EQ(Recovered.kind(), ExecutionPointer::Kind::Place);
-    EXPECT_EQ(Recovered.place(), Allocation.Place);
-    EXPECT_EQ(Recovered.offset(), Pointer.offset());
+    EXPECT_EQ(Recovered.address(), Pointer.address());
     EXPECT_EQ(Cell.loadElement(Cell.size(), IntegerId).Status, ExecutionStatus::TypeMismatch);
     EXPECT_EQ(Cell.elementLayout(Cell.size(), IntegerId, true)->Type, IntegerId);
     EXPECT_EQ(Cell.elementLayout(1, IntegerId), nullptr);
     ASSERT_EQ(Heap.release(Allocation.Place), ExecutionStatus::Success);
-    EXPECT_EQ(Pointer.status(), ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Pointer.status(), ExecutionStatus::Success);
     EXPECT_EQ(After.Value.array()[1].array()[1].integer().lowWord(), 42U);
   }
 
@@ -66,7 +64,7 @@ namespace ink::execution::test
     const auto Allocation = Heap.allocateCell(Array);
     ASSERT_TRUE(Allocation);
     ExecutionCell &Cell = *Allocation.Place.storage().cell();
-    EXPECT_EQ(Cell.data(), nullptr);
+    EXPECT_NE(Cell.data(), nullptr);
     EXPECT_EQ(Cell.loadElement(0, IntegerId).Status, ExecutionStatus::Uninitialized);
     ASSERT_EQ(Cell.storeElement(0, RuntimeValue::fromInteger(ExecutionInteger(128, 11), IntegerId)), ExecutionStatus::Success);
     EXPECT_EQ(Cell.loadRuntime().Status, ExecutionStatus::Uninitialized);

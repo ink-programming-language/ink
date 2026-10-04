@@ -68,15 +68,15 @@ namespace ink::execution
     RuntimeValue remapValue(const RuntimeValue &Value, const ObjectMapping &Mapping, const RuntimeTypeTable &Source)
     {
       const RuntimeTypeId Type = Mapping.Types[Value.Type];
-      if (Value.Initialized && Value.kind() == RuntimeKind::Array)
+      if (Value.Initialized && (Value.kind() == RuntimeKind::Array || Value.kind() == RuntimeKind::Class))
       {
         std::vector<RuntimeValue> Elements;
-        Elements.reserve(Value.array().size());
-        for (const RuntimeValue &Element : Value.array())
+        Elements.reserve(Value.aggregate().size());
+        for (const RuntimeValue &Element : Value.aggregate())
         {
           Elements.push_back(remapValue(Element, Mapping, Source));
         }
-        return RuntimeValue::fromArray(std::move(Elements), Type);
+        return Value.kind() == RuntimeKind::Class ? RuntimeValue::fromClass(std::move(Elements), Type) : RuntimeValue::fromArray(std::move(Elements), Type);
       }
       RuntimeValue Result = Value;
       if (Value.Initialized && Source.get(Value.Type)->Kind == RuntimeKind::Function)
@@ -192,6 +192,7 @@ namespace ink::execution
     std::vector<ObjectMapping> Mappings(Objects.size());
     std::vector<TypeOrigin> Origins;
     std::unordered_map<std::string, RuntimeTypeId> TypeIds;
+    std::unordered_map<std::string, std::string> ClassDefinitions;
     for (std::size_t ObjectIndex = 0; ObjectIndex < Objects.size(); ++ObjectIndex)
     {
       const BytecodeArtifact &Object = *Objects[ObjectIndex];
@@ -201,13 +202,46 @@ namespace ink::execution
         return failed(Result.Status, Result.Message);
       }
       auto &Mapping = Mappings[ObjectIndex];
-      if (!Usage.allocation(Identities.size(), sizeof(RuntimeTypeId) + sizeof(TypeOrigin) + sizeof(StorageLayout) + sizeof(std::string) + sizeof(void *) * 6) || !Usage.allocation(Object.Symbols.size(), sizeof(Definition) * 2 + sizeof(RuntimeFunctionDescriptor) + sizeof(BytecodeSymbol) + sizeof(void *) * 12))
+      if (!Usage.allocation(Identities.size(), sizeof(RuntimeTypeId) + sizeof(TypeOrigin) + sizeof(TypeDesc) * 3 + sizeof(std::string) + sizeof(void *) * 6) || !Usage.allocation(Object.Symbols.size(), sizeof(Definition) * 2 + sizeof(RuntimeFunctionDescriptor) + sizeof(BytecodeSymbol) + sizeof(void *) * 12))
       {
         return failed(BytecodeStatus::LimitExceeded, "Linked bytecode indices exceed the allocation limit");
       }
       Mapping.Types.resize(Identities.size());
       for (std::size_t Index = 0; Index < Identities.size(); ++Index)
       {
+        const TypeDesc &Current = *Object.Image.Layouts->get(static_cast<RuntimeTypeId>(Index));
+        if (Current.Kind == RuntimeKind::Class)
+        {
+          std::string Definition = std::to_string(Current.Size) + "," + std::to_string(Current.Alignment) + "," + std::to_string(Current.Native) + ";";
+          for (std::size_t Field = 0; Field < Current.classDesc().Fields.size(); ++Field)
+          {
+            const std::string &Identity = Identities[Current.classDesc().Fields[Field].Type];
+            if (Identity.size() > Limits.MaxStringBytes || Definition.size() > Limits.MaxStringBytes - Identity.size() || Limits.MaxStringBytes - Definition.size() - Identity.size() < 48 || !Usage.allocation(Identity.size() + 48))
+            {
+              return failed(BytecodeStatus::LimitExceeded, "Class definition exceeds the configured string limit");
+            }
+            const std::string &Name = Current.classDesc().Fields[Field].Name;
+            Definition += std::to_string(static_cast<unsigned>(Current.classDesc().Fields[Field].Visibility)) + ":" + std::to_string(Current.classDesc().Fields[Field].Initializer != InvalidFunction) + ":" + std::to_string(Name.size()) + ":" + Name + ":" + std::to_string(Current.classDesc().Fields[Field].Offset) + ":" + std::to_string(Identity.size()) + ":" + Identity;
+          }
+          for (const auto &Method : Current.classDesc().Methods)
+          {
+            const auto &Signature = Identities[Method.Signature];
+            if (!Usage.allocation(Method.Name.size() + Signature.size() + 64))
+            {
+              return failed(BytecodeStatus::LimitExceeded, "Class method definitions exceed the configured limit");
+            }
+            Definition += ";" + std::to_string(Method.Name.size()) + ":" + Method.Name + ":" + std::to_string(static_cast<unsigned>(Method.Visibility)) + ":" + std::to_string(Method.WritableReceiver) + ":" + Signature;
+          }
+          if (!Usage.string(Definition))
+          {
+            return failed(BytecodeStatus::LimitExceeded, "Class definitions exceed the configured string limit");
+          }
+          const auto [FoundClass, Inserted] = ClassDefinitions.emplace(Current.classDesc().NominalIdentity, Definition);
+          if (!Inserted && FoundClass->second != Definition)
+          {
+            return failed(BytecodeStatus::InvalidImage, "Conflicting definitions of class " + Current.classDesc().NominalIdentity);
+          }
+        }
         const auto Found = TypeIds.find(Identities[Index]);
         if (Found != TypeIds.end())
         {
@@ -221,38 +255,46 @@ namespace ink::execution
         const RuntimeTypeId Id = static_cast<RuntimeTypeId>(Origins.size());
         Mapping.Types[Index] = Id;
         Origins.push_back({ObjectIndex, static_cast<RuntimeTypeId>(Index)});
-        TypeIds.emplace(std::move(Identities[Index]), Id);
+        TypeIds.emplace(Identities[Index], Id);
       }
     }
     // Assign all final IDs before materializing layouts, including forward references.
     auto Types = std::make_shared<RuntimeTypeTable>();
+    std::vector<TypeDesc> LinkedLayouts;
+    LinkedLayouts.reserve(Origins.size());
     for (const TypeOrigin &Origin : Origins)
     {
-      StorageLayout Layout = *Objects[Origin.Object]->Image.Layouts->get(Origin.Type);
+      TypeDesc Layout = *Objects[Origin.Object]->Image.Layouts->get(Origin.Type);
       const ObjectMapping &Mapping = Mappings[Origin.Object];
       if (Layout.Kind == RuntimeKind::Pointer)
       {
-        Layout.Pointee = Mapping.Types[Layout.Pointee];
+        Layout.editPointer().Pointee = Mapping.Types[Layout.pointerDesc().Pointee];
       }
       if (Layout.Kind == RuntimeKind::Array)
       {
-        Layout.ElementType = Mapping.Types[Layout.ElementType];
-        Layout.ElementLayout.reset();
+        Layout.editArray().ElementType = Mapping.Types[Layout.arrayDesc().ElementType];
+        Layout.editArray().ElementLayout.reset();
+      }
+      if (Layout.Kind == RuntimeKind::Class)
+      {
+        auto Description = std::make_shared<ClassDesc>(Layout.classDesc());
+        for (FieldDesc &Field : Description->Fields)
+        {
+          Field.Type = Mapping.Types[Field.Type];
+          Field.Layout.reset();
+        }
+        Layout.setDetails(std::move(Description));
       }
       if (Layout.Kind == RuntimeKind::Function)
       {
-        Layout.ReturnType = Mapping.Types[Layout.ReturnType];
-        for (RuntimeTypeId &Parameter : Layout.Parameters)
+        Layout.editFunction().ReturnType = Mapping.Types[Layout.functionDesc().ReturnType];
+        for (RuntimeTypeId &Parameter : Layout.editFunction().Parameters)
         {
           Parameter = Mapping.Types[Parameter];
         }
       }
-      if (Types->append(std::move(Layout)) == InvalidRuntimeType)
-      {
-        return failed(BytecodeStatus::LimitExceeded, "Linked bytecode has too many runtime types");
-      }
+      LinkedLayouts.push_back(std::move(Layout));
     }
-    Linked->Image.Layouts = Types;
     std::unordered_map<std::string, DefinitionGroup> Definitions;
     std::vector<Definition> AllDefinitions;
     for (std::size_t ObjectIndex = 0; ObjectIndex < Objects.size(); ++ObjectIndex)
@@ -370,6 +412,46 @@ namespace ink::execution
         Mappings[ObjectIndex].Functions.emplace(Symbol.Function, Resolved->Linked);
       }
     }
+    for (std::size_t Index = 0; Index < LinkedLayouts.size(); ++Index)
+    {
+      auto &Layout = LinkedLayouts[Index];
+      if (Layout.Kind != RuntimeKind::Class)
+      {
+        continue;
+      }
+      auto &Class = Layout.editClass();
+      const auto &Mapping = Mappings[Origins[Index].Object];
+      for (auto &Field : Class.Fields)
+      {
+        if (Field.Initializer != InvalidFunction)
+        {
+          const auto Found = Mapping.Functions.find(Field.Initializer);
+          if (Found == Mapping.Functions.end())
+          {
+            return failed(BytecodeStatus::MissingSymbol, "Class initializer has no linked function");
+          }
+          Field.Initializer = Found->second;
+        }
+      }
+      for (auto &Method : Class.Methods)
+      {
+        Method.Signature = Mapping.Types[Method.Signature];
+        if (Method.Function != InvalidFunction)
+        {
+          const auto Found = Mapping.Functions.find(Method.Function);
+          if (Found == Mapping.Functions.end())
+          {
+            return failed(BytecodeStatus::MissingSymbol, "Class method has no linked function");
+          }
+          Method.Function = Found->second;
+        }
+      }
+    }
+    if (!Types->defineAll(std::move(LinkedLayouts), Limits.MaxTypeDepth))
+    {
+      return failed(BytecodeStatus::InvalidImage, "Linked bytecode has invalid aggregate layouts");
+    }
+    Linked->Image.Layouts = Types;
     if (Entry)
     {
       if (!artifact_detail::accountSymbolKey(*Entry, Usage))

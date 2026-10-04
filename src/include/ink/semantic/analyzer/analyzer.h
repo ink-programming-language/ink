@@ -32,6 +32,7 @@ namespace ink::ir
   class FunctionType;
   class Value;
   class Function;
+  class ClassType;
 } // namespace ink::ir
 
 namespace ink::semantic
@@ -64,6 +65,7 @@ namespace ink::semantic
       struct ModuleGraph;
 
       bool analyzeStmt(AnalysisState &State, const parser::Stmt &Stmt);
+      bool validateRuntimeClassTypes(AnalysisState &State, const ir::Module &Module, const parser::ASTNodeBase &Root);
       bool analyzeDecl(AnalysisState &State, const parser::Decl &Declaration);
       bool reportUnsupported(AnalysisState &State, const parser::ASTNodeBase &Node);
       const ir::Type *analyzeType(AnalysisState &State, const parser::Expr &Node, std::size_t Depth = 0);
@@ -73,6 +75,15 @@ namespace ink::semantic
       ExpressionResult analyzeNameExpr(AnalysisState &State, const parser::NameExpr &Node);
       ExpressionResult analyzeMemberExpr(AnalysisState &State, const parser::MemberExpr &Node, std::size_t Depth);
       bool resolveMemberFunctions(AnalysisState &State, const parser::MemberExpr &Node, std::vector<const ir::Value *> &Functions, std::size_t Depth);
+      ExpressionResult analyzeClassConstruction(AnalysisState &State, const ir::ClassType &Class, const parser::CallExpr &Node, std::size_t Depth);
+      ExpressionResult analyzeMethodCall(AnalysisState &State, const parser::MemberExpr &Member, const parser::CallExpr &Node, std::size_t Depth);
+      ExpressionResult callClassOperator(AnalysisState &State, const ExpressionResult &Receiver, std::string_view Method, std::span<const ExpressionResult> Arguments, const parser::Expr &Node);
+      ExpressionResult finishCall(AnalysisState &State, std::span<const ir::Value *const> Candidates, std::span<const ExpressionResult> Arguments, std::span<const parser::Expr *const> ArgumentNodes, const parser::Expr &Node);
+      const ir::Value *resolveFieldAddress(AnalysisState &State, const parser::MemberExpr &Node, std::size_t Depth);
+      std::optional<std::size_t> lookupClassField(AnalysisState &State, const ir::ClassType &Class, const parser::MemberExpr &Node);
+      bool isMutablePlace(AnalysisState &State, const parser::Expr &Node);
+      const ir::Value *materializeClassReceiver(AnalysisState &State, const ir::Value &Object, const parser::Expr &Node);
+      const ir::Value *resolveComptimeReceiver(AnalysisState &State, const parser::Expr &Node, std::size_t Depth);
       ExpressionResult analyzeUnaryExpr(AnalysisState &State, const parser::UnaryExpr &Node, std::size_t Depth);
       ExpressionResult analyzeArrayExpr(AnalysisState &State, const parser::Expr &Node, std::size_t Depth);
       ExpressionResult analyzeIndexExpr(AnalysisState &State, const parser::IndexExpr &Node, std::size_t Depth);
@@ -132,6 +143,10 @@ namespace ink::semantic
       std::optional<ir::LanguageLinkage> analyzeFunctionLinkage(AnalysisState &State, const parser::FunctionDecl &Node);
       bool checkFunctionConflicts(AnalysisState &State, const parser::FunctionDecl &Node, const ir::FunctionType &Signature, ir::FunctionBinding Binding);
       bool analyzeClassDecl(AnalysisState &State, const parser::ClassDecl &Node);
+      bool registerClass(AnalysisState &State, const parser::ClassDecl &Node);
+      bool defineClass(AnalysisState &State, const parser::ClassDecl &Node);
+      bool declareClassMembers(AnalysisState &State, const parser::ClassDecl &Node);
+      bool ensureClassDefinition(AnalysisState &State, const ir::ClassType &Class, const parser::ASTNodeBase &Use);
       bool analyzeEnumDecl(AnalysisState &State, const parser::EnumDecl &Node);
       bool analyzeInterfaceDecl(AnalysisState &State, const parser::InterfaceDecl &Node);
   };

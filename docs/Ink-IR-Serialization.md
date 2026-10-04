@@ -13,6 +13,10 @@ ModuleDeserializeResult deserializeModuleBinary(IRContext &Context, std::string_
 
 ## 内容与生命周期
 
+v5 增加完整 class 定义、名义身份、字段名称/类型/可见性，以及 `constant.class`、`class.value`、`field.pointer`、`field.extract`（稳定记录编号 60–63）。v6 进一步保留模块登记的 class、方法归属及字段初始化器。类型恢复先建立全部名义身份和结构类型，再补全 class 字段，最后恢复常量与指令；允许经指针的递归，拒绝无限大小的按值递归和不完整的存储布局。class 字段指令保存声明顺序索引，物理偏移由共享目标布局服务计算。
+
+例如 `type !point = class "Point" identity "geometry::Point" { public "X": i32, public "Y": i32 }`；`class.value !point {1, 2}` 构造值，`field.extract i32, 0, !point %value` 提取字段，`field.pointer ptr<rw, i32>, 0, ptr<rw, !point> %storage` 投影字段地址。文本里的 class 常量写作 `!point {1, 2}`。未完成的名义类型仍可写作 `type !forward = class "Forward"`，只能用于无需完整布局的位置。
+
 归档包含模块及嵌套模块、顺序基本块、函数、参数、全部当前指令种类、引用到的类型与常量，以及完整的声明树。整数按低位在前的 64 位字保存；浮点保存 IEEE 原始位模式，包括负零、NaN payload 和无穷。字符串和名称保存完整字节，允许包含 NUL。共享对象、递归调用、名义类型身份、参数类别和名字、调用约定、语言链接、源码可见性和原生符号方向均保留。
 
 泛型声明的 AST 在二进制中使用 AST archive v5，在文本中使用具名字段语法保存，包含整个所属 `ParsedUnit` 的源码、token、语法树、恢复记录和解析状态。声明引用通过 AST 快照编号与后序遍历节点编号恢复；不会重新解析源码。多个声明和模块可以共享同一 AST 快照。语义分析器的外部绑定、实例化缓存与目标机器状态不属于 Module 归档。
@@ -33,12 +37,12 @@ auto Loaded = ir::deserializeModuleBinary(DestinationContext, Saved.Bytes);
 
 非池对象的操作数必须位于待归档模块的拥有树中。引用其他根模块或游离函数会返回 `InvalidInput`；需要在模块内提供相应函数声明。归档不会将外部对象悄悄复制成新的身份。
 
-## 文本格式 v4
+## 文本格式 v6
 
 文本采用可编辑的 IR 汇编语法。模块、函数和基本块直接体现嵌套结构，操作数使用符号引用，常量内联。下面是 `serializeModuleText` 的实际输出，单元测试逐字节验证此例：
 
 ```text
-ink-ir 4
+ink-ir 6
 module @Example {
   define i32 @addOne(i32 %x) {
   entry:
@@ -139,7 +143,7 @@ declarations from !ast0 %23 {
 
 恢复过程使用完整字段构造 AST，不重新解析 `source`，因此也保留错误恢复节点、token payload、取消/中断状态和共享身份。文本 AST 读入后复用现有 AST 构造与校验逻辑；文本与二进制可互相转换。
 
-## 二进制格式 v4
+## 二进制格式 v6
 
 二进制以编解码吞吐量为目标，独立于文本语法。所有整数固定宽度、小端序、字节对齐；没有逐字符 VBR 编解码，也不需要转义字符串。写入前计算完整长度，输出缓冲区只分配一次；字符串和 AST payload 整块复制。固定宽度元数据会比变长编码占更多空间。
 
@@ -148,7 +152,7 @@ declarations from !ast0 %23 {
 | 偏移 | 宽度 | 内容 |
 | --- | --- | --- |
 | 0 | 4 字节 | 签名 `IIRB` |
-| 4 | u32 | `ModuleBinaryVersion`，当前为 4 |
+| 4 | u32 | `ModuleBinaryVersion`，当前为 6 |
 | 8 | u32 | 对象记录数 |
 | 12 | u32 | 保留 flags，必须为 0 |
 
@@ -166,7 +170,7 @@ declarations from !ast0 %23 {
 
 对象 ID 由记录顺序隐含决定，从 1 开始；1 是根模块，0 表示无引用。父对象先于子对象；类型和操作数允许向前引用。类型和常量不具有结构父对象。整数常量保存低位字到高位字，浮点保存原始位模式；AST payload 直接使用现有 IAST v5 二进制快照，旧版本快照会被拒绝。
 
-读取器在分配前验证记录数量、字段数量和剩余字节，拒绝未知 kind、flags、截断、越界引用和尾随字节。版本由 `ModuleTextVersion` 和 `ModuleBinaryVersion` 分别管理；当前 v4 的 Function 记录依次保存调用约定、语言链接、可见性（`Public=0`、`Private=1`）和原生符号绑定（`Local=0`、`Import=1`、`Export=2`）。v4 不兼容此前的 v1、v2、v3 格式，缺失或非法字段、导入函数有函数体、导出函数缺少函数体会明确失败。AST 文本和二进制版本也独立管理。相同 Module 的规范输出不依赖指针地址、无关池插入顺序或宿主大小端。
+读取器在分配前验证记录数量、字段数量和剩余字节，拒绝未知 kind、flags、截断、越界引用和尾随字节。版本由 `ModuleTextVersion` 和 `ModuleBinaryVersion` 分别管理；当前 v6 的 Function 记录前四项依次保存调用约定、语言链接、可见性（`Public=0`、`Private=1`）和原生符号绑定（`Local=0`、`Import=1`、`Export=2`），可选的后两项保存反射关联。v6 不兼容此前的 v1–v5 格式，缺失或非法字段、导入函数有函数体、导出函数缺少函数体会明确失败。AST 文本和二进制版本也独立管理。相同 Module 的规范输出不依赖指针地址、无关池插入顺序或宿主大小端。
 
 跳转使用追加的稳定 kind ID，不改变既有记录：`Branch = 50` 的唯一字段为目标基本块 ID；`ConditionalBranch = 51` 的三个字段依次为条件值、真分支基本块、假分支基本块 ID。两种指令的结果类型均为 `void`，父对象为所属函数的基本块。
 
@@ -192,6 +196,17 @@ declarations from !ast0 %23 {
 
 重复标志不参与对象依赖恢复。数组常量拒绝非常量元素，数组指令校验精确元素类型、结果类型和指针权限；无效引用、非法标志和循环依赖返回 `InvalidArchive`。
 
+Class 继续使用类型记录 `Class = 27`。未完成声明没有附加字段，文本为类名；完整定义保存 `[类名长度, 名义身份长度, 字段类型 ID, 字段可见性, 字段名长度, ...]`，文本依次拼接类名、名义身份和各字段名。字段可见性为 `Public=0`、`Private=1`，字段顺序即声明顺序。新增值记录如下：
+
+| kind | 字段 |
+| --- | --- |
+| `ClassConstant = 60` | 按声明顺序排列的字段常量 ID |
+| `ClassValue = 61` | 按声明顺序排列的字段值 ID |
+| `FieldPointer = 62` | 字段索引、对象地址值 ID |
+| `FieldExtract = 63` | 字段索引、对象值 ID |
+
+Class 的名义身份先创建，再补全字段关系，因此经指针的递归类型可以恢复。字段索引不是对象引用；缺失字段、字段类型错误、重复字段名和按值循环布局都会被拒绝。
+
 ## 验证与资源限制
 
 `ModuleArchiveLimits` 限制归档总字节、对象数、单条记录字段数、单条字符串字节数、累计内存预算和拥有树深度；文本中的内联类型和数组常量嵌套也受深度限制，数组元素占用字段和分配预算。`AST` 字段控制内嵌 AST 的源码、token、节点、数组等上限，其解码内存计入模块总预算。类型和操作数依赖采用迭代拓扑恢复，循环依赖会被拒绝；函数递归调用不构成这种依赖循环。
@@ -210,3 +225,12 @@ declarations from !ast0 %23 {
 非法或溢出的配置值回退到登记的默认值，0 保留其含义。已构造的限制对象不随环境变量变化，调用方仍可直接修改字段。嵌套的 `AST` 继续使用已有的 `INK_AST_ARCHIVE_*` 配置，不与 Module 的配置键混用。
 
 反序列化通过既有类型池、常量池与 IRBuilder 校验对象、参数、结果类型、返回值和指令位置。所有树先在临时拥有者中恢复，声明恢复成功后才将根模块发布给目标 context。`parser::trySerializeAST` 与 `parser::tryDeserializeAST` 为容器提供返回状态的 AST 读写；原 `serializeAST` / `deserializeAST` 的 ICE 行为保持不变。
+
+
+## 反射关联（v6）
+
+Module 的载荷保存需要保留的 class 类型引用，即使没有函数使用该类型也会被序列化。文本使用 `reflect type !t0` 登记类型。
+
+Function 原有四个字段之后，可以追加所属 class 引用和成员标志：`0` 表示方法，`字段索引 + 1` 表示默认初始化器。文本分别使用 `reflect !t0 method` 和 `reflect !t0 initializer 0`。读取时验证方法首参数指向所属 class，初始化器无参数且返回字段类型；方法可见性沿用函数可见性。源 AST 销毁后这些关联仍有效。
+
+v6 新增以上关联，旧版 IR 需重新生成。字节码容器也升级为 v6；字节码指令模式仍为 v3。

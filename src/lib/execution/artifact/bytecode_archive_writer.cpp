@@ -119,24 +119,62 @@ namespace ink::execution
           return archive::encodeTag(Value, Table, Wire) ? u32(Wire) : fail(BytecodeStatus::InvalidInput, "Unknown bytecode enum value");
         }
 
-        bool layout(const StorageLayout &Layout)
+        bool layout(const TypeDesc &Layout)
         {
-          if (!tag(Layout.Kind, archive::RuntimeKindTags) || !u32(Layout.BitWidth) || !u8(Layout.Signed) || !u64(Layout.Size) || !u64(Layout.Alignment) || !u8(Layout.Native) || !u32(Layout.Pointee) || !u8(Layout.Writable) || !u32(Layout.ReturnType) || !count(Layout.Parameters.size()))
+          if (!tag(Layout.Kind, archive::RuntimeKindTags) || !u64(Layout.Size) || !u64(Layout.Alignment) || !u8(Layout.Native) || !string(Layout.Name))
           {
             return false;
           }
-          for (RuntimeTypeId Parameter : Layout.Parameters)
+          switch (Layout.Kind)
           {
-            if (!u32(Parameter))
+          case RuntimeKind::Integer:
+            return u32(Layout.bitWidth()) && u8(Layout.isSigned());
+          case RuntimeKind::Float:
+            return u32(Layout.bitWidth());
+          case RuntimeKind::Pointer:
+            return u32(Layout.pointerDesc().Pointee) && u8(Layout.pointerDesc().Writable);
+          case RuntimeKind::Function:
+            if (!u32(Layout.functionDesc().ReturnType) || !count(Layout.functionDesc().Parameters.size()))
             {
               return false;
             }
+            for (RuntimeTypeId Parameter : Layout.functionDesc().Parameters)
+            {
+              if (!u32(Parameter))
+              {
+                return false;
+              }
+            }
+            return true;
+          case RuntimeKind::Array:
+            return u32(Layout.arrayDesc().ElementType) && u64(Layout.arrayDesc().ElementCount);
+          case RuntimeKind::Class:
+            if (!string(Layout.classDesc().NominalIdentity) || !count(Layout.classDesc().Fields.size()))
+            {
+              return false;
+            }
+            for (const FieldDesc &Field : Layout.classDesc().Fields)
+            {
+              if (!string(Field.Name) || !u32(Field.Type) || !u64(Field.Offset) || !u8(Field.Visibility == MemberVisibility::Private) || !u32(Field.Initializer))
+              {
+                return false;
+              }
+            }
+            if (!count(Layout.classDesc().Methods.size()))
+            {
+              return false;
+            }
+            for (const MethodDesc &Method : Layout.classDesc().Methods)
+            {
+              if (!string(Method.Name) || !u32(Method.Signature) || !u32(Method.Function) || !u8(Method.Visibility == MemberVisibility::Private) || !u8(Method.WritableReceiver))
+              {
+                return false;
+              }
+            }
+            return true;
+          default:
+            return true;
           }
-          if (Layout.Kind == RuntimeKind::Array)
-          {
-            return u32(Layout.ElementType) && u64(Layout.ElementCount);
-          }
-          return true;
         }
 
         bool descriptors(const ExecutionImage &Image)
@@ -180,6 +218,9 @@ namespace ink::execution
             case RuntimeKind::String:
               Payload = 2;
               break;
+            case RuntimeKind::Class:
+              Payload = 5;
+              break;
             case RuntimeKind::Array:
               Payload = 4;
               break;
@@ -219,13 +260,13 @@ namespace ink::execution
           {
             return string(Value.string());
           }
-          else if (Payload == 4)
+          else if (Payload == 4 || Payload == 5)
           {
-            if (!count(Value.array().size()))
+            if (!count(Value.aggregate().size()))
             {
               return false;
             }
-            for (const RuntimeValue &Element : Value.array())
+            for (const RuntimeValue &Element : Value.aggregate())
             {
               if (!value(Element, Depth + 1))
               {

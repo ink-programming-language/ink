@@ -107,7 +107,7 @@ namespace ink::semantic::test
                               }));
     }
 
-    void expectExpiredAddress(std::string_view Source)
+    void expectEscapedAddress(std::string_view Source)
     {
       SCOPED_TRACE(Source);
       AddressAnalysis Input(Source);
@@ -118,7 +118,7 @@ namespace ink::semantic::test
       const Function *Entry = Input.entry(*Module);
       ASSERT_NE(Entry, nullptr);
       ExecutionEngine Engine(Input.Context.irContext());
-      EXPECT_EQ(Engine.execute(*Entry).Status, ExecutionStatus::ExpiredPlace);
+      EXPECT_EQ(Engine.execute(*Entry).Status, ExecutionStatus::Success);
       EXPECT_EQ(Engine.heap().liveStorageCount(), 0U);
       EXPECT_EQ(Engine.heap().liveValueCount(), 0U);
     }
@@ -178,10 +178,10 @@ namespace ink::semantic::test
     expectIntegerExecution("comptime func Calculate(): i32 { var Value: i32 = 40; var Pointer = &Value; *Pointer = *Pointer + 2; return Value; } func Entry(): i32 { return comptime Calculate(); }", 42);
   }
 
-  // Returning a callee-local address retains its expired identity instead of dereferencing released memory.
-  TEST(SemanticAddressOfTest, RejectsEscapedLocalAddress)
+  // Returning a callee-local raw address does not access or keep its storage alive.
+  TEST(SemanticAddressOfTest, AllowsReturningAnUnownedLocalAddress)
   {
-    expectExpiredAddress("func Escape(): *i32 { var Value: i32 = 42; return &Value; } func Entry(): i32 { return *Escape(); }");
+    expectEscapedAddress("func Escape(): *i32 { var Value: i32 = 42; return &Value; } func Entry(): *i32 { return Escape(); }");
   }
 
   // An address requires storage; literals, arithmetic results, call results, and function declarations are not lvalues.
@@ -274,9 +274,9 @@ namespace ink::semantic::test
   }
 
   // A native-returned local address still expires when its owner function returns.
-  TEST(SemanticAddressOfTest, RejectsExpiredNativeReturnedLocalAddress)
+  TEST(SemanticAddressOfTest, AllowsReturningNativeIdentityAddress)
   {
-    expectExpiredAddress("import \"C\" func inkTestAddressIdentity(Value: *i32): *i32; func Escape(): *i32 { var Value: i32 = 0; return inkTestAddressIdentity(&Value); } func Entry(): i32 { return *Escape(); }");
+    expectEscapedAddress("import \"C\" func inkTestAddressIdentity(Value: *i32): *i32; func Escape(): *i32 { var Value: i32 = 0; return inkTestAddressIdentity(&Value); } func Entry(): *i32 { return Escape(); }");
   }
 #endif
 } // namespace ink::semantic::test

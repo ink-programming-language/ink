@@ -4,6 +4,8 @@
 #include "ink/ir/function/basic_block.h"
 #include "ink/ir/name/name.h"
 
+#include <span>
+
 namespace ink::parser
 {
   struct ParseResult;
@@ -12,6 +14,7 @@ namespace ink::parser
 namespace ink::ir
 {
   class ModuleDecl;
+  class ClassType;
 
   // A named module owns independent declaration and IR trees.
   class Module final : public Value
@@ -22,6 +25,11 @@ namespace ink::ir
       Name name() const noexcept
       {
         return ModuleName;
+      }
+
+      std::span<const ClassType *const> classTypes() const noexcept
+      {
+        return ClassTypes;
       }
 
       BasicBlock &entryBlock() noexcept
@@ -60,6 +68,7 @@ namespace ink::ir
       Module(const IRContext &Context, Name ModuleName, std::unique_ptr<BasicBlock> EntryBlock) noexcept;
 
       Name ModuleName;
+      std::vector<const ClassType *> ClassTypes;
       // Syntax outlives both declaration and IR trees.
       std::vector<std::shared_ptr<const parser::ParseResult>> ArchivedASTs;
       // IR is destroyed before declarations it may reference. Both trees borrow shared context objects.

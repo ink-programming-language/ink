@@ -12,6 +12,7 @@
 #include "dispatch/execution_machine_wide.inc"
 #include "dispatch/execution_machine_memory.inc"
 #include "dispatch/execution_machine_array.inc"
+#include "dispatch/execution_machine_class.inc"
 #include "dispatch/execution_machine_call.inc"
 #include "dispatch/execution_machine_control.inc"
 
@@ -19,18 +20,18 @@ namespace ink::execution
 {
   RuntimeValueResult ExecutionMachine::run(PreparedFunction &Function, std::span<const RuntimeValue> Arguments)
   {
-    const StorageLayout &Signature = *Function.Image->Layouts->get(Function.Image->Signature);
-    if (Arguments.size() != Signature.Parameters.size())
+    const TypeDesc &Signature = *Function.Image->Layouts->get(Function.Image->Signature);
+    if (Arguments.size() != Signature.functionDesc().Parameters.size())
     {
       return {ExecutionStatus::InvalidArguments};
     }
     for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
     {
-      if (Arguments[Index].Type != Signature.Parameters[Index])
+      if (Arguments[Index].Type != Signature.functionDesc().Parameters[Index])
       {
         return {ExecutionStatus::TypeMismatch};
       }
-      const ExecutionStatus Status = validateArgument(Arguments[Index], *Function.Image->Layouts->get(Signature.Parameters[Index]));
+      const ExecutionStatus Status = validateArgument(Arguments[Index], *Function.Image->Layouts->get(Signature.functionDesc().Parameters[Index]));
       if (Status != ExecutionStatus::Success)
       {
         return {Status};
@@ -43,12 +44,21 @@ namespace ink::execution
     }
     std::vector<CallFrame> Stack;
     CallFrame Entry;
-    Entry.Function = &Function;
-    Entry.Slots = Function.Image->InitialSlots;
-    Entry.Locals.resize(Function.Image->LocalStorageCount);
+    Status = initializeFrame(Entry, Function);
+    if (Status != ExecutionStatus::Success)
+    {
+      endCall(Entry);
+      return {Status};
+    }
     for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
     {
-      Entry.Slots[Index] = Arguments[Index];
+      Status = importValue(*Entry.Slots[Index].Layout, Entry.Slots[Index].Data, Arguments[Index]);
+      if (Status != ExecutionStatus::Success)
+      {
+        endCall(Entry);
+        return {Status};
+      }
+      Entry.Slots[Index].Initialized = true;
     }
     Stack.push_back(std::move(Entry));
     RuntimeValueResult Result{ExecutionStatus::MissingBody};
@@ -85,6 +95,11 @@ namespace ink::execution
       case BytecodeOpcode::StoreLocal:
       case BytecodeOpcode::CString:
         Status = executeMemory(Operation, Frame);
+        break;
+      case BytecodeOpcode::Class:
+      case BytecodeOpcode::FieldExtract:
+      case BytecodeOpcode::FieldPointer:
+        Status = executeClass(Operation, Frame);
         break;
       case BytecodeOpcode::Array:
       case BytecodeOpcode::ArrayRepeat:

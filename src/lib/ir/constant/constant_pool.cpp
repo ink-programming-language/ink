@@ -1,5 +1,6 @@
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/context.h"
+#include "ink/ir/analysis/type_layout.h"
 
 #include "../hash.h"
 
@@ -147,7 +148,7 @@ namespace ink::ir
 
   std::size_t ConstantPool::size() const noexcept
   {
-    return IntegerConstants.size() + StringConstants.size() + FloatConstants.size() + ArrayConstants.size() + 2;
+    return IntegerConstants.size() + StringConstants.size() + FloatConstants.size() + ArrayConstants.size() + ClassConstants.size() + 2;
   }
 
   const ArrayConstant *ConstantPool::getArrayConstant(const ArrayType &ValueType, std::span<const Constant *const> Elements)
@@ -179,6 +180,35 @@ namespace ink::ir
     return Pointer;
   }
 
+  const ClassConstant *ConstantPool::getClassConstant(const ClassType &ValueType, std::span<const Constant *const> Fields)
+  {
+    if (&ValueType.context() != &Context || !computeTypeLayout(ValueType, Context.compilationContext().targetContext()) || ValueType.fields().size() != Fields.size())
+    {
+      return nullptr;
+    }
+    for (std::size_t Index = 0; Index < Fields.size(); ++Index)
+    {
+      if (!Fields[Index] || &Fields[Index]->type() != ValueType.fields()[Index].FieldType || !owns(*Fields[Index]))
+      {
+        return nullptr;
+      }
+    }
+    const std::size_t Hash = arrayConstantHash(ValueType, Fields);
+    const auto Candidates = ClassConstants.equal_range(Hash);
+    for (auto Entry = Candidates.first; Entry != Candidates.second; ++Entry)
+    {
+      const ClassConstant &Candidate = *Entry->second;
+      if (&Candidate.type() == &ValueType && std::equal(Candidate.fields().begin(), Candidate.fields().end(), Fields.begin(), Fields.end()))
+      {
+        return &Candidate;
+      }
+    }
+    auto Result = std::unique_ptr<ClassConstant>(new ClassConstant(ValueType, Fields));
+    const ClassConstant *Pointer = Result.get();
+    ClassConstants.emplace(Hash, std::move(Result));
+    return Pointer;
+  }
+
   bool ConstantPool::owns(const Constant &ConstantValue) const noexcept
   {
     if (&ConstantValue == FalseValue.get() || &ConstantValue == TrueValue.get())
@@ -199,6 +229,8 @@ namespace ink::ir
       return containsConstant(FloatConstants, floatConstantHash(ConstantValue.type(), static_cast<const FloatConstant &>(ConstantValue).value()), ConstantValue);
     case ValueKind::ArrayConstant:
       return containsConstant(ArrayConstants, arrayConstantHash(ConstantValue.type(), static_cast<const ArrayConstant &>(ConstantValue).elements()), ConstantValue);
+    case ValueKind::ClassConstant:
+      return containsConstant(ClassConstants, arrayConstantHash(ConstantValue.type(), static_cast<const ClassConstant &>(ConstantValue).fields()), ConstantValue);
     default:
       return false;
     }

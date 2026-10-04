@@ -115,8 +115,6 @@ namespace ink::semantic::test
         {"var X = 1;", "VarDecl"},
         {"field X: i32;", "FieldDecl"},
         {"func F[T: type](X: T): T { return X; }", "FunctionDecl"},
-        {"class C {};", "ClassDecl"},
-        {"class C[T: type] {};", "ClassDecl"},
         {"enum E {};", "EnumDecl"},
         {"interface I {};", "InterfaceDecl"},
     };

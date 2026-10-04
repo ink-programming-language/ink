@@ -51,7 +51,7 @@ namespace ink::execution::test
       WidePlace = Second.Place;
       StringPlace = Third.Place;
     }
-    EXPECT_EQ(Types->get(IntegerType)->BitWidth, 32U);
+    EXPECT_EQ(Types->get(IntegerType)->bitWidth(), 32U);
     EXPECT_EQ(IntegerPlace.storage().cell()->loadRuntime().Value.Bits, 17U);
     EXPECT_EQ(WidePlace.storage().cell()->loadRuntime().Value.integer().bitWidth(), 128U);
     EXPECT_EQ(WidePlace.storage().cell()->loadRuntime().Value.integer().lowWord(), 0xfedcba9876543210ULL);
@@ -95,8 +95,8 @@ namespace ink::execution::test
     EXPECT_EQ(Memory.allocatedStorageCount(), 2U);
   }
 
-  // Runtime pointer validation distinguishes a foreign allocation from a released local generation.
-  TEST(RuntimeStorageTest, ValidatesPointerOwnershipAndGenerationWithoutIR)
+  // Raw pointer values do not carry ownership or allocation generation checks.
+  TEST(RuntimeStorageTest, CopiesRawAddressesWithoutOwnershipChecks)
   {
     ExecutionMemoryManager Memory;
     ExecutionMemoryManager Foreign;
@@ -106,16 +106,16 @@ namespace ink::execution::test
     ASSERT_TRUE(Other.valid());
     const auto Pointer = ExecutionPointer::fromBuffer(Storage, 1);
     EXPECT_EQ(Memory.validatePointer(Pointer), ExecutionStatus::Success);
-    EXPECT_EQ(Memory.validatePointer(ExecutionPointer::fromBuffer(Other)), ExecutionStatus::InvalidPlace);
+    EXPECT_EQ(Memory.validatePointer(ExecutionPointer::fromBuffer(Other)), ExecutionStatus::Success);
     ASSERT_EQ(Memory.release(Storage), ExecutionStatus::Success);
     const auto Replacement = Memory.allocateBuffer("replacement");
     ASSERT_TRUE(Replacement.valid());
-    EXPECT_EQ(Memory.validatePointer(Pointer), ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Memory.validatePointer(Pointer), ExecutionStatus::Success);
     EXPECT_NE(Replacement, Storage);
   }
 
-  // Only semantic result transport may retain a local expired pointer; factories, stores and foreign snapshots still fail.
-  TEST(RuntimeStorageTest, TransportsExpiredLocalSnapshotsWithoutMakingThemUsable)
+  // Pointer values can pass through factories, snapshots and pointer storage without accessing their pointees.
+  TEST(RuntimeStorageTest, TransportsRawPointerBitsWithoutAccessingPointees)
   {
     core::CompilationContext Compilation;
     ir::IRContext Context(Compilation);
@@ -127,21 +127,21 @@ namespace ink::execution::test
     const auto Storage = Heap.allocateBuffer("local");
     const auto Pointer = ExecutionPointer::fromBuffer(Storage);
     ASSERT_EQ(Heap.release(Storage), ExecutionStatus::Success);
-    EXPECT_FALSE(Heap.pointer(*PointerType, Pointer).valid());
-    EXPECT_EQ(Heap.lastStatus(), ExecutionStatus::ExpiredPlace);
+    EXPECT_TRUE(Heap.pointer(*PointerType, Pointer).valid());
+    EXPECT_EQ(Heap.lastStatus(), ExecutionStatus::Success);
     EXPECT_EQ(Heap.liveValueCount(), 0U);
     const auto Snapshot = Heap.bridge().raiseValue(Heap, RuntimeValue::fromPointer(Pointer, Type), Type);
     ASSERT_TRUE(Snapshot);
-    EXPECT_FALSE(Snapshot.Value.valid());
-    EXPECT_EQ(Snapshot.Value.pointer().status(), ExecutionStatus::ExpiredPlace);
-    EXPECT_EQ(Heap.bridge().lowerValue(Snapshot.Value).Status, ExecutionStatus::ExpiredPlace);
+    EXPECT_TRUE(Snapshot.Value.valid());
+    EXPECT_EQ(Snapshot.Value.pointer().status(), ExecutionStatus::Success);
+    EXPECT_EQ(Heap.bridge().lowerValue(Snapshot.Value).Status, ExecutionStatus::Success);
     const auto Destination = Heap.allocateCell(*PointerType);
     ASSERT_TRUE(Destination);
-    EXPECT_EQ(Heap.store(Destination.Place, Snapshot.Value), ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Heap.store(Destination.Place, Snapshot.Value), ExecutionStatus::Success);
     const auto Other = Foreign.allocateBuffer("foreign");
     const auto ForeignPointer = ExecutionPointer::fromBuffer(Other);
     ASSERT_EQ(Foreign.release(Other), ExecutionStatus::Success);
-    EXPECT_EQ(Heap.bridge().raiseValue(Heap, RuntimeValue::fromPointer(ForeignPointer, Type), Type).Status, ExecutionStatus::InvalidPlace);
+    EXPECT_EQ(Heap.bridge().raiseValue(Heap, RuntimeValue::fromPointer(ForeignPointer, Type), Type).Status, ExecutionStatus::Success);
     EXPECT_EQ(Heap.liveValueCount(), 1U);
   }
 
@@ -166,7 +166,7 @@ namespace ink::execution::test
     const auto *Pointer = Context.typePool().getType<ir::TypeKind::Pointer>(Bool, ir::AccessKind::ReadWrite);
     const RuntimeTypeId PointerType = Heap.bridge().lowerType(*Pointer);
     const auto RuntimePointer = RuntimeValue::fromPointer(ExecutionPointer::fromPlace(Cell.Place), PointerType);
-    EXPECT_EQ(Heap.bridge().raiseValue(Heap, RuntimePointer, PointerType).Status, ExecutionStatus::TypeMismatch);
+    EXPECT_EQ(Heap.bridge().raiseValue(Heap, RuntimePointer, PointerType).Status, ExecutionStatus::Success);
     EXPECT_EQ(Heap.liveValueCount(), 0U);
   }
 } // namespace ink::execution::test

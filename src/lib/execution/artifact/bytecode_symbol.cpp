@@ -28,17 +28,17 @@ namespace ink::execution
       return true;
     }
 
-    std::size_t childCount(const StorageLayout &Layout)
+    std::size_t childCount(const TypeDesc &Layout)
     {
-      return Layout.Kind == RuntimeKind::Pointer || Layout.Kind == RuntimeKind::Array ? 1 : Layout.Kind == RuntimeKind::Function ? Layout.Parameters.size() + 1 : 0;
+      return Layout.Kind == RuntimeKind::Pointer || Layout.Kind == RuntimeKind::Array ? 1 : Layout.Kind == RuntimeKind::Function ? Layout.functionDesc().Parameters.size() + 1 : 0;
     }
 
-    RuntimeTypeId childAt(const StorageLayout &Layout, std::size_t Index)
+    RuntimeTypeId childAt(const TypeDesc &Layout, std::size_t Index)
     {
-      return Layout.Kind == RuntimeKind::Array ? Layout.ElementType : Layout.Kind == RuntimeKind::Pointer ? Layout.Pointee : Index == 0 ? Layout.ReturnType : Layout.Parameters[Index - 1];
+      return Layout.Kind == RuntimeKind::Array ? Layout.arrayDesc().ElementType : Layout.Kind == RuntimeKind::Pointer ? Layout.pointerDesc().Pointee : Index == 0 ? Layout.functionDesc().ReturnType : Layout.functionDesc().Parameters[Index - 1];
     }
 
-    std::string layoutPrefix(const StorageLayout &Layout)
+    std::string layoutPrefix(const TypeDesc &Layout)
     {
       // These identity tags are versioned independently of RuntimeKind's enum order.
       unsigned Kind = 0;
@@ -68,10 +68,16 @@ namespace ink::execution
       case RuntimeKind::Array:
         Kind = 8;
         break;
+      case RuntimeKind::Class:
+      {
+        std::string Identity = "class:";
+        appendField(Identity, Layout.classDesc().NominalIdentity);
+        return Identity;
+      }
       case RuntimeKind::Invalid:
         break;
       }
-      return "t(" + std::to_string(Kind) + "," + std::to_string(Layout.BitWidth) + "," + std::to_string(Layout.Signed) + "," + std::to_string(Layout.Size) + "," + std::to_string(Layout.Alignment) + "," + std::to_string(Layout.Native) + "," + std::to_string(Layout.Writable) + "," + std::to_string(childCount(Layout)) + (Layout.Kind == RuntimeKind::Array ? "," + std::to_string(Layout.ElementCount) : "") + ")";
+      return "t(" + std::to_string(Kind) + "," + std::to_string(Layout.bitWidth()) + "," + std::to_string(Layout.isSigned()) + "," + std::to_string(Layout.Size) + "," + std::to_string(Layout.Alignment) + "," + std::to_string(Layout.Native) + "," + std::to_string(Layout.pointerDesc().Writable) + "," + std::to_string(childCount(Layout)) + (Layout.Kind == RuntimeKind::Array ? "," + std::to_string(Layout.arrayDesc().ElementCount) : "") + ")";
     }
   } // namespace
 
@@ -206,8 +212,8 @@ namespace ink::execution
         while (!Stack.empty())
         {
           Visit &Current = Stack.back();
-          const StorageLayout &Layout = *Types.get(Current.Type);
-          if (Layout.Kind <= RuntimeKind::Invalid || Layout.Kind > RuntimeKind::Array || Layout.Parameters.size() >= Limits.MaxRecords)
+          const TypeDesc &Layout = *Types.get(Current.Type);
+          if (Layout.Kind <= RuntimeKind::Invalid || Layout.Kind > RuntimeKind::Class || Layout.functionDesc().Parameters.size() >= Limits.MaxRecords)
           {
             return {BytecodeStatus::InvalidImage, "Bytecode type graph contains an unsupported kind or invalid parameter count"};
           }

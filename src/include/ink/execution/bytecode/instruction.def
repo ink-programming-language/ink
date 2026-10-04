@@ -59,3 +59,8 @@ INK_INSTRUCTION(Return, None, ReadSlot, None, None)
 INK_INSTRUCTION(ReturnVoid, None, None, None, None)
 INK_INSTRUCTION(Function, WriteSlot, None, None, None)
 INK_INSTRUCTION(Failure, None, Status, None, None)
+
+// Class stores little-endian source slots; field projections use a logical field index.
+INK_INSTRUCTION(Class, WriteSlot, DataOffset, DataLength, None)
+INK_INSTRUCTION(FieldExtract, WriteSlot, ReadSlot, FieldIndex, None)
+INK_INSTRUCTION(FieldPointer, WriteSlot, ReadSlot, FieldIndex, None)

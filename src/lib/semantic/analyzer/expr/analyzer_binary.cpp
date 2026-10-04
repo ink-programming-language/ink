@@ -1,6 +1,7 @@
 #include "../analyzer_internal.h"
 
 #include "ink/parser/ast.h"
+#include "ink/semantic/operator_method.h"
 
 namespace ink::semantic
 {
@@ -17,14 +18,30 @@ namespace ink::semantic
     {
       return analyzeComparisonExpr(State, Node, Depth);
     }
-    if (!State.Evaluating && Node.op() != TokenKind::Plus)
-    {
-      reportUnsupported(State, Node);
-      return {};
-    }
     const ExpressionResult Left = analyzeExpr(State, *Node.left(), Depth + 1);
     if (!Left)
     {
+      return {};
+    }
+    if (Left.ValueObject && ClassType::classof(&Left.ValueObject->type()))
+    {
+      const bool Deferred = State.Evaluating && findDeferredIntegerLiteral(*Node.right(), Depth + 1, State.ExpressionDepthLimit);
+      if (Deferred && !prepareIntegerLiteral(State, *Node.right(), Depth + 1))
+      {
+        return {};
+      }
+      AnalysisState::EvaluationGuard OperandExpected(State, State.Evaluating && !Deferred, nullptr);
+      const ExpressionResult Right = analyzeExpr(State, *Node.right(), Depth + 1);
+      if (!Right)
+      {
+        return {};
+      }
+      AnalysisState::EvaluationGuard CallMode(State, State.Evaluating || Deferred, nullptr);
+      return callClassOperator(State, Left, operatorMethodName(Node.op(), OperatorMethodKind::Binary), std::span<const ExpressionResult>(&Right, 1), Node);
+    }
+    if (!State.Evaluating && Node.op() != TokenKind::Plus)
+    {
+      reportUnsupported(State, Node);
       return {};
     }
     const Type *Expected = Left.ValueObject ? &Left.ValueObject->type() : (State.ExpectedType && IntegerType::classof(State.ExpectedType) ? State.ExpectedType : nullptr);
@@ -162,6 +179,21 @@ namespace ink::semantic
     if (!Left)
     {
       return {};
+    }
+    if (Left.ValueObject && ClassType::classof(&Left.ValueObject->type()))
+    {
+      const ExpressionResult Right = AnalyzeOperand(*Node.right());
+      if (!Right)
+      {
+        return {};
+      }
+      const ExpressionResult Result = callClassOperator(State, Left, operatorMethodName(Node.op(), OperatorMethodKind::Binary), std::span<const ExpressionResult>(&Right, 1), Node);
+      if (Result && (!Result.ValueObject || Result.ValueObject->type().typeKind() != TypeKind::Bool))
+      {
+        State.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "bool comparison result", Result.ValueObject ? describeType(Result.ValueObject->type()) : "void");
+        return {};
+      }
+      return Result;
     }
     const Type *Expected = Left.ValueObject ? &Left.ValueObject->type() : nullptr;
     AnalysisState::EvaluationGuard ExpectedGuard(State, State.Evaluating, Expected);

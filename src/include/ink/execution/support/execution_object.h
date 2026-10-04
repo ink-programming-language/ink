@@ -13,6 +13,7 @@ namespace ink::execution
     PointerValue,
     FunctionValue,
     ArrayValue,
+    ClassValue,
     Cell,
     Buffer,
   };

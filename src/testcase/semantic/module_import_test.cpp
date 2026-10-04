@@ -340,7 +340,7 @@ namespace ink::semantic::test
     }
   }
 
-  // Missing modules, private definitions, nonfunction imports and alias collisions produce recoverable source errors.
+  // Missing modules, private definitions, unsupported value imports and alias collisions produce recoverable source errors.
   TEST(SemanticModuleImportTest, ReportsInvalidImportsAsUserErrors)
   {
     struct Case
@@ -355,9 +355,9 @@ namespace ink::semantic::test
         {"from library import answer;", "private func answer(): i32 { return 42; }", core::DiagnosticKind::SemanticPrivateImport},
         {"import library; func main(): i32 { return library.answer(); }", "private func answer(): i32 { return 42; }", core::DiagnosticKind::SemanticPrivateImport},
         {"from library import item;", "var item: i32 = 42;", core::DiagnosticKind::SemanticUnsupportedImport},
-        {"from library import Item;", "class Item {};", core::DiagnosticKind::SemanticUnsupportedImport},
+        {"from library import Item;", "private class Item {};", core::DiagnosticKind::SemanticInvalidMember},
         {"import library; func main(): i32 { return library.item(); }", "var item: i32 = 42;", core::DiagnosticKind::SemanticUnsupportedImport},
-        {"import library; func main(): i32 { return library.Item(); }", "class Item {};", core::DiagnosticKind::SemanticUnsupportedImport},
+        {"import library; func main(): i32 { return library.Item(); }", "class Item {};", core::DiagnosticKind::SemanticTypeMismatch},
         {"from library import answer as main; func main(): i32 { return 0; }", "func answer(): i32 { return 42; }", core::DiagnosticKind::SemanticDuplicateName},
         {"func main(): i32 { return answer(); }", "func answer(): i32 { return 42; }", core::DiagnosticKind::SemanticUnknownName},
         {"from .library import answer;", "func answer(): i32 { return 42; }", core::DiagnosticKind::SemanticInvalidModulePath},
@@ -373,6 +373,22 @@ namespace ink::semantic::test
       ASSERT_EQ(Input.Diagnostics.diagnostics().size(), 1U);
       EXPECT_EQ(Input.Diagnostics.diagnostics().front().Kind, Entry.Expected);
       EXPECT_EQ(Input.Diagnostics.diagnostics().front().classification(), core::DiagnosticClass::User);
+    }
+  }
+
+  // Demand-lowered imported class defaults observe earlier compile-time bindings at their definition, independently of input order.
+  TEST(SemanticModuleImportTest, PreservesClassDefaultDefinitionSnapshot)
+  {
+    constexpr std::string_view App = "from library import P; func main(): i32 { var Value = P(); return Value.X + 2; }";
+    constexpr std::string_view Library = "comptime var Seed = 40; class P { field X: i32 = comptime Seed; }; comptime { Seed = 9; }";
+    for (bool LibraryFirst : {false, true})
+    {
+      ModuleAnalysis Input(LibraryFirst ? std::initializer_list<std::pair<std::string_view, std::string_view>>{{"library", Library}, {"app", App}} : std::initializer_list<std::pair<std::string_view, std::string_view>>{{"app", App}, {"library", Library}});
+      ASSERT_TRUE(Input.parsed());
+      ir::Module *Entry = Input.analyze();
+      ASSERT_NE(Entry, nullptr);
+      ASSERT_TRUE(Input.Diagnostics.diagnostics().empty());
+      Input.expectResult(*Entry, 42);
     }
   }
 

@@ -1,6 +1,7 @@
 #include "../analyzer_internal.h"
 
 #include "ink/parser/ast.h"
+#include "ink/semantic/operator_method.h"
 
 namespace ink::semantic
 {
@@ -196,6 +197,10 @@ namespace ink::semantic
       {
         return {};
       }
+      if (Operand.ValueObject && ir::ClassType::classof(&Operand.ValueObject->type()))
+      {
+        return callClassOperator(State, Operand, operatorMethodName(Node.op(), OperatorMethodKind::Unary), {}, Node);
+      }
       if (!Operand.ValueObject || !ir::Constant::classof(Operand.ValueObject))
       {
         reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
@@ -204,17 +209,21 @@ namespace ink::semantic
       const auto Result = State.Context.comptimeState().Engine.evaluateUnary(Node.op(), static_cast<const ir::Constant &>(*Operand.ValueObject));
       return reportExecution(State, Result.Status, Node) ? ExpressionResult{Result.Value} : ExpressionResult{};
     }
-    if (Node.op() == tokenizer::TokenKind::Plus || Node.op() == tokenizer::TokenKind::Minus)
+    if (Node.op() == tokenizer::TokenKind::Plus || Node.op() == tokenizer::TokenKind::Minus || Node.op() == tokenizer::TokenKind::Tilde)
     {
       ExpressionResult Result = analyzeExpr(State, *Node.operand(), Depth + 1);
       if (!Result)
       {
         return {};
       }
-      if (Result.IntegerLiteral)
+      if (Result.IntegerLiteral && Node.op() != tokenizer::TokenKind::Tilde)
       {
         Result.Negative = Result.Negative != (Node.op() == tokenizer::TokenKind::Minus);
         return Result;
+      }
+      if (Result.ValueObject && ir::ClassType::classof(&Result.ValueObject->type()))
+      {
+        return callClassOperator(State, Result, operatorMethodName(Node.op(), OperatorMethodKind::Unary), {}, Node);
       }
     }
     reportUnsupported(State, Node);

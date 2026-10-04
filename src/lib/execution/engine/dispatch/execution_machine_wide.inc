@@ -6,33 +6,30 @@ namespace ink::execution
     {
       return ExecutionStatus::RuntimeValue;
     }
-    const RuntimeValue &LeftValue = Frame.Slots[Operation.Operands[1]];
-    const RuntimeValue &RightValue = Frame.Slots[Operation.Operands[2]];
-    const StorageLayout &Layout = *Frame.Function->Operations[Frame.PC - 1].Layout;
-    ExecutionInteger LeftScalar(Layout.BitWidth <= 64 ? Layout.BitWidth : 1, LeftValue.Bits);
-    ExecutionInteger RightScalar(Layout.BitWidth <= 64 ? Layout.BitWidth : 1, RightValue.Bits);
-    const ExecutionInteger &Left = Layout.BitWidth <= 64 ? LeftScalar : LeftValue.integer();
-    const ExecutionInteger &Right = Layout.BitWidth <= 64 ? RightScalar : RightValue.integer();
-    const RuntimeTypeId ResultType = Frame.Slots[Operation.Operands[0]].Type;
+    const Slot &LeftValue = Frame.Slots[Operation.Operands[1]];
+    const Slot &RightValue = Frame.Slots[Operation.Operands[2]];
+    const TypeDesc &Layout = *Frame.Function->Operations[Frame.PC - 1].Layout;
+    const ExecutionInteger Left = LeftValue.integer();
+    const ExecutionInteger Right = RightValue.integer();
     if (Operation.Code == BytecodeOpcode::AddWide)
     {
-      ExecutionInteger Sum(Layout.BitWidth);
+      ExecutionInteger Sum(Layout.bitWidth());
       const ExecutionStatus Status = Left.add(Right, Sum);
       if (Status != ExecutionStatus::Success)
       {
         return Status;
       }
-      Frame.Slots[Operation.Operands[0]] = RuntimeValue::fromInteger(std::move(Sum), ResultType);
+      Frame.Slots[Operation.Operands[0]].setInteger(Sum);
     }
     else
     {
       int Ordering = 0;
-      const ExecutionStatus Status = Left.compare(Right, Layout.Signed, Ordering);
+      const ExecutionStatus Status = Left.compare(Right, Layout.isSigned(), Ordering);
       if (Status != ExecutionStatus::Success)
       {
         return Status;
       }
-      Frame.Slots[Operation.Operands[0]] = RuntimeValue::fromBits(compareResult(Ordering, Operation.Operands[3]), ResultType);
+      Frame.Slots[Operation.Operands[0]].setBits(compareResult(Ordering, Operation.Operands[3]));
     }
     return ExecutionStatus::Success;
   }

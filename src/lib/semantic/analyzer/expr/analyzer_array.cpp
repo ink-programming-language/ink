@@ -60,6 +60,15 @@ namespace ink::semantic
         {
           Root = static_cast<const parser::IndexExpr &>(*Root).object();
         }
+        else if (parser::MemberExpr::classof(Root))
+        {
+          const auto &Member = static_cast<const parser::MemberExpr &>(*Root);
+          if (Member.access() == tokenizer::TokenKind::Arrow)
+          {
+            return true;
+          }
+          Root = Member.object();
+        }
         else if (parser::UnaryExpr::classof(Root))
         {
           return static_cast<const parser::UnaryExpr &>(*Root).op() == tokenizer::TokenKind::Star;
@@ -67,6 +76,10 @@ namespace ink::semantic
         else if (parser::NameExpr::classof(Root))
         {
           const auto Name = static_cast<const parser::NameExpr &>(*Root).name();
+          if (Name.Text == "this")
+          {
+            return true;
+          }
           const auto *Binding = Resolver.lookup(Context.namePool().find(Name.Text));
           if (!Binding || Binding->targets().size() != 1)
           {
@@ -204,7 +217,7 @@ namespace ink::semantic
     {
       ElementType = State.Context.typePool().getType<TypeKind::Integer>(32, true);
     }
-    if (ElementType->typeKind() != TypeKind::Bool && ElementType->typeKind() != TypeKind::Integer && ElementType->typeKind() != TypeKind::Float && ElementType->typeKind() != TypeKind::Pointer && ElementType->typeKind() != TypeKind::Reference && ElementType->typeKind() != TypeKind::Slice && ElementType->typeKind() != TypeKind::Array)
+    if (ElementType->typeKind() != TypeKind::Bool && ElementType->typeKind() != TypeKind::Integer && ElementType->typeKind() != TypeKind::Float && ElementType->typeKind() != TypeKind::Pointer && ElementType->typeKind() != TypeKind::Reference && ElementType->typeKind() != TypeKind::Slice && ElementType->typeKind() != TypeKind::Array && ElementType->typeKind() != TypeKind::Class)
     {
       State.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "array element value type", describeType(*ElementType));
       return {};

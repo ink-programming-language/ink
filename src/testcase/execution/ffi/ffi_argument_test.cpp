@@ -174,13 +174,13 @@ namespace ink::execution::test
       EXPECT_EQ(Test.Heap.liveStorageCount(), 1U);
       ASSERT_EQ(Argument.prepare(Test.Heap, Test.Int32, Test.integer(7)), ExecutionStatus::Success);
       EXPECT_EQ(Test.Heap.liveStorageCount(), 0U);
-      EXPECT_EQ(ExecutionPointer::fromBuffer(Retained).status(), ExecutionStatus::ExpiredPlace);
+      EXPECT_EQ(Retained.status(), ExecutionStatus::ExpiredPlace);
       ASSERT_EQ(Argument.prepare(Test.Heap, Test.BytePointer, Test.string("second")), ExecutionStatus::Success);
       Retained = Argument.bufferRef();
       EXPECT_EQ(Test.Heap.liveStorageCount(), 1U);
     }
     EXPECT_EQ(Test.Heap.liveStorageCount(), 0U);
-    EXPECT_EQ(ExecutionPointer::fromBuffer(Retained).status(), ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Retained.status(), ExecutionStatus::ExpiredPlace);
   }
 
 #if defined(_WIN32) || defined(__linux__)
@@ -201,14 +201,13 @@ namespace ink::execution::test
     const auto Result = callExternalFunction(Test.Heap, Cache, *Function, Arguments);
     ASSERT_TRUE(Result);
     ASSERT_EQ(Result.Value.kind(), ExecutionValueKind::Pointer);
-    EXPECT_EQ(Result.Value.pointer().kind(), ExecutionPointer::Kind::Buffer);
-    EXPECT_EQ(Result.Value.pointer().offset(), 1U);
+    EXPECT_EQ(Result.Value.pointer().kind(), ExecutionPointer::Kind::Native);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 1U);
     ASSERT_NE(Result.Value.pointer().address(), nullptr);
     EXPECT_EQ(std::string_view(static_cast<const char *>(Result.Value.pointer().address())), "BC");
-    ASSERT_EQ(Test.Heap.release(Result.Value.pointer().bufferRef()), ExecutionStatus::Success);
+    ASSERT_EQ(Test.Heap.release(Test.Heap.memoryManager().storageFromAddress(Result.Value.pointer().address())), ExecutionStatus::Success);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 0U);
-    EXPECT_EQ(Result.Value.pointer().status(), ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Result.Value.pointer().status(), ExecutionStatus::Success);
   }
 
   // A scalar native return leaves no temporary string allocation behind after argument marshalling finishes.
@@ -249,13 +248,12 @@ namespace ink::execution::test
     const ExecutionValueRef Arguments[] = {Test.Heap.pointer(Test.BytePointer, ExecutionPointer::fromBuffer(Buffer))};
     const auto Result = callExternalFunction(Test.Heap, Cache, *Function, Arguments);
     ASSERT_TRUE(Result);
-    ASSERT_EQ(Result.Value.pointer().kind(), ExecutionPointer::Kind::Buffer);
-    EXPECT_EQ(Result.Value.pointer().buffer(), Buffer.buffer());
-    EXPECT_EQ(Result.Value.pointer().offset(), 1U);
+    ASSERT_EQ(Result.Value.pointer().kind(), ExecutionPointer::Kind::Native);
+    EXPECT_EQ(Test.Heap.memoryManager().storageFromAddress(Result.Value.pointer().address()).buffer(), Buffer.buffer());
     EXPECT_EQ(Test.Heap.allocatedStorageCount(), 1U);
     ASSERT_EQ(Test.Heap.release(Buffer), ExecutionStatus::Success);
     EXPECT_EQ(Test.Heap.liveStorageCount(), 0U);
-    EXPECT_EQ(Result.Value.pointer().status(), ExecutionStatus::ExpiredPlace);
+    EXPECT_EQ(Result.Value.pointer().status(), ExecutionStatus::Success);
   }
 #endif
 } // namespace ink::execution::test

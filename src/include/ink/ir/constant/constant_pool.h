@@ -3,6 +3,7 @@
 
 #include "ink/ir/constant/bool_constant.h"
 #include "ink/ir/constant/array_constant.h"
+#include "ink/ir/constant/class_constant.h"
 #include "ink/ir/constant/float_constant.h"
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/constant/string_constant.h"
@@ -45,6 +46,7 @@ namespace ink::ir
       // Requires the exact number of canonical local constants with the array's element type.
       // Empty and nested arrays are canonicalized by their type and ordered element identities.
       const ArrayConstant *getArrayConstant(const ArrayType &ValueType, std::span<const Constant *const> Elements);
+      const ClassConstant *getClassConstant(const ClassType &ValueType, std::span<const Constant *const> Fields);
 
       // Both bool constants are present from construction and included in size().
       std::size_t size() const noexcept;
@@ -59,6 +61,7 @@ namespace ink::ir
       std::unordered_multimap<std::size_t, std::unique_ptr<StringConstant>> StringConstants;
       std::unordered_multimap<std::size_t, std::unique_ptr<FloatConstant>> FloatConstants;
       std::unordered_multimap<std::size_t, std::unique_ptr<ArrayConstant>> ArrayConstants;
+      std::unordered_multimap<std::size_t, std::unique_ptr<ClassConstant>> ClassConstants;
       std::unique_ptr<BoolConstant> FalseValue;
       std::unique_ptr<BoolConstant> TrueValue;
 

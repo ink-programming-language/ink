@@ -34,6 +34,7 @@ namespace ink::execution
     DataOffset,
     DataLength,
     Status,
+    FieldIndex,
   };
 
   enum class BytecodeOpcode
