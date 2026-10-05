@@ -6,8 +6,41 @@
 
 namespace ink::semantic
 {
+  namespace
+  {
+    class BlockDepthGuard final
+    {
+      public:
+        explicit BlockDepthGuard(std::size_t &Depth) noexcept
+            : Depth(Depth),
+              SavedDepth(Depth)
+        {
+          ++Depth;
+        }
+
+        ~BlockDepthGuard() noexcept
+        {
+          Depth = SavedDepth;
+        }
+
+        BlockDepthGuard(const BlockDepthGuard &) = delete;
+        BlockDepthGuard &operator=(const BlockDepthGuard &) = delete;
+        BlockDepthGuard(BlockDepthGuard &&) = delete;
+        BlockDepthGuard &operator=(BlockDepthGuard &&) = delete;
+
+      private:
+        std::size_t &Depth;
+        std::size_t SavedDepth;
+    };
+  } // namespace
+
   bool Analyzer::analyzeStmt(AnalysisState &State, const parser::Stmt &Stmt)
   {
+    // Compile-time evaluation will be restored with the semantic implementation.
+    if (Stmt.isComptime())
+    {
+      return reportUnsupported(State, Stmt);
+    }
     switch (Stmt.getKind())
     {
 #define INK_ANALYZE_Root(Name)
@@ -34,21 +67,33 @@ namespace ink::semantic
     }
   }
 
-  bool Analyzer::analyzeSimpleStmt(AnalysisState &, const parser::SimpleStmt &)
+  bool Analyzer::analyzeSimpleStmt(AnalysisState &State, const parser::SimpleStmt &Node)
   {
-    // TODO: Rebuild semantic analysis for this node; the placeholder must not report success.
-    return false;
+    // TODO: Rebuild semantic analysis for this node.
+    return reportUnsupported(State, Node);
   }
 
-  bool Analyzer::analyzeBlockStmt(AnalysisState &, const parser::BlockStmt &)
+  bool Analyzer::analyzeBlockStmt(AnalysisState &State, const parser::BlockStmt &Node)
   {
-    // TODO: Rebuild semantic analysis for this node; the placeholder must not report success.
-    return false;
+    if (State.BlockDepth >= State.BlockDepthLimit)
+    {
+      State.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
+      return false;
+    }
+    BlockDepthGuard DepthGuard(State.BlockDepth);
+    bool Succeeded = true;
+    for (const parser::Stmt *Stmt : Node.statements())
+    {
+      if (!analyzeStmt(State, *Stmt))
+      {
+        Succeeded = false;
+      }
+    }
+    return Succeeded;
   }
 
-  bool Analyzer::analyzeDeclStmt(AnalysisState &, const parser::DeclStmt &)
+  bool Analyzer::analyzeDeclStmt(AnalysisState &State, const parser::DeclStmt &Node)
   {
-    // TODO: Rebuild semantic analysis for this node; the placeholder must not report success.
-    return false;
+    return analyzeDecl(State, *Node.declaration());
   }
 } // namespace ink::semantic

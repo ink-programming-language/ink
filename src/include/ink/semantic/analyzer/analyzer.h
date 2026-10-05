@@ -3,6 +3,8 @@
 
 namespace ink::parser
 {
+  struct ParseResult;
+  class ASTNodeBase;
   class Stmt;
   class Decl;
 #define AST_NODE(Name, Base, Category, Id) class Name;
@@ -12,14 +14,22 @@ namespace ink::parser
 
 namespace ink::semantic
 {
-  // Preserve AST dispatch while analysis state and semantic behavior are rebuilt.
+  class SemanticContext;
+
+  // Analysis currently traverses module/block structure and dispatches concrete nodes without producing IR.
   class Analyzer
   {
+    public:
+      // Input must belong to Context's compilation and remain alive for the call.
+      // Unusable input returns false; unimplemented nodes report the existing SemanticUnsupported ICE.
+      bool analyze(SemanticContext &Context, const parser::ParseResult &Input);
+
     private:
       struct AnalysisState;
 
       bool analyzeStmt(AnalysisState &State, const parser::Stmt &Stmt);
       bool analyzeDecl(AnalysisState &State, const parser::Decl &Declaration);
+      bool reportUnsupported(AnalysisState &State, const parser::ASTNodeBase &Node);
 
       // Keep handlers explicit so new AST statements and declarations require a deliberate implementation.
       bool analyzeMissingStmt(AnalysisState &State, const parser::MissingStmt &Node);

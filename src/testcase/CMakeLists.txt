@@ -13,11 +13,11 @@ target_link_libraries(ink_tokenizer_test_objects PRIVATE ink::core ink::tokenize
 ink_disable_exceptions(ink_tokenizer_test_objects)
 
 # Original semantic test sources remain under semantic/ as a reference for rebuilding the implementation.
-# They depend on the removed IR and execution APIs and are intentionally excluded from active tests.
-add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES})
+# They depend on the removed IR and execution APIs; only the new entry/dispatch regression tests are active.
+add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} semantic/analyzer_entry_test.cpp)
 add_dependencies(ink_tests ink_tokenize ink_parse)
 target_compile_features(ink_tests PRIVATE cxx_std_20)
-target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::parser ink::llvm LLVMBitstreamReader GTest::gtest_main GTest::gmock spdlog::spdlog)
+target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::parser ink::semantic ink::llvm LLVMBitstreamReader GTest::gtest_main GTest::gmock spdlog::spdlog)
 ink_disable_exceptions(ink_tests)
 
 if(MSVC)

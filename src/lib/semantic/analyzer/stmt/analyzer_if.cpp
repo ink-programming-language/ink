@@ -2,9 +2,9 @@
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeIfStmt(AnalysisState &, const parser::IfStmt &)
+  bool Analyzer::analyzeIfStmt(AnalysisState &State, const parser::IfStmt &Node)
   {
-    // TODO: Rebuild semantic analysis for this node; the placeholder must not report success.
-    return false;
+    // TODO: Rebuild semantic analysis for this node.
+    return reportUnsupported(State, Node);
   }
 } // namespace ink::semantic

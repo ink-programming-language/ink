@@ -8,6 +8,10 @@ namespace ink::semantic
 {
   bool Analyzer::analyzeDecl(AnalysisState &State, const parser::Decl &Declaration)
   {
+    if (Declaration.isComptime())
+    {
+      return reportUnsupported(State, Declaration);
+    }
     switch (Declaration.getKind())
     {
 #define INK_ANALYZE_Root(Name)
@@ -34,9 +38,9 @@ namespace ink::semantic
     }
   }
 
-  bool Analyzer::analyzeFieldDecl(AnalysisState &, const parser::FieldDecl &)
+  bool Analyzer::analyzeFieldDecl(AnalysisState &State, const parser::FieldDecl &Node)
   {
-    // TODO: Rebuild semantic analysis for this node; the placeholder must not report success.
-    return false;
+    // TODO: Rebuild semantic analysis for this node.
+    return reportUnsupported(State, Node);
   }
 } // namespace ink::semantic

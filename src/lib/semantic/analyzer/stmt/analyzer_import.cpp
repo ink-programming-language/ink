@@ -2,15 +2,15 @@
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeDirectImportStmt(AnalysisState &, const parser::DirectImportStmt &)
+  bool Analyzer::analyzeDirectImportStmt(AnalysisState &State, const parser::DirectImportStmt &Node)
   {
-    // TODO: Rebuild semantic analysis for this node; the placeholder must not report success.
-    return false;
+    // TODO: Rebuild semantic analysis for this node.
+    return reportUnsupported(State, Node);
   }
 
-  bool Analyzer::analyzeFromImportStmt(AnalysisState &, const parser::FromImportStmt &)
+  bool Analyzer::analyzeFromImportStmt(AnalysisState &State, const parser::FromImportStmt &Node)
   {
-    // TODO: Rebuild semantic analysis for this node; the placeholder must not report success.
-    return false;
+    // TODO: Rebuild semantic analysis for this node.
+    return reportUnsupported(State, Node);
   }
 } // namespace ink::semantic
