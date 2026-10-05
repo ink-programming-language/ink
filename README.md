@@ -13,6 +13,10 @@
 - [命令行接口](docs/command-line.md)
 - [Parser 测试与覆盖率](src/testcase/parser/README.md)
 
+## 编辑器支持
+
+[`editors`](editors/README.md) 提供 CLion / IntelliJ IDEA 可导入的 TextMate 语法高亮和 Ink Live Templates。安装步骤见该目录的说明，高亮样例见 [`example.ink`](editors/textmate/example.ink)。
+
 ## 构建与测试
 
 初始化固定版本的第三方依赖：

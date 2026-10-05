@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>name</key>
+    <string>Ink (programming language)</string>
+    <key>uuid</key>
+    <string>779B9B17-45B4-4BFB-B221-4252DA891E31</string>
+    <key>description</key>
+    <string>Syntax highlighting for the Ink programming language.</string>
+  </dict>
+</plist>
