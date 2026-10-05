@@ -1,6 +1,6 @@
 # ink
 
-`main` 保留完整的 tokenizer、parser、AST、对应测试，以及前端所需的 Core、CLI 和构建依赖。Semantic 保留原有头文件、源文件及目录结构，当前仅包含声明和实现占位；`src/testcase/semantic` 中的原有测试源码完整保留，暂不参与编译和运行。
+`main` 保留完整的 tokenizer、parser、AST、对应测试，以及前端所需的 Core、CLI 和构建依赖。Semantic 保留原有头文件、源文件及目录结构，以及 analyzer 基于 `ASTNodes.def` 的语句和声明分派；具体语义处理函数仍为返回失败的占位实现。`src/testcase/semantic` 中的原有测试源码完整保留，暂不参与编译和运行。
 
 精简前的完整主干保存在 [`saved-execution`](https://github.com/ink-programming-language/ink/tree/saved-execution) 分支，快照提交为 `22c3946c4737a7942fc28ab7cfa6f78e6fa3bd31`。原有 semantic 实现、IR、execution、ABI、LLVM backend、inkc 及其测试和文档可在该分支查看。
 

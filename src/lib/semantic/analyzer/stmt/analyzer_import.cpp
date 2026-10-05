@@ -1,6 +1,16 @@
-#include "ink/semantic/analyzer/analyzer.h"
+#include "../analyzer_internal.h"
 
 namespace ink::semantic
 {
-  // TODO: Rebuild this semantic analysis component. Previous implementation: saved-execution.
+  bool Analyzer::analyzeDirectImportStmt(AnalysisState &, const parser::DirectImportStmt &)
+  {
+    // TODO: Rebuild semantic analysis for this node; the placeholder must not report success.
+    return false;
+  }
+
+  bool Analyzer::analyzeFromImportStmt(AnalysisState &, const parser::FromImportStmt &)
+  {
+    // TODO: Rebuild semantic analysis for this node; the placeholder must not report success.
+    return false;
+  }
 } // namespace ink::semantic
