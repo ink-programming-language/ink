@@ -27,6 +27,8 @@ namespace ink::execution
       // Immutable value snapshots are accounted for separately by ExecutionHeap.
       std::size_t liveStorageBytes() const noexcept;
       std::size_t allocatedStorageBytes() const noexcept;
+      // Explicit top-level invocation boundary; existing live storage remains charged.
+      void resetAllocationBudget() noexcept;
 
       // Initial and subsequent stored values use Layout's type domain; callers
       // must bridge values arriving from an independent execution image.

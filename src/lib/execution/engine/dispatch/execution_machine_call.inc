@@ -27,7 +27,8 @@ namespace ink::execution
         return Status;
       }
     }
-    if (Descriptor->External)
+    const bool Registered = Linker.nativeBinding(Target) != nullptr;
+    if (Descriptor->External || Registered)
     {
       std::vector<RuntimeValue> NativeArguments;
       NativeArguments.reserve(Site.Arguments.size());
@@ -41,7 +42,7 @@ namespace ink::execution
         }
         NativeArguments.push_back(Value.Value);
       }
-      const RuntimeValueResult NativeResult = callNative(*Descriptor, NativeArguments, true);
+      const RuntimeValueResult NativeResult = Registered ? callRegistered(Target, NativeArguments, true) : callNative(*Descriptor, NativeArguments, true);
       if (NativeResult)
       {
         Slot &Destination = Frame.Slots[Operation.Operands[0]];

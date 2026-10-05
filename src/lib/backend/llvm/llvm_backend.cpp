@@ -34,6 +34,11 @@ namespace ink::backend::llvm
     return Error;
   }
 
+  const std::string &LoweringResult::hybridManifest() const noexcept
+  {
+    return HybridManifest;
+  }
+
   const ::llvm::Module *LoweringResult::module() const noexcept
   {
     return Module.get();
@@ -156,7 +161,7 @@ namespace ink::backend::llvm
       Result.Module.reset();
       return Result;
     }
-    LoweringContext Lowering(Context, Source, *Result.Module, Result.Error);
+    LoweringContext Lowering(Context, Source, *Result.Module, Result.Error, Options.HotReload, Options.HotModules, Result.HybridManifest);
     if (!Lowering.lower(Entry))
     {
       Result.Module.reset();

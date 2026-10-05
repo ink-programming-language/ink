@@ -2,6 +2,8 @@
 
 当前构建包含 `ink-tokenize`、`ink-parse` 和 `inkc`。工具共用 `ink::cli::Application`，显式返回参数解析状态，不使用异常作为控制流。
 
+混合执行增加 `--hot-reload`、可重复的 `--hot-module`、`--hot-manifest FILE` 和 `--library` 原生构建选项；用 `--emit-patch FILE --patch-base FILE --patch-function '模块#函数'` 编译选定函数的字节码补丁。宿主静态链接 `ink::hybrid_runtime`，在调用边界安装补丁。完整用法和对象生命周期约定见 [AOT 与字节码混合执行](Ink-Hybrid-Execution.md)。
+
 ## 公共规则
 
 - `-h` / `--help` 打印帮助，`-V` / `--version` 打印版本；信息写入 stdout 后退出。

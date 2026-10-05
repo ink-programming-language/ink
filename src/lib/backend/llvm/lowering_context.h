@@ -4,6 +4,7 @@
 #include "ink/ir/context.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/analysis/type_layout.h"
+#include "ink/execution/artifact/bytecode_artifact.h"
 
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
@@ -19,7 +20,7 @@ namespace ink::backend::llvm
   class LoweringContext final
   {
     public:
-      LoweringContext(::llvm::LLVMContext &Context, const ir::Module &Source, ::llvm::Module &Module, std::string &Error);
+      LoweringContext(::llvm::LLVMContext &Context, const ir::Module &Source, ::llvm::Module &Module, std::string &Error, bool HotReload, const std::vector<std::string> &HotModules, std::string &HybridManifest);
       bool lower(const ir::Function *Entry);
       ::llvm::Type *lowerType(const ir::Type &Type);
       ::llvm::FunctionType *signature(const ir::FunctionType &Type, bool Native = false);
@@ -38,6 +39,8 @@ namespace ink::backend::llvm
       ::llvm::PointerType *PointerType;
       std::unordered_map<const ir::Function *, ::llvm::Function *> Functions;
       std::unordered_map<const ir::Function *, const ir::Function *> NativeDefinitions;
+      std::unordered_map<const ir::Function *, execution::FunctionId> HotFunctions;
+      ::llvm::GlobalVariable *HybridModule = nullptr;
 
     private:
       bool declareFunctions();
@@ -47,6 +50,8 @@ namespace ink::backend::llvm
       bool lowerEntry(const ir::Function &Entry);
       bool lowerNativeExports();
       bool lowerReflection();
+      bool prepareHybrid(const ir::Function *Entry);
+      bool finishHybrid();
       void collect(const ir::BasicBlock &Block);
 
       std::vector<const ir::Function *> SourceFunctions;
@@ -54,6 +59,11 @@ namespace ink::backend::llvm
       std::unordered_map<const ir::Type *, ::llvm::Type *> Types;
       std::unordered_set<const ir::Type *> Defining;
       std::unordered_map<const ir::Value *, ::llvm::Constant *> Constants;
+      bool HotReload;
+      const std::vector<std::string> &HotModules;
+      std::string &HybridManifest;
+      std::unique_ptr<execution::BytecodeArtifact> HybridMetadata;
+      std::unordered_map<execution::FunctionId, const ir::Function *> HybridSources;
   };
 } // namespace ink::backend::llvm
 

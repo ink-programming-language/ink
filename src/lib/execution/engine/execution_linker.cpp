@@ -21,6 +21,22 @@ namespace ink::execution
     return Image.Layouts.get();
   }
 
+  bool ExecutionLinker::bindNative(FunctionId Function, NativeBinding Binding)
+  {
+    if (!Binding.Invoke || !descriptor(Function))
+    {
+      return false;
+    }
+    NativeBindings.insert_or_assign(Function, Binding);
+    return true;
+  }
+
+  const NativeBinding *ExecutionLinker::nativeBinding(FunctionId Function) const noexcept
+  {
+    const auto Found = NativeBindings.find(Function);
+    return Found == NativeBindings.end() ? nullptr : &Found->second;
+  }
+
   bool ExecutionLinker::synchronize(std::uint64_t NewRevision)
   {
     if (!Bridge || Revision == NewRevision)
@@ -29,6 +45,7 @@ namespace ink::execution
     }
     Image.Functions.clear();
     Image.Descriptors.clear();
+    NativeBindings.clear();
     Revision = NewRevision;
     return true;
   }

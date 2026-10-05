@@ -2,6 +2,7 @@
 #define INK_EXECUTION_ENGINE_EXECUTION_LINKER_H
 
 #include "ink/execution/bytecode/execution_image.h"
+#include "ink/execution/engine/native_binding.h"
 
 #include <cstdint>
 #include <memory>
@@ -22,11 +23,14 @@ namespace ink::execution
       const RuntimeFunctionDescriptor *descriptor(FunctionId Function);
       const ExecutableFunction *prepare(FunctionId Function, ExecutionStatus &Status);
       const RuntimeTypeTable *layouts() const noexcept;
+      bool bindNative(FunctionId Function, NativeBinding Binding);
+      const NativeBinding *nativeBinding(FunctionId Function) const noexcept;
 
     private:
       ExecutionStatus validate(const ExecutableFunction &Function);
       SemanticValueBridge *Bridge = nullptr;
       ExecutionImage Image;
+      std::unordered_map<FunctionId, NativeBinding> NativeBindings;
       std::uint64_t Revision = 0;
   };
 } // namespace ink::execution

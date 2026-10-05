@@ -19,6 +19,9 @@ namespace ink::tools
   struct BytecodeOptions
   {
       std::string Output;
+      std::string PatchOutput;
+      std::string PatchBase;
+      std::vector<std::string> PatchFunctions;
   };
 
   int emitBytecode(semantic::SemanticContext &Context, const ir::Module &Module, const BytecodeOptions &Options);

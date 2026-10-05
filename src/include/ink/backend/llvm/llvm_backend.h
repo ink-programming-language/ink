@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace llvm
 {
@@ -25,6 +26,8 @@ namespace ink::backend::llvm
       // Empty selects the host triple. Other targets need a matching runtime.
       std::string TargetTriple;
       unsigned OptimizationLevel = 0;
+      bool HotReload = false;
+      std::vector<std::string> HotModules;
   };
 
   class LoweringResult final
@@ -43,11 +46,13 @@ namespace ink::backend::llvm
       ::llvm::Module *module() noexcept;
       bool writeIR(std::string_view Path, std::string &Error) const;
       bool writeObject(std::string_view Path, std::string &Error);
+      const std::string &hybridManifest() const noexcept;
 
     private:
       std::unique_ptr<::llvm::Module> Module;
       std::unique_ptr<::llvm::TargetMachine> Target;
       std::string Error;
+      std::string HybridManifest;
 
       friend LoweringResult lowerToLLVMIR(::llvm::LLVMContext &, const ir::Module &, const ir::Function *, const BackendOptions &);
   };

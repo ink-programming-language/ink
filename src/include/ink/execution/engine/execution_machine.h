@@ -23,6 +23,8 @@ namespace ink::execution
     public:
       ExecutionMachine(ExecutionEngine &Engine, ExecutionLinker &Linker);
       RuntimeValueResult execute(FunctionId Function, std::span<const RuntimeValue> Arguments);
+      // Execute the selected body without redispatching its own external binding.
+      RuntimeValueResult executeBytecode(FunctionId Function, std::span<const RuntimeValue> Arguments);
       void clearNativeSymbols() noexcept;
       void clearCode() noexcept;
       const RuntimeTypeTable *types() const noexcept;
@@ -71,6 +73,7 @@ namespace ink::execution
       ExecutionStatus beginCall(bool Nested);
       void endCall(CallFrame &Frame) noexcept;
       RuntimeValueResult callNative(const RuntimeFunctionDescriptor &Function, std::span<const RuntimeValue> Arguments, bool Nested);
+      RuntimeValueResult callRegistered(FunctionId Function, std::span<const RuntimeValue> Arguments, bool Nested);
       RuntimeValueResult run(PreparedFunction &Function, std::span<const RuntimeValue> Arguments);
       // Instruction handlers are defined in the .inc files included by the dispatch translation unit.
       FORCE_INLINE ExecutionStatus executeCall(const BytecodeInstruction &InstructionValue, std::vector<CallFrame> &Stack);

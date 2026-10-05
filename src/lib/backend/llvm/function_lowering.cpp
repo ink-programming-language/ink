@@ -59,6 +59,7 @@ namespace ink::backend::llvm
         ::llvm::Value *offset(::llvm::Value *Address, std::uint64_t Bytes);
         ::llvm::Value *checkedIndex(const ir::Value &Index, std::uint64_t Count);
         bool call(const ir::CallInstruction &Call, ::llvm::Value *&Result);
+        bool hotEntry();
 
         LoweringContext &Context;
         const ir::Function &Source;
@@ -142,6 +143,86 @@ namespace ink::backend::llvm
             return false;
           }
         }
+      }
+      return hotEntry();
+    }
+
+    bool FunctionLowering::hotEntry()
+    {
+      const auto Found = Context.HotFunctions.find(&Source);
+      if (Found == Context.HotFunctions.end())
+      {
+        return true;
+      }
+      Target.addFnAttr(::llvm::Attribute::NoInline);
+      auto Leave = Context.helper("ink_hybrid_leave", Builder.getVoidTy(), {});
+      for (auto &Block : Target)
+      {
+        if (::llvm::isa<::llvm::ReturnInst>(Block.getTerminator()))
+        {
+          Builder.SetInsertPoint(Block.getTerminator());
+          Builder.CreateCall(Leave);
+        }
+      }
+      auto *Original = &Target.getEntryBlock();
+      auto *Entry = ::llvm::BasicBlock::Create(Context.Context, "hot.entry", &Target, Original);
+      auto *Patched = ::llvm::BasicBlock::Create(Context.Context, "hot.patch", &Target);
+      Builder.SetInsertPoint(Entry);
+      auto *Patch = Builder.CreateCall(Context.helper("ink_hybrid_enter", Context.PointerType, {Context.PointerType, Builder.getInt32Ty()}), {Context.HybridModule, Builder.getInt32(Found->second)});
+      Builder.CreateCondBr(Builder.CreateIsNotNull(Patch), Patched, Original);
+      Builder.SetInsertPoint(Patched);
+      auto *Addresses = Builder.CreateAlloca(Context.PointerType, ::llvm::ConstantInt::get(Context.SizeType, std::max<std::size_t>(Source.parameters().size(), 1)), "hot.arguments");
+      std::size_t Index = 0;
+      for (auto &Argument : Target.args())
+      {
+        const auto &Type = Source.parameters()[Index]->type();
+        const auto Layout = Context.layout(Type);
+        if (!Layout)
+        {
+          return false;
+        }
+        auto *Storage = Builder.CreateAlloca(Builder.getInt8Ty(), ::llvm::ConstantInt::get(Context.SizeType, std::max<std::uint64_t>(Layout->Size, 1)), "hot.argument");
+        Storage->setAlignment(::llvm::Align(Layout->Alignment));
+        if (!memoryStore(Type, &Argument, Storage))
+        {
+          return false;
+        }
+        Builder.CreateStore(Storage, Builder.CreateGEP(Context.PointerType, Addresses, ::llvm::ConstantInt::get(Context.SizeType, Index++)));
+      }
+      const auto &Return = Source.functionType().returnType();
+      ::llvm::Value *Storage = ::llvm::ConstantPointerNull::get(Context.PointerType);
+      if (Return.typeKind() != ir::TypeKind::Void)
+      {
+        const auto Layout = Context.layout(Return);
+        if (!Layout)
+        {
+          return false;
+        }
+        auto *Buffer = Builder.CreateAlloca(Builder.getInt8Ty(), ::llvm::ConstantInt::get(Context.SizeType, std::max<std::uint64_t>(Layout->Size, 1)), "hot.result");
+        Buffer->setAlignment(::llvm::Align(Layout->Alignment));
+        Storage = Buffer;
+      }
+      auto *Status = Builder.CreateCall(Context.helper("ink_hybrid_invoke", Builder.getInt32Ty(), {Context.PointerType, Context.PointerType, Context.PointerType}), {Patch, Storage, Addresses});
+      auto *Succeeded = ::llvm::BasicBlock::Create(Context.Context, "hot.return", &Target);
+      auto *Failed = ::llvm::BasicBlock::Create(Context.Context, "hot.failed", &Target);
+      Builder.CreateCondBr(Builder.CreateICmpEQ(Status, Builder.getInt32(0)), Succeeded, Failed);
+      Builder.SetInsertPoint(Failed);
+      Builder.CreateCall(Context.helper("ink_hybrid_panic", Builder.getVoidTy(), {}));
+      Builder.CreateUnreachable();
+      Builder.SetInsertPoint(Succeeded);
+      ::llvm::Value *Result = Return.typeKind() == ir::TypeKind::Void ? nullptr : memoryLoad(Return, Storage);
+      if (!Result && Return.typeKind() != ir::TypeKind::Void)
+      {
+        return false;
+      }
+      Builder.CreateCall(Leave);
+      if (Result)
+      {
+        Builder.CreateRet(Result);
+      }
+      else
+      {
+        Builder.CreateRetVoid();
       }
       return true;
     }

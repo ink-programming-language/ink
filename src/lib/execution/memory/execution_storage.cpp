@@ -335,7 +335,7 @@ namespace ink::execution
     {
       return;
     }
-    if (Offset == 0 && Element.Type == Layout.Type)
+    if (Offset == 0 && Element.Domain == Layout.Domain && Element.Type == Layout.Type)
     {
       Initialized = true;
     }

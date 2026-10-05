@@ -32,6 +32,8 @@ namespace
   {
       std::string IR;
       std::string Object;
+      std::string Manifest;
+      bool Library = false;
       ink::backend::llvm::BackendOptions Backend;
   };
 
@@ -254,8 +256,8 @@ namespace
       return ink::tools::emitBytecode(Context, *Module, *Bytecode);
     }
     std::string Error;
-    const ink::ir::Function *Entry = findEntry(Context, *Module, EntryName, Error);
-    if (!Entry)
+    const ink::ir::Function *Entry = Native && Native->Library ? nullptr : findEntry(Context, *Module, EntryName, Error);
+    if (!Entry && !(Native && Native->Library))
     {
       return reportError(Error, ink::cli::ExitCode::InvocationError);
     }
@@ -268,6 +270,22 @@ namespace
         return reportError(Lowered.error(), ink::cli::ExitCode::SourceError);
       }
       const bool Written = Native->IR.empty() ? Lowered.writeObject(Native->Object, Error) : Lowered.writeIR(Native->IR, Error);
+      if (Written && !Native->Manifest.empty())
+      {
+        std::filesystem::path ManifestPath;
+        if (!ink::cli::pathFromUtf8(Native->Manifest, ManifestPath))
+        {
+          return reportError("manifest path is not valid UTF-8", ink::cli::ExitCode::InvocationError);
+        }
+        std::ofstream Output(ManifestPath, std::ios::binary | std::ios::trunc);
+        const auto &Bytes = Lowered.hybridManifest();
+        Output.write(Bytes.data(), static_cast<std::streamsize>(Bytes.size()));
+        Output.close();
+        if (!Output)
+        {
+          return reportError("cannot write hybrid base manifest", ink::cli::ExitCode::InvocationError);
+        }
+      }
       return Written ? 0 : reportError(Error, ink::cli::ExitCode::InvocationError);
     }
     Diagnostics.clear();
@@ -304,6 +322,13 @@ namespace
     ink::cli::Option &RunOption = Command.addFlag("--run-bytecode", RunBytecode, "Load a linked bytecode file and execute its saved entry").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption);
     ink::cli::Option &LLVMOption = Command.addOption("--emit-llvm", Native.IR, "Lower source to LLVM IR with a native entry wrapper").typeName("FILE").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption).excludes(RunOption);
     ink::cli::Option &ObjectOption = Command.addOption("--emit-object", Native.Object, "Compile a native object; link it with ink_aot_runtime").typeName("FILE").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption).excludes(RunOption).excludes(LLVMOption);
+    Command.addOption("--emit-patch", Bytecode.PatchOutput, "Compile selected functions into a hybrid bytecode patch").typeName("FILE").excludes(InterpretOption).excludes(EmitOption).excludes(LinkOption).excludes(RunOption).excludes(LLVMOption).excludes(ObjectOption);
+    Command.addOption("--patch-base", Bytecode.PatchBase, "Base manifest produced by the matching native build").typeName("FILE");
+    Command.addOption("--patch-function", Bytecode.PatchFunctions, "Replace module#function; repeat for each function or private helper").repeatPolicy(ink::cli::RepeatPolicy::Append).typeName("MODULE#FUNCTION");
+    Command.addFlag("--hot-reload", Native.Backend.HotReload, "Insert native function entry guards for bytecode hot reload");
+    Command.addOption("--hot-module", Native.Backend.HotModules, "Limit hot reload guards to this module; repeat for each module").repeatPolicy(ink::cli::RepeatPolicy::Append).typeName("MODULE");
+    Command.addOption("--hot-manifest", Native.Manifest, "Write the base manifest used to compile matching patches").typeName("FILE");
+    Command.addFlag("--library", Native.Library, "Emit native functions without a main entry wrapper");
     Command.addOption("--opt-level", OptimizationLevel, "LLVM optimization level: 0, 1, 2 or 3 (default: 0)").typeName("LEVEL");
     Command.addOption("-o,--output", LinkOutput, "Output linked bytecode executable").typeName("FILE");
     Command.addOption("--module-root", ModuleRoot, "Root directory for source imports and module identities (default: input directory)").typeName("DIRECTORY");
@@ -319,6 +344,15 @@ namespace
       return ink::cli::exitStatus(ParsedArguments.Code);
     }
     const bool EmitNative = !Native.IR.empty() || !Native.Object.empty();
+    const bool EmitPatch = !Bytecode.PatchOutput.empty();
+    if ((Native.Library && !EmitNative) || (Native.Backend.HotReload && !EmitNative) || ((!Native.Manifest.empty() || !Native.Backend.HotModules.empty()) && !Native.Backend.HotReload))
+    {
+      return reportError("--library and --hot-reload require native emission; --hot-manifest and --hot-module require --hot-reload", ink::cli::ExitCode::InvocationError);
+    }
+    if ((EmitPatch && (Bytecode.PatchBase.empty() || Bytecode.PatchFunctions.empty())) || (!EmitPatch && (!Bytecode.PatchBase.empty() || !Bytecode.PatchFunctions.empty())))
+    {
+      return reportError("--emit-patch requires --patch-base and at least one --patch-function", ink::cli::ExitCode::InvocationError);
+    }
     ink::abi::PackageIdentity Package;
     const bool HasPackage = !PackageAuthority.empty() || !PackageName.empty() || !PackageRevision.empty() || !PackageVariants.empty();
     if (HasPackage)
@@ -365,7 +399,7 @@ namespace
       }
       Native.Backend.OptimizationLevel = static_cast<unsigned>(OptimizationLevel[0] - '0');
     }
-    if (!Interpret && Bytecode.Output.empty() && LinkInputs.empty() && !RunBytecode && !EmitNative)
+    if (!Interpret && Bytecode.Output.empty() && LinkInputs.empty() && !RunBytecode && !EmitNative && !EmitPatch)
     {
       return reportError("select --interpret, --emit-bytecode, --link-bytecode, --run-bytecode, --emit-llvm or --emit-object", ink::cli::ExitCode::InvocationError);
     }
@@ -399,7 +433,7 @@ namespace
     {
       return reportError(Error, ink::cli::ExitCode::InvocationError);
     }
-    return processSource(InputFile, std::move(Source), EntryName, ModuleRoot, Package, Bytecode.Output.empty() ? nullptr : &Bytecode, EmitNative ? &Native : nullptr);
+    return processSource(InputFile, std::move(Source), EntryName, ModuleRoot, Package, Bytecode.Output.empty() && !EmitPatch ? nullptr : &Bytecode, EmitNative ? &Native : nullptr);
   }
 } // namespace
 

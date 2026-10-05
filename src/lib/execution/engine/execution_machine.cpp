@@ -341,6 +341,62 @@ namespace ink::execution
   RuntimeValueResult ExecutionMachine::execute(FunctionId Function, std::span<const RuntimeValue> Arguments)
   {
     Function = Linker.resolveFunction(Function);
+    if (Linker.nativeBinding(Function))
+    {
+      return callRegistered(Function, Arguments, false);
+    }
+    return executeBytecode(Function, Arguments);
+  }
+
+  RuntimeValueResult ExecutionMachine::callRegistered(FunctionId Function, std::span<const RuntimeValue> Arguments, bool Nested)
+  {
+    const NativeBinding Binding = *Linker.nativeBinding(Function);
+    const auto *Descriptor = Linker.descriptor(Function);
+    const auto *Signature = Descriptor ? Linker.layouts()->get(Descriptor->Signature) : nullptr;
+    if (!Signature || Signature->Kind != RuntimeKind::Function || Arguments.size() != Signature->functionDesc().Parameters.size())
+    {
+      return {ExecutionStatus::InvalidArguments};
+    }
+    std::vector<RuntimeBytes> Storage;
+    std::vector<const void *> Addresses;
+    for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
+    {
+      const auto &Layout = *Linker.layouts()->get(Signature->functionDesc().Parameters[Index]);
+      if (Arguments[Index].Type != Layout.Type)
+      {
+        return {ExecutionStatus::TypeMismatch};
+      }
+      const auto Checked = validateArgument(Arguments[Index], Layout);
+      if (Checked != ExecutionStatus::Success)
+      {
+        return {Checked};
+      }
+      Storage.push_back(allocateRuntimeBytes(Layout.Size, Layout.Alignment));
+      const auto Written = Engine.Heap.memoryManager().writeValueBytes(Layout, Storage.back().get(), Arguments[Index]);
+      if (Written != ExecutionStatus::Success)
+      {
+        return {Written};
+      }
+      Addresses.push_back(Storage.back().get());
+    }
+    const auto &Return = *Linker.layouts()->get(Signature->functionDesc().ReturnType);
+    auto Result = allocateRuntimeBytes(Return.Size, Return.Alignment);
+    const auto Started = beginCall(Nested);
+    if (Started != ExecutionStatus::Success)
+    {
+      return {Started};
+    }
+    const auto Status = Binding.Invoke(Binding.Context, Return.Kind == RuntimeKind::Void ? nullptr : Result.get(), Addresses.data());
+    --Engine.ActiveCalls;
+    if (Nested)
+    {
+      Engine.leaveEvaluation();
+    }
+    return Status == ExecutionStatus::Success ? readStorage(Return, Result.get()) : RuntimeValueResult{Status};
+  }
+
+  RuntimeValueResult ExecutionMachine::executeBytecode(FunctionId Function, std::span<const RuntimeValue> Arguments)
+  {
     const RuntimeFunctionDescriptor *Descriptor = Linker.descriptor(Function);
     const RuntimeTypeTable *Layouts = Linker.layouts();
     if (!Descriptor || Descriptor->Id != Function || !Layouts)

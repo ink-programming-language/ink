@@ -88,6 +88,19 @@ namespace ink::execution
     LastStatus = ExecutionStatus::Cancelled;
   }
 
+  bool ExecutionEngine::beginInvocation() noexcept
+  {
+    if (ActiveCalls != 0 || EvaluationDepth != 0 || !Frames.empty())
+    {
+      return false;
+    }
+    Steps = 0;
+    StopStatus = ExecutionStatus::Success;
+    LastStatus = ExecutionStatus::Success;
+    Heap.memoryManager().resetAllocationBudget();
+    return true;
+  }
+
   ExecutionStatus ExecutionEngine::enterEvaluation()
   {
     if (consumeStep() != ExecutionStatus::Success)

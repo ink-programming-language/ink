@@ -164,6 +164,13 @@ namespace ink::execution
     return true;
   }
 
+  void ExecutionMemoryManager::resetAllocationBudget() noexcept
+  {
+    State->AllocatedStorage = State->LiveStorage;
+    State->AllocatedBytes = State->LiveBytes;
+    LastStatus = ExecutionStatus::Success;
+  }
+
   ExecutionStorageRef ExecutionMemoryManager::ownStorage(std::unique_ptr<ExecutionStorage> Storage, std::size_t Bytes)
   {
     std::size_t Index;

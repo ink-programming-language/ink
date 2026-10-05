@@ -15,13 +15,16 @@
 
 namespace ink::backend::llvm
 {
-  LoweringContext::LoweringContext(::llvm::LLVMContext &Context, const ir::Module &Source, ::llvm::Module &Module, std::string &Error)
+  LoweringContext::LoweringContext(::llvm::LLVMContext &Context, const ir::Module &Source, ::llvm::Module &Module, std::string &Error, bool HotReload, const std::vector<std::string> &HotModules, std::string &HybridManifest)
       : Context(Context),
         Source(Source),
         Module(Module),
         Error(Error),
         SizeType(::llvm::IntegerType::get(Context, static_cast<unsigned>(Source.context().compilationContext().targetContext().pointerWidth()))),
-        PointerType(::llvm::PointerType::getUnqual(Context))
+        PointerType(::llvm::PointerType::getUnqual(Context)),
+        HotReload(HotReload),
+        HotModules(HotModules),
+        HybridManifest(HybridManifest)
   {
   }
 
@@ -194,7 +197,7 @@ namespace ink::backend::llvm
         }
       }
     }
-    if (!declareFunctions())
+    if (!declareFunctions() || (HotReload && !prepareHybrid(Entry)))
     {
       return false;
     }
@@ -210,6 +213,10 @@ namespace ink::backend::llvm
       return false;
     }
     emitABIMetadata();
+    if (HotReload && !finishHybrid())
+    {
+      return false;
+    }
     return true;
   }
 
@@ -342,6 +349,17 @@ namespace ink::backend::llvm
     }
     auto *Main = ::llvm::Function::Create(::llvm::FunctionType::get(::llvm::Type::getInt32Ty(Context), false), ::llvm::GlobalValue::ExternalLinkage, "main", Module);
     ::llvm::IRBuilder<> Builder(::llvm::BasicBlock::Create(Context, "entry", Main));
+    if (HybridModule)
+    {
+      auto *Status = Builder.CreateCall(helper("ink_hybrid_register", Builder.getInt32Ty(), {PointerType}), {HybridModule});
+      auto *Ready = ::llvm::BasicBlock::Create(Context, "ready", Main);
+      auto *Failed = ::llvm::BasicBlock::Create(Context, "failed", Main);
+      Builder.CreateCondBr(Builder.CreateICmpEQ(Status, Builder.getInt32(0)), Ready, Failed);
+      Builder.SetInsertPoint(Failed);
+      Builder.CreateCall(helper("ink_hybrid_panic", Builder.getVoidTy(), {}));
+      Builder.CreateUnreachable();
+      Builder.SetInsertPoint(Ready);
+    }
     ::llvm::Value *Result = Builder.CreateCall(Found->second);
     if (ReturnType->isVoidTy())
     {

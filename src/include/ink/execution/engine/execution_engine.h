@@ -94,6 +94,8 @@ namespace ink::execution
       ExecutionStatus enterEvaluation();
       void leaveEvaluation() noexcept;
       void cancel() noexcept;
+      // Only an embedding host's quiescent top-level boundary may reset budgets.
+      bool beginInvocation() noexcept;
 
       ExecutionResult evaluateUnary(tokenizer::TokenKind Operator, const ir::Constant &Operand);
       ExecutionResult evaluateBinary(tokenizer::TokenKind Operator, const ir::Constant &Left, const ir::Constant &Right);
