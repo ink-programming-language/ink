@@ -1,0 +1,30 @@
+Test project D:/github/ink/build
+    Start 3973: ParserAdversarialProcessTest
+    Start 3975: InkcProcessTest
+    Start 3976: BytecodeProcessTest
+    Start 3974: TokenizerProcessTest
+1/7 Test #3974: TokenizerProcessTest .............   Passed    0.31 sec
+    Start 3972: ParserProcessTest
+2/7 Test #3972: ParserProcessTest ................   Passed    0.16 sec
+    Start 3977: SymbolManglingProcessTest
+3/7 Test #3977: SymbolManglingProcessTest ........   Passed    0.15 sec
+    Start 3978: ArrayReadProcessTest
+4/7 Test #3976: BytecodeProcessTest ..............   Passed    0.83 sec
+5/7 Test #3978: ArrayReadProcessTest .............   Passed    0.34 sec
+6/7 Test #3975: InkcProcessTest ..................   Passed    1.12 sec
+7/7 Test #3973: ParserAdversarialProcessTest .....   Passed    1.17 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Label Time Summary:
+abi            =   0.15 sec*proc (1 test)
+adversarial    =   1.17 sec*proc (1 test)
+arrays         =   0.34 sec*proc (1 test)
+backend        =   0.15 sec*proc (1 test)
+bytecode       =   1.16 sec*proc (2 tests)
+cli            =   2.43 sec*proc (4 tests)
+execution      =   2.28 sec*proc (3 tests)
+ffi            =   0.34 sec*proc (1 test)
+parser         =   1.17 sec*proc (1 test)
+
+Total Test time (real) =   1.51 sec

@@ -1,0 +1,166 @@
+Running main() from D:\github\ink\src\third_party\googletest\googletest\src\gtest_main.cc
+Note: Google Test filter = SemanticClassTest.*:SemanticComptimeTest.*:ReflectionTest.*:SymbolIntegrationTest.*
+[==========] Running 72 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 26 tests from SemanticClassTest
+[ RUN      ] SemanticClassTest.ConstructsDefaultsAndReadsWritesFields
+[       OK ] SemanticClassTest.ConstructsDefaultsAndReadsWritesFields (8 ms)
+[ RUN      ] SemanticClassTest.MutatesThisAndCallsOtherMethods
+[       OK ] SemanticClassTest.MutatesThisAndCallsOtherMethods (3 ms)
+[ RUN      ] SemanticClassTest.CopiesParametersReturnsAndConstReads
+[       OK ] SemanticClassTest.CopiesParametersReturnsAndConstReads (1 ms)
+[ RUN      ] SemanticClassTest.PreservesNestedFieldAddresses
+[       OK ] SemanticClassTest.PreservesNestedFieldAddresses (4 ms)
+[ RUN      ] SemanticClassTest.CallsMethodsOnTemporaryValues
+[       OK ] SemanticClassTest.CallsMethodsOnTemporaryValues (1 ms)
+[ RUN      ] SemanticClassTest.DispatchesDunderOperatorsOnSnapshots
+[       OK ] SemanticClassTest.DispatchesDunderOperatorsOnSnapshots (6 ms)
+[ RUN      ] SemanticClassTest.EvaluatesCompileTimeClassesAndMethods
+[       OK ] SemanticClassTest.EvaluatesCompileTimeClassesAndMethods (10 ms)
+[ RUN      ] SemanticClassTest.PredeclaresTypesAndSupportsPointerRecursion
+[       OK ] SemanticClassTest.PredeclaresTypesAndSupportsPointerRecursion (3 ms)
+[ RUN      ] SemanticClassTest.EnforcesPrivateMembers
+[       OK ] SemanticClassTest.EnforcesPrivateMembers (4 ms)
+[ RUN      ] SemanticClassTest.RejectsReadonlyReceiversAndThisShadowing
+[       OK ] SemanticClassTest.RejectsReadonlyReceiversAndThisShadowing (3 ms)
+[ RUN      ] SemanticClassTest.RejectsInvalidLayoutsAndConstruction
+[       OK ] SemanticClassTest.RejectsInvalidLayoutsAndConstruction (6 ms)
+[ RUN      ] SemanticClassTest.RequiresCompleteRuntimeTypeGraphs
+[       OK ] SemanticClassTest.RequiresCompleteRuntimeTypeGraphs (9 ms)
+[ RUN      ] SemanticClassTest.DefinesStableOperatorMethodMapping
+[       OK ] SemanticClassTest.DefinesStableOperatorMethodMapping (0 ms)
+[ RUN      ] SemanticClassTest.PreservesMethodEvaluationOrderAndOverloads
+[       OK ] SemanticClassTest.PreservesMethodEvaluationOrderAndOverloads (2 ms)
+[ RUN      ] SemanticClassTest.ImportsClassTypesAcrossModules
+[       OK ] SemanticClassTest.ImportsClassTypesAcrossModules (2 ms)
+[ RUN      ] SemanticClassTest.LifecycleConstructorSignatures
+[       OK ] SemanticClassTest.LifecycleConstructorSignatures (6 ms)
+[ RUN      ] SemanticClassTest.LifecycleDefiniteFieldInitialization
+[       OK ] SemanticClassTest.LifecycleDefiniteFieldInitialization (4 ms)
+[ RUN      ] SemanticClassTest.LifecycleDestroysLocalsAndConstObjects
+[       OK ] SemanticClassTest.LifecycleDestroysLocalsAndConstObjects (1 ms)
+[ RUN      ] SemanticClassTest.LifecycleCleansEarlyReturnAndConditionalInitialization
+[       OK ] SemanticClassTest.LifecycleCleansEarlyReturnAndConditionalInitialization (1 ms)
+[ RUN      ] SemanticClassTest.LifecycleTemporaryAndShortCircuit
+[       OK ] SemanticClassTest.LifecycleTemporaryAndShortCircuit (2 ms)
+[ RUN      ] SemanticClassTest.LifecycleTransfersReturnedTemporary
+[       OK ] SemanticClassTest.LifecycleTransfersReturnedTemporary (1 ms)
+[ RUN      ] SemanticClassTest.LifecycleOwnsValueParameters
+[       OK ] SemanticClassTest.LifecycleOwnsValueParameters (1 ms)
+[ RUN      ] SemanticClassTest.LifecycleDestroysReplacedValue
+[       OK ] SemanticClassTest.LifecycleDestroysReplacedValue (1 ms)
+[ RUN      ] SemanticClassTest.LifecycleDestroysNestedArrays
+[       OK ] SemanticClassTest.LifecycleDestroysNestedArrays (2 ms)
+[ RUN      ] SemanticClassTest.LifecycleRunsAtCompileTime
+[       OK ] SemanticClassTest.LifecycleRunsAtCompileTime (4 ms)
+[ RUN      ] SemanticClassTest.LifecycleRejectsInvalidHooks
+[       OK ] SemanticClassTest.LifecycleRejectsInvalidHooks (6 ms)
+[----------] 26 tests from SemanticClassTest (106 ms total)
+
+[----------] 27 tests from SemanticComptimeTest
+[ RUN      ] SemanticComptimeTest.ExecutesInitializerSideEffectsOnce
+[       OK ] SemanticComptimeTest.ExecutesInitializerSideEffectsOnce (0 ms)
+[ RUN      ] SemanticComptimeTest.PreservesSnapshotsAcrossModuleWrites
+[       OK ] SemanticComptimeTest.PreservesSnapshotsAcrossModuleWrites (0 ms)
+[ RUN      ] SemanticComptimeTest.RetainsCompileTimeLocalsAcrossStatements
+[       OK ] SemanticComptimeTest.RetainsCompileTimeLocalsAcrossStatements (0 ms)
+[ RUN      ] SemanticComptimeTest.LowersCompileTimeInitializerIntoRuntimeStorage
+[       OK ] SemanticComptimeTest.LowersCompileTimeInitializerIntoRuntimeStorage (0 ms)
+[ RUN      ] SemanticComptimeTest.RejectsRuntimeLocalInCompileTimeExpression
+[       OK ] SemanticComptimeTest.RejectsRuntimeLocalInCompileTimeExpression (0 ms)
+[ RUN      ] SemanticComptimeTest.ReportsSpecificArithmeticFailuresOnce
+[       OK ] SemanticComptimeTest.ReportsSpecificArithmeticFailuresOnce (0 ms)
+[ RUN      ] SemanticComptimeTest.CancellationStopsAnalysisWithoutDiagnostic
+[       OK ] SemanticComptimeTest.CancellationStopsAnalysisWithoutDiagnostic (0 ms)
+[ RUN      ] SemanticComptimeTest.SeparatesActualFunctionCallFrames
+[       OK ] SemanticComptimeTest.SeparatesActualFunctionCallFrames (0 ms)
+[ RUN      ] SemanticComptimeTest.ReexecutesWhileBodyWithContinueAndBreak
+[       OK ] SemanticComptimeTest.ReexecutesWhileBodyWithContinueAndBreak (0 ms)
+[ RUN      ] SemanticComptimeTest.ReexecutesForStepAndBody
+[       OK ] SemanticComptimeTest.ReexecutesForStepAndBody (1 ms)
+[ RUN      ] SemanticComptimeTest.SeparatesShadowedCompileTimeBindings
+[       OK ] SemanticComptimeTest.SeparatesShadowedCompileTimeBindings (0 ms)
+[ RUN      ] SemanticComptimeTest.RejectsWritingCompileTimeConstant
+[       OK ] SemanticComptimeTest.RejectsWritingCompileTimeConstant (0 ms)
+[ RUN      ] SemanticComptimeTest.RejectsReadingUninitializedCompileTimeObject
+[       OK ] SemanticComptimeTest.RejectsReadingUninitializedCompileTimeObject (0 ms)
+[ RUN      ] SemanticComptimeTest.SkipsUnselectedBranchNames
+[       OK ] SemanticComptimeTest.SkipsUnselectedBranchNames (0 ms)
+[ RUN      ] SemanticComptimeTest.ShortCircuitsBooleanSideEffects
+[       OK ] SemanticComptimeTest.ShortCircuitsBooleanSideEffects (0 ms)
+[ RUN      ] SemanticComptimeTest.SkipsSideEffectsAfterStaticForControlTransfer
+[       OK ] SemanticComptimeTest.SkipsSideEffectsAfterStaticForControlTransfer (0 ms)
+[ RUN      ] SemanticComptimeTest.SkipsSideEffectsAfterStaticWhileControlTransfer
+[       OK ] SemanticComptimeTest.SkipsSideEffectsAfterStaticWhileControlTransfer (0 ms)
+[ RUN      ] SemanticComptimeTest.PreservesExpectedIntegerWidthDuringEvaluation
+[       OK ] SemanticComptimeTest.PreservesExpectedIntegerWidthDuringEvaluation (0 ms)
+[ RUN      ] SemanticComptimeTest.SelectsOverloadBeforeMaterializingIntegerLiteral
+[       OK ] SemanticComptimeTest.SelectsOverloadBeforeMaterializingIntegerLiteral (1 ms)
+[ RUN      ] SemanticComptimeTest.RejectsVoidCompileTimeResultsInValuePositions
+[       OK ] SemanticComptimeTest.RejectsVoidCompileTimeResultsInValuePositions (1 ms)
+[ RUN      ] SemanticComptimeTest.RejectsReturningFromCompileTimeBlockIntoRuntimeFunction
+[       OK ] SemanticComptimeTest.RejectsReturningFromCompileTimeBlockIntoRuntimeFunction (0 ms)
+[ RUN      ] SemanticComptimeTest.ExecutesComptimeExpressionForEachIteration
+[       OK ] SemanticComptimeTest.ExecutesComptimeExpressionForEachIteration (0 ms)
+[ RUN      ] SemanticComptimeTest.StopsUnboundedCompileTimeRecursionAtBudget
+Running main() from D:\github\ink\src\third_party\googletest\googletest\src\gtest_main.cc
+[       OK ] SemanticComptimeTest.StopsUnboundedCompileTimeRecursionAtBudget (90 ms)
+[ RUN      ] SemanticComptimeTest.StopsLongCompileTimeAssignmentChainAtBudget
+Running main() from D:\github\ink\src\third_party\googletest\googletest\src\gtest_main.cc
+[       OK ] SemanticComptimeTest.StopsLongCompileTimeAssignmentChainAtBudget (99 ms)
+[ RUN      ] SemanticComptimeTest.BoundsRuntimeAssignmentChainsByExpressionDepth
+Running main() from D:\github\ink\src\third_party\googletest\googletest\src\gtest_main.cc
+[       OK ] SemanticComptimeTest.BoundsRuntimeAssignmentChainsByExpressionDepth (88 ms)
+[ RUN      ] SemanticComptimeTest.PreservesDefinitionTimeOverloadSet
+[       OK ] SemanticComptimeTest.PreservesDefinitionTimeOverloadSet (1 ms)
+[ RUN      ] SemanticComptimeTest.PreservesDefinitionTimeOuterBinding
+[       OK ] SemanticComptimeTest.PreservesDefinitionTimeOuterBinding (0 ms)
+[----------] 27 tests from SemanticComptimeTest (297 ms total)
+
+[----------] 11 tests from ReflectionTest
+[ RUN      ] ReflectionTest.ConstructsAndInvokesWithCheckedFieldAccess
+[       OK ] ReflectionTest.ConstructsAndInvokesWithCheckedFieldAccess (0 ms)
+[ RUN      ] ReflectionTest.RetainsCallableMetadataThroughArchiveAndLink
+[       OK ] ReflectionTest.RetainsCallableMetadataThroughArchiveAndLink (6 ms)
+[ RUN      ] ReflectionTest.RejectsCorruptCallableMetadata
+[       OK ] ReflectionTest.RejectsCorruptCallableMetadata (2 ms)
+[ RUN      ] ReflectionTest.RoundTripsIRMemberAssociations
+[       OK ] ReflectionTest.RoundTripsIRMemberAssociations (2 ms)
+[ RUN      ] ReflectionTest.RetainsUnreferencedClassRoots
+[       OK ] ReflectionTest.RetainsUnreferencedClassRoots (1 ms)
+[ RUN      ] ReflectionTest.ProjectsArrayAndStringFields
+[       OK ] ReflectionTest.ProjectsArrayAndStringFields (0 ms)
+[ RUN      ] ReflectionTest.ResolvesMethodOverloads
+[       OK ] ReflectionTest.ResolvesMethodOverloads (0 ms)
+[ RUN      ] ReflectionTest.RejectsConflictingReflectedVisibility
+[       OK ] ReflectionTest.RejectsConflictingReflectedVisibility (0 ms)
+[ RUN      ] ReflectionTest.RemovesDestroyedMemberAssociations
+[       OK ] ReflectionTest.RemovesDestroyedMemberAssociations (0 ms)
+[ RUN      ] ReflectionTest.InvokesSourceLifecycleHooks
+[       OK ] ReflectionTest.InvokesSourceLifecycleHooks (1 ms)
+[ RUN      ] ReflectionTest.CleansCompileTimeObjectLifetimes
+[       OK ] ReflectionTest.CleansCompileTimeObjectLifetimes (34 ms)
+[----------] 11 tests from ReflectionTest (52 ms total)
+
+[----------] 8 tests from SymbolIntegrationTest
+[ RUN      ] SymbolIntegrationTest.StableAcrossOrderTriviaAndBodyChanges
+[       OK ] SymbolIntegrationTest.StableAcrossOrderTriviaAndBodyChanges (2 ms)
+[ RUN      ] SymbolIntegrationTest.SeparatesLexicalScopesAndParentOverloads
+[       OK ] SymbolIntegrationTest.SeparatesLexicalScopesAndParentOverloads (4 ms)
+[ RUN      ] SymbolIntegrationTest.SharesSymbolsAcrossLLVMBytecodeAndReflection
+[       OK ] SymbolIntegrationTest.SharesSymbolsAcrossLLVMBytecodeAndReflection (27 ms)
+[ RUN      ] SymbolIntegrationTest.InitializerUsesFieldName
+[       OK ] SymbolIntegrationTest.InitializerUsesFieldName (4 ms)
+[ RUN      ] SymbolIntegrationTest.BytecodeSeparatesPackageRevisions
+[       OK ] SymbolIntegrationTest.BytecodeSeparatesPackageRevisions (4 ms)
+[ RUN      ] SymbolIntegrationTest.IRArchivesPreserveIdentities
+[       OK ] SymbolIntegrationTest.IRArchivesPreserveIdentities (5 ms)
+[ RUN      ] SymbolIntegrationTest.RejectsConflictingNativeClassContracts
+[       OK ] SymbolIntegrationTest.RejectsConflictingNativeClassContracts (1 ms)
+[ RUN      ] SymbolIntegrationTest.RejectsForgedLogicalSignature
+[       OK ] SymbolIntegrationTest.RejectsForgedLogicalSignature (1 ms)
+[----------] 8 tests from SymbolIntegrationTest (52 ms total)
+
+[----------] Global test environment tear-down
+[==========] 72 tests from 4 test suites ran. (508 ms total)
+[  PASSED  ] 72 tests.

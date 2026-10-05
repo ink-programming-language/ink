@@ -337,7 +337,7 @@ namespace ink::semantic
       }
       for (const auto &Parameter : FunctionValue.parameters())
       {
-        if (!needsDestruction(Parameter->type()))
+        if (!needsDestruction(FunctionState, Parameter->type()))
         {
           continue;
         }

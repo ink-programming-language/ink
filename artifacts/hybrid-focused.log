@@ -1,0 +1,228 @@
+Test project D:/github/ink/cmake-build-debug
+        Start  696: BytecodeArchiveTest.PreservesLocalCAbiAndPrivateNativeExportBodies
+        Start  705: BytecodeArchiveTest.PreservesWideIntegerConstantsWithoutSourceIR
+        Start  706: BytecodeArchiveTest.ReloadsCStringBytesAndNativeImportsForFreshCalls
+        Start  708: BytecodeBuilderTest.ImportsAnalyzedDefinitionsWithoutEmittingTheirBodies
+        Start  709: BytecodeBuilderTest.ImportsLocalAndExportedCAbiDefinitionsAsModuleReferences
+        Start  715: BytecodeBuilderTest.CompilesUncalledDefinitionsForLaterEntrySelection
+        Start  717: BytecodeLinkerTest.LinksIndependentFilesAndRunsFunctionValuesWithoutSourceIR
+        Start  718: BytecodeLinkerTest.DistinguishesEqualNamesFromDifferentModules
+  1/108 Test  #696: BytecodeArchiveTest.PreservesLocalCAbiAndPrivateNativeExportBodies ...................   Passed    0.12 sec
+  2/108 Test  #705: BytecodeArchiveTest.PreservesWideIntegerConstantsWithoutSourceIR .....................   Passed    0.11 sec
+        Start  719: BytecodeLinkerTest.BindsNativeImportsToPrivateExportBodies
+        Start  725: BytecodeLinkerTest.RestrictsModuleSymbolsToTheirModule
+  3/108 Test  #706: BytecodeArchiveTest.ReloadsCStringBytesAndNativeImportsForFreshCalls .................   Passed    0.11 sec
+        Start  726: BytecodeLinkerTest.KeepsPrivateBindingsWithinTheirObject
+  4/108 Test  #708: BytecodeBuilderTest.ImportsAnalyzedDefinitionsWithoutEmittingTheirBodies .............   Passed    0.11 sec
+        Start  729: BytecodeLinkerTest.IsolatesSameNamedPrivateDefinitionsAcrossObjects
+  5/108 Test  #709: BytecodeBuilderTest.ImportsLocalAndExportedCAbiDefinitionsAsModuleReferences .........   Passed    0.11 sec
+        Start  730: BytecodeLinkerTest.ResolvesOverloadedSignaturesIndependently
+  6/108 Test  #715: BytecodeBuilderTest.CompilesUncalledDefinitionsForLaterEntrySelection ................   Passed    0.11 sec
+        Start  731: BytecodeLinkerTest.DistinguishesGenericArgumentKindsTypesAndValues
+  7/108 Test  #718: BytecodeLinkerTest.DistinguishesEqualNamesFromDifferentModules .......................   Passed    0.10 sec
+        Start 3988: BytecodeProcessTest
+  8/108 Test  #717: BytecodeLinkerTest.LinksIndependentFilesAndRunsFunctionValuesWithoutSourceIR .........   Passed    0.12 sec
+        Start 3987: InkcProcessTest
+  9/108 Test  #725: BytecodeLinkerTest.RestrictsModuleSymbolsToTheirModule ...............................   Passed    0.11 sec
+        Start 4165: HybridExecutionTest.O0
+ 10/108 Test  #719: BytecodeLinkerTest.BindsNativeImportsToPrivateExportBodies ...........................   Passed    0.42 sec
+ 11/108 Test  #726: BytecodeLinkerTest.KeepsPrivateBindingsWithinTheirObject .............................   Passed    0.41 sec
+        Start 4166: HybridExecutionTest.O2
+        Start 1008: LLVMBackendTest.LowersNativeEntryAtBothOptimizationLevels
+ 12/108 Test  #730: BytecodeLinkerTest.ResolvesOverloadedSignaturesIndependently .........................   Passed    1.25 sec
+ 13/108 Test  #729: BytecodeLinkerTest.IsolatesSameNamedPrivateDefinitionsAcrossObjects ..................   Passed    1.26 sec
+ 14/108 Test  #731: BytecodeLinkerTest.DistinguishesGenericArgumentKindsTypesAndValues ...................   Passed    1.24 sec
+ 15/108 Test #4165: HybridExecutionTest.O0 ...............................................................   Passed    1.17 sec
+ 16/108 Test #3988: BytecodeProcessTest ..................................................................   Passed    1.24 sec
+        Start  784: BytecodeExecutionTest.DeepCallChainUsesExplicitFramesAndUnwindsStorage
+        Start 1007: HybridBackendTest.KeepsOneFunctionAndGuardAtO0AndO2
+        Start 1012: LLVMBackendTest.KeepsGuardsForNonDominatingDefinitions
+        Start  733: BytecodeValidationTest.RejectsMalformedAndOversizedUnusedLayouts
+        Start  704: BytecodeArchiveTest.ReportsMissingFilesAsIoErrors
+ 17/108 Test #4166: HybridExecutionTest.O2 ...............................................................   Passed    0.94 sec
+        Start  711: BytecodeBuilderTest.TemporarilyDisablesRuntimeNativeResolution
+ 18/108 Test #1012: LLVMBackendTest.KeepsGuardsForNonDominatingDefinitions ...............................   Passed    0.12 sec
+        Start  734: BytecodeValidationTest.RejectsMissingAndCyclicTypeReferences
+ 19/108 Test  #733: BytecodeValidationTest.RejectsMalformedAndOversizedUnusedLayouts .....................   Passed    0.12 sec
+        Start  722: BytecodeLinkerTest.RejectsDuplicatePrivateNativeExportsAcrossModules
+ 20/108 Test #1008: LLVMBackendTest.LowersNativeEntryAtBothOptimizationLevels ............................   Passed    0.16 sec
+ 21/108 Test  #704: BytecodeArchiveTest.ReportsMissingFilesAsIoErrors ....................................   Passed    0.12 sec
+        Start 1009: LLVMBackendTest.ClassFieldPointersUseExplicitLayoutAndRawAddresses
+        Start  787: BytecodeStorageTest.FrameLocalsAvoidManagedStorageObjects
+ 22/108 Test #1007: HybridBackendTest.KeepsOneFunctionAndGuardAtO0AndO2 ..................................   Passed    0.18 sec
+        Start  703: BytecodeArchiveTest.RejectsInvalidExecutableInstructions
+ 23/108 Test  #711: BytecodeBuilderTest.TemporarilyDisablesRuntimeNativeResolution .......................   Passed    0.11 sec
+        Start  831: IRExecutionTest.ReturnsRawStackAddressWithoutExtendingItsLifetime
+ 24/108 Test  #784: BytecodeExecutionTest.DeepCallChainUsesExplicitFramesAndUnwindsStorage ...............   Passed    0.21 sec
+        Start  698: BytecodeArchiveTest.RejectsBadMagicAndTrailingData
+ 25/108 Test  #734: BytecodeValidationTest.RejectsMissingAndCyclicTypeReferences .........................   Passed    0.12 sec
+        Start  727: BytecodeLinkerTest.RejectsDuplicateAndMissingSymbols
+ 26/108 Test  #722: BytecodeLinkerTest.RejectsDuplicatePrivateNativeExportsAcrossModules .................   Passed    0.12 sec
+        Start  697: BytecodeArchiveTest.RejectsTruncationAtEveryByteBoundary
+ 27/108 Test #3987: InkcProcessTest ......................................................................   Passed    1.50 sec
+        Start  710: BytecodeBuilderTest.RejectsUnsupportedCAbiDefinitionSignatures
+ 28/108 Test #1009: LLVMBackendTest.ClassFieldPointersUseExplicitLayoutAndRawAddresses ...................   Passed    0.12 sec
+        Start  701: BytecodeArchiveTest.EnforcesResourceBudgetsWithoutReturningPartialArtifacts
+ 29/108 Test  #787: BytecodeStorageTest.FrameLocalsAvoidManagedStorageObjects ............................   Passed    0.13 sec
+        Start  732: BytecodeValidationTest.RejectsInconsistentNativeBoundaryMetadata
+ 30/108 Test  #703: BytecodeArchiveTest.RejectsInvalidExecutableInstructions .............................   Passed    0.12 sec
+        Start  699: BytecodeArchiveTest.RejectsUnknownContainerAndInstructionVersions
+ 31/108 Test  #831: IRExecutionTest.ReturnsRawStackAddressWithoutExtendingItsLifetime ....................   Passed    0.12 sec
+        Start 1017: LLVMBackendTest.RejectsIncompleteClassStorage
+ 32/108 Test  #698: BytecodeArchiveTest.RejectsBadMagicAndTrailingData ...................................   Passed    0.12 sec
+        Start  777: BytecodeExecutionTest.PreservesReturnedCAbiStringAlias
+ 33/108 Test  #727: BytecodeLinkerTest.RejectsDuplicateAndMissingSymbols .................................   Passed    0.11 sec
+        Start  723: BytecodeLinkerTest.AllowsRepeatedNamesForLocalCAbiDefinitions
+ 34/108 Test  #710: BytecodeBuilderTest.RejectsUnsupportedCAbiDefinitionSignatures .......................   Passed    0.11 sec
+        Start  707: BytecodeBuilderTest.PreservesUppercaseGenericConstantBits
+ 35/108 Test  #701: BytecodeArchiveTest.EnforcesResourceBudgetsWithoutReturningPartialArtifacts ..........   Passed    0.11 sec
+ 36/108 Test  #697: BytecodeArchiveTest.RejectsTruncationAtEveryByteBoundary .............................   Passed    0.13 sec
+        Start  786: BytecodeStorageTest.LocalFloatSnapshotsPreserveExactBits
+        Start  724: BytecodeLinkerTest.RejectsModuleImportAbiMismatches
+ 37/108 Test  #732: BytecodeValidationTest.RejectsInconsistentNativeBoundaryMetadata .....................   Passed    0.12 sec
+        Start 1010: LLVMBackendTest.ClassMemcpyHasNoRedundantPanicAtO0
+ 38/108 Test  #699: BytecodeArchiveTest.RejectsUnknownContainerAndInstructionVersions ....................   Passed    0.11 sec
+        Start  946: ExecutionMemoryManagerTest.ExposesScalarStorageForHostShapedTargets
+ 39/108 Test #1017: LLVMBackendTest.RejectsIncompleteClassStorage ........................................   Passed    0.11 sec
+        Start  735: BytecodeValidationTest.EnforcesTypeDepthOnUnusedLayouts
+ 40/108 Test  #777: BytecodeExecutionTest.PreservesReturnedCAbiStringAlias ...............................   Passed    0.11 sec
+        Start  738: BytecodeValidationTest.RejectsNoncanonicalGenericArguments
+ 41/108 Test  #723: BytecodeLinkerTest.AllowsRepeatedNamesForLocalCAbiDefinitions ........................   Passed    0.12 sec
+        Start  836: IRExecutionTest.DoesNotExecuteCallsInUnselectedBlocks
+ 42/108 Test  #707: BytecodeBuilderTest.PreservesUppercaseGenericConstantBits ............................   Passed    0.11 sec
+        Start  695: BytecodeArchiveTest.ProducesDeterministicBytesAcrossHashLayoutsAndRoundTrips
+ 43/108 Test  #786: BytecodeStorageTest.LocalFloatSnapshotsPreserveExactBits .............................   Passed    0.12 sec
+        Start  720: BytecodeLinkerTest.RejectsNativeImportExportSignatureMismatch
+ 44/108 Test  #724: BytecodeLinkerTest.RejectsModuleImportAbiMismatches ..................................   Passed    0.12 sec
+        Start  925: HybridRuntimeTest.RetainsStringResultAfterPatchRemoval
+ 45/108 Test  #946: ExecutionMemoryManagerTest.ExposesScalarStorageForHostShapedTargets ..................   Passed    0.11 sec
+        Start  776: BytecodeExecutionTest.CopiesCAbiStringArgumentsAndReclaimsTemporaryBuffers
+ 46/108 Test #1010: LLVMBackendTest.ClassMemcpyHasNoRedundantPanicAtO0 ...................................   Passed    0.13 sec
+        Start  838: IRExecutionTest.BranchCyclesRespectTheStepBudget
+ 47/108 Test  #735: BytecodeValidationTest.EnforcesTypeDepthOnUnusedLayouts ..............................   Passed    0.12 sec
+        Start  700: BytecodeArchiveTest.RejectsIncompatibleTarget
+ 48/108 Test  #738: BytecodeValidationTest.RejectsNoncanonicalGenericArguments ...........................   Passed    0.12 sec
+        Start  736: BytecodeValidationTest.RejectsForgedFunctionConstantsInUnusedSlots
+ 49/108 Test  #836: IRExecutionTest.DoesNotExecuteCallsInUnselectedBlocks ................................   Passed    0.10 sec
+        Start  926: HybridRuntimeTest.RejectsMalformedArtifacts
+ 50/108 Test  #695: BytecodeArchiveTest.ProducesDeterministicBytesAcrossHashLayoutsAndRoundTrips .........   Passed    0.11 sec
+        Start  714: BytecodeBuilderTest.PreservesTypeDepthLimitStatusDuringObjectConstruction
+ 51/108 Test  #720: BytecodeLinkerTest.RejectsNativeImportExportSignatureMismatch ........................   Passed    0.12 sec
+        Start  785: BytecodeStorageTest.LoopAllocationResetsLocalInitialization
+ 52/108 Test  #925: HybridRuntimeTest.RetainsStringResultAfterPatchRemoval ...............................   Passed    0.13 sec
+        Start  712: BytecodeBuilderTest.RejectsReferencedFunctionsWithoutMetadata
+ 53/108 Test  #776: BytecodeExecutionTest.CopiesCAbiStringArgumentsAndReclaimsTemporaryBuffers ...........   Passed    0.13 sec
+        Start 1016: LLVMBackendTest.RejectsCrossTargetAndInvalidOptimizationLevel
+ 54/108 Test  #838: IRExecutionTest.BranchCyclesRespectTheStepBudget .....................................   Passed    0.13 sec
+        Start  716: BytecodeBuilderTest.FreezesTypeTableBeforeReturningObject
+ 55/108 Test  #700: BytecodeArchiveTest.RejectsIncompatibleTarget ........................................   Passed    0.13 sec
+        Start  721: BytecodeLinkerTest.DoesNotBindNativeImportsToUnexportedCAbiDefinitions
+ 56/108 Test  #736: BytecodeValidationTest.RejectsForgedFunctionConstantsInUnusedSlots ...................   Passed    0.13 sec
+        Start  775: BytecodeExecutionTest.ResolvesNativeExportsAndInvalidatesTheirBinding
+ 57/108 Test  #926: HybridRuntimeTest.RejectsMalformedArtifacts ..........................................   Passed    0.14 sec
+        Start  949: ExecutionMemoryManagerTest.ChargesWideAndPointerBackingStorage
+ 58/108 Test  #714: BytecodeBuilderTest.PreservesTypeDepthLimitStatusDuringObjectConstruction ............   Passed    0.13 sec
+        Start  728: BytecodeLinkerTest.RejectsMismatchedImportedSignature
+ 59/108 Test  #785: BytecodeStorageTest.LoopAllocationResetsLocalInitialization ..........................   Passed    0.15 sec
+        Start  947: ExecutionMemoryManagerTest.PreservesRawAddressesWithoutOwningTheirStorage
+ 60/108 Test  #712: BytecodeBuilderTest.RejectsReferencedFunctionsWithoutMetadata ........................   Passed    0.16 sec
+        Start  952: ExecutionMemoryManagerTest.ExecutesCheckedByteAliasesIntoScalarStorage
+ 61/108 Test #1016: LLVMBackendTest.RejectsCrossTargetAndInvalidOptimizationLevel ........................   Passed    0.16 sec
+        Start  781: BytecodeExecutionTest.DiscardsCodeForDestroyedFunctions
+ 62/108 Test  #716: BytecodeBuilderTest.FreezesTypeTableBeforeReturningObject ............................   Passed    0.16 sec
+        Start  950: ExecutionMemoryManagerTest.RejectsBufferSizeOverflowBeforeAllocation
+ 63/108 Test  #721: BytecodeLinkerTest.DoesNotBindNativeImportsToUnexportedCAbiDefinitions ...............   Passed    0.16 sec
+        Start  702: BytecodeArchiveTest.RejectsEmbeddedHostPointers
+ 64/108 Test  #775: BytecodeExecutionTest.ResolvesNativeExportsAndInvalidatesTheirBinding ................   Passed    0.16 sec
+        Start  778: BytecodeExecutionTest.ReclaimsCAbiStringBuffersWhenArgumentPreparationFails
+ 65/108 Test  #949: ExecutionMemoryManagerTest.ChargesWideAndPointerBackingStorage .......................   Passed    0.14 sec
+        Start  951: ExecutionMemoryManagerTest.AcceptsLiveRawBuffersAcrossHeapOwners
+ 66/108 Test  #728: BytecodeLinkerTest.RejectsMismatchedImportedSignature ................................   Passed    0.14 sec
+        Start  943: ExecutionMemoryManagerTest.RejectsInvalidBooleanBytesAndAcceptsNativeBooleanWrites
+ 67/108 Test  #947: ExecutionMemoryManagerTest.PreservesRawAddressesWithoutOwningTheirStorage ............   Passed    0.13 sec
+        Start  782: BytecodeExecutionTest.IndirectCallsReadCurrentFunctionParameters
+ 68/108 Test  #952: ExecutionMemoryManagerTest.ExecutesCheckedByteAliasesIntoScalarStorage ...............   Passed    0.13 sec
+        Start  835: IRExecutionTest.BranchesOnCallResultsAndExecutesOnlyTheSelectedArm
+ 69/108 Test  #781: BytecodeExecutionTest.DiscardsCodeForDestroyedFunctions ..............................   Passed    0.14 sec
+        Start  713: BytecodeBuilderTest.RejectsMetadataWithAnotherFunctionSignature
+ 70/108 Test  #950: ExecutionMemoryManagerTest.RejectsBufferSizeOverflowBeforeAllocation .................   Passed    0.14 sec
+        Start  788: BytecodeStorageTest.ScalarInstructionResultsRemainUnboxedAcrossNativeCalls
+ 71/108 Test  #778: BytecodeExecutionTest.ReclaimsCAbiStringBuffersWhenArgumentPreparationFails ..........   Passed    0.13 sec
+ 72/108 Test  #702: BytecodeArchiveTest.RejectsEmbeddedHostPointers ......................................   Passed    0.14 sec
+        Start  942: ExecutionMemoryManagerTest.PreservesNativeFloatingPointObjectBits
+        Start  945: ExecutionMemoryManagerTest.StoresWideIntegersAndStringsInContiguousMemory
+ 73/108 Test  #951: ExecutionMemoryManagerTest.AcceptsLiveRawBuffersAcrossHeapOwners .....................   Passed    0.16 sec
+        Start  944: ExecutionMemoryManagerTest.PreservesCellValidationWithNativeStorage
+ 74/108 Test  #943: ExecutionMemoryManagerTest.RejectsInvalidBooleanBytesAndAcceptsNativeBooleanWrites ...   Passed    0.16 sec
+        Start  789: BytecodeStorageTest.NativeCallbacksCanClearPlansAndResumeTheMachine
+ 75/108 Test  #782: BytecodeExecutionTest.IndirectCallsReadCurrentFunctionParameters .....................   Passed    0.16 sec
+        Start  842: IRExecutionTest.FrameExitImmediatelyReclaimsLocalStorage
+ 76/108 Test  #835: IRExecutionTest.BranchesOnCallResultsAndExecutesOnlyTheSelectedArm ...................   Passed    0.16 sec
+        Start  841: IRExecutionTest.BranchConditionFailuresKeepTheirStatusAndSkipUnreachedCalls
+ 77/108 Test  #713: BytecodeBuilderTest.RejectsMetadataWithAnotherFunctionSignature ......................   Passed    0.17 sec
+        Start  737: BytecodeValidationTest.RejectsInvalidUnreferencedCallRecords
+ 78/108 Test  #788: BytecodeStorageTest.ScalarInstructionResultsRemainUnboxedAcrossNativeCalls ...........   Passed    0.17 sec
+        Start  783: BytecodeExecutionTest.SignedComparisonsRespectEveryNativeWidthBoundary
+ 79/108 Test  #942: ExecutionMemoryManagerTest.PreservesNativeFloatingPointObjectBits ....................   Passed    0.17 sec
+        Start 1011: LLVMBackendTest.LowersDominatingValuesInControlFlowOrder
+ 80/108 Test  #945: ExecutionMemoryManagerTest.StoresWideIntegersAndStringsInContiguousMemory ............   Passed    0.19 sec
+        Start  837: IRExecutionTest.BackEdgesRefreshInstructionResultsAndAllocations
+ 81/108 Test  #944: ExecutionMemoryManagerTest.PreservesCellValidationWithNativeStorage ..................   Passed    0.18 sec
+        Start  948: ExecutionMemoryManagerTest.AllocatesZeroFilledBuffersWithinCumulativeBudgets
+ 82/108 Test  #789: BytecodeStorageTest.NativeCallbacksCanClearPlansAndResumeTheMachine ..................   Passed    0.17 sec
+        Start  779: BytecodeExecutionTest.RecompilesAfterReturnReplacement
+ 83/108 Test  #842: IRExecutionTest.FrameExitImmediatelyReclaimsLocalStorage .............................   Passed    0.16 sec
+        Start  780: BytecodeExecutionTest.ExecutesBodyAddedAfterMissingBodyFailure
+ 84/108 Test  #841: IRExecutionTest.BranchConditionFailuresKeepTheirStatusAndSkipUnreachedCalls ..........   Passed    0.16 sec
+        Start  839: IRExecutionTest.DoesNotFallThroughAnUnterminatedBranchTarget
+ 85/108 Test  #737: BytecodeValidationTest.RejectsInvalidUnreferencedCallRecords .........................   Passed    0.16 sec
+        Start 1013: LLVMBackendTest.KeepsGuardsForUseBeforeDefinition
+ 86/108 Test #1011: LLVMBackendTest.LowersDominatingValuesInControlFlowOrder .............................   Passed    0.16 sec
+        Start  941: ExecutionMemoryManagerTest.SharesNativeIntegerStorageWithoutChangingSnapshots
+ 87/108 Test  #783: BytecodeExecutionTest.SignedComparisonsRespectEveryNativeWidthBoundary ...............   Passed    0.18 sec
+        Start 1015: LLVMBackendTest.KeepsBooleanValidationWhenAddressEscapes
+ 88/108 Test  #837: IRExecutionTest.BackEdgesRefreshInstructionResultsAndAllocations .....................   Passed    0.16 sec
+        Start  840: IRExecutionTest.VoidCallAndStoreResultsDoNotReturnFromTheCaller
+ 89/108 Test  #948: ExecutionMemoryManagerTest.AllocatesZeroFilledBuffersWithinCumulativeBudgets .........   Passed    0.14 sec
+        Start  843: IRExecutionTest.RejectsPlacesFromAnEngineRebuiltAtTheSameAddress
+ 90/108 Test  #779: BytecodeExecutionTest.RecompilesAfterReturnReplacement ...............................   Passed    0.14 sec
+        Start  844: IRExecutionTest.ReturnedScalarOutlivesItsEngine
+ 91/108 Test  #780: BytecodeExecutionTest.ExecutesBodyAddedAfterMissingBodyFailure .......................   Passed    0.15 sec
+        Start  847: IRExecutionTest.LoadsNativeCStringMutationsWithoutChangingConstants
+ 92/108 Test  #839: IRExecutionTest.DoesNotFallThroughAnUnterminatedBranchTarget .........................   Passed    0.15 sec
+        Start  845: IRExecutionTest.ExternalBufferBudgetExhaustionPermanentlyStopsExecution
+ 93/108 Test #1013: LLVMBackendTest.KeepsGuardsForUseBeforeDefinition ....................................   Passed    0.15 sec
+        Start  828: IRExecutionTest.ExecutesMemoryInstructionsAndKeepsReturnedValuesIndependent
+ 94/108 Test  #941: ExecutionMemoryManagerTest.SharesNativeIntegerStorageWithoutChangingSnapshots ........   Passed    0.15 sec
+        Start  846: IRExecutionTest.IndirectCallResultIsExecutedOnceAndReusedByIdentity
+ 95/108 Test #1015: LLVMBackendTest.KeepsBooleanValidationWhenAddressEscapes .............................   Passed    0.16 sec
+        Start  834: IRExecutionTest.CancellationPreventsEntryEvaluation
+ 96/108 Test  #843: IRExecutionTest.RejectsPlacesFromAnEngineRebuiltAtTheSameAddress .....................   Passed    0.15 sec
+ 97/108 Test  #840: IRExecutionTest.VoidCallAndStoreResultsDoNotReturnFromTheCaller ......................   Passed    0.16 sec
+        Start 1014: LLVMBackendTest.LowersLoopBackEdgesWithoutAvailabilityGuards
+        Start  832: IRExecutionTest.RejectsInvalidEntryBoundaries
+ 98/108 Test  #844: IRExecutionTest.ReturnedScalarOutlivesItsEngine ......................................   Passed    0.15 sec
+        Start  830: IRExecutionTest.RejectsUninitializedLoad
+ 99/108 Test  #847: IRExecutionTest.LoadsNativeCStringMutationsWithoutChangingConstants ..................   Passed    0.14 sec
+        Start  829: IRExecutionTest.LoadResultsRemainSnapshotsAfterLaterStores
+100/108 Test  #845: IRExecutionTest.ExternalBufferBudgetExhaustionPermanentlyStopsExecution ..............   Passed    0.14 sec
+        Start  833: IRExecutionTest.RecursiveIRCallsRespectTheSharedDepthBudget
+101/108 Test  #828: IRExecutionTest.ExecutesMemoryInstructionsAndKeepsReturnedValuesIndependent ..........   Passed    0.14 sec
+102/108 Test  #846: IRExecutionTest.IndirectCallResultIsExecutedOnceAndReusedByIdentity ..................   Passed    0.14 sec
+103/108 Test  #834: IRExecutionTest.CancellationPreventsEntryEvaluation ..................................   Passed    0.15 sec
+104/108 Test #1014: LLVMBackendTest.LowersLoopBackEdgesWithoutAvailabilityGuards .........................   Passed    0.15 sec
+105/108 Test  #832: IRExecutionTest.RejectsInvalidEntryBoundaries ........................................   Passed    0.15 sec
+106/108 Test  #830: IRExecutionTest.RejectsUninitializedLoad .............................................   Passed    0.14 sec
+107/108 Test  #829: IRExecutionTest.LoadResultsRemainSnapshotsAfterLaterStores ...........................   Passed    0.14 sec
+108/108 Test  #833: IRExecutionTest.RecursiveIRCallsRespectTheSharedDepthBudget ..........................   Passed    0.14 sec
+
+100% tests passed, 0 tests failed out of 108
+
+Label Time Summary:
+aot          =   2.11 sec*proc (2 tests)
+bytecode     =   1.24 sec*proc (1 test)
+cli          =   2.73 sec*proc (2 tests)
+execution    =   4.84 sec*proc (4 tests)
+hybrid       =   2.11 sec*proc (2 tests)
+
+Total Test time (real) =   3.64 sec

@@ -1,0 +1,13 @@
+[0/2] Re-checking globbed directories...
+[1/7] Building CXX object src\testcase\CMakeFiles\ink_hybrid_test_O0.dir\backend\hybrid\host.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+[2/7] Building CXX object src\testcase\CMakeFiles\ink_hybrid_test_O2.dir\backend\hybrid\host.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+[3/7] Linking CXX executable src\testcase\ink_hybrid_test_O0.exe
+[4/7] Linking CXX executable src\testcase\ink_hybrid_test_O2.exe
+[5/7] Building CXX object src\testcase\CMakeFiles\ink_tests.dir\backend\hybrid_backend_test.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+[6/7] Linking CXX executable src\testcase\ink_tests.exe

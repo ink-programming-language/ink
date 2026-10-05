@@ -9,6 +9,6 @@ class Point
 };
 func main(): i32
 {
-  var Value = Point();
+  const Value = Point();
   return Value.read();
 }

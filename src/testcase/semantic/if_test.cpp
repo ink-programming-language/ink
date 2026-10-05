@@ -336,7 +336,8 @@ func Second(): i32 { return comptime Choose(false); }
       SCOPED_TRACE(Source);
       IfAnalysis Input(Source);
       ASSERT_TRUE(Input.Parsed.succeeded());
-      EXPECT_DEATH(Input.analyze(), "internal compiler error\\[INK-S0012\\]");
+      EXPECT_EQ(Input.analyze(), nullptr);
+      EXPECT_NE(Input.diagnosticCount(core::DiagnosticKind::SemanticInvalidLoopControl), 0U);
     }
   }
 } // namespace ink::semantic::test

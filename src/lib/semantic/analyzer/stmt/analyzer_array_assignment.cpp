@@ -167,7 +167,7 @@ namespace ink::semantic
       reportExecution(State, execution::ExecutionStatus::RuntimeValue, Node);
       return {};
     }
-    if (needsDestruction(*ElementType))
+    if (needsDestruction(State, *ElementType))
     {
       const Value *Address = resolveComptimeReceiver(State, *Node.left(), Depth + 1, Path);
       if (!Address || !destroyObject(State, *ElementType, *Address, Node))

@@ -8,7 +8,42 @@ namespace ink::semantic
   {
     if (!State.Evaluating && !Node.isComptime())
     {
-      return reportUnsupported(State, Node);
+      if (!State.CurrentFunction)
+      {
+        return reportUnsupported(State, Node);
+      }
+      NameResolver::ScopeGuard Scope(State.Resolver);
+      AnalysisState::FrameGuard Frame(State, execution::ExecutionFrameKind::Block);
+      if (!Frame)
+      {
+        return reportExecution(State, State.Context.comptimeState().Engine.lastStatus(), Node);
+      }
+      const std::size_t Begin = State.Lifetimes.size();
+      if (Node.initializer() && !analyzeStmt(State, *Node.initializer()))
+      {
+        return finishObjectScope(State, Begin, Node, false);
+      }
+      const auto Condition = [&]() -> const ir::Value *
+      {
+        return Node.condition() ? analyzeLoopCondition(State, *Node.condition()) : &State.Context.constantPool().getBoolConstant(true);
+      };
+      const auto Body = [&]()
+      {
+        return analyzeStmt(State, *Node.body());
+      };
+      const auto Step = [&]()
+      {
+        for (const parser::SimpleItem *Item : Node.step())
+        {
+          if (!analyzeSimpleItem(State, *Item) || !cleanupObjects(State, 0, true, *Item))
+          {
+            return false;
+          }
+        }
+        return true;
+      };
+      const bool Succeeded = analyzeRuntimeLoop(State, Node, Condition, Body, Step);
+      return finishObjectScope(State, Begin, Node, Succeeded);
     }
     NameResolver::ScopeGuard Scope(State.Resolver);
     const std::size_t LifetimeBegin = State.Lifetimes.size();
@@ -25,7 +60,7 @@ namespace ink::semantic
         return false;
       }
     }
-    ++State.LoopDepth;
+    AnalysisState::LoopGuard Loop(State);
     bool Succeeded = true;
     while (Succeeded)
     {
@@ -85,7 +120,6 @@ namespace ink::semantic
       }
     }
     State.Breaking = false;
-    --State.LoopDepth;
     return finishObjectScope(State, LifetimeBegin, Node, Succeeded);
   }
 } // namespace ink::semantic

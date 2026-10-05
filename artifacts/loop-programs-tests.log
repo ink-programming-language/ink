@@ -1,0 +1,27 @@
+Test project D:/github/ink/build
+    Start 3989: ExecutionSourceTest.Loops.Main.While
+1/6 Test #3989: ExecutionSourceTest.Loops.Main.While .......   Passed    0.38 sec
+    Start 3990: ExecutionSourceTest.Loops.Main.For
+2/6 Test #3990: ExecutionSourceTest.Loops.Main.For .........   Passed    0.12 sec
+    Start 3991: ExecutionSourceTest.Loops.Main.ForIn
+3/6 Test #3991: ExecutionSourceTest.Loops.Main.ForIn .......   Passed    0.12 sec
+    Start 3992: ExecutionSourceTest.Loops.Main.Effects
+4/6 Test #3992: ExecutionSourceTest.Loops.Main.Effects .....   Passed    0.12 sec
+    Start 3993: ExecutionSourceTest.Loops.Main.Lifecycle
+5/6 Test #3993: ExecutionSourceTest.Loops.Main.Lifecycle ...   Passed    0.21 sec
+    Start 3994: ExecutionSourceTest.Loops.Main.Comptime
+6/6 Test #3994: ExecutionSourceTest.Loops.Main.Comptime ....   Passed    0.12 sec
+
+100% tests passed, 0 tests failed out of 6
+
+Label Time Summary:
+arrays          =   0.12 sec*proc (1 test)
+bytecode        =   1.08 sec*proc (6 tests)
+class           =   0.21 sec*proc (1 test)
+comptime        =   0.12 sec*proc (1 test)
+control_flow    =   1.08 sec*proc (6 tests)
+execution       =   1.08 sec*proc (6 tests)
+loops           =   1.08 sec*proc (6 tests)
+source          =   1.08 sec*proc (6 tests)
+
+Total Test time (real) =   1.39 sec

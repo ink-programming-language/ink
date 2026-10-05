@@ -56,7 +56,7 @@ namespace ink::semantic
       AnalysisState::EvaluationGuard Guard(State);
       return analyzeBlockStmt(State, static_cast<const parser::BlockStmt &>(Stmt));
     }
-    if (Stmt.isComptime() && !State.Evaluating && !parser::DeclStmt::classof(&Stmt) && !parser::IfStmt::classof(&Stmt) && !parser::WhileStmt::classof(&Stmt) && !parser::ClassicForStmt::classof(&Stmt) && !parser::DirectImportStmt::classof(&Stmt) && !parser::FromImportStmt::classof(&Stmt))
+    if (Stmt.isComptime() && !State.Evaluating && !parser::DeclStmt::classof(&Stmt) && !parser::IfStmt::classof(&Stmt) && !parser::WhileStmt::classof(&Stmt) && !parser::ClassicForStmt::classof(&Stmt) && !parser::ForInStmt::classof(&Stmt) && !parser::DirectImportStmt::classof(&Stmt) && !parser::FromImportStmt::classof(&Stmt))
     {
       return reportUnsupported(State, Stmt);
     }

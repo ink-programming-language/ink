@@ -24,7 +24,10 @@
 #include "ink/ir/instruction/store_instruction.h"
 #include "ink/ir/type/class_type.h"
 
+#include <llvm/ADT/PostOrderIterator.h>
+#include <llvm/ADT/SmallVector.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Dominators.h>
 #include <llvm/IR/Instructions.h>
 
 #include <algorithm>
@@ -35,6 +38,82 @@ namespace ink::backend::llvm
   namespace
   {
     using execution::ExecutionStatus;
+
+    ::llvm::SmallVector<const ir::Value *, 4> operands(const ir::Value &Value)
+    {
+      switch (Value.kind())
+      {
+        case ir::ValueKind::LoadInstruction:
+          return {&static_cast<const ir::LoadInstruction &>(Value).address()};
+        case ir::ValueKind::StoreInstruction:
+        {
+          const auto &Store = static_cast<const ir::StoreInstruction &>(Value);
+          return {&Store.address(), &Store.storedValue()};
+        }
+        case ir::ValueKind::ClassInstruction:
+        {
+          const auto Fields = static_cast<const ir::ClassInstruction &>(Value).fields();
+          return {Fields.begin(), Fields.end()};
+        }
+        case ir::ValueKind::FieldExtractInstruction:
+          return {&static_cast<const ir::FieldExtractInstruction &>(Value).object()};
+        case ir::ValueKind::FieldPointerInstruction:
+          return {&static_cast<const ir::FieldPointerInstruction &>(Value).address()};
+        case ir::ValueKind::ArrayInstruction:
+        {
+          const auto Elements = static_cast<const ir::ArrayInstruction &>(Value).elements();
+          return {Elements.begin(), Elements.end()};
+        }
+        case ir::ValueKind::ArrayElementPointerInstruction:
+        {
+          const auto &Element = static_cast<const ir::ArrayElementPointerInstruction &>(Value);
+          return {&Element.address(), &Element.index()};
+        }
+        case ir::ValueKind::ArrayExtractInstruction:
+        {
+          const auto &Extract = static_cast<const ir::ArrayExtractInstruction &>(Value);
+          return {&Extract.array(), &Extract.index()};
+        }
+        case ir::ValueKind::AddInstruction:
+        {
+          const auto &Add = static_cast<const ir::AddInstruction &>(Value);
+          return {&Add.left(), &Add.right()};
+        }
+        case ir::ValueKind::LogicalAndInstruction:
+        {
+          const auto &And = static_cast<const ir::LogicalAndInstruction &>(Value);
+          return {&And.left(), &And.right()};
+        }
+        case ir::ValueKind::LogicalOrInstruction:
+        {
+          const auto &Or = static_cast<const ir::LogicalOrInstruction &>(Value);
+          return {&Or.left(), &Or.right()};
+        }
+        case ir::ValueKind::LogicalNotInstruction:
+          return {&static_cast<const ir::LogicalNotInstruction &>(Value).operand()};
+        case ir::ValueKind::CompareInstruction:
+        {
+          const auto &Compare = static_cast<const ir::CompareInstruction &>(Value);
+          return {&Compare.left(), &Compare.right()};
+        }
+        case ir::ValueKind::CallInstruction:
+        {
+          const auto &Call = static_cast<const ir::CallInstruction &>(Value);
+          ::llvm::SmallVector<const ir::Value *, 4> Result{&Call.callee()};
+          Result.append(Call.arguments().begin(), Call.arguments().end());
+          return Result;
+        }
+        case ir::ValueKind::ReturnInstruction:
+        {
+          const auto *Returned = static_cast<const ir::ReturnInstruction &>(Value).returnedValue();
+          return Returned ? ::llvm::SmallVector<const ir::Value *, 4>{Returned} : ::llvm::SmallVector<const ir::Value *, 4>{};
+        }
+        case ir::ValueKind::ConditionalBranchInstruction:
+          return {&static_cast<const ir::ConditionalBranchInstruction &>(Value).condition()};
+        default:
+          return {};
+      }
+    }
 
     class FunctionLowering final
     {
@@ -52,9 +131,10 @@ namespace ink::backend::llvm
 
       private:
         bool instruction(const ir::Value &Instruction);
+        bool prepareValues(std::vector<const ir::BasicBlock *> &Order);
         ::llvm::Value *value(const ir::Value &Value);
         void require(::llvm::Value *Condition, ExecutionStatus Status);
-        ::llvm::Value *memoryLoad(const ir::Type &Type, ::llvm::Value *Address);
+        ::llvm::Value *memoryLoad(const ir::Type &Type, ::llvm::Value *Address, bool LocalBoolean = false);
         bool memoryStore(const ir::Type &Type, ::llvm::Value *Value, ::llvm::Value *Address);
         ::llvm::Value *offset(::llvm::Value *Address, std::uint64_t Bytes);
         ::llvm::Value *checkedIndex(const ir::Value &Index, std::uint64_t Count);
@@ -67,11 +147,17 @@ namespace ink::backend::llvm
         ::llvm::IRBuilder<> Builder;
         std::unordered_map<const ir::BasicBlock *, ::llvm::BasicBlock *> Blocks;
         std::unordered_map<const ir::Value *, ::llvm::Value *> Values;
+        std::unordered_map<const ir::Value *, ::llvm::Value *> Slots;
         std::unordered_map<const ir::Value *, ::llvm::Value *> Initialized;
+        std::unordered_set<const ir::Value *> LocalBooleans;
     };
 
     void FunctionLowering::require(::llvm::Value *Condition, ExecutionStatus Status)
     {
+      if (const auto *Constant = ::llvm::dyn_cast<::llvm::ConstantInt>(Condition); Constant && Constant->isOne())
+      {
+        return;
+      }
       auto *Continue = ::llvm::BasicBlock::Create(Context.Context, "valid", &Target);
       auto *Failed = ::llvm::BasicBlock::Create(Context.Context, "invalid", &Target);
       Builder.CreateCondBr(Condition, Continue, Failed);
@@ -88,33 +174,124 @@ namespace ink::backend::llvm
       Builder.SetInsertPoint(Continue);
     }
 
-    bool FunctionLowering::lower()
+    bool FunctionLowering::prepareValues(std::vector<const ir::BasicBlock *> &Order)
     {
       auto *Entry = ::llvm::BasicBlock::Create(Context.Context, "prologue", &Target);
-      Builder.SetInsertPoint(Entry);
+      std::unordered_map<const ir::Value *, std::size_t> Positions;
+      std::unordered_map<::llvm::BasicBlock *, const ir::BasicBlock *> Sources;
       for (const auto &Block : Source.blocks())
       {
         if (!Block->terminator())
         {
           return Context.fail("AOT function contains an unterminated block");
         }
-        Blocks.emplace(Block.get(), ::llvm::BasicBlock::Create(Context.Context, "block", &Target));
+        auto *Lowered = ::llvm::BasicBlock::Create(Context.Context, "block", &Target);
+        Blocks.emplace(Block.get(), Lowered);
+        Sources.emplace(Lowered, Block.get());
+        std::size_t Position = 0;
         for (const auto &Value : Block->values())
         {
-          if (Value->type().typeKind() == ir::TypeKind::Void || ir::Function::classof(Value.get()) || ir::Module::classof(Value.get()))
+          Positions.emplace(Value.get(), Position++);
+          if (ir::AllocaInstruction::classof(Value.get()) && static_cast<const ir::AllocaInstruction &>(*Value).allocatedType().typeKind() == ir::TypeKind::Bool)
           {
-            continue;
+            LocalBooleans.insert(Value.get());
           }
-          ::llvm::Type *Type = Context.lowerType(Value->type());
-          if (!Type)
-          {
-            return false;
-          }
-          Values.emplace(Value.get(), Builder.CreateAlloca(Type, nullptr, "value"));
-          auto *Flag = Builder.CreateAlloca(Builder.getInt1Ty(), nullptr, "initialized");
-          Builder.CreateStore(Builder.getFalse(), Flag);
-          Initialized.emplace(Value.get(), Flag);
         }
+      }
+      // Build the source CFG before lowering inserts diagnostic blocks. Storage order is not execution order.
+      Builder.SetInsertPoint(Entry);
+      Builder.CreateBr(Blocks.at(Source.entryBlock()));
+      for (const auto &Block : Source.blocks())
+      {
+        Builder.SetInsertPoint(Blocks.at(Block.get()));
+        const auto *Terminator = Block->terminator();
+        if (ir::BranchInstruction::classof(Terminator))
+        {
+          const auto Found = Blocks.find(&static_cast<const ir::BranchInstruction *>(Terminator)->target());
+          if (Found == Blocks.end())
+          {
+            return Context.fail("AOT branch target is outside its function");
+          }
+          Builder.CreateBr(Found->second);
+        }
+        else if (ir::ConditionalBranchInstruction::classof(Terminator))
+        {
+          const auto &Branch = static_cast<const ir::ConditionalBranchInstruction &>(*Terminator);
+          const auto True = Blocks.find(&Branch.trueTarget());
+          const auto False = Blocks.find(&Branch.falseTarget());
+          if (True == Blocks.end() || False == Blocks.end())
+          {
+            return Context.fail("AOT branch target is outside its function");
+          }
+          Builder.CreateCondBr(Builder.getTrue(), True->second, False->second);
+        }
+        else
+        {
+          Builder.CreateUnreachable();
+        }
+      }
+      const ::llvm::DominatorTree Dominators(Target);
+      for (auto *Block : ::llvm::ReversePostOrderTraversal<::llvm::Function *>(&Target))
+      {
+        if (Block != Entry)
+        {
+          Order.push_back(Sources.at(Block));
+        }
+      }
+      Builder.SetInsertPoint(Entry->getTerminator());
+      for (const auto &Block : Source.blocks())
+      {
+        auto *UseBlock = Blocks.at(Block.get());
+        if (!Dominators.isReachableFromEntry(UseBlock))
+        {
+          Order.push_back(Block.get());
+        }
+        for (const auto &User : Block->values())
+        {
+          for (const auto *Operand : operands(*User))
+          {
+            const bool AddressOnly = (ir::LoadInstruction::classof(User.get()) && &static_cast<const ir::LoadInstruction &>(*User).address() == Operand) || (ir::StoreInstruction::classof(User.get()) && &static_cast<const ir::StoreInstruction &>(*User).address() == Operand);
+            if (!AddressOnly)
+            {
+              LocalBooleans.erase(Operand);
+            }
+            if (ir::Constant::classof(Operand) || ir::Function::classof(Operand) || ir::FunctionParameter::classof(Operand))
+            {
+              continue;
+            }
+            const auto Position = Positions.find(Operand);
+            if (Position == Positions.end())
+            {
+              return Context.fail("AOT encountered an unresolved instruction operand");
+            }
+            const auto *Definition = static_cast<const ir::BasicBlock *>(Operand->outer());
+            const bool Available = Definition == Block.get() ? Position->second < Positions.at(User.get()) : Dominators.isReachableFromEntry(UseBlock) && Dominators.dominates(Blocks.at(Definition), UseBlock);
+            if (Available || Slots.contains(Operand))
+            {
+              continue;
+            }
+            // Non-dominating definitions retain the VM's last-result and unavailable-value semantics.
+            auto *Type = Context.lowerType(Operand->type());
+            if (!Type || Type->isVoidTy())
+            {
+              return Context.fail("AOT operand has no runtime value type");
+            }
+            Slots.emplace(Operand, Builder.CreateAlloca(Type, nullptr, "value"));
+            auto *Flag = Builder.CreateAlloca(Builder.getInt1Ty(), nullptr, "initialized");
+            Builder.CreateStore(Builder.getFalse(), Flag);
+            Initialized.emplace(Operand, Flag);
+          }
+        }
+      }
+      return true;
+    }
+
+    bool FunctionLowering::lower()
+    {
+      std::vector<const ir::BasicBlock *> Order;
+      if (!prepareValues(Order))
+      {
+        return false;
       }
       std::size_t Index = 0;
       for (::llvm::Argument &Argument : Target.args())
@@ -132,10 +309,11 @@ namespace ink::backend::llvm
           return false;
         }
       }
-      Builder.CreateBr(Blocks.at(Source.entryBlock()));
-      for (const auto &Block : Source.blocks())
+      for (const auto *Block : Order)
       {
-        Builder.SetInsertPoint(Blocks.at(Block.get()));
+        auto *Lowered = Blocks.at(Block);
+        Lowered->getTerminator()->eraseFromParent();
+        Builder.SetInsertPoint(Lowered);
         for (const auto &Value : Block->values())
         {
           if (!instruction(*Value))
@@ -257,18 +435,18 @@ namespace ink::backend::llvm
       {
         return Context.constant(Value);
       }
+      if (const auto Slot = Slots.find(&Value); Slot != Slots.end())
+      {
+        require(Builder.CreateLoad(Builder.getInt1Ty(), Initialized.at(&Value)), ExecutionStatus::RuntimeValue);
+        return Builder.CreateLoad(Context.lowerType(Value.type()), Slot->second);
+      }
       const auto Found = Values.find(&Value);
       if (Found == Values.end())
       {
         Context.fail("AOT encountered an unresolved instruction operand");
         return nullptr;
       }
-      if (ir::FunctionParameter::classof(&Value))
-      {
-        return Found->second;
-      }
-      require(Builder.CreateLoad(Builder.getInt1Ty(), Initialized.at(&Value)), ExecutionStatus::RuntimeValue);
-      return Builder.CreateLoad(Context.lowerType(Value.type()), Found->second);
+      return Found->second;
     }
 
     ::llvm::Value *FunctionLowering::offset(::llvm::Value *Address, std::uint64_t Bytes)
@@ -276,7 +454,7 @@ namespace ink::backend::llvm
       return Builder.CreateGEP(Builder.getInt8Ty(), Address, ::llvm::ConstantInt::get(Context.SizeType, Bytes));
     }
 
-    ::llvm::Value *FunctionLowering::memoryLoad(const ir::Type &Type, ::llvm::Value *Address)
+    ::llvm::Value *FunctionLowering::memoryLoad(const ir::Type &Type, ::llvm::Value *Address, bool LocalBoolean)
     {
       ::llvm::Type *TargetType = Context.lowerType(Type);
       if (!TargetType)
@@ -286,7 +464,10 @@ namespace ink::backend::llvm
       if (Type.typeKind() == ir::TypeKind::Bool)
       {
         ::llvm::Value *Bits = Builder.CreateAlignedLoad(Builder.getInt8Ty(), Address, ::llvm::Align(1));
-        require(Builder.CreateICmpULE(Bits, Builder.getInt8(1)), ExecutionStatus::TypeMismatch);
+        if (!LocalBoolean)
+        {
+          require(Builder.CreateICmpULE(Bits, Builder.getInt8(1)), ExecutionStatus::TypeMismatch);
+        }
         return Builder.CreateTrunc(Bits, Builder.getInt1Ty());
       }
       if (Type.typeKind() == ir::TypeKind::Class)
@@ -481,7 +662,7 @@ namespace ink::backend::llvm
           {
             return false;
           }
-          Result = memoryLoad(Load.type(), Pointer);
+          Result = memoryLoad(Load.type(), Pointer, LocalBooleans.contains(&Load.address()));
           if (!Result)
           {
             return false;
@@ -730,8 +911,12 @@ namespace ink::backend::llvm
         {
           return Context.fail("AOT instruction did not produce its declared value");
         }
-        Builder.CreateStore(Result, Values.at(&Instruction));
-        Builder.CreateStore(Builder.getTrue(), Initialized.at(&Instruction));
+        Values.emplace(&Instruction, Result);
+        if (const auto Slot = Slots.find(&Instruction); Slot != Slots.end())
+        {
+          Builder.CreateStore(Result, Slot->second);
+          Builder.CreateStore(Builder.getTrue(), Initialized.at(&Instruction));
+        }
       }
       return true;
     }

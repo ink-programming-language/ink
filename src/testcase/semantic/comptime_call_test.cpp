@@ -214,12 +214,10 @@ func ReadCounter(): i32 { return comptime Counter; }
     Input.expectIntegerReturn(*Result, "ReadCounter", 4);
   }
 
-  // Compile-time functions reject loops and unsupported arithmetic until the corresponding IR is supported.
-  TEST(SemanticComptimeCallTest, RejectsControlFlowWithoutIrSupportAtDefinition)
+  // A recursive compile-time function still rejects arithmetic that has no corresponding IR operation.
+  TEST(SemanticComptimeCallTest, RejectsUnsupportedArithmeticInRecursiveBody)
   {
     const char *Cases[] = {
-        "comptime func F(Flag: bool): void { while (Flag) {} }",
-        "comptime func F(X: i32): void { for (var I: i32 = 0; I < X; I++) {} }",
         "comptime func F(N: i32): i32 { if (N <= 1) { return 1; } return N * F(N - 1); }",
     };
     for (const char *Source : Cases)
@@ -237,8 +235,6 @@ func ReadCounter(): i32 { return comptime Counter; }
     const char *Cases[] = {
         "comptime func F(X: i32): i32 { return X * 10; }",
         "comptime func F(X: i32): i32 { return 1 / X; }",
-        "comptime func F(X: i32): i32 { var Local = X; Local += 1; return Local; }",
-        "comptime func F(X: i32): i32 { var Local = X; return ++Local; }",
     };
     for (const char *Source : Cases)
     {

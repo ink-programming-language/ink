@@ -8,9 +8,25 @@ namespace ink::semantic
   {
     if (!State.Evaluating && !Node.isComptime())
     {
-      return reportUnsupported(State, Node);
+      if (!State.CurrentFunction)
+      {
+        return reportUnsupported(State, Node);
+      }
+      const auto Condition = [&]()
+      {
+        return analyzeLoopCondition(State, *Node.condition());
+      };
+      const auto Body = [&]()
+      {
+        return analyzeStmt(State, *Node.body());
+      };
+      const auto Step = []()
+      {
+        return true;
+      };
+      return analyzeRuntimeLoop(State, Node, Condition, Body, Step);
     }
-    ++State.LoopDepth;
+    AnalysisState::LoopGuard Loop(State);
     bool Succeeded = true;
     while (Succeeded)
     {
@@ -54,7 +70,6 @@ namespace ink::semantic
       }
     }
     State.Breaking = false;
-    --State.LoopDepth;
     return Succeeded;
   }
 } // namespace ink::semantic

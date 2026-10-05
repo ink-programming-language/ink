@@ -9,13 +9,34 @@ namespace ink::semantic
 {
   using namespace ir;
 
-  bool Analyzer::needsDestruction(const Type &Type) const
+  bool Analyzer::needsDestruction(AnalysisState &State, const Type &Type) const
   {
     if (ClassType::classof(&Type))
     {
-      return true;
+      const auto &Class = static_cast<const ClassType &>(Type);
+      const auto Found = State.Context.classState().Definitions.find(&Class);
+      if (!Class.isComplete() || Found == State.Context.classState().Definitions.end() || !Found->second.Declaration || !Found->second.Declaration->body())
+      {
+        return true;
+      }
+      // Inspect declarations, not generated method bodies: later methods may still be under analysis.
+      for (const auto *Statement : Found->second.Declaration->body()->statements())
+      {
+        if (parser::DeclStmt::classof(Statement))
+        {
+          const auto *Declaration = static_cast<const parser::DeclStmt *>(Statement)->declaration();
+          if (parser::FunctionDecl::classof(Declaration) && static_cast<const parser::FunctionDecl *>(Declaration)->name().Text == "__del__")
+          {
+            return true;
+          }
+        }
+      }
+      return std::any_of(Class.fields().begin(), Class.fields().end(), [&](const ClassField &Field)
+                         {
+                           return needsDestruction(State, *Field.FieldType);
+                         });
     }
-    return ArrayType::classof(&Type) && static_cast<const ArrayType &>(Type).elementCount() != 0 && needsDestruction(static_cast<const ArrayType &>(Type).elementType());
+    return ArrayType::classof(&Type) && static_cast<const ArrayType &>(Type).elementCount() != 0 && needsDestruction(State, static_cast<const ArrayType &>(Type).elementType());
   }
 
   void Analyzer::recordLifecycleDependency(AnalysisState &State, const Function &Function)
@@ -117,6 +138,10 @@ namespace ink::semantic
 
   bool Analyzer::destroyObject(AnalysisState &State, const Type &Type, const Value &Address, const parser::ASTNodeBase &Node)
   {
+    if (!needsDestruction(State, Type))
+    {
+      return true;
+    }
     if (ClassType::classof(&Type))
     {
       const auto &Class = static_cast<const ClassType &>(Type);
@@ -134,7 +159,7 @@ namespace ink::semantic
       const Value *Arguments[] = {&Address};
       return State.Evaluating ? static_cast<bool>(callComptime(State, Destructor, Arguments, Node)) : State.Builder.createCallInstruction(Destructor, Arguments) != nullptr;
     }
-    if (ArrayType::classof(&Type) && needsDestruction(Type))
+    if (ArrayType::classof(&Type))
     {
       const auto &Array = static_cast<const ArrayType &>(Type);
       const auto *IndexType = State.Context.typePool().getType<TypeKind::Integer>(64, false);
@@ -183,7 +208,7 @@ namespace ink::semantic
     for (std::size_t Index = Fields.size(); Index != 0; --Index)
     {
       const auto &Field = Fields[Index - 1];
-      if (!needsDestruction(*Field.FieldType))
+      if (!needsDestruction(State, *Field.FieldType))
       {
         continue;
       }
@@ -198,14 +223,14 @@ namespace ink::semantic
 
   bool Analyzer::trackObject(AnalysisState &State, const Value &Address, const Type &Type, bool Initialized, const Value *TemporaryValue)
   {
-    if (!needsDestruction(Type))
+    if (!needsDestruction(State, Type))
     {
       return true;
     }
     const Value *Flag = nullptr;
-    if (!State.Evaluating)
+    if (!State.Evaluating && !TemporaryValue)
     {
-      // Flags dominate every branch, including skipped short-circuit temporaries.
+      // Local initialization flags dominate all assignment and cleanup paths.
       IRBuilder Entry(State.Context.irContext());
       BasicBlock &Block = *State.CurrentFunction->entryBlock();
       Entry.setInsertPoint(Block, Block.values().empty() ? nullptr : Block.values().front().get());
@@ -215,13 +240,53 @@ namespace ink::semantic
         return false;
       }
     }
-    State.Lifetimes.push_back({&Address, &Type, Flag, TemporaryValue, State.Evaluating, !State.Evaluating || Initialized});
+    // A consumed temporary never needs a flag. Remember where construction completed in case cleanup is later required.
+    const Value *Construction = !State.Evaluating && TemporaryValue ? State.Builder.insertBlock()->values().back().get() : nullptr;
+    State.Lifetimes.push_back({&Address, &Type, Flag, TemporaryValue, State.Evaluating, !State.Evaluating || Initialized, Construction});
+    return true;
+  }
+
+  bool Analyzer::prepareObjectCleanup(AnalysisState &State, std::size_t Index)
+  {
+    auto &Lifetime = State.Lifetimes[Index];
+    if (Lifetime.Comptime || Lifetime.Initialized)
+    {
+      return true;
+    }
+    if (!Lifetime.Construction || !BasicBlock::classof(Lifetime.Construction->outer()))
+    {
+      return false;
+    }
+    auto &ConstructionBlock = *const_cast<BasicBlock *>(static_cast<const BasicBlock *>(Lifetime.Construction->outer()));
+    const auto &Instructions = ConstructionBlock.values();
+    auto Position = std::find_if(Instructions.begin(), Instructions.end(), [&](const auto &Instruction)
+                                {
+                                  return Instruction.get() == Lifetime.Construction;
+                                });
+    if (Position == Instructions.end())
+    {
+      return false;
+    }
+    ++Position;
+    Value *Before = Position == Instructions.end() ? nullptr : Position->get();
+    IRBuilder Builder(State.Context.irContext());
+    BasicBlock &Entry = *State.CurrentFunction->entryBlock();
+    if (!Builder.setInsertPoint(Entry, Entry.values().empty() ? nullptr : Entry.values().front().get()))
+    {
+      return false;
+    }
+    const Value *Flag = Builder.createAllocaInstruction(State.Context.typePool().getType<TypeKind::Bool>());
+    if (!Flag || !Builder.createStoreInstruction(*Flag, State.Context.constantPool().getBoolConstant(false)) || !Builder.setInsertPoint(ConstructionBlock, Before) || !Builder.createStoreInstruction(*Flag, State.Context.constantPool().getBoolConstant(true)))
+    {
+      return false;
+    }
+    Lifetime.Initialized = Flag;
     return true;
   }
 
   Analyzer::ExpressionResult Analyzer::trackTemporary(AnalysisState &State, const Value *Value, const parser::Expr &Node)
   {
-    if (!Value || !needsDestruction(Value->type()))
+    if (!Value || !needsDestruction(State, Value->type()))
     {
       return {Value};
     }
@@ -234,6 +299,11 @@ namespace ink::semantic
     if (!Address)
     {
       return nullptr;
+    }
+    // Trivial construction still supplies reusable storage even though it has no cleanup registration.
+    if (AllocaInstruction::classof(Address) && !needsDestruction(State, static_cast<const AllocaInstruction &>(*Address).allocatedType()))
+    {
+      return Address;
     }
     for (auto &Lifetime : State.Lifetimes)
     {
@@ -250,7 +320,7 @@ namespace ink::semantic
   {
     for (std::size_t Index = State.Lifetimes.size(); Index > Begin; --Index)
     {
-      const auto Lifetime = State.Lifetimes[Index - 1];
+      auto Lifetime = State.Lifetimes[Index - 1];
       if (!Lifetime.Active || Lifetime.Comptime != State.Evaluating || (TemporariesOnly && !Lifetime.TemporaryValue))
       {
         continue;
@@ -264,6 +334,11 @@ namespace ink::semantic
       }
       else
       {
+        if (!prepareObjectCleanup(State, Index - 1))
+        {
+          return false;
+        }
+        Lifetime.Initialized = State.Lifetimes[Index - 1].Initialized;
         const auto *Ready = State.Builder.createLoadInstruction(*Lifetime.Initialized);
         auto *Destroy = State.Builder.createBasicBlock(*State.CurrentFunction);
         auto *Continue = State.Builder.createBasicBlock(*State.CurrentFunction);
@@ -282,7 +357,7 @@ namespace ink::semantic
 
   bool Analyzer::destroyPrevious(AnalysisState &State, const Value &Address, const Type &Type, const parser::ASTNodeBase &Node)
   {
-    if (!needsDestruction(Type))
+    if (!needsDestruction(State, Type))
     {
       return true;
     }

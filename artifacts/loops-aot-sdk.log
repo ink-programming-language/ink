@@ -1,0 +1,15 @@
+Test project D:/github/ink/build
+    Start 3959: AOTClassTest.Loops
+1/2 Test #3959: AOTClassTest.Loops ...............   Passed    1.19 sec
+    Start 3960: AOTClassTest.LoopLifecycle
+2/2 Test #3960: AOTClassTest.LoopLifecycle .......   Passed    1.23 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Label Time Summary:
+aot             =   2.42 sec*proc (2 tests)
+control_flow    =   2.42 sec*proc (2 tests)
+differential    =   2.42 sec*proc (2 tests)
+loops           =   2.42 sec*proc (2 tests)
+
+Total Test time (real) =   2.79 sec

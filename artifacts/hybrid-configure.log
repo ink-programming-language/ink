@@ -1,0 +1,46 @@
+-- bolt project is disabled
+-- clang project is enabled
+-- clang-tools-extra project is disabled
+-- compiler-rt project is disabled
+-- cross-project-tests project is disabled
+-- libclc project is disabled
+-- lld project is disabled
+-- lldb project is disabled
+-- mlir project is disabled
+-- openmp project is disabled
+-- polly project is disabled
+-- flang project is disabled
+-- libc project is disabled
+-- Could NOT find ZLIB (missing: ZLIB_LIBRARY ZLIB_INCLUDE_DIR) 
+-- Could NOT find LibXml2 (missing: LIBXML2_LIBRARY LIBXML2_INCLUDE_DIR) 
+-- Could NOT find Backtrace (missing: Backtrace_LIBRARY Backtrace_INCLUDE_DIR) 
+-- LLVM host triple: x86_64-pc-windows-msvc
+-- Native target architecture is X86
+-- Threads enabled.
+-- Doxygen disabled.
+-- Ninja version: 1.13.2
+-- Could NOT find OCaml (missing: OCAMLFIND OCAML_VERSION OCAML_STDLIB_PATH) 
+-- OCaml bindings disabled.
+-- LLVM default target triple: x86_64-pc-windows-msvc
+-- Targeting X86
+-- Clang version: 22.1.8
+-- BugpointPasses ignored -- Loadable modules not supported on this platform.
+-- Not building llvm-mt.exe because libxml2 is not available
+-- Build spdlog: 1.17.0
+-- Build type: Debug
+CMake Deprecation Warning at src/third_party/utf8proc/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+-- Could NOT find ZLIB (missing: ZLIB_LIBRARY ZLIB_INCLUDE_DIR) 
+-- Could NOT find LibXml2 (missing: LIBXML2_LIBRARY LIBXML2_INCLUDE_DIR) 
+-- Found LLVM 22.1.8
+-- Using LLVMConfig.cmake in: D:/github/ink/cmake-build-debug/third_party/llvm/lib/cmake/llvm
+-- Configuring done (4.3s)
+-- Generating done (4.2s)
+-- Build files have been written to: D:/github/ink/cmake-build-debug

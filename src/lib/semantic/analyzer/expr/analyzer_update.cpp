@@ -11,8 +11,32 @@ namespace ink::semantic
   {
     if (!State.Evaluating)
     {
-      reportUnsupported(State, Node);
-      return {};
+      const Value *Address = resolveAddress(State, Operand, Depth + 1);
+      if (!Address)
+      {
+        return {};
+      }
+      const auto &Type = static_cast<const PointerType &>(Address->type()).pointeeType();
+      if (!IntegerType::classof(&Type))
+      {
+        State.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "integer update operand", describeType(Type));
+        return {};
+      }
+      const auto &Integer = static_cast<const IntegerType &>(Type);
+      ExecutionInteger Delta(Integer.bitWidth(), 1);
+      if (Operator == tokenizer::TokenKind::MinusMinus)
+      {
+        Delta.negate(Delta);
+      }
+      const auto *Amount = State.Context.constantPool().getIntegerConstant(Integer, Delta.bits());
+      const auto *Old = State.Builder.createLoadInstruction(*Address);
+      const auto *Updated = Old ? State.Builder.createAddInstruction(*Old, *Amount) : nullptr;
+      if (!Updated || !State.Builder.createStoreInstruction(*Address, *Updated))
+      {
+        State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
+        return {};
+      }
+      return {Postfix ? static_cast<const Value *>(Old) : Updated};
     }
     const Value *Binding = resolveVariable(State, Operand);
     if (!Binding)

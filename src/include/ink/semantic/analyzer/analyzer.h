@@ -7,6 +7,7 @@
 #include "ink/tokenizer/token.h"
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <span>
@@ -21,6 +22,7 @@ namespace ink::parser
   class Decl;
   class Expr;
   class SimpleItem;
+  class BindingPattern;
 #define AST_NODE(Name, Base, Category, Id) class Name;
 #include "ink/parser/ASTNodes.def"
 #undef AST_NODE
@@ -52,7 +54,7 @@ namespace ink::semantic
 
       // Builds a module from successfully parsed input. Unsupported syntax reports
       // an ICE. User errors return null. Source-ordered comptime evaluation uses
-      // context-owned execution frames; runtime bodies support locals, calls, addition, logic, comparisons and branches.
+      // context-owned execution frames; runtime bodies support locals, calls, addition, logic, comparisons, branches and loops.
       // The returned module is owned by Context. Analysis state is local to each call.
       // ir::Module declaration roots borrow Input's AST; its ParsedUnit must outlive any allocated module, including on failure.
       ir::Module *analyze(SemanticContext &Context, const parser::ParseResult &Input, std::string_view ModuleName = "main");
@@ -123,6 +125,9 @@ namespace ink::semantic
       bool analyzeWhileStmt(AnalysisState &State, const parser::WhileStmt &Node);
       bool analyzeClassicForStmt(AnalysisState &State, const parser::ClassicForStmt &Node);
       bool analyzeForInStmt(AnalysisState &State, const parser::ForInStmt &Node);
+      const ir::Value *analyzeLoopCondition(AnalysisState &State, const parser::Expr &Node);
+      bool analyzeRuntimeLoop(AnalysisState &State, const parser::Stmt &Node, const std::function<const ir::Value *()> &Condition, const std::function<bool()> &Body, const std::function<bool()> &Step);
+      bool bindIterationValue(AnalysisState &State, const parser::BindingPattern &Pattern, const ir::Value &Value, bool Comptime, std::size_t Depth = 0);
       bool analyzeSwitchStmt(AnalysisState &State, const parser::SwitchStmt &Node);
       bool analyzeReturnStmt(AnalysisState &State, const parser::ReturnStmt &Node);
       bool analyzeBreakStmt(AnalysisState &State, const parser::BreakStmt &Node);
@@ -154,8 +159,9 @@ namespace ink::semantic
       bool checkConstructorComplete(AnalysisState &State, const parser::ASTNodeBase &Node);
       bool destroyClassFields(AnalysisState &State, const parser::ASTNodeBase &Node);
       bool destroyObject(AnalysisState &State, const ir::Type &Type, const ir::Value &Address, const parser::ASTNodeBase &Node);
-      bool needsDestruction(const ir::Type &Type) const;
+      bool needsDestruction(AnalysisState &State, const ir::Type &Type) const;
       bool trackObject(AnalysisState &State, const ir::Value &Address, const ir::Type &Type, bool Initialized, const ir::Value *TemporaryValue = nullptr);
+      bool prepareObjectCleanup(AnalysisState &State, std::size_t Index);
       ExpressionResult trackTemporary(AnalysisState &State, const ir::Value *Value, const parser::Expr &Node);
       const ir::Value *takeTemporary(AnalysisState &State, const ir::Value *Address);
       bool cleanupObjects(AnalysisState &State, std::size_t Begin, bool TemporariesOnly, const parser::ASTNodeBase &Node);

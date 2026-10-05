@@ -83,6 +83,96 @@ namespace ink::semantic
       bool Breaking = false;
       bool Continuing = false;
 
+      struct InitializationState
+      {
+          std::unordered_map<ComptimeState::Variable *, bool> Variables;
+          std::vector<bool> Fields;
+      };
+
+      InitializationState initializationState()
+      {
+        InitializationState Result;
+        for (auto &Entry : Context.comptimeState().Variables)
+        {
+          if (!Entry.second.Comptime && Entry.second.Function == CurrentFunction)
+          {
+            Result.Variables.emplace(&Entry.second, Entry.second.Initialized);
+          }
+        }
+        Result.Fields = ConstructorFields;
+        return Result;
+      }
+
+      void restoreInitialization(const InitializationState &Snapshot)
+      {
+        for (const auto &Entry : Snapshot.Variables)
+        {
+          Entry.first->Initialized = Entry.second;
+        }
+        ConstructorFields = Snapshot.Fields;
+      }
+
+      void mergeInitialization(const InitializationState &Incoming, const std::vector<InitializationState> &Paths)
+      {
+        restoreInitialization(Incoming);
+        if (Paths.empty())
+        {
+          return;
+        }
+        for (const auto &Entry : Incoming.Variables)
+        {
+          bool Initialized = true;
+          for (const auto &Path : Paths)
+          {
+            const auto Found = Path.Variables.find(Entry.first);
+            Initialized = Initialized && Found != Path.Variables.end() && Found->second;
+          }
+          Entry.first->Initialized = Initialized;
+        }
+        for (std::size_t Index = 0; Index < ConstructorFields.size(); ++Index)
+        {
+          bool Initialized = true;
+          for (const auto &Path : Paths)
+          {
+            Initialized = Initialized && Path.Fields[Index];
+          }
+          ConstructorFields[Index] = Initialized;
+        }
+      }
+
+      struct LoopControl
+      {
+          ir::BasicBlock *BreakTarget = nullptr;
+          ir::BasicBlock *ContinueTarget = nullptr;
+          std::size_t LifetimeBegin = 0;
+          std::vector<InitializationState> Breaks;
+          std::vector<InitializationState> Continues;
+      };
+
+      std::vector<LoopControl> Loops;
+
+      class LoopGuard final
+      {
+        public:
+          explicit LoopGuard(AnalysisState &State, ir::BasicBlock *BreakTarget = nullptr, ir::BasicBlock *ContinueTarget = nullptr)
+              : State(State),
+                SavedDepth(State.LoopDepth)
+          {
+            State.Loops.push_back({BreakTarget, ContinueTarget, State.Lifetimes.size(), {}, {}});
+            State.LoopDepth = BreakTarget ? 0 : SavedDepth + 1;
+          }
+
+          ~LoopGuard()
+          {
+            State.Loops.pop_back();
+            State.LoopDepth = SavedDepth;
+          }
+
+        private:
+          AnalysisState &State;
+          std::size_t SavedDepth;
+      };
+
       struct ObjectLifetime
       {
           const ir::Value *Address;
@@ -91,6 +181,7 @@ namespace ink::semantic
           const ir::Value *TemporaryValue;
           bool Comptime;
           bool Active = true;
+          const ir::Value *Construction = nullptr;
       };
 
       std::vector<ObjectLifetime> Lifetimes;

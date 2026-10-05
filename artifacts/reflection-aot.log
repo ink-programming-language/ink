@@ -1,0 +1,11 @@
+Test project D:/github/ink/cmake-build-debug
+    Start 4076: AOTReflectionTest
+1/1 Test #4076: AOTReflectionTest ................   Passed    4.14 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+aot           =   4.14 sec*proc (1 test)
+reflection    =   4.14 sec*proc (1 test)
+
+Total Test time (real) =   4.56 sec

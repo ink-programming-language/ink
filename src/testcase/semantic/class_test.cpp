@@ -1,5 +1,6 @@
 #include "ink/execution/engine/execution_engine.h"
 #include "ink/ir/function/function.h"
+#include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/parser/parser.h"
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/context.h"
@@ -73,6 +74,29 @@ namespace ink::semantic::test
                               {
                                 return Diagnostic.Kind == Kind;
                               }));
+    }
+
+    void expectCleanupFlags(std::string_view Source, std::string_view FunctionName, std::size_t Expected)
+    {
+      ClassAnalysis Input(Source);
+      auto *Module = Input.analyze();
+      ASSERT_NE(Module, nullptr);
+      const auto *Binding = NameResolver(Input.Context).lookupMember(*Module, Input.Context.namePool().find(FunctionName));
+      ASSERT_NE(Binding, nullptr);
+      ASSERT_EQ(Binding->targets().size(), 1U);
+      const auto &Function = static_cast<const ir::Function &>(*Binding->targets().front());
+      std::size_t Count = 0;
+      for (const auto &Block : Function.blocks())
+      {
+        for (const auto &Value : Block->values())
+        {
+          if (ir::AllocaInstruction::classof(Value.get()) && static_cast<const ir::AllocaInstruction &>(*Value).allocatedType().typeKind() == ir::TypeKind::Bool)
+          {
+            ++Count;
+          }
+        }
+      }
+      EXPECT_EQ(Count, Expected);
     }
   } // namespace
 
@@ -317,6 +341,31 @@ namespace ink::semantic::test
   TEST(SemanticClassTest, LifecycleDestroysReplacedValue)
   {
     expectClassExecution("class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } }; func Entry(): i32 { var Count = 0; { var A = P(&Count); A = P(&Count); } return Count; }", 42);
+  }
+
+  // Trivial nested aggregates omit cleanup flags while copies and replacement preserve field addresses.
+  TEST(SemanticClassTest, LifecycleElidesTrivialAggregateCleanup)
+  {
+    constexpr std::string_view Source = "class Leaf { field Value: i32 = 42; }; class Box { field Items: [Leaf; 2]; func __init__(): void { this.Items = [Leaf(), Leaf()]; } }; func Entry(): i32 { var A = Box(); const B = A; var Address = &A.Items[0].Value; A = Box(); return *Address; }";
+    expectCleanupFlags(Source, "Entry", 0);
+    expectClassExecution(Source, 42);
+  }
+
+  // Returned and assigned temporaries transfer cleanup without leaving unused initialization flags.
+  TEST(SemanticClassTest, LifecycleConsumedTemporariesHaveNoFlags)
+  {
+    constexpr std::string_view Source = "class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } }; func make(C: *i32): P { return P(C); } func Entry(): i32 { var Count = 0; { var A = make(&Count); A = make(&Count); } return Count; }";
+    expectCleanupFlags(Source, "make", 0);
+    expectCleanupFlags(Source, "Entry", 1);
+    expectClassExecution(Source, 42);
+  }
+
+  // Pointers and empty arrays do not own their destructible element type, but an explicit hook still requires cleanup.
+  TEST(SemanticClassTest, LifecycleDistinguishesOwnedFieldsFromReferences)
+  {
+    constexpr std::string_view Source = "class Item { func __del__(): void {} }; class Empty { field Items: [Item; 0] = []; }; class Link { field Next: *Item; func __init__(Next: *Item): void { this.Next = Next; } }; func Entry(): i32 { var Value = Item(); var Reference = Link(&Value); var Nothing = Empty(); return 42; }";
+    expectCleanupFlags(Source, "Entry", 1);
+    expectClassExecution(Source, 42);
   }
 
   // Synthesized destructors recursively clean nested fields and arrays without destroying construction temporaries twice.

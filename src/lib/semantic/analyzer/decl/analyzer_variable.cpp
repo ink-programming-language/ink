@@ -78,7 +78,7 @@ namespace ink::semantic
       {
         return reportExecution(State, ExecutionStatus::RuntimeValue, Node);
       }
-      const auto Place = Execution.Engine.allocate(*State.Frame, Address, *ValueType, !Node.constant() || needsDestruction(*ValueType), static_cast<const Constant *>(Initial));
+      const auto Place = Execution.Engine.allocate(*State.Frame, Address, *ValueType, !Node.constant() || needsDestruction(State, *ValueType), static_cast<const Constant *>(Initial));
       if (!reportExecution(State, Place.Status, Node))
       {
         return false;

@@ -1,0 +1,334 @@
+CMake is re-running because D:/github/ink/build/src/testcase/CMakeFiles/generate.stamp is out-of-date.
+  the file 'D:/github/ink/src/testcase/backend/tests.cmake'
+  is newer than 'D:/github/ink/build/src/testcase/CMakeFiles/generate.stamp.depend'
+  result='-1'
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.26200.
+-- bolt project is disabled
+-- clang project is enabled
+-- clang-tools-extra project is disabled
+-- compiler-rt project is disabled
+-- cross-project-tests project is disabled
+-- libclc project is disabled
+-- lld project is disabled
+-- lldb project is disabled
+-- mlir project is disabled
+-- openmp project is disabled
+-- polly project is disabled
+-- flang project is disabled
+-- libc project is disabled
+-- Could NOT find ZLIB (missing: ZLIB_LIBRARY ZLIB_INCLUDE_DIR) 
+-- Could NOT find LibXml2 (missing: LIBXML2_LIBRARY LIBXML2_INCLUDE_DIR) 
+-- Could NOT find Backtrace (missing: Backtrace_LIBRARY Backtrace_INCLUDE_DIR) 
+-- LLVM host triple: x86_64-pc-windows-msvc
+-- Native target architecture is X86
+-- Threads enabled.
+-- Doxygen disabled.
+-- Could NOT find OCaml (missing: OCAMLFIND OCAML_VERSION OCAML_STDLIB_PATH) 
+-- OCaml bindings disabled.
+-- LLVM default target triple: x86_64-pc-windows-msvc
+-- Targeting X86
+-- Clang version: 22.1.8
+-- BugpointPasses ignored -- Loadable modules not supported on this platform.
+-- Not building llvm-mt.exe because libxml2 is not available
+-- Build spdlog: 1.17.0
+-- Build type: 
+CMake Deprecation Warning at src/third_party/utf8proc/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+-- Could NOT find ZLIB (missing: ZLIB_LIBRARY ZLIB_INCLUDE_DIR) 
+-- Could NOT find LibXml2 (missing: LIBXML2_LIBRARY LIBXML2_INCLUDE_DIR) 
+-- Found LLVM 22.1.8
+-- Using LLVMConfig.cmake in: D:/github/ink/build/third_party/llvm/lib/cmake/llvm
+-- Configuring done (5.3s)
+-- Generating done (15.3s)
+-- Build files have been written to: D:/github/ink/build
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  gtest.vcxproj -> D:\github\ink\build\lib\Release\gtest.lib
+  gmock.vcxproj -> D:\github\ink\build\lib\Release\gmock.lib
+  utf8proc.vcxproj -> D:\github\ink\build\third_party\utf8proc\Release\utf8proc_static.lib
+  LLVMDemangle.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMDemangle.lib
+  LLVMSupportBlake3.vcxproj -> D:\github\ink\build\third_party\llvm\lib\Support\BLAKE3\LLVMSupportBlake3.dir\Release\LLVMSupportBlake3.lib
+  spdlog.vcxproj -> D:\github\ink\build\third_party\spdlog\Release\spdlog.lib
+  ink_core.vcxproj -> D:\github\ink\build\src\lib\core\Release\ink_core.lib
+  ink_abi.vcxproj -> D:\github\ink\build\src\lib\abi\Release\ink_abi.lib
+  LLVMSupport.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMSupport.lib
+  ink_tokenizer.vcxproj -> D:\github\ink\build\src\lib\tokenizer\Release\ink_tokenizer.lib
+  ink_tokenizer_test_objects.vcxproj -> D:\github\ink\build\src\testcase\ink_tokenizer_test_objects.dir\Release\ink_tokenizer_test_objects.lib
+  ink_parser.vcxproj -> D:\github\ink\build\src\lib\parser\Release\ink_parser.lib
+  ink_ir.vcxproj -> D:\github\ink\build\src\lib\ir\Release\ink_ir.lib
+  ink_ir_test_objects.vcxproj -> D:\github\ink\build\src\testcase\ink_ir_test_objects.dir\Release\ink_ir_test_objects.lib
+  ink_aot_runtime.vcxproj -> D:\github\ink\build\src\lib\backend\llvm\Release\ink_aot_runtime.lib
+  ink_cli.vcxproj -> D:\github\ink\build\src\lib\cli\Release\ink_cli.lib
+  ink_libffi.vcxproj -> D:\github\ink\build\src\third_party\Release\ink_libffi.lib
+  obj.LLVMTableGenBasic.vcxproj -> D:\github\ink\build\third_party\llvm\utils\TableGen\Basic\obj.LLVMTableGenBasic.dir\Release\obj.LLVMTableGenBasic.lib
+  ink_execution.vcxproj -> D:\github\ink\build\src\lib\execution\Release\ink_execution.lib
+  LLVMTableGen.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMTableGen.lib
+  LLVMBitstreamReader.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMBitstreamReader.lib
+  llvm-min-tblgen.vcxproj -> D:\github\ink\build\third_party\llvm\Release\bin\llvm-min-tblgen.exe
+  1>
+  1>
+  1>
+  LLVMDebugInfoCodeView.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMDebugInfoCodeView.lib
+  1>
+  LLVMDebugInfoMSF.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMDebugInfoMSF.lib
+  LLVMDebugInfoBTF.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMDebugInfoBTF.lib
+  LLVMTargetParser.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMTargetParser.lib
+  LLVMBinaryFormat.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMBinaryFormat.lib
+  LLVMFrontendDirective.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMFrontendDirective.lib
+  LLVMRemarks.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMRemarks.lib
+  1>
+  1>
+  LLVMTextAPI.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMTextAPI.lib
+  LLVMCodeGenTypes.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMCodeGenTypes.lib
+  LLVMCore.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMCore.lib
+  LLVMDebugInfoDWARFLowLevel.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMDebugInfoDWARFLowLevel.lib
+  gtest_main.vcxproj -> D:\github\ink\build\lib\Release\gtest_main.lib
+  obj.LLVMTableGenCommon.vcxproj -> D:\github\ink\build\third_party\llvm\utils\TableGen\Common\obj.LLVMTableGenCommon.dir\Release\obj.LLVMTableGenCommon.lib
+  LLVMFrontendHLSL.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMFrontendHLSL.lib
+  ink_parse.vcxproj -> D:\github\ink\build\src\tools\parser\Release\ink-parse.exe
+  LLVMAsmParser.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMAsmParser.lib
+  LLVMBitReader.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMBitReader.lib
+  ink_tokenize.vcxproj -> D:\github\ink\build\src\tools\tokenizer\Release\ink-tokenize.exe
+  LLVMCFGuard.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMCFGuard.lib
+  LLVMMC.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMMC.lib
+  LLVMIRReader.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMIRReader.lib
+cl : 命令行  warning D9025: 正在重写“/EHs”(用“/EHs-”) [D:\github\ink\build\src\lib\semantic\ink_semantic.vcxproj]
+cl : 命令行  warning D9025: 正在重写“/EHc”(用“/EHc-”) [D:\github\ink\build\src\lib\semantic\ink_semantic.vcxproj]
+  LLVMMCParser.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMMCParser.lib
+  LLVMMCDisassembler.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMMCDisassembler.lib
+  analyzer_for_in.cpp
+  llvm-tblgen.vcxproj -> D:\github\ink\build\third_party\llvm\Release\bin\llvm-tblgen.exe
+  1>
+  LLVMX86Info.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMX86Info.lib
+  LLVMObject.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMObject.lib
+  LLVMDebugInfoDWARF.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMDebugInfoDWARF.lib
+  LLVMObjectYAML.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMObjectYAML.lib
+  LLVMDebugInfoGSYM.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMDebugInfoGSYM.lib
+  LLVMX86Desc.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMX86Desc.lib
+  LLVMDebugInfoPDB.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMDebugInfoPDB.lib
+  LLVMX86Disassembler.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMX86Disassembler.lib
+  LLVMX86AsmParser.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMX86AsmParser.lib
+  LLVMSymbolize.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMSymbolize.lib
+  LLVMProfileData.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMProfileData.lib
+  LLVMAnalysis.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMAnalysis.lib
+  LLVMIRPrinter.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMIRPrinter.lib
+  LLVMFrontendAtomic.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMFrontendAtomic.lib
+  LLVMBitWriter.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMBitWriter.lib
+  LLVMCGData.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMCGData.lib
+  LLVMTransformUtils.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMTransformUtils.lib
+  LLVMTarget.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMTarget.lib
+  LLVMSandboxIR.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMSandboxIR.lib
+  LLVMHipStdPar.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMHipStdPar.lib
+  LLVMObjCARCOpts.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMObjCARCOpts.lib
+  LLVMLinker.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMLinker.lib
+  LLVMInstrumentation.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMInstrumentation.lib
+  LLVMInstCombine.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMInstCombine.lib
+  LLVMAggressiveInstCombine.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMAggressiveInstCombine.lib
+  LLVMFrontendOffloading.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMFrontendOffloading.lib
+  LLVMVectorize.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMVectorize.lib
+  LLVMScalarOpts.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMScalarOpts.lib
+  LLVMFrontendOpenMP.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMFrontendOpenMP.lib
+  LLVMCodeGen.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMCodeGen.lib
+  ink_semantic.vcxproj -> D:\github\ink\build\src\lib\semantic\Release\ink_semantic.lib
+  LLVMipo.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMipo.lib
+  LLVMSelectionDAG.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMSelectionDAG.lib
+  LLVMAsmPrinter.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMAsmPrinter.lib
+  LLVMCoroutines.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMCoroutines.lib
+  LLVMGlobalISel.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMGlobalISel.lib
+  LLVMPasses.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMPasses.lib
+  LLVMX86CodeGen.vcxproj -> D:\github\ink\build\third_party\llvm\Release\lib\LLVMX86CodeGen.lib
+  ink_backend_llvm.vcxproj -> D:\github\ink\build\src\lib\backend\llvm\Release\ink_backend_llvm.lib
+  Building Custom Rule D:/github/ink/src/tools/inkc/CMakeLists.txt
+cl : 命令行  warning D9025: 正在重写“/EHs”(用“/EHs-”) [D:\github\ink\build\src\tools\inkc\inkc.vcxproj]
+cl : 命令行  warning D9025: 正在重写“/EHc”(用“/EHc-”) [D:\github\ink\build\src\tools\inkc\inkc.vcxproj]
+  bytecode_emit.cpp
+  bytecode_link.cpp
+  bytecode_run.cpp
+  main.cpp
+  source_modules.cpp
+  正在生成代码...
+  inkc.vcxproj -> D:\github\ink\build\src\tools\inkc\Release\inkc.exe
+  Building Custom Rule D:/github/ink/src/testcase/CMakeLists.txt
+cl : 命令行  warning D9025: 正在重写“/EHs”(用“/EHs-”) [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+cl : 命令行  warning D9025: 正在重写“/EHc”(用“/EHc-”) [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+  name_mangling_test.cpp
+  config_manager_test.cpp
+  diagnostic_test.cpp
+  ast_contracts_test.cpp
+  ast_serialization_test.cpp
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1610,75): warning C4244: “初始化”: 从“const std::_Floating_to_chars_general_precision::_Uint_type”转换到“_Ty”，可能丢失数据 [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1610,75): warning C4244:         with [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1610,75): warning C4244:         [ [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1610,75): warning C4244:             _Ty=char [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1610,75): warning C4244:         ] [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+  (编译源文件“../../../src/testcase/parser/ast_serialization_test.cpp”)
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1610,75):
+      模板实例化上下文(最早的实例化上下文)为
+          D:\github\ink\src\testcase\parser\ast_serialization_test.cpp(99,16):
+          查看对正在编译的函数 模板 实例化“void llvm::BitstreamWriter::EmitRecord<std::vector<size_t,std::allocator<size_t>>>(unsigned int,const Container &,unsigned int)”的引用
+          with
+          [
+              Container=std::vector<size_t,std::allocator<size_t>>
+          ]
+          D:\github\ink\src\third_party\llvm\llvm\include\llvm\Bitstream\BitstreamWriter.h(584,5):
+          查看对正在编译的函数 模板 实例化“void llvm::BitstreamWriter::EmitRecordWithAbbrevImpl<uint64_t>(unsigned int,llvm::ArrayRef<uint64_t>,llvm::StringRef,std::optional<unsigned int>)”的引用
+          D:\github\ink\src\third_party\llvm\llvm\include\llvm\Bitstream\BitstreamWriter.h(531,11):
+          查看对正在编译的函数 模板 实例化“void llvm::BitstreamWriter::emitBlob<uint64_t>(llvm::ArrayRef<uint64_t>,bool)”的引用
+          D:\github\ink\src\third_party\llvm\llvm\include\llvm\Bitstream\BitstreamWriter.h(557,12):
+          查看对正在编译的函数 模板 实例化“void llvm::SmallVectorImpl<char>::append<const unsigned __int64*,void>(ItTy,ItTy)”的引用
+          with
+          [
+              ItTy=const unsigned __int64 *
+          ]
+          D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\SmallVector.h(690,11):
+          查看对正在编译的函数 模板 实例化“void llvm::SmallVectorTemplateBase<T,true>::uninitialized_copy<ItTy,char*>(It1,It1,It2)”的引用
+          with
+          [
+              T=char,
+              ItTy=const unsigned __int64 *,
+              It1=const unsigned __int64 *,
+              It2=char *
+          ]
+          D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\SmallVector.h(522,12):
+          查看对正在编译的函数 模板 实例化“_NoThrowFwdIt std::uninitialized_copy<It1,It2>(const _InIt,const _InIt,_NoThrowFwdIt)”的引用
+          with
+          [
+              _NoThrowFwdIt=char *,
+              It1=const unsigned __int64 *,
+              It2=char *,
+              _InIt=const unsigned __int64 *
+          ]
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1971,36):
+          查看对正在编译的函数 模板 实例化“_NoThrowFwdIt std::_Uninitialized_copy_unchecked<_FwdIt,_NoThrowFwdIt>(_InIt,const _InIt,_NoThrowFwdIt)”的引用
+          with
+          [
+              _NoThrowFwdIt=char *,
+              _FwdIt=const std::_Floating_to_chars_general_precision::_Uint_type *,
+              _InIt=const std::_Floating_to_chars_general_precision::_Uint_type *
+          ]
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1958,18):
+          查看对正在编译的函数 模板 实例化“void std::_Uninitialized_backout<_NoThrowFwdIt>::_Emplace_back_deref<_InIt>(_InIt &)”的引用
+          with
+          [
+              _NoThrowFwdIt=char *,
+              _InIt=const std::_Floating_to_chars_general_precision::_Uint_type *
+          ]
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1641,14):
+          查看对正在编译的函数 模板 实例化“void std::_Construct_in_place_by_deref<T,_InIt>(_Ty &,_InIt &) noexcept(<expr>)”的引用
+          with
+          [
+              T=char,
+              _InIt=const std::_Floating_to_chars_general_precision::_Uint_type *,
+              _Ty=char
+          ]
+  
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1611,57): warning C4244: “初始化”: 从“const std::_Floating_to_chars_general_precision::_Uint_type”转换到“T”，可能丢失数据 [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1611,57): warning C4244:         with [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1611,57): warning C4244:         [ [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1611,57): warning C4244:             T=char [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1611,57): warning C4244:         ] [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+  (编译源文件“../../../src/testcase/parser/ast_serialization_test.cpp”)
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1611,57):
+      模板实例化上下文(最早的实例化上下文)为
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1958,18):
+          查看对正在编译的函数 模板 实例化“void std::_Uninitialized_backout<_NoThrowFwdIt>::_Emplace_back_deref<_InIt>(_InIt &)”的引用
+          with
+          [
+              _NoThrowFwdIt=char *,
+              _InIt=const std::_Floating_to_chars_general_precision::_Uint_type *
+          ]
+          C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xmemory(1641,14):
+          查看对正在编译的函数 模板 实例化“void std::_Construct_in_place_by_deref<T,_InIt>(_Ty &,_InIt &) noexcept”的引用
+          with
+          [
+              T=char,
+              _InIt=const std::_Floating_to_chars_general_precision::_Uint_type *,
+              _Ty=char
+          ]
+  
+  config_limits_test.cpp
+  declarations_test.cpp
+  expressions_test.cpp
+  grammar_corpus_test.cpp
+  recovery_contracts_test.cpp
+  recovery_test.cpp
+  statements_patterns_test.cpp
+  unicode_security_test.cpp
+  visitor_coverage_test.cpp
+  address_of_test.cpp
+  analyzer_function_test.cpp
+  analyzer_test.cpp
+  array_test.cpp
+  class_test.cpp
+  comptime_call_test.cpp
+  正在生成代码...
+  正在编译...
+  comptime_test.cpp
+  entry_execution_test.cpp
+  generic_name_resolver_test.cpp
+  if_test.cpp
+  logical_test.cpp
+  loop_test.cpp
+  module_decl_test.cpp
+  module_import_test.cpp
+  name_resolver_test.cpp
+  scope_store_test.cpp
+  array_artifact_test.cpp
+  bytecode_archive_test.cpp
+  bytecode_builder_test.cpp
+  bytecode_linker_test.cpp
+  bytecode_validation_test.cpp
+  class_artifact_test.cpp
+  array_bytecode_test.cpp
+  class_bytecode_test.cpp
+  execution_compiler_test.cpp
+  bytecode_execution_test.cpp
+  正在生成代码...
+  正在编译...
+  bytecode_storage_test.cpp
+  execution_call_test.cpp
+  execution_config_test.cpp
+  execution_engine_test.cpp
+  execution_image_test.cpp
+  ir_execution_test.cpp
+  logical_execution_test.cpp
+  native_layout_execution_test.cpp
+  array_read_test.cpp
+  external_fixture_test.cpp
+  ffi_argument_test.cpp
+  native_call_cache_test.cpp
+  native_storage_offset_test.cpp
+  native_storage_test.cpp
+  native_symbol_cache_test.cpp
+  runtime_ffi_test.cpp
+  array_storage_test.cpp
+  class_storage_test.cpp
+  memory_manager_test.cpp
+  runtime_storage_test.cpp
+  正在生成代码...
+  正在编译...
+  reflection_test.cpp
+  execution_diagnostic_test.cpp
+  execution_instruction_result_test.cpp
+  execution_integer_test.cpp
+  execution_value_test.cpp
+  llvm_backend_test.cpp
+  symbol_mangling_test.cpp
+  正在生成代码...
+cl : 命令行  warning D9025: 正在重写“/EHs”(用“/EHs-”) [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+cl : 命令行  warning D9025: 正在重写“/EHc”(用“/EHc-”) [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+  external_call_test.cpp
+cl : 命令行  warning D9025: 正在重写“/EHs”(用“/EHs-”) [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+cl : 命令行  warning D9025: 正在重写“/EHc”(用“/EHc-”) [D:\github\ink\build\src\testcase\ink_tests.vcxproj]
+  external_call_test.cpp
+    正在创建库 D:/github/ink/build/src/testcase/Release/ink_tests.lib 和对象 D:/github/ink/build/src/testcase/Release/ink_tests.exp
+  ink_tests.vcxproj -> D:\github\ink\build\src\testcase\Release\ink_tests.exe
+  Building Custom Rule D:/github/ink/CMakeLists.txt

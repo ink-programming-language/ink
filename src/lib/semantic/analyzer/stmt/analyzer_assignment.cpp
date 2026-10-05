@@ -77,7 +77,7 @@ namespace ink::semantic
       reportUnsupported(State, Node);
       return {};
     }
-    const Value *Address = State.Evaluating ? resolveVariable(State, *Assignment.left()) : resolveAddress(State, *Assignment.left(), Depth + 1, false);
+    const Value *Address = State.Evaluating ? resolveVariable(State, *Assignment.left()) : resolveAddress(State, *Assignment.left(), Depth + 1, Assignment.op() != TokenKind::Assign);
     if (!Address)
     {
       return {};
@@ -107,6 +107,7 @@ namespace ink::semantic
       return {};
     }
     AnalysisState::EvaluationGuard Expected(State, State.Evaluating, &Target);
+    const Value *PreviousRuntime = !State.Evaluating && Assignment.op() == TokenKind::PlusAssign ? State.Builder.createLoadInstruction(*Address) : nullptr;
     const ExpressionResult Right = analyzeSimpleItem(State, *Assignment.right(), Depth + 1);
     if (!Right || !Right.ValueObject || &Right.ValueObject->type() != &Target)
     {
@@ -155,7 +156,16 @@ namespace ink::semantic
     }
     else
     {
-      if (Assignment.op() != TokenKind::Assign)
+      if (Assignment.op() == TokenKind::PlusAssign)
+      {
+        Stored = PreviousRuntime ? State.Builder.createAddInstruction(*PreviousRuntime, *Stored) : nullptr;
+        if (!Stored)
+        {
+          State.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "matching integer operands", describeType(Target));
+          return {};
+        }
+      }
+      else if (Assignment.op() != TokenKind::Assign)
       {
         reportUnsupported(State, Node);
         return {};

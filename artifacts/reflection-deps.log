@@ -1,0 +1,15 @@
+src/lib/ir/CMakeFiles/ink_ir.dir/function/function.cpp.obj: #deps 13, deps mtime 8128120230255534 (VALID)
+    ../src/include/ink/ir/Values.def
+    ../src/include/ink/ir/coredefines.h
+    ../src/include/ink/ir/function/basic_block.h
+    ../src/include/ink/ir/function/function.h
+    ../src/include/ink/ir/function/function_parameter.h
+    ../src/include/ink/ir/function/function_type.h
+    ../src/include/ink/ir/name/name.h
+    ../src/include/ink/ir/type/Types.def
+    ../src/include/ink/ir/type/builtin_type.h
+    ../src/include/ink/ir/type/class_type.h
+    ../src/include/ink/ir/type/type.h
+    ../src/include/ink/ir/type/user_defined_type.h
+    ../src/include/ink/ir/value.h
+

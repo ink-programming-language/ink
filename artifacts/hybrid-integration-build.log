@@ -1,0 +1,53 @@
+[0/2] Re-checking globbed directories...
+[1/17] Building CXX object src\lib\execution\CMakeFiles\ink_execution.dir\memory\execution_storage.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+[2/17] Building CXX object src\lib\execution\CMakeFiles\ink_execution.dir\hybrid\runtime.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+[3/17] Building CXX object src\lib\backend\llvm\CMakeFiles\ink_backend_llvm.dir\type_lowering.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(262) : warning C4702: 无法访问的代码
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(263) : warning C4702: 无法访问的代码
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(264) : warning C4702: 无法访问的代码
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(266) : warning C4702: 无法访问的代码
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(268) : warning C4702: 无法访问的代码
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(270) : warning C4702: 无法访问的代码
+[4/17] Building CXX object src\lib\backend\llvm\CMakeFiles\ink_backend_llvm.dir\reflection\type_desc_lowering.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+D:\github\ink\src\lib\backend\llvm\reflection\type_desc_lowering.cpp(82): warning C4458: “Types”的声明隐藏了类成员
+D:\github\ink\src\lib\backend\llvm\reflection\../lowering_context.h(59): note: 参见“ink::backend::llvm::LoweringContext::Types”的声明
+[5/17] Linking CXX static library src\lib\execution\ink_execution.lib
+[6/17] Building CXX object src\lib\backend\llvm\CMakeFiles\ink_backend_llvm.dir\lowering_context.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+[7/17] Building CXX object src\lib\backend\llvm\CMakeFiles\ink_backend_llvm.dir\function_lowering.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(262) : warning C4702: 无法访问的代码
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(263) : warning C4702: 无法访问的代码
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(264) : warning C4702: 无法访问的代码
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(266) : warning C4702: 无法访问的代码
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(268) : warning C4702: 无法访问的代码
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(270) : warning C4702: 无法访问的代码
+D:\github\ink\src\third_party\llvm\llvm\include\llvm\Support\MathExtras.h(193) : warning C4702: 无法访问的代码
+[8/17] Building CXX object src\lib\backend\llvm\CMakeFiles\ink_backend_llvm.dir\hybrid_lowering.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+D:\github\ink\src\lib\backend\llvm\hybrid_lowering.cpp(107): warning C4458: “Functions”的声明隐藏了类成员
+D:\github\ink\src\lib\backend\llvm\lowering_context.h(40): note: 参见“ink::backend::llvm::LoweringContext::Functions”的声明
+[9/17] Building CXX object src\lib\backend\llvm\CMakeFiles\ink_backend_llvm.dir\llvm_backend.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+D:\github\ink\src\lib\backend\llvm\llvm_backend.cpp(141): warning C4996: 'llvm::TargetRegistry::lookupTarget': Use overload accepting Triple instead
+[10/17] Linking CXX static library src\lib\backend\llvm\ink_backend_llvm.lib
+[11/17] Linking CXX executable src\tools\inkc\inkc.exe
+[12/17] Generating hybrid-O2/program.obj, hybrid-O2/program.base, hybrid-O2/first.patch, hybrid-O2/bounce.patch, hybrid-O2/second.patch
+[13/17] Generating hybrid-O0/program.obj, hybrid-O0/program.base, hybrid-O0/first.patch, hybrid-O0/bounce.patch, hybrid-O0/second.patch
+[14/17] Linking CXX executable src\testcase\ink_hybrid_test_O0.exe
+[15/17] Building CXX object src\testcase\CMakeFiles\ink_hybrid_test_O2.dir\backend\hybrid\host.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+[16/17] Linking CXX executable src\testcase\ink_hybrid_test_O2.exe

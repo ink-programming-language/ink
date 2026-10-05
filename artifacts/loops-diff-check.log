@@ -1,0 +1,16 @@
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/include/ink/core/diagnostic_user.def', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/include/ink/semantic/analyzer/analyzer.h', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/semantic/analyzer/analyzer_internal.h', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/semantic/analyzer/expr/analyzer_update.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/semantic/analyzer/stmt/analyzer_assignment.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/semantic/analyzer/stmt/analyzer_break.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/semantic/analyzer/stmt/analyzer_classic_for.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/semantic/analyzer/stmt/analyzer_continue.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/semantic/analyzer/stmt/analyzer_for_in.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/semantic/analyzer/stmt/analyzer_stmt.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/semantic/analyzer/stmt/analyzer_while.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/testcase/backend/tests.cmake', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/testcase/semantic/analyzer_test.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/testcase/semantic/comptime_call_test.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/testcase/semantic/if_test.cpp', LF will be replaced by CRLF the next time Git touches it

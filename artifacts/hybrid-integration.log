@@ -1,0 +1,469 @@
+Test project D:/github/ink/cmake-build-debug
+        Start 4151: AOTClassTest.SignedArrayIndex
+        Start 4164: AOTReflectionTest
+        Start 4161: AOTClassTest.SharedValuesAndPointers
+        Start 4153: AOTClassTest.OperatorCopiesLeftOperand
+        Start 4149: AOTClassTest.ArrayBounds
+        Start 4160: AOTClassTest.SharedMethodsDefaults
+        Start 4144: AOTClassTest.Lifecycle
+        Start 4148: AOTClassTest.EscapedAddressCanBeDiscarded
+  1/222 Test #4149: AOTClassTest.ArrayBounds .....................................................   Passed    1.05 sec
+        Start 4152: AOTClassTest.DefaultsAndEvaluationOrder
+  2/222 Test #4148: AOTClassTest.EscapedAddressCanBeDiscarded ....................................   Passed    1.04 sec
+        Start 4150: AOTClassTest.ArrayBoundsPreservesOutput
+  3/222 Test #4153: AOTClassTest.OperatorCopiesLeftOperand .......................................   Passed    1.18 sec
+        Start 4163: AOTClassTest.SharedMethodEffects
+  4/222 Test #4144: AOTClassTest.Lifecycle .......................................................   Passed    1.24 sec
+        Start 4162: AOTClassTest.SharedComptime
+  5/222 Test #4160: AOTClassTest.SharedMethodsDefaults ...........................................   Passed    1.28 sec
+        Start 4143: AOTClassTest.ValueCopyAndMethod
+  6/222 Test #4161: AOTClassTest.SharedValuesAndPointers .........................................   Passed    1.32 sec
+        Start 4147: AOTClassTest.WideFieldsAndEmptyObjects
+  7/222 Test #4151: AOTClassTest.SignedArrayIndex ................................................   Passed    1.54 sec
+        Start 4157: AOTClassTest.NativePointerOutParameter
+  8/222 Test #4164: AOTReflectionTest ............................................................   Passed    2.12 sec
+        Start 4154: AOTClassTest.NativeClassStorage
+  9/222 Test #4150: AOTClassTest.ArrayBoundsPreservesOutput ......................................   Passed    1.15 sec
+        Start 4146: AOTClassTest.NestedArraysAndAliases
+ 10/222 Test #4152: AOTClassTest.DefaultsAndEvaluationOrder ......................................   Passed    1.26 sec
+        Start 4165: HybridExecutionTest.O0
+ 11/222 Test #4163: AOTClassTest.SharedMethodEffects .............................................   Passed    1.46 sec
+ 12/222 Test #4147: AOTClassTest.WideFieldsAndEmptyObjects .......................................   Passed    1.32 sec
+ 13/222 Test #4157: AOTClassTest.NativePointerOutParameter .......................................   Passed    1.11 sec
+ 14/222 Test #4143: AOTClassTest.ValueCopyAndMethod ..............................................   Passed    1.35 sec
+ 15/222 Test #4162: AOTClassTest.SharedComptime ..................................................   Passed    1.37 sec
+        Start 4166: HybridExecutionTest.O2
+        Start 4133: ExecutionMultiFileTest.mutual_calls
+        Start 4138: ExecutionMultiFileTest.private_isolation
+        Start 4124: ExecutionMultiFileTest.chain
+        Start 4110: ExecutionSourceTest.Class.Main.Comptime
+ 16/222 Test #4165: HybridExecutionTest.O0 .......................................................   Passed    0.67 sec
+        Start 4111: ExecutionSourceTest.Class.Main.Effects
+ 17/222 Test #4166: HybridExecutionTest.O2 .......................................................   Passed    0.41 sec
+        Start 4108: ExecutionSourceTest.Class.Main.MethodsDefaults
+ 18/222 Test #4154: AOTClassTest.NativeClassStorage ..............................................   Passed    1.12 sec
+        Start 4140: ExecutionMultiFileTest.relative_imports
+ 19/222 Test #4110: ExecutionSourceTest.Class.Main.Comptime ......................................   Passed    0.25 sec
+ 20/222 Test #4111: ExecutionSourceTest.Class.Main.Effects .......................................   Passed    0.25 sec
+        Start 4141: ExecutionMultiFileTest.shared_memory
+        Start 4125: ExecutionMultiFileTest.comptime_imports
+ 21/222 Test #4146: AOTClassTest.NestedArraysAndAliases ..........................................   Passed    1.07 sec
+        Start 4139: ExecutionMultiFileTest.qualified_modules
+ 22/222 Test #4108: ExecutionSourceTest.Class.Main.MethodsDefaults ...............................   Passed    0.26 sec
+        Start 4134: ExecutionMultiFileTest.native_boundaries
+ 23/222 Test #4133: ExecutionMultiFileTest.mutual_calls ..........................................   Passed    0.40 sec
+        Start 4135: ExecutionMultiFileTest.native_link
+ 24/222 Test #4124: ExecutionMultiFileTest.chain .................................................   Passed    0.40 sec
+        Start 4136: ExecutionMultiFileTest.overloads
+ 25/222 Test #4138: ExecutionMultiFileTest.private_isolation .....................................   Passed    0.42 sec
+        Start 4127: ExecutionMultiFileTest.extern_declaration
+ 26/222 Test #4140: ExecutionMultiFileTest.relative_imports ......................................   Passed    0.62 sec
+        Start 4131: ExecutionMultiFileTest.module_access
+ 27/222 Test #4125: ExecutionMultiFileTest.comptime_imports ......................................   Passed    0.62 sec
+ 28/222 Test #4141: ExecutionMultiFileTest.shared_memory .........................................   Passed    0.63 sec
+        Start 4026: ExecutionSourceTest.Array.Main.Values
+        Start 4024: ExecutionSourceTest.Array.Main.Basics
+ 29/222 Test #4134: ExecutionMultiFileTest.native_boundaries .....................................   Passed    0.62 sec
+        Start 4025: ExecutionSourceTest.Array.Main.Widths
+ 30/222 Test #4139: ExecutionMultiFileTest.qualified_modules .....................................   Passed    0.68 sec
+        Start 4109: ExecutionSourceTest.Class.Main.ValuesDunder
+ 31/222 Test #4135: ExecutionMultiFileTest.native_link ...........................................   Passed    0.64 sec
+        Start 4027: ExecutionSourceTest.Array.Main.Effects
+ 32/222 Test #4127: ExecutionMultiFileTest.extern_declaration ....................................   Passed    0.70 sec
+        Start 4028: ExecutionSourceTest.Array.Main.Comptime
+ 33/222 Test #4136: ExecutionMultiFileTest.overloads .............................................   Passed    0.73 sec
+        Start 4055: ExecutionSourceTest.Array.Runtime.NegativeIndex
+ 34/222 Test #4024: ExecutionSourceTest.Array.Main.Basics ........................................   Passed    0.61 sec
+        Start 4029: ExecutionSourceTest.Array.Main.Read
+ 35/222 Test #4026: ExecutionSourceTest.Array.Main.Values ........................................   Passed    0.67 sec
+        Start 4056: ExecutionSourceTest.Array.Runtime.ReadOutOfBounds
+ 36/222 Test #4025: ExecutionSourceTest.Array.Main.Widths ........................................   Passed    0.63 sec
+        Start 4058: ExecutionSourceTest.Array.Runtime.AddressOutOfBounds
+ 37/222 Test #4055: ExecutionSourceTest.Array.Runtime.NegativeIndex ..............................   Passed    0.47 sec
+ 38/222 Test #4027: ExecutionSourceTest.Array.Main.Effects .......................................   Passed    0.57 sec
+        Start 4061: ExecutionSourceTest.Array.Runtime.EscapedElement
+        Start 4060: ExecutionSourceTest.Array.Runtime.WideIndex
+ 39/222 Test #4131: ExecutionMultiFileTest.module_access .........................................   Passed    0.75 sec
+ 40/222 Test #4109: ExecutionSourceTest.Class.Main.ValuesDunder ..................................   Passed    0.64 sec
+ 41/222 Test #4028: ExecutionSourceTest.Array.Main.Comptime ......................................   Passed    0.52 sec
+        Start 4057: ExecutionSourceTest.Array.Runtime.WriteOutOfBounds
+        Start 4059: ExecutionSourceTest.Array.Runtime.EmptyIndex
+        Start  961: ReflectionTest.RejectsCorruptCallableMetadata
+ 42/222 Test #4029: ExecutionSourceTest.Array.Main.Read ..........................................   Passed    0.89 sec
+ 43/222 Test #4056: ExecutionSourceTest.Array.Runtime.ReadOutOfBounds ............................   Passed    0.84 sec
+ 44/222 Test #4058: ExecutionSourceTest.Array.Runtime.AddressOutOfBounds .........................   Passed    0.82 sec
+ 45/222 Test #4061: ExecutionSourceTest.Array.Runtime.EscapedElement .............................   Passed    0.81 sec
+ 46/222 Test #4060: ExecutionSourceTest.Array.Runtime.WideIndex ..................................   Passed    0.79 sec
+ 47/222 Test #4057: ExecutionSourceTest.Array.Runtime.WriteOutOfBounds ...........................   Passed    0.78 sec
+ 48/222 Test #4059: ExecutionSourceTest.Array.Runtime.EmptyIndex .................................   Passed    0.77 sec
+        Start 4073: ExecutionSourceTest.Logical.ShortCircuit.reach_and
+        Start  969: ReflectionTest.CleansCompileTimeObjectLifetimes
+        Start 4126: ExecutionMultiFileTest.duplicate_definition
+        Start 1007: HybridBackendTest.KeepsOneFunctionAndGuardAtO0AndO2
+        Start  739: ClassArtifactTest.RoundTripsClassConstantsAndRejectsTruncation
+        Start 4023: ExecutionSourceTest.External.Raw.EscapedPointer
+        Start  968: ReflectionTest.InvokesSourceLifecycleHooks
+ 49/222 Test #4073: ExecutionSourceTest.Logical.ShortCircuit.reach_and ...........................   Passed    0.11 sec
+        Start 4129: ExecutionMultiFileTest.missing_module
+ 50/222 Test  #961: ReflectionTest.RejectsCorruptCallableMetadata ................................   Passed    0.89 sec
+        Start 4132: ExecutionMultiFileTest.module_access_denied
+ 51/222 Test #4023: ExecutionSourceTest.External.Raw.EscapedPointer ..............................   Passed    0.11 sec
+        Start 4130: ExecutionMultiFileTest.missing_symbol
+ 52/222 Test  #968: ReflectionTest.InvokesSourceLifecycleHooks ...................................   Passed    0.14 sec
+        Start 4137: ExecutionMultiFileTest.private_access_denied
+ 53/222 Test  #969: ReflectionTest.CleansCompileTimeObjectLifetimes ..............................   Passed    0.20 sec
+        Start 4142: ExecutionMultiFileTest.signature_mismatch
+ 54/222 Test  #739: ClassArtifactTest.RoundTripsClassConstantsAndRejectsTruncation ...............   Passed    0.18 sec
+        Start 4128: ExecutionMultiFileTest.forbidden_declaration
+ 55/222 Test #4126: ExecutionMultiFileTest.duplicate_definition ..................................   Passed    0.22 sec
+        Start 4123: ExecutionMultiFileTest.ambiguous_import
+ 56/222 Test #1007: HybridBackendTest.KeepsOneFunctionAndGuardAtO0AndO2 ..........................   Passed    0.23 sec
+        Start 4113: ExecutionSourceTest.Class.Invalid.PrivateMethod
+ 57/222 Test #4129: ExecutionMultiFileTest.missing_module ........................................   Passed    0.16 sec
+        Start 4010: ExecutionSourceTest.Function.Main.Calls
+ 58/222 Test #4132: ExecutionMultiFileTest.module_access_denied ..................................   Passed    0.19 sec
+        Start 4116: ExecutionSourceTest.Class.Invalid.MissingInitializer
+ 59/222 Test #4130: ExecutionMultiFileTest.missing_symbol ........................................   Passed    0.20 sec
+        Start  741: ClassArtifactTest.PreservesNominalIdentityAndRejectsConflictingDefinitions
+ 60/222 Test #4137: ExecutionMultiFileTest.private_access_denied .................................   Passed    0.19 sec
+        Start 4011: ExecutionSourceTest.Function.Main.Storage
+ 61/222 Test #4113: ExecutionSourceTest.Class.Invalid.PrivateMethod ..............................   Passed    0.14 sec
+        Start  750: ClassBytecodeTest.LowersAndVerifiesClassOperations
+ 62/222 Test #4142: ExecutionMultiFileTest.signature_mismatch ....................................   Passed    0.20 sec
+        Start  966: ReflectionTest.RejectsConflictingReflectedVisibility
+ 63/222 Test #4128: ExecutionMultiFileTest.forbidden_declaration .................................   Passed    0.20 sec
+ 64/222 Test #4010: ExecutionSourceTest.Function.Main.Calls ......................................   Passed    0.14 sec
+        Start  926: HybridRuntimeTest.RejectsMalformedArtifacts
+        Start  937: ClassStorageTest.StoresWideAndPointerFieldsInOneAlignedObject
+ 65/222 Test #4123: ExecutionMultiFileTest.ambiguous_import ......................................   Passed    0.20 sec
+        Start  939: ClassStorageTest.SharesClassDescriptionAcrossInstancesAndArrayLayouts
+ 66/222 Test #4116: ExecutionSourceTest.Class.Invalid.MissingInitializer .........................   Passed    0.12 sec
+        Start  959: ReflectionTest.ConstructsAndInvokesWithCheckedFieldAccess
+ 67/222 Test  #741: ClassArtifactTest.PreservesNominalIdentityAndRejectsConflictingDefinitions ...   Passed    0.17 sec
+        Start  964: ReflectionTest.ProjectsArrayAndStringFields
+ 68/222 Test #4011: ExecutionSourceTest.Function.Main.Storage ....................................   Passed    0.15 sec
+        Start  962: ReflectionTest.RoundTripsIRMemberAssociations
+ 69/222 Test  #750: ClassBytecodeTest.LowersAndVerifiesClassOperations ...........................   Passed    0.15 sec
+        Start 4031: ExecutionSourceTest.Array.Invalid.NegativeLength
+ 70/222 Test  #926: HybridRuntimeTest.RejectsMalformedArtifacts ..................................   Passed    0.14 sec
+        Start  925: HybridRuntimeTest.RetainsStringResultAfterPatchRemoval
+ 71/222 Test  #966: ReflectionTest.RejectsConflictingReflectedVisibility .........................   Passed    0.17 sec
+        Start 4050: ExecutionSourceTest.Array.Invalid.ConstWrite
+ 72/222 Test  #937: ClassStorageTest.StoresWideAndPointerFieldsInOneAlignedObject ................   Passed    0.16 sec
+        Start 4054: ExecutionSourceTest.Array.Invalid.ComptimeBounds
+ 73/222 Test  #939: ClassStorageTest.SharesClassDescriptionAcrossInstancesAndArrayLayouts ........   Passed    0.16 sec
+        Start 4039: ExecutionSourceTest.Array.Invalid.LengthMismatch
+ 74/222 Test  #959: ReflectionTest.ConstructsAndInvokesWithCheckedFieldAccess ....................   Passed    0.16 sec
+        Start  931: ClassStorageTest.UsesTargetOffsetsAndIndependentSnapshots
+ 75/222 Test #4031: ExecutionSourceTest.Array.Invalid.NegativeLength .............................   Passed    0.12 sec
+        Start 4034: ExecutionSourceTest.Array.Invalid.UnrepresentableLength
+ 76/222 Test  #964: ReflectionTest.ProjectsArrayAndStringFields ..................................   Passed    0.16 sec
+        Start  740: ClassArtifactTest.LinksClassValuesAcrossIndependentContexts
+ 77/222 Test  #962: ReflectionTest.RoundTripsIRMemberAssociations ................................   Passed    0.16 sec
+        Start 4049: ExecutionSourceTest.Array.Invalid.EmptyArrayIndex
+ 78/222 Test #4050: ExecutionSourceTest.Array.Invalid.ConstWrite .................................   Passed    0.12 sec
+        Start 4041: ExecutionSourceTest.Array.Invalid.ByteOverflow
+ 79/222 Test #4054: ExecutionSourceTest.Array.Invalid.ComptimeBounds .............................   Passed    0.12 sec
+        Start 4030: ExecutionSourceTest.Array.Invalid.EmptyInference
+ 80/222 Test #4039: ExecutionSourceTest.Array.Invalid.LengthMismatch .............................   Passed    0.12 sec
+ 81/222 Test  #925: HybridRuntimeTest.RetainsStringResultAfterPatchRemoval .......................   Passed    0.16 sec
+        Start 4033: ExecutionSourceTest.Array.Invalid.FloatLength
+        Start 4038: ExecutionSourceTest.Array.Invalid.ElementType
+ 82/222 Test  #931: ClassStorageTest.UsesTargetOffsetsAndIndependentSnapshots ....................   Passed    0.15 sec
+        Start 4053: ExecutionSourceTest.Array.Invalid.UninitializedWrite
+ 83/222 Test #4034: ExecutionSourceTest.Array.Invalid.UnrepresentableLength ......................   Passed    0.13 sec
+        Start  967: ReflectionTest.RemovesDestroyedMemberAssociations
+ 84/222 Test #4049: ExecutionSourceTest.Array.Invalid.EmptyArrayIndex ............................   Passed    0.13 sec
+        Start 4042: ExecutionSourceTest.Array.Invalid.BoolIndex
+ 85/222 Test  #740: ClassArtifactTest.LinksClassValuesAcrossIndependentContexts ..................   Passed    0.16 sec
+        Start 4043: ExecutionSourceTest.Array.Invalid.FloatIndex
+ 86/222 Test #4041: ExecutionSourceTest.Array.Invalid.ByteOverflow ...............................   Passed    0.14 sec
+        Start 4045: ExecutionSourceTest.Array.Invalid.ConstantNegativeIndex
+ 87/222 Test #4038: ExecutionSourceTest.Array.Invalid.ElementType ................................   Passed    0.12 sec
+        Start 4037: ExecutionSourceTest.Array.Invalid.StorageOverflow
+ 88/222 Test #4033: ExecutionSourceTest.Array.Invalid.FloatLength ................................   Passed    0.14 sec
+ 89/222 Test #4030: ExecutionSourceTest.Array.Invalid.EmptyInference .............................   Passed    0.15 sec
+        Start  752: ClassBytecodeTest.FreezesNestedClassesContainingArrays
+        Start  934: ClassStorageTest.PointerFieldsAliasExplicitlyAndCannotFreeze
+ 90/222 Test #4053: ExecutionSourceTest.Array.Invalid.UninitializedWrite .........................   Passed    0.11 sec
+        Start  751: ClassBytecodeTest.CopiesAreIndependentAndFieldAddressesSurviveAssignment
+ 91/222 Test  #967: ReflectionTest.RemovesDestroyedMemberAssociations ............................   Passed    0.14 sec
+        Start 4048: ExecutionSourceTest.Array.Invalid.ConstantAddressBounds
+ 92/222 Test #4042: ExecutionSourceTest.Array.Invalid.BoolIndex ..................................   Passed    0.12 sec
+        Start 4032: ExecutionSourceTest.Array.Invalid.BoolLength
+ 93/222 Test #4043: ExecutionSourceTest.Array.Invalid.FloatIndex .................................   Passed    0.12 sec
+        Start  960: ReflectionTest.RetainsCallableMetadataThroughArchiveAndLink
+ 94/222 Test #4037: ExecutionSourceTest.Array.Invalid.StorageOverflow ............................   Passed    0.12 sec
+ 95/222 Test #4045: ExecutionSourceTest.Array.Invalid.ConstantNegativeIndex ......................   Passed    0.13 sec
+        Start  885: NativeCallCacheTest.RejectsNonNativeTargetsBeforeResolution
+        Start  743: ClassArtifactTest.RejectsCorruptClassFieldOffsets
+ 96/222 Test  #934: ClassStorageTest.PointerFieldsAliasExplicitlyAndCannotFreeze .................   Passed    0.14 sec
+        Start 3993: ExecutionSourceTest.Logical.Main.Comparisons
+ 97/222 Test  #752: ClassBytecodeTest.FreezesNestedClassesContainingArrays .......................   Passed    0.16 sec
+        Start 4046: ExecutionSourceTest.Array.Invalid.ConstantReadBounds
+ 98/222 Test  #751: ClassBytecodeTest.CopiesAreIndependentAndFieldAddressesSurviveAssignment .....   Passed    0.16 sec
+        Start  933: ClassStorageTest.CompletesReservedSignatureTypesOnDemand
+ 99/222 Test #4048: ExecutionSourceTest.Array.Invalid.ConstantAddressBounds ......................   Passed    0.14 sec
+        Start  754: ClassBytecodeTest.RejectsUninitializedProjectionAndReadonlyMutation
+100/222 Test #4032: ExecutionSourceTest.Array.Invalid.BoolLength .................................   Passed    0.14 sec
+        Start  963: ReflectionTest.RetainsUnreferencedClassRoots
+101/222 Test  #960: ReflectionTest.RetainsCallableMetadataThroughArchiveAndLink ..................   Passed    0.20 sec
+        Start  753: ClassBytecodeTest.CopiesRawPointerInsideReturnedClass
+102/222 Test  #885: NativeCallCacheTest.RejectsNonNativeTargetsBeforeResolution ..................   Passed    0.20 sec
+        Start  883: NativeCallCacheTest.ValidatesArgumentsOnEveryInvocation
+103/222 Test  #743: ClassArtifactTest.RejectsCorruptClassFieldOffsets ............................   Passed    0.20 sec
+104/222 Test #4046: ExecutionSourceTest.Array.Invalid.ConstantReadBounds .........................   Passed    0.15 sec
+        Start 3994: ExecutionSourceTest.Logical.Main.Contexts
+        Start  938: ClassStorageTest.RetainsStringBytesAcrossFieldStores
+105/222 Test #3993: ExecutionSourceTest.Logical.Main.Comparisons .................................   Passed    0.19 sec
+        Start 4040: ExecutionSourceTest.Array.Invalid.NestedTypeMismatch
+106/222 Test  #933: ClassStorageTest.CompletesReservedSignatureTypesOnDemand .....................   Passed    0.18 sec
+        Start  742: ClassArtifactTest.RoundTripsRecursiveClassPointers
+107/222 Test  #754: ClassBytecodeTest.RejectsUninitializedProjectionAndReadonlyMutation ..........   Passed    0.17 sec
+        Start  884: NativeCallCacheTest.RejectsUnsupportedSignaturesWithoutCachingPlans
+108/222 Test  #963: ReflectionTest.RetainsUnreferencedClassRoots .................................   Passed    0.17 sec
+        Start  936: ClassStorageTest.PaddedIntegersUseTargetStrideWithoutChangingTheirValue
+109/222 Test  #753: ClassBytecodeTest.CopiesRawPointerInsideReturnedClass ........................   Passed    0.15 sec
+        Start  940: ClassStorageTest.RejectsStringBudgetWithoutPartialAggregateStore
+110/222 Test #3994: ExecutionSourceTest.Logical.Main.Contexts ....................................   Passed    0.14 sec
+        Start  932: ClassStorageTest.RegistersRecursivePointersBeforeFollowingFields
+111/222 Test  #883: NativeCallCacheTest.ValidatesArgumentsOnEveryInvocation ......................   Passed    0.16 sec
+        Start  935: ClassStorageTest.EmptyClassesHaveAddressableExtent
+112/222 Test #4040: ExecutionSourceTest.Array.Invalid.NestedTypeMismatch .........................   Passed    0.13 sec
+        Start 4012: ExecutionSourceTest.Function.Main.Effects
+113/222 Test  #938: ClassStorageTest.RetainsStringBytesAcrossFieldStores .........................   Passed    0.15 sec
+        Start  882: NativeCallCacheTest.RetriesMissingSymbolsAtTheNextInvocation
+114/222 Test  #742: ClassArtifactTest.RoundTripsRecursiveClassPointers ...........................   Passed    0.15 sec
+        Start 4044: ExecutionSourceTest.Array.Invalid.NonarrayIndex
+115/222 Test  #884: NativeCallCacheTest.RejectsUnsupportedSignaturesWithoutCachingPlans ..........   Passed    0.16 sec
+        Start 4051: ExecutionSourceTest.Array.Invalid.ConstAddress
+116/222 Test  #936: ClassStorageTest.PaddedIntegersUseTargetStrideWithoutChangingTheirValue ......   Passed    0.16 sec
+        Start  880: NativeCallCacheTest.ReusesPlanWithoutCachingValuesOrEffects
+117/222 Test  #940: ClassStorageTest.RejectsStringBudgetWithoutPartialAggregateStore .............   Passed    0.14 sec
+        Start 3999: ExecutionSourceTest.ControlFlow.Main.Branches
+118/222 Test  #932: ClassStorageTest.RegistersRecursivePointersBeforeFollowingFields .............   Passed    0.15 sec
+        Start  881: NativeCallCacheTest.ClearDiscardsThePreparedBinding
+119/222 Test #4012: ExecutionSourceTest.Function.Main.Effects ....................................   Passed    0.14 sec
+120/222 Test  #935: ClassStorageTest.EmptyClassesHaveAddressableExtent ...........................   Passed    0.16 sec
+        Start  965: ReflectionTest.ResolvesMethodOverloads
+        Start  755: ClassBytecodeTest.RejectsByValueClassesAtTheNativeBoundary
+121/222 Test  #882: NativeCallCacheTest.RetriesMissingSymbolsAtTheNextInvocation .................   Passed    0.16 sec
+122/222 Test #4044: ExecutionSourceTest.Array.Invalid.NonarrayIndex ..............................   Passed    0.14 sec
+        Start  886: NativeCallCacheTest.ReentrantCallsKeepTheirOwnArgumentStorage
+        Start 4000: ExecutionSourceTest.Comptime.Main.ControlFlow
+123/222 Test #4051: ExecutionSourceTest.Array.Invalid.ConstAddress ...............................   Passed    0.13 sec
+        Start 3992: ExecutionSourceTest.Logical.Main.TruthTables
+124/222 Test  #880: NativeCallCacheTest.ReusesPlanWithoutCachingValuesOrEffects ..................   Passed    0.14 sec
+        Start  887: NativeCallCacheTest.ReentrantClearKeepsActiveCallPlansAlive
+125/222 Test #3999: ExecutionSourceTest.ControlFlow.Main.Branches ................................   Passed    0.12 sec
+        Start 4009: ExecutionSourceTest.Arithmetic.Main.Comptime
+126/222 Test  #881: NativeCallCacheTest.ClearDiscardsThePreparedBinding ..........................   Passed    0.14 sec
+        Start  879: FfiArgumentTest.NativeInteriorReturnPreservesExistingBufferLifetime
+127/222 Test  #965: ReflectionTest.ResolvesMethodOverloads .......................................   Passed    0.15 sec
+        Start 4007: ExecutionSourceTest.Arithmetic.Main.Widths
+128/222 Test  #755: ClassBytecodeTest.RejectsByValueClassesAtTheNativeBoundary ...................   Passed    0.14 sec
+        Start 3997: ExecutionSourceTest.Logical.Main.Effects
+129/222 Test #3992: ExecutionSourceTest.Logical.Main.TruthTables .................................   Passed    0.13 sec
+130/222 Test #4000: ExecutionSourceTest.Comptime.Main.ControlFlow ................................   Passed    0.13 sec
+131/222 Test  #886: NativeCallCacheTest.ReentrantCallsKeepTheirOwnArgumentStorage ................   Passed    0.14 sec
+        Start 4018: ExecutionSourceTest.External.Main.Effects
+        Start 4016: ExecutionSourceTest.External.Main.Strings
+        Start 4095: ExecutionSourceTest.Function.Invalid.ArgumentWidth
+132/222 Test  #887: NativeCallCacheTest.ReentrantClearKeepsActiveCallPlansAlive ..................   Passed    0.14 sec
+        Start 4047: ExecutionSourceTest.Array.Invalid.ConstantWriteBounds
+133/222 Test #4009: ExecutionSourceTest.Arithmetic.Main.Comptime .................................   Passed    0.12 sec
+        Start 4052: ExecutionSourceTest.Array.Invalid.UninitializedRead
+134/222 Test  #879: FfiArgumentTest.NativeInteriorReturnPreservesExistingBufferLifetime ..........   Passed    0.15 sec
+        Start 4036: ExecutionSourceTest.Array.Invalid.RuntimeLength
+135/222 Test #4007: ExecutionSourceTest.Arithmetic.Main.Widths ...................................   Passed    0.14 sec
+        Start 4098: ExecutionSourceTest.Function.Invalid.MissingReturn
+136/222 Test #3997: ExecutionSourceTest.Logical.Main.Effects .....................................   Passed    0.14 sec
+        Start 3998: ExecutionSourceTest.Logical.Main.NestedTruthTables
+137/222 Test #4016: ExecutionSourceTest.External.Main.Strings ....................................   Passed    0.14 sec
+        Start 4035: ExecutionSourceTest.Array.Invalid.ExcessiveLength
+138/222 Test #4018: ExecutionSourceTest.External.Main.Effects ....................................   Passed    0.16 sec
+        Start 4008: ExecutionSourceTest.Arithmetic.Main.Contexts
+139/222 Test #4095: ExecutionSourceTest.Function.Invalid.ArgumentWidth ...........................   Passed    0.15 sec
+        Start 4015: ExecutionSourceTest.External.Main.Comptime
+140/222 Test #4047: ExecutionSourceTest.Array.Invalid.ConstantWriteBounds ........................   Passed    0.14 sec
+141/222 Test #4052: ExecutionSourceTest.Array.Invalid.UninitializedRead ..........................   Passed    0.13 sec
+        Start 4085: ExecutionSourceTest.Arithmetic.Invalid.SignedMinimum
+        Start  873: FfiArgumentTest.RejectsUnevaluatedMismatchedAndForeignValues
+142/222 Test #4036: ExecutionSourceTest.Array.Invalid.RuntimeLength ..............................   Passed    0.12 sec
+        Start 4082: ExecutionSourceTest.Arithmetic.Invalid.Signedness
+143/222 Test #4098: ExecutionSourceTest.Function.Invalid.MissingReturn ...........................   Passed    0.11 sec
+        Start 4022: ExecutionSourceTest.External.Invalid.UnsupportedFloat
+144/222 Test #3998: ExecutionSourceTest.Logical.Main.NestedTruthTables ...........................   Passed    0.13 sec
+        Start 4107: ExecutionSourceTest.Function.Invalid.MissingBody
+145/222 Test #4035: ExecutionSourceTest.Array.Invalid.ExcessiveLength ............................   Passed    0.13 sec
+        Start 4090: ExecutionSourceTest.Arithmetic.Invalid.ShiftNegative
+146/222 Test #4008: ExecutionSourceTest.Arithmetic.Main.Contexts .................................   Passed    0.14 sec
+        Start 4021: ExecutionSourceTest.External.Invalid.UnsupportedInteger
+147/222 Test #4085: ExecutionSourceTest.Arithmetic.Invalid.SignedMinimum .........................   Passed    0.14 sec
+        Start  878: FfiArgumentTest.NativeScalarReturnReclaimsUnescapedTemporaryBuffer
+148/222 Test #4015: ExecutionSourceTest.External.Main.Comptime ...................................   Passed    0.16 sec
+        Start  877: FfiArgumentTest.NativeInteriorReturnPromotesTemporaryBuffer
+149/222 Test  #873: FfiArgumentTest.RejectsUnevaluatedMismatchedAndForeignValues .................   Passed    0.15 sec
+        Start 4066: ExecutionSourceTest.Logical.Invalid.AndLeftInteger
+150/222 Test #4082: ExecutionSourceTest.Arithmetic.Invalid.Signedness ............................   Passed    0.13 sec
+        Start 4014: ExecutionSourceTest.External.Main.Scalars
+151/222 Test #4022: ExecutionSourceTest.External.Invalid.UnsupportedFloat ........................   Passed    0.12 sec
+        Start 4019: ExecutionSourceTest.External.Invalid.MissingSymbol
+152/222 Test #4107: ExecutionSourceTest.Function.Invalid.MissingBody .............................   Passed    0.13 sec
+        Start 4087: ExecutionSourceTest.Arithmetic.Invalid.UnsignedRange
+153/222 Test #4090: ExecutionSourceTest.Arithmetic.Invalid.ShiftNegative .........................   Passed    0.12 sec
+        Start 4020: ExecutionSourceTest.External.Invalid.ComptimeMissingSymbol
+154/222 Test #4021: ExecutionSourceTest.External.Invalid.UnsupportedInteger ......................   Passed    0.12 sec
+        Start 4092: ExecutionSourceTest.Function.Invalid.MissingArgument
+155/222 Test  #878: FfiArgumentTest.NativeScalarReturnReclaimsUnescapedTemporaryBuffer ...........   Passed    0.15 sec
+        Start 3996: ExecutionSourceTest.Logical.Main.Comptime
+156/222 Test #4066: ExecutionSourceTest.Logical.Invalid.AndLeftInteger ...........................   Passed    0.14 sec
+157/222 Test #4014: ExecutionSourceTest.External.Main.Scalars ....................................   Passed    0.13 sec
+        Start 4070: ExecutionSourceTest.Logical.Invalid.CompareWidths
+        Start 4062: ExecutionSourceTest.External.Invalid.ArgumentType
+158/222 Test  #877: FfiArgumentTest.NativeInteriorReturnPromotesTemporaryBuffer ..................   Passed    0.18 sec
+159/222 Test #4019: ExecutionSourceTest.External.Invalid.MissingSymbol ...........................   Passed    0.15 sec
+        Start 4075: ExecutionSourceTest.Logical.ShortCircuit.nested_reach
+        Start 4101: ExecutionSourceTest.Function.Invalid.ReturnType
+160/222 Test #4087: ExecutionSourceTest.Arithmetic.Invalid.UnsignedRange .........................   Passed    0.16 sec
+        Start 4084: ExecutionSourceTest.Arithmetic.Invalid.SignedRange
+161/222 Test #4020: ExecutionSourceTest.External.Invalid.ComptimeMissingSymbol ...................   Passed    0.20 sec
+        Start 4102: ExecutionSourceTest.Function.Invalid.VoidValue
+162/222 Test #4092: ExecutionSourceTest.Function.Invalid.MissingArgument .........................   Passed    0.20 sec
+        Start 4105: ExecutionSourceTest.Function.Invalid.DuplicateParameter
+163/222 Test #3996: ExecutionSourceTest.Logical.Main.Comptime ....................................   Passed    0.21 sec
+        Start 4069: ExecutionSourceTest.Logical.Invalid.SkippedOrRightInteger
+164/222 Test #4070: ExecutionSourceTest.Logical.Invalid.CompareWidths ............................   Passed    0.23 sec
+        Start 4091: ExecutionSourceTest.Arithmetic.Invalid.ShiftWidth
+165/222 Test #4062: ExecutionSourceTest.External.Invalid.ArgumentType ............................   Passed    0.25 sec
+        Start  874: FfiArgumentTest.FailedPreparationClearsPreviousAddressAndAllowsReuse
+166/222 Test #4075: ExecutionSourceTest.Logical.ShortCircuit.nested_reach ........................   Passed    0.25 sec
+167/222 Test #4101: ExecutionSourceTest.Function.Invalid.ReturnType ..............................   Passed    0.24 sec
+        Start 4106: ExecutionSourceTest.Function.Invalid.DuplicateDefinition
+        Start 4099: ExecutionSourceTest.Function.Invalid.EmptyReturn
+168/222 Test #4084: ExecutionSourceTest.Arithmetic.Invalid.SignedRange ...........................   Passed    0.24 sec
+        Start 4088: ExecutionSourceTest.Arithmetic.Invalid.DivisionZero
+169/222 Test #4102: ExecutionSourceTest.Function.Invalid.VoidValue ...............................   Passed    0.22 sec
+        Start 4094: ExecutionSourceTest.Function.Invalid.ArgumentType
+170/222 Test #4105: ExecutionSourceTest.Function.Invalid.DuplicateParameter ......................   Passed    0.21 sec
+        Start 4097: ExecutionSourceTest.Function.Invalid.NoMatchingOverload
+171/222 Test #4069: ExecutionSourceTest.Logical.Invalid.SkippedOrRightInteger ....................   Passed    0.19 sec
+        Start 4074: ExecutionSourceTest.Logical.ShortCircuit.reach_or
+172/222 Test #4091: ExecutionSourceTest.Arithmetic.Invalid.ShiftWidth ............................   Passed    0.19 sec
+        Start 4096: ExecutionSourceTest.Function.Invalid.AmbiguousOverload
+173/222 Test  #874: FfiArgumentTest.FailedPreparationClearsPreviousAddressAndAllowsReuse .........   Passed    0.17 sec
+        Start 3995: ExecutionSourceTest.Logical.Main.ShortCircuit
+174/222 Test #4106: ExecutionSourceTest.Function.Invalid.DuplicateDefinition .....................   Passed    0.16 sec
+        Start 4078: ExecutionSourceTest.ControlFlow.Invalid.UninitializedReturningArm
+175/222 Test #4099: ExecutionSourceTest.Function.Invalid.EmptyReturn .............................   Passed    0.16 sec
+176/222 Test #4088: ExecutionSourceTest.Arithmetic.Invalid.DivisionZero ..........................   Passed    0.14 sec
+        Start 4064: ExecutionSourceTest.External.Invalid.RuntimeEmbeddedNul
+        Start 4104: ExecutionSourceTest.Function.Invalid.NotCallable
+177/222 Test #4097: ExecutionSourceTest.Function.Invalid.NoMatchingOverload ......................   Passed    0.13 sec
+        Start 4100: ExecutionSourceTest.Function.Invalid.VoidReturn
+178/222 Test #4094: ExecutionSourceTest.Function.Invalid.ArgumentType ............................   Passed    0.15 sec
+        Start 4063: ExecutionSourceTest.External.Invalid.ArgumentCount
+179/222 Test #4074: ExecutionSourceTest.Logical.ShortCircuit.reach_or ............................   Passed    0.13 sec
+        Start 4017: ExecutionSourceTest.External.Main.Pointers
+180/222 Test #4096: ExecutionSourceTest.Function.Invalid.AmbiguousOverload .......................   Passed    0.13 sec
+        Start 4083: ExecutionSourceTest.Arithmetic.Invalid.Bool
+181/222 Test #3995: ExecutionSourceTest.Logical.Main.ShortCircuit ................................   Passed    0.13 sec
+        Start 4076: ExecutionSourceTest.ControlFlow.Invalid.Condition
+182/222 Test #4078: ExecutionSourceTest.ControlFlow.Invalid.UninitializedReturningArm ............   Passed    0.14 sec
+        Start 4077: ExecutionSourceTest.ControlFlow.Invalid.UninitializedMerge
+183/222 Test #4064: ExecutionSourceTest.External.Invalid.RuntimeEmbeddedNul ......................   Passed    0.14 sec
+        Start 4093: ExecutionSourceTest.Function.Invalid.ExtraArgument
+184/222 Test #4104: ExecutionSourceTest.Function.Invalid.NotCallable .............................   Passed    0.15 sec
+        Start  872: FfiArgumentTest.PreparesScalarConstantThroughValueReference
+185/222 Test #4100: ExecutionSourceTest.Function.Invalid.VoidReturn ..............................   Passed    0.16 sec
+        Start 4072: ExecutionSourceTest.Logical.Invalid.CompareBoolOrder
+186/222 Test #4063: ExecutionSourceTest.External.Invalid.ArgumentCount ...........................   Passed    0.17 sec
+        Start  876: FfiArgumentTest.ReclaimsTemporaryStringBuffersOnResetAndDestruction
+187/222 Test #4017: ExecutionSourceTest.External.Main.Pointers ...................................   Passed    0.17 sec
+        Start 4080: ExecutionSourceTest.ControlFlow.Invalid.UnselectedRuntimeName
+188/222 Test #4083: ExecutionSourceTest.Arithmetic.Invalid.Bool ..................................   Passed    0.16 sec
+        Start 4103: ExecutionSourceTest.Function.Invalid.Capture
+189/222 Test #4076: ExecutionSourceTest.ControlFlow.Invalid.Condition ............................   Passed    0.16 sec
+        Start 4089: ExecutionSourceTest.Arithmetic.Invalid.RemainderZero
+190/222 Test #4077: ExecutionSourceTest.ControlFlow.Invalid.UninitializedMerge ...................   Passed    0.16 sec
+        Start 4086: ExecutionSourceTest.Arithmetic.Invalid.UnsignedNegative
+191/222 Test #4093: ExecutionSourceTest.Function.Invalid.ExtraArgument ...........................   Passed    0.16 sec
+        Start 4081: ExecutionSourceTest.Arithmetic.Invalid.Widths
+192/222 Test #4072: ExecutionSourceTest.Logical.Invalid.CompareBoolOrder .........................   Passed    0.14 sec
+        Start 4071: ExecutionSourceTest.Logical.Invalid.CompareSignedness
+193/222 Test  #872: FfiArgumentTest.PreparesScalarConstantThroughValueReference ..................   Passed    0.18 sec
+        Start 4068: ExecutionSourceTest.Logical.Invalid.OrLeftInteger
+194/222 Test #4080: ExecutionSourceTest.ControlFlow.Invalid.UnselectedRuntimeName ................   Passed    0.13 sec
+        Start 4115: ExecutionSourceTest.Class.Invalid.WrongMethodArgument
+195/222 Test  #876: FfiArgumentTest.ReclaimsTemporaryStringBuffersOnResetAndDestruction ..........   Passed    0.17 sec
+        Start 4067: ExecutionSourceTest.Logical.Invalid.SkippedAndRightInteger
+196/222 Test #4103: ExecutionSourceTest.Function.Invalid.Capture .................................   Passed    0.14 sec
+        Start  875: FfiArgumentTest.OwnsIndependentWritableStringBuffers
+197/222 Test #4089: ExecutionSourceTest.Arithmetic.Invalid.RemainderZero .........................   Passed    0.18 sec
+        Start 4112: ExecutionSourceTest.Class.Invalid.PrivateField
+198/222 Test #4086: ExecutionSourceTest.Arithmetic.Invalid.UnsignedNegative ......................   Passed    0.18 sec
+        Start 4117: ExecutionSourceTest.Class.Invalid.ConstMethod
+199/222 Test #4081: ExecutionSourceTest.Arithmetic.Invalid.Widths ................................   Passed    0.18 sec
+        Start 4079: ExecutionSourceTest.ControlFlow.Invalid.EscapedLocal
+200/222 Test #4068: ExecutionSourceTest.Logical.Invalid.OrLeftInteger ............................   Passed    0.17 sec
+        Start 4065: ExecutionSourceTest.Logical.Invalid.NotInteger
+201/222 Test #4115: ExecutionSourceTest.Class.Invalid.WrongMethodArgument ........................   Passed    0.17 sec
+        Start 4114: ExecutionSourceTest.Class.Invalid.UnknownField
+202/222 Test #4071: ExecutionSourceTest.Logical.Invalid.CompareSignedness ........................   Passed    0.22 sec
+        Start 4013: ExecutionSourceTest.Memory.Main.AddressOf
+203/222 Test #4067: ExecutionSourceTest.Logical.Invalid.SkippedAndRightInteger ...................   Passed    0.19 sec
+204/222 Test  #875: FfiArgumentTest.OwnsIndependentWritableStringBuffers .........................   Passed    0.17 sec
+        Start 3991: ExecutionSourceTest.HelloWorld
+        Start 4001: ExecutionSourceTest.Loops.Main.While
+205/222 Test #4112: ExecutionSourceTest.Class.Invalid.PrivateField ...............................   Passed    0.16 sec
+        Start 4002: ExecutionSourceTest.Loops.Main.For
+206/222 Test #4117: ExecutionSourceTest.Class.Invalid.ConstMethod ................................   Passed    0.17 sec
+207/222 Test #4079: ExecutionSourceTest.ControlFlow.Invalid.EscapedLocal .........................   Passed    0.16 sec
+        Start 4003: ExecutionSourceTest.Loops.Main.ForIn
+        Start 4004: ExecutionSourceTest.Loops.Main.Effects
+208/222 Test #4065: ExecutionSourceTest.Logical.Invalid.NotInteger ...............................   Passed    0.17 sec
+        Start 4005: ExecutionSourceTest.Loops.Main.Lifecycle
+209/222 Test #4114: ExecutionSourceTest.Class.Invalid.UnknownField ...............................   Passed    0.18 sec
+        Start 4006: ExecutionSourceTest.Loops.Main.Comptime
+210/222 Test #4013: ExecutionSourceTest.Memory.Main.AddressOf ....................................   Passed    0.22 sec
+        Start 4145: AOTClassTest.LifecycleTransfer
+211/222 Test #3991: ExecutionSourceTest.HelloWorld ...............................................   Passed    0.21 sec
+        Start 4155: AOTClassTest.NativeClassMemcpy
+212/222 Test #4001: ExecutionSourceTest.Loops.Main.While .........................................   Passed    0.42 sec
+        Start 4156: AOTClassTest.NativeBooleanWriteBack
+213/222 Test #4002: ExecutionSourceTest.Loops.Main.For ...........................................   Passed    0.41 sec
+        Start 4158: AOTClassTest.Loops
+214/222 Test #4004: ExecutionSourceTest.Loops.Main.Effects .......................................   Passed    0.39 sec
+        Start 4159: AOTClassTest.LoopLifecycle
+215/222 Test #4006: ExecutionSourceTest.Loops.Main.Comptime ......................................   Passed    0.35 sec
+216/222 Test #4003: ExecutionSourceTest.Loops.Main.ForIn .........................................   Passed    0.42 sec
+217/222 Test #4005: ExecutionSourceTest.Loops.Main.Lifecycle .....................................   Passed    0.39 sec
+218/222 Test #4156: AOTClassTest.NativeBooleanWriteBack ..........................................   Passed    0.95 sec
+219/222 Test #4158: AOTClassTest.Loops ...........................................................   Passed    1.05 sec
+220/222 Test #4145: AOTClassTest.LifecycleTransfer ...............................................   Passed    1.90 sec
+221/222 Test #4159: AOTClassTest.LoopLifecycle ...................................................   Passed    1.74 sec
+222/222 Test #4155: AOTClassTest.NativeClassMemcpy ...............................................   Passed    2.11 sec
+
+100% tests passed, 0 tests failed out of 222
+
+Label Time Summary:
+aot             =  30.82 sec*proc (24 tests)
+arithmetic      =   2.24 sec*proc (14 tests)
+arrays          =  12.81 sec*proc (39 tests)
+bytecode        =  21.72 sec*proc (43 tests)
+class           =  27.56 sec*proc (30 tests)
+comptime        =   2.57 sec*proc (12 tests)
+control_flow    =   6.19 sec*proc (15 tests)
+differential    =  27.63 sec*proc (21 tests)
+execution       =  38.65 sec*proc (149 tests)
+external        =   3.59 sec*proc (18 tests)
+function        =   3.02 sec*proc (19 tests)
+hybrid          =   1.08 sec*proc (2 tests)
+logical         =   2.99 sec*proc (18 tests)
+loops           =   5.17 sec*proc (8 tests)
+memory          =   0.22 sec*proc (1 test)
+multifile       =   8.78 sec*proc (20 tests)
+reflection      =   2.12 sec*proc (1 test)
+source          =  37.58 sec*proc (147 tests)
+
+Total Test time (real) =  11.53 sec

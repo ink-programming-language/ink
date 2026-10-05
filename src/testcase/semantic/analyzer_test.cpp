@@ -108,8 +108,6 @@ namespace ink::semantic::test
         {"for (;;) {}", "ClassicForStmt"},
         {"for (Item in Items) {}", "ForInStmt"},
         {"switch (X) {}", "SwitchStmt"},
-        {"break;", "BreakStmt"},
-        {"continue;", "ContinueStmt"},
         {"yield 1;", "YieldStmt"},
         {"defer {}", "DeferStmt"},
         {"var X = 1;", "VarDecl"},

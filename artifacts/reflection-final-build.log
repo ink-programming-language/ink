@@ -1,0 +1,10 @@
+[0/2] Re-checking globbed directories...
+[1/6] Building CXX object src\lib\execution\CMakeFiles\ink_execution.dir\artifact\bytecode_validation.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+[2/6] Linking CXX static library src\lib\execution\ink_execution.lib
+[3/6] Linking CXX executable src\tools\inkc\inkc.exe
+[4/6] Building CXX object src\testcase\CMakeFiles\ink_tests.dir\execution\reflection\reflection_test.cpp.obj
+cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
+cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
+[5/6] Linking CXX executable src\testcase\ink_tests.exe
