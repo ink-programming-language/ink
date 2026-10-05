@@ -1,11 +1,6 @@
-#include "../analyzer_internal.h"
-
-#include "ink/parser/ast.h"
+#include "ink/semantic/analyzer/analyzer.h"
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeDeferStmt(AnalysisState &State, const parser::DeferStmt &Node)
-  {
-    return reportUnsupported(State, Node);
-  }
+  // TODO: Rebuild this semantic analysis component. Previous implementation: saved-execution.
 } // namespace ink::semantic

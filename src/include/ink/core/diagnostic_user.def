@@ -3,18 +3,6 @@
 #endif
 
 // Errors caused by incorrect user source code.
-INK_DIAGNOSTIC(ExecutionExpiredPlace, 0x05000006U, Execution, "INK-E0006", User, Error, "expired execution place", "{Context}: expired execution place", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionUninitialized, 0x05000007U, Execution, "INK-E0007", User, Error, "uninitialized value", "{Context}: uninitialized value", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionRuntimeValue, 0x05000008U, Execution, "INK-E0008", User, Error, "runtime value is unavailable", "{Context}: runtime value is unavailable", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionReadOnly, 0x05000009U, Execution, "INK-E0009", User, Error, "read-only value", "{Context}: read-only value", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionTypeMismatch, 0x0500000AU, Execution, "INK-E0010", User, Error, "value type mismatch", "{Context}: value type mismatch", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionInvalidArguments, 0x0500000CU, Execution, "INK-E0012", User, Error, "invalid function arguments", "{Context}: invalid function arguments", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionMissingBody, 0x0500000DU, Execution, "INK-E0013", User, Error, "missing function body", "{Context}: missing function body", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionSymbolNotFound, 0x0500000EU, Execution, "INK-E0014", User, Error, "external symbol was not found in the current process", "{Context}: external symbol was not found in the current process", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionUnsupportedExternalSignature, 0x0500000FU, Execution, "INK-E0015", User, Error, "unsupported external function signature", "{Context}: unsupported external function signature", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionDivisionByZero, 0x05000013U, Execution, "INK-E0019", User, Error, "division by zero", "{Context}: division by zero", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionInvalidShift, 0x05000014U, Execution, "INK-E0020", User, Error, "invalid shift count", "{Context}: invalid shift count", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionOverflow, 0x05000015U, Execution, "INK-E0021", User, Error, "arithmetic overflow", "{Context}: arithmetic overflow", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 
 INK_DIAGNOSTIC(InvalidUtf8, 0x01000001U, Tokenizer, "INK-T0001", User, Error, "source is not valid UTF-8", "source is not valid UTF-8", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(UnexpectedBom, 0x01000002U, Tokenizer, "INK-T0002", User, Error, "a UTF-8 BOM is not permitted at the start of a source file", "a UTF-8 BOM is not permitted at the start of a source file", INK_DIAGNOSTIC_ARGUMENTS())
@@ -57,7 +45,7 @@ INK_DIAGNOSTIC(SemanticAmbiguousName, 0x03000011U, Semantic, "INK-S0017", User, 
 INK_DIAGNOSTIC(SemanticNoMatchingOverload, 0x03000012U, Semantic, "INK-S0018", User, Error, "no matching overload", "no function overload accepts these arguments", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticEmbeddedNull, 0x03000013U, Semantic, "INK-S0019", User, Error, "embedded NUL in C string", "a string containing NUL cannot be passed as a C string", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticInvalidCapture, 0x03000014U, Semantic, "INK-S0020", User, Error, "unsupported parameter capture", "cannot capture parameter '{SymbolName}' from another function", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(SymbolName, String)))
-// INK-S0021 is retired; execution failures have specific Execution-domain diagnostics.
+// INK-S0021 is retired; keep subsequent semantic diagnostic identities stable.
 INK_DIAGNOSTIC(SemanticComptimeFunctionAtRuntime, 0x03000016U, Semantic, "INK-S0022", User, Error, "compile-time function cannot be used at runtime", "compile-time function cannot be used at runtime", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticComptimeFunctionRequiresBody, 0x03000017U, Semantic, "INK-S0023", User, Error, "compile-time function requires a body", "compile-time function requires a body", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticComptimeFunctionLinkage, 0x03000018U, Semantic, "INK-S0024", User, Error, "compile-time function requires Ink language linkage", "compile-time function requires Ink language linkage", INK_DIAGNOSTIC_ARGUMENTS())
@@ -91,13 +79,9 @@ INK_DIAGNOSTIC(SemanticInvalidArrayLength, 0x03000033U, Semantic, "INK-S0051", U
 INK_DIAGNOSTIC(SemanticEmptyArrayNeedsType, 0x03000034U, Semantic, "INK-S0052", User, Error, "empty array requires an element type", "cannot infer the element type of an empty array", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticInvalidArrayIndex, 0x03000035U, Semantic, "INK-S0053", User, Error, "array index requires an integer", "array index must have integer type", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticArrayIndexOutOfBounds, 0x03000036U, Semantic, "INK-S0054", User, Error, "array index out of bounds", "array index is outside the valid range [0, {ExpectedCount})", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(ExpectedCount, UnsignedInteger)))
-INK_DIAGNOSTIC(ExecutionIndexOutOfBounds, 0x05000019U, Execution, "INK-E0025", User, Error, "array index out of bounds", "{Context}: array index out of bounds", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 INK_DIAGNOSTIC(SemanticArrayTooLarge, 0x03000037U, Semantic, "INK-S0055", User, Error, "array exceeds materialization limit", "array length exceeds the configured materialization limit", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticInvalidClass, 0x03000038U, Semantic, "INK-S0056", User, Error, "invalid class declaration", "invalid class declaration: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 INK_DIAGNOSTIC(SemanticInvalidMember, 0x03000039U, Semantic, "INK-S0057", User, Error, "invalid class member access", "invalid member access: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 INK_DIAGNOSTIC(SemanticInvalidConstruction, 0x0300003AU, Semantic, "INK-S0058", User, Error, "invalid class construction", "invalid class construction: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 INK_DIAGNOSTIC(SemanticInvalidLoopControl, 0x0300003BU, Semantic, "INK-S0059", User, Error, "invalid loop control", "'{Context}' requires an enclosing loop in the same execution stage", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 INK_DIAGNOSTIC(SemanticInvalidIterationBinding, 0x0300003CU, Semantic, "INK-S0060", User, Error, "invalid iteration binding", "iteration binding does not match the element type: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-
-INK_DIAGNOSTIC(ExecutionAccessDenied, 0x05000020U, Execution, "INK-E0032", User, Error, "member access denied", "{Context}: member access denied", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
-INK_DIAGNOSTIC(ExecutionAmbiguousMember, 0x05000021U, Execution, "INK-E0033", User, Error, "ambiguous reflected method", "{Context}: ambiguous reflected method", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))

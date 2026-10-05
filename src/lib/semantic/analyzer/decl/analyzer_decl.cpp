@@ -1,45 +1,6 @@
-#include "../analyzer_internal.h"
-
-#include "ink/parser/ast.h"
-
-#include <cstdlib>
+#include "ink/semantic/analyzer/analyzer.h"
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeDecl(AnalysisState &State, const parser::Decl &Declaration)
-  {
-    if (Declaration.isComptime() && !parser::VarDecl::classof(&Declaration) && !parser::FunctionDecl::classof(&Declaration))
-    {
-      return reportUnsupported(State, Declaration);
-    }
-    switch (Declaration.getKind())
-    {
-#define INK_ANALYZE_Root(Name)
-#define INK_ANALYZE_Expr(Name)
-#define INK_ANALYZE_Stmt(Name)
-#define INK_ANALYZE_Decl(Name) \
-  case parser::ASTKind::Name:  \
-    return analyze##Name(State, static_cast<const parser::Name &>(Declaration));
-#define INK_ANALYZE_SimpleItem(Name)
-#define INK_ANALYZE_BindingPattern(Name)
-#define INK_ANALYZE_MatchPattern(Name)
-#define AST_NODE(Name, Base, Category, Id) INK_ANALYZE_##Category(Name)
-#include "ink/parser/ASTNodes.def"
-#undef AST_NODE
-#undef INK_ANALYZE_Root
-#undef INK_ANALYZE_Expr
-#undef INK_ANALYZE_Stmt
-#undef INK_ANALYZE_Decl
-#undef INK_ANALYZE_SimpleItem
-#undef INK_ANALYZE_BindingPattern
-#undef INK_ANALYZE_MatchPattern
-    default:
-      std::abort();
-    }
-  }
-
-  bool Analyzer::analyzeFieldDecl(AnalysisState &State, const parser::FieldDecl &Node)
-  {
-    return reportUnsupported(State, Node);
-  }
+  // TODO: Rebuild this semantic analysis component. Previous implementation: saved-execution.
 } // namespace ink::semantic

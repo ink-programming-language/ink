@@ -1,3 +1,0 @@
-# Keep the sample source bytes identical to its serialized snapshot on every platform.
-artifacts/ast-example.ink text eol=lf
-artifacts/ast-example.inkast binary

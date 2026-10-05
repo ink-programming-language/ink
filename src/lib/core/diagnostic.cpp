@@ -316,8 +316,6 @@ namespace ink::core
       return "FieldType";
     case DiagnosticArgumentName::OperandIndex:
       return "OperandIndex";
-    case DiagnosticArgumentName::ExecutionStepLimit:
-      return "ExecutionStepLimit";
     case DiagnosticArgumentName::RequestedSize:
       return "RequestedSize";
     case DiagnosticArgumentName::AllocationLimit:

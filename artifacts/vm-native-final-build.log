@@ -1,7 +1,0 @@
-[0/2] Re-checking globbed directories...
-[1/5] Building CXX object src\lib\execution\CMakeFiles\ink_execution.dir\engine\execution_machine_dispatch.cpp.obj
-cl: 命令行 warning D9025 :正在重写“/EHs”(用“/EHs-”)
-cl: 命令行 warning D9025 :正在重写“/EHc”(用“/EHc-”)
-[2/5] Linking CXX static library src\lib\execution\ink_execution.lib
-[3/5] Linking CXX executable src\tools\inkc\inkc.exe
-[4/5] Linking CXX executable src\testcase\ink_tests.exe

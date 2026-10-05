@@ -1,8 +1,0 @@
-hybrid-commit-function.cpp
-D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(262) : warning C4702: 无法访问的代码
-D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(263) : warning C4702: 无法访问的代码
-D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(264) : warning C4702: 无法访问的代码
-D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(266) : warning C4702: 无法访问的代码
-D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(268) : warning C4702: 无法访问的代码
-D:\github\ink\src\third_party\llvm\llvm\include\llvm\ADT\bit.h(270) : warning C4702: 无法访问的代码
-D:\github\ink\src\third_party\llvm\llvm\include\llvm\Support\MathExtras.h(193) : warning C4702: 无法访问的代码

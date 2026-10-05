@@ -1,9 +1,0 @@
-file(GLOB_RECURSE INKC_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-add_executable(inkc ${INKC_SOURCES})
-target_compile_features(inkc PRIVATE cxx_std_20)
-target_link_libraries(inkc PRIVATE ink::cli ink::parser ink::semantic ink::execution ink::llvm_backend)
-ink_disable_exceptions(inkc)
-
-if(MSVC)
-  target_compile_options(inkc PRIVATE /utf-8)
-endif()

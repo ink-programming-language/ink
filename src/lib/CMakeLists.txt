@@ -1,11 +1,6 @@
-# The frontend is being rebuilt from docs/Ink-Lexical-Rules.md.
-# Later-stage sources remain in the repository until their APIs and diagnostics are rebuilt.
+# Build the frontend and the declaration-only semantic skeleton.
 add_subdirectory(core)
-add_subdirectory(abi)
 add_subdirectory(cli)
 add_subdirectory(tokenizer)
 add_subdirectory(parser)
-add_subdirectory(ir)
-add_subdirectory(execution)
 add_subdirectory(semantic)
-add_subdirectory(backend)

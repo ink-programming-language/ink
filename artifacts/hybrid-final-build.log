@@ -1,5 +1,0 @@
-[0/2] Re-checking globbed directories...
-[1/5] Generating hybrid-O0/program.obj, hybrid-O0/program.base, hybrid-O0/first.patch, hybrid-O0/bounce.patch, hybrid-O0/second.patch
-[2/5] Linking CXX executable src\testcase\ink_hybrid_test_O0.exe
-[3/5] Generating hybrid-O2/program.obj, hybrid-O2/program.base, hybrid-O2/first.patch, hybrid-O2/bounce.patch, hybrid-O2/second.patch
-[4/5] Linking CXX executable src\testcase\ink_hybrid_test_O2.exe

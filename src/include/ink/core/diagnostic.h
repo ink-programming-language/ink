@@ -21,10 +21,6 @@ namespace ink::core
     Tokenizer = 0x01,
     Parser = 0x02,
     Semantic = 0x03,
-    IR = 0x04,
-    Execution = 0x05,
-    Driver = 0x06,
-    Backend = 0x07,
     Core = 0x08,
   };
 
@@ -96,7 +92,6 @@ namespace ink::core
     Predicate,
     FieldType,
     OperandIndex,
-    ExecutionStepLimit,
     RequestedSize,
     AllocationLimit,
     Index,
