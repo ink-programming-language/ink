@@ -1,0 +1,11 @@
+add_source_program_test(Generic.Types programs/generic_types.ink 0 "Generic.types|PASS|Generic.arrays_and_pointers|PASS|Generic.class_copy|PASS|Generic.function_value|PASS|" "" BYTECODE LABELS generic function arrays)
+add_source_program_test(Generic.Values programs/generic_values.ink 0 "Generic.defaults|PASS|Generic.frozen_values|PASS|Generic.argument_order|PASS|Generic.comptime|PASS|" "" BYTECODE LABELS generic function comptime)
+add_source_program_test(Generic.Recursion programs/generic_recursion.ink 0 "Generic.recursion|PASS|Generic.overloads|PASS|Generic.nested|PASS|" "" BYTECODE LABELS generic function)
+
+add_source_program_test(Generic.MissingArguments cli/inputs/generic_missing_arguments.ink 1 "" "INK-S0062" LABELS generic negative)
+add_source_program_test(Generic.RuntimeArgument cli/inputs/generic_runtime_argument.ink 1 "" "INK-E" LABELS generic negative)
+add_source_program_test(Generic.TypeMismatch cli/inputs/generic_type_mismatch.ink 1 "" "INK-S0062" LABELS generic negative)
+add_source_program_test(Generic.InvalidBody cli/inputs/generic_invalid_body.ink 1 "" "INK-S0001" LABELS generic negative)
+add_source_program_test(Generic.Ambiguous cli/inputs/generic_ambiguous.ink 1 "" "INK-S0017" LABELS generic negative)
+add_source_program_test(Generic.ExpansionLimit cli/inputs/generic_expansion_limit.ink 1 "" "INK-S0063" LABELS generic negative)
+add_source_program_test(Generic.ComptimeAtRuntime cli/inputs/generic_comptime_runtime.ink 1 "" "INK-S0022" LABELS generic negative)

@@ -45,6 +45,41 @@ namespace ink::ir
     return record('R', {abi::packageRecord(Module.Package), abi::moduleRecord(Module), record('O', Owners), {'K', std::string(1, Kind)}, abi::nameRecord(Name), {'G', {}}, Pattern});
   }
 
+  bool IRBuilder::setFunctionGenericIdentity(Function &Value, std::string Identity, std::span<const Type *const> ArgumentTypes)
+  {
+    if (&Value.context() != &Context || !Value.genericIdentity().empty() || Value.binding() != core::FunctionBinding::Local)
+    {
+      return false;
+    }
+    const auto Parsed = abi::demangle(Identity);
+    const auto Parts = Parsed ? abi::childRecords(*Parsed.Identity) : std::nullopt;
+    const auto Signature = typeRecord(Value.functionType());
+    const auto Types = Signature ? abi::childRecords(*Signature) : std::nullopt;
+    const auto Closed = Parts && Parts->size() == 3 ? abi::childRecords((*Parts)[2]) : std::nullopt;
+    if (!Parsed || Parsed.Identity->Tag != 'F' || !Closed || Closed->size() != 5 || !Types || Types->size() != 2 || (*Closed)[3] != (*Types)[0] || (*Closed)[4] != (*Types)[1])
+    {
+      return false;
+    }
+    const auto Arguments = abi::childRecords((*Parts)[1]);
+    if (!Arguments || Arguments->empty() || Arguments->size() != ArgumentTypes.size())
+    {
+      return false;
+    }
+    for (std::size_t Index = 0; Index < ArgumentTypes.size(); ++Index)
+    {
+      const auto Argument = abi::childRecords((*Arguments)[Index]);
+      const auto Type = ArgumentTypes[Index] && &ArgumentTypes[Index]->context() == &Context ? typeRecord(*ArgumentTypes[Index]) : std::nullopt;
+      if (!Argument || Argument->empty() || !Type || *Type != Argument->front())
+      {
+        return false;
+      }
+    }
+    Value.GenericIdentity = std::move(Identity);
+    Value.GenericArgumentTypes.assign(ArgumentTypes.begin(), ArgumentTypes.end());
+    Context.notifyChanged();
+    return true;
+  }
+
   std::optional<Record> typeRecord(const Type &Value, std::size_t Depth)
   {
     if (Depth >= abi::ManglingLimits{}.MaxDepth)
@@ -110,6 +145,10 @@ namespace ink::ir
 
   std::optional<Record> functionRecord(const Function &Value, const abi::ModuleIdentity *DetachedModule, std::string_view DetachedName, std::size_t Depth)
   {
+    if (!Value.genericIdentity().empty())
+    {
+      return abi::demangle(Value.genericIdentity()).Identity;
+    }
     if (Depth >= abi::ManglingLimits{}.MaxDepth)
     {
       return std::nullopt;

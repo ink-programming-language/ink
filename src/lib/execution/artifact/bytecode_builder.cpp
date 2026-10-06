@@ -59,6 +59,13 @@ namespace ink::execution
         DefiningModules.insert(Owner(*Input.Function));
       }
       Bridge.lowerFunction(*Input.Function);
+      for (const ir::Type *Argument : Input.Function->genericArgumentTypes())
+      {
+        if (Bridge.lowerType(*Argument) == InvalidRuntimeType)
+        {
+          return {BytecodeStatus::InvalidInput, "Generic argument has no runtime type descriptor"};
+        }
+      }
     }
     Bridge.retainReflectionTypes();
     const auto RegisterReflection = [&](FunctionId Id)
@@ -194,7 +201,22 @@ namespace ink::execution
       {
         return {BytecodeStatus::InvalidInput, "Bytecode function has no supported Ink linkage identity"};
       }
-      if (!Symbol.Identity.GenericArguments.empty())
+      if (!Function->genericIdentity().empty() && Symbol.Identity.GenericArguments.empty())
+      {
+        const auto Parts = abi::childRecords(*Linkage);
+        const auto Arguments = Parts ? abi::childRecords((*Parts)[1]) : std::nullopt;
+        if (!Arguments || Arguments->size() != Function->genericArgumentTypes().size())
+        {
+          return {BytecodeStatus::InvalidInput, "Generic instance metadata is incomplete"};
+        }
+        for (std::size_t Index = 0; Index < Arguments->size(); ++Index)
+        {
+          const auto &Argument = (*Arguments)[Index];
+          const auto Fields = abi::childRecords(Argument);
+          Symbol.Identity.GenericArguments.push_back({Argument.Tag == 'T' ? core::GenericArgumentKind::Type : core::GenericArgumentKind::Value, TypeIdentities[Bridge.lowerType(*Function->genericArgumentTypes()[Index])], Argument.Tag == 'T' ? "" : (*Fields)[1].Payload});
+        }
+      }
+      if (!Symbol.Identity.GenericArguments.empty() && Function->genericIdentity().empty())
       {
         auto F = abi::childRecords(*Linkage);
         auto D = F && F->size() == 3 && Linkage->Tag == 'F' ? abi::childRecords((*F)[0]) : std::nullopt;

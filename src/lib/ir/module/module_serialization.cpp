@@ -426,6 +426,10 @@ namespace ink::ir::archive
             {
               Entry.Linkage += abi::encodeRecord({'D', std::to_string(Index)});
             }
+            if (!FunctionValue.genericIdentity().empty())
+            {
+              Entry.Linkage += abi::encodeRecord({'G', FunctionValue.genericIdentity()});
+            }
             if (!Data.string(Entry.Linkage.size()))
             {
               break;
@@ -438,6 +442,18 @@ namespace ink::ir::archive
             {
               ref(Entry, *Owner);
               field(Entry, FunctionValue.initializerField() == std::numeric_limits<std::size_t>::max() ? 0 : FunctionValue.initializerField() + 1);
+            }
+            if (!FunctionValue.genericArgumentTypes().empty())
+            {
+              if (Entry.Fields.size() == 4)
+              {
+                field(Entry, 0);
+                field(Entry, 0);
+              }
+              for (const Type *Argument : FunctionValue.genericArgumentTypes())
+              {
+                ref(Entry, *Argument);
+              }
             }
             break;
           }
@@ -929,9 +945,16 @@ namespace ink::ir::archive
               }
               break;
             case Tag::Function:
-              if (Entry.Fields.size() != 4 && (Entry.Fields.size() != 6 || !dependency(Id, Entry.Fields[4], true) || record(Entry.Fields[4]).Kind != Tag::Class))
+              if (Entry.Fields.size() != 4 && (Entry.Fields.size() < 6 || (Entry.Fields[4] ? !dependency(Id, Entry.Fields[4], true) || record(Entry.Fields[4]).Kind != Tag::Class : Entry.Fields.size() == 6 || Entry.Fields[5] != 0)))
               {
                 return Data.fail("Invalid reflected function owner");
+              }
+              for (std::size_t Index = 6; Index < Entry.Fields.size(); ++Index)
+              {
+                if (!dependency(Id, Entry.Fields[Index], true))
+                {
+                  return Data.fail("Invalid generic argument type");
+                }
               }
               break;
             case Tag::FieldPointer:
@@ -1339,8 +1362,26 @@ namespace ink::ir::archive
               return nullptr;
             }
             std::vector<std::uint64_t> Indices;
+            std::vector<const Type *> ArgumentTypes;
+            for (std::size_t Index = 6; Index < Fields.size(); ++Index)
+            {
+              const auto *Argument = as<Type>(Fields[Index]);
+              if (!Argument)
+              {
+                return nullptr;
+              }
+              ArgumentTypes.push_back(Argument);
+            }
             for (const auto &Part : *Scope)
             {
+              if (Part.Tag == 'G' && &Part == &Scope->back())
+              {
+                if (!Builder.setFunctionGenericIdentity(*FunctionValue, Part.Payload, ArgumentTypes))
+                {
+                  return nullptr;
+                }
+                continue;
+              }
               std::uint64_t Index = 0;
               const auto Parsed = std::from_chars(Part.Payload.data(), Part.Payload.data() + Part.Payload.size(), Index);
               if (Part.Tag != 'D' || Part.Payload.empty() || (Part.Payload.size() > 1 && Part.Payload.front() == '0') || Parsed.ec != std::errc{} || Parsed.ptr != Part.Payload.data() + Part.Payload.size())
@@ -1353,7 +1394,11 @@ namespace ink::ir::archive
             {
               return nullptr;
             }
-            if (Fields.size() == 6)
+            if (FunctionValue->genericIdentity().empty() != ArgumentTypes.empty())
+            {
+              return nullptr;
+            }
+            if (Fields.size() >= 6 && Fields[4])
             {
               const auto *Owner = as<ClassType>(Fields[4]);
               if (!Owner || !(Fields[5] == 0 ? Builder.setClassMethod(*Owner, *FunctionValue) : Builder.setFieldInitializer(*Owner, static_cast<std::size_t>(Fields[5] - 1), *FunctionValue)))

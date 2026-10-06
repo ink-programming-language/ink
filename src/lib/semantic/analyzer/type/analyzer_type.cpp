@@ -8,39 +8,36 @@ namespace ink::semantic
 {
   using namespace ink::ir;
 
-  namespace
+  const Type *builtinType(TypePool &Types, std::string_view Text)
   {
-    const Type *builtinType(TypePool &Types, std::string_view Text)
+    if (Text == "void")
     {
-      if (Text == "void")
-      {
-        return &Types.getType<TypeKind::Void>();
-      }
-      if (Text == "bool")
-      {
-        return &Types.getType<TypeKind::Bool>();
-      }
-      if (Text == "type")
-      {
-        return &Types.getType<TypeKind::Meta>();
-      }
-      if (Text.size() < 2 || Text[1] == '0')
-      {
-        return nullptr;
-      }
-      std::uint32_t Width = 0;
-      const auto Parsed = std::from_chars(Text.data() + 1, Text.data() + Text.size(), Width);
-      if (Parsed.ec != std::errc{} || Parsed.ptr != Text.data() + Text.size())
-      {
-        return nullptr;
-      }
-      if ((Text[0] == 'i' || Text[0] == 'u') && (Width == 8 || Width == 16 || Width == 32 || Width == 64 || Width == 128))
-      {
-        return Types.getType<TypeKind::Integer>(Width, Text[0] == 'i');
-      }
-      return Text[0] == 'f' ? Types.getType<TypeKind::Float>(Width) : nullptr;
+      return &Types.getType<TypeKind::Void>();
     }
-  } // namespace
+    if (Text == "bool")
+    {
+      return &Types.getType<TypeKind::Bool>();
+    }
+    if (Text == "type")
+    {
+      return &Types.getType<TypeKind::Meta>();
+    }
+    if (Text.size() < 2 || Text[1] == '0')
+    {
+      return nullptr;
+    }
+    std::uint32_t Width = 0;
+    const auto Parsed = std::from_chars(Text.data() + 1, Text.data() + Text.size(), Width);
+    if (Parsed.ec != std::errc{} || Parsed.ptr != Text.data() + Text.size())
+    {
+      return nullptr;
+    }
+    if ((Text[0] == 'i' || Text[0] == 'u') && (Width == 8 || Width == 16 || Width == 32 || Width == 64 || Width == 128))
+    {
+      return Types.getType<TypeKind::Integer>(Width, Text[0] == 'i');
+    }
+    return Text[0] == 'f' ? Types.getType<TypeKind::Float>(Width) : nullptr;
+  }
 
   const Type *Analyzer::analyzeType(AnalysisState &State, const parser::Expr &Node, std::size_t Depth)
   {

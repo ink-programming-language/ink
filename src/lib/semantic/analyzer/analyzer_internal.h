@@ -21,6 +21,7 @@
 namespace ink::semantic
 {
   std::string describeType(const ir::Type &ValueType);
+  const ir::Type *builtinType(ir::TypePool &Types, std::string_view Text);
   std::optional<ir::IntegerBits> integerBits(const parser::TokenBuffer &Input, const parser::LiteralExpr &Literal, bool Negative, const ir::IntegerType &Target);
   bool acceptsCString(const ir::Value &ValueObject, const ir::Type &Target, bool CArgument);
   const parser::LiteralExpr *findDeferredIntegerLiteral(const parser::Expr &Node, std::size_t Depth, std::size_t Limit);
@@ -289,6 +290,10 @@ namespace ink::semantic
 
   struct Analyzer::ModuleGraph
   {
+      explicit ModuleGraph(SemanticContext &Context)
+          : Dependencies(Context.genericState().Dependencies)
+      {
+      }
       enum class BodyState
       {
         Pending,
@@ -306,7 +311,7 @@ namespace ink::semantic
 
       std::unordered_map<std::string, ModuleAnalysis *> Modules;
       std::unordered_map<const ir::Function *, FunctionBody> Bodies;
-      std::unordered_map<const ir::Function *, std::unordered_set<const ir::Function *>> Dependencies;
+      std::unordered_map<const ir::Function *, std::unordered_set<const ir::Function *>> &Dependencies;
       std::unordered_set<const ir::Function *> ActiveBodies;
       std::size_t LoweringDepth = 0;
   };

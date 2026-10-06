@@ -891,6 +891,33 @@ namespace ink::ir::archive
             }
             record(Id).Fields.insert(record(Id).Fields.end(), {Owner, Field});
           }
+          if (Lex.take("generics"))
+          {
+            if (record(Id).Fields.size() == 4)
+            {
+              if (!Data.fields(2))
+              {
+                return;
+              }
+              record(Id).Fields.insert(record(Id).Fields.end(), {0, 0});
+            }
+            Lex.expect("[");
+            bool First = true;
+            while (good() && !Lex.take("]"))
+            {
+              if (!First)
+              {
+                Lex.expect(",");
+              }
+              First = false;
+              const auto Argument = type();
+              if (!Data.fields(1))
+              {
+                return;
+              }
+              record(Id).Fields.push_back(Argument);
+            }
+          }
           if (Lex.take("scope"))
           {
             record(Id).Linkage = string();

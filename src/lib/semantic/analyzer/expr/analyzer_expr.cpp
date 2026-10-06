@@ -52,6 +52,10 @@ namespace ink::semantic
     {
       return analyzeCallExpr(State, static_cast<const parser::CallExpr &>(Node), Depth);
     }
+    if (parser::GenericApplyExpr::classof(&Node))
+    {
+      return analyzeGenericApplyExpr(State, static_cast<const parser::GenericApplyExpr &>(Node), Depth);
+    }
     if (parser::BinaryExpr::classof(&Node))
     {
       return analyzeBinaryExpr(State, static_cast<const parser::BinaryExpr &>(Node), Depth);

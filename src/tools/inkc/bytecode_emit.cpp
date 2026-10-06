@@ -190,12 +190,14 @@ namespace ink::tools
       const bool Native = Function.isNativeImport();
       Input.Kind = Native ? BytecodeSymbolKind::Native : BytecodeSymbolKind::Definition;
       Input.Identity.Module = Native ? "C" : ModuleName;
-      Input.Visibility = !NamedValue.Local && Function.visibility() == core::VisibilityKind::Public ? BytecodeVisibility::Public : BytecodeVisibility::Private;
+      Input.Visibility = !NamedValue.Local && Function.genericIdentity().empty() && Function.visibility() == core::VisibilityKind::Public ? BytecodeVisibility::Public : BytecodeVisibility::Private;
       Inputs.push_back(std::move(Input));
       Seen.insert(&Function);
     }
-    for (const ir::Function *Function : Context.moduleImports(Module))
+    std::vector<const ir::Function *> Required(Context.moduleImports(Module).begin(), Context.moduleImports(Module).end());
+    for (std::size_t Index = 0; Index < Required.size(); ++Index)
     {
+      const ir::Function *Function = Required[Index];
       if (!Seen.insert(Function).second)
       {
         continue;
@@ -211,13 +213,22 @@ namespace ink::tools
         return bytecodeError("imported function has no owning source module");
       }
       const bool Native = Function->isNativeImport();
+      const bool DefinitionHere = !Native && (!Function->genericIdentity().empty() || Function->visibility() == core::VisibilityKind::Private);
       BytecodeFunctionInput Input;
       Input.Function = Function;
-      Input.Kind = Native ? BytecodeSymbolKind::Native : BytecodeSymbolKind::Import;
+      Input.Kind = Native ? BytecodeSymbolKind::Native : DefinitionHere ? BytecodeSymbolKind::Definition : BytecodeSymbolKind::Import;
       Input.Identity.Module = Native ? "C" : std::string(Context.namePool().text(Owner->name()));
       Input.Identity.Name = Context.namePool().text(Function->name());
-      Input.Visibility = Function->visibility() == core::VisibilityKind::Public ? BytecodeVisibility::Public : BytecodeVisibility::Private;
+      Input.Visibility = !DefinitionHere && Function->visibility() == core::VisibilityKind::Public ? BytecodeVisibility::Public : BytecodeVisibility::Private;
       Inputs.push_back(std::move(Input));
+      if (DefinitionHere)
+      {
+        const auto Found = Context.genericState().Dependencies.find(Function);
+        if (Found != Context.genericState().Dependencies.end())
+        {
+          Required.insert(Required.end(), Found->second.begin(), Found->second.end());
+        }
+      }
     }
     BytecodeArtifactResult Built = buildBytecodeObject(ModuleName, Bridge, Inputs);
     if (!Built)

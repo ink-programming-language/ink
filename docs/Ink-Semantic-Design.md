@@ -2,7 +2,7 @@
 
 基于 AST 的语义分析、泛型实例化与统一 IR 函数执行
 
-更新：2026 年 10 月 2 日。状态：基础对象模型、值/泛型定义的词法名字绑定、Analyzer 严格分派骨架及独立 ExecutionEngine 的基础执行设施已实现；完整泛型实例化、结构展开与跨模块编译期执行仍为待实现的架构设计。
+更新：2026 年 10 月 6 日。本文保留分层架构设计；当前已实现显式泛型函数实例化、实例缓存、定义环境快照、跨模块导入和编译期执行，并贯通 IR 归档、字节码与 LLVM AOT。实际支持范围和限制见 [泛型函数](Ink-Generic-Functions.md)。泛型 class、参数包和可重新实例化的模块模板归档仍属后续设计。
 
 本文采用确定的方向：**非泛型函数在定义处检查并生成 IR，编译期调用和普通执行共用该 IR；泛型保留 AST，实例化后再生成具体函数 IR**。当前 [语义分析接口](Ink-Semantic-Analysis.md) 已有模块创建、语句/声明严格分派，以及普通定参函数签名、链接方式、形参作用域和函数体遍历；已支持定参调用、整数/字符串字面量、bool 逻辑与短路、整数及 bool 比较、bool 条件分支、分支返回路径与确定初始化检查及整数/bool 编译期求值。第 1.3 节对象模型、NameResolver 的词法作用域基础和第 6.5 节最小执行模块已实现，其余分析器类及扩展能力仍是建议结构。语言语法以 [Ink-grammar-Rules.bnf](Ink-grammar-Rules.bnf) 为准；本文不增加泛型、反射或声明生成语法。
 
@@ -329,7 +329,7 @@ Created → ResolvingSignature → SignatureReady → CheckingBody → Ready
 
 ### 6.1 求值入口与模式
 
-`ComptimeEvaluator` 在语义分析期间求值显式 comptime 表达式和语句，并通过 `SemanticQueries` 取得所需语义结论。实际函数调用要求已有具体 IR，交给 `ExecutionEngine::execute()`；不得重新解释非泛型函数 AST。非泛型函数即使未调用也在定义处检查，泛型的延迟实例化另行实现。
+`ComptimeEvaluator` 在语义分析期间求值显式 comptime 表达式和语句，并通过 `SemanticQueries` 取得所需语义结论。实际函数调用要求已有具体 IR，交给 `ExecutionEngine::execute()`；不得重新解释非泛型函数 AST。非泛型函数即使未调用也在定义处检查，泛型函数在具体实例被选中后检查函数体。
 
 | 场景 | 行为 |
 | --- | --- |
@@ -449,7 +449,7 @@ CString 的 Buffer 由 Heap 唯一拥有，创建它的函数帧负责在返回�
 
 引擎和帧直接持有状态，不使用 Impl/PIMPL。`ExecutionLimits` 的全部默认值通过 `ConfigManager` 从 `config.def` 及相应环境变量读取，并在构造时保存快照；调用方仍可像其他 Limits 一样显式覆盖字段。
 
-该模块不自行遍历 AST，不解析名字、执行重载选择或生成 IR。语义层在定义处检查并生成全部非泛型函数的 IR，随后按需要调用 `execute()`；引擎负责调用帧的创建和退出。显式 `comptime func` 同样拥有 IR 函数体，但禁止在运行时使用。当前统一支持 IR 的参数读取、局部存储、整数加法、bool 逻辑与短路、整数及 bool 比较、bool 条件的 if/else/else-if 与嵌套分支、嵌套调用和返回；源码 while/for、数组 for-in、整数增减和 += 也使用同一 IR 执行路径；其余未接入的算术运算、复合赋值及参数或模块对象写入没有额外 AST 回退路径，按普通函数规则诊断。显式 comptime 表达式、块和静态循环仍在语义分析期间执行或展开；泛型延迟实例化另行实现。Class 使用名义值语义，运行时字段值为独立快照，字段位置保留所属分配与偏移；具体规则及 VM/AOT 共用接口见 [Class 与对象语义](Ink-Classes.md)。其他未支持的语义仍须显式失败，实际源码覆盖范围以分析器实现及测试为准。
+该模块不自行遍历 AST，不解析名字、执行重载选择或生成 IR。语义层在定义处检查并生成全部非泛型函数的 IR，随后按需要调用 `execute()`；引擎负责调用帧的创建和退出。显式 `comptime func` 同样拥有 IR 函数体，但禁止在运行时使用。当前统一支持 IR 的参数读取、局部存储、整数加法、bool 逻辑与短路、整数及 bool 比较、bool 条件的 if/else/else-if 与嵌套分支、嵌套调用和返回；源码 while/for、数组 for-in、整数增减和 += 也使用同一 IR 执行路径；其余未接入的算术运算、复合赋值及参数或模块对象写入没有额外 AST 回退路径，按普通函数规则诊断。显式 comptime 表达式、块和静态循环仍在语义分析期间执行或展开；泛型实例按需生成 IR 并使用同一执行入口。Class 使用名义值语义，运行时字段值为独立快照，字段位置保留所属分配与偏移；具体规则及 VM/AOT 共用接口见 [Class 与对象语义](Ink-Classes.md)。其他未支持的语义仍须显式失败，实际源码覆盖范围以分析器实现及测试为准。
 
 [`entry_execution_test.cpp`](../src/testcase/semantic/entry_execution_test.cpp) 覆盖源码经过 tokenizer/parser AST、semantic IR，再执行普通 Entry 的路径：运行时参数和局部对象参与嵌套调用，Windows `_write` 或 Linux `write` 通过 libffi 写入真实管道，并断言 UTF-8 字节及返回值。其他用例检查同一 Call 结果复用不重放副作用、函数再次调用重新执行，以及 FFI 返回缓冲区别名和 CString 逃逸失效；编译期函数调用测试另验证同一 IR 的常量返回边界、定义处检查及实际调用时的副作用。
 

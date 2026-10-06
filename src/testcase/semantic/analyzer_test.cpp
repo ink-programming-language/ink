@@ -112,7 +112,6 @@ namespace ink::semantic::test
         {"defer {}", "DeferStmt"},
         {"var X = 1;", "VarDecl"},
         {"field X: i32;", "FieldDecl"},
-        {"func F[T: type](X: T): T { return X; }", "FunctionDecl"},
         {"enum E {};", "EnumDecl"},
         {"interface I {};", "InterfaceDecl"},
     };

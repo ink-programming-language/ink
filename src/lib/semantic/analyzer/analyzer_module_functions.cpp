@@ -69,6 +69,14 @@ namespace ink::semantic
         if (parser::FunctionDecl::classof(Declaration))
         {
           const auto *Earlier = static_cast<const parser::FunctionDecl *>(Declaration);
+          if (!Earlier->genericParameters().empty())
+          {
+            if (!registerGenericFunction(*Body.Module->State, *Earlier))
+            {
+              Succeeded = false;
+            }
+            continue;
+          }
           const auto *Value = Body.Module->Functions.find(Earlier)->second;
           const auto EarlierState = Graph.Bodies.find(Value)->second.State;
           if (Graph.ActiveBodies.contains(Value))

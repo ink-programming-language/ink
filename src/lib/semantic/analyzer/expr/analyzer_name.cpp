@@ -152,7 +152,7 @@ namespace ink::semantic
     {
       if (State.Resolver.lookup<Decl *>(Symbol))
       {
-        reportUnsupported(State, Node);
+        State.report<core::DiagnosticKind::SemanticGenericArguments>(Node.getSourceRange(), "generic functions require explicit ::[...] arguments");
         return {};
       }
       if (NameToken.Text == "true" || NameToken.Text == "false")

@@ -36,6 +36,7 @@ namespace ink::ir
   class Value;
   class Function;
   class ClassType;
+  class FunctionDecl;
 } // namespace ink::ir
 
 namespace ink::semantic
@@ -142,7 +143,13 @@ namespace ink::semantic
       bool analyzeFieldDecl(AnalysisState &State, const parser::FieldDecl &Node);
 
       bool analyzeFunctionDecl(AnalysisState &State, const parser::FunctionDecl &Node);
-      std::unique_ptr<ir::Function> declareFunction(AnalysisState &State, const parser::FunctionDecl &Node);
+      bool registerGenericFunction(AnalysisState &State, const parser::FunctionDecl &Node, bool Capture = true);
+      bool captureGenericDefinition(AnalysisState &State, const ir::FunctionDecl &Declaration);
+      bool resolveGenericApplication(AnalysisState &State, const parser::GenericApplyExpr &Node, std::vector<const ir::Value *> &Candidates, std::size_t Depth);
+      ExpressionResult analyzeGenericApplyExpr(AnalysisState &State, const parser::GenericApplyExpr &Node, std::size_t Depth);
+      ExpressionResult analyzeGenericArgument(AnalysisState &State, const parser::Expr &Node, std::size_t Depth);
+      bool completeGenericFunction(AnalysisState &State, const ir::Function &Function, const parser::ASTNodeBase &Use);
+      std::unique_ptr<ir::Function> declareFunction(AnalysisState &State, const parser::FunctionDecl &Node, bool Instance = false);
       bool analyzeFunctionBody(AnalysisState &State, const parser::FunctionDecl &Node, ir::Function &FunctionValue);
       bool ensureModuleFunctionBody(AnalysisState &State, const ir::Function &FunctionValue, const parser::ASTNodeBase &Use);
       bool prepareComptimeFunctions(AnalysisState &State, const ir::Function &FunctionValue, const parser::ASTNodeBase &Use);

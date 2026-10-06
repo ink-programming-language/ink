@@ -589,10 +589,6 @@ namespace ink::backend::llvm
       {
         return false;
       }
-      if (!Direct)
-      {
-        return Context.fail("AOT indirect calls are not yet supported");
-      }
       std::vector<::llvm::Value *> Arguments;
       for (std::size_t Index = 0; Index < Call.arguments().size(); ++Index)
       {

@@ -8,6 +8,8 @@
 
 #include <vector>
 #include <limits>
+#include <string>
+#include <string>
 
 namespace ink::ir
 {
@@ -27,6 +29,16 @@ namespace ink::ir
       const std::vector<std::uint64_t> &lexicalScope() const noexcept
       {
         return LexicalScope;
+      }
+
+      const std::string &genericIdentity() const noexcept
+      {
+        return GenericIdentity;
+      }
+
+      std::span<const Type *const> genericArgumentTypes() const noexcept
+      {
+        return GenericArgumentTypes;
       }
 
       const FunctionType &functionType() const noexcept
@@ -120,6 +132,8 @@ namespace ink::ir
       std::size_t InitializerField = std::numeric_limits<std::size_t>::max();
       Name FunctionName;
       std::vector<std::uint64_t> LexicalScope;
+      std::string GenericIdentity;
+      std::vector<const Type *> GenericArgumentTypes;
       CallingConvention Convention;
       LanguageLinkage Linkage;
       core::FunctionBinding Binding;

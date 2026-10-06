@@ -63,6 +63,7 @@ add_test(NAME ArrayReadProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<
 set_tests_properties(ArrayReadProcessTest PROPERTIES TIMEOUT 120 LABELS "execution;arrays;ffi;bytecode;cli")
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/source_program_tests.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/generic_program_tests.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/execution/class_program_tests.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/execution/cli/multifile_program_tests.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/backend/tests.cmake")

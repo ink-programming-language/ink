@@ -5,6 +5,7 @@
 #include "ink/ir/lifetime_observer.h"
 
 #include <memory>
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -39,7 +40,7 @@ namespace ink::semantic
 
       // Freezes the currently visible name and overload sets into a parentless scope.
       // Targets remain borrowed and mutable; a foreign source scope returns null.
-      Scope *snapshotScope(const Scope &Source);
+      Scope *snapshotScope(const Scope &Source, const std::function<ir::Value *(ir::Value *)> &Transform = {});
 
       Scope *memberScope(const ir::Value &Owner) noexcept
       {

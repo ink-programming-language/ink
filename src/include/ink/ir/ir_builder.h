@@ -158,6 +158,8 @@ namespace ink::ir
       // Creates an empty entry block. Foreign contexts, native imports or existing bodies return null.
       BasicBlock *createFunctionBody(Function &FunctionValue);
       bool setFunctionVisibility(Function &FunctionValue, core::VisibilityKind Visibility) noexcept;
+      // A canonical closed generic F record, including its declaration and substitution.
+      bool setFunctionGenericIdentity(Function &FunctionValue, std::string Identity, std::span<const Type *const> ArgumentTypes);
       // Native imports cannot have bodies; native imports and exports require C convention and linkage.
       bool setFunctionBinding(Function &FunctionValue, core::FunctionBinding Binding) noexcept;
       // Returns a detached owner with the local label type and an initially empty value list.

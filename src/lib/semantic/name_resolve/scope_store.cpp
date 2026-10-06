@@ -24,7 +24,7 @@ namespace ink::semantic
     return *Pointer;
   }
 
-  Scope *ScopeStore::snapshotScope(const Scope &Source)
+  Scope *ScopeStore::snapshotScope(const Scope &Source, const std::function<Value *(Value *)> &Transform)
   {
     if (&Source.Store != this)
     {
@@ -43,9 +43,17 @@ namespace ink::semantic
         }
         if (const auto Values = Current->ValueBindings.find(BoundName); Values != Current->ValueBindings.end())
         {
-          Result->ValueBindings.emplace(BoundName, Values->second);
-          for (Value *Target : Values->second.Targets)
+          auto &Binding = Result->ValueBindings.emplace(BoundName, Values->second).first->second;
+          for (Value *&Target : Binding.Targets)
           {
+            if (Transform)
+            {
+              Value *Replacement = Transform(Target);
+              if (Replacement && &Replacement->context() == &Context.irContext())
+              {
+                Target = Replacement;
+              }
+            }
             ValueBindingLocations[Target].push_back({Result, BoundName});
           }
         }

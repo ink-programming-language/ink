@@ -297,11 +297,10 @@ namespace ink::semantic::test
     EXPECT_TRUE(Input.Context.modules()[0]->entryBlock().values().empty());
   }
 
-  // Generic/default/variadic/attributed declarations, unsupported linkages and complex types are never silently accepted.
+  // Runtime defaults, variadic parameters and unsupported signature types are never silently accepted.
   TEST(SemanticFunctionAnalyzerTest, DiagnosesUnsupportedSignatureFeatures)
   {
     const char *Cases[] = {
-        "func f[T: type](x: T): T;",
         "func f(x: i32 = 1): void {}",
         "func f(x: i32...): void {}",
         "func f(): type;",

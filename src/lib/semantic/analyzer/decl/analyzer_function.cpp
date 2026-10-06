@@ -62,6 +62,11 @@ namespace ink::semantic
   bool Analyzer::checkFunctionConflicts(AnalysisState &State, const parser::FunctionDecl &Node, const FunctionType &Signature, core::FunctionBinding NativeBinding)
   {
     const Name FunctionName = State.Context.namePool().find(Node.name().Text);
+    if (const auto *Declarations = State.Resolver.lookupLocal<Decl *>(FunctionName); Declarations && (NativeBinding != core::FunctionBinding::Local || !Declarations->isOverloadSet()))
+    {
+      State.report<core::DiagnosticKind::SemanticDuplicateName>(Node.name().Range, Node.name().Text);
+      return false;
+    }
     const auto ParameterTypes = Signature.parameterTypes();
     if (const auto *Binding = State.Resolver.lookupLocal(FunctionName))
     {
@@ -85,7 +90,7 @@ namespace ink::semantic
     return true;
   }
 
-  std::unique_ptr<Function> Analyzer::declareFunction(AnalysisState &State, const parser::FunctionDecl &Node)
+  std::unique_ptr<Function> Analyzer::declareFunction(AnalysisState &State, const parser::FunctionDecl &Node, bool Instance)
   {
     if (State.CurrentClass && Node.name().Text == "this")
     {
@@ -97,9 +102,9 @@ namespace ink::semantic
       reportExecution(State, execution::ExecutionStatus::UnsupportedOperation, Node);
       return nullptr;
     }
-    if (!Node.genericParameters().empty())
+    if (!Node.genericParameters().empty() && !Instance)
     {
-      reportUnsupported(State, Node);
+      State.report<core::DiagnosticKind::SemanticInvalidGeneric>(Node.getSourceRange(), "generic instance methods are not supported");
       return nullptr;
     }
 
@@ -229,7 +234,7 @@ namespace ink::semantic
       State.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
       return nullptr;
     }
-    if (!checkFunctionConflicts(State, Node, *Signature, Binding))
+    if (!Instance && !checkFunctionConflicts(State, Node, *Signature, Binding))
     {
       return nullptr;
     }
@@ -266,7 +271,7 @@ namespace ink::semantic
     }
     // Bind before checking the body so recursive lookup can see this function.
     // The detached owner removes all bindings and child values on any failure.
-    if (State.Resolver.bind(BoundName, FunctionValue) != NameResolver::BindResult::Inserted)
+    if (!Instance && State.Resolver.bind(BoundName, FunctionValue) != NameResolver::BindResult::Inserted)
     {
       State.report<core::DiagnosticKind::SemanticDuplicateName>(Node.name().Range, Node.name().Text);
       return nullptr;
@@ -378,6 +383,10 @@ namespace ink::semantic
 
   bool Analyzer::analyzeFunctionDecl(AnalysisState &State, const parser::FunctionDecl &Node)
   {
+    if (!Node.genericParameters().empty())
+    {
+      return registerGenericFunction(State, Node);
+    }
     auto FunctionOwner = declareFunction(State, Node);
     if (!FunctionOwner || !analyzeFunctionBody(State, Node, *FunctionOwner))
     {

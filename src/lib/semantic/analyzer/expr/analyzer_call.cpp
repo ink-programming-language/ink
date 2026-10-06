@@ -30,6 +30,10 @@ namespace ink::semantic
       return {};
     }
     std::vector<const Value *> Candidates;
+    if (parser::GenericApplyExpr::classof(CalleeNode) && !resolveGenericApplication(State, static_cast<const parser::GenericApplyExpr &>(*CalleeNode), Candidates, CalleeDepth))
+    {
+      return {};
+    }
     if ((State.Evaluating || !CalleeNode->isComptime()) && parser::MemberExpr::classof(CalleeNode))
     {
       return analyzeMethodCall(State, static_cast<const parser::MemberExpr &>(*CalleeNode), Node, CalleeDepth);
@@ -258,6 +262,10 @@ namespace ink::semantic
         return {};
       }
       Converted.push_back(Argument);
+    }
+    if (Function::classof(Selected) && !completeGenericFunction(State, static_cast<const Function &>(*Selected), Node))
+    {
+      return {};
     }
     if (State.Evaluating)
     {

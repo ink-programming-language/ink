@@ -18,7 +18,7 @@ namespace ink::semantic
         return nullptr;
       }
     }
-    ModuleGraph Graph;
+    ModuleGraph Graph(Context);
     std::vector<std::unique_ptr<ModuleAnalysis>> Modules;
     bool Succeeded = true;
     for (const ModuleInput &Input : Inputs)
@@ -161,6 +161,11 @@ namespace ink::semantic
           continue;
         }
         const auto &Function = static_cast<const parser::FunctionDecl &>(Declaration);
+        if (!Function.genericParameters().empty())
+        {
+          Succeeded = registerGenericFunction(*Module->State, Function, false) && Succeeded;
+          continue;
+        }
         auto Owner = declareFunction(*Module->State, Function);
         if (!Owner)
         {
@@ -235,6 +240,14 @@ namespace ink::semantic
           if (parser::FunctionDecl::classof(Declaration))
           {
             const auto &Function = *static_cast<const parser::FunctionDecl *>(Declaration);
+            if (!Function.genericParameters().empty())
+            {
+              if (!registerGenericFunction(*Module->State, Function))
+              {
+                return nullptr;
+              }
+              continue;
+            }
             if (!ensureModuleFunctionBody(*Module->State, *Module->Functions.find(&Function)->second, Function))
             {
               return nullptr;

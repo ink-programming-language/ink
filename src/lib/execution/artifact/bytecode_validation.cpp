@@ -577,7 +577,7 @@ namespace ink::execution
       {
         return {BytecodeStatus::MissingSymbol, "Executable bytecode cannot contain unresolved Ink imports"};
       }
-      if (Artifact.Kind == BytecodeArtifactKind::Object && Symbol.Kind == BytecodeSymbolKind::Definition && Symbol.Identity.Module != Artifact.ModuleName)
+      if (Artifact.Kind == BytecodeArtifactKind::Object && Symbol.Kind == BytecodeSymbolKind::Definition && Symbol.Identity.Module != Artifact.ModuleName && Symbol.Visibility != BytecodeVisibility::Private)
       {
         return {BytecodeStatus::InvalidImage, "Bytecode definition belongs to a different module"};
       }

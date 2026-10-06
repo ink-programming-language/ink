@@ -5,6 +5,7 @@
 #include "ink/semantic/name_resolve/scope_store.h"
 #include "ink/semantic/comptime_state.h"
 #include "ink/semantic/class_state.h"
+#include "ink/semantic/generic_state.h"
 #include "ink/ir/function/function.h"
 
 #include <algorithm>
@@ -20,7 +21,8 @@ namespace ink::semantic
     public:
       FORCE_INLINE explicit SemanticContext(core::CompilationContext &Compilation)
           : IR(Compilation),
-            Comptime(IR)
+            Comptime(IR),
+            Generics(IR)
       {
         Scopes.reset(new ScopeStore(*this));
         ImportObserver.reset(new ModuleImportObserver(IR, *this));
@@ -107,6 +109,11 @@ namespace ink::semantic
         return Classes;
       }
 
+      GenericState &genericState() noexcept
+      {
+        return Generics;
+      }
+
       std::span<const ir::Function *const> moduleImports(const ir::Module &Module) const noexcept
       {
         const auto Found = Imports.find(&Module);
@@ -163,6 +170,7 @@ namespace ink::semantic
       ir::IRContext IR;
       ComptimeState Comptime;
       ClassState Classes;
+      GenericState Generics;
       std::unique_ptr<ScopeStore> Scopes;
       std::unordered_map<const ir::Module *, std::vector<const ir::Function *>> Imports;
       std::unique_ptr<ModuleImportObserver> ImportObserver;

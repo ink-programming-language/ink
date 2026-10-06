@@ -98,6 +98,10 @@ INK_DIAGNOSTIC(SemanticInvalidMember, 0x03000039U, Semantic, "INK-S0057", User, 
 INK_DIAGNOSTIC(SemanticInvalidConstruction, 0x0300003AU, Semantic, "INK-S0058", User, Error, "invalid class construction", "invalid class construction: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 INK_DIAGNOSTIC(SemanticInvalidLoopControl, 0x0300003BU, Semantic, "INK-S0059", User, Error, "invalid loop control", "'{Context}' requires an enclosing loop in the same execution stage", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 INK_DIAGNOSTIC(SemanticInvalidIterationBinding, 0x0300003CU, Semantic, "INK-S0060", User, Error, "invalid iteration binding", "iteration binding does not match the element type: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(SemanticInvalidGeneric, 0x0300003DU, Semantic, "INK-S0061", User, Error, "invalid generic function", "invalid generic function: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(SemanticGenericArguments, 0x0300003EU, Semantic, "INK-S0062", User, Error, "invalid generic arguments", "invalid generic arguments: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(SemanticGenericLimit, 0x0300003FU, Semantic, "INK-S0063", User, Error, "generic instantiation limit", "generic instantiation exceeds the configured depth or instance limit", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(SemanticGenericCycle, 0x03000040U, Semantic, "INK-S0064", User, Error, "cyclic generic signature", "generic signature or definition environment depends on itself", INK_DIAGNOSTIC_ARGUMENTS())
 
 INK_DIAGNOSTIC(ExecutionAccessDenied, 0x05000020U, Execution, "INK-E0032", User, Error, "member access denied", "{Context}: member access denied", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 INK_DIAGNOSTIC(ExecutionAmbiguousMember, 0x05000021U, Execution, "INK-E0033", User, Error, "ambiguous reflected method", "{Context}: ambiguous reflected method", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))

@@ -4,6 +4,8 @@
 
 Class 的复制、默认初始化、访问权限、方法接收者和运算符协议详见 [Class 与对象语义](docs/Ink-Classes.md)。AOT 目标文件需链接 `ink_aot_runtime` 和系统 C 运行库；命令及当前边界见 [命令行接口](docs/command-line.md)。
 
+泛型函数使用 `func identity[T: type](Value: T): T` 和 `identity::[i32](42)`，支持类型及 bool/整数值参数、默认和命名泛型实参、递归、编译期调用、局部定义及跨模块导入。具体实例复用普通 IR、字节码与 LLVM AOT；语义规则、当前边界和测试入口见 [泛型函数](docs/Ink-Generic-Functions.md)。
+
 Core 的 `PANIC(Message)` 宏通过独立的 spdlog stderr logger 输出消息和调用位置、同步刷新后调用 `abort()`，不依赖全局日志开关。`DiagnosticEngine::report` 遇到 ICE 会立即输出诊断编号和格式化消息并 panic，先于消费者分发；普通用户错误仍正常分发并返回。无效 AST 归档、资源上限等现有 ICE 同样遵循此规则。
 
 ## 编辑器支持
@@ -111,7 +113,7 @@ inkc --run-bytecode -i program.inkbc
 
 原生边界使用 `import "C" func ...;` 与 `export "C" func ... { ... }`；`[abi("C")] func ... { ... }` 设置本地定义的 C ABI，允许按参数列表重载。原生导入导出使用声明原名，不能形成同名重载；`public/private` 只控制 Ink 源码访问。`private export` 仍可被当前程序内同名同签名的原生导入匹配，但不能通过 Ink 模块导入访问。原生导入本身不会搜索或加载其他 Ink 源文件，导出定义必须已纳入分析或对象链接。尚未生成原生 DLL/SO，也不提供可传给 C 的本地回调地址；`link` 属性暂不支持，旧 `extern` 语法已移除。
 
-`--module-root` 指定源码搜索根，默认输入文件所在目录；模块身份由相对路径去掉 `.ink` 后用点连接，例如 `package/math.ink` 对应 `package.math`。各对象应使用同一个源码根编译；`from .math import answer;` 支持包内相对导入。生成对象或使用导入时，源码扩展必须是 `.ink`，相对根目录的各路径组件在移除扩展后不能包含字面量点号，例如使用 `pkg/value.ink`，拒绝 `pkg.value.ink`，以保证模块名与路径一一对应。不含导入的单文件 `--interpret` 使用虚拟模块名 `main`，不从文件名推导模块身份，仍接受 `points.windows.ink` 等任意文件名。`--entry module#function` 选择链接入口。当前源码导入支持普通函数、编译期函数及 class；跨模块编译期调用按需分析所依赖的函数体，循环依赖尚未完成的函数体时报告用户错误。泛型实例化仍由前端另行实现；字节码构建 API 已支持闭合泛型实例身份。
+`--module-root` 指定源码搜索根，默认输入文件所在目录；模块身份由相对路径去掉 `.ink` 后用点连接，例如 `package/math.ink` 对应 `package.math`。各对象应使用同一个源码根编译；`from .math import answer;` 支持包内相对导入。生成对象或使用导入时，源码扩展必须是 `.ink`，相对根目录的各路径组件在移除扩展后不能包含字面量点号，例如使用 `pkg/value.ink`，拒绝 `pkg.value.ink`，以保证模块名与路径一一对应。不含导入的单文件 `--interpret` 使用虚拟模块名 `main`，不从文件名推导模块身份，仍接受 `points.windows.ink` 等任意文件名。`--entry module#function` 选择链接入口。当前源码导入支持普通函数、泛型函数、编译期函数及 class；跨模块编译期调用按需分析所依赖的函数体，循环依赖尚未完成的函数体时报告用户错误。泛型函数由前端按需实例化，字节码对象保存闭合实例及必要依赖。
 
 v6 文件限定相同宿主目标 ABI，保存代码、常量和符号，不保存运行中的堆、调用栈、宿主指针或原生调用缓存。完整协议、API 和验证规则见 [字节码文件格式与链接](docs/Ink-Bytecode-Format.md)，命令行细节见 [命令行接口](docs/command-line.md)。`ExecutionMultiFileTest` 以 [`execution/multifile`](src/testcase/execution/multifile) 中的多份真实源码为主要集成用例，分别编译各模块、链接、移走源码和对象文件后加载执行，并覆盖导入、可见性和相互调用。`BytecodeProcessTest` 补充 CLI 模式与参数边界；底层归档、验证和链接测试位于 `src/testcase/execution/artifact`。
 
@@ -135,7 +137,7 @@ v6 文件限定相同宿主目标 ABI，保存代码、常量和符号，不保�
 
 `Analyzer` 的头文件和实现放在 semantic 的 `analyzer` 子目录；名字解析放在 `name_resolve` 子目录，拆分为 `binding.h`、`scope.h`、`name_resolver.h` 和 `name_resolver.cpp`，三个类型均位于 `ink::semantic` 命名空间。
 
-`Analyzer::analyze(SemanticContext &, const parser::ParseResult &, std::string_view ModuleName)` 为成员函数，当前支持空模块、块作用域、普通定参 Ink 函数定义、`import "C"` 声明、`export "C"` 定义和 `[abi("C")]` 本地定义，包括基础标量/指针/引用/定长数组签名、形参绑定和函数体遍历；普通 Ink 无体声明报告用户错误。`analyze()` API 保留单模块源码顺序作为兼容入口；CLI 统一使用 `analyzeModules()`，无导入的单文件也先预声明顶层函数签名，以保持独立编译与作为导入依赖时的结果一致。`analyzeModules()` 先预声明各模块的顶层函数签名，再解析真实源码导入和分析函数体，支持跨文件调用及相互递归；用户错误报告诊断并返回 `nullptr`，未支持的语义报告 ICE 并终止。`SemanticContext::scopeStore()` 持有作用域、绑定及成员/定义作用域索引；每次分析由 `AnalysisState` 拥有独立 `NameResolver`，通过 `enterScope()` 和 `exitScope()` 管理当前位置，并可从已有 `Scope` 恢复查找。resolver 销毁后绑定仍然保留，支持 `Value *` 和泛型 `Decl *`；`lookup()` 查找当前及父作用域，`lookupLocal()` 仅查当前作用域。`enterScope(Owner)` 为实体创建成员作用域，`lookupMember(Owner, Name)` 查找该实体的直接成员，别名共享同一实体的成员绑定。普通函数支持按参数类型形成重载集合及选择、定参调用、bool 条件分支、显式 return、分支返回路径与确定初始化检查和 void 隐式返回；C 调用中的字符串常量可通过独立可写副本传给 *u8。源码循环支持 while、三段式 for 和定长数组 for-in，详见 [循环](docs/Ink-Loops.md)；泛型源码、C 变参及重复声明合并仍待实现。接口、生命周期和具体支持范围见 [语义分析接口](docs/Ink-Semantic-Analysis.md)。
+`Analyzer::analyze(SemanticContext &, const parser::ParseResult &, std::string_view ModuleName)` 为成员函数，当前支持空模块、块作用域、普通定参 Ink 函数定义、`import "C"` 声明、`export "C"` 定义和 `[abi("C")]` 本地定义，包括基础标量/指针/引用/定长数组签名、形参绑定和函数体遍历；普通 Ink 无体声明报告用户错误。`analyze()` API 保留单模块源码顺序作为兼容入口；CLI 统一使用 `analyzeModules()`，无导入的单文件也先预声明顶层函数签名，以保持独立编译与作为导入依赖时的结果一致。`analyzeModules()` 先预声明各模块的顶层函数签名，再解析真实源码导入和分析函数体，支持跨文件调用及相互递归；用户错误报告诊断并返回 `nullptr`，未支持的语义报告 ICE 并终止。`SemanticContext::scopeStore()` 持有作用域、绑定及成员/定义作用域索引；每次分析由 `AnalysisState` 拥有独立 `NameResolver`，通过 `enterScope()` 和 `exitScope()` 管理当前位置，并可从已有 `Scope` 恢复查找。resolver 销毁后绑定仍然保留，支持 `Value *` 和泛型 `Decl *`；`lookup()` 查找当前及父作用域，`lookupLocal()` 仅查当前作用域。`enterScope(Owner)` 为实体创建成员作用域，`lookupMember(Owner, Name)` 查找该实体的直接成员，别名共享同一实体的成员绑定。普通函数支持按参数类型形成重载集合及选择、定参调用、bool 条件分支、显式 return、分支返回路径与确定初始化检查和 void 隐式返回；C 调用中的字符串常量可通过独立可写副本传给 *u8。源码循环支持 while、三段式 for 和定长数组 for-in，详见 [循环](docs/Ink-Loops.md)；泛型函数支持显式实例化；泛型 class、C 变参及重复声明合并仍待实现。接口、生命周期和具体支持范围见 [语义分析接口](docs/Ink-Semantic-Analysis.md)。
 
 ## Execution 执行接口
 
@@ -168,7 +170,7 @@ execution 的公共头与实现分别位于 `src/include/ink/execution` 和 `src
 
 已经准备完整的 `ExecutionImage` 也可直接构造无桥接层的 `ExecutionLinker`，由 VM 按函数 ID 执行；源 IR 析构后，函数调用、存储、CString 与原生调用仍使用镜像自有数据。`execution/artifact` 提供完整对象构建、稳定符号身份、多文件静态链接及 v6 磁盘归档；归档加载后重新建立共享类型域和原生调用缓存。
 
-整数的通用精确位宽运算使用项目自有的 `ExecutionInteger`；字节码的常用位宽加法和比较直接处理内联位模式，保持既有回绕与符号规则，execution 不使用 `llvm::APInt`。`comptime func` 与普通函数一样在定义处检查并生成 IR，未调用的函数也检查函数体；运行时使用这类函数会报告用户诊断。函数体支持 bool 的 `!`、`&&`、`||`，同型整数的六种比较及 bool 的 `==`、`!=`，可用于普通 if 条件；循环及整数增减和 += 共用同一 IR 执行路径，其余未接入的算术运算仍显式诊断为未支持。显式 `comptime` 表达式、块和静态循环仍由语义层在生成 IR 时求值或展开；泛型延迟实例化另行实现。
+整数的通用精确位宽运算使用项目自有的 `ExecutionInteger`；字节码的常用位宽加法和比较直接处理内联位模式，保持既有回绕与符号规则，execution 不使用 `llvm::APInt`。`comptime func` 与普通函数一样在定义处检查并生成 IR，未调用的函数也检查函数体；运行时使用这类函数会报告用户诊断。函数体支持 bool 的 `!`、`&&`、`||`，同型整数的六种比较及 bool 的 `==`、`!=`，可用于普通 if 条件；循环及整数增减和 += 共用同一 IR 执行路径，其余未接入的算术运算仍显式诊断为未支持。显式 `comptime` 表达式、块和静态循环仍由语义层在生成 IR 时求值或展开；泛型函数在选中具体实例后生成 IR，并使用同一执行入口。
 
 编译期和 IR 中的 `import "C"` 优先匹配当前程序纳入的同名同签名原生导出，否则通过系统 API 查找当前进程符号。`ffi/runtime_ffi_type.cpp`、`runtime_ffi_argument.cpp` 和 `runtime_ffi_call.cpp` 按布局准备并缓存调用计划，直接封送 VM 值。FFI 支持 bool、8/16/32/64 位整数、f32/f64、裸指针参数与返回以及 void 返回；按值聚合、变参及 f16 尚不支持。原生返回指针保留原始地址，执行器可以读写有效的外部内存；`*Class`、宽整数字段的地址和 `T**` 输出参数均可传递。指针槽内存中保存真实机器地址，多个别名指向同一位置。调用方负责目标生命周期、布局、对齐、可写性和访问范围；地址释放后不会自动清空或保证诊断。指针和函数结果不能冻结到 IR 常量。
 

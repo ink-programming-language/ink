@@ -130,6 +130,7 @@ namespace ink::ir::test
         Context.typePool().getType<TypeKind::Pointer>(*Int32, AccessKind::ReadOnly),
         Context.typePool().getType<TypeKind::Reference>(*Int32, AccessKind::ReadWrite),
         Context.typePool().getType<TypeKind::Slice>(*Int32, AccessKind::ReadOnly),
+        Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>()),
         Row,
         Context.typePool().getType<TypeKind::Array>(*Row, 2),
         Context.typePool().getType<TypeKind::Array>(*Int32, 0),
@@ -156,7 +157,7 @@ namespace ink::ir::test
     }
   }
 
-  // Meta/control types, raw signatures and nominal types without layouts cannot be allocated or dereferenced.
+  // Meta/control types and nominal types without layouts cannot be allocated or dereferenced.
   TEST(IRMemoryInstructionTest, UnsupportedStorageTypesAreRejectedAtEveryFactory)
   {
     core::CompilationContext Compilation;
@@ -169,7 +170,6 @@ namespace ink::ir::test
         &Context.typePool().getType<TypeKind::Void>(),
         &Context.typePool().getType<TypeKind::Label>(),
         &Context.typePool().getType<TypeKind::Module>(),
-        Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>()),
         Factory.createClassType(NameValue),
         Factory.createEnumType(NameValue),
         Factory.createInterfaceType(NameValue),

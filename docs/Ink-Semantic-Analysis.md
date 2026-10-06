@@ -73,7 +73,7 @@ func main(): i32
 }
 ```
 
-这里按源码声明将 printf 视为定参外部函数；实际 libc printf 是变参函数，当前没有 C 变参原型和实参提升支持，不能用这个声明代表完整可执行的 printf ABI。普通 IR 执行及编译期定参外部调用已接入下述 libffi 通用路径；目标代码的 ABI lowering、字符串存储 lowering 及运行时链接仍待后端实现。泛型、默认参数、变参、命名/展开实参、声明合并、通用切片/函数类型语法以及其他未支持表达式和控制流仍报告 `SemanticUnsupported` ICE 并终止。属性目前仅支持上述 `abi`；未知 ABI、无效或未实现属性报告源码诊断。
+这里按源码声明将 printf 视为定参外部函数；实际 libc printf 是变参函数，当前没有 C 变参原型和实参提升支持，不能用这个声明代表完整可执行的 printf ABI。普通 IR 执行及编译期定参外部调用已接入下述 libffi 通用路径；目标代码的 ABI lowering、字符串存储 lowering 及运行时链接仍待后端实现。泛型 class、运行时默认参数、变参、运行时命名/展开实参、声明合并、通用切片/函数类型语法以及其他未支持表达式和控制流仍报告 `SemanticUnsupported` ICE 并终止。属性目前仅支持上述 `abi`；未知 ABI、无效或未实现属性报告源码诊断。
 
 定长数组已接入语义分析、执行及字节码归档。`[T; N]` 检查元素类型和非负编译期长度，数组构造按上下文确定元素类型；下标可读写、取地址并执行边界检查。数组采用值语义，`comptime` 可构造、复制、读取和更新数组，函数可按值传参或返回数组。可变 `u8` 数组元素地址可用于宿主 `read` / `_read`，完整语法、限制及示例见 [数组与下标访问](Ink-Arrays.md)。
 
@@ -83,7 +83,7 @@ func main(): i32
 
 顶层函数和 class 默认 `public`，显式 `private` 仅允许定义文件内访问；局部函数始终私有，显式 `public` 局部函数报告用户错误。`Function::visibility()` 保存语义可见性，Parser 的未修饰 `Default` 在这里映射为 `Public`。`import math as library;` 绑定模块，随后可调用 `library.answer()` 或构造 `library.Point()`；`from math import answer as localAnswer;` 绑定该模块的公开函数重载集合，也可导入公开 class，别名不改变原声明的模块归属和符号身份。未写别名时，直接导入使用路径最后一段作为模块名，from 导入使用原声明名。`from .math import answer;` 支持包内相对导入。导入仅在模块顶层有效，目标限于导入模块自身定义的函数和 class；私有声明、缺失模块或成员、名称冲突及不支持的导入目标均报告用户诊断。
 
-`analyze()` API 保持源码顺序，CLI 使用的 `analyzeModules()` 对单个或多个输入统一预声明顶层函数签名。内建名称的统一登记、完整类型/表达式分析、泛型实例化及完整结果验证尚未实现；辅助类的泛型绑定能力可以独立使用，不表示 Analyzer 已支持泛型源码。
+`analyze()` API 保持源码顺序，CLI 使用的 `analyzeModules()` 对单个或多个输入统一预声明顶层函数签名及泛型函数定义。显式泛型函数实例化已接入 Analyzer，支持类型和值参数、实例缓存、定义环境、递归及跨模块调用，详见 [泛型函数](Ink-Generic-Functions.md)。内建名称的统一登记、完整类型/表达式分析、泛型类及完整结果验证仍待扩展。
 
 诊断通过 Core 的 `DiagnosticEngine::report<Kind>(SourceId, SourceRange, Arguments...)` 直接构造并报告，保留参数数量和类型的编译期检查。`AnalysisState::report<Kind>(SourceRange, Arguments...)` 自动使用本次分析的 Context 和 Source；在分析状态创建前，入口直接调用 Engine 的重载。诊断报告与失败返回分别处理。
 
@@ -129,7 +129,7 @@ comptime 复用普通 AST 节点上的 `isComptime()` 标记。`SemanticContext:
 
 所有非泛型 Ink 函数都检查并生成 IR 函数体，包括未调用的显式 `comptime func`。`analyze()` 在定义位置完成此过程；CLI 使用的 `analyzeModules()` 先预声明签名，再完成函数体分析。编译期调用将已求值的实参转换为 `ExecutionValueRef`，通过 `ExecutionEngine::execute()` 按需准备并执行该函数的字节码，再将可表示的返回值转换为常量。每次调用在 `ExecutionMachine` 的显式调用栈上建立独立帧，用固定槽位保存形参和中间结果，并记录本次局部存储；不保存供调用时重新解释的函数 AST、定义作用域快照或函数体回调。名称绑定、重载选择和函数体中的编译期常量已在生成 IR 时确定，后续声明及模块对象修改不会改变已生成的 IR。`import "C"` 调用由同一执行入口进入外部函数适配。
 
-显式 `comptime func` 要求有 Ink 函数体，即使未调用也检查函数体；运行时调用或把它作为运行时值使用会报告 `SemanticComptimeFunctionAtRuntime`。缺少函数体和非 Ink 语言链接分别报告 `SemanticComptimeFunctionRequiresBody` 和 `SemanticComptimeFunctionLinkage`。普通函数与编译期函数共同支持 IR 的参数读取、局部存储、取地址及指针读写、整数加法、bool 逻辑与短路、整数及 bool 比较、bool 条件分支、嵌套调用及返回；bool 形参可作为普通 if 条件。普通 while/for、数组 for-in、整数前后缀增减和 += 同样通过 IR 执行；其他未接入的算术运算、复合赋值及参数写入仍按普通函数规则诊断。显式 `comptime if/while/for` 可以在定义处选择或展开代码，其条件不能依赖尚未取得实参的普通形参。跨模块编译期调用在执行前通过 `prepareComptimeFunctions()` 准备被调用函数及其函数引用依赖；按需分析某个函数体前，按源码顺序处理其定义之前尚未处理的模块语句，并先完成更早的待分析函数体，以保留定义处的编译期快照；每条语句只处理一次。依赖正在分析的函数体时报告 `SemanticComptimeBodyDependency`，已完成函数体之间的普通递归仍由执行预算约束。泛型函数保留 AST 并延迟实例化的流程仍待实现。
+非泛型的显式 `comptime func` 要求有 Ink 函数体，即使未调用也检查函数体；运行时调用或把它作为运行时值使用会报告 `SemanticComptimeFunctionAtRuntime`。缺少函数体和非 Ink 语言链接分别报告 `SemanticComptimeFunctionRequiresBody` 和 `SemanticComptimeFunctionLinkage`。普通函数与编译期函数共同支持 IR 的参数读取、局部存储、取地址及指针读写、整数加法、bool 逻辑与短路、整数及 bool 比较、bool 条件分支、嵌套调用及返回；bool 形参可作为普通 if 条件。普通 while/for、数组 for-in、整数前后缀增减和 += 同样通过 IR 执行；其他未接入的算术运算、复合赋值及参数写入仍按普通函数规则诊断。显式 `comptime if/while/for` 可以在定义处选择或展开代码，其条件不能依赖尚未取得实参的普通形参。跨模块编译期调用在执行前通过 `prepareComptimeFunctions()` 准备被调用函数及其函数引用依赖；按需分析某个函数体前，按源码顺序处理其定义之前尚未处理的模块语句，并先完成更早的待分析函数体，以保留定义处的编译期快照；每条语句只处理一次。依赖正在分析的函数体时报告 `SemanticComptimeBodyDependency`，已完成函数体之间的普通递归仍由执行预算约束。泛型函数保留 AST，在显式实参绑定及重载选择完成后检查具体函数体；实例可在编译期和运行时共用。
 
 ```ink
 comptime func AddOne(X: i32): i32
@@ -224,7 +224,7 @@ comptime var Written: i32 = _write(1, "hello\n", 6);
 
 运行时值读取、除零、非法移位、整数溢出、只读对象写入、未初始化或失效对象读取、类型和实参不符、缺失函数体、外部符号缺失及不支持的外部函数签名分别报告对应的用户错误。无效帧、绑定、位置或 Context、未支持的执行操作、宿主 ABI 不匹配及执行预算耗尽属于 ICE；底层仍返回状态，边界报告 ICE 时遵循 Core 的立即 panic 策略。旧通用诊断 `SemanticComptimeFailure` 已移除，编号 `INK-S0021` 保留而不复用。
 
-语义层提前发现的非法赋值保留 `SemanticInvalidAssignment`。完整编译期块不能通过 return 越过运行时函数边界，违反时报告 `SemanticComptimeReturnAcrossRuntimeBoundary`。数组和 class 聚合值以及共享目标布局已接入；类型元值、通用指针算术、defer/yield、泛型及完整闭合验证仍待实现。函数及 class 导入、按需准备跨模块编译期依赖已支持；不支持的编译期执行操作显式失败，不调用运行时后端。
+语义层提前发现的非法赋值保留 `SemanticInvalidAssignment`。完整编译期块不能通过 return 越过运行时函数边界，违反时报告 `SemanticComptimeReturnAcrossRuntimeBoundary`。数组和 class 聚合值以及共享目标布局已接入；类型元值、通用指针算术、defer/yield、泛型 class 及完整闭合验证仍待实现。函数及 class 导入、按需准备跨模块编译期依赖已支持；不支持的编译期执行操作显式失败，不调用运行时后端。
 
 ## 名字绑定与作用域
 
@@ -247,7 +247,7 @@ comptime var Written: i32 = _write(1, "hello\n", 6);
 - `lookupLocal<T>(Name)` 只查当前作用域，模板参数同样默认为 `Value *`。未命中或无效名称返回空指针，查找不驻留名称。
 - `lookupMember<T>(Value &Owner, Name)` 只查实体关联的成员作用域，不沿词法父作用域回退、不查子作用域，也不改变当前作用域。模板参数默认为 `Value *`。实体未关联成员作用域或名称未命中时返回空指针；别名指向同一实体时共享成员作用域。
 - `definitionScope(const Decl &)` 返回泛型定义在同一 `ScopeStore` 中首次成功绑定的作用域，未成功绑定时返回空指针。调用方应先在定义处登记，再建立别名；其他 resolver 或其他层中的后续别名不会覆盖定义环境。退出作用域或销毁 resolver 后，作用域指针仍有效；这是作用域关联，不是完整的可序列化定义环境或可见性快照。
-- 名称何时可见由调用方选择登记时机。Analyzer 在名字绑定之上实现模块函数和 class 导入、字段和方法查找及 Public/Private 访问检查；NameResolver 自身不决定导出权限。继承查找、条件声明激活及完整泛型定义环境仍需后续实现。
+- 名称何时可见由调用方选择登记时机。Analyzer 在名字绑定之上实现模块函数和 class 导入、字段和方法查找及 Public/Private 访问检查；NameResolver 自身不决定导出权限。泛型函数通过作用域快照保存定义环境；继承查找、条件声明激活及可序列化的模板定义环境仍需后续实现。
 
 示例：
 

@@ -146,7 +146,26 @@ namespace ink::semantic
         continue;
       }
       std::vector<ir::Function *> Functions;
+      std::vector<ir::FunctionDecl *> Generics;
       bool Private = false;
+      if (const auto *Declarations = State.Resolver.lookupMember<ir::Decl *>(Module, State.Context.namePool().find(ImportedName.Text)))
+      {
+        for (ir::Decl *Target : Declarations->targets())
+        {
+          if (ir::FunctionDecl::classof(Target) && &Target->module() == &Module)
+          {
+            auto *Function = static_cast<ir::FunctionDecl *>(Target);
+            if (State.CurrentModule == &Module || Function->ast().visibility() != parser::DeclarationVisibility::Private)
+            {
+              Generics.push_back(Function);
+            }
+            else
+            {
+              Private = true;
+            }
+          }
+        }
+      }
       if (Binding)
       {
         for (ir::Value *Target : Binding->targets())
@@ -165,7 +184,7 @@ namespace ink::semantic
           }
         }
       }
-      if (Functions.empty())
+      if (Functions.empty() && Generics.empty())
       {
         if (Private)
         {
@@ -183,9 +202,11 @@ namespace ink::semantic
         continue;
       }
       const ir::Name Local = State.Context.namePool().intern(Alias.Text);
-      bool Conflict = State.Resolver.lookupLocal<ir::Decl *>(Local) != nullptr;
+      const auto *ExistingGenerics = State.Resolver.lookupLocal<ir::Decl *>(Local);
+      bool Conflict = ExistingGenerics && !ExistingGenerics->isOverloadSet();
       if (const auto *Existing = State.Resolver.lookupLocal(Local))
       {
+        Conflict = Conflict || !Existing->isOverloadSet();
         for (const ir::Value *Target : Existing->targets())
         {
           for (const ir::Function *Function : Functions)
@@ -223,6 +244,16 @@ namespace ink::semantic
         if (State.CurrentModule != &Module)
         {
           State.Context.recordModuleImport(*State.CurrentModule, *Function);
+        }
+      }
+      for (ir::FunctionDecl *Function : Generics)
+      {
+        const auto Bound = State.Resolver.bind(Local, *Function);
+        if (Bound != NameResolver::BindResult::Inserted && Bound != NameResolver::BindResult::AlreadyBound)
+        {
+          State.report<core::DiagnosticKind::SemanticDuplicateName>(Alias.Range, Alias.Text);
+          Succeeded = false;
+          break;
         }
       }
     }

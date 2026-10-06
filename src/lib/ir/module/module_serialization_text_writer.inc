@@ -73,7 +73,7 @@ namespace ink::ir::archive
                 TypeAliases[Class] = true;
               }
             }
-            if (R.Kind == Tag::Function && R.Fields.size() == 6)
+            if (R.Kind == Tag::Function && R.Fields.size() >= 6 && R.Fields[4])
             {
               TypeAliases[R.Fields[4]] = true;
             }
@@ -385,9 +385,18 @@ namespace ink::ir::archive
           {
             Header += R.Fields[3] == 1 ? " binding import" : " binding export";
           }
-          if (R.Fields.size() == 6)
+          if (R.Fields.size() >= 6 && R.Fields[4])
           {
             Header += " reflect " + type(R.Fields[4]) + (R.Fields[5] ? " initializer " + std::to_string(R.Fields[5] - 1) : " method");
+          }
+          if (R.Fields.size() > 6)
+          {
+            Header += " generics [";
+            for (std::size_t Index = 6; Index < R.Fields.size(); ++Index)
+            {
+              Header += (Index == 6 ? "" : ", ") + type(R.Fields[Index]);
+            }
+            Header += "]";
           }
           if (!R.Linkage.empty())
           {

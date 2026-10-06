@@ -7,6 +7,9 @@
 INK_CONFIG(SemanticBlockDepthLimit, "INK_SEMANTIC_BLOCK_DEPTH_LIMIT", "256")
 // Semantic analysis: at most 256 levels of recursive type analysis.
 INK_CONFIG(SemanticTypeDepthLimit, "INK_SEMANTIC_TYPE_DEPTH_LIMIT", "256")
+// Generic expansion shares a depth and total instance budget across one semantic context.
+INK_CONFIG(SemanticGenericDepthLimit, "INK_SEMANTIC_GENERIC_DEPTH_LIMIT", "64")
+INK_CONFIG(SemanticGenericInstanceLimit, "INK_SEMANTIC_GENERIC_INSTANCE_LIMIT", "4096")
 // Semantic analysis: at most 256 levels of recursive expression analysis.
 INK_CONFIG(SemanticExpressionDepthLimit, "INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT", "256")
 

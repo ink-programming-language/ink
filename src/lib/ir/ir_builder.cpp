@@ -24,6 +24,7 @@ namespace ink::ir
       case TypeKind::Pointer:
       case TypeKind::Reference:
       case TypeKind::Slice:
+      case TypeKind::Function:
         return true;
       default:
         return false;
