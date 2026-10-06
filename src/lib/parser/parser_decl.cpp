@@ -216,7 +216,7 @@ namespace ink::parser
       BlockStmt *Body = Forward ? nullptr : parseBlock();
       return make<FunctionDecl>(range(Start), Attributes, Name, Generics, Parameters, ReturnType, Forward ? FunctionBodyKind::DeclarationOnly : FunctionBodyKind::Definition, Body, Linkage, NativeSymbol);
     }
-    if (take(TokenKind::KwField))
+    if (take(TokenKind::KwProperty))
     {
       const NameToken Name = name();
       FieldTailKind Tail = FieldTailKind::None;

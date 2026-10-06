@@ -1,6 +1,6 @@
 # ink
 
-`main` 保留完整的 tokenizer、parser、AST、对应测试，以及前端所需的 Core、CLI 和构建依赖。Semantic 保留原有头文件、源文件及目录结构、公开分析入口和 analyzer 基于 `ASTNodes.def` 的语句及声明分派；具体语义处理仍报告未实现。`src/testcase/semantic` 中的 17 个原有测试文件完整保留，暂不参与编译和运行；新增的入口与分派回归测试已启用。
+`main` 保留完整的 tokenizer、parser、AST、对应测试，以及前端所需的 Core、CLI 和构建依赖，并开始重建 IR 基础类型。Semantic 保留原有头文件、源文件及目录结构、公开分析入口和 analyzer 基于 `ASTNodes.def` 的语句及声明分派；具体语义处理仍报告未实现。`src/testcase/semantic` 中的 17 个原有测试文件完整保留，暂不参与编译和运行；新增的入口与分派回归测试已启用。
 
 精简前的完整主干保存在 [`saved-execution`](https://github.com/ink-programming-language/ink/tree/saved-execution) 分支，快照提交为 `22c3946c4737a7942fc28ab7cfa6f78e6fa3bd31`。原有 semantic 实现、IR、execution、ABI、LLVM backend、inkc 及其测试和文档可在该分支查看。
 
@@ -42,3 +42,5 @@ ctest --test-dir build -C Release --output-on-failure
 LLVM/Clang 固定版本为 22.1.8；tokenizer 直接使用 Clang 的 `UnicodeCharSets.h`，parser 的 AST 归档使用 LLVM 支持库。NFC 校验使用 utf8proc 2.9.0 的 Unicode 15.1 实现。spdlog 1.17.0 负责所有自有 C++ 文本输出；CLI 统一通过 `ink::cli::writeOutput` 输出。所有自有 C++ 编译目标在目标级关闭异常。
 
 Core 提供源码位置、范围、源码管理、诊断和配置。资源限制在 `src/include/ink/core/config.def` 中定义，parser 与 AST 归档可通过对应的 `INK_PARSER_*`、`INK_AST_ARCHIVE_*` 环境变量配置；semantic 配置与诊断定义保留供后续实现使用。内部编译错误经 spdlog 输出后 panic，普通源码错误通过诊断引擎报告。
+
+IR 基础库通过 `ink::ir` 链接，头文件位于 `src/include/ink/ir/type`，实现位于 `src/lib/ir/type`。`Value.def` 统一登记 Bool、Integer、Float、Double、Array、Class、Interface 和 Struct，以及可确定的固定字节大小；整数和聚合类型的大小使用 `std::nullopt` 表示尚需具体布局。`Value` 是不可复制的抽象基类，提供 `kind()`、`size()` 和 `alignment()`，其中大小与对齐均以字节为单位，具体类型负责根据目标平台实现布局。当前尚未提供各类型的派生类。

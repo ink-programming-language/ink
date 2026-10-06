@@ -380,7 +380,7 @@ namespace ink::semantic::test
   TEST(SemanticModuleImportTest, PreservesClassDefaultDefinitionSnapshot)
   {
     constexpr std::string_view App = "from library import P; func main(): i32 { var Value = P(); return Value.X + 2; }";
-    constexpr std::string_view Library = "comptime var Seed = 40; class P { field X: i32 = comptime Seed;  func __init__(): void {  }  func __init__(InitialX: i32): void { this.X = InitialX; } }; comptime { Seed = 9; }";
+    constexpr std::string_view Library = "comptime var Seed = 40; class P { property X: i32 = comptime Seed;  func __init__(): void {  }  func __init__(InitialX: i32): void { this.X = InitialX; } }; comptime { Seed = 9; }";
     for (bool LibraryFirst : {false, true})
     {
       ModuleAnalysis Input(LibraryFirst ? std::initializer_list<std::pair<std::string_view, std::string_view>>{{"library", Library}, {"app", App}} : std::initializer_list<std::pair<std::string_view, std::string_view>>{{"app", App}, {"library", Library}});

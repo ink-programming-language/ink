@@ -196,7 +196,7 @@ declaration ::= ("var" | "const") binding_pattern
                 [ ":" type_expr ] "=" expr
               | "var" IDENTIFIER [ ":" type_expr ] ;
 
-field_decl ::= "field" IDENTIFIER [ field_decl_tail ] ";" ;
+field_decl ::= "property" IDENTIFIER [ field_decl_tail ] ";" ;
 
 field_decl_tail ::= ":" type_expr [ "=" expr ]
                   | "=" expr

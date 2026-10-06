@@ -253,8 +253,8 @@ namespace ink::semantic::test
   // Constructor fields initialized along every break path are complete, but zero-trip bodies cannot initialize fields.
   TEST(SemanticLoopTest, TracksConstructorFieldsThroughLoops)
   {
-    expectLoop("class P { field X: i32; func __init__(): void { for (;;) { this.X = 42; break; } } }; func Entry(): i32 { var A = P(); return A.X; }", 42);
-    expectLoopDiagnostic("class P { field X: i32; func __init__(B: bool): void { while (B) { this.X = 42; break; } } };", core::DiagnosticKind::SemanticInvalidConstruction);
+    expectLoop("class P { property X: i32; func __init__(): void { for (;;) { this.X = 42; break; } } }; func Entry(): i32 { var A = P(); return A.X; }", 42);
+    expectLoopDiagnostic("class P { property X: i32; func __init__(B: bool): void { while (B) { this.X = 42; break; } } };", core::DiagnosticKind::SemanticInvalidConstruction);
   }
 
   // Transfer statements outside loops, across execution stages, or in nested functions report user errors.
@@ -300,7 +300,7 @@ namespace ink::semantic::test
   // Each iteration cleans locals on fallthrough, continue and break; for-header objects live until loop exit.
   TEST(SemanticLoopTest, DestroysIterationAndHeaderObjectsExactlyOnce)
   {
-    const std::string Class = "class P { field Count: *i32; field N: i32; func __init__(C: *i32, N: i32): void { this.Count = C; this.N = N; } func __del__(): void { *this.Count += this.N; } }; ";
+    const std::string Class = "class P { property Count: *i32; property N: i32; func __init__(C: *i32, N: i32): void { this.Count = C; this.N = N; } func __del__(): void { *this.Count += this.N; } }; ";
     expectLoop(Class + "func Entry(): i32 { var Count = 0; for (var I = 0; I < 5; I++) { var A = P(&Count, 1); if (I == 1) continue; { var B = P(&Count, 10); if (I == 3) break; } } return Count; }", 34);
     expectLoop(Class + "func Entry(): i32 { var Count = 0; for (var Header = P(&Count, 20); true;) { var Body = P(&Count, 22); break; } return Count; }", 42);
     expectLoop(Class + "func Run(C: *i32): void { for (var H = P(C, 20); true;) { var B = P(C, 22); return; } } func Entry(): i32 { var Count = 0; Run(&Count); return Count; }", 42);
@@ -310,14 +310,14 @@ namespace ink::semantic::test
   // For-in owns temporary arrays and per-iteration class copies even when an iteration continues or breaks.
   TEST(SemanticLoopTest, DestroysIterableAndElementCopies)
   {
-    expectLoop("class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { (*this.C)++; } }; func Entry(): i32 { var N = 0; for (X in [P(&N), P(&N)]) { break; } return N; }", 3);
-    expectLoop("class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { (*this.C)++; } }; func Entry(): i32 { var N = 0; for (X in [P(&N), P(&N)]) { continue; } return N; }", 4);
+    expectLoop("class P { property C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { (*this.C)++; } }; func Entry(): i32 { var N = 0; for (X in [P(&N), P(&N)]) { break; } return N; }", 3);
+    expectLoop("class P { property C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { (*this.C)++; } }; func Entry(): i32 { var N = 0; for (X in [P(&N), P(&N)]) { continue; } return N; }", 4);
   }
 
   // Condition and step temporaries are destroyed once at their full expression, including short-circuit skips.
   TEST(SemanticLoopTest, DestroysConditionAndStepTemporaries)
   {
-    const std::string Class = "class P { field Count: *i32; func __init__(C: *i32): void { this.Count = C; } func yes(): bool { return true; } func __del__(): void { (*this.Count)++; } }; ";
+    const std::string Class = "class P { property Count: *i32; func __init__(C: *i32): void { this.Count = C; } func yes(): bool { return true; } func __del__(): void { (*this.Count)++; } }; ";
     expectLoop(Class + "func Entry(): i32 { var N = 0; var I = 0; while (I < 3 && P(&N).yes()) { I++; continue; } return N; }", 3);
     expectLoop(Class + "func Entry(): i32 { var N = 0; for (var I = 0; I < 4; I++, P(&N)) { if (I == 1) continue; if (I == 3) break; } return N; }", 3);
   }

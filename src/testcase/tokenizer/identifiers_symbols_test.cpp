@@ -21,6 +21,16 @@ namespace ink::tokenizer::test
     EXPECT_EQ(lookupKeyword("export"), TokenKind::KwExport);
   }
 
+  // Property is reserved only as a complete lowercase word; the former field keyword is an identifier.
+  TEST_F(TokenizerTest, PropertyKeywordAndIdentifierBoundaries)
+  {
+    expectKinds(lex("property field Property property_value property2"), {TokenKind::KwProperty, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier});
+    EXPECT_EQ(lookupKeyword("property"), TokenKind::KwProperty);
+    EXPECT_FALSE(lookupKeyword("field"));
+    EXPECT_EQ(tokenSpelling(TokenKind::KwProperty), "property");
+    EXPECT_STREQ(tokenKindName(TokenKind::KwProperty), "KW_PROPERTY");
+  }
+
   // Identifier boundaries use XID_Start plus underscore and the union of both Clang XID tables.
   TEST_F(TokenizerTest, UnicodeIdentifierBoundaries)
   {
@@ -56,7 +66,7 @@ namespace ink::tokenizer::test
     {
       EXPECT_EQ(Buffer.tokens()[Index].Kind, TokenKind::Identifier) << Buffer.raw(Buffer.tokens()[Index]);
     }
-    expectKinds(lex("case default do export field match switch yield"), {TokenKind::KwCase, TokenKind::KwDefault, TokenKind::KwDo, TokenKind::KwExport, TokenKind::KwField, TokenKind::KwMatch, TokenKind::KwSwitch, TokenKind::KwYield});
+    expectKinds(lex("case default do export property match switch yield"), {TokenKind::KwCase, TokenKind::KwDefault, TokenKind::KwDo, TokenKind::KwExport, TokenKind::KwProperty, TokenKind::KwMatch, TokenKind::KwSwitch, TokenKind::KwYield});
   }
 
   // Every keyword and symbol spelling is checked against the normative document, independently of token.def.

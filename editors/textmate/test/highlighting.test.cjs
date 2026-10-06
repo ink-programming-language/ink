@@ -73,6 +73,17 @@ test('native import and export declarations', () => {
   expectScope(tokenize('extern')[0], 'extern', 'variable.other');
 });
 
+// Property declarations are highlighted while the retired field spelling remains an ordinary identifier.
+test('property declarations and retired field keyword', () => {
+  const row = tokenize('property field: i32;')[0];
+  expectScope(row, 'property', 'storage.type');
+  expectScope(row, 'field', 'variable.other');
+  for (const name of ['field', 'Property', 'property_name', 'property2']) {
+    expectScope(tokenize(name)[0], name, 'variable.other');
+    assert.ok(tokenize(name)[0].tokens.every(token => !token.scopes.some(scope => /^(keyword\.|storage\.)/.test(scope))), name);
+  }
+});
+
 // Only currently supported builtin spellings receive builtin type or constant scopes.
 test('builtin types and constants', () => {
   for (const name of ['void', 'bool', 'type', 'i8', 'u16', 'i32', 'u64', 'i128', 'u128', 'f16', 'f32', 'f64']) expectScope(tokenize(name)[0], name, 'support.type.builtin');

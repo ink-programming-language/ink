@@ -87,7 +87,7 @@ namespace ink::semantic::test
         {"import library;", "DirectImportStmt"},
         {"from library import value;", "FromImportStmt"},
         {"{ var Value = 1; }", "VarDecl"},
-        {"field Value: i32;", "FieldDecl"},
+        {"property Value: i32;", "FieldDecl"},
         {"{{ func F(): void {} }}", "FunctionDecl"},
         {"class Value {};", "ClassDecl"},
         {"enum E {};", "EnumDecl"},

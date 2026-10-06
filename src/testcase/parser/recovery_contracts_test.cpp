@@ -34,7 +34,7 @@ namespace ink::parser::test
         {"var x = [1, 2; var kept = 42;", TokenKind::RBracket, ";"},
         {"var x = f::[T; var kept = 42;", TokenKind::RBracket, ";"},
         {"class C {} var kept = 42;", TokenKind::Semicolon, "var kept"},
-        {"field x: T var kept = 42;", TokenKind::Semicolon, "var kept"},
+        {"property x: T var kept = 42;", TokenKind::Semicolon, "var kept"},
         {"import a var kept = 42;", TokenKind::Semicolon, "var kept"},
         {"func f(): T var kept = 42;", TokenKind::LBrace, "var kept"},
     };
@@ -286,8 +286,8 @@ namespace ink::parser::test
         "[tag var broken = 1; ",
         "import a as ; ",
         "from a import ; ",
-        "class C: { field x: ; }; ",
-        "enum E { field A(x: ); }; ",
+        "class C: { property x: ; }; ",
+        "enum E { property A(x: ); }; ",
         "interface I { func f(x: ): ; }; ",
         "var f = func(x: T = ): T {}; ",
         "var t: func(T, named: ): ; ",
@@ -319,7 +319,7 @@ namespace ink::parser::test
         "func f[T:",
         "func f(x:",
         "func f(): T {",
-        "field A(",
+        "property A(",
         "class C:",
         "enum E {",
         "interface I {",
@@ -483,7 +483,7 @@ namespace ink::parser::test
   TEST_F(ParserTest, RecoveryGrammarMutationCorpus)
   {
     const char *Sources[] = {
-        "class C[T: type]: Base, implements I { field x: T; func f(a: T): T { return a; } };",
+        "class C[T: type]: Base, implements I { property x: T; func f(a: T): T { return a; } };",
         "[tag(x = 1)] var [head, tail...] = source; from ...pkg import x as y; import a.b, c;",
         "for ([x, rest...] in xs) { if (x) continue; else break; } for (var i = 0; i < 3; i++) {}",
         "switch(x) { case 1: yield return 2; case 3: defer f(); default: return; }",

@@ -347,7 +347,7 @@ namespace ink::parser::test
   // Visibility is preserved for every declaration category and nested declarations in both binary and textual snapshots.
   TEST_F(ParserTest, ASTSerializationDeclarationVisibility)
   {
-    const auto Parsed = read("func plain(): i32 { return 0; } public func exposed(): i32 { private func hidden(): i32 { return 1; } return hidden(); } private var value = 2; public const fixed = 3; private field X: T; public class C; private enum E {}; public interface I {}; public import \"C\" func native(): i32;");
+    const auto Parsed = read("func plain(): i32 { return 0; } public func exposed(): i32 { private func hidden(): i32 { return 1; } return hidden(); } private var value = 2; public const fixed = 3; private property X: T; public class C; private enum E {}; public interface I {}; public import \"C\" func native(): i32;");
     ASSERT_TRUE(Parsed.succeeded());
     expectRoundTrip(Parsed, Frontend);
     const auto Text = trySerializeASTText(Parsed);
@@ -755,7 +755,7 @@ namespace ink::parser::test
   // Separate parses and general LLVM bitstream decoding agree on deterministic archives, including empty modules.
   TEST_F(ParserTest, ASTSerializationDeterministicContainer)
   {
-    for (const char *Source : {"", "f(a, b = 2);", "class A { field b: T; };"})
+    for (const char *Source : {"", "f(a, b = 2);", "class A { property b: T; };"})
     {
       const auto First = serializeAST(Frontend, read(Source));
       const auto Second = serializeAST(Frontend, read(Source));
@@ -889,9 +889,12 @@ namespace ink::parser::test
     Records = Original;
     Records[3].Values[4] = 0x110000;
     expectRejected(Frontend, archive(Records));
-    Records = Original;
-    Records[3].Values[0] = 84;
-    expectRejected(Frontend, archive(Records));
+    for (const std::uint64_t RetiredTokenId : {18U, 84U})
+    {
+      Records = Original;
+      Records[3].Values[0] = RetiredTokenId;
+      expectRejected(Frontend, archive(Records));
+    }
     Records = Original;
     Records[0].Values[3] = 0;
     expectRejected(Frontend, archive(Records));

@@ -1,5 +1,6 @@
-# Build the frontend and the declaration-only semantic skeleton.
+# Build the frontend, IR foundations and declaration-only semantic skeleton.
 add_subdirectory(core)
+add_subdirectory(ir)
 add_subdirectory(cli)
 add_subdirectory(tokenizer)
 add_subdirectory(parser)

@@ -1,0 +1,16 @@
+#ifndef INK_VALUE
+#error "Define INK_VALUE before including Value.def"
+#endif
+
+// INK_VALUE(Kind, Name, FixedSize)
+// Intentionally included more than once. Sizes are in bytes, not host C++ object sizes.
+// std::nullopt means the size depends on the integer width or aggregate layout;
+// it is distinct from a valid zero-byte value such as an empty array.
+INK_VALUE(Bool, "bool", 1)
+INK_VALUE(Integer, "integer", std::nullopt)
+INK_VALUE(Float, "float", 4)
+INK_VALUE(Double, "double", 8)
+INK_VALUE(Array, "array", std::nullopt)
+INK_VALUE(Class, "class", std::nullopt)
+INK_VALUE(Interface, "interface", std::nullopt)
+INK_VALUE(Struct, "struct", std::nullopt)

@@ -61,6 +61,8 @@
 
 12. **相邻字符串**：词法阶段不合并相邻字符串字面量；在遵守定界符识别优先级的前提下，无分隔符或仅以空白、注释分隔的多个字符串字面量分别产生 `STRING_LITERAL`；例如 `"a" "b"`、`"a""b"` 和 `"a"/**/"b"` 均产生两个 `STRING_LITERAL`；是否允许相邻字符串以及是否自动拼接，由语法和语义规则规定。
 
+声明关键字为 `property`；`field` 不再保留，按普通标识符处理。
+
 ```ebnf
 KW_AS ::= "as" ;
 KW_BREAK ::= "break" ;
@@ -75,7 +77,6 @@ KW_DO ::= "do" ;
 KW_ELSE ::= "else" ;
 KW_ENUM ::= "enum" ;
 KW_EXPORT ::= "export" ;
-KW_FIELD ::= "field" ;
 KW_FOR ::= "for" ;
 KW_FROM ::= "from" ;
 KW_FUNC ::= "func" ;
@@ -86,6 +87,7 @@ KW_IN ::= "in" ;
 KW_INTERFACE ::= "interface" ;
 KW_MATCH ::= "match" ;
 KW_PRIVATE ::= "private" ;
+KW_PROPERTY ::= "property" ;
 KW_PUBLIC ::= "public" ;
 KW_RETURN ::= "return" ;
 KW_SWITCH ::= "switch" ;
@@ -106,7 +108,6 @@ keyword ::= KW_AS
           | KW_ELSE
           | KW_ENUM
           | KW_EXPORT
-          | KW_FIELD
           | KW_FOR
           | KW_FROM
           | KW_FUNC
@@ -117,6 +118,7 @@ keyword ::= KW_AS
           | KW_INTERFACE
           | KW_MATCH
           | KW_PRIVATE
+          | KW_PROPERTY
           | KW_PUBLIC
           | KW_RETURN
           | KW_SWITCH
@@ -260,7 +262,6 @@ enum TokenKind
     KW_ELSE,
     KW_ENUM,
     KW_EXPORT,
-    KW_FIELD,
     KW_FOR,
     KW_FROM,
     KW_FUNC,
@@ -271,6 +272,7 @@ enum TokenKind
     KW_INTERFACE,
     KW_MATCH,
     KW_PRIVATE,
+    KW_PROPERTY,
     KW_PUBLIC,
     KW_RETURN,
     KW_SWITCH,

@@ -186,10 +186,20 @@ namespace ink::parser::test
     }
   }
 
-  // Truncated field payloads keep their required parameter placeholder without consuming the next declaration.
-  TEST_F(ParserTest, TruncatedFieldPayload)
+  // A property declaration remains a recovery boundary after a missing variable initializer.
+  TEST_F(ParserTest, PreserveFollowingPropertyDeclaration)
   {
-    const auto Result = read("field A( var kept = 1;");
+    const auto Result = read("var broken = property kept: T;");
+    EXPECT_FALSE(Result.succeeded());
+    ASSERT_EQ(Result.Unit->root()->statements().size(), 2U);
+    EXPECT_TRUE(isa<MissingExpr>(cast<VarDecl>(declaration(Result))->initializer()));
+    EXPECT_EQ(cast<FieldDecl>(declaration(Result, 1))->name().Text, "kept");
+  }
+
+  // Truncated property payloads keep their required parameter placeholder without consuming the next declaration.
+  TEST_F(ParserTest, TruncatedPropertyPayload)
+  {
+    const auto Result = read("property A( var kept = 1;");
     EXPECT_TRUE(Result.HasSyntaxErrors);
     ASSERT_EQ(Result.Unit->root()->statements().size(), 2U);
     const auto *Field = cast<FieldDecl>(declaration(Result));
@@ -222,7 +232,7 @@ namespace ink::parser::test
         "match",
         "do",
         "comptime",
-        "field",
+        "property",
         "const",
         "return",
         "yield",

@@ -103,66 +103,66 @@ namespace ink::semantic::test
   // Constructor overloads coexist with field defaults and writable field projections.
   TEST(SemanticClassTest, ConstructsDefaultsAndReadsWritesFields)
   {
-    expectClassExecution("class P { field X: i32; field Y: i32 = 2;  func __init__(InitialX: i32): void { this.X = InitialX; }  func __init__(InitialX: i32, InitialY: i32): void { this.X = InitialX; this.Y = InitialY; } }; func Entry(): i32 { var A = P(38); A.X = A.X + 2; return A.X + A.Y; }", 42);
+    expectClassExecution("class P { property X: i32; property Y: i32 = 2;  func __init__(InitialX: i32): void { this.X = InitialX; }  func __init__(InitialX: i32, InitialY: i32): void { this.X = InitialX; this.Y = InitialY; } }; func Entry(): i32 { var A = P(38); A.X = A.X + 2; return A.X + A.Y; }", 42);
     expectClassExecution("class Empty {}; func Entry(): i32 { var E = Empty(); return 42; }", 42);
   }
 
   // Methods receive the same writable object through this and can call later-declared methods.
   TEST(SemanticClassTest, MutatesThisAndCallsOtherMethods)
   {
-    expectClassExecution("class P { field X: i32; func run(N: i32): i32 { this.set(N); return this.X; } func set(N: i32): void { this.X = this.X + N; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { var A = P(20); var V = A.run(22); return A.X; }", 42);
-    expectClassExecution("class P { field X: i32; func get(): i32 { return this->X; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { var A = P(42); var Ptr = &A; return Ptr->get(); }", 42);
+    expectClassExecution("class P { property X: i32; func run(N: i32): i32 { this.set(N); return this.X; } func set(N: i32): void { this.X = this.X + N; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { var A = P(20); var V = A.run(22); return A.X; }", 42);
+    expectClassExecution("class P { property X: i32; func get(): i32 { return this->X; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { var A = P(42); var Ptr = &A; return Ptr->get(); }", 42);
   }
 
   // Value parameters and const objects allow field reads while ordinary copying preserves independent values.
   TEST(SemanticClassTest, CopiesParametersReturnsAndConstReads)
   {
-    expectClassExecution("class P { field X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; func copy(A: P): P { return A; } func read(A: P): i32 { return A.X; } func Entry(): i32 { var A = P(42); const B = copy(A); A.X = 9; return read(B); }", 42);
+    expectClassExecution("class P { property X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; func copy(A: P): P { return A; } func read(A: P): i32 { return A.X; } func Entry(): i32 { var A = P(42); const B = copy(A); A.X = 9; return read(B); }", 42);
   }
 
   // Nested class and array projections share root storage, including whole-object assignment through an existing field address.
   TEST(SemanticClassTest, PreservesNestedFieldAddresses)
   {
-    expectClassExecution("class P { field X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; class Box { field Value: P; field Items: [i32; 2];  func __init__(InitialValue: P, InitialItems: [i32; 2]): void { this.Value = InitialValue; this.Items = InitialItems; } }; func Entry(): i32 { var B = Box(P(1), [2, 3]); var Ptr = &B.Value.X; B = Box(P(40), [1, 2]); B.Items[1] = 2; return *Ptr + B.Items[1]; }", 42);
-    expectClassExecution("class P { field X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { var A = [P(1), P(2)]; A[1].X = 42; return A[1].X; }", 42);
+    expectClassExecution("class P { property X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; class Box { property Value: P; property Items: [i32; 2];  func __init__(InitialValue: P, InitialItems: [i32; 2]): void { this.Value = InitialValue; this.Items = InitialItems; } }; func Entry(): i32 { var B = Box(P(1), [2, 3]); var Ptr = &B.Value.X; B = Box(P(40), [1, 2]); B.Items[1] = 2; return *Ptr + B.Items[1]; }", 42);
+    expectClassExecution("class P { property X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { var A = [P(1), P(2)]; A[1].X = 42; return A[1].X; }", 42);
   }
 
   // Temporary method receivers materialize once and keep their mutable changes local to the temporary.
   TEST(SemanticClassTest, CallsMethodsOnTemporaryValues)
   {
-    expectClassExecution("class P { field X: i32; func add(N: i32): i32 { this.X = this.X + N; return this.X; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { return P(40).add(2); }", 42);
+    expectClassExecution("class P { property X: i32; func add(N: i32): i32 { this.X = this.X + N; return this.X; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { return P(40).add(2); }", 42);
   }
 
   // Operator methods use a value snapshot, accept const operands and require boolean comparison results.
   TEST(SemanticClassTest, DispatchesDunderOperatorsOnSnapshots)
   {
-    expectClassExecution("class P { field X: i32; func __add__(Other: P): P { this.X = this.X + Other.X; return P(this.X); } func __eq__(Other: P): bool { return this.X == Other.X; } func __neg__(): i32 { return this.X; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { const A = P(20); const B = A + P(22); if (B == P(42)) { return -B; } return 0; }", 42);
-    expectClassExecution("class P { field X: i32; func __sub__(N: i32): i32 { return this.X + N; } func __mul__(N: i32): i32 { return this.X + N; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { const A = P(40); return A * 2; }", 42);
-    expectClassExecution("class P { field X: i64; func __add__(N: i64): i64 { return this.X + N; }  func __init__(InitialX: i64): void { this.X = InitialX; } }; comptime var Result = P(40) + 2; func Entry(): i64 { return Result; }", 42);
+    expectClassExecution("class P { property X: i32; func __add__(Other: P): P { this.X = this.X + Other.X; return P(this.X); } func __eq__(Other: P): bool { return this.X == Other.X; } func __neg__(): i32 { return this.X; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { const A = P(20); const B = A + P(22); if (B == P(42)) { return -B; } return 0; }", 42);
+    expectClassExecution("class P { property X: i32; func __sub__(N: i32): i32 { return this.X + N; } func __mul__(N: i32): i32 { return this.X + N; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { const A = P(40); return A * 2; }", 42);
+    expectClassExecution("class P { property X: i64; func __add__(N: i64): i64 { return this.X + N; }  func __init__(InitialX: i64): void { this.X = InitialX; } }; comptime var Result = P(40) + 2; func Entry(): i64 { return Result; }", 42);
   }
 
   // Compile-time object fields and methods use the same class operations as runtime functions.
   TEST(SemanticClassTest, EvaluatesCompileTimeClassesAndMethods)
   {
-    expectClassExecution("class P { field X: i32 = 20; func add(N: i32): i32 { this.X = this.X + N; return this.X; }  func __init__(): void {  }  func __init__(InitialX: i32): void { this.X = InitialX; } }; comptime var A = P(); comptime { A.X = 40; } comptime var Result = A.add(2); func Entry(): i32 { return Result; }", 42);
-    expectClassExecution("class P { field X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; comptime func make(): P { var A = P(40); A.X = A.X + 2; return A; } func Entry(): i32 { const A = comptime make(); return A.X; }", 42);
-    expectClassExecution("class P { field X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; class B { field Items: [P; 2];  func __init__(InitialItems: [P; 2]): void { this.Items = InitialItems; } }; comptime var A = B([P(1), P(2)]); comptime { A.Items[1].X = 42; } func Entry(): i32 { return A.Items[1].X; }", 42);
-    expectClassExecution("class P { field X: i32; func add(N: i32): void { this.X = this.X + N; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; class B { field Items: [P; 2];  func __init__(InitialItems: [P; 2]): void { this.Items = InitialItems; } }; comptime var A = B([P(1), P(40)]); comptime A.Items[1].add(2); func Entry(): i32 { return A.Items[1].X; }", 42);
+    expectClassExecution("class P { property X: i32 = 20; func add(N: i32): i32 { this.X = this.X + N; return this.X; }  func __init__(): void {  }  func __init__(InitialX: i32): void { this.X = InitialX; } }; comptime var A = P(); comptime { A.X = 40; } comptime var Result = A.add(2); func Entry(): i32 { return Result; }", 42);
+    expectClassExecution("class P { property X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; comptime func make(): P { var A = P(40); A.X = A.X + 2; return A; } func Entry(): i32 { const A = comptime make(); return A.X; }", 42);
+    expectClassExecution("class P { property X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; class B { property Items: [P; 2];  func __init__(InitialItems: [P; 2]): void { this.Items = InitialItems; } }; comptime var A = B([P(1), P(2)]); comptime { A.Items[1].X = 42; } func Entry(): i32 { return A.Items[1].X; }", 42);
+    expectClassExecution("class P { property X: i32; func add(N: i32): void { this.X = this.X + N; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; class B { property Items: [P; 2];  func __init__(InitialItems: [P; 2]): void { this.Items = InitialItems; } }; comptime var A = B([P(1), P(40)]); comptime A.Items[1].add(2); func Entry(): i32 { return A.Items[1].X; }", 42);
   }
 
   // Class names are predeclared before function signatures, and pointers permit recursive nominal types.
   TEST(SemanticClassTest, PredeclaresTypesAndSupportsPointerRecursion)
   {
-    expectClassExecution("func read(A: P): i32 { return A.X; } class P; class P { field X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; class Link { field Next: *Link;  func __init__(InitialNext: *Link): void { this.Next = InitialNext; } }; func Entry(): i32 { return read(P(42)); }", 42);
-    expectClassExecution("class Outer { class Inner { field X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; field V: Inner;  func __init__(InitialV: Inner): void { this.V = InitialV; } }; func Entry(): i32 { var A = Outer(Outer.Inner(42)); return A.V.X; }", 42);
+    expectClassExecution("func read(A: P): i32 { return A.X; } class P; class P { property X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; class Link { property Next: *Link;  func __init__(InitialNext: *Link): void { this.Next = InitialNext; } }; func Entry(): i32 { return read(P(42)); }", 42);
+    expectClassExecution("class Outer { class Inner { property X: i32;  func __init__(InitialX: i32): void { this.X = InitialX; } }; property V: Inner;  func __init__(InitialV: Inner): void { this.V = InitialV; } }; func Entry(): i32 { var A = Outer(Outer.Inner(42)); return A.V.X; }", 42);
   }
 
   // Private members are accessible within their class, but not through external construction, reads or method calls.
   TEST(SemanticClassTest, EnforcesPrivateMembers)
   {
-    expectClassExecution("class P { private field X: i32 = 40; private func secret(): i32 { return this.X + 2; } func read(): i32 { return this.secret(); }  func __init__(): void {  }  private func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { var A = P(); return A.read(); }", 42);
-    expectClassDiagnostic("class P { private field X: i32 = 1; }; func Entry(): i32 { return P().X; }", core::DiagnosticKind::SemanticInvalidMember);
-    expectClassDiagnostic("class P { private field X: i32; }; func Entry(): i32 { var A = P(1); return 0; }", core::DiagnosticKind::SemanticInvalidConstruction);
+    expectClassExecution("class P { private property X: i32 = 40; private func secret(): i32 { return this.X + 2; } func read(): i32 { return this.secret(); }  func __init__(): void {  }  private func __init__(InitialX: i32): void { this.X = InitialX; } }; func Entry(): i32 { var A = P(); return A.read(); }", 42);
+    expectClassDiagnostic("class P { private property X: i32 = 1; }; func Entry(): i32 { return P().X; }", core::DiagnosticKind::SemanticInvalidMember);
+    expectClassDiagnostic("class P { private property X: i32; }; func Entry(): i32 { var A = P(1); return 0; }", core::DiagnosticKind::SemanticInvalidConstruction);
     expectClassDiagnostic("class P { private func hidden(): i32 { return 1; } }; func Entry(): i32 { return P().hidden(); }", core::DiagnosticKind::SemanticInvalidMember);
   }
 
@@ -179,15 +179,15 @@ namespace ink::semantic::test
   // Layout cycles, incomplete by-value fields and invalid construction are diagnosed as source errors.
   TEST(SemanticClassTest, RejectsInvalidLayoutsAndConstruction)
   {
-    expectClassDiagnostic("class P { field Self: P; };", core::DiagnosticKind::SemanticInvalidClass);
-    expectClassDiagnostic("class A; class B { field Value: A; };", core::DiagnosticKind::SemanticInvalidClass);
-    expectClassDiagnostic("class P { field X: i32; }; func Entry(): i32 { var A = P(); return 0; }", core::DiagnosticKind::SemanticInvalidConstruction);
-    expectClassDiagnostic("class P { field X: i32; field X: i32; };", core::DiagnosticKind::SemanticDuplicateName);
+    expectClassDiagnostic("class P { property Self: P; };", core::DiagnosticKind::SemanticInvalidClass);
+    expectClassDiagnostic("class A; class B { property Value: A; };", core::DiagnosticKind::SemanticInvalidClass);
+    expectClassDiagnostic("class P { property X: i32; }; func Entry(): i32 { var A = P(); return 0; }", core::DiagnosticKind::SemanticInvalidConstruction);
+    expectClassDiagnostic("class P { property X: i32; property X: i32; };", core::DiagnosticKind::SemanticDuplicateName);
     expectClassDiagnostic("class P[T: type] {};", core::DiagnosticKind::SemanticInvalidClass);
-    expectClassDiagnostic("class A { field BValue: B; }; class B { field AValue: A; };", core::DiagnosticKind::SemanticInvalidClass);
+    expectClassDiagnostic("class A { property BValue: B; }; class B { property AValue: A; };", core::DiagnosticKind::SemanticInvalidClass);
     expectClassDiagnostic("class A; func read(Value: A): void {}", core::DiagnosticKind::SemanticInvalidClass);
     expectClassDiagnostic("class P { func f(): i32 { return 1; } func f(): i32 { return 2; } };", core::DiagnosticKind::SemanticDuplicateName);
-    expectClassDiagnostic("class P { field f: i32; func f(): i32 { return 1; } };", core::DiagnosticKind::SemanticDuplicateName);
+    expectClassDiagnostic("class P { property f: i32; func f(): i32 { return 1; } };", core::DiagnosticKind::SemanticDuplicateName);
     expectClassDiagnostic("class P { func __iadd__(Other: P): P { return Other; } }; func Entry(): i32 { var A = P(); A += P(); return 0; }", core::DiagnosticKind::SemanticInvalidMember);
     expectClassDiagnostic("class P { func __eq__(Other: P): i32 { return 1; } }; func Entry(): bool { return P() == P(); }", core::DiagnosticKind::SemanticTypeMismatch);
   }
@@ -200,7 +200,7 @@ namespace ink::semantic::test
         "class Node; func identity(P: *Node): *Node { return P; }",
         "class Node; func Entry(): i32 { var P: *Node; return 42; }",
         "class Node; func Entry(): i32 { var Items: [*Node; 2]; return 42; }",
-        "class Node; class Wrapper { field Link: *Node;  func __init__(InitialLink: *Node): void { this.Link = InitialLink; } }; func take(Value: Wrapper): void {}",
+        "class Node; class Wrapper { property Link: *Node;  func __init__(InitialLink: *Node): void { this.Link = InitialLink; } }; func take(Value: Wrapper): void {}",
     };
     for (const std::string_view Source : Invalid)
     {
@@ -220,7 +220,7 @@ namespace ink::semantic::test
     }
     constexpr std::string_view Valid[] = {
         "class Node; func Entry(): i32 { return 42; }",
-        "class Node; func take(P: *Node): i32 { return 0; } class Node { field Next: *Node;  func __init__(InitialNext: *Node): void { this.Next = InitialNext; } }; func Entry(): i32 { return 42; }",
+        "class Node; func take(P: *Node): i32 { return 0; } class Node { property Next: *Node;  func __init__(InitialNext: *Node): void { this.Next = InitialNext; } }; func Entry(): i32 { return 42; }",
     };
     for (const std::string_view Source : Valid)
     {
@@ -263,7 +263,7 @@ namespace ink::semantic::test
   // Receiver and argument side effects execute once and in source order; overloads use explicit parameter types.
   TEST(SemanticClassTest, PreservesMethodEvaluationOrderAndOverloads)
   {
-    expectClassExecution("class P { field X: i32; func add(N: i32): i32 { this.X = this.X + N; return this.X; } func add(N: bool): i32 { return 0; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func receiver(C: *i32, P: *P): *P { *C = *C + 1; return P; } func argument(C: *i32): i32 { *C = *C + 1; return *C; } func Entry(): i32 { var Count = 0; var A = P(38); var Result = receiver(&Count, &A)->add(argument(&Count)); return Result + Count; }", 42);
+    expectClassExecution("class P { property X: i32; func add(N: i32): i32 { this.X = this.X + N; return this.X; } func add(N: bool): i32 { return 0; }  func __init__(InitialX: i32): void { this.X = InitialX; } }; func receiver(C: *i32, P: *P): *P { *C = *C + 1; return P; } func argument(C: *i32): i32 { *C = *C + 1; return *C; } func Entry(): i32 { var Count = 0; var A = P(38); var Result = receiver(&Count, &A)->add(argument(&Count)); return Result + Count; }", 42);
   }
 
   // Imported class names can appear in signatures and preserve their defining module's methods and private checks.
@@ -271,7 +271,7 @@ namespace ink::semantic::test
   {
     core::CompilationContext Compilation;
     core::FrontendContext Frontend(Compilation);
-    auto Library = parser::parse(Frontend, tokenizer::tokenize(Frontend, "class P { field X: i32 = 40; func add(N: i32): i32 { this.X = this.X + N; return this.X; }  func __init__(): void {  }  func __init__(InitialX: i32): void { this.X = InitialX; } };"));
+    auto Library = parser::parse(Frontend, tokenizer::tokenize(Frontend, "class P { property X: i32 = 40; func add(N: i32): i32 { this.X = this.X + N; return this.X; }  func __init__(): void {  }  func __init__(InitialX: i32): void { this.X = InitialX; } };"));
     auto Main = parser::parse(Frontend, tokenizer::tokenize(Frontend, "from library import P; func read(A: P): i32 { return A.X; } func Entry(): i32 { var A = P(); A.add(2); return read(A); }"));
     ASSERT_TRUE(Library.succeeded());
     ASSERT_TRUE(Main.succeeded());
@@ -290,63 +290,63 @@ namespace ink::semantic::test
   // Only declared constructor signatures accept arguments; implicit construction is parameterless.
   TEST(SemanticClassTest, LifecycleConstructorSignatures)
   {
-    expectClassExecution("class P { field X: i32; func __init__(N: i32): void { this.X = N; } }; func Entry(): i32 { var A = P(42); return A.X; }", 42);
-    expectClassExecution("class P { field X: i32 = 40; func __init__(N: i32): void { this.X = this.X + N; } }; func Entry(): i32 { var A = P(2); return A.X; }", 42);
-    expectClassExecution("class P { field X: i32; func __init__(N: bool): void { this.X = 0; } func __init__(N: i32): void { this.X = N; } }; func Entry(): i32 { var A = P(42); return A.X; }", 42);
-    expectClassDiagnostic("class P { field X: i32 = 0; }; func Entry(): i32 { var A = P(42); return A.X; }", core::DiagnosticKind::SemanticArgumentCount);
-    expectClassDiagnostic("class P { field X: i32; }; func Entry(): i32 { var A = P(42); return A.X; }", core::DiagnosticKind::SemanticInvalidConstruction);
+    expectClassExecution("class P { property X: i32; func __init__(N: i32): void { this.X = N; } }; func Entry(): i32 { var A = P(42); return A.X; }", 42);
+    expectClassExecution("class P { property X: i32 = 40; func __init__(N: i32): void { this.X = this.X + N; } }; func Entry(): i32 { var A = P(2); return A.X; }", 42);
+    expectClassExecution("class P { property X: i32; func __init__(N: bool): void { this.X = 0; } func __init__(N: i32): void { this.X = N; } }; func Entry(): i32 { var A = P(42); return A.X; }", 42);
+    expectClassDiagnostic("class P { property X: i32 = 0; }; func Entry(): i32 { var A = P(42); return A.X; }", core::DiagnosticKind::SemanticArgumentCount);
+    expectClassDiagnostic("class P { property X: i32; }; func Entry(): i32 { var A = P(42); return A.X; }", core::DiagnosticKind::SemanticInvalidConstruction);
   }
 
   // Constructor fields must be initialized on every returning path and cannot be read before assignment.
   TEST(SemanticClassTest, LifecycleDefiniteFieldInitialization)
   {
-    expectClassExecution("class P { field X: i32; func __init__(): void { (this).X = 42; } }; func Entry(): i32 { var A = P(); return A.X; }", 42);
-    expectClassExecution("class P { field X: i32; func __init__(B: bool): void { if (B) { this.X = 42; return; } this.X = 42; } }; func Entry(): i32 { var A = P(true); return A.X; }", 42);
-    expectClassDiagnostic("class P { field X: i32; func __init__(B: bool): void { if (B) { this.X = 42; } } };", core::DiagnosticKind::SemanticInvalidConstruction);
-    expectClassDiagnostic("class P { field X: i32; func __init__(): void { this.X = this.X; } };", core::DiagnosticKind::SemanticUninitializedRead);
-    expectClassDiagnostic("class P { field X: i32; func __init__(): void { this.read(); this.X = 42; } func read(): i32 { return this.X; } };", core::DiagnosticKind::SemanticInvalidConstruction);
+    expectClassExecution("class P { property X: i32; func __init__(): void { (this).X = 42; } }; func Entry(): i32 { var A = P(); return A.X; }", 42);
+    expectClassExecution("class P { property X: i32; func __init__(B: bool): void { if (B) { this.X = 42; return; } this.X = 42; } }; func Entry(): i32 { var A = P(true); return A.X; }", 42);
+    expectClassDiagnostic("class P { property X: i32; func __init__(B: bool): void { if (B) { this.X = 42; } } };", core::DiagnosticKind::SemanticInvalidConstruction);
+    expectClassDiagnostic("class P { property X: i32; func __init__(): void { this.X = this.X; } };", core::DiagnosticKind::SemanticUninitializedRead);
+    expectClassDiagnostic("class P { property X: i32; func __init__(): void { this.read(); this.X = 42; } func read(): i32 { return this.X; } };", core::DiagnosticKind::SemanticInvalidConstruction);
   }
 
   // Both mutable and const locals are destroyed once at the end of their lexical block.
   TEST(SemanticClassTest, LifecycleDestroysLocalsAndConstObjects)
   {
-    expectClassExecution("class P { field C: *i32; field N: i32; func __init__(C: *i32, N: i32): void { this.C = C; this.N = N; } func __del__(): void { *this.C = *this.C + this.N; } }; func Entry(): i32 { var Count = 0; { var A = P(&Count, 2); const B = P(&Count, 40); } return Count; }", 42);
+    expectClassExecution("class P { property C: *i32; property N: i32; func __init__(C: *i32, N: i32): void { this.C = C; this.N = N; } func __del__(): void { *this.C = *this.C + this.N; } }; func Entry(): i32 { var Count = 0; { var A = P(&Count, 2); const B = P(&Count, 40); } return Count; }", 42);
   }
 
   // Early returns clean only constructed branch objects, followed by enclosing locals.
   TEST(SemanticClassTest, LifecycleCleansEarlyReturnAndConditionalInitialization)
   {
-    expectClassExecution("class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } }; func run(C: *i32, B: bool): void { var A: P; if (B) { A = P(C); return; } } func Entry(): i32 { var Count = 0; run(&Count, false); run(&Count, true); run(&Count, true); return Count; }", 42);
+    expectClassExecution("class P { property C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } }; func run(C: *i32, B: bool): void { var A: P; if (B) { A = P(C); return; } } func Entry(): i32 { var Count = 0; run(&Count, false); run(&Count, true); run(&Count, true); return Count; }", 42);
   }
 
   // Discarded temporaries die at the full expression, including only the executed short-circuit operand.
   TEST(SemanticClassTest, LifecycleTemporaryAndShortCircuit)
   {
-    expectClassExecution("class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } func yes(): bool { return true; } }; func Entry(): i32 { var Count = 0; P(&Count); false && P(&Count).yes(); true && P(&Count).yes(); return Count; }", 42);
+    expectClassExecution("class P { property C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } func yes(): bool { return true; } }; func Entry(): i32 { var Count = 0; P(&Count); false && P(&Count).yes(); true && P(&Count).yes(); return Count; }", 42);
   }
 
   // A directly returned temporary transfers its lifetime to the receiving variable without an extra destruction.
   TEST(SemanticClassTest, LifecycleTransfersReturnedTemporary)
   {
-    expectClassExecution("class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 42; } }; func make(C: *i32): P { return P(C); } func Entry(): i32 { var Count = 0; { var A = make(&Count); } return Count; }", 42);
+    expectClassExecution("class P { property C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 42; } }; func make(C: *i32): P { return P(C); } func Entry(): i32 { var Count = 0; { var A = make(&Count); } return Count; }", 42);
   }
 
   // Value parameters have their own lifetime, independently of the original local object.
   TEST(SemanticClassTest, LifecycleOwnsValueParameters)
   {
-    expectClassExecution("class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } }; func use(A: P): void {} func Entry(): i32 { var Count = 0; { var A = P(&Count); use(A); } return Count; }", 42);
+    expectClassExecution("class P { property C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } }; func use(A: P): void {} func Entry(): i32 { var Count = 0; { var A = P(&Count); use(A); } return Count; }", 42);
   }
 
   // Replacing a whole object destroys the old value and transfers the new temporary into the same storage.
   TEST(SemanticClassTest, LifecycleDestroysReplacedValue)
   {
-    expectClassExecution("class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } }; func Entry(): i32 { var Count = 0; { var A = P(&Count); A = P(&Count); } return Count; }", 42);
+    expectClassExecution("class P { property C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } }; func Entry(): i32 { var Count = 0; { var A = P(&Count); A = P(&Count); } return Count; }", 42);
   }
 
   // Trivial nested aggregates omit cleanup flags while copies and replacement preserve field addresses.
   TEST(SemanticClassTest, LifecycleElidesTrivialAggregateCleanup)
   {
-    constexpr std::string_view Source = "class Leaf { field Value: i32 = 42; }; class Box { field Items: [Leaf; 2]; func __init__(): void { this.Items = [Leaf(), Leaf()]; } }; func Entry(): i32 { var A = Box(); const B = A; var Address = &A.Items[0].Value; A = Box(); return *Address; }";
+    constexpr std::string_view Source = "class Leaf { property Value: i32 = 42; }; class Box { property Items: [Leaf; 2]; func __init__(): void { this.Items = [Leaf(), Leaf()]; } }; func Entry(): i32 { var A = Box(); const B = A; var Address = &A.Items[0].Value; A = Box(); return *Address; }";
     expectCleanupFlags(Source, "Entry", 0);
     expectClassExecution(Source, 42);
   }
@@ -354,7 +354,7 @@ namespace ink::semantic::test
   // Returned and assigned temporaries transfer cleanup without leaving unused initialization flags.
   TEST(SemanticClassTest, LifecycleConsumedTemporariesHaveNoFlags)
   {
-    constexpr std::string_view Source = "class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } }; func make(C: *i32): P { return P(C); } func Entry(): i32 { var Count = 0; { var A = make(&Count); A = make(&Count); } return Count; }";
+    constexpr std::string_view Source = "class P { property C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 21; } }; func make(C: *i32): P { return P(C); } func Entry(): i32 { var Count = 0; { var A = make(&Count); A = make(&Count); } return Count; }";
     expectCleanupFlags(Source, "make", 0);
     expectCleanupFlags(Source, "Entry", 1);
     expectClassExecution(Source, 42);
@@ -363,7 +363,7 @@ namespace ink::semantic::test
   // Pointers and empty arrays do not own their destructible element type, but an explicit hook still requires cleanup.
   TEST(SemanticClassTest, LifecycleDistinguishesOwnedFieldsFromReferences)
   {
-    constexpr std::string_view Source = "class Item { func __del__(): void {} }; class Empty { field Items: [Item; 0] = []; }; class Link { field Next: *Item; func __init__(Next: *Item): void { this.Next = Next; } }; func Entry(): i32 { var Value = Item(); var Reference = Link(&Value); var Nothing = Empty(); return 42; }";
+    constexpr std::string_view Source = "class Item { func __del__(): void {} }; class Empty { property Items: [Item; 0] = []; }; class Link { property Next: *Item; func __init__(Next: *Item): void { this.Next = Next; } }; func Entry(): i32 { var Value = Item(); var Reference = Link(&Value); var Nothing = Empty(); return 42; }";
     expectCleanupFlags(Source, "Entry", 1);
     expectClassExecution(Source, 42);
   }
@@ -371,15 +371,15 @@ namespace ink::semantic::test
   // Synthesized destructors recursively clean nested fields and arrays without destroying construction temporaries twice.
   TEST(SemanticClassTest, LifecycleDestroysNestedArrays)
   {
-    expectClassExecution("class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 14; } }; class Box { field Items: [P; 3]; func __init__(C: *i32): void { this.Items = [P(C), P(C), P(C)]; } }; func Entry(): i32 { var Count = 0; { var A = Box(&Count); } return Count; }", 42);
+    expectClassExecution("class P { property C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 14; } }; class Box { property Items: [P; 3]; func __init__(C: *i32): void { this.Items = [P(C), P(C), P(C)]; } }; func Entry(): i32 { var Count = 0; { var A = Box(&Count); } return Count; }", 42);
   }
 
   // Compile-time construction and destruction execute the same function IR as ordinary calls.
   TEST(SemanticClassTest, LifecycleRunsAtCompileTime)
   {
-    expectClassExecution("class P { field C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 42; } }; comptime func build(): i32 { var Count = 0; { var A = P(&Count); } return Count; } func Entry(): i32 { comptime const N = build(); return N; }", 42);
-    expectClassExecution("class P { field X: i32; func __init__(N: i32): void { this.X = N; } }; comptime func build(): i32 { var A = P(42); return A.X; } func Entry(): i32 { comptime const N = build(); return N; }", 42);
-    expectClassExecution("class P { field X: i32; func __init__(N: i32): void { this.X = N; } }; func Entry(): i32 { comptime var A = P(42); return A.X; }", 42);
+    expectClassExecution("class P { property C: *i32; func __init__(C: *i32): void { this.C = C; } func __del__(): void { *this.C = *this.C + 42; } }; comptime func build(): i32 { var Count = 0; { var A = P(&Count); } return Count; } func Entry(): i32 { comptime const N = build(); return N; }", 42);
+    expectClassExecution("class P { property X: i32; func __init__(N: i32): void { this.X = N; } }; comptime func build(): i32 { var A = P(42); return A.X; } func Entry(): i32 { comptime const N = build(); return N; }", 42);
+    expectClassExecution("class P { property X: i32; func __init__(N: i32): void { this.X = N; } }; func Entry(): i32 { comptime var A = P(42); return A.X; }", 42);
   }
 
   // Invalid lifecycle signatures and explicit lifecycle member calls cannot bypass automatic ownership rules.
@@ -392,7 +392,7 @@ namespace ink::semantic::test
     expectClassDiagnostic("class P {}; func Entry(): void { var A = P(); A.__init__(); }", core::DiagnosticKind::SemanticInvalidMember);
     expectClassDiagnostic("class P { func bad(): void { __del__(this); } };", core::DiagnosticKind::SemanticInvalidMember);
     expectClassDiagnostic("class P { func __init__(): void {} func __init__(N: i32): void {} func bad(): void { __init__(this, 1); } };", core::DiagnosticKind::SemanticInvalidMember);
-    expectClassDiagnostic("class P { field __init__: i32; };", core::DiagnosticKind::SemanticInvalidClass);
+    expectClassDiagnostic("class P { property __init__: i32; };", core::DiagnosticKind::SemanticInvalidClass);
     expectClassDiagnostic("class P { class __del__ {}; };", core::DiagnosticKind::SemanticInvalidClass);
   }
 } // namespace ink::semantic::test

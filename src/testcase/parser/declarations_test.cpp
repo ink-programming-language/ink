@@ -326,7 +326,7 @@ namespace ink::parser::test
     const Case Cases[] = {
         {"comptime var x = 1;", ASTKind::VarDecl},
         {"comptime const x = 1;", ASTKind::VarDecl},
-        {"comptime [tag] field X: T;", ASTKind::FieldDecl},
+        {"comptime [tag] property X: T;", ASTKind::FieldDecl},
         {"comptime func f(): T;", ASTKind::FunctionDecl},
         {"comptime class C;", ASTKind::ClassDecl},
         {"comptime enum E {};", ASTKind::EnumDecl},
@@ -356,10 +356,10 @@ namespace ink::parser::test
     EXPECT_FALSE(Variable->binding()->isComptime());
   }
 
-  // Field tails retain none, typed, initializer-only and payload forms without accepting parameter defaults.
-  TEST_F(ParserTest, FieldForms)
+  // Property declarations retain none, typed, initializer-only and payload forms without accepting parameter defaults.
+  TEST_F(ParserTest, PropertyForms)
   {
-    const auto Result = read("field A; field B: T = 1; field C = 2; field D(x: T, y: U) = 3;");
+    const auto Result = read("property A; property B: T = 1; property C = 2; property D(x: T, y: U) = 3;");
     ASSERT_TRUE(Result.succeeded());
     EXPECT_EQ(cast<FieldDecl>(declaration(Result))->tail(), FieldTailKind::None);
     EXPECT_EQ(cast<FieldDecl>(declaration(Result, 1))->tail(), FieldTailKind::Typed);
@@ -367,16 +367,28 @@ namespace ink::parser::test
     const auto *Payload = cast<FieldDecl>(declaration(Result, 3));
     EXPECT_EQ(Payload->tail(), FieldTailKind::Payload);
     EXPECT_EQ(Payload->payload().size(), 2U);
-    for (const auto *Source : {"field A();", "field A(x: T = 1);", "field A(x: T...);"})
+    for (const auto *Source : {"property A();", "property A(x: T = 1);", "property A(x: T...);"})
     {
       EXPECT_FALSE(read(Source).succeeded()) << Source;
     }
   }
 
+  // Property introduces declarations while field is usable as a member, variable and expression name.
+  TEST_F(ParserTest, PropertyKeywordReplacesField)
+  {
+    const auto Result = read("property field: T; var field = 1; field;");
+    ASSERT_TRUE(Result.succeeded());
+    ASSERT_EQ(Result.Unit->root()->statements().size(), 3U);
+    EXPECT_EQ(cast<FieldDecl>(declaration(Result))->name().Text, "field");
+    EXPECT_EQ(cast<NameBindingPattern>(cast<VarDecl>(declaration(Result, 1))->binding())->name().Text, "field");
+    EXPECT_EQ(cast<NameExpr>(expression(Result, 2))->name().Text, "field");
+    EXPECT_FALSE(read("field X: T;").succeeded());
+  }
+
   // Class forward declarations and complete aggregate bodies preserve bases, implements and ordered comptime members.
   TEST_F(ParserTest, AggregateDeclarations)
   {
-    const auto Result = read("class Forward[T: type]; class C[T: type]: Base, implements I { field x: T; comptime if (ready) { field y; } func f(): T; }; enum E { field A; }; interface I { func f(): T; };");
+    const auto Result = read("class Forward[T: type]; class C[T: type]: Base, implements I { property x: T; comptime if (ready) { property y; } func f(): T; }; enum E { property A; }; interface I { func f(): T; };");
     ASSERT_TRUE(Result.succeeded());
     EXPECT_EQ(cast<ClassDecl>(declaration(Result))->form(), AggregateForm::Forward);
     const auto *Class = cast<ClassDecl>(declaration(Result, 1));

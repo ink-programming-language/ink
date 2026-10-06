@@ -50,6 +50,8 @@ V4 引入的声明可见性和 `KwPublic`、`KwPrivate` 固定 Token 编号 85�
 
 文本快照独立使用 `ast 4` 格式和 `ASTTextArchiveVersion`，函数构造字段中必须包含 `nativeSymbolKind = None`、`Import` 或 `Export`。每个节点的命名字段末尾必须包含 `comptime = true` 或 `comptime = false`；声明随后必须包含 `visibility = Default`、`visibility = Public` 或 `visibility = Private`。读入时拒绝缺失标记、非法枚举、非法布尔值及旧的 `ast 1` 至 `ast 3` 格式；文本与二进制恢复共用节点构造和校验逻辑。
 
+声明关键字 `property` 对应 `KwProperty`，使用新 Token 编号 88；原 `KwField` 编号 18 永久保留不用，包含该编号的旧快照会被拒绝。声明仍使用 `FieldDecl` 节点及既有字段布局。
+
 ## 失败与预算
 
 诊断定义按项目约定拆为两份：`src/include/ink/core/diagnostic_user.def` 仅包含用户源码错误；`src/include/ink/core/diagnostic_ice.def` 包含其他失败，包括资源超限、缺失输入、无效存档和不支持的版本。`diagnostic.def` 仅保留 Unknown 哨兵和两个定义表的聚合入口，已有诊断的编号和显示错误码保持不变。`SourceTooLarge` 和 `ParserLimitExceeded` 也归入 ICE。

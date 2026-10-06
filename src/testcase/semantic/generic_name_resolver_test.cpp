@@ -23,7 +23,7 @@ namespace ink::semantic::test
     protected:
       GenericNameResolverTest()
           : Frontend(Compilation),
-            Parsed(parser::parse(Frontend, tokenizer::tokenize(Frontend, "func F[T: type](Value: T): T { return Value; } func F[U: type](Value: U): U { return Value; } class Box[T: type] { field Item: T; }; class Other[T: type] { field Item: T; };"))),
+            Parsed(parser::parse(Frontend, tokenizer::tokenize(Frontend, "func F[T: type](Value: T): T { return Value; } func F[U: type](Value: U): U { return Value; } class Box[T: type] { property Item: T; }; class Other[T: type] { property Item: T; };"))),
             Context(Compilation),
             Factory(Context.irContext()),
             Resolver(Context)
