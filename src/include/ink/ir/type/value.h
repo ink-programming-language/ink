@@ -35,7 +35,7 @@ namespace ink::ir
       explicit Value(ValueKind Kind) noexcept;
 
     private:
-      ValueKind Kind;
+      ValueKind Kind = ValueKind::Bool;
   };
 } // namespace ink::ir
 
