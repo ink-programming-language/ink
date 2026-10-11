@@ -28,6 +28,7 @@ namespace ink::ir::test
   {
     const TypeContext Types(Target64);
     EXPECT_EQ(Types.targetContext(), Target64);
+    EXPECT_EQ(Types.getVoidType(), Types.getVoidType());
     EXPECT_EQ(Types.getBoolType(), Types.getBoolType());
     EXPECT_EQ(Types.getInt32Type(), Types.getIntegerType(32, true));
     EXPECT_EQ(Types.getUInt32Type(), Types.getIntegerType(32, false));
@@ -38,7 +39,8 @@ namespace ink::ir::test
     EXPECT_EQ(Types.getStringType(), Types.getStringType());
     EXPECT_EQ(Types.getIntegerType(16, true), nullptr);
     EXPECT_EQ(Types.getFloatType(16), nullptr);
-    const std::array<const Type *, 8> Builtins = {
+    const std::array<const Type *, 9> Builtins = {
+        Types.getVoidType(),
         Types.getBoolType(),
         Types.getInt32Type(),
         Types.getUInt32Type(),
@@ -78,6 +80,7 @@ namespace ink::ir::test
     ASSERT_NE(Pointer64, nullptr);
     EXPECT_EQ(Pointer32->size(), 4U);
     EXPECT_EQ(Pointer64->size(), 8U);
+    EXPECT_NE(Types64.getVoidType(), Other64.getVoidType());
     EXPECT_NE(Types64.getBoolType(), Other64.getBoolType());
     EXPECT_NE(Types64.getInt32Type(), Other64.getInt32Type());
     EXPECT_NE(Types64.getFloat32Type(), Other64.getFloat32Type());

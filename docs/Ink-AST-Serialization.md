@@ -66,7 +66,7 @@ V4 引入的声明可见性和 `KwPublic`、`KwPrivate` 固定 Token 编号 85�
 
 `src/testcase/parser/ast_serialization_test.cpp` 接入统一的 `ink_tests`，覆盖：
 
-- 现有 2,956 个 BNF 样例的往返恢复，比较 AST dump、全部 Token/payload、源码、解析状态、恢复记录及再次序列化的字节。
+- 现有 2,958 个 BNF 样例的往返恢复，比较 AST dump、全部 Token/payload、源码、解析状态、恢复记录及再次序列化的字节。
 - 所有已注册节点种类，包括独立构造的 10 种 missing/error 节点及其类型正确的父节点。
 - 普通表达式和语句的 `comptime` 标记、嵌套前缀范围，所有声明可见性，以及非法/缺失标记和旧二进制、文本版本的拒绝。
 - 原对象、原输入字节及生产方和接收方的前端服务均释放后的生命周期。

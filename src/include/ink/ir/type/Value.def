@@ -5,7 +5,7 @@
 // INK_VALUE(Kind, Name, FixedSize)
 // Intentionally included more than once. Sizes are in bytes, not host C++ object sizes.
 // std::nullopt means the size depends on the bit width, aggregate layout or target, requires template instantiation, or does not apply to this kind;
-// it is distinct from a valid zero-byte value such as an empty array.
+// it is distinct from a valid zero-byte value such as void or an empty array.
 INK_VALUE(Bool, "bool", 1)
 INK_VALUE(Integer, "integer", std::nullopt)
 INK_VALUE(Float, "float", std::nullopt)
@@ -28,3 +28,4 @@ INK_VALUE(ArrayConstant, "array_constant", std::nullopt)
 INK_VALUE(NullPointerConstant, "null_pointer_constant", std::nullopt)
 INK_VALUE(String, "string", std::nullopt)
 INK_VALUE(StringConstant, "string_constant", std::nullopt)
+INK_VALUE(Void, "void", 0)

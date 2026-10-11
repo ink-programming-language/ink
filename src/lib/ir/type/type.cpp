@@ -22,6 +22,7 @@ namespace ink::ir
     }
     switch (Value->kind())
     {
+      case ValueKind::Void:
       case ValueKind::Bool:
       case ValueKind::Integer:
       case ValueKind::Float:

@@ -10,6 +10,7 @@
 #include "ink/ir/type/pointer_type.h"
 #include "ink/ir/type/reference_type.h"
 #include "ink/ir/type/string_type.h"
+#include "ink/ir/type/void_type.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -37,6 +38,7 @@ namespace ink::ir
       const target::TargetContext &targetContext() const noexcept;
       bool owns(const Type *TypeValue) const noexcept;
 
+      const VoidType *getVoidType() const noexcept;
       const BoolType *getBoolType() const noexcept;
       const IntegerType *getInt32Type() const noexcept;
       const IntegerType *getUInt32Type() const noexcept;
@@ -79,6 +81,7 @@ namespace ink::ir
       bool validParameters(const std::vector<Parameter> &Parameters) const noexcept;
 
       const target::TargetContext Target;
+      VoidType Void;
       BoolType Bool;
       IntegerType Int32;
       IntegerType UInt32;

@@ -14,6 +14,11 @@ namespace ink::ir
     return PointeeType;
   }
 
+  bool PointerType::isOpaque() const noexcept
+  {
+    return PointeeType->kind() == ValueKind::Void;
+  }
+
   std::uint64_t PointerType::size() const noexcept
   {
     return PointerByteWidth;

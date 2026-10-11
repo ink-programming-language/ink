@@ -18,6 +18,33 @@ namespace ink::frontend::parser::test
     }
   } // namespace
 
+  // A missing comma preserves the void name expression before the next delimiter.
+  TEST_F(ParserTest, RecoveryMissingCommaBeforeVoid)
+  {
+    for (const char *Source : {"f(T void, *void); var kept = 42;", "f::[T void, **void]; var kept = 42;"})
+    {
+      SCOPED_TRACE(Source);
+      const auto Result = read(Source);
+      ASSERT_FALSE(Result.succeeded());
+      ASSERT_EQ(Result.Status, ParseStatus::Completed);
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      const auto *Value = expression(Result);
+      const auto Arguments = isa<CallExpr>(Value) ? cast<CallExpr>(Value)->arguments() : cast<GenericApplyExpr>(Value)->arguments();
+      ASSERT_EQ(Arguments.size(), 3U);
+      EXPECT_TRUE(isa<NameExpr>(Arguments[0].value()));
+      EXPECT_EQ(cast<NameExpr>(Arguments[1].value())->name().Text, "void");
+      EXPECT_TRUE(isa<UnaryExpr>(Arguments[2].value()));
+      const auto &Entries = Result.Unit->recoveryInfo().Entries;
+      ASSERT_EQ(Entries.size(), 1U);
+      EXPECT_EQ(Entries[0].Token.Expected, TokenKind::Comma);
+      EXPECT_EQ(Entries[0].Token.Status, ExpectStatus::Inserted);
+      EXPECT_FALSE(Entries[0].Skipped);
+      EXPECT_EQ(Entries[0].Token.Range.getBegin().getByteOffset(), std::string_view(Source).find("void"));
+      ASSERT_EQ(Result.Unit->root()->statements().size(), 2U);
+      expectKeptVariable(Result.Unit->root()->statements()[1]);
+    }
+  }
+
   // Each missing delimiter is inserted at the following structure without deleting any of its tokens.
   TEST_F(ParserTest, RecoveryInsertionSites)
   {

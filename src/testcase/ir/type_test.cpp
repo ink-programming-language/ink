@@ -25,6 +25,7 @@
 #include "ink/ir/type/struct_type.h"
 #include "ink/ir/type/type.h"
 #include "ink/ir/type/type_context.h"
+#include "ink/ir/type/void_type.h"
 
 #include <gtest/gtest.h>
 
@@ -77,6 +78,7 @@ namespace ink::ir::test
 
   static_assert(std::has_virtual_destructor_v<Value>);
   static_assert(std::has_virtual_destructor_v<Type>);
+  static_assert(!std::is_default_constructible_v<VoidType>);
   static_assert(!std::is_default_constructible_v<BoolType>);
   static_assert(!std::is_constructible_v<IntegerType, const target::TargetContext &, std::uint32_t, bool>);
   static_assert(!std::is_constructible_v<FloatType, const target::TargetContext &, std::uint32_t>);
@@ -376,7 +378,8 @@ namespace ink::ir::test
     ASSERT_NE(NullValue, nullptr);
     ASSERT_NE(StringValue, nullptr);
 
-    const std::array<const Value *, 16> Values = {
+    const std::array<const Value *, 17> Values = {
+        Types.getVoidType(),
         Integer,
         Float,
         Bool,
@@ -395,7 +398,8 @@ namespace ink::ir::test
         StringValue,
     };
     using Classifier = bool (*)(const Value *);
-    const std::array<Classifier, 16> Classifiers = {
+    const std::array<Classifier, 17> Classifiers = {
+        VoidType::classof,
         IntegerType::classof,
         FloatType::classof,
         BoolType::classof,
@@ -460,6 +464,7 @@ namespace ink::ir::test
   // Registry names distinguish types, generic declarations, basic blocks, instructions and constants while retaining an unknown fallback.
   TEST(IRTypeTest, ValueKindNamesCoverConcreteTypes)
   {
+    EXPECT_EQ(valueKindName(ValueKind::Void), "void");
     EXPECT_EQ(valueKindName(ValueKind::Integer), "integer");
     EXPECT_EQ(valueKindName(ValueKind::Float), "float");
     EXPECT_EQ(valueKindName(ValueKind::Bool), "bool");

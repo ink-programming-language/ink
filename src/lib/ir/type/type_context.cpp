@@ -69,7 +69,7 @@ namespace ink::ir
         Float64(Target, 64),
         String(Target)
   {
-    OwnedTypes.insert({&Bool, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64, &String});
+    OwnedTypes.insert({&Void, &Bool, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64, &String});
   }
 
   TypeContext::~TypeContext() noexcept = default;
@@ -82,6 +82,11 @@ namespace ink::ir
   bool TypeContext::owns(const Type *TypeValue) const noexcept
   {
     return OwnedTypes.find(TypeValue) != OwnedTypes.end();
+  }
+
+  const VoidType *TypeContext::getVoidType() const noexcept
+  {
+    return &Void;
   }
 
   const BoolType *TypeContext::getBoolType() const noexcept

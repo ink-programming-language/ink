@@ -63,6 +63,8 @@
 
 声明关键字为 `property`；`field` 不再保留，按普通标识符处理。
 
+`void`、`i32`、`bool` 等内建类型名称均按普通标识符识别，其类型含义由后续名称解析确定。`*void` 使用 `STAR` 和 `IDENTIFIER` 两个 token。
+
 ```ebnf
 KW_AS ::= "as" ;
 KW_BREAK ::= "break" ;

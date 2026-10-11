@@ -1,6 +1,50 @@
 #include "parser_test_support.h"
 namespace ink::frontend::parser::test
 {
+  // Void uses the same identifier token and name expression as other builtin types, preserving pointer syntax and source ranges.
+  TEST_F(ParserTest, VoidNameExpressionAndPointerPrefixes)
+  {
+    const auto Result = read("void; *void; **void; const Unit = void; Result::[void, *void]; comptime void; i32; bool;");
+    ASSERT_TRUE(Result.succeeded());
+    const auto ExpectVoidName = [&](const Expr *Value)
+    {
+      const auto *Name = dyn_cast<NameExpr>(Value);
+      ASSERT_NE(Name, nullptr);
+      EXPECT_EQ(Name->name().Text, "void");
+      const auto &Token = Result.Unit->input().token(Name->name().Id);
+      EXPECT_EQ(Token.Kind, TokenKind::Identifier);
+      EXPECT_EQ(Name->name().Range, Token.Span);
+    };
+    const auto *Void = cast<NameExpr>(expression(Result));
+    ExpectVoidName(Void);
+    EXPECT_EQ(Void->getSourceRange(), SourceRange::fromByteOffsets(0, 4));
+    EXPECT_EQ(Void->name().Range, Void->getSourceRange());
+    const auto *Pointer = cast<UnaryExpr>(expression(Result, 1));
+    EXPECT_EQ(Pointer->op(), TokenKind::Star);
+    ExpectVoidName(Pointer->operand());
+    const auto *DoublePointer = cast<UnaryExpr>(expression(Result, 2));
+    EXPECT_EQ(DoublePointer->op(), TokenKind::Star);
+    const auto *InnerPointer = cast<UnaryExpr>(DoublePointer->operand());
+    EXPECT_EQ(InnerPointer->op(), TokenKind::Star);
+    ExpectVoidName(InnerPointer->operand());
+    ExpectVoidName(cast<VarDecl>(declaration(Result, 3))->initializer());
+    const auto Arguments = cast<GenericApplyExpr>(expression(Result, 4))->arguments();
+    ASSERT_EQ(Arguments.size(), 2U);
+    ExpectVoidName(Arguments[0].value());
+    ExpectVoidName(cast<UnaryExpr>(Arguments[1].value())->operand());
+    ExpectVoidName(expression(Result, 5));
+    EXPECT_TRUE(expression(Result, 5)->isComptime());
+    EXPECT_EQ(Void->getKind(), expression(Result, 6)->getKind());
+    EXPECT_EQ(Void->getKind(), expression(Result, 7)->getKind());
+    std::size_t Children = 0;
+    forEachChild(Void, [&](const ASTNodeBase *)
+    {
+      ++Children;
+    });
+    EXPECT_EQ(Children, 0U);
+    EXPECT_NE(dumpAST(*Result.Unit).find("NameExpr"), std::string::npos);
+  }
+
   // Multiplication binds more tightly than addition and subtraction associates left.
   TEST_F(ParserTest, PrecedenceAndLeftAssociation)
   {

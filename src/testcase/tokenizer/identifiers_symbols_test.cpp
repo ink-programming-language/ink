@@ -31,6 +31,21 @@ namespace ink::frontend::tokenizer::test
     EXPECT_STREQ(tokenKindName(TokenKind::KwProperty), "KW_PROPERTY");
   }
 
+  // Builtin type names share ordinary identifier payloads, while pointer stars remain independent symbols.
+  TEST_F(TokenizerTest, BuiltinTypeNamesAreIdentifiers)
+  {
+    for (const char *Spelling : {"void", "i32", "bool", "void_value", "void2", "Void", "VOID"})
+    {
+      SCOPED_TRACE(Spelling);
+      const auto Buffer = lex(Spelling);
+      expectKinds(Buffer, {TokenKind::Identifier});
+      EXPECT_FALSE(lookupKeyword(Spelling));
+      ASSERT_TRUE(std::holds_alternative<IdentifierInfo>(Buffer.tokens()[0].Payload));
+      EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[0].Payload).Name, Spelling);
+    }
+    expectKinds(lex("*void **void"), {TokenKind::Star, TokenKind::Identifier, TokenKind::Star, TokenKind::Star, TokenKind::Identifier});
+  }
+
   // Identifier boundaries use XID_Start plus underscore and the union of both Clang XID tables.
   TEST_F(TokenizerTest, UnicodeIdentifierBoundaries)
   {

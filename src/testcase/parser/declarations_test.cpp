@@ -1,6 +1,39 @@
 #include "parser_test_support.h"
 namespace ink::frontend::parser::test
 {
+  // Void is available in ordinary and native return types, opaque pointer parameters and function type values.
+  TEST_F(ParserTest, VoidFunctionAndVariableTypes)
+  {
+    const auto Result = read("func done(Context: *void, Slot: **void): void { return; } import \"C\" func release(Context: *void): void; var callback: func(*void): void; var context: *void;");
+    ASSERT_TRUE(Result.succeeded());
+    for (std::size_t Index : {0U, 1U})
+    {
+      const auto *Function = cast<FunctionDecl>(declaration(Result, Index));
+      EXPECT_EQ(cast<NameExpr>(Function->returnType()->expression())->name().Text, "void");
+      EXPECT_EQ(cast<NameExpr>(cast<UnaryExpr>(Function->parameters()[0].type()->expression())->operand())->name().Text, "void");
+    }
+    const auto *Done = cast<FunctionDecl>(declaration(Result));
+    EXPECT_EQ(cast<ReturnStmt>(Done->body()->statements()[0])->value(), nullptr);
+    const auto *Callback = cast<FunctionTypeExpr>(cast<VarDecl>(declaration(Result, 2))->type()->expression());
+    EXPECT_EQ(cast<NameExpr>(Callback->returnType()->expression())->name().Text, "void");
+    EXPECT_EQ(cast<NameExpr>(cast<UnaryExpr>(Callback->parameters()[0].type()->expression())->operand())->name().Text, "void");
+    EXPECT_EQ(cast<NameExpr>(cast<UnaryExpr>(cast<VarDecl>(declaration(Result, 3))->type()->expression())->operand())->name().Text, "void");
+  }
+
+  // Void follows ordinary identifier syntax in declaration, parameter and member names.
+  TEST_F(ParserTest, VoidIsAcceptedAsIdentifier)
+  {
+    for (const char *Source : {"var void = 1;", "func void(): void {}", "func f(void: T): void {}", "class void;", "object.void;", "property void: T;"})
+    {
+      SCOPED_TRACE(Source);
+      const auto Result = read(Source);
+      ASSERT_TRUE(Result.succeeded());
+      EXPECT_EQ(Result.Status, ParseStatus::Completed);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+      EXPECT_TRUE(Result.Unit->recoveryInfo().Entries.empty());
+    }
+  }
+
   // Explicit public/private visibility is retained separately from the default on declarations and nested definitions.
   TEST_F(ParserTest, DeclarationVisibilityModifiers)
   {

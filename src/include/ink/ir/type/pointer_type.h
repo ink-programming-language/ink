@@ -11,7 +11,11 @@ namespace ink::ir
   class PointerType final : public Type
   {
     public:
+      // For *void this returns the void marker, not the unknown object's storage layout.
       const Type *pointeeType() const noexcept;
+      // *void carries an unknown object address; it cannot be dereferenced or indexed.
+      // Other pointers, including **void, retain a known pointee type.
+      bool isOpaque() const noexcept;
       std::uint64_t size() const noexcept override;
       std::uint64_t alignment() const noexcept override;
       static bool classof(const Value *Value) noexcept;

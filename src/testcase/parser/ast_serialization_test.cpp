@@ -6,6 +6,7 @@
 #include <gmock/gmock.h>
 #include <spdlog/logger.h>
 #include <spdlog/sinks/stdout_sinks.h>
+#include <algorithm>
 #include <array>
 #include <csignal>
 #include <cstdlib>
@@ -237,6 +238,32 @@ namespace ink::frontend::parser::test
 #endif
     }
   } // namespace
+
+  // Void name expressions, pointer syntax and comptime ranges survive snapshots using the existing identifier token ID.
+  TEST_F(ParserTest, ASTSerializationVoidTypes)
+  {
+    const auto Parsed = read("void; *void; **void; comptime void; Result::[void]; func done(Context: *void): void { return; }");
+    ASSERT_TRUE(Parsed.succeeded());
+    expectRoundTrip(Parsed, Frontend);
+    const auto Simple = trySerializeAST(read("void; yield void;"));
+    ASSERT_TRUE(Simple.succeeded()) << Simple.Message;
+    std::vector<std::uint64_t> TokenIds;
+    for (const auto &Entry : records(Simple.Bytes))
+    {
+      if (Entry.Code == 4)
+      {
+        TokenIds.push_back(Entry.Values[0]);
+      }
+    }
+    EXPECT_EQ(TokenIds, (std::vector<std::uint64_t>{1, 40, 32, 1, 40, 0}));
+    const auto Loaded = tryDeserializeAST(Frontend, Simple.Bytes);
+    ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
+    const auto &Name = cast<NameExpr>(expression(Loaded.Parsed))->name();
+    EXPECT_EQ(Name.Text, "void");
+    EXPECT_EQ(Name.Id, 0U);
+    EXPECT_EQ(Name.Range, SourceRange::fromByteOffsets(0, 4));
+    EXPECT_EQ(Loaded.Parsed.Unit->input().token(Name.Id).Kind, TokenKind::Identifier);
+  }
 
   // Text snapshots reject truncation, unknown enums/fields and bounded mutations through explicit status.
   TEST_F(ParserTest, ASTTextSerializationRejectsMalformedInput)
