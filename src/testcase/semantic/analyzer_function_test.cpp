@@ -2,7 +2,7 @@
 #include "ink/semantic/context.h"
 #include "../core/environment_test_support.h"
 
-#include "ink/parser/parser.h"
+#include "ink/frontend/parser/parser.h"
 #include "ink/ir/ir_builder.h"
 #include "ink/execution/engine/execution_engine.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
@@ -20,12 +20,12 @@ namespace ink::semantic::test
     class FunctionAnalysis
     {
       public:
-        explicit FunctionAnalysis(std::string_view Source, parser::ParseLimits Limits = {})
-            : Frontend(Compilation),
-              Parsed(parser::parse(Frontend, tokenizer::tokenize(Frontend, std::string(Source)), Limits)),
-              Context(Compilation)
+        explicit FunctionAnalysis(std::string_view Source, frontend::parser::ParseLimits Limits = {})
+            : Frontend(Sources, DiagnosticEngine),
+              Parsed(frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, std::string(Source)), Limits)),
+              Context(Sources, DiagnosticEngine)
         {
-          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+          DiagnosticEngine.addConsumer(Diagnostics);
         }
 
         Module *analyze()
@@ -38,9 +38,10 @@ namespace ink::semantic::test
           return NameResolver(Context).lookupMember(Owner, Context.namePool().find(Text));
         }
 
-        core::CompilationContext Compilation;
-        core::FrontendContext Frontend;
-        parser::ParseResult Parsed;
+        core::SourceManager Sources;
+        core::DiagnosticEngine DiagnosticEngine;
+        frontend::FrontendContext Frontend;
+        frontend::parser::ParseResult Parsed;
         SemanticContext Context;
         core::CollectingDiagnosticConsumer Diagnostics;
     };
@@ -283,7 +284,7 @@ namespace ink::semantic::test
     EXPECT_EQ(Input.analyze(), nullptr);
     const auto &Diagnostics = Input.Diagnostics.diagnostics();
     ASSERT_EQ(Diagnostics.size(), 2U);
-    const auto &Declaration = static_cast<const parser::FunctionDecl &>(*static_cast<const parser::DeclStmt *>(Input.Parsed.Unit->root()->statements()[0])->declaration());
+    const auto &Declaration = static_cast<const frontend::parser::FunctionDecl &>(*static_cast<const frontend::parser::DeclStmt *>(Input.Parsed.Unit->root()->statements()[0])->declaration());
     for (std::size_t Index = 0; Index < Diagnostics.size(); ++Index)
     {
       const auto &Diagnostic = Diagnostics[Index];
@@ -627,7 +628,7 @@ namespace ink::semantic::test
   {
     core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_TYPE_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set(nullptr));
-    parser::ParseLimits Limits;
+    frontend::parser::ParseLimits Limits;
     Limits.MaxNestingDepth = 1024;
     FunctionAnalysis Input(std::string("import \"C\" func f(x: ") + std::string(260, '*') + "u8): void;", Limits);
     ASSERT_TRUE(Input.Parsed.succeeded());

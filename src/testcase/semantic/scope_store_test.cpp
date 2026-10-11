@@ -31,8 +31,9 @@ namespace ink::semantic::test
   // A later resolver resumes a saved member scope and observes the exact bindings created by a destroyed resolver.
   TEST(SemanticScopeStoreTest, PreservesBindingsAfterResolverDestruction)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     Module *Owner = Builder.createModule(Context.namePool().intern("Owner"));
     ASSERT_NE(Owner, nullptr);
@@ -64,8 +65,9 @@ namespace ink::semantic::test
   // Nested module analysis shares root bindings while keeping module locals and each resolver's current scope independent.
   TEST(SemanticScopeStoreTest, KeepsModuleCursorsAndLocalsIndependent)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     Module *First = Builder.createModule(Context.namePool().intern("First"));
     Module *Second = Builder.createModule(Context.namePool().intern("Second"));
@@ -99,9 +101,10 @@ namespace ink::semantic::test
   // Starting from a saved scope uses that scope's context and rejects targets from another store.
   TEST(SemanticScopeStoreTest, ResumesWithTheStartingScopesContext)
   {
-    core::CompilationContext Compilation;
-    SemanticContext First(Compilation);
-    SemanticContext Second(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext First(Sources, DiagnosticEngine);
+    SemanticContext Second(Sources, DiagnosticEngine);
     IRBuilder FirstBuilder(First.irContext());
     IRBuilder SecondBuilder(Second.irContext());
     Module *Local = FirstBuilder.createModule(First.namePool().intern("Local"));
@@ -124,8 +127,9 @@ namespace ink::semantic::test
   // Destroying a value clears all aliases and its member index even when a new value reuses the same address.
   TEST(SemanticScopeStoreTest, RemovesDestroyedValueBindingsAndMemberScope)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     NameResolver Resolver(Context);
     std::optional<ReusableValue> Owner(std::in_place, Context);
     const void *Address = &*Owner;
@@ -153,8 +157,9 @@ namespace ink::semantic::test
   // Removing one overload preserves surviving candidates and binding identity; destroying the final target removes the binding.
   TEST(SemanticScopeStoreTest, RemovesOnlyDestroyedOverloadCandidates)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
@@ -182,8 +187,9 @@ namespace ink::semantic::test
   // A parentless snapshot retains visible targets when later declarations change its original scope chain.
   TEST(SemanticScopeStoreTest, SnapshotFreezesVisibleNamesAcrossLaterShadowing)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name X = Context.namePool().intern("X");
@@ -217,8 +223,9 @@ namespace ink::semantic::test
   // Snapshotted overload sets keep their original candidates and unregister destroyed targets without adding later overloads.
   TEST(SemanticScopeStoreTest, SnapshotFreezesOverloadsAndTracksTargetDestruction)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
@@ -260,9 +267,10 @@ namespace ink::semantic::test
   // Snapshot creation rejects a scope from another store without importing its names or targets.
   TEST(SemanticScopeStoreTest, SnapshotRejectsForeignScopes)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
-    SemanticContext Foreign(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
+    SemanticContext Foreign(Sources, DiagnosticEngine);
     EXPECT_EQ(Context.scopeStore().snapshotScope(Foreign.scopeStore().rootScope()), nullptr);
     EXPECT_EQ(Foreign.scopeStore().snapshotScope(Context.scopeStore().rootScope()), nullptr);
     EXPECT_EQ(Context.scopeStore().rootScope().parent(), nullptr);

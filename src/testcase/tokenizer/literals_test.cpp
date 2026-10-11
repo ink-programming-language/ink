@@ -1,6 +1,6 @@
 #include "tokenizer_test_support.h"
 
-namespace ink::tokenizer::test
+namespace ink::frontend::tokenizer::test
 {
   // Only an r/R immediately at a token start forms a raw literal prefix.
   TEST_F(TokenizerTest, LiteralPrefixBoundaries)
@@ -148,4 +148,4 @@ namespace ink::tokenizer::test
     EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[3].Payload).Decoded, "/*");
     EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[4].Payload).Decoded, std::string(1, '\0'));
   }
-} // namespace ink::tokenizer::test
+} // namespace ink::frontend::tokenizer::test

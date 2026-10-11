@@ -1,9 +1,9 @@
 #include "parser_test_support.h"
-#include "ink/tokenizer/unicode.h"
+#include "ink/frontend/tokenizer/unicode.h"
 #include <iterator>
 #include <random>
 
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   namespace
   {
@@ -562,4 +562,4 @@ namespace ink::parser::test
       EXPECT_EQ(read(std::string(Region.Prefix) + Unicode + Region.Suffix, Limits).Status, ParseStatus::Completed);
     }
   }
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

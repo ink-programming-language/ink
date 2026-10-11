@@ -1,5 +1,5 @@
 #include "parser_test_support.h"
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   // Multiplication binds more tightly than addition and subtraction associates left.
   TEST_F(ParserTest, PrecedenceAndLeftAssociation)
@@ -184,4 +184,4 @@ namespace ink::parser::test
       EXPECT_TRUE(read("a " + std::string(Op) + " b;").succeeded()) << Op;
     }
   }
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

@@ -1,5 +1,5 @@
 #include "parser_test_support.h"
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   // Explicit public/private visibility is retained separately from the default on declarations and nested definitions.
   TEST_F(ParserTest, DeclarationVisibilityModifiers)
@@ -446,4 +446,4 @@ namespace ink::parser::test
       EXPECT_FALSE(read(Source).succeeded());
     }
   }
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

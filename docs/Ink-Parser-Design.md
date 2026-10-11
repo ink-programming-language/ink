@@ -532,19 +532,27 @@ func test(): int {
 
 ## 16 文件组织与实现顺序
 
-| 建议文件 | 内容 |
+公共头文件以 `src/include/ink/frontend/parser` 为根，AST 类声明在其 `ast` 子目录中按每个 class 一个 snake_case 头文件组织，共 80 个类：64 个具体节点、7 个基类和 9 个辅助记录。例如 ASTNodeBase、BinaryExpr 和 Parameter 分别定义在 `ast/ast_node_base.h`、`ast/binary_expr.h` 和 `ast/parameter.h`。这些类型仍位于 `ink::frontend::parser`，类名、公开 API、继承关系和 `ASTNodes.def` 的节点 ID 保持不变。
+
+`ast.h` 保留全部 AST 声明的聚合入口；调用方也可直接包含所需类的头文件，例如 `ink/frontend/parser/ast/binary_expr.h`。只需要类前向声明时使用 `ast/fwd.h`，使用类型转换工具时包含 `ast/cast.h`。`ast_context.h`、`ast_kind.h`、`ast_visitor.h` 和 `ast_walker.h` 仍保留在 parser 根目录；实现文件仍位于 `src/lib/frontend/parser`。
+
+| 当前文件 | 内容 |
 | --- | --- |
-| ASTNodes.def、ASTKind.h | 节点注册、种类枚举和分类 |
-| ASTNode.h、Expr.h、Stmt.h、Decl.h、Pattern.h | 节点基类与具体声明 |
-| ASTContext.h 与 cpp | 分配、数组存储、析构和检查点 |
-| ASTVisitor.h、ASTWalker.h 与 cpp | 种类分派与遍历 |
-| ASTChildren.cpp、ASTVerifier.cpp、ASTDump.cpp | 子节点枚举、结构验证与稳定 dump |
-| TokenCursor.h 与 cpp | Token 访问和游标检查点 |
-| Parser.h、Parser.cpp | 公共接口、模块入口和共享状态 |
-| ParserExpr.cpp、ParserType.cpp | 表达式与类型语法 |
-| ParserStmt.cpp、ParserDecl.cpp、ParserPattern.cpp | 语句、声明与模式 |
-| ParserRecovery.cpp、ParserTransaction.cpp | 恢复策略和试探事务 |
-| ParserDiagnosticEmitter.h 与 cpp | 连接已有 DiagnosticEngine |
+| ASTNodes.def、ast_kind.h | 节点注册、种类枚举和分类 |
+| ast.h | AST 声明的聚合入口 |
+| ast/*.h 中各类对应的头文件 | 64 个具体节点、7 个基类和 9 个辅助记录，每个 class 独立定义 |
+| ast/types.h | 公共别名、NameToken、RestBinding 和 7 个枚举 |
+| ast/fwd.h | AST 类前向声明 |
+| ast/cast.h | isa、dyn_cast 和 cast 类型转换工具 |
+| ast_context.h、ast_context.cpp | 分配、数组存储、析构和检查点 |
+| ast_visitor.h、ast_walker.h、ast_walker.cpp | 种类分派与遍历 |
+| ast_children.cpp、ast_verifier.cpp、ast_dump.cpp | 子节点枚举、结构验证与稳定 dump |
+| token_cursor.h、token_cursor.cpp | Token 访问和游标检查点 |
+| parser.h、parser.cpp | 公共接口、模块入口和共享状态 |
+| parser_expr.cpp、parser_type.cpp | 表达式与类型语法 |
+| parser_stmt.cpp、parser_decl.cpp、parser_pattern.cpp | 语句、声明与模式 |
+| parser_recovery.cpp、parser_transaction.cpp | 恢复策略和试探事务 |
+| parser_diagnostic_emitter.h、parser_diagnostic_emitter.cpp | 连接已有 DiagnosticEngine |
 
 第一阶段完成 ASTKind、ASTContext、Visitor、Walker、TokenCursor 和诊断适配，验证对象生命周期与分派契约。第二阶段完成名称、字面量、前缀、后缀、二元、条件、列表和赋值条目。第三阶段完成块、控制流、声明与函数。第四阶段完成类型位置、模式、属性和导入等公共前缀处理。
 

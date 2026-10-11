@@ -1,6 +1,6 @@
 #include "parser_test_support.h"
 
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   namespace
   {
@@ -38,4 +38,4 @@ namespace ink::parser::test
 
   INSTANTIATE_TEST_SUITE_P(GrammarBranches, ParserGrammarCorpusTest, testing::ValuesIn(GrammarBranchCases), grammarCaseName);
   INSTANTIATE_TEST_SUITE_P(GrammarCombinations, ParserGrammarCorpusTest, testing::ValuesIn(GrammarCombinationCases), grammarCaseName);
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

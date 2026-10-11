@@ -1,6 +1,6 @@
 #include "ink/execution/engine/execution_engine.h"
 #include "ink/ir/function/function.h"
-#include "ink/parser/parser.h"
+#include "ink/frontend/parser/parser.h"
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/context.h"
 #include "ink/semantic/module_import.h"
@@ -21,21 +21,21 @@ namespace ink::semantic::test
     class ModuleAnalysis final
     {
       public:
-        explicit ModuleAnalysis(std::initializer_list<std::pair<std::string_view, std::string_view>> Sources)
-            : Frontend(Compilation),
-              Context(Compilation)
+        explicit ModuleAnalysis(std::initializer_list<std::pair<std::string_view, std::string_view>> ModuleSources)
+            : Frontend(Sources, DiagnosticEngine),
+              Context(Sources, DiagnosticEngine)
         {
-          Compilation.diagnosticEngine().addConsumer(Diagnostics);
-          for (const auto &[Name, Source] : Sources)
+          DiagnosticEngine.addConsumer(Diagnostics);
+          for (const auto &[Name, Source] : ModuleSources)
           {
             Names.emplace_back(Name);
-            Parsed.push_back(parser::parse(Frontend, tokenizer::tokenize(Frontend, std::string(Source))));
+            Parsed.push_back(frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, std::string(Source))));
           }
         }
 
         bool parsed() const
         {
-          return std::all_of(Parsed.begin(), Parsed.end(), [](const parser::ParseResult &Input)
+          return std::all_of(Parsed.begin(), Parsed.end(), [](const frontend::parser::ParseResult &Input)
                              {
                                return Input.succeeded();
                              });
@@ -85,10 +85,11 @@ namespace ink::semantic::test
           EXPECT_EQ(Result.Value.integer().bits().words().front(), Expected);
         }
 
-        core::CompilationContext Compilation;
-        core::FrontendContext Frontend;
+        core::SourceManager Sources;
+        core::DiagnosticEngine DiagnosticEngine;
+        frontend::FrontendContext Frontend;
         std::vector<std::string> Names;
-        std::vector<parser::ParseResult> Parsed;
+        std::vector<frontend::parser::ParseResult> Parsed;
         SemanticContext Context;
         core::CollectingDiagnosticConsumer Diagnostics;
     };
@@ -296,7 +297,7 @@ namespace ink::semantic::test
   // Relative level one starts in the importing file's package and higher levels ascend its parents.
   TEST(SemanticModuleImportTest, ResolvesRelativeImportsWithinSourceRoot)
   {
-    const parser::NameToken Path[] = {{parser::InvalidTokenId, "helper", {}}};
+    const frontend::parser::NameToken Path[] = {{frontend::parser::InvalidTokenId, "helper", {}}};
     EXPECT_EQ(resolveImportModuleName("package.child.main", Path, 1), "package.child.helper");
     EXPECT_EQ(resolveImportModuleName("package.child.main", Path, 2), "package.helper");
     EXPECT_TRUE(resolveImportModuleName("package.child.main", Path, 3).empty());
@@ -304,7 +305,7 @@ namespace ink::semantic::test
     EXPECT_TRUE(resolveImportModuleName("package..main", Path, 1).empty());
     EXPECT_TRUE(resolveImportModuleName(".main", Path, 1).empty());
     EXPECT_EQ(resolveImportModuleName("ignored", Path), "helper");
-    const parser::NameToken Invalid[] = {{parser::InvalidTokenId, "../escape", {}}};
+    const frontend::parser::NameToken Invalid[] = {{frontend::parser::InvalidTokenId, "../escape", {}}};
     EXPECT_TRUE(resolveImportModuleName("package.main", Invalid, 1).empty());
     ModuleAnalysis Input({
         {"package.child.app", "from ..helper import answer; func main(): i32 { return answer(); }"},

@@ -1,10 +1,10 @@
 # AST 二进制序列化
 
-实现入口是 `src/include/ink/parser/ast_serialization.h`，由 `ink::parser` 提供：
+实现入口是 `src/include/ink/frontend/parser/ast_serialization.h`，通过 `ink::frontend` 链接，API 位于 `ink::frontend::parser`：
 
 ```cpp
-ASTSerializeResult serializeAST(core::FrontendContext &Context, const ParseResult &Parsed, ASTArchiveLimits Limits = {});
-ASTDeserializeResult deserializeAST(core::FrontendContext &Context, std::string_view Bytes, ASTArchiveLimits Limits = {});
+ASTSerializeResult serializeAST(frontend::FrontendContext &Context, const ParseResult &Parsed, ASTArchiveLimits Limits = {});
+ASTDeserializeResult deserializeAST(frontend::FrontendContext &Context, std::string_view Bytes, ASTArchiveLimits Limits = {});
 ```
 
 保存范围为完整的语法快照：全部 AST 节点字段、嵌入记录、源码名称和原始字节、Token 及解码后的 payload、语法恢复记录、`ParseStatus` 和 `HasSyntaxErrors`。不包含声明索引、符号表、语义绑定、实例结果或诊断消费者中已经输出的诊断。
@@ -21,7 +21,7 @@ Reader 要求子节点引用指向已经恢复的节点，并校验具体类型�
 
 `ast_serialization_fields.def` 按构造函数实参顺序描述全部 64 种节点和 9 种嵌入记录，读写共享字段定义。每个节点的构造字段后额外保存共有的 `comptime` 布尔标记；所有 `Decl` 子类再保存 `DeclarationVisibility`，固定编码为 `Default=0`、`Public=1`、`Private=2`。嵌入记录没有这些标记。`Default` 保留源码未显式修饰的事实，由语义层按 public 解释；AST dump 显示 `Visibility=Default/Public/Private`，结构验证拒绝其他枚举值。`NameToken`、`RestBinding`、范围、可选值和数组有独立编码。新增 AST 节点而遗漏字段定义会导致编译失败。
 
-恢复的名称文本存放在新的 ASTContext；源码和 Token/payload 由恢复的 TokenBuffer 持有。原 ParseResult、原编译上下文、输入字节和接收方上下文释放后，恢复的 ParsedUnit 仍然有效。成功时源码注册到接收方 SourceManager，获得新的 SourceId；行起始位置由原始源码重新计算。
+恢复的名称文本存放在新的 ASTContext；源码和 Token/payload 由恢复的 TokenBuffer 持有。原 ParseResult、输入字节以及生产方和接收方的源码管理器、诊断引擎和前端上下文释放后，恢复的 ParsedUnit 仍然有效。成功时源码注册到接收方 SourceManager，获得新的 SourceId；行起始位置由原始源码重新计算。
 
 Tokenizer 的 `TokenizedBuffer::fromSnapshot` 校验源码大小、成功源码的 UTF-8/NUL/BOM 规则、Token 顺序和范围、EOF 契约、种类与 payload 匹配、进制、字符串模式和 Unicode 标量。检查成功后才注册源码。它不会重新运行词法分析，不保证重新推导并比对每个 Token 的词法内容。
 
@@ -69,7 +69,7 @@ V4 引入的声明可见性和 `KwPublic`、`KwPrivate` 固定 Token 编号 85�
 - 现有 2,956 个 BNF 样例的往返恢复，比较 AST dump、全部 Token/payload、源码、解析状态、恢复记录及再次序列化的字节。
 - 所有已注册节点种类，包括独立构造的 10 种 missing/error 节点及其类型正确的父节点。
 - 普通表达式和语句的 `comptime` 标记、嵌套前缀范围，所有声明可见性，以及非法/缺失标记和旧二进制、文本版本的拒绝。
-- 原对象、原输入字节和两个编译上下文均释放后的生命周期。
+- 原对象、原输入字节及生产方和接收方的前端服务均释放后的生命周期。
 - Unicode 名称、各进制、字符、四种字符串模式、解码后的 NUL、换行索引。
 - 解析错误、词法失败、取消、资源耗尽和 10,000 层左结合表达式。
 - LLVM 通用 BitstreamReader 对输出容器的独立读取。

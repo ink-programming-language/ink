@@ -1,7 +1,7 @@
 #include "ink/execution/engine/execution_engine.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/alloca_instruction.h"
-#include "ink/parser/parser.h"
+#include "ink/frontend/parser/parser.h"
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/context.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
@@ -20,11 +20,11 @@ namespace ink::semantic::test
     {
       public:
         explicit ClassAnalysis(std::string_view Source)
-            : Frontend(Compilation),
-              Parsed(parser::parse(Frontend, tokenizer::tokenize(Frontend, std::string(Source)))),
-              Context(Compilation)
+            : Frontend(Sources, DiagnosticEngine),
+              Parsed(frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, std::string(Source)))),
+              Context(Sources, DiagnosticEngine)
         {
-          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+          DiagnosticEngine.addConsumer(Diagnostics);
         }
 
         ir::Module *analyze()
@@ -33,9 +33,10 @@ namespace ink::semantic::test
           return Analyzer{}.analyzeModules(Context, std::span<const Analyzer::ModuleInput>(&Input, 1), "main");
         }
 
-        core::CompilationContext Compilation;
-        core::FrontendContext Frontend;
-        parser::ParseResult Parsed;
+        core::SourceManager Sources;
+        core::DiagnosticEngine DiagnosticEngine;
+        frontend::FrontendContext Frontend;
+        frontend::parser::ParseResult Parsed;
         SemanticContext Context;
         core::CollectingDiagnosticConsumer Diagnostics;
     };
@@ -239,16 +240,16 @@ namespace ink::semantic::test
   // In-place dunder names remain distinct from snapshot operations, and short-circuit operators expose no overload hook.
   TEST(SemanticClassTest, DefinesStableOperatorMethodMapping)
   {
-    EXPECT_EQ(operatorMethodName(tokenizer::TokenKind::Plus, OperatorMethodKind::Binary), "__add__");
-    EXPECT_EQ(operatorMethodName(tokenizer::TokenKind::PlusAssign, OperatorMethodKind::InPlace), "__iadd__");
-    EXPECT_EQ(operatorMethodName(tokenizer::TokenKind::Minus, OperatorMethodKind::Unary), "__neg__");
-    EXPECT_TRUE(operatorMethodName(tokenizer::TokenKind::AmpAmp, OperatorMethodKind::Binary).empty());
+    EXPECT_EQ(operatorMethodName(frontend::tokenizer::TokenKind::Plus, OperatorMethodKind::Binary), "__add__");
+    EXPECT_EQ(operatorMethodName(frontend::tokenizer::TokenKind::PlusAssign, OperatorMethodKind::InPlace), "__iadd__");
+    EXPECT_EQ(operatorMethodName(frontend::tokenizer::TokenKind::Minus, OperatorMethodKind::Unary), "__neg__");
+    EXPECT_TRUE(operatorMethodName(frontend::tokenizer::TokenKind::AmpAmp, OperatorMethodKind::Binary).empty());
     for (const auto &Mapping : OperatorMethodMappings)
     {
       EXPECT_EQ(operatorMethodName(Mapping.Operator, Mapping.Kind), Mapping.Name);
       EXPECT_EQ(operatorMethodEnabled(Mapping.Operator, Mapping.Kind), Mapping.Kind == OperatorMethodKind::Binary || Mapping.Kind == OperatorMethodKind::Unary);
     }
-    EXPECT_EQ(operatorMethodName(tokenizer::TokenKind::Plus, OperatorMethodKind::Reflected), "__radd__");
+    EXPECT_EQ(operatorMethodName(frontend::tokenizer::TokenKind::Plus, OperatorMethodKind::Reflected), "__radd__");
     EXPECT_EQ(specialMethodName(SpecialMethodKind::GetItem), "__getitem__");
     EXPECT_EQ(specialMethodName(SpecialMethodKind::SetItem), "__setitem__");
     EXPECT_EQ(specialMethodName(SpecialMethodKind::Call), "__call__");
@@ -269,13 +270,14 @@ namespace ink::semantic::test
   // Imported class names can appear in signatures and preserve their defining module's methods and private checks.
   TEST(SemanticClassTest, ImportsClassTypesAcrossModules)
   {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    auto Library = parser::parse(Frontend, tokenizer::tokenize(Frontend, "class P { property X: i32 = 40; func add(N: i32): i32 { this.X = this.X + N; return this.X; }  func __init__(): void {  }  func __init__(InitialX: i32): void { this.X = InitialX; } };"));
-    auto Main = parser::parse(Frontend, tokenizer::tokenize(Frontend, "from library import P; func read(A: P): i32 { return A.X; } func Entry(): i32 { var A = P(); A.add(2); return read(A); }"));
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Library = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "class P { property X: i32 = 40; func add(N: i32): i32 { this.X = this.X + N; return this.X; }  func __init__(): void {  }  func __init__(InitialX: i32): void { this.X = InitialX; } };"));
+    auto Main = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "from library import P; func read(A: P): i32 { return A.X; } func Entry(): i32 { var A = P(); A.add(2); return read(A); }"));
     ASSERT_TRUE(Library.succeeded());
     ASSERT_TRUE(Main.succeeded());
-    SemanticContext Context(Compilation);
+    SemanticContext Context(Sources, DiagnosticEngine);
     const Analyzer::ModuleInput Inputs[] = {{"main", &Main}, {"library", &Library}};
     auto *Module = Analyzer{}.analyzeModules(Context, Inputs, "main");
     ASSERT_NE(Module, nullptr);

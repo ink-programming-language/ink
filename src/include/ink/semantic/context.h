@@ -1,16 +1,16 @@
 #ifndef INK_SEMANTIC_CONTEXT_H
 #define INK_SEMANTIC_CONTEXT_H
 
-#include "ink/core/context.h"
+#include "ink/frontend/context.h"
 
 namespace ink::semantic
 {
   // The dispatch skeleton borrows source and diagnostic services without owning IR or execution state.
-  class SemanticContext final : public core::FrontendContext
+  class SemanticContext final : public frontend::FrontendContext
   {
     public:
-      explicit SemanticContext(core::CompilationContext &Compilation)
-          : core::FrontendContext(Compilation)
+      explicit SemanticContext(core::SourceManager &Sources, core::DiagnosticEngine &Diagnostics)
+          : frontend::FrontendContext(Sources, Diagnostics)
       {
       }
 

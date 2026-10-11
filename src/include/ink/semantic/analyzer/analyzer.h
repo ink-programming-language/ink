@@ -1,16 +1,16 @@
 #ifndef INK_SEMANTIC_ANALYZER_ANALYZER_H
 #define INK_SEMANTIC_ANALYZER_ANALYZER_H
 
-namespace ink::parser
+namespace ink::frontend::parser
 {
   struct ParseResult;
   class ASTNodeBase;
   class Stmt;
   class Decl;
 #define AST_NODE(Name, Base, Category, Id) class Name;
-#include "ink/parser/ASTNodes.def"
+#include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
-} // namespace ink::parser
+} // namespace ink::frontend::parser
 
 namespace ink::semantic
 {
@@ -22,41 +22,41 @@ namespace ink::semantic
     public:
       // Input must belong to Context's compilation and remain alive for the call.
       // Unusable input returns false; unimplemented nodes report the existing SemanticUnsupported ICE.
-      bool analyze(SemanticContext &Context, const parser::ParseResult &Input);
+      bool analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input);
 
     private:
       struct AnalysisState;
 
-      bool analyzeStmt(AnalysisState &State, const parser::Stmt &Stmt);
-      bool analyzeDecl(AnalysisState &State, const parser::Decl &Declaration);
-      bool reportUnsupported(AnalysisState &State, const parser::ASTNodeBase &Node);
+      bool analyzeStmt(AnalysisState &State, const frontend::parser::Stmt &Stmt);
+      bool analyzeDecl(AnalysisState &State, const frontend::parser::Decl &Declaration);
+      bool reportUnsupported(AnalysisState &State, const frontend::parser::ASTNodeBase &Node);
 
       // Keep handlers explicit so new AST statements and declarations require a deliberate implementation.
-      bool analyzeMissingStmt(AnalysisState &State, const parser::MissingStmt &Node);
-      bool analyzeErrorStmt(AnalysisState &State, const parser::ErrorStmt &Node);
-      bool analyzeMissingDecl(AnalysisState &State, const parser::MissingDecl &Node);
-      bool analyzeErrorDecl(AnalysisState &State, const parser::ErrorDecl &Node);
-      bool analyzeSimpleStmt(AnalysisState &State, const parser::SimpleStmt &Node);
-      bool analyzeBlockStmt(AnalysisState &State, const parser::BlockStmt &Node);
-      bool analyzeDeclStmt(AnalysisState &State, const parser::DeclStmt &Node);
-      bool analyzeIfStmt(AnalysisState &State, const parser::IfStmt &Node);
-      bool analyzeWhileStmt(AnalysisState &State, const parser::WhileStmt &Node);
-      bool analyzeClassicForStmt(AnalysisState &State, const parser::ClassicForStmt &Node);
-      bool analyzeForInStmt(AnalysisState &State, const parser::ForInStmt &Node);
-      bool analyzeSwitchStmt(AnalysisState &State, const parser::SwitchStmt &Node);
-      bool analyzeReturnStmt(AnalysisState &State, const parser::ReturnStmt &Node);
-      bool analyzeBreakStmt(AnalysisState &State, const parser::BreakStmt &Node);
-      bool analyzeContinueStmt(AnalysisState &State, const parser::ContinueStmt &Node);
-      bool analyzeYieldStmt(AnalysisState &State, const parser::YieldStmt &Node);
-      bool analyzeDeferStmt(AnalysisState &State, const parser::DeferStmt &Node);
-      bool analyzeDirectImportStmt(AnalysisState &State, const parser::DirectImportStmt &Node);
-      bool analyzeFromImportStmt(AnalysisState &State, const parser::FromImportStmt &Node);
-      bool analyzeFieldDecl(AnalysisState &State, const parser::FieldDecl &Node);
-      bool analyzeVarDecl(AnalysisState &State, const parser::VarDecl &Node);
-      bool analyzeFunctionDecl(AnalysisState &State, const parser::FunctionDecl &Node);
-      bool analyzeClassDecl(AnalysisState &State, const parser::ClassDecl &Node);
-      bool analyzeEnumDecl(AnalysisState &State, const parser::EnumDecl &Node);
-      bool analyzeInterfaceDecl(AnalysisState &State, const parser::InterfaceDecl &Node);
+      bool analyzeMissingStmt(AnalysisState &State, const frontend::parser::MissingStmt &Node);
+      bool analyzeErrorStmt(AnalysisState &State, const frontend::parser::ErrorStmt &Node);
+      bool analyzeMissingDecl(AnalysisState &State, const frontend::parser::MissingDecl &Node);
+      bool analyzeErrorDecl(AnalysisState &State, const frontend::parser::ErrorDecl &Node);
+      bool analyzeSimpleStmt(AnalysisState &State, const frontend::parser::SimpleStmt &Node);
+      bool analyzeBlockStmt(AnalysisState &State, const frontend::parser::BlockStmt &Node);
+      bool analyzeDeclStmt(AnalysisState &State, const frontend::parser::DeclStmt &Node);
+      bool analyzeIfStmt(AnalysisState &State, const frontend::parser::IfStmt &Node);
+      bool analyzeWhileStmt(AnalysisState &State, const frontend::parser::WhileStmt &Node);
+      bool analyzeClassicForStmt(AnalysisState &State, const frontend::parser::ClassicForStmt &Node);
+      bool analyzeForInStmt(AnalysisState &State, const frontend::parser::ForInStmt &Node);
+      bool analyzeSwitchStmt(AnalysisState &State, const frontend::parser::SwitchStmt &Node);
+      bool analyzeReturnStmt(AnalysisState &State, const frontend::parser::ReturnStmt &Node);
+      bool analyzeBreakStmt(AnalysisState &State, const frontend::parser::BreakStmt &Node);
+      bool analyzeContinueStmt(AnalysisState &State, const frontend::parser::ContinueStmt &Node);
+      bool analyzeYieldStmt(AnalysisState &State, const frontend::parser::YieldStmt &Node);
+      bool analyzeDeferStmt(AnalysisState &State, const frontend::parser::DeferStmt &Node);
+      bool analyzeDirectImportStmt(AnalysisState &State, const frontend::parser::DirectImportStmt &Node);
+      bool analyzeFromImportStmt(AnalysisState &State, const frontend::parser::FromImportStmt &Node);
+      bool analyzeFieldDecl(AnalysisState &State, const frontend::parser::FieldDecl &Node);
+      bool analyzeVarDecl(AnalysisState &State, const frontend::parser::VarDecl &Node);
+      bool analyzeFunctionDecl(AnalysisState &State, const frontend::parser::FunctionDecl &Node);
+      bool analyzeClassDecl(AnalysisState &State, const frontend::parser::ClassDecl &Node);
+      bool analyzeEnumDecl(AnalysisState &State, const frontend::parser::EnumDecl &Node);
+      bool analyzeInterfaceDecl(AnalysisState &State, const frontend::parser::InterfaceDecl &Node);
   };
 } // namespace ink::semantic
 

@@ -35,8 +35,9 @@ namespace ink::semantic::test
   // Nested guards restore the caller's exact scope on early return while preserving exited scope bindings.
   TEST(SemanticNameResolverTest, ScopeGuardsRestoreLookupOnEarlyReturn)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     Scope &Original = Resolver.enterScope();
@@ -75,9 +76,10 @@ namespace ink::semantic::test
   // Member guards retain persistent scopes, and failed duplicate/foreign entries never undo subsequent scope changes.
   TEST(SemanticNameResolverTest, MemberScopeGuardsHandleFailedEntry)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
-    SemanticContext Other(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
+    SemanticContext Other(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     IRBuilder OtherBuilder(Other.irContext());
     Module *Owner = Builder.createModule(Context.namePool().intern("Owner"));
@@ -116,8 +118,9 @@ namespace ink::semantic::test
   // Enter and exit restore lexical lookup, isolate siblings and keep exited scopes and bindings alive.
   TEST(SemanticNameResolverTest, ResolvesNearestLexicalBinding)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     auto &Root = Resolver.rootScope();
@@ -179,8 +182,9 @@ namespace ink::semantic::test
   // Distinct functions remain ordered candidates, including unresolved signature conflicts; identical targets are not added twice.
   TEST(SemanticNameResolverTest, CollectsOverloadsWithoutSelectingOrMergingEntities)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
@@ -216,8 +220,9 @@ namespace ink::semantic::test
   // A function-valued call result is an ordinary binding, and distinct non-function values cannot share a name.
   TEST(SemanticNameResolverTest, RejectsNonFunctionCollisionsWithoutReplacingBindings)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
@@ -258,8 +263,9 @@ namespace ink::semantic::test
   // Nested bindings hide complete overload sets, and exiting each scope restores the previous set.
   TEST(SemanticNameResolverTest, HidesOuterOverloadSetsAsAWhole)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name F = Context.namePool().intern("F");
@@ -310,10 +316,11 @@ namespace ink::semantic::test
   // Invalid names and foreign values fail without changing bindings or names, and resolvers keep independent scope state.
   TEST(SemanticNameResolverTest, RejectsForeignInputsAndLeavesMissesUnchanged)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
-    SemanticContext OtherContext(Compilation);
+    SemanticContext OtherContext(Sources, DiagnosticEngine);
     IRBuilder OtherContextBuilder(OtherContext.irContext());
     NameResolver Resolver(Context);
     NameResolver OtherResolver(Context);
@@ -347,8 +354,9 @@ namespace ink::semantic::test
   // Qualified paths, relative paths and owner aliases resolve to the same bindings after member scopes are exited.
   TEST(SemanticNameResolverTest, QualifiedAndRelativePathsShareMemberBindings)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name A = Context.namePool().intern("A");
@@ -406,8 +414,9 @@ namespace ink::semantic::test
   // Member lookup returns complete overload sets but never searches lexical parents or nested anonymous blocks.
   TEST(SemanticNameResolverTest, MemberLookupStaysWithinOwnerScope)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     const Name OwnerName = Context.namePool().intern("Owner");
@@ -458,10 +467,11 @@ namespace ink::semantic::test
   // Scope creation rejects foreign and duplicate owners without changing state, while same-named entities stay independent.
   TEST(SemanticNameResolverTest, MemberScopesUseEntityIdentityAndRejectInvalidRequests)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
-    SemanticContext OtherContext(Compilation);
+    SemanticContext OtherContext(Sources, DiagnosticEngine);
     IRBuilder OtherContextBuilder(OtherContext.irContext());
     NameResolver Resolver(Context);
     const Name OwnerName = Context.namePool().intern("Owner");
@@ -521,8 +531,9 @@ namespace ink::semantic::test
   // Scope and binding identities survive storage growth, and deep parent lookup uses no recursive traversal.
   TEST(SemanticNameResolverTest, PreservesScopesAndBindingsAcrossGrowth)
   {
-    core::CompilationContext Compilation;
-    SemanticContext Context(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Builder(Context.irContext());
     NameResolver Resolver(Context);
     auto &Root = Resolver.rootScope();

@@ -37,13 +37,21 @@ ctest --test-dir build -C Release --output-on-failure
 
 `ink_tests` 包含 Core、IR 类型、tokenizer、parser/AST 及 semantic 分析入口的单元测试，构建时同时构建 `ink-tokenize` 和 `ink-parse`。CTest 还运行 tokenizer、parser 的 CLI 进程测试和 parser 对抗输入测试。单独构建并运行全部启用测试可使用 `cmake --build build --config Release --target run_all_tests`。
 
-`Analyzer::analyze(SemanticContext &, const parser::ParseResult &)` 返回 `bool`，校验解析结果及源码归属后，按源码顺序遍历模块和块，通过 `analyzeStmt`、`analyzeDeclStmt` 和 `analyzeDecl` 到达具体节点处理函数。每次调用独立维护块深度，并读取 `INK_SEMANTIC_BLOCK_DEPTH_LIMIT`。空模块和仅含空块的输入可以完成遍历；具体语义及 comptime 求值尚未实现，命中时报告既有的 `SemanticUnsupported` ICE。当前入口不生成 IR，不提供原执行分支的模块返回值或多模块分析能力。
+`Analyzer::analyze(SemanticContext &, const frontend::parser::ParseResult &)` 返回 `bool`，校验解析结果及源码归属后，按源码顺序遍历模块和块，通过 `analyzeStmt`、`analyzeDeclStmt` 和 `analyzeDecl` 到达具体节点处理函数。每次调用独立维护块深度，并读取 `INK_SEMANTIC_BLOCK_DEPTH_LIMIT`。空模块和仅含空块的输入可以完成遍历；具体语义及 comptime 求值尚未实现，命中时报告既有的 `SemanticUnsupported` ICE。当前入口不生成 IR，不提供原执行分支的模块返回值或多模块分析能力。
 
 LLVM/Clang 固定版本为 22.1.8；tokenizer 直接使用 Clang 的 `UnicodeCharSets.h`，parser 的 AST 归档使用 LLVM 支持库。NFC 校验使用 utf8proc 2.9.0 的 Unicode 15.1 实现。spdlog 1.17.0 负责所有自有 C++ 文本输出；CLI 统一通过 `ink::cli::writeOutput` 输出。所有自有 C++ 编译目标在目标级关闭异常。
 
 Core 提供源码位置、范围、源码管理、诊断和配置。资源限制在 `src/include/ink/core/config.def` 中定义，parser 与 AST 归档可通过对应的 `INK_PARSER_*`、`INK_AST_ARCHIVE_*` 环境变量配置；semantic 配置与诊断定义保留供后续实现使用。内部编译错误经 spdlog 输出后 panic，普通源码错误通过诊断引擎报告。
 
-Target 目录提供目标平台描述，头文件位于 `src/include/ink/target`。`target::TargetContext`、`target::PointerWidth` 和 `target::ByteOrder` 定义在 `ink/target/target_context.h` 中；`TargetContext` 保存指针宽度、字节序及标量对齐信息，`native()` 返回宿主目标。Core 的 `CompilationContext` 和 IR 的 `TypeContext` 均使用这一描述。
+Frontend 通过统一的 `ink::frontend` 静态库提供 tokenizer、parser/AST 和共享上下文。公共头文件位于 `src/include/ink/frontend`，其中 `tokenizer` 和 `parser` 是两个子目录，命名空间分别为 `ink::frontend::tokenizer` 和 `ink::frontend::parser`；实现位于 `src/lib/frontend` 下对应的子目录。Frontend 的公开编译要求为 C++20；tokenizer 测试单独按 C++17 编译，以保留 UTF-8 字面量行为，最终链接同一个 frontend 库。
+
+AST 类声明位于 `src/include/ink/frontend/parser/ast`，每个 class 使用一个 snake_case 头文件，共 80 个类：64 个具体节点、7 个基类和 9 个辅助记录。`ast/types.h` 集中公共别名、`NameToken`、`RestBinding` 和 7 个枚举，`ast/fwd.h` 提供类前向声明，`ast/cast.h` 提供 `isa`、`dyn_cast` 和 `cast`。`src/include/ink/frontend/parser/ast.h` 保留聚合入口，调用方也可直接包含所需节点头文件。命名空间、公开 API 及 `ASTNodes.def` 的节点 ID 保持不变；`ast_context.h`、`ast_kind.h`、`ast_visitor.h` 和 `ast_walker.h` 仍位于 parser 根目录，现有实现仍位于 `src/lib/frontend/parser`。
+
+`frontend::FrontendContext` 直接借用 `core::SourceManager` 和 `core::DiagnosticEngine`，二者必须比上下文存活更久；tokenizer、parser 和 semantic 使用这些服务而不依赖工具层。`SemanticContext` 同样接收这两个服务。现有 `ink-tokenize`、`ink-parse` 和测试各自拥有服务实例，以保持编译会话之间的源码和诊断隔离。
+
+`inkc::CompilationContext` 是工具私有的编译会话资源所有者，定义位于 `src/tools/inkc/compilation_context.h`，拥有目标描述、源码管理器和诊断引擎。库和测试不依赖此类型；当前分支尚未恢复 inkc 可执行入口。
+
+Target 目录提供目标平台描述，头文件位于 `src/include/ink/target`。`target::TargetContext`、`target::PointerWidth` 和 `target::ByteOrder` 定义在 `ink/target/target_context.h` 中；`TargetContext` 保存指针宽度、字节序及标量对齐信息，`native()` 返回宿主目标。inkc 私有的 `CompilationContext` 和 IR 的 `TypeContext` 均使用这一描述。
 
 Core 的 `Singleton<T>` 提供按需初始化的单例基类；派生类将构造、析构函数设为私有，并声明 `Singleton<T>` 为友元。`NamePool::instance()` 提供进程共享的名称池，名称句柄和字符串视图在池增长时保持有效。`NAME_None` 与默认构造的 `Name{}` 相等，索引均为 `Name::InvalidIndex`，表示无效句柄；空字符串不会注册，查找未命中的名称返回该无效句柄。名称池不预注册字符串 `"None"`，该字符串可作为普通名称注册。名称池操作需要调用方进行并发同步。
 

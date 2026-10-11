@@ -1,9 +1,9 @@
 #include "parser_test_support.h"
 #include "../core/environment_test_support.h"
 
-#include "ink/parser/ast_serialization.h"
+#include "ink/frontend/parser/ast_serialization.h"
 
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   namespace
   {
@@ -112,4 +112,4 @@ namespace ink::parser::test
     EXPECT_EQ(ExplicitArchive.Bytes, Archive.Bytes);
     EXPECT_TRUE(deserializeAST(Frontend, Archive.Bytes, Limits).succeeded());
   }
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

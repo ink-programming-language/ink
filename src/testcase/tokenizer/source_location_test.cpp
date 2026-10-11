@@ -3,7 +3,7 @@
 #include <limits>
 #include <type_traits>
 
-namespace ink::tokenizer::test
+namespace ink::frontend::tokenizer::test
 {
   // Invalid locations are distinct from byte zero and retain a compact raw encoding.
   TEST(TokenizerSourceLocationTest, InvalidAndZeroOffsetAreDistinct)
@@ -83,12 +83,12 @@ namespace ink::tokenizer::test
   // Source ownership survives tokenization and source IDs remain context-specific.
   TEST_F(TokenizerTest, RegisteredBuffersAndLineNumbers)
   {
-    const auto Id = Compilation.sourceManager().addSource("sample.ink", "a\r\nb\rc\nd");
+    const auto Id = Sources.addSource("sample.ink", "a\r\nb\rc\nd");
     const auto Buffer = tokenizeSource(Context, Id);
     expectKinds(Buffer, {TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier});
     EXPECT_EQ(Buffer.sourceName(), "sample.ink");
     EXPECT_EQ(Buffer.sourceId(), Id);
-    EXPECT_TRUE(Buffer.isRegisteredWith(Compilation.sourceManager()));
+    EXPECT_TRUE(Buffer.isRegisteredWith(Sources));
     EXPECT_EQ(Buffer.lineStarts(), (std::vector<std::size_t>{0, 3, 5, 7}));
     EXPECT_EQ(Buffer.lineNumber(0), 1U);
     EXPECT_EQ(Buffer.lineNumber(2), 1U);
@@ -109,13 +109,14 @@ namespace ink::tokenizer::test
     EXPECT_DEATH(tokenizeSource(Context, {}), "internal compiler error\\[INK-T0021\\]");
   }
 
-  // A buffer owns its source and decoded payload after its compilation context is destroyed.
+  // A buffer owns its source and decoded payload after its source manager and frontend context are destroyed.
   TEST(TokenizerSourceLocationTest, BufferOutlivesContext)
   {
     const auto Buffer = []()
     {
-      core::CompilationContext Compilation;
-      core::FrontendContext Context(Compilation);
+      core::SourceManager Sources;
+      core::DiagnosticEngine DiagnosticEngine;
+      frontend::FrontendContext Context(Sources, DiagnosticEngine);
       return tokenize(Context, u8"e\u0301 \"\\x00\"");
     }();
     ASSERT_TRUE(Buffer.succeeded());
@@ -123,4 +124,4 @@ namespace ink::tokenizer::test
     EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[0].Payload).Name, u8"\u00E9");
     EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[1].Payload).Decoded, std::string(1, '\0'));
   }
-} // namespace ink::tokenizer::test
+} // namespace ink::frontend::tokenizer::test

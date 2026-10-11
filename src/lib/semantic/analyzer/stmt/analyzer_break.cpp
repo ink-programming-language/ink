@@ -2,7 +2,7 @@
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeBreakStmt(AnalysisState &State, const parser::BreakStmt &Node)
+  bool Analyzer::analyzeBreakStmt(AnalysisState &State, const frontend::parser::BreakStmt &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
     return reportUnsupported(State, Node);

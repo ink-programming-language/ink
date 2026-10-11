@@ -4,7 +4,7 @@
 #include <iterator>
 #include <set>
 
-namespace ink::tokenizer::test
+namespace ink::frontend::tokenizer::test
 {
   // Visibility spellings are reserved only as complete lowercase keywords, preserving prefixed identifiers and case distinctions.
   TEST_F(TokenizerTest, VisibilityKeywordsAndIdentifierBoundaries)
@@ -125,4 +125,4 @@ namespace ink::tokenizer::test
     expectKinds(lex("<<=<< < >>=>> > ... .. . ++ + -- - ?? ?. ? => = -> - :: :"), {TokenKind::ShiftLeftAssign, TokenKind::ShiftLeft, TokenKind::Less, TokenKind::ShiftRightAssign, TokenKind::ShiftRight, TokenKind::Greater, TokenKind::Ellipsis, TokenKind::Dot, TokenKind::Dot, TokenKind::Dot, TokenKind::PlusPlus, TokenKind::Plus, TokenKind::MinusMinus, TokenKind::Minus, TokenKind::NullCoalesce, TokenKind::QuestionDot, TokenKind::Question, TokenKind::FatArrow, TokenKind::Assign, TokenKind::Arrow, TokenKind::Minus, TokenKind::DoubleColon, TokenKind::Colon});
     expectKinds(lex(">>>= ==== &&& ||| +++ ---"), {TokenKind::ShiftRight, TokenKind::GreaterEqual, TokenKind::EqualEqual, TokenKind::EqualEqual, TokenKind::AmpAmp, TokenKind::Amp, TokenKind::PipePipe, TokenKind::Pipe, TokenKind::PlusPlus, TokenKind::Plus, TokenKind::MinusMinus, TokenKind::Minus});
   }
-} // namespace ink::tokenizer::test
+} // namespace ink::frontend::tokenizer::test

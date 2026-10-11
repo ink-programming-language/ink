@@ -1,7 +1,7 @@
 #include "ink/ir/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
-#include "ink/parser/parser.h"
+#include "ink/frontend/parser/parser.h"
 #include "ink/semantic/context.h"
 
 #include <gtest/gtest.h>
@@ -22,9 +22,9 @@ namespace ink::semantic::test
   {
     protected:
       GenericNameResolverTest()
-          : Frontend(Compilation),
-            Parsed(parser::parse(Frontend, tokenizer::tokenize(Frontend, "func F[T: type](Value: T): T { return Value; } func F[U: type](Value: U): U { return Value; } class Box[T: type] { property Item: T; }; class Other[T: type] { property Item: T; };"))),
-            Context(Compilation),
+          : Frontend(Sources, DiagnosticEngine),
+            Parsed(frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "func F[T: type](Value: T): T { return Value; } func F[U: type](Value: U): U { return Value; } class Box[T: type] { property Item: T; }; class Other[T: type] { property Item: T; };"))),
+            Context(Sources, DiagnosticEngine),
             Factory(Context.irContext()),
             Resolver(Context)
       {
@@ -50,22 +50,23 @@ namespace ink::semantic::test
 
       FunctionDecl *makeFunction(std::size_t Index)
       {
-        const auto *Statement = static_cast<const parser::DeclStmt *>(Parsed.Unit->root()->statements()[Index]);
-        const auto &AST = static_cast<const parser::FunctionDecl &>(*Statement->declaration());
+        const auto *Statement = static_cast<const frontend::parser::DeclStmt *>(Parsed.Unit->root()->statements()[Index]);
+        const auto &AST = static_cast<const frontend::parser::FunctionDecl &>(*Statement->declaration());
         return Factory.createFunctionDecl(*Root, Context.namePool().intern(AST.name().Text), AST);
       }
 
       ClassDecl *makeClass(std::size_t Index)
       {
-        const auto *Statement = static_cast<const parser::DeclStmt *>(Parsed.Unit->root()->statements()[Index]);
-        const auto &AST = static_cast<const parser::ClassDecl &>(*Statement->declaration());
+        const auto *Statement = static_cast<const frontend::parser::DeclStmt *>(Parsed.Unit->root()->statements()[Index]);
+        const auto &AST = static_cast<const frontend::parser::ClassDecl &>(*Statement->declaration());
         return Factory.createClassDecl(*Root, Context.namePool().intern(AST.name().Text), AST);
       }
 
       using BindResult = NameResolver::BindResult;
-      core::CompilationContext Compilation;
-      core::FrontendContext Frontend;
-      parser::ParseResult Parsed;
+      core::SourceManager Sources;
+      core::DiagnosticEngine DiagnosticEngine;
+      frontend::FrontendContext Frontend;
+      frontend::parser::ParseResult Parsed;
       SemanticContext Context;
       IRBuilder Factory;
       NameResolver Resolver;
@@ -205,7 +206,7 @@ namespace ink::semantic::test
   // Foreign declarations, module definitions and invalid names fail without recording a definition environment.
   TEST_F(GenericNameResolverTest, RejectsInvalidDeclarationBindings)
   {
-    SemanticContext Foreign(Compilation);
+    SemanticContext Foreign(Sources, DiagnosticEngine);
     IRBuilder ForeignFactory(Foreign.irContext());
     const Name F = First->name();
     Module *ForeignModule = ForeignFactory.createModule(Foreign.namePool().intern("Root"));

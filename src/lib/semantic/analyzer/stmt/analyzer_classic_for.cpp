@@ -2,7 +2,7 @@
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeClassicForStmt(AnalysisState &State, const parser::ClassicForStmt &Node)
+  bool Analyzer::analyzeClassicForStmt(AnalysisState &State, const frontend::parser::ClassicForStmt &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
     return reportUnsupported(State, Node);

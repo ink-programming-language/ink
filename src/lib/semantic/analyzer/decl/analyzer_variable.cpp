@@ -2,7 +2,7 @@
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeVarDecl(AnalysisState &State, const parser::VarDecl &Node)
+  bool Analyzer::analyzeVarDecl(AnalysisState &State, const frontend::parser::VarDecl &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
     return reportUnsupported(State, Node);

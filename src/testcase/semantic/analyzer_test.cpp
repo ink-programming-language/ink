@@ -2,7 +2,7 @@
 
 #include "../core/environment_test_support.h"
 
-#include "ink/parser/parser.h"
+#include "ink/frontend/parser/parser.h"
 #include "ink/semantic/context.h"
 #include "ink/ir/decl/module_decl.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
@@ -18,13 +18,14 @@ namespace ink::semantic::test
   // Empty modules and nested empty blocks produce distinct context-owned modules across repeated calls.
   TEST(SemanticAnalyzerTest, CreatesModulesAndKeepsCallsIndependent)
   {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    auto Empty = parser::parse(Frontend, tokenizer::tokenize(Frontend, ""));
-    auto Blocks = parser::parse(Frontend, tokenizer::tokenize(Frontend, "{ {} } {}"));
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Empty = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
+    auto Blocks = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{ {} } {}"));
     ASSERT_TRUE(Empty.succeeded());
     ASSERT_TRUE(Blocks.succeeded());
-    SemanticContext Context(Compilation);
+    SemanticContext Context(Sources, DiagnosticEngine);
     Analyzer Analysis;
     Module *First = Analysis.analyze(Context, Empty);
     Module *Second = Analysis.analyze(Context, Blocks, "second");
@@ -57,17 +58,18 @@ namespace ink::semantic::test
   // Missing, erroneous, cancelled and incomplete parse inputs fail before allocating a module name.
   TEST(SemanticAnalyzerTest, RejectsUnusableParseResults)
   {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    auto Broken = parser::parse(Frontend, tokenizer::tokenize(Frontend, "var = ;"));
-    auto Cancelled = parser::parse(Frontend, tokenizer::tokenize(Frontend, ""));
-    auto Limited = parser::parse(Frontend, tokenizer::tokenize(Frontend, ""));
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Broken = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "var = ;"));
+    auto Cancelled = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
+    auto Limited = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
     ASSERT_FALSE(Broken.succeeded());
-    Cancelled.Status = parser::ParseStatus::Cancelled;
-    Limited.Status = parser::ParseStatus::LimitExceeded;
-    SemanticContext Context(Compilation);
+    Cancelled.Status = frontend::parser::ParseStatus::Cancelled;
+    Limited.Status = frontend::parser::ParseStatus::LimitExceeded;
+    SemanticContext Context(Sources, DiagnosticEngine);
     Analyzer Analysis;
-    parser::ParseResult Missing;
+    frontend::parser::ParseResult Missing;
     EXPECT_EQ(Analysis.analyze(Context, Missing), nullptr);
     EXPECT_EQ(Analysis.analyze(Context, Broken), nullptr);
     EXPECT_EQ(Analysis.analyze(Context, Cancelled), nullptr);
@@ -78,15 +80,17 @@ namespace ink::semantic::test
   // Source ownership is checked even when two compilation contexts assign equal numeric source IDs.
   TEST(SemanticAnalyzerTest, RejectsForeignSourceContext)
   {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, ""));
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
     ASSERT_TRUE(Parsed.succeeded());
-    core::CompilationContext OtherCompilation;
-    core::FrontendContext OtherFrontend(OtherCompilation);
-    auto OtherParsed = parser::parse(OtherFrontend, tokenizer::tokenize(OtherFrontend, ""));
+    core::SourceManager OtherSources;
+    core::DiagnosticEngine OtherDiagnosticEngine;
+    frontend::FrontendContext OtherFrontend(OtherSources, OtherDiagnosticEngine);
+    auto OtherParsed = frontend::parser::parse(OtherFrontend, frontend::tokenizer::tokenize(OtherFrontend, ""));
     ASSERT_TRUE(OtherParsed.succeeded());
-    SemanticContext Context(OtherCompilation);
+    SemanticContext Context(OtherSources, OtherDiagnosticEngine);
     Analyzer Analysis;
     EXPECT_EQ(Analysis.analyze(Context, Parsed), nullptr);
     EXPECT_EQ(Context.namePool().size(), 0U);
@@ -120,13 +124,14 @@ namespace ink::semantic::test
     for (const Case &Entry : Cases)
     {
       SCOPED_TRACE(Entry.Source);
-      core::CompilationContext Compilation;
-      core::FrontendContext Frontend(Compilation);
-      auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, Entry.Source));
+      core::SourceManager Sources;
+      core::DiagnosticEngine DiagnosticEngine;
+      frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+      auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, Entry.Source));
       ASSERT_TRUE(Parsed.succeeded());
-      SemanticContext Context(Compilation);
+      SemanticContext Context(Sources, DiagnosticEngine);
       core::CollectingDiagnosticConsumer Diagnostics;
-      Compilation.diagnosticEngine().addConsumer(Diagnostics);
+      DiagnosticEngine.addConsumer(Diagnostics);
       EXPECT_DEATH(Analysis.analyze(Context, Parsed), std::string("initial semantic analyzer does not support ") + Entry.Kind);
     }
   }
@@ -146,11 +151,12 @@ namespace ink::semantic::test
     for (const Case &Entry : Cases)
     {
       SCOPED_TRACE(Entry.Source);
-      core::CompilationContext Compilation;
-      core::FrontendContext Frontend(Compilation);
-      auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, Entry.Source));
+      core::SourceManager Sources;
+      core::DiagnosticEngine DiagnosticEngine;
+      frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+      auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, Entry.Source));
       ASSERT_TRUE(Parsed.succeeded());
-      SemanticContext Context(Compilation);
+      SemanticContext Context(Sources, DiagnosticEngine);
       EXPECT_DEATH(Analyzer{}.analyze(Context, Parsed), std::string("initial semantic analyzer does not support ") + Entry.Kind);
     }
   }
@@ -158,15 +164,16 @@ namespace ink::semantic::test
   // Recoverable type errors in nested blocks do not stop sibling diagnostics or contaminate the next analysis call.
   TEST(SemanticAnalyzerTest, ContinuesAfterErrorsAndRestoresBlockState)
   {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    auto Broken = parser::parse(Frontend, tokenizer::tokenize(Frontend, "{ func first(x: Missing): void; { func second(x: Missing): void; } } func third(x: Missing): void;"));
-    auto Empty = parser::parse(Frontend, tokenizer::tokenize(Frontend, "{}"));
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Broken = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{ func first(x: Missing): void; { func second(x: Missing): void; } } func third(x: Missing): void;"));
+    auto Empty = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{}"));
     ASSERT_TRUE(Broken.succeeded());
     ASSERT_TRUE(Empty.succeeded());
-    SemanticContext Context(Compilation);
+    SemanticContext Context(Sources, DiagnosticEngine);
     core::CollectingDiagnosticConsumer Diagnostics;
-    Compilation.diagnosticEngine().addConsumer(Diagnostics);
+    DiagnosticEngine.addConsumer(Diagnostics);
     Analyzer Analysis;
     EXPECT_EQ(Analysis.analyze(Context, Broken), nullptr);
     EXPECT_EQ(Diagnostics.diagnostics().size(), 3U);
@@ -178,21 +185,22 @@ namespace ink::semantic::test
   // A deeply nested error restores depth and scope before another deep sibling and a module-level function.
   TEST(SemanticAnalyzerTest, RestoresGuardsAfterNestedError)
   {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
     std::string Source(200, '{');
     Source.append("func invalid(x: Missing): void;");
     Source.append(200, '}');
     Source.append(200, '{');
     Source.append(200, '}');
     Source.append("func after(): void {}");
-    parser::ParseLimits Limits;
+    frontend::parser::ParseLimits Limits;
     Limits.MaxNestingDepth = 1024;
-    auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, std::move(Source)), Limits);
+    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, std::move(Source)), Limits);
     ASSERT_TRUE(Parsed.succeeded());
-    SemanticContext Context(Compilation);
+    SemanticContext Context(Sources, DiagnosticEngine);
     core::CollectingDiagnosticConsumer Diagnostics;
-    Compilation.diagnosticEngine().addConsumer(Diagnostics);
+    DiagnosticEngine.addConsumer(Diagnostics);
     EXPECT_EQ(Analyzer{}.analyze(Context, Parsed), nullptr);
     ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
     EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownType);
@@ -212,15 +220,16 @@ namespace ink::semantic::test
   {
     core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_BLOCK_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set("2"));
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    auto AtLimit = parser::parse(Frontend, tokenizer::tokenize(Frontend, "{{}} {{}}"));
-    auto OverLimit = parser::parse(Frontend, tokenizer::tokenize(Frontend, "{{{}}} {{}}"));
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto AtLimit = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{{}} {{}}"));
+    auto OverLimit = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{{{}}} {{}}"));
     ASSERT_TRUE(AtLimit.succeeded());
     ASSERT_TRUE(OverLimit.succeeded());
-    SemanticContext Context(Compilation);
+    SemanticContext Context(Sources, DiagnosticEngine);
     core::CollectingDiagnosticConsumer Diagnostics;
-    Compilation.diagnosticEngine().addConsumer(Diagnostics);
+    DiagnosticEngine.addConsumer(Diagnostics);
     Analyzer Analysis;
     EXPECT_NE(Analysis.analyze(Context, AtLimit), nullptr);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -238,15 +247,16 @@ namespace ink::semantic::test
   {
     core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_BLOCK_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set("0"));
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    auto Empty = parser::parse(Frontend, tokenizer::tokenize(Frontend, ""));
-    auto Block = parser::parse(Frontend, tokenizer::tokenize(Frontend, "{}"));
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Empty = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
+    auto Block = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{}"));
     ASSERT_TRUE(Empty.succeeded());
     ASSERT_TRUE(Block.succeeded());
-    SemanticContext Context(Compilation);
+    SemanticContext Context(Sources, DiagnosticEngine);
     core::CollectingDiagnosticConsumer Diagnostics;
-    Compilation.diagnosticEngine().addConsumer(Diagnostics);
+    DiagnosticEngine.addConsumer(Diagnostics);
     Analyzer Analysis;
     EXPECT_NE(Analysis.analyze(Context, Empty), nullptr);
     EXPECT_DEATH(Analysis.analyze(Context, Block), "internal compiler error\\[INK-S0014\\]");
@@ -255,13 +265,14 @@ namespace ink::semantic::test
   // An invalid empty module name prints a construction ICE and terminates immediately.
   TEST(SemanticAnalyzerTest, ReportsInvalidModuleName)
   {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, ""));
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
     ASSERT_TRUE(Parsed.succeeded());
-    SemanticContext Context(Compilation);
+    SemanticContext Context(Sources, DiagnosticEngine);
     core::CollectingDiagnosticConsumer Diagnostics;
-    Compilation.diagnosticEngine().addConsumer(Diagnostics);
+    DiagnosticEngine.addConsumer(Diagnostics);
     Analyzer Analysis;
     EXPECT_DEATH(Analysis.analyze(Context, Parsed, ""), "internal compiler error\\[INK-S0013\\]");
   }

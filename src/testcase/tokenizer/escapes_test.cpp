@@ -1,6 +1,6 @@
 #include "tokenizer_test_support.h"
 
-namespace ink::tokenizer::test
+namespace ink::frontend::tokenizer::test
 {
   // Simple escapes, octal widths, fixed hexadecimal widths and scalar boundaries decode to Unicode.
   TEST_F(TokenizerTest, EscapeValuesAndExactDigitCounts)
@@ -110,4 +110,4 @@ namespace ink::tokenizer::test
     }
     expectError("\"\\N{" + utf8(0x4E2D) + "}\"", DiagnosticKind::UnknownUnicodeName);
   }
-} // namespace ink::tokenizer::test
+} // namespace ink::frontend::tokenizer::test

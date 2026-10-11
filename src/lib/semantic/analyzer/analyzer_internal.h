@@ -3,7 +3,7 @@
 
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/context.h"
-#include "ink/parser/token_cursor.h"
+#include "ink/frontend/parser/token_cursor.h"
 #include "ink/core/config_manager.h"
 
 #include <cstddef>
@@ -13,7 +13,7 @@ namespace ink::semantic
 {
   struct Analyzer::AnalysisState
   {
-      AnalysisState(SemanticContext &Context, const parser::TokenBuffer &Input)
+      AnalysisState(SemanticContext &Context, const frontend::parser::TokenBuffer &Input)
           : Context(Context),
             Source(Input.lexedFile().sourceId()),
             BlockDepthLimit(core::ConfigManager::getSize<core::ConfigKind::SemanticBlockDepthLimit>())

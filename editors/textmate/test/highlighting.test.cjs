@@ -39,7 +39,7 @@ function expectScope(row, text, prefix) {
 
 // Keywords stay synchronized with the compiler and never split Unicode identifiers.
 test('all compiler keywords and Unicode identifier boundaries', () => {
-  const definitions = fs.readFileSync(path.join(repositoryRoot, 'src/include/ink/tokenizer/token.def'), 'utf8');
+  const definitions = fs.readFileSync(path.join(repositoryRoot, 'src/include/ink/frontend/tokenizer/token.def'), 'utf8');
   const keywords = [...definitions.matchAll(/^INK_KEYWORD\([^,]+, "[^"]+", "([^"]+)"\)/gm)].map(match => match[1]);
   for (const keyword of keywords) {
     assert.ok(scopesAt(tokenize(keyword)[0], keyword).some(scope => /^(keyword\.control|storage\.)/.test(scope)), keyword);

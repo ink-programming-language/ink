@@ -1,5 +1,5 @@
 #include "parser_test_support.h"
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   namespace
   {
@@ -92,7 +92,7 @@ namespace ink::parser::test
     Nodes.push_back(Context.make<OrMatchPattern>(Range, ASTArray<MatchPattern *>{}));
     constexpr std::size_t RegisteredCount = 0
 #define AST_NODE(Name, Base, Category, Id) +1
-#include "ink/parser/ASTNodes.def"
+#include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
         ;
     ASSERT_EQ(Nodes.size(), RegisteredCount);
@@ -117,4 +117,4 @@ namespace ink::parser::test
     EXPECT_EQ(Mutable.Count, RegisteredCount);
     EXPECT_EQ(Constant.Count, RegisteredCount);
   }
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

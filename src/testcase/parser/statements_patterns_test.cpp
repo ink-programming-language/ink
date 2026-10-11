@@ -1,5 +1,5 @@
 #include "parser_test_support.h"
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   // Dangling else binds to the closest if, including through while and for bodies.
   TEST_F(ParserTest, DanglingElse)
@@ -146,4 +146,4 @@ namespace ink::parser::test
     }
     EXPECT_TRUE(read("match(x) {};").succeeded());
   }
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

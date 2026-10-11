@@ -1,6 +1,6 @@
 #include "tokenizer_test_support.h"
 
-namespace ink::tokenizer::test
+namespace ink::frontend::tokenizer::test
 {
   // Empty input and each supported physical newline yield exactly one zero-length EOF.
   TEST_F(TokenizerTest, EmptyInputWhitespaceAndPhysicalNewlines)
@@ -104,4 +104,4 @@ namespace ink::tokenizer::test
     expectKinds(Buffer, {TokenKind::StringLiteral, TokenKind::StringLiteral, TokenKind::CharLiteral});
     EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[0].Payload).Decoded, "// /* */");
   }
-} // namespace ink::tokenizer::test
+} // namespace ink::frontend::tokenizer::test

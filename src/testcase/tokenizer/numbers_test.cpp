@@ -1,6 +1,6 @@
 #include "tokenizer_test_support.h"
 
-namespace ink::tokenizer::test
+namespace ink::frontend::tokenizer::test
 {
   // Decimal leading zeroes remain decimal; prefixes select only binary, octal and hexadecimal.
   TEST_F(TokenizerTest, IntegerFormsAndBases)
@@ -107,4 +107,4 @@ namespace ink::tokenizer::test
     ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
     EXPECT_EQ(Diagnostics.diagnostics()[0].Span, core::SourceRange::fromByteOffsets(8, 13));
   }
-} // namespace ink::tokenizer::test
+} // namespace ink::frontend::tokenizer::test

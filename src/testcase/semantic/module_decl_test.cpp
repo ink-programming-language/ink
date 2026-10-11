@@ -1,6 +1,6 @@
 #include "ink/ir/ir_builder.h"
 #include "ink/semantic/context.h"
-#include "ink/parser/parser.h"
+#include "ink/frontend/parser/parser.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include <gtest/gtest.h>
@@ -17,13 +17,14 @@ namespace ink::semantic::test
   // The module owns one root, whose nested children retain their owners, parents and AST-based classification.
   TEST(SemanticModuleDeclTest, ModuleOwnsIndependentDeclarationTree)
   {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, "class Box[T: type] { func Make[U: type](): U; };"));
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "class Box[T: type] { func Make[U: type](): U; };"));
     ASSERT_TRUE(Parsed.succeeded());
-    const auto *ClassAST = static_cast<const parser::ClassDecl *>(static_cast<const parser::DeclStmt *>(Parsed.Unit->root()->statements()[0])->declaration());
-    const auto *FunctionAST = static_cast<const parser::FunctionDecl *>(static_cast<const parser::DeclStmt *>(ClassAST->body()->statements()[0])->declaration());
-    SemanticContext Context(Compilation);
+    const auto *ClassAST = static_cast<const frontend::parser::ClassDecl *>(static_cast<const frontend::parser::DeclStmt *>(Parsed.Unit->root()->statements()[0])->declaration());
+    const auto *FunctionAST = static_cast<const frontend::parser::FunctionDecl *>(static_cast<const frontend::parser::DeclStmt *>(ClassAST->body()->statements()[0])->declaration());
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Factory(Context.irContext());
     Module *Owner = Factory.createModule(Context.namePool().intern("Example"));
     ASSERT_NE(Owner, nullptr);
@@ -74,15 +75,16 @@ namespace ink::semantic::test
   // Duplicate roots and foreign module/parent arguments are rejected without changing either declaration tree.
   TEST(SemanticModuleDeclTest, RejectsDuplicateRootsAndForeignOwners)
   {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, "func Make[T: type](): T; class Box[T: type];"));
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "func Make[T: type](): T; class Box[T: type];"));
     ASSERT_TRUE(Parsed.succeeded());
     const auto Statements = Parsed.Unit->root()->statements();
-    const auto *FunctionAST = static_cast<const parser::FunctionDecl *>(static_cast<const parser::DeclStmt *>(Statements[0])->declaration());
-    const auto *ClassAST = static_cast<const parser::ClassDecl *>(static_cast<const parser::DeclStmt *>(Statements[1])->declaration());
-    SemanticContext Context(Compilation);
-    SemanticContext Foreign(Compilation);
+    const auto *FunctionAST = static_cast<const frontend::parser::FunctionDecl *>(static_cast<const frontend::parser::DeclStmt *>(Statements[0])->declaration());
+    const auto *ClassAST = static_cast<const frontend::parser::ClassDecl *>(static_cast<const frontend::parser::DeclStmt *>(Statements[1])->declaration());
+    SemanticContext Context(Sources, DiagnosticEngine);
+    SemanticContext Foreign(Sources, DiagnosticEngine);
     IRBuilder Factory(Context.irContext());
     IRBuilder ForeignFactory(Foreign.irContext());
     Module *Owner = Factory.createModule(Context.namePool().intern("Local"));
@@ -108,12 +110,13 @@ namespace ink::semantic::test
   // Declarations survive independent IR deletion and follow their module through detachment, nesting and restoration.
   TEST(SemanticModuleDeclTest, DeclarationTreeFollowsModuleOwnership)
   {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
-    auto Parsed = parser::parse(Frontend, tokenizer::tokenize(Frontend, "func Make[T: type](): T;"));
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "func Make[T: type](): T;"));
     ASSERT_TRUE(Parsed.succeeded());
-    const auto *FunctionAST = static_cast<const parser::FunctionDecl *>(static_cast<const parser::DeclStmt *>(Parsed.Unit->root()->statements()[0])->declaration());
-    SemanticContext Context(Compilation);
+    const auto *FunctionAST = static_cast<const frontend::parser::FunctionDecl *>(static_cast<const frontend::parser::DeclStmt *>(Parsed.Unit->root()->statements()[0])->declaration());
+    SemanticContext Context(Sources, DiagnosticEngine);
     IRBuilder Factory(Context.irContext());
     Module *Owner = Factory.createModule(Context.namePool().intern("Example"));
     ASSERT_NE(Owner, nullptr);

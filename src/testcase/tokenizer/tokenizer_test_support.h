@@ -1,8 +1,9 @@
 #ifndef INK_TESTCASE_TOKENIZER_TEST_SUPPORT_H
 #define INK_TESTCASE_TOKENIZER_TEST_SUPPORT_H
 
-#include "ink/tokenizer/tokenizer.h"
-#include "ink/tokenizer/unicode.h"
+#include "ink/frontend/context.h"
+#include "ink/frontend/tokenizer/tokenizer.h"
+#include "ink/frontend/tokenizer/unicode.h"
 
 #include <gtest/gtest.h>
 
@@ -10,7 +11,7 @@
 #include <string>
 #include <utility>
 
-namespace ink::tokenizer::test
+namespace ink::frontend::tokenizer::test
 {
   using core::DiagnosticKind;
 
@@ -25,9 +26,9 @@ namespace ink::tokenizer::test
   {
     protected:
       TokenizerTest()
-          : Context(Compilation)
+          : Context(Sources, DiagnosticEngine)
       {
-        Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        DiagnosticEngine.addConsumer(Diagnostics);
       }
 
       TokenizedBuffer lex(std::string Source)
@@ -80,10 +81,11 @@ namespace ink::tokenizer::test
         }
       }
 
-      core::CompilationContext Compilation;
-      core::FrontendContext Context;
+      core::SourceManager Sources;
+      core::DiagnosticEngine DiagnosticEngine;
+      frontend::FrontendContext Context;
       core::CollectingDiagnosticConsumer Diagnostics;
   };
-} // namespace ink::tokenizer::test
+} // namespace ink::frontend::tokenizer::test
 
 #endif

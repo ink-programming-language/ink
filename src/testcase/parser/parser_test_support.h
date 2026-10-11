@@ -1,17 +1,18 @@
 #pragma once
-#include "ink/parser/parser.h"
-#include "ink/parser/ast_walker.h"
-#include "ink/parser/ast_visitor.h"
+#include "ink/frontend/context.h"
+#include "ink/frontend/parser/parser.h"
+#include "ink/frontend/parser/ast_walker.h"
+#include "ink/frontend/parser/ast_visitor.h"
 #include <gtest/gtest.h>
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   class ParserTest : public testing::Test
   {
     protected:
       ParserTest()
-          : Frontend(Compilation)
+          : Frontend(Sources, DiagnosticEngine)
       {
-        Compilation.diagnosticEngine().addConsumer(Diagnostics);
+        DiagnosticEngine.addConsumer(Diagnostics);
       }
       ParseResult read(std::string Source, ParseLimits Limits = {})
       {
@@ -81,8 +82,9 @@ namespace ink::parser::test
       {
         return cast<DeclStmt>(Result.Unit->root()->statements()[Index])->declaration();
       }
-      core::CompilationContext Compilation;
-      core::FrontendContext Frontend;
+      core::SourceManager Sources;
+      core::DiagnosticEngine DiagnosticEngine;
+      frontend::FrontendContext Frontend;
       core::CollectingDiagnosticConsumer Diagnostics;
   };
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

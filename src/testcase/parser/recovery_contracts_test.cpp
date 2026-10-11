@@ -1,6 +1,6 @@
 #include "parser_test_support.h"
 
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   namespace
   {
@@ -516,4 +516,4 @@ namespace ink::parser::test
       }
     }
   }
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

@@ -1,10 +1,10 @@
 #include "analyzer_internal.h"
 
-#include "ink/parser/parser.h"
+#include "ink/frontend/parser/parser.h"
 
 namespace ink::semantic
 {
-  bool Analyzer::analyze(SemanticContext &Context, const parser::ParseResult &Input)
+  bool Analyzer::analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input)
   {
     if (!Input.succeeded() || !Input.Unit->root())
     {
@@ -19,7 +19,7 @@ namespace ink::semantic
     // State belongs to this call; sibling statements are visited even after a recoverable failure.
     AnalysisState State(Context, Input.Unit->input());
     bool Succeeded = true;
-    for (const parser::Stmt *Stmt : Input.Unit->root()->statements())
+    for (const frontend::parser::Stmt *Stmt : Input.Unit->root()->statements())
     {
       if (!analyzeStmt(State, *Stmt))
       {
@@ -29,31 +29,31 @@ namespace ink::semantic
     return Succeeded;
   }
 
-  bool Analyzer::reportUnsupported(AnalysisState &State, const parser::ASTNodeBase &Node)
+  bool Analyzer::reportUnsupported(AnalysisState &State, const frontend::parser::ASTNodeBase &Node)
   {
-    State.report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), parser::astKindName(Node.getKind()));
+    State.report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
     return false;
   }
 
-  bool Analyzer::analyzeMissingStmt(AnalysisState &State, const parser::MissingStmt &Node)
+  bool Analyzer::analyzeMissingStmt(AnalysisState &State, const frontend::parser::MissingStmt &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
     return reportUnsupported(State, Node);
   }
 
-  bool Analyzer::analyzeErrorStmt(AnalysisState &State, const parser::ErrorStmt &Node)
+  bool Analyzer::analyzeErrorStmt(AnalysisState &State, const frontend::parser::ErrorStmt &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
     return reportUnsupported(State, Node);
   }
 
-  bool Analyzer::analyzeMissingDecl(AnalysisState &State, const parser::MissingDecl &Node)
+  bool Analyzer::analyzeMissingDecl(AnalysisState &State, const frontend::parser::MissingDecl &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
     return reportUnsupported(State, Node);
   }
 
-  bool Analyzer::analyzeErrorDecl(AnalysisState &State, const parser::ErrorDecl &Node)
+  bool Analyzer::analyzeErrorDecl(AnalysisState &State, const frontend::parser::ErrorDecl &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
     return reportUnsupported(State, Node);

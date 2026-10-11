@@ -1,6 +1,6 @@
 #include "parser_test_support.h"
 #include <random>
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   // The design document's three independent errors retain both variables and both if branches with three diagnostics.
   TEST_F(ParserTest, DesignRecoveryExample)
@@ -274,4 +274,4 @@ namespace ink::parser::test
       EXPECT_NE(Result.Status, ParseStatus::Cancelled);
     }
   }
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

@@ -1,5 +1,5 @@
 #include "parser_test_support.h"
-#include "ink/parser/ast_serialization.h"
+#include "ink/frontend/parser/ast_serialization.h"
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Bitstream/BitstreamReader.h>
 #include <llvm/Bitstream/BitstreamWriter.h>
@@ -12,7 +12,7 @@
 #include <limits>
 #include <set>
 
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   namespace
   {
@@ -158,7 +158,7 @@ namespace ink::parser::test
       }
     }
 
-    void expectRoundTrip(const ParseResult &Original, core::FrontendContext &Frontend, std::set<ASTKind> *Kinds = nullptr)
+    void expectRoundTrip(const ParseResult &Original, frontend::FrontendContext &Frontend, std::set<ASTKind> *Kinds = nullptr)
     {
       std::vector<bool> OriginalComptime;
       ASTWalker{}.walk(Original.Unit->root(), [&](const ASTNodeBase *Node)
@@ -216,13 +216,13 @@ namespace ink::parser::test
       }
     }
 
-    void expectRejected(core::FrontendContext &Frontend, std::string_view Bytes, core::ArchiveStatus Status = core::ArchiveStatus::InvalidArchive, ASTArchiveLimits Limits = {})
+    void expectRejected(frontend::FrontendContext &Frontend, std::string_view Bytes, core::ArchiveStatus Status = core::ArchiveStatus::InvalidArchive, ASTArchiveLimits Limits = {})
     {
       const char *Pattern = Status == core::ArchiveStatus::UnsupportedVersion ? "internal compiler error\\[INK-P0023\\]" : "internal compiler error\\[INK-P";
       EXPECT_DEATH(deserializeAST(Frontend, Bytes, Limits), Pattern);
     }
 
-    void expectWriteRejected(core::FrontendContext &Frontend, const ParseResult &Parsed, core::DiagnosticKind Kind, ASTArchiveLimits Limits = {})
+    void expectWriteRejected(frontend::FrontendContext &Frontend, const ParseResult &Parsed, core::DiagnosticKind Kind, ASTArchiveLimits Limits = {})
     {
       const std::string Pattern = std::string("internal compiler error\\[") + core::diagnosticCode(Kind) + "\\]";
       EXPECT_DEATH(serializeAST(Frontend, Parsed, Limits), Pattern);
@@ -409,8 +409,9 @@ namespace ink::parser::test
       {
         SCOPED_TRACE(Case.Name);
         SCOPED_TRACE(Case.Source);
-        core::CompilationContext LocalCompilation;
-        core::FrontendContext LocalFrontend(LocalCompilation);
+        core::SourceManager LocalSources;
+        core::DiagnosticEngine LocalDiagnostics;
+        frontend::FrontendContext LocalFrontend(LocalSources, LocalDiagnostics);
         const auto Parsed = parse(LocalFrontend, tokenizer::tokenize(LocalFrontend, Case.Source));
         ASSERT_TRUE(Parsed.succeeded());
         expectRoundTrip(Parsed, LocalFrontend, &Kinds);
@@ -435,7 +436,7 @@ namespace ink::parser::test
       Kinds.insert(Kind);
     }
 #define AST_NODE(Name, Base, Category, Id) EXPECT_TRUE(Kinds.contains(ASTKind::Name)) << #Name;
-#include "ink/parser/ASTNodes.def"
+#include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
   }
 
@@ -695,9 +696,10 @@ namespace ink::parser::test
     {
       std::string Bytes;
       {
-        core::CompilationContext Producer;
-        core::FrontendContext Frontend(Producer);
-        const auto Id = Producer.sourceManager().addSource("directory/源文件.ink", "export \"vendor.custom\" func retained[T: type](x: T): T { return x; }");
+        core::SourceManager ProducerSources;
+        core::DiagnosticEngine ProducerDiagnostics;
+        frontend::FrontendContext Frontend(ProducerSources, ProducerDiagnostics);
+        const auto Id = ProducerSources.addSource("directory/源文件.ink", "export \"vendor.custom\" func retained[T: type](x: T): T { return x; }");
         const auto Parsed = parse(Frontend, tokenizer::tokenizeSource(Frontend, Id));
         ASSERT_TRUE(Parsed.succeeded());
         Expected = dumpAST(*Parsed.Unit);
@@ -705,8 +707,9 @@ namespace ink::parser::test
         ASSERT_TRUE(Saved.succeeded());
         Bytes = Saved.Bytes;
       }
-      core::CompilationContext Receiver;
-      core::FrontendContext Frontend(Receiver);
+      core::SourceManager ReceiverSources;
+      core::DiagnosticEngine ReceiverDiagnostics;
+      frontend::FrontendContext Frontend(ReceiverSources, ReceiverDiagnostics);
       Loaded = deserializeAST(Frontend, Bytes);
       ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
       std::fill(Bytes.begin(), Bytes.end(), '\xFF');
@@ -721,8 +724,9 @@ namespace ink::parser::test
     ASSERT_TRUE(isa<LiteralExpr>(Function->linkage()));
     const auto *Linkage = cast<LiteralExpr>(Function->linkage());
     EXPECT_EQ(std::get<tokenizer::StringInfo>(Loaded.Parsed.Unit->input().token(Linkage->token()).Payload).Decoded, "vendor.custom");
-    core::CompilationContext Verification;
-    core::FrontendContext Frontend(Verification);
+    core::SourceManager VerificationSources;
+    core::DiagnosticEngine VerificationDiagnostics;
+    frontend::FrontendContext Frontend(VerificationSources, VerificationDiagnostics);
     EXPECT_TRUE(serializeAST(Frontend, Loaded.Parsed).succeeded());
   }
 
@@ -1054,8 +1058,9 @@ namespace ink::parser::test
       SCOPED_TRACE(Iteration);
       const auto CheckMutation = [&]()
       {
-        core::CompilationContext LocalCompilation;
-        core::FrontendContext LocalFrontend(LocalCompilation);
+        core::SourceManager LocalSources;
+        core::DiagnosticEngine LocalDiagnostics;
+        frontend::FrontendContext LocalFrontend(LocalSources, LocalDiagnostics);
         core::CollectingDiagnosticConsumer MutationDiagnostics;
         LocalFrontend.diagnosticEngine().addConsumer(MutationDiagnostics);
         auto Loaded = deserializeAST(LocalFrontend, Bytes, Limits);
@@ -1078,8 +1083,9 @@ namespace ink::parser::test
   // Serializing an absent parse unit prints its ICE before terminating.
   TEST(ASTSerializationTest, MissingInput)
   {
-    core::CompilationContext Compilation;
-    core::FrontendContext Frontend(Compilation);
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
     expectWriteRejected(Frontend, ParseResult{}, core::DiagnosticKind::ASTArchiveMissingInput);
   }
 
@@ -1162,4 +1168,4 @@ namespace ink::parser::test
     Records[0].Values[5] = std::numeric_limits<std::uint64_t>::max();
     EXPECT_DEATH(deserializeAST(Frontend, archive(Records)), std::to_string(std::numeric_limits<std::uint64_t>::max()));
   }
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

@@ -2,7 +2,7 @@
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeInterfaceDecl(AnalysisState &State, const parser::InterfaceDecl &Node)
+  bool Analyzer::analyzeInterfaceDecl(AnalysisState &State, const frontend::parser::InterfaceDecl &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
     return reportUnsupported(State, Node);

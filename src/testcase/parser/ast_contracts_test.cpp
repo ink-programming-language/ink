@@ -1,8 +1,8 @@
 #include "parser_test_support.h"
-#include "ink/parser/parser_diagnostic_emitter.h"
+#include "ink/frontend/parser/parser_diagnostic_emitter.h"
 #include <type_traits>
 #include <limits>
-namespace ink::parser::test
+namespace ink::frontend::parser::test
 {
   namespace
   {
@@ -64,7 +64,7 @@ namespace ink::parser::test
 #define INK_TEST_BindingPattern(Name)
 #define INK_TEST_MatchPattern(Name)
 #define AST_NODE(Name, Base, Category, Id) INK_TEST_##Category(Name)
-#include "ink/parser/ASTNodes.def"
+#include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
 #undef INK_TEST_Expr
 #undef INK_TEST_Root
@@ -249,13 +249,14 @@ namespace ink::parser::test
     EXPECT_EQ(Names, (std::vector<std::string>{"attr", "generic", "fallback", "parameter", "initial", "result", "begin", "condition", "step", "subject", "argument", "guard", "value"}));
   }
 
-  // Parsed units retain token spellings after the originating compilation context is destroyed.
+  // Parsed units retain token spellings after the originating source manager and frontend context are destroyed.
   TEST(ASTLifetimeTest, SourceSnapshotOwnership)
   {
     ParseResult Result;
     {
-      core::CompilationContext Compilation;
-      core::FrontendContext Frontend(Compilation);
+      core::SourceManager Sources;
+      core::DiagnosticEngine DiagnosticEngine;
+      frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
       Result = parse(Frontend, tokenizer::tokenize(Frontend, "retained;"));
     }
     ASSERT_TRUE(Result.succeeded());
@@ -334,4 +335,4 @@ namespace ink::parser::test
     EXPECT_FALSE(verifyAST(Parent, 2));
     EXPECT_FALSE(verifyAST(nullptr, 0));
   }
-} // namespace ink::parser::test
+} // namespace ink::frontend::parser::test

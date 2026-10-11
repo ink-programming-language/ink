@@ -81,7 +81,7 @@ def run_focused_tests(test_executable, test_filter, build_root, environment=None
 
 def is_instrumented_parser_object(path):
     spelling = path.as_posix()
-    return "/CMakeFiles/ink_parser.dir/" in spelling or "/CMakeFiles/ink_tests.dir/parser/" in spelling
+    return "/CMakeFiles/ink_frontend.dir/" in spelling or "/CMakeFiles/ink_tests.dir/parser/" in spelling
 
 
 def find_gcc_objects(build_root):
@@ -103,7 +103,7 @@ def parser_relative_path(raw_path, source_root):
     if not source_path.is_absolute():
         source_path = source_root / source_path
     source_path = resolved(source_path)
-    parser_roots = (source_root / "src" / "lib" / "parser", source_root / "src" / "include" / "ink" / "parser")
+    parser_roots = (source_root / "src" / "lib" / "frontend" / "parser", source_root / "src" / "include" / "ink" / "frontend" / "parser")
     for parser_root in parser_roots:
         try:
             source_path.relative_to(parser_root)
@@ -286,7 +286,7 @@ def main():
     else:
         files = run_clang_backend(arguments)
     if not files:
-        raise RuntimeError("coverage data did not contain any src/lib/parser or src/include/ink/parser files")
+        raise RuntimeError("coverage data did not contain any src/lib/frontend/parser or src/include/ink/frontend/parser files")
 
     totals = total_summary(files)
     thresholds = {"lines": arguments.minimum_lines, "functions": arguments.minimum_functions, "branches": arguments.minimum_branches}

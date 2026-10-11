@@ -1,12 +1,12 @@
 #include "../analyzer_internal.h"
 
-#include "ink/parser/ast.h"
+#include "ink/frontend/parser/ast.h"
 
 #include <cstdlib>
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeDecl(AnalysisState &State, const parser::Decl &Declaration)
+  bool Analyzer::analyzeDecl(AnalysisState &State, const frontend::parser::Decl &Declaration)
   {
     if (Declaration.isComptime())
     {
@@ -18,13 +18,13 @@ namespace ink::semantic
 #define INK_ANALYZE_Expr(Name)
 #define INK_ANALYZE_Stmt(Name)
 #define INK_ANALYZE_Decl(Name) \
-  case parser::ASTKind::Name: \
-    return analyze##Name(State, static_cast<const parser::Name &>(Declaration));
+  case frontend::parser::ASTKind::Name: \
+    return analyze##Name(State, static_cast<const frontend::parser::Name &>(Declaration));
 #define INK_ANALYZE_SimpleItem(Name)
 #define INK_ANALYZE_BindingPattern(Name)
 #define INK_ANALYZE_MatchPattern(Name)
 #define AST_NODE(Name, Base, Category, Id) INK_ANALYZE_##Category(Name)
-#include "ink/parser/ASTNodes.def"
+#include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
 #undef INK_ANALYZE_Root
 #undef INK_ANALYZE_Expr
@@ -38,7 +38,7 @@ namespace ink::semantic
     }
   }
 
-  bool Analyzer::analyzeFieldDecl(AnalysisState &State, const parser::FieldDecl &Node)
+  bool Analyzer::analyzeFieldDecl(AnalysisState &State, const frontend::parser::FieldDecl &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
     return reportUnsupported(State, Node);

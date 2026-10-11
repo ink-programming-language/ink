@@ -1,7 +1,7 @@
 """Generate the complete Unicode 15.1 alias table used by named escapes.
 
 Usage:
-  python cmake/generate_unicode_aliases.py NameAliases.txt src/lib/tokenizer/unicode_name_aliases.inc
+  python cmake/generate_unicode_aliases.py NameAliases.txt src/lib/frontend/tokenizer/unicode_name_aliases.inc
 
 Input: https://www.unicode.org/Public/15.1.0/ucd/NameAliases.txt
 XID and normalization data remain supplied by Clang and utf8proc.

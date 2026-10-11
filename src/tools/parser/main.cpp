@@ -1,7 +1,8 @@
 #include "ink/cli/application.h"
 #include "ink/cli/io.h"
-#include "ink/parser/parser.h"
-#include "ink/parser/ast_walker.h"
+#include "ink/frontend/context.h"
+#include "ink/frontend/parser/parser.h"
+#include "ink/frontend/parser/ast_walker.h"
 
 #include <array>
 #include <filesystem>
@@ -71,22 +72,23 @@ namespace
       }
     }
 
-    ink::core::CompilationContext Compilation;
-    ink::core::FrontendContext Context(Compilation);
+    ink::core::SourceManager Sources;
+    ink::core::DiagnosticEngine DiagnosticEngine;
+    ink::frontend::FrontendContext Context(Sources, DiagnosticEngine);
     ink::core::CollectingDiagnosticConsumer Diagnostics;
-    Compilation.diagnosticEngine().addConsumer(Diagnostics);
-    const ink::core::SourceId SourceId = Compilation.sourceManager().addSource(SourceFile == "-" ? "<stdin>" : SourceFile, std::move(Source));
-    const ink::parser::ParseResult Result = ink::parser::parse(Context, ink::tokenizer::tokenizeSource(Context, SourceId));
+    DiagnosticEngine.addConsumer(Diagnostics);
+    const ink::core::SourceId SourceId = Sources.addSource(SourceFile == "-" ? "<stdin>" : SourceFile, std::move(Source));
+    const ink::frontend::parser::ParseResult Result = ink::frontend::parser::parse(Context, ink::frontend::tokenizer::tokenizeSource(Context, SourceId));
     std::ostringstream BufferedOutput;
     std::ostringstream BufferedErrorOutput;
-    BufferedOutput << ink::parser::dumpAST(*Result.Unit);
+    BufferedOutput << ink::frontend::parser::dumpAST(*Result.Unit);
     const ink::core::DiagnosticFormatter Formatter;
     bool HasInternalError = false;
     for (const ink::core::Diagnostic &Diagnostic : Diagnostics.diagnostics())
     {
       HasInternalError = HasInternalError || Diagnostic.classification() == ink::core::DiagnosticClass::InternalCompilerError;
       const ink::core::FormattedDiagnostic Formatted = Formatter.format(Diagnostic);
-      const std::shared_ptr<const ink::core::SourceBuffer> DiagnosticSource = Compilation.sourceManager().findSource(Diagnostic.Source);
+      const std::shared_ptr<const ink::core::SourceBuffer> DiagnosticSource = Sources.findSource(Diagnostic.Source);
       if (DiagnosticSource != nullptr && Diagnostic.Span.isValid())
       {
         BufferedErrorOutput << DiagnosticSource->name() << ':' << DiagnosticSource->lineNumber(Diagnostic.Span.getBegin().getByteOffset()) << ": ";

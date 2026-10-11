@@ -1,6 +1,6 @@
 #include "ink/execution/engine/execution_engine.h"
 #include "ink/ir/function/function.h"
-#include "ink/parser/parser.h"
+#include "ink/frontend/parser/parser.h"
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/context.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
@@ -24,11 +24,11 @@ namespace ink::semantic::test
     {
       public:
         explicit ArrayAnalysis(std::string_view Source)
-            : Frontend(Compilation),
-              Parsed(parser::parse(Frontend, tokenizer::tokenize(Frontend, std::string(Source)))),
-              Context(Compilation)
+            : Frontend(Sources, DiagnosticEngine),
+              Parsed(frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, std::string(Source)))),
+              Context(Sources, DiagnosticEngine)
         {
-          Compilation.diagnosticEngine().addConsumer(Diagnostics);
+          DiagnosticEngine.addConsumer(Diagnostics);
         }
 
         Module *analyze()
@@ -42,9 +42,10 @@ namespace ink::semantic::test
           return Binding && Binding->targets().size() == 1 && Function::classof(Binding->targets().front()) ? static_cast<const Function *>(Binding->targets().front()) : nullptr;
         }
 
-        core::CompilationContext Compilation;
-        core::FrontendContext Frontend;
-        parser::ParseResult Parsed;
+        core::SourceManager Sources;
+        core::DiagnosticEngine DiagnosticEngine;
+        frontend::FrontendContext Frontend;
+        frontend::parser::ParseResult Parsed;
         SemanticContext Context;
         core::CollectingDiagnosticConsumer Diagnostics;
     };

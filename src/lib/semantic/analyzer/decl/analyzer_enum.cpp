@@ -2,7 +2,7 @@
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeEnumDecl(AnalysisState &State, const parser::EnumDecl &Node)
+  bool Analyzer::analyzeEnumDecl(AnalysisState &State, const frontend::parser::EnumDecl &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
     return reportUnsupported(State, Node);
