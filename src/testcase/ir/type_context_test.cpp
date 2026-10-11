@@ -1,4 +1,3 @@
-#include "ink/core/name_pool.h"
 #include "ink/ir/constant/array_constant.h"
 #include "ink/ir/constant/bool_constant.h"
 #include "ink/ir/constant/constant_context.h"
@@ -123,25 +122,22 @@ namespace ink::ir::test
     EXPECT_TRUE(Types.owns(Array));
   }
 
-  // Function keys preserve return types, ordered parameter types, names and variadic metadata.
+  // Function keys use return types and the order, identities, repetitions and count of parameter types.
   TEST(IRTypeContextTest, FunctionLookupUsesCompletePreservedSignature)
   {
     TypeContext Types(Target64);
     const Type *Bool = Types.getBoolType();
     const Type *Int32 = Types.getInt32Type();
-    const core::Name FirstName = core::NamePool::instance().intern("IRTypeContextTest.First");
-    const core::Name SecondName = core::NamePool::instance().intern("IRTypeContextTest.Second");
-    const FunctionType *Function = Types.getFunctionType(Bool, {Parameter(Int32, FirstName), Parameter(Bool)});
+    const FunctionType *Function = Types.getFunctionType(Bool, {Int32, Bool});
     ASSERT_NE(Function, nullptr);
-    EXPECT_EQ(Function, Types.getFunctionType(Bool, {Parameter(Int32, FirstName), Parameter(Bool)}));
-    EXPECT_NE(Function, Types.getFunctionType(Int32, {Parameter(Int32, FirstName), Parameter(Bool)}));
-    EXPECT_NE(Function, Types.getFunctionType(Bool, {Parameter(Int32, SecondName), Parameter(Bool)}));
-    EXPECT_NE(Function, Types.getFunctionType(Bool, {Parameter(Int32, FirstName, true), Parameter(Bool)}));
-    EXPECT_NE(Function, Types.getFunctionType(Bool, {Parameter(Bool), Parameter(Int32, FirstName)}));
-    EXPECT_NE(Function, Types.getFunctionType(Bool, {Parameter(Bool, FirstName), Parameter(Bool)}));
-    EXPECT_NE(Function, Types.getFunctionType(Bool, {Parameter(Int32, FirstName)}));
+    EXPECT_EQ(Function, Types.getFunctionType(Bool, {Int32, Bool}));
+    EXPECT_NE(Function, Types.getFunctionType(Int32, {Int32, Bool}));
+    EXPECT_NE(Function, Types.getFunctionType(Bool, {Bool, Int32}));
+    EXPECT_NE(Function, Types.getFunctionType(Bool, {Bool, Bool}));
+    EXPECT_NE(Function, Types.getFunctionType(Bool, {Int32}));
+    EXPECT_NE(Function, Types.getFunctionType(Bool, {Int32, Int32}));
+    EXPECT_EQ(Types.getFunctionType(Bool, {Int32, Int32}), Types.getFunctionType(Bool, {Int32, Int32}));
     EXPECT_EQ(Types.getFunctionType(Bool), Types.getFunctionType(Bool, {}));
-    EXPECT_EQ(Function->parameters()[0].name(), FirstName);
     EXPECT_TRUE(Types.owns(Function));
   }
 
@@ -157,7 +153,7 @@ namespace ink::ir::test
     EXPECT_EQ(Types.getArrayType(Foreign, 0), nullptr);
     EXPECT_EQ(Types.getArrayType(Foreign, 1), nullptr);
     EXPECT_EQ(Types.getFunctionType(Foreign), nullptr);
-    EXPECT_EQ(Types.getFunctionType(Local, {Parameter(Foreign)}), nullptr);
+    EXPECT_EQ(Types.getFunctionType(Local, {Foreign}), nullptr);
     EXPECT_EQ(Types.getPointerType(nullptr), nullptr);
     EXPECT_EQ(Types.getReferenceType(nullptr), nullptr);
     EXPECT_FALSE(Types.owns(Foreign));

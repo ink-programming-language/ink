@@ -2,21 +2,9 @@
 
 namespace ink::ir
 {
-  ClassType::ClassType(std::uint64_t Size, std::uint64_t Alignment) noexcept
-      : Type(ValueKind::Class),
-        Size(Size),
-        Alignment(Alignment)
+  ClassType::ClassType(const TypeContext &Context, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
+      : NominalType(ValueKind::Class, Context, Size, Alignment, Name)
   {
-  }
-
-  std::uint64_t ClassType::size() const noexcept
-  {
-    return Size;
-  }
-
-  std::uint64_t ClassType::alignment() const noexcept
-  {
-    return Alignment;
   }
 
   bool ClassType::classof(const Value *Value) noexcept

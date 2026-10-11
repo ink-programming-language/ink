@@ -622,24 +622,29 @@ namespace ink::frontend::parser::test
     }
   }
 
-  // Shared function bindings retain the existing binary tags and text spellings in both snapshot formats.
-  TEST_F(ParserTest, ASTSerializationPreservesFunctionBindingEncoding)
+  // Symbol linkage retains the existing binary tags and nativeSymbolKind text field independently of visibility.
+  TEST_F(ParserTest, ASTSerializationPreservesSymbolLinkageEncoding)
   {
     struct Row
     {
         const char *Source;
-        core::FunctionBinding Binding;
+        ir::SymbolLinkage SymbolLink;
+        DeclarationVisibility Visibility;
         std::uint64_t Wire;
         const char *Spelling;
     };
     constexpr Row Rows[] = {
-        {"func f(): void {}", core::FunctionBinding::Local, 0, "None"},
-        {"import \"C\" func f(): void;", core::FunctionBinding::Import, 1, "Import"},
-        {"export \"C\" func f(): void {}", core::FunctionBinding::Export, 2, "Export"},
+        {"func f(): void {}", ir::SymbolLinkage::Local, DeclarationVisibility::Default, 0, "None"},
+        {"import \"C\" func f(): void;", ir::SymbolLinkage::Import, DeclarationVisibility::Default, 1, "Import"},
+        {"export \"C\" func f(): void {}", ir::SymbolLinkage::Export, DeclarationVisibility::Default, 2, "Export"},
+        {"public func f(): void {}", ir::SymbolLinkage::Local, DeclarationVisibility::Public, 0, "None"},
+        {"private import \"C\" func f(): void;", ir::SymbolLinkage::Import, DeclarationVisibility::Private, 1, "Import"},
+        {"public export \"C\" func f(): void {}", ir::SymbolLinkage::Export, DeclarationVisibility::Public, 2, "Export"},
+        {"private export \"C\" func f(): void {}", ir::SymbolLinkage::Export, DeclarationVisibility::Private, 2, "Export"},
     };
     for (const Row &Entry : Rows)
     {
-      SCOPED_TRACE(Entry.Spelling);
+      SCOPED_TRACE(Entry.Source);
       const auto Parsed = read(Entry.Source);
       ASSERT_TRUE(Parsed.succeeded());
       for (bool IsText : {false, true})
@@ -649,6 +654,7 @@ namespace ink::frontend::parser::test
         if (IsText)
         {
           EXPECT_NE(Saved.Bytes.find(std::string("nativeSymbolKind = ") + Entry.Spelling), std::string::npos);
+          EXPECT_EQ(Saved.Bytes.find("symbolLinkage = "), std::string::npos);
         }
         else
         {
@@ -659,13 +665,14 @@ namespace ink::frontend::parser::test
         }
         auto Loaded = IsText ? tryDeserializeASTText(Frontend, Saved.Bytes) : tryDeserializeAST(Frontend, Saved.Bytes);
         ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
-        EXPECT_EQ(cast<FunctionDecl>(declaration(Loaded.Parsed, 0))->nativeSymbolKind(), Entry.Binding);
+        EXPECT_EQ(cast<FunctionDecl>(declaration(Loaded.Parsed, 0))->symbolLinkage(), Entry.SymbolLink);
+        EXPECT_EQ(declaration(Loaded.Parsed, 0)->visibility(), Entry.Visibility);
       }
     }
   }
 
-  // Binary and text snapshots reject unknown native directions and direction/linkage mismatches.
-  TEST_F(ParserTest, ASTSerializationRejectsInvalidNativeSymbolKind)
+  // Binary and text snapshots reject unknown symbol directions and direction/ABI linkage mismatches.
+  TEST_F(ParserTest, ASTSerializationRejectsInvalidSymbolLinkage)
   {
     const auto Parsed = read("private export \"C\" func f(): void {}");
     ASSERT_TRUE(Parsed.succeeded());

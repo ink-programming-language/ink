@@ -6,6 +6,8 @@
 #include <gtest/gtest.h>
 
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace ink::ir::test
 {
@@ -18,6 +20,8 @@ namespace ink::ir::test
   static_assert(std::is_final_v<GenericFunctionType>);
   static_assert(std::is_final_v<GenericVarType>);
   static_assert(std::has_virtual_destructor_v<GenericType>);
+  static_assert(std::is_same_v<decltype(std::declval<const GenericType &>().genericParameters()), const std::vector<const Type *> &>);
+  static_assert(std::is_same_v<decltype(std::declval<const GenericFunctionType &>().parameters()), const std::vector<const Type *> &>);
 
   // Generic type classifiers reject a missing value for every retained declaration kind.
   TEST(IRGenericTypeTest, ClassifiersRejectNull)

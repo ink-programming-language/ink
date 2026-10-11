@@ -2,21 +2,9 @@
 
 namespace ink::ir
 {
-  InterfaceType::InterfaceType(std::uint64_t Size, std::uint64_t Alignment) noexcept
-      : Type(ValueKind::Interface),
-        Size(Size),
-        Alignment(Alignment)
+  InterfaceType::InterfaceType(const TypeContext &Context, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
+      : NominalType(ValueKind::Interface, Context, Size, Alignment, Name)
   {
-  }
-
-  std::uint64_t InterfaceType::size() const noexcept
-  {
-    return Size;
-  }
-
-  std::uint64_t InterfaceType::alignment() const noexcept
-  {
-    return Alignment;
   }
 
   bool InterfaceType::classof(const Value *Value) noexcept

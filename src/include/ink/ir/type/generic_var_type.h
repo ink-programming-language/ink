@@ -19,7 +19,7 @@ namespace ink::ir
 
       // Owns the generic parameter list and borrows its types and ValueType.
       // A null ValueType is preserved for declarations awaiting semantic resolution.
-      GenericVarType(core::Name Name, std::vector<Parameter> GenericParameters, const Type *ValueType) noexcept;
+      GenericVarType(core::Name Name, std::vector<const Type *> GenericParameters, const Type *ValueType) noexcept;
 
       const Type *ValueType = nullptr;
   };

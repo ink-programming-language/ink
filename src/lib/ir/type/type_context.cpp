@@ -9,48 +9,32 @@ namespace ink::ir
 {
   bool TypeContext::FunctionKey::operator==(const FunctionKey &Other) const noexcept
   {
-    if (ReturnType != Other.ReturnType || Parameters.size() != Other.Parameters.size())
-    {
-      return false;
-    }
-    for (std::size_t Index = 0; Index < Parameters.size(); ++Index)
-    {
-      const Parameter &Left = Parameters[Index];
-      const Parameter &Right = Other.Parameters[Index];
-      if (Left.type() != Right.type() || Left.name() != Right.name() || Left.isVariadic() != Right.isVariadic())
-      {
-        return false;
-      }
-    }
-    return true;
+    return ReturnType == Other.ReturnType && Parameters == Other.Parameters;
   }
 
   std::size_t TypeContext::FunctionKeyHash::operator()(const FunctionKey &Key) const noexcept
   {
     std::size_t Hash = std::hash<const Type *>{}(Key.ReturnType);
-    for (const Parameter &ParameterValue : Key.Parameters)
+    for (const Type *ParameterType : Key.Parameters)
     {
-      Hash ^= std::hash<const Type *>{}(ParameterValue.type()) + 0x9e3779b9U + (Hash << 6U) + (Hash >> 2U);
-      Hash ^= std::hash<core::Name>{}(ParameterValue.name()) + 0x9e3779b9U + (Hash << 6U) + (Hash >> 2U);
-      Hash ^= std::hash<bool>{}(ParameterValue.isVariadic()) + 0x9e3779b9U + (Hash << 6U) + (Hash >> 2U);
+      Hash ^= std::hash<const Type *>{}(ParameterType) + 0x9e3779b9U + (Hash << 6U) + (Hash >> 2U);
     }
     return Hash;
   }
 
   template <typename TypeT>
-  const TypeT *TypeContext::own(std::unique_ptr<TypeT> TypeValue)
+  TypeT *TypeContext::own(std::unique_ptr<TypeT> TypeValue)
   {
-    const TypeT *Result = TypeValue.get();
+    TypeT *Result = TypeValue.get();
     OwnedTypes.insert(Result);
     Storage.push_back(std::move(TypeValue));
     return Result;
   }
 
-  bool TypeContext::validParameters(const std::vector<Parameter> &Parameters) const noexcept
+  bool TypeContext::validParameters(const std::vector<const Type *> &Parameters) const noexcept
   {
-    for (const Parameter &ParameterValue : Parameters)
+    for (const Type *ParameterType : Parameters)
     {
-      const Type *ParameterType = ParameterValue.type();
       if (OwnedTypes.find(ParameterType) == OwnedTypes.end() || !ParameterType->hasLayout())
       {
         return false;
@@ -69,7 +53,7 @@ namespace ink::ir
         Float64(Target, 64),
         String(Target)
   {
-    OwnedTypes.insert({&Void, &Bool, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64, &String});
+    OwnedTypes.insert({&Void, &Variadic, &Bool, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64, &String});
   }
 
   TypeContext::~TypeContext() noexcept = default;
@@ -87,6 +71,11 @@ namespace ink::ir
   const VoidType *TypeContext::getVoidType() const noexcept
   {
     return &Void;
+  }
+
+  const VariadicType *TypeContext::getVariadicType() const noexcept
+  {
+    return &Variadic;
   }
 
   const BoolType *TypeContext::getBoolType() const noexcept
@@ -145,6 +134,33 @@ namespace ink::ir
   const FloatType *TypeContext::getFloatType(std::uint32_t Width) const noexcept
   {
     return Width == 32 ? getFloat32Type() : Width == 64 ? getFloat64Type() : nullptr;
+  }
+
+  ClassType *TypeContext::createClassType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name)
+  {
+    if (!detail::validAlignment(Alignment))
+    {
+      return nullptr;
+    }
+    return own(std::unique_ptr<ClassType>(new ClassType(*this, Size, Alignment, Name)));
+  }
+
+  InterfaceType *TypeContext::createInterfaceType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name)
+  {
+    if (!detail::validAlignment(Alignment))
+    {
+      return nullptr;
+    }
+    return own(std::unique_ptr<InterfaceType>(new InterfaceType(*this, Size, Alignment, Name)));
+  }
+
+  StructType *TypeContext::createStructType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name)
+  {
+    if (!detail::validAlignment(Alignment))
+    {
+      return nullptr;
+    }
+    return own(std::unique_ptr<StructType>(new StructType(*this, Size, Alignment, Name)));
   }
 
   const PointerType *TypeContext::getPointerType(const Type *PointeeType)
@@ -221,7 +237,7 @@ namespace ink::ir
     return Result;
   }
 
-  const FunctionType *TypeContext::getFunctionType(const Type *ReturnType, std::vector<Parameter> Parameters)
+  const FunctionType *TypeContext::getFunctionType(const Type *ReturnType, std::vector<const Type *> Parameters)
   {
     if (!owns(ReturnType) || !ReturnType->hasLayout() || !validParameters(Parameters))
     {

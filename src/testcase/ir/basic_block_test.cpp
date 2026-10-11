@@ -1,5 +1,5 @@
 #include "ink/core/name_pool.h"
-#include "ink/ir/instruction/basic_block.h"
+#include "ink/ir/function/basic_block.h"
 #include "ink/ir/type/type.h"
 
 #include <gtest/gtest.h>

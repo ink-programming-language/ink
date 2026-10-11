@@ -128,17 +128,17 @@ namespace ink::frontend::parser
         return;
       }
     }
-    void printValue(std::ostringstream &Output, core::FunctionBinding Value)
+    void printValue(std::ostringstream &Output, ir::SymbolLinkage Value)
     {
       switch (Value)
       {
-      case core::FunctionBinding::Local:
-        Output << "None";
+      case ir::SymbolLinkage::Local:
+        Output << "Local";
         return;
-      case core::FunctionBinding::Import:
+      case ir::SymbolLinkage::Import:
         Output << "Import";
         return;
-      case core::FunctionBinding::Export:
+      case ir::SymbolLinkage::Export:
         Output << "Export";
         return;
       }
@@ -654,8 +654,8 @@ namespace ink::frontend::parser
           printValue(Output, Node->parameters());
           Output << " BodyKind=";
           printValue(Output, Node->bodyKind());
-          Output << " NativeSymbolKind=";
-          printValue(Output, Node->nativeSymbolKind());
+          Output << " SymbolLinkage=";
+          printValue(Output, Node->symbolLinkage());
           Output << " Linkage=";
           printValue(Output, Node->linkage());
         }

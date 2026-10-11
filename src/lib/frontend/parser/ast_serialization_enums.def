@@ -119,7 +119,7 @@ AST_ENUM_BEGIN(FunctionBodyKind)
 AST_ENUM_VALUE(DeclarationOnly, 0)
 AST_ENUM_VALUE(Definition, 1)
 AST_ENUM_END()
-AST_ENUM_BEGIN(core::FunctionBinding)
+AST_ENUM_BEGIN(ir::SymbolLinkage)
 // Preserve the existing text spelling independently of the shared enum name.
 AST_ENUM_NAMED_VALUE(Local, 0, "None")
 AST_ENUM_VALUE(Import, 1)

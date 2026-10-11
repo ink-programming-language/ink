@@ -16,7 +16,7 @@ namespace ink::ir
     private:
       friend class TypeContext;
 
-      GenericClassType(core::Name Name, std::vector<Parameter> GenericParameters) noexcept;
+      GenericClassType(core::Name Name, std::vector<const Type *> GenericParameters) noexcept;
   };
 } // namespace ink::ir
 

@@ -5,7 +5,7 @@
 #include "ink/frontend/parser/ast_context.h"
 #include "ink/frontend/parser/ast/attribute.h"
 #include "ink/frontend/parser/ast/parameter.h"
-#include "ink/core/function_binding.h"
+#include "ink/ir/function/function.h"
 
 namespace ink::frontend::parser
 {
@@ -17,7 +17,7 @@ namespace ink::frontend::parser
       {
         return Node && Node->getKind() == Kind;
       }
-      FunctionDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, FunctionBodyKind BodyKind, BlockStmt *Body, Expr *Linkage = nullptr, core::FunctionBinding NativeSymbol = core::FunctionBinding::Local)
+      FunctionDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, FunctionBodyKind BodyKind, BlockStmt *Body, Expr *Linkage = nullptr, ir::SymbolLinkage SymbolLink = ir::SymbolLinkage::Local)
           : Decl(Kind, Range),
             Attributes(Attributes),
             Name(Name),
@@ -27,7 +27,7 @@ namespace ink::frontend::parser
             BodyKind(BodyKind),
             Body(Body),
             Linkage(Linkage),
-            NativeSymbol(NativeSymbol)
+            SymbolLink(SymbolLink)
       {
       }
       ASTArray<Attribute> attributes() const noexcept
@@ -58,9 +58,9 @@ namespace ink::frontend::parser
       {
         return BodyKind;
       }
-      core::FunctionBinding nativeSymbolKind() const noexcept
+      ir::SymbolLinkage symbolLinkage() const noexcept
       {
-        return NativeSymbol;
+        return SymbolLink;
       }
       // Null without native import/export; a string literal, or MissingExpr during recovery, otherwise.
       Expr *linkage() noexcept
@@ -89,6 +89,6 @@ namespace ink::frontend::parser
       FunctionBodyKind BodyKind;
       BlockStmt *Body;
       Expr *Linkage;
-      core::FunctionBinding NativeSymbol;
+      ir::SymbolLinkage SymbolLink;
   };
 } // namespace ink::frontend::parser

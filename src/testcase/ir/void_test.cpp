@@ -100,8 +100,8 @@ namespace ink::ir::test
     TypeContext Types(Target64);
     const VoidType *Void = Types.getVoidType();
     const PointerType *Opaque = Types.getPointerType(Void);
-    const FunctionType *Function = Types.getFunctionType(Void, {Parameter(Opaque)});
-    const FunctionType *UnitParameter = Types.getFunctionType(Void, {Parameter(Void)});
+    const FunctionType *Function = Types.getFunctionType(Void, {Opaque});
+    const FunctionType *UnitParameter = Types.getFunctionType(Void, {Void});
     const FunctionType *Empty = Types.getFunctionType(Void);
     const ArrayType *Units = Types.getArrayType(Void, std::numeric_limits<std::uint64_t>::max());
     const ReferenceType *Reference = Types.getReferenceType(Void);
@@ -110,11 +110,11 @@ namespace ink::ir::test
     ASSERT_NE(Empty, nullptr);
     ASSERT_NE(Units, nullptr);
     ASSERT_NE(Reference, nullptr);
-    EXPECT_EQ(Function, Types.getFunctionType(Void, {Parameter(Opaque)}));
+    EXPECT_EQ(Function, Types.getFunctionType(Void, {Opaque}));
     EXPECT_EQ(Function->returnType(), Void);
     ASSERT_EQ(Function->parameterCount(), 1U);
-    EXPECT_EQ(Function->parameters()[0].type(), Opaque);
-    EXPECT_EQ(UnitParameter->parameters()[0].type(), Void);
+    EXPECT_EQ(Function->parameters()[0], Opaque);
+    EXPECT_EQ(UnitParameter->parameters()[0], Void);
     EXPECT_TRUE(Empty->parameters().empty());
     EXPECT_EQ(Empty->returnType(), Void);
     EXPECT_EQ(Units->elementType(), Void);
@@ -136,7 +136,7 @@ namespace ink::ir::test
     EXPECT_EQ(Types.getReferenceType(Foreign), nullptr);
     EXPECT_EQ(Types.getArrayType(Foreign, 0), nullptr);
     EXPECT_EQ(Types.getFunctionType(Foreign), nullptr);
-    EXPECT_EQ(Types.getFunctionType(Void, {Parameter(Foreign)}), nullptr);
+    EXPECT_EQ(Types.getFunctionType(Void, {Foreign}), nullptr);
     EXPECT_EQ(Types.getPointerType(nullptr), nullptr);
   }
 

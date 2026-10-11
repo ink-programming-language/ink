@@ -32,11 +32,12 @@ namespace ink::ir
       case ValueKind::Struct:
       case ValueKind::Pointer:
       case ValueKind::Reference:
-      case ValueKind::Function:
+      case ValueKind::FunctionType:
       case ValueKind::GenericClass:
       case ValueKind::GenericFunction:
       case ValueKind::GenericVar:
       case ValueKind::String:
+      case ValueKind::Variadic:
         return true;
       default:
         return false;

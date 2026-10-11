@@ -4,7 +4,7 @@
 
 namespace ink::ir
 {
-  GenericType::GenericType(ValueKind Kind, core::Name Name, std::vector<Parameter> GenericParameters) noexcept
+  GenericType::GenericType(ValueKind Kind, core::Name Name, std::vector<const Type *> GenericParameters) noexcept
       : Type(Kind),
         Name(Name),
         GenericParameters(std::move(GenericParameters))
@@ -18,7 +18,7 @@ namespace ink::ir
     return Name;
   }
 
-  const std::vector<Parameter> &GenericType::genericParameters() const noexcept
+  const std::vector<const Type *> &GenericType::genericParameters() const noexcept
   {
     return GenericParameters;
   }

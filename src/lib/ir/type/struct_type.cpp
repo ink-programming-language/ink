@@ -2,21 +2,9 @@
 
 namespace ink::ir
 {
-  StructType::StructType(std::uint64_t Size, std::uint64_t Alignment) noexcept
-      : Type(ValueKind::Struct),
-        Size(Size),
-        Alignment(Alignment)
+  StructType::StructType(const TypeContext &Context, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
+      : NominalType(ValueKind::Struct, Context, Size, Alignment, Name)
   {
-  }
-
-  std::uint64_t StructType::size() const noexcept
-  {
-    return Size;
-  }
-
-  std::uint64_t StructType::alignment() const noexcept
-  {
-    return Alignment;
   }
 
   bool StructType::classof(const Value *Value) noexcept

@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  FunctionType::FunctionType(const target::TargetContext &Target, const Type *ReturnType, std::vector<Parameter> Parameters) noexcept
-      : Type(ValueKind::Function),
+  FunctionType::FunctionType(const target::TargetContext &Target, const Type *ReturnType, std::vector<const Type *> Parameters) noexcept
+      : Type(ValueKind::FunctionType),
         ReturnType(ReturnType),
         Parameters(std::move(Parameters)),
         PointerByteWidth(Target.pointerByteWidth())
@@ -17,7 +17,7 @@ namespace ink::ir
     return ReturnType;
   }
 
-  const std::vector<Parameter> &FunctionType::parameters() const noexcept
+  const std::vector<const Type *> &FunctionType::parameters() const noexcept
   {
     return Parameters;
   }
@@ -39,6 +39,6 @@ namespace ink::ir
 
   bool FunctionType::classof(const Value *Value) noexcept
   {
-    return Value && Value->kind() == ValueKind::Function;
+    return Value && Value->kind() == ValueKind::FunctionType;
   }
 } // namespace ink::ir

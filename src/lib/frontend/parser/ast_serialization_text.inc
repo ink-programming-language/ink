@@ -10,6 +10,11 @@ namespace ink::frontend::parser
       const auto Name = Labels.substr(Dot + 1, End - Dot - 1);
       const auto Comma = Labels.find(',', End);
       Labels = Comma == std::string_view::npos ? std::string_view{} : Labels.substr(Comma + 1);
+      // Keep the existing text archive key when the in-memory accessor is renamed.
+      if (Name == "symbolLinkage")
+      {
+        return "nativeSymbolKind";
+      }
       return Name == "getSourceRange" ? "range" : Name;
     }
 

@@ -6,8 +6,10 @@
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/constant/null_pointer_constant.h"
 #include "ink/ir/constant/string_constant.h"
-#include "ink/ir/instruction/basic_block.h"
+#include "ink/ir/function/basic_block.h"
+#include "ink/ir/function/function.h"
 #include "ink/ir/instruction/instruction.h"
+#include "ink/ir/param/parameter.h"
 #include "ink/ir/type/array_type.h"
 #include "ink/ir/type/bool_type.h"
 #include "ink/ir/type/class_type.h"
@@ -86,13 +88,13 @@ namespace ink::ir::test
   static_assert(!std::is_constructible_v<PointerType, const target::TargetContext &, const Type *>);
   static_assert(!std::is_constructible_v<ReferenceType, const target::TargetContext &, const Type *>);
   static_assert(!std::is_constructible_v<ArrayType, const Type *, std::uint64_t, std::uint64_t, std::uint64_t>);
-  static_assert(!std::is_constructible_v<FunctionType, const target::TargetContext &, const Type *, std::vector<Parameter>>);
+  static_assert(!std::is_constructible_v<FunctionType, const target::TargetContext &, const Type *, std::vector<const Type *>>);
   static_assert(!std::is_constructible_v<ClassType, std::uint64_t, std::uint64_t>);
   static_assert(!std::is_constructible_v<StructType, std::uint64_t, std::uint64_t>);
   static_assert(!std::is_constructible_v<InterfaceType, std::uint64_t, std::uint64_t>);
-  static_assert(!std::is_constructible_v<GenericClassType, core::Name, std::vector<Parameter>>);
-  static_assert(!std::is_constructible_v<GenericFunctionType, core::Name, std::vector<Parameter>, const Type *, std::vector<Parameter>>);
-  static_assert(!std::is_constructible_v<GenericVarType, core::Name, std::vector<Parameter>, const Type *>);
+  static_assert(!std::is_constructible_v<GenericClassType, core::Name, std::vector<const Type *>>);
+  static_assert(!std::is_constructible_v<GenericFunctionType, core::Name, std::vector<const Type *>, const Type *, std::vector<const Type *>>);
+  static_assert(!std::is_constructible_v<GenericVarType, core::Name, std::vector<const Type *>, const Type *>);
   static_assert(!std::is_copy_constructible_v<BoolType> && !std::is_move_constructible_v<BoolType>);
   static_assert(!std::is_copy_constructible_v<IntegerType> && !std::is_move_constructible_v<IntegerType>);
   static_assert(!std::is_copy_constructible_v<FunctionType> && !std::is_move_constructible_v<FunctionType>);
@@ -345,7 +347,7 @@ namespace ink::ir::test
     EXPECT_EQ(Types.getArrayType(nullptr, 1), nullptr);
   }
 
-  // Type, instruction, block and constant classifiers distinguish their kinds and safely reject null and unknown values.
+  // Type, function, parameter, instruction, block and constant classifiers reject unrelated, null and unknown values.
   TEST(IRTypeTest, ClassifiersRejectNullAndOtherKinds)
   {
     TypeContext Types(Target64);
@@ -356,7 +358,7 @@ namespace ink::ir::test
     const auto Array = Types.getArrayType(Bool, 2);
     const auto Pointer = Types.getPointerType(Bool);
     const auto Reference = Types.getReferenceType(Bool);
-    const auto Function = Types.getFunctionType(Bool);
+    const auto Function = Types.getFunctionType(Bool, {Bool});
     const BasicBlock Block;
     const SyntheticInstruction Operation;
     const auto String = Types.getStringType();
@@ -364,6 +366,10 @@ namespace ink::ir::test
     ASSERT_NE(Float, nullptr);
     ASSERT_NE(Array, nullptr);
     ASSERT_NE(Function, nullptr);
+
+    const ink::ir::Function Callable(*Function);
+    const Parameter *ParameterValue = Callable.parameter(0);
+    ASSERT_NE(ParameterValue, nullptr);
 
     const auto BoolValue = Constants.getBoolConstant(true);
     const auto IntegerValue = Constants.getSignedIntegerConstant(Integer, -1);
@@ -378,7 +384,7 @@ namespace ink::ir::test
     ASSERT_NE(NullValue, nullptr);
     ASSERT_NE(StringValue, nullptr);
 
-    const std::array<const Value *, 17> Values = {
+    const std::array<const Value *, 19> Values = {
         Types.getVoidType(),
         Integer,
         Float,
@@ -387,6 +393,8 @@ namespace ink::ir::test
         Pointer,
         Reference,
         Function,
+        &Callable,
+        ParameterValue,
         &Block,
         &Operation,
         BoolValue,
@@ -398,7 +406,7 @@ namespace ink::ir::test
         StringValue,
     };
     using Classifier = bool (*)(const Value *);
-    const std::array<Classifier, 17> Classifiers = {
+    const std::array<Classifier, 19> Classifiers = {
         VoidType::classof,
         IntegerType::classof,
         FloatType::classof,
@@ -407,6 +415,8 @@ namespace ink::ir::test
         PointerType::classof,
         ReferenceType::classof,
         FunctionType::classof,
+        ink::ir::Function::classof,
+        Parameter::classof,
         BasicBlock::classof,
         Instruction::classof,
         BoolConstant::classof,
@@ -457,7 +467,7 @@ namespace ink::ir::test
       const bool IsConstant = Value == BoolValue || Value == IntegerValue || Value == FloatValue || Value == ArrayValue || Value == NullValue || Value == StringValue;
       EXPECT_FALSE(GenericType::classof(Value));
       EXPECT_EQ(Constant::classof(Value), IsConstant);
-      EXPECT_EQ(Type::classof(Value), Value != &Block && Value != &Operation && !IsConstant);
+      EXPECT_EQ(Type::classof(Value), Value != &Callable && Value != ParameterValue && Value != &Block && Value != &Operation && !IsConstant);
     }
   }
 
@@ -474,7 +484,9 @@ namespace ink::ir::test
     EXPECT_EQ(valueKindName(ValueKind::Struct), "struct");
     EXPECT_EQ(valueKindName(ValueKind::Pointer), "pointer");
     EXPECT_EQ(valueKindName(ValueKind::Reference), "reference");
+    EXPECT_EQ(valueKindName(ValueKind::FunctionType), "function_type");
     EXPECT_EQ(valueKindName(ValueKind::Function), "function");
+    EXPECT_EQ(valueKindName(ValueKind::Parameter), "parameter");
     EXPECT_EQ(valueKindName(ValueKind::GenericClass), "generic_class");
     EXPECT_EQ(valueKindName(ValueKind::GenericFunction), "generic_function");
     EXPECT_EQ(valueKindName(ValueKind::GenericVar), "generic_var");

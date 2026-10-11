@@ -1,15 +1,20 @@
 #ifndef INK_IR_TYPE_TYPE_CONTEXT_H
 #define INK_IR_TYPE_TYPE_CONTEXT_H
 
+#include "ink/core/name.h"
 #include "ink/target/target_context.h"
 #include "ink/ir/type/array_type.h"
 #include "ink/ir/type/bool_type.h"
+#include "ink/ir/type/class_type.h"
 #include "ink/ir/type/float_type.h"
 #include "ink/ir/type/function_type.h"
 #include "ink/ir/type/integer_type.h"
+#include "ink/ir/type/interface_type.h"
 #include "ink/ir/type/pointer_type.h"
 #include "ink/ir/type/reference_type.h"
 #include "ink/ir/type/string_type.h"
+#include "ink/ir/type/struct_type.h"
+#include "ink/ir/type/variadic_type.h"
 #include "ink/ir/type/void_type.h"
 
 #include <cstddef>
@@ -21,8 +26,8 @@
 
 namespace ink::ir
 {
-  // Owns immutable types for one fixed target. All returned pointers are borrowed
-  // and remain valid until this context is destroyed; IR users must die first.
+  // Owns types with fixed layouts for one target. Nominal metadata can be built and then frozen.
+  // Returned pointers are borrowed and remain valid until this context is destroyed; IR users must die first.
   // A context is not thread-safe and types from different contexts cannot be mixed.
   class TypeContext final
   {
@@ -39,6 +44,7 @@ namespace ink::ir
       bool owns(const Type *TypeValue) const noexcept;
 
       const VoidType *getVoidType() const noexcept;
+      const VariadicType *getVariadicType() const noexcept;
       const BoolType *getBoolType() const noexcept;
       const IntegerType *getInt32Type() const noexcept;
       const IntegerType *getUInt32Type() const noexcept;
@@ -52,20 +58,27 @@ namespace ink::ir
       const IntegerType *getIntegerType(std::uint32_t Width, bool Signed) const noexcept;
       const FloatType *getFloatType(std::uint32_t Width) const noexcept;
 
+      // Each creation has a distinct nominal identity, even for equal layouts.
+      // Size is preserved in bytes; zero or non-power-of-two alignment returns nullptr.
+      // Names and methods remain editable until freeze(); layouts never change.
+      ClassType *createClassType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
+      InterfaceType *createInterfaceType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
+      StructType *createStructType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
+
       // Structural types are reused. Null or foreign-context operands return nullptr.
       const PointerType *getPointerType(const Type *PointeeType);
       const ReferenceType *getReferenceType(const Type *ReferencedType);
       // Missing/invalid element layout or size overflow also returns nullptr.
       const ArrayType *getArrayType(const Type *ElementType, std::uint64_t ElementCount);
-      // All types must have runtime layouts. Names and variadic flags are part of
-      // the cache key because the current FunctionType preserves this metadata.
-      const FunctionType *getFunctionType(const Type *ReturnType, std::vector<Parameter> Parameters = {});
+      // All types must have runtime layouts. Cache identity uses the return type
+      // and the ordered parameter types.
+      const FunctionType *getFunctionType(const Type *ReturnType, std::vector<const Type *> Parameters = {});
 
     private:
       struct FunctionKey
       {
           const Type *ReturnType;
-          std::vector<Parameter> Parameters;
+          std::vector<const Type *> Parameters;
 
           bool operator==(const FunctionKey &Other) const noexcept;
       };
@@ -76,12 +89,13 @@ namespace ink::ir
       };
 
       template <typename TypeT>
-      const TypeT *own(std::unique_ptr<TypeT> TypeValue);
+      TypeT *own(std::unique_ptr<TypeT> TypeValue);
 
-      bool validParameters(const std::vector<Parameter> &Parameters) const noexcept;
+      bool validParameters(const std::vector<const Type *> &Parameters) const noexcept;
 
       const target::TargetContext Target;
       VoidType Void;
+      VariadicType Variadic;
       BoolType Bool;
       IntegerType Int32;
       IntegerType UInt32;

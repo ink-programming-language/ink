@@ -11,7 +11,7 @@ namespace ink::ir
     public:
       ~Type() noexcept override;
 
-      // False for templates awaiting instantiation; size/alignment then carry no runtime layout.
+      // False for type markers or templates awaiting instantiation; size/alignment then carry no runtime layout.
       virtual bool hasLayout() const noexcept;
 
       // The represented value's storage size and ABI alignment, both in bytes.

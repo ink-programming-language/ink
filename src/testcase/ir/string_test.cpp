@@ -157,7 +157,7 @@ namespace ink::ir::test
       const auto First = Constants.getStringConstant("first");
       const auto Second = Constants.getStringConstant("second");
       const auto Array = Types.getArrayType(String, 2);
-      const auto Function = Types.getFunctionType(String, {Parameter(String)});
+      const auto Function = Types.getFunctionType(String, {String});
       ASSERT_NE(First, nullptr);
       ASSERT_NE(Second, nullptr);
       ASSERT_NE(Array, nullptr);
@@ -171,7 +171,7 @@ namespace ink::ir::test
       EXPECT_EQ(Values->elements()[1], Second);
       EXPECT_EQ(Function->returnType(), String);
       ASSERT_EQ(Function->parameterCount(), 1U);
-      EXPECT_EQ(Function->parameters()[0].type(), String);
+      EXPECT_EQ(Function->parameters()[0], String);
     }
   }
 } // namespace ink::ir::test

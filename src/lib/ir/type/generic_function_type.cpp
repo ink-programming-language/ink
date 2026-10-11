@@ -4,7 +4,7 @@
 
 namespace ink::ir
 {
-  GenericFunctionType::GenericFunctionType(core::Name Name, std::vector<Parameter> GenericParameters, const Type *ReturnType, std::vector<Parameter> Parameters) noexcept
+  GenericFunctionType::GenericFunctionType(core::Name Name, std::vector<const Type *> GenericParameters, const Type *ReturnType, std::vector<const Type *> Parameters) noexcept
       : GenericType(ValueKind::GenericFunction, Name, std::move(GenericParameters)),
         ReturnType(ReturnType),
         Parameters(std::move(Parameters))
@@ -16,7 +16,7 @@ namespace ink::ir
     return ReturnType;
   }
 
-  const std::vector<Parameter> &GenericFunctionType::parameters() const noexcept
+  const std::vector<const Type *> &GenericFunctionType::parameters() const noexcept
   {
     return Parameters;
   }

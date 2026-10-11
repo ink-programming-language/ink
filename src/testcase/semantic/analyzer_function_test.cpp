@@ -63,7 +63,7 @@ namespace ink::semantic::test
     EXPECT_FALSE(FunctionNamed("abs").hasBody());
     EXPECT_EQ(FunctionNamed("abs").visibility(), core::VisibilityKind::Private);
     EXPECT_EQ(FunctionNamed("callback").languageLinkage(), LanguageLinkage::C);
-    EXPECT_EQ(FunctionNamed("callback").binding(), core::FunctionBinding::Local);
+    EXPECT_EQ(FunctionNamed("callback").symbolLinkage(), ir::SymbolLinkage::Local);
     EXPECT_TRUE(FunctionNamed("callback").hasBody());
     EXPECT_TRUE(FunctionNamed("hidden").isNativeExport());
     EXPECT_EQ(FunctionNamed("hidden").visibility(), core::VisibilityKind::Private);

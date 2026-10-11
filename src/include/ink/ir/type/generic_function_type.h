@@ -12,7 +12,7 @@ namespace ink::ir
   {
     public:
       const Type *returnType() const noexcept;
-      const std::vector<Parameter> &parameters() const noexcept;
+      const std::vector<const Type *> &parameters() const noexcept;
       std::size_t parameterCount() const noexcept;
       static bool classof(const Value *Value) noexcept;
 
@@ -21,10 +21,10 @@ namespace ink::ir
 
       // Owns both parameter lists and borrows their types and ReturnType.
       // Null types are preserved for signatures awaiting semantic resolution.
-      GenericFunctionType(core::Name Name, std::vector<Parameter> GenericParameters, const Type *ReturnType, std::vector<Parameter> Parameters) noexcept;
+      GenericFunctionType(core::Name Name, std::vector<const Type *> GenericParameters, const Type *ReturnType, std::vector<const Type *> Parameters) noexcept;
 
       const Type *ReturnType = nullptr;
-      std::vector<Parameter> Parameters;
+      std::vector<const Type *> Parameters;
   };
 } // namespace ink::ir
 
