@@ -2,7 +2,7 @@
 
 namespace ink::ir
 {
-  PointerType::PointerType(const core::TargetContext &Target, const Type *PointeeType) noexcept
+  PointerType::PointerType(const target::TargetContext &Target, const Type *PointeeType) noexcept
       : Type(ValueKind::Pointer),
         PointeeType(PointeeType),
         PointerByteWidth(Target.pointerByteWidth())

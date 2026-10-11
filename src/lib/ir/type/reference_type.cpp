@@ -2,7 +2,7 @@
 
 namespace ink::ir
 {
-  ReferenceType::ReferenceType(const core::TargetContext &Target, const Type *ReferencedType) noexcept
+  ReferenceType::ReferenceType(const target::TargetContext &Target, const Type *ReferencedType) noexcept
       : Type(ValueKind::Reference),
         ReferencedType(ReferencedType),
         PointerByteWidth(Target.pointerByteWidth())

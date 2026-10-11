@@ -4,7 +4,7 @@
 
 // INK_VALUE(Kind, Name, FixedSize)
 // Intentionally included more than once. Sizes are in bytes, not host C++ object sizes.
-// std::nullopt means the size depends on the bit width, aggregate layout or target;
+// std::nullopt means the size depends on the bit width, aggregate layout or target, requires template instantiation, or does not apply to this kind;
 // it is distinct from a valid zero-byte value such as an empty array.
 INK_VALUE(Bool, "bool", 1)
 INK_VALUE(Integer, "integer", std::nullopt)
@@ -15,3 +15,16 @@ INK_VALUE(Interface, "interface", std::nullopt)
 INK_VALUE(Struct, "struct", std::nullopt)
 INK_VALUE(Pointer, "pointer", std::nullopt)
 INK_VALUE(Reference, "reference", std::nullopt)
+INK_VALUE(Function, "function", std::nullopt)
+INK_VALUE(GenericClass, "generic_class", std::nullopt)
+INK_VALUE(GenericFunction, "generic_function", std::nullopt)
+INK_VALUE(GenericVar, "generic_var", std::nullopt)
+INK_VALUE(BasicBlock, "basic_block", std::nullopt)
+INK_VALUE(Instruction, "instruction", std::nullopt)
+INK_VALUE(BoolConstant, "bool_constant", 1)
+INK_VALUE(IntegerConstant, "integer_constant", std::nullopt)
+INK_VALUE(FloatConstant, "float_constant", std::nullopt)
+INK_VALUE(ArrayConstant, "array_constant", std::nullopt)
+INK_VALUE(NullPointerConstant, "null_pointer_constant", std::nullopt)
+INK_VALUE(String, "string", std::nullopt)
+INK_VALUE(StringConstant, "string_constant", std::nullopt)

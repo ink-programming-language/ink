@@ -5,14 +5,19 @@
 
 namespace ink::ir
 {
+  class TypeContext;
+
   class BoolType final : public Type
   {
     public:
-      BoolType() noexcept;
-
       std::uint64_t size() const noexcept override;
       std::uint64_t alignment() const noexcept override;
       static bool classof(const Value *Value) noexcept;
+
+    private:
+      friend class TypeContext;
+
+      BoolType() noexcept;
   };
 } // namespace ink::ir
 

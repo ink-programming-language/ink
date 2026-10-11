@@ -2,16 +2,7 @@
 
 namespace ink::ir
 {
-  std::unique_ptr<IntegerType> IntegerType::create(const core::TargetContext &Target, std::uint32_t Width, bool Signed)
-  {
-    if (Width != 32 && Width != 64)
-    {
-      return nullptr;
-    }
-    return std::unique_ptr<IntegerType>(new IntegerType(Target, Width, Signed));
-  }
-
-  IntegerType::IntegerType(const core::TargetContext &Target, std::uint32_t Width, bool Signed) noexcept
+  IntegerType::IntegerType(const target::TargetContext &Target, std::uint32_t Width, bool Signed) noexcept
       : Type(ValueKind::Integer),
         Width(Width),
         Signed(Signed),

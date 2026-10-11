@@ -3,16 +3,13 @@
 
 #include "ink/ir/type/type.h"
 
-#include <memory>
-
 namespace ink::ir
 {
+  class TypeContext;
+
   class ArrayType final : public Type
   {
     public:
-      // ElementType is borrowed and must outlive the array. Null, invalid layout or size overflow returns nullptr.
-      static std::unique_ptr<ArrayType> create(const Type *ElementType, std::uint64_t ElementCount);
-
       const Type *elementType() const noexcept;
       std::uint64_t elementCount() const noexcept;
       std::uint64_t size() const noexcept override;
@@ -20,6 +17,8 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
+      friend class TypeContext;
+
       ArrayType(const Type *ElementType, std::uint64_t ElementCount, std::uint64_t Size, std::uint64_t Alignment) noexcept;
 
       const Type *ElementType = nullptr;

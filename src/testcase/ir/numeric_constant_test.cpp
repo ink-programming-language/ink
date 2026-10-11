@@ -1,0 +1,276 @@
+#include "ink/target/target_context.h"
+#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/type/type_context.h"
+
+#include <gtest/gtest.h>
+
+#include <cstdint>
+#include <limits>
+
+namespace ink::ir::test
+{
+  namespace
+  {
+    constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
+  } // namespace
+
+  // Signed factories preserve two's-complement boundary patterns and reject 32-bit overflow.
+  TEST(IRNumericConstantTest, SignedIntegerBoundariesAndNegativeBits)
+  {
+    TypeContext Types(Target);
+    ConstantContext Constants(Types);
+    const auto Signed32 = Types.getIntegerType(32, true);
+    const auto Signed64 = Types.getIntegerType(64, true);
+    ASSERT_NE(Signed32, nullptr);
+    ASSERT_NE(Signed64, nullptr);
+
+    struct SignedCase
+    {
+        const IntegerType *Type;
+        std::int64_t Value;
+        std::uint64_t ExpectedBits;
+    };
+    const SignedCase Cases[] = {
+        {Signed32, 0, 0},
+        {Signed32, -1, 0xffffffffULL},
+        {Signed32, std::numeric_limits<std::int32_t>::min(), 0x80000000ULL},
+        {Signed32, std::numeric_limits<std::int32_t>::max(), 0x7fffffffULL},
+        {Signed64, 0, 0},
+        {Signed64, -1, 0xffffffffffffffffULL},
+        {Signed64, std::numeric_limits<std::int64_t>::min(), 0x8000000000000000ULL},
+        {Signed64, std::numeric_limits<std::int64_t>::max(), 0x7fffffffffffffffULL},
+    };
+    for (const SignedCase &Case : Cases)
+    {
+      const auto Constant = Constants.getSignedIntegerConstant(Case.Type, Case.Value);
+      ASSERT_NE(Constant, nullptr);
+      EXPECT_EQ(Constant->type(), Case.Type);
+      EXPECT_EQ(Constant->bits(), Case.ExpectedBits);
+    }
+    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed32, static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::min()) - 1), nullptr);
+    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed32, static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max()) + 1), nullptr);
+  }
+
+  // Unsigned factories accept the entire width, including the high bit, without truncating overflow.
+  TEST(IRNumericConstantTest, UnsignedIntegerBoundaries)
+  {
+    TypeContext Types(Target);
+    ConstantContext Constants(Types);
+    for (const std::uint32_t Width : {32U, 64U})
+    {
+      const auto UnsignedType = Types.getIntegerType(Width, false);
+      ASSERT_NE(UnsignedType, nullptr);
+      const std::uint64_t Maximum = Width == 32 ? std::numeric_limits<std::uint32_t>::max() : std::numeric_limits<std::uint64_t>::max();
+      for (const std::uint64_t Value : {std::uint64_t{0}, Maximum})
+      {
+        const auto Constant = Constants.getUnsignedIntegerConstant(UnsignedType, Value);
+        ASSERT_NE(Constant, nullptr);
+        EXPECT_EQ(Constant->bits(), Value);
+        EXPECT_EQ(Constant->type(), UnsignedType);
+      }
+      if (Width == 32)
+      {
+        EXPECT_EQ(Constants.getUnsignedIntegerConstant(UnsignedType, Maximum + 1), nullptr);
+        EXPECT_EQ(Constants.getUnsignedIntegerConstant(UnsignedType, std::numeric_limits<std::uint64_t>::max()), nullptr);
+      }
+    }
+  }
+
+  // Numeric factories reject missing types and signedness mismatches even for an otherwise valid zero.
+  TEST(IRNumericConstantTest, IntegerRejectsMissingTypeAndWrongSignedness)
+  {
+    TypeContext Types(Target);
+    ConstantContext Constants(Types);
+    EXPECT_EQ(Constants.getIntegerConstantFromBits(nullptr, 0), nullptr);
+    EXPECT_EQ(Constants.getSignedIntegerConstant(nullptr, 0), nullptr);
+    EXPECT_EQ(Constants.getUnsignedIntegerConstant(nullptr, 0), nullptr);
+    for (const std::uint32_t Width : {32U, 64U})
+    {
+      const auto SignedType = Types.getIntegerType(Width, true);
+      const auto UnsignedType = Types.getIntegerType(Width, false);
+      ASSERT_NE(SignedType, nullptr);
+      ASSERT_NE(UnsignedType, nullptr);
+      EXPECT_EQ(Constants.getUnsignedIntegerConstant(SignedType, 0), nullptr);
+      EXPECT_EQ(Constants.getSignedIntegerConstant(UnsignedType, 0), nullptr);
+      EXPECT_EQ(Constants.getSignedIntegerConstant(UnsignedType, -1), nullptr);
+    }
+  }
+
+  // Raw integer bits accept every in-width pattern for either signedness and reject nonzero upper bits.
+  TEST(IRNumericConstantTest, IntegerRawBitsHaveNoImplicitTruncation)
+  {
+    TypeContext Types(Target);
+    ConstantContext Constants(Types);
+    for (const bool Signed : {false, true})
+    {
+      for (const std::uint32_t Width : {32U, 64U})
+      {
+        const auto Integer = Types.getIntegerType(Width, Signed);
+        ASSERT_NE(Integer, nullptr);
+        const std::uint64_t Maximum = Width == 32 ? std::numeric_limits<std::uint32_t>::max() : std::numeric_limits<std::uint64_t>::max();
+        const auto Constant = Constants.getIntegerConstantFromBits(Integer, Maximum);
+        ASSERT_NE(Constant, nullptr);
+        EXPECT_EQ(Constant->bits(), Maximum);
+        if (Width == 32)
+        {
+          EXPECT_EQ(Constants.getIntegerConstantFromBits(Integer, Maximum + 1), nullptr);
+          EXPECT_EQ(Constants.getIntegerConstantFromBits(Integer, std::numeric_limits<std::uint64_t>::max()), nullptr);
+        }
+      }
+    }
+  }
+
+  // Floating-point raw bits retain signed zero, infinities and NaN payloads regardless of target byte order.
+  TEST(IRNumericConstantTest, FloatPreservesSpecialValuePatterns)
+  {
+    struct FloatCase
+    {
+        std::uint32_t Width;
+        std::uint64_t Bits;
+    };
+    constexpr FloatCase Cases[] = {
+        {32, 0x00000000ULL},
+        {32, 0x80000000ULL},
+        {32, 0x7f800000ULL},
+        {32, 0xff800000ULL},
+        {32, 0x7fc01234ULL},
+        {32, 0xff801234ULL},
+        {64, 0x0000000000000000ULL},
+        {64, 0x8000000000000000ULL},
+        {64, 0x7ff0000000000000ULL},
+        {64, 0xfff0000000000000ULL},
+        {64, 0x7ff8000000001234ULL},
+        {64, 0xfff0000000001234ULL},
+        {64, 0xffffffffffffffffULL},
+    };
+    for (const target::ByteOrder Order : {target::ByteOrder::LittleEndian, target::ByteOrder::BigEndian})
+    {
+      const target::TargetContext FloatTarget(target::PointerWidth::Bits64, Order);
+      TypeContext FloatTypes(FloatTarget);
+      ConstantContext Constants(FloatTypes);
+      for (const FloatCase &Case : Cases)
+      {
+        const auto Float = FloatTypes.getFloatType(Case.Width);
+        ASSERT_NE(Float, nullptr);
+        const auto Constant = Constants.getFloatConstantFromBits(Float, Case.Bits);
+        ASSERT_NE(Constant, nullptr);
+        EXPECT_EQ(Constant->type(), Float);
+        EXPECT_EQ(Constant->bits(), Case.Bits);
+      }
+    }
+  }
+
+  // Numeric floating-point factories select the local 32-bit or 64-bit type and reuse raw-bit constants for finite boundaries regardless of byte order.
+  TEST(IRNumericConstantTest, FloatNumericFactoriesPreserveFiniteValues)
+  {
+    struct Float32Case
+    {
+        float Value;
+        std::uint64_t ExpectedBits;
+    };
+    constexpr Float32Case Float32Cases[] = {
+        {4.13f, 0x408428f6ULL},
+        {std::numeric_limits<float>::min(), 0x00800000ULL},
+        {std::numeric_limits<float>::denorm_min(), 0x00000001ULL},
+        {std::numeric_limits<float>::max(), 0x7f7fffffULL},
+        {std::numeric_limits<float>::lowest(), 0xff7fffffULL},
+    };
+    struct Float64Case
+    {
+        double Value;
+        std::uint64_t ExpectedBits;
+    };
+    constexpr Float64Case Float64Cases[] = {
+        {4.13, 0x4010851eb851eb85ULL},
+        {std::numeric_limits<double>::min(), 0x0010000000000000ULL},
+        {std::numeric_limits<double>::denorm_min(), 0x0000000000000001ULL},
+        {std::numeric_limits<double>::max(), 0x7fefffffffffffffULL},
+        {std::numeric_limits<double>::lowest(), 0xffefffffffffffffULL},
+    };
+    for (const target::ByteOrder Order : {target::ByteOrder::LittleEndian, target::ByteOrder::BigEndian})
+    {
+      const target::TargetContext FloatTarget(target::PointerWidth::Bits64, Order);
+      TypeContext FloatTypes(FloatTarget);
+      ConstantContext Constants(FloatTypes);
+      const auto Float32 = FloatTypes.getFloatType(32);
+      const auto Float64 = FloatTypes.getFloatType(64);
+      ASSERT_NE(Float32, nullptr);
+      ASSERT_NE(Float64, nullptr);
+      for (const Float32Case &Case : Float32Cases)
+      {
+        const auto Constant = Constants.getFloatConstant(Case.Value);
+        ASSERT_NE(Constant, nullptr);
+        EXPECT_EQ(Constant->type(), Float32);
+        EXPECT_EQ(Constant->bits(), Case.ExpectedBits);
+        EXPECT_EQ(Constant, Constants.getFloatConstantFromBits(Float32, Case.ExpectedBits));
+      }
+      for (const Float64Case &Case : Float64Cases)
+      {
+        const auto Constant = Constants.getFloatConstant(Case.Value);
+        ASSERT_NE(Constant, nullptr);
+        EXPECT_EQ(Constant->type(), Float64);
+        EXPECT_EQ(Constant->bits(), Case.ExpectedBits);
+        EXPECT_EQ(Constant, Constants.getFloatConstantFromBits(Float64, Case.ExpectedBits));
+      }
+    }
+  }
+
+  // Numeric floating-point factories preserve signed zero and infinities, and retain NaN classification.
+  TEST(IRNumericConstantTest, FloatNumericFactoriesPreserveSpecialValues)
+  {
+    TypeContext Types(Target);
+    ConstantContext Constants(Types);
+    const auto Float32 = Types.getFloatType(32);
+    const auto Float64 = Types.getFloatType(64);
+    ASSERT_NE(Float32, nullptr);
+    ASSERT_NE(Float64, nullptr);
+    struct SpecialCase
+    {
+        float Value32;
+        double Value64;
+        std::uint64_t ExpectedBits32;
+        std::uint64_t ExpectedBits64;
+    };
+    constexpr SpecialCase Cases[] = {
+        {0.0f, 0.0, 0x00000000ULL, 0x0000000000000000ULL},
+        {-0.0f, -0.0, 0x80000000ULL, 0x8000000000000000ULL},
+        {std::numeric_limits<float>::infinity(), std::numeric_limits<double>::infinity(), 0x7f800000ULL, 0x7ff0000000000000ULL},
+        {-std::numeric_limits<float>::infinity(), -std::numeric_limits<double>::infinity(), 0xff800000ULL, 0xfff0000000000000ULL},
+    };
+    for (const SpecialCase &Case : Cases)
+    {
+      const auto Constant32 = Constants.getFloatConstant(Case.Value32);
+      const auto Constant64 = Constants.getFloatConstant(Case.Value64);
+      ASSERT_NE(Constant32, nullptr);
+      ASSERT_NE(Constant64, nullptr);
+      EXPECT_EQ(Constant32->type(), Float32);
+      EXPECT_EQ(Constant64->type(), Float64);
+      EXPECT_EQ(Constant32->bits(), Case.ExpectedBits32);
+      EXPECT_EQ(Constant64->bits(), Case.ExpectedBits64);
+    }
+    const auto NaN32 = Constants.getFloatConstant(std::numeric_limits<float>::quiet_NaN());
+    const auto NaN64 = Constants.getFloatConstant(std::numeric_limits<double>::quiet_NaN());
+    ASSERT_NE(NaN32, nullptr);
+    ASSERT_NE(NaN64, nullptr);
+    EXPECT_EQ(NaN32->bits() & 0x7f800000ULL, 0x7f800000ULL);
+    EXPECT_NE(NaN32->bits() & 0x007fffffULL, 0ULL);
+    EXPECT_EQ(NaN64->bits() & 0x7ff0000000000000ULL, 0x7ff0000000000000ULL);
+    EXPECT_NE(NaN64->bits() & 0x000fffffffffffffULL, 0ULL);
+  }
+
+  // Raw floating-point factories reject missing types and nonzero high bits instead of narrowing them.
+  TEST(IRNumericConstantTest, FloatRejectsMissingTypeAndHighBits)
+  {
+    TypeContext Types(Target);
+    ConstantContext Constants(Types);
+    EXPECT_EQ(Constants.getFloatConstantFromBits(nullptr, 0), nullptr);
+    const auto Float32 = Types.getFloatType(32);
+    ASSERT_NE(Float32, nullptr);
+    EXPECT_EQ(Constants.getFloatConstantFromBits(Float32, 0x100000000ULL), nullptr);
+    EXPECT_EQ(Constants.getFloatConstantFromBits(Float32, 0xffffffff80000000ULL), nullptr);
+    EXPECT_EQ(Constants.getFloatConstantFromBits(Float32, std::numeric_limits<std::uint64_t>::max()), nullptr);
+    const auto AllBits = Constants.getFloatConstantFromBits(Float32, 0xffffffffULL);
+    ASSERT_NE(AllBits, nullptr);
+    EXPECT_EQ(AllBits->bits(), 0xffffffffULL);
+  }
+} // namespace ink::ir::test

@@ -2,16 +2,7 @@
 
 namespace ink::ir
 {
-  std::unique_ptr<FloatType> FloatType::create(const core::TargetContext &Target, std::uint32_t Width)
-  {
-    if (Width != 32 && Width != 64)
-    {
-      return nullptr;
-    }
-    return std::unique_ptr<FloatType>(new FloatType(Target, Width));
-  }
-
-  FloatType::FloatType(const core::TargetContext &Target, std::uint32_t Width) noexcept
+  FloatType::FloatType(const target::TargetContext &Target, std::uint32_t Width) noexcept
       : Type(ValueKind::Float),
         Width(Width),
         Alignment(Target.floatAlignment(Width))

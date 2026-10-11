@@ -33,7 +33,7 @@ namespace ink::semantic::test
     class ExternalAnalysis final
     {
       public:
-        explicit ExternalAnalysis(std::string_view Source, core::TargetContext Target = core::TargetContext::native())
+        explicit ExternalAnalysis(std::string_view Source, target::TargetContext Target = target::TargetContext::native())
             : Compilation(Target),
               Frontend(Compilation),
               Parsed(parser::parse(Frontend, tokenizer::tokenize(Frontend, std::string(Source)))),
@@ -229,8 +229,8 @@ namespace ink::semantic::test
   {
     NativePipe Pipe;
     ASSERT_TRUE(Pipe.valid());
-    const auto Native = core::TargetContext::native();
-    ExternalAnalysis Input(writeDeclaration() + "comptime " + std::string(WriteSymbol) + "(" + std::to_string(Pipe.writer()) + ", \"A\", 1);", core::TargetContext(Native.pointerWidth(), Native.byteOrder()));
+    const auto Native = target::TargetContext::native();
+    ExternalAnalysis Input(writeDeclaration() + "comptime " + std::string(WriteSymbol) + "(" + std::to_string(Pipe.writer()) + ", \"A\", 1);", target::TargetContext(Native.pointerWidth(), Native.byteOrder()));
     ASSERT_TRUE(Input.Parsed.succeeded());
     EXPECT_DEATH(Input.analyze(), "internal compiler error\\[INK-E0016\\]");
     std::string Output;

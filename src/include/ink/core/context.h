@@ -3,7 +3,7 @@
 
 #include "ink/core/diagnostic.h"
 #include "ink/core/source_manager.h"
-#include "ink/core/target_context.h"
+#include "ink/target/target_context.h"
 
 namespace ink::core
 {
@@ -11,11 +11,11 @@ namespace ink::core
   {
     public:
       CompilationContext()
-          : Target(TargetContext::native())
+          : Target(target::TargetContext::native())
       {
       }
 
-      explicit CompilationContext(TargetContext Target)
+      explicit CompilationContext(target::TargetContext Target)
           : Target(Target)
       {
       }
@@ -25,7 +25,7 @@ namespace ink::core
       CompilationContext(CompilationContext &&) = delete;
       CompilationContext &operator=(CompilationContext &&) = delete;
 
-      const TargetContext &targetContext() const noexcept
+      const target::TargetContext &targetContext() const noexcept
       {
         return Target;
       }
@@ -51,7 +51,7 @@ namespace ink::core
       }
 
     private:
-      TargetContext Target;
+      target::TargetContext Target;
       DiagnosticEngine Diagnostics;
       SourceManager Sources;
   };

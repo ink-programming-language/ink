@@ -1,12 +1,12 @@
-#ifndef INK_CORE_TARGET_CONTEXT_H
-#define INK_CORE_TARGET_CONTEXT_H
+#ifndef INK_TARGET_TARGET_CONTEXT_H
+#define INK_TARGET_TARGET_CONTEXT_H
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <limits>
 
-namespace ink::core
+namespace ink::target
 {
   enum class ByteOrder : std::uint8_t
   {
@@ -108,6 +108,6 @@ namespace ink::core
       ByteOrder Order;
       bool NativeAbiCompatible;
   };
-} // namespace ink::core
+} // namespace ink::target
 
 #endif

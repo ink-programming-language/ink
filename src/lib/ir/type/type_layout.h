@@ -9,11 +9,6 @@ namespace ink::ir::detail
   {
     return Alignment != 0 && (Alignment & (Alignment - 1)) == 0;
   }
-
-  inline bool validLayout(std::uint64_t Size, std::uint64_t Alignment) noexcept
-  {
-    return validAlignment(Alignment) && Size % Alignment == 0;
-  }
 } // namespace ink::ir::detail
 
 #endif

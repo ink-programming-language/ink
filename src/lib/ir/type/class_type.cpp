@@ -1,17 +1,7 @@
 #include "ink/ir/type/class_type.h"
-#include "type_layout.h"
 
 namespace ink::ir
 {
-  std::unique_ptr<ClassType> ClassType::create(std::uint64_t Size, std::uint64_t Alignment)
-  {
-    if (!detail::validLayout(Size, Alignment))
-    {
-      return nullptr;
-    }
-    return std::unique_ptr<ClassType>(new ClassType(Size, Alignment));
-  }
-
   ClassType::ClassType(std::uint64_t Size, std::uint64_t Alignment) noexcept
       : Type(ValueKind::Class),
         Size(Size),
