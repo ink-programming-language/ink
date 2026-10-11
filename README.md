@@ -43,4 +43,6 @@ LLVM/Clang 固定版本为 22.1.8；tokenizer 直接使用 Clang 的 `UnicodeCha
 
 Core 提供源码位置、范围、源码管理、诊断和配置。资源限制在 `src/include/ink/core/config.def` 中定义，parser 与 AST 归档可通过对应的 `INK_PARSER_*`、`INK_AST_ARCHIVE_*` 环境变量配置；semantic 配置与诊断定义保留供后续实现使用。内部编译错误经 spdlog 输出后 panic，普通源码错误通过诊断引擎报告。
 
+Core 的 `Singleton<T>` 提供按需初始化的单例基类；派生类将构造、析构函数设为私有，并声明 `Singleton<T>` 为友元。`NamePool::instance()` 提供进程共享的名称池，名称句柄和字符串视图在池增长时保持有效。`NAME_None` 与默认构造的 `Name{}` 相等，索引均为 `Name::InvalidIndex`，表示无效句柄；空字符串不会注册，查找未命中的名称返回该无效句柄。名称池不预注册字符串 `"None"`，该字符串可作为普通名称注册。名称池操作需要调用方进行并发同步。
+
 IR 基础库通过 `ink::ir` 链接，头文件位于 `src/include/ink/ir/type`，实现位于 `src/lib/ir/type`。`Value.def` 统一登记 Bool、Integer、Float、Double、Array、Class、Interface 和 Struct，以及可确定的固定字节大小；整数和聚合类型的大小使用 `std::nullopt` 表示尚需具体布局。`Value` 是不可复制的抽象基类，提供 `kind()`、`size()` 和 `alignment()`，其中大小与对齐均以字节为单位。`Type` 继承 `Value`，作为具体 IR 类型的抽象基类，由派生类指定 `ValueKind` 并根据目标平台实现大小与对齐。当前尚未提供 Bool、Integer 等具体类型类。

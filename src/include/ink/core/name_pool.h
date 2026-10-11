@@ -2,6 +2,7 @@
 #define INK_CORE_NAME_POOL_H
 
 #include "ink/core/name.h"
+#include "ink/core/singleton.h"
 
 #include <deque>
 #include <string>
@@ -10,28 +11,27 @@
 
 namespace ink::core
 {
-  // Owns one copy of each spelling. Names and text views survive all insertions.
+  // Owns one process-wide copy of each spelling. Names and text views survive all insertions.
   // Input is already validated/normalized by the frontend; interning compares bytes.
-  class NamePool final
+  // Concurrent pool operations require external synchronization.
+  class NamePool final : public Singleton<NamePool>
   {
     public:
-      NamePool();
-      ~NamePool();
-      NamePool(const NamePool &) = delete;
-      NamePool &operator=(const NamePool &) = delete;
-      NamePool(NamePool &&) = delete;
-      NamePool &operator=(NamePool &&) = delete;
-
-      // Empty input or exhausted index space returns an invalid Name.
+      // Empty input or exhausted index space returns NAME_None.
       Name intern(std::string_view Text);
+      // Missing or empty spellings return NAME_None without interning.
       Name find(std::string_view Text) const noexcept;
-      // Invalid/out-of-range handles return an empty view. Foreign pool indices
-      // cannot be detected: callers must retain the associated pool/context.
+      // Invalid/out-of-range handles return an empty view.
       std::string_view text(Name Value) const noexcept;
       bool contains(Name Value) const noexcept;
       std::size_t size() const noexcept;
 
     private:
+      friend class Singleton<NamePool>;
+
+      NamePool();
+      ~NamePool();
+
       // Appending immutable strings preserves their addresses, including short strings.
       // View keys allow allocation-free lookup without C++20 heterogeneous hashing.
       std::deque<std::string> Spellings;

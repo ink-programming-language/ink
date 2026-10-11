@@ -10,7 +10,7 @@ namespace ink::core
 {
   class NamePool;
 
-  // An index into one NamePool. Equality and hashing require the same pool.
+  // An index into the process-wide NamePool, shared by all frontend contexts.
   class Name final
   {
     public:
@@ -39,6 +39,9 @@ namespace ink::core
 
       friend class NamePool;
   };
+
+  // The predefined invalid name, with the same InvalidIndex as a default Name.
+  inline constexpr Name NAME_None{};
 
   constexpr bool operator==(Name Left, Name Right) noexcept
   {

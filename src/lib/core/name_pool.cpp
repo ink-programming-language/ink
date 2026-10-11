@@ -9,7 +9,7 @@ namespace ink::core
   {
     if (Text.empty())
     {
-      return {};
+      return NAME_None;
     }
     const auto Existing = Names.find(Text);
     if (Existing != Names.end())
@@ -18,7 +18,7 @@ namespace ink::core
     }
     if (Spellings.size() >= Name::InvalidIndex)
     {
-      return {};
+      return NAME_None;
     }
     const Name Result(static_cast<Name::IndexType>(Spellings.size()));
     Spellings.emplace_back(Text);
@@ -30,10 +30,10 @@ namespace ink::core
   {
     if (Text.empty())
     {
-      return {};
+      return NAME_None;
     }
     const auto Entry = Names.find(Text);
-    return Entry == Names.end() ? Name{} : Entry->second;
+    return Entry == Names.end() ? NAME_None : Entry->second;
   }
 
   std::string_view NamePool::text(Name Value) const noexcept
