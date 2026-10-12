@@ -196,10 +196,10 @@ namespace ink::frontend::parser
       return Result;
     }
     Expr *Linkage = nullptr;
-    ir::SymbolLinkage SymbolLink = ir::SymbolLinkage::Local;
+    NativeSymbolKind NativeSymbol = NativeSymbolKind::None;
     if (at(TokenKind::KwImport) || at(TokenKind::KwExport))
     {
-      SymbolLink = Input.token(bump()).Kind == TokenKind::KwImport ? ir::SymbolLinkage::Import : ir::SymbolLinkage::Export;
+      NativeSymbol = Input.token(bump()).Kind == TokenKind::KwImport ? NativeSymbolKind::Import : NativeSymbolKind::Export;
       const ExpectResult Language = expect(TokenKind::StringLiteral);
       Linkage = Language.Actual ? static_cast<Expr *>(make<LiteralExpr>(Language.Range, *Language.Actual, TokenKind::StringLiteral)) : missingExpr();
       expect(TokenKind::KwFunc);
@@ -214,7 +214,7 @@ namespace ink::frontend::parser
       TypeSyntax *ReturnType = parseTypeSyntax();
       const bool Forward = take(TokenKind::Semicolon);
       BlockStmt *Body = Forward ? nullptr : parseBlock();
-      return make<FunctionDecl>(range(Start), Attributes, Name, Generics, Parameters, ReturnType, Forward ? FunctionBodyKind::DeclarationOnly : FunctionBodyKind::Definition, Body, Linkage, SymbolLink);
+      return make<FunctionDecl>(range(Start), Attributes, Name, Generics, Parameters, ReturnType, Forward ? FunctionBodyKind::DeclarationOnly : FunctionBodyKind::Definition, Body, Linkage, NativeSymbol);
     }
     if (take(TokenKind::KwProperty))
     {

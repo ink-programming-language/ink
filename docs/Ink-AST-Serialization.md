@@ -44,11 +44,11 @@ Tokenizer 的 `TokenizedBuffer::fromSnapshot` 校验源码大小、成功源码�
 
 Token payload 使用明确标签：0=无数据、1=IdentifierInfo、2=NumericInfo、3=StringInfo、4=CharInfo，不依赖 `std::variant` 的 alternative 顺序。`ASTKind` 使用 ASTNodes.def 中的固定编号；其余枚举使用 `ast_serialization_enums.def` 中独立固定的文件编号，不依赖 C++ 枚举声明顺序。新增 TokenKind 但未补全映射会触发静态断言。
 
-当前 V5 为 `FunctionDecl` 保存原生符号方向，AST 和 IR 共用 `ir::SymbolLinkage`，通过 `symbolLinkage()` 查询；固定文件编码仍为 `None=0`、`Import=1`、`Export=2`，其中 `None` 对应内存枚举的 `Local`，在 linkage 子节点之后保存。该枚举在 IR 中同时支持 Ink 模块导入，在 AST 中仍只记录源码显式的原生 import/export。`KwExport` 使用新 Token 编号 87，已移除的 `KwExtern` 编号 84 永久保留不用。普通函数和仅带 `[abi("C")]` 属性的函数使用 `None` 且 linkage 为空；显式 `import "C"` 或 `export "C"` 必须具有 linkage，正常时为 `STRING_LITERAL`，缺失 ABI 字符串的恢复树使用 `MissingExpr`。结构校验拒绝方向与 linkage 不一致的快照，ABI 名称的完整解码字节保存在 Token 的 `StringInfo` 中。
+当前 V5 为 `FunctionDecl` 保存原生符号语法，使用 Frontend 自有的 `NativeSymbolKind`，通过 `nativeSymbolKind()` 查询；固定文件编码保持 `None=0`、`Import=1`、`Export=2`，在 linkage 子节点之后保存。该枚举只记录源码显式的原生 import/export，`None` 表示没有原生说明符，不表达最终 IR 符号方向；移除对 IR 枚举的依赖不改变存档版本或文件编码。`KwExport` 使用新 Token 编号 87，已移除的 `KwExtern` 编号 84 永久保留不用。普通函数和仅带 `[abi("C")]` 属性的函数使用 `None` 且 linkage 为空；显式 `import "C"` 或 `export "C"` 必须具有 linkage，正常时为 `STRING_LITERAL`，缺失 ABI 字符串的恢复树使用 `MissingExpr`。结构校验拒绝方向与 linkage 不一致的快照，ABI 名称的完整解码字节保存在 Token 的 `StringInfo` 中。
 
 V4 引入的声明可见性和 `KwPublic`、`KwPrivate` 固定 Token 编号 85、86 保持不变。V3 引入的普通节点 `comptime` 布尔属性保持不变，原包装节点编号 15、46 保留不用。格式严格匹配 `ASTArchiveVersion`，不读取 V1 至 V4，也不做旧版本迁移或未知字段跳过。改变字段含义、数量、顺序或编码时必须更新版本及格式测试。新增枚举值只使用未分配编号，删除后不复用编号。文件不提供签名或真实性认证，结构合法不代表输入源码、语义或编译结果可信。
 
-文本快照独立使用 `ast 4` 格式和 `ASTTextArchiveVersion`，函数构造字段中必须包含 `nativeSymbolKind = None`、`Import` 或 `Export`。该文件字段名通过序列化标签映射保留，不随 C++ 接口改名为 `symbolLinkage`；AST dump 则显示 `SymbolLinkage=Local/Import/Export`。每个节点的命名字段末尾必须包含 `comptime = true` 或 `comptime = false`；声明随后必须包含 `visibility = Default`、`visibility = Public` 或 `visibility = Private`。读入时拒绝缺失标记、非法枚举、非法布尔值及旧的 `ast 1` 至 `ast 3` 格式；文本与二进制恢复共用节点构造和校验逻辑。
+文本快照独立使用 `ast 4` 格式和 `ASTTextArchiveVersion`，函数构造字段中必须包含 `nativeSymbolKind = None`、`Import` 或 `Export`。该文件字段名及枚举拼写保持兼容；AST dump 显示 `NativeSymbolKind=None/Import/Export`。每个节点的命名字段末尾必须包含 `comptime = true` 或 `comptime = false`；声明随后必须包含 `visibility = Default`、`visibility = Public` 或 `visibility = Private`。读入时拒绝缺失标记、非法枚举、非法布尔值及旧的 `ast 1` 至 `ast 3` 格式；文本与二进制恢复共用节点构造和校验逻辑。
 
 声明关键字 `property` 对应 `KwProperty`，使用新 Token 编号 88；原 `KwField` 编号 18 永久保留不用，包含该编号的旧快照会被拒绝。声明仍使用 `FieldDecl` 节点及既有字段布局。
 

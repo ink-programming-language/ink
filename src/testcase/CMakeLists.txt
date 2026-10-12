@@ -1,3 +1,7 @@
+include("${PROJECT_SOURCE_DIR}/cmake/CheckFrontendDependencies.cmake")
+ink_check_frontend_target_dependencies()
+add_test(NAME FrontendDependencyBoundaryTest COMMAND "${CMAKE_COMMAND}" "-DINK_SOURCE_DIR=${PROJECT_SOURCE_DIR}" -P "${PROJECT_SOURCE_DIR}/cmake/CheckFrontendDependencies.cmake")
+
 file(GLOB_RECURSE INK_CORE_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/core/*_test.cpp")
 file(GLOB_RECURSE INK_IR_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/ir/*_test.cpp")
 file(GLOB_RECURSE INK_TOKENIZER_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tokenizer/*_test.cpp")

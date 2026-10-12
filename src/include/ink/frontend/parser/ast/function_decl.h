@@ -5,7 +5,6 @@
 #include "ink/frontend/parser/ast_context.h"
 #include "ink/frontend/parser/ast/attribute.h"
 #include "ink/frontend/parser/ast/parameter.h"
-#include "ink/ir/function/function.h"
 
 namespace ink::frontend::parser
 {
@@ -17,7 +16,7 @@ namespace ink::frontend::parser
       {
         return Node && Node->getKind() == Kind;
       }
-      FunctionDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, FunctionBodyKind BodyKind, BlockStmt *Body, Expr *Linkage = nullptr, ir::SymbolLinkage SymbolLink = ir::SymbolLinkage::Local)
+      FunctionDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<Parameter> Parameters, TypeSyntax *ReturnType, FunctionBodyKind BodyKind, BlockStmt *Body, Expr *Linkage = nullptr, NativeSymbolKind NativeSymbol = NativeSymbolKind::None)
           : Decl(Kind, Range),
             Attributes(Attributes),
             Name(Name),
@@ -27,7 +26,7 @@ namespace ink::frontend::parser
             BodyKind(BodyKind),
             Body(Body),
             Linkage(Linkage),
-            SymbolLink(SymbolLink)
+            NativeSymbol(NativeSymbol)
       {
       }
       ASTArray<Attribute> attributes() const noexcept
@@ -58,9 +57,9 @@ namespace ink::frontend::parser
       {
         return BodyKind;
       }
-      ir::SymbolLinkage symbolLinkage() const noexcept
+      NativeSymbolKind nativeSymbolKind() const noexcept
       {
-        return SymbolLink;
+        return NativeSymbol;
       }
       // Null without native import/export; a string literal, or MissingExpr during recovery, otherwise.
       Expr *linkage() noexcept
@@ -89,6 +88,6 @@ namespace ink::frontend::parser
       FunctionBodyKind BodyKind;
       BlockStmt *Body;
       Expr *Linkage;
-      ir::SymbolLinkage SymbolLink;
+      NativeSymbolKind NativeSymbol;
   };
 } // namespace ink::frontend::parser

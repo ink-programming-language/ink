@@ -624,25 +624,25 @@ namespace ink::frontend::parser::test
     }
   }
 
-  // Symbol linkage retains the existing binary tags and nativeSymbolKind text field independently of visibility.
-  TEST_F(ParserTest, ASTSerializationPreservesSymbolLinkageEncoding)
+  // Native symbol syntax retains the existing binary tags and nativeSymbolKind text field independently of visibility.
+  TEST_F(ParserTest, ASTSerializationPreservesNativeSymbolKindEncoding)
   {
     struct Row
     {
         const char *Source;
-        ir::SymbolLinkage SymbolLink;
+        NativeSymbolKind NativeSymbol;
         DeclarationVisibility Visibility;
         std::uint64_t Wire;
         const char *Spelling;
     };
     constexpr Row Rows[] = {
-        {"func f(): void {}", ir::SymbolLinkage::Local, DeclarationVisibility::Default, 0, "None"},
-        {"import \"C\" func f(): void;", ir::SymbolLinkage::Import, DeclarationVisibility::Default, 1, "Import"},
-        {"export \"C\" func f(): void {}", ir::SymbolLinkage::Export, DeclarationVisibility::Default, 2, "Export"},
-        {"public func f(): void {}", ir::SymbolLinkage::Local, DeclarationVisibility::Public, 0, "None"},
-        {"private import \"C\" func f(): void;", ir::SymbolLinkage::Import, DeclarationVisibility::Private, 1, "Import"},
-        {"public export \"C\" func f(): void {}", ir::SymbolLinkage::Export, DeclarationVisibility::Public, 2, "Export"},
-        {"private export \"C\" func f(): void {}", ir::SymbolLinkage::Export, DeclarationVisibility::Private, 2, "Export"},
+        {"func f(): void {}", NativeSymbolKind::None, DeclarationVisibility::Default, 0, "None"},
+        {"import \"C\" func f(): void;", NativeSymbolKind::Import, DeclarationVisibility::Default, 1, "Import"},
+        {"export \"C\" func f(): void {}", NativeSymbolKind::Export, DeclarationVisibility::Default, 2, "Export"},
+        {"public func f(): void {}", NativeSymbolKind::None, DeclarationVisibility::Public, 0, "None"},
+        {"private import \"C\" func f(): void;", NativeSymbolKind::Import, DeclarationVisibility::Private, 1, "Import"},
+        {"public export \"C\" func f(): void {}", NativeSymbolKind::Export, DeclarationVisibility::Public, 2, "Export"},
+        {"private export \"C\" func f(): void {}", NativeSymbolKind::Export, DeclarationVisibility::Private, 2, "Export"},
     };
     for (const Row &Entry : Rows)
     {
@@ -655,26 +655,30 @@ namespace ink::frontend::parser::test
         ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
         if (IsText)
         {
+          EXPECT_EQ(Saved.Bytes.find("ast 4 {\n"), 0U);
           EXPECT_NE(Saved.Bytes.find(std::string("nativeSymbolKind = ") + Entry.Spelling), std::string::npos);
           EXPECT_EQ(Saved.Bytes.find("symbolLinkage = "), std::string::npos);
         }
         else
         {
           auto Records = records(Saved.Bytes);
+          ASSERT_FALSE(Records.empty());
+          ASSERT_FALSE(Records.front().Values.empty());
+          EXPECT_EQ(Records.front().Values[0], 5U);
           const auto &Values = nodeRecord(Records, ASTKind::FunctionDecl).Values;
           ASSERT_GE(Values.size(), 3U);
           EXPECT_EQ(Values[Values.size() - 3], Entry.Wire);
         }
         auto Loaded = IsText ? tryDeserializeASTText(Frontend, Saved.Bytes) : tryDeserializeAST(Frontend, Saved.Bytes);
         ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
-        EXPECT_EQ(cast<FunctionDecl>(declaration(Loaded.Parsed, 0))->symbolLinkage(), Entry.SymbolLink);
+        EXPECT_EQ(cast<FunctionDecl>(declaration(Loaded.Parsed, 0))->nativeSymbolKind(), Entry.NativeSymbol);
         EXPECT_EQ(declaration(Loaded.Parsed, 0)->visibility(), Entry.Visibility);
       }
     }
   }
 
   // Binary and text snapshots reject unknown symbol directions and direction/ABI linkage mismatches.
-  TEST_F(ParserTest, ASTSerializationRejectsInvalidSymbolLinkage)
+  TEST_F(ParserTest, ASTSerializationRejectsInvalidNativeSymbolKind)
   {
     const auto Parsed = read("private export \"C\" func f(): void {}");
     ASSERT_TRUE(Parsed.succeeded());

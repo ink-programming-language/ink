@@ -150,9 +150,9 @@ namespace ink::frontend::parser::test
     EXPECT_EQ(Forward->body(), nullptr);
     EXPECT_EQ(Function->linkage(), nullptr);
     EXPECT_EQ(Forward->linkage(), nullptr);
-    EXPECT_EQ(Function->symbolLinkage(), ir::SymbolLinkage::Local);
-    EXPECT_EQ(Forward->symbolLinkage(), ir::SymbolLinkage::Local);
-    EXPECT_NE(dumpAST(*Result.Unit).find("SymbolLinkage=Local"), std::string::npos);
+    EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::None);
+    EXPECT_EQ(Forward->nativeSymbolKind(), NativeSymbolKind::None);
+    EXPECT_NE(dumpAST(*Result.Unit).find("NativeSymbolKind=None"), std::string::npos);
   }
 
   // Native import preserves arbitrary decoded linkage names and the literal's original spelling and range.
@@ -181,7 +181,7 @@ namespace ink::frontend::parser::test
       ASSERT_TRUE(Result.succeeded());
       const auto *Function = cast<FunctionDecl>(declaration(Result));
       ASSERT_TRUE(isa<LiteralExpr>(Function->linkage()));
-      EXPECT_EQ(Function->symbolLinkage(), ir::SymbolLinkage::Import);
+      EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Import);
       const auto *Linkage = cast<LiteralExpr>(Function->linkage());
       EXPECT_EQ(Linkage->literalKind(), TokenKind::StringLiteral);
       EXPECT_EQ(Result.Unit->input().spelling(Linkage->token()), Entry.Spelling);
@@ -205,7 +205,7 @@ namespace ink::frontend::parser::test
     EXPECT_TRUE(Function->isComptime());
     EXPECT_EQ(Function->attributes().size(), 1U);
     EXPECT_EQ(Function->genericParameters().size(), 1U);
-    EXPECT_EQ(Function->symbolLinkage(), ir::SymbolLinkage::Export);
+    EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Export);
     EXPECT_EQ(Function->bodyKind(), FunctionBodyKind::Definition);
     EXPECT_NE(Function->body(), nullptr);
     std::vector<const ASTNodeBase *> Visited;
@@ -218,11 +218,11 @@ namespace ink::frontend::parser::test
     EXPECT_EQ(Visited[1], Function->linkage());
     EXPECT_EQ(Visited[2], Function->genericParameters()[0].type());
     EXPECT_NE(dumpAST(*Result.Unit).find("Linkage=LiteralExpr@"), std::string::npos);
-    EXPECT_NE(dumpAST(*Result.Unit).find("SymbolLinkage=Export"), std::string::npos);
+    EXPECT_NE(dumpAST(*Result.Unit).find("NativeSymbolKind=Export"), std::string::npos);
   }
 
   // Native import/export remain separate from Ink module imports, declaration visibility and standalone ABI attributes.
-  TEST_F(ParserTest, SymbolLinkageAndModuleImports)
+  TEST_F(ParserTest, NativeSymbolKindAndModuleImports)
   {
     const auto Result = read("import math; from math import add; private import \"C\" func abs(Value: i32): i32; public export \"C\" func sum(A: i32, B: i32): i32 { return A + B; } [abi(\"C\")] private func callback(Value: i32): i32 { return Value; } private export \"C\" func hidden(): void {}");
     ASSERT_TRUE(Result.succeeded());
@@ -230,18 +230,18 @@ namespace ink::frontend::parser::test
     EXPECT_TRUE(isa<DirectImportStmt>(Result.Unit->root()->statements()[0]));
     EXPECT_TRUE(isa<FromImportStmt>(Result.Unit->root()->statements()[1]));
     const auto *Imported = cast<FunctionDecl>(declaration(Result, 2));
-    EXPECT_EQ(Imported->symbolLinkage(), ir::SymbolLinkage::Import);
+    EXPECT_EQ(Imported->nativeSymbolKind(), NativeSymbolKind::Import);
     EXPECT_EQ(Imported->visibility(), DeclarationVisibility::Private);
     const auto *Exported = cast<FunctionDecl>(declaration(Result, 3));
-    EXPECT_EQ(Exported->symbolLinkage(), ir::SymbolLinkage::Export);
+    EXPECT_EQ(Exported->nativeSymbolKind(), NativeSymbolKind::Export);
     EXPECT_EQ(Exported->visibility(), DeclarationVisibility::Public);
     const auto *Callback = cast<FunctionDecl>(declaration(Result, 4));
-    EXPECT_EQ(Callback->symbolLinkage(), ir::SymbolLinkage::Local);
+    EXPECT_EQ(Callback->nativeSymbolKind(), NativeSymbolKind::None);
     EXPECT_EQ(Callback->linkage(), nullptr);
     ASSERT_EQ(Callback->attributes().size(), 1U);
     EXPECT_EQ(Callback->attributes()[0].path()[0].Text, "abi");
     const auto *Hidden = cast<FunctionDecl>(declaration(Result, 5));
-    EXPECT_EQ(Hidden->symbolLinkage(), ir::SymbolLinkage::Export);
+    EXPECT_EQ(Hidden->nativeSymbolKind(), NativeSymbolKind::Export);
     EXPECT_EQ(Hidden->visibility(), DeclarationVisibility::Private);
   }
 
@@ -302,12 +302,12 @@ namespace ink::frontend::parser::test
       ASSERT_TRUE(isa<FunctionDecl>(Last->declaration()));
       const auto *Function = cast<FunctionDecl>(Last->declaration());
       EXPECT_EQ(Function->name().Text, "kept");
-      EXPECT_EQ(Function->symbolLinkage(), ir::SymbolLinkage::Export);
+      EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Export);
     }
     const auto Missing = read("export func f(): void {}");
     ASSERT_FALSE(Missing.succeeded());
     const auto *Function = cast<FunctionDecl>(declaration(Missing));
-    EXPECT_EQ(Function->symbolLinkage(), ir::SymbolLinkage::Export);
+    EXPECT_EQ(Function->nativeSymbolKind(), NativeSymbolKind::Export);
     EXPECT_TRUE(isa<MissingExpr>(Function->linkage()));
   }
 

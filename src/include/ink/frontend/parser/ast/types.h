@@ -52,6 +52,13 @@ namespace ink::frontend::parser
     DeclarationOnly,
     Definition
   };
+  // Records an explicit native import/export specifier in source, before linkage resolution.
+  enum class NativeSymbolKind
+  {
+    None,
+    Import,
+    Export,
+  };
   enum class AggregateForm
   {
     Forward,
