@@ -1,8 +1,8 @@
 #include "ink/ir/constant/constant.h"
 
 #include "ink/ir/constant/null_pointer_constant.h"
-#include "ink/ir/type/null_pointer_type.h"
-#include "ink/ir/type/pointer_type.h"
+#include "ink/ir/type/builtin_type/null_pointer_type.h"
+#include "ink/ir/type/structure_type/pointer_type.h"
 #include "ink/ir/type/type_context.h"
 
 namespace ink::ir

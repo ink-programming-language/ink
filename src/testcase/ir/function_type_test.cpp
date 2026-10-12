@@ -1,10 +1,10 @@
 #include "ink/target/target_context.h"
-#include "ink/ir/type/array_type.h"
-#include "ink/ir/type/bool_type.h"
-#include "ink/ir/type/float_type.h"
-#include "ink/ir/type/function_type.h"
-#include "ink/ir/type/integer_type.h"
-#include "ink/ir/type/pointer_type.h"
+#include "ink/ir/type/structure_type/array_type.h"
+#include "ink/ir/type/builtin_type/bool_type.h"
+#include "ink/ir/type/builtin_type/float_type.h"
+#include "ink/ir/type/structure_type/function_type.h"
+#include "ink/ir/type/builtin_type/integer_type.h"
+#include "ink/ir/type/structure_type/pointer_type.h"
 #include "ink/ir/type/type_context.h"
 
 #include <gtest/gtest.h>

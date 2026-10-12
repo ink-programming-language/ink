@@ -1,7 +1,7 @@
 #include "ink/target/target_context.h"
 #include "ink/ir/constant/constant_pool.h"
-#include "ink/ir/type/function_type.h"
-#include "ink/ir/type/string_type.h"
+#include "ink/ir/type/structure_type/function_type.h"
+#include "ink/ir/type/builtin_type/string_type.h"
 #include "ink/ir/type/type_context.h"
 
 #include <gtest/gtest.h>

@@ -2,7 +2,7 @@
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/module/global_variable.h"
 #include "ink/ir/type/nominal_type/field.h"
-#include "ink/ir/type/null_pointer_type.h"
+#include "ink/ir/type/builtin_type/null_pointer_type.h"
 #include "ink/ir/type/type_context.h"
 
 #include <gtest/gtest.h>

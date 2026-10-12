@@ -2,7 +2,7 @@
 #define INK_IR_CONSTANT_FLOAT_CONSTANT_H
 
 #include "ink/ir/constant/constant.h"
-#include "ink/ir/type/float_type.h"
+#include "ink/ir/type/builtin_type/float_type.h"
 
 #include <cstdint>
 

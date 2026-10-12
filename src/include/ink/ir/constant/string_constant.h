@@ -2,7 +2,7 @@
 #define INK_IR_CONSTANT_STRING_CONSTANT_H
 
 #include "ink/ir/constant/constant.h"
-#include "ink/ir/type/string_type.h"
+#include "ink/ir/type/builtin_type/string_type.h"
 
 #include <cstddef>
 #include <string>

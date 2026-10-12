@@ -1,5 +1,5 @@
 #include "ink/ir/type/type_context.h"
-#include "ink/ir/type/variadic_type.h"
+#include "ink/ir/type/builtin_type/variadic_type.h"
 
 #include <gtest/gtest.h>
 

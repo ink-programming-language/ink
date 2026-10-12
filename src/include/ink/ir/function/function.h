@@ -4,7 +4,7 @@
 #include "ink/core/name.h"
 #include "ink/ir/function/basic_block.h"
 #include "ink/ir/param/parameter.h"
-#include "ink/ir/type/function_type.h"
+#include "ink/ir/type/structure_type/function_type.h"
 
 #include <cstddef>
 #include <cstdint>

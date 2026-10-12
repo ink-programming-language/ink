@@ -2,7 +2,7 @@
 #define INK_IR_CONSTANT_NULL_POINTER_CONSTANT_H
 
 #include "ink/ir/constant/constant.h"
-#include "ink/ir/type/null_pointer_type.h"
+#include "ink/ir/type/builtin_type/null_pointer_type.h"
 
 namespace ink::ir
 {

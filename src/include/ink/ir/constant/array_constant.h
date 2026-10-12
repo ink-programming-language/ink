@@ -2,7 +2,7 @@
 #define INK_IR_CONSTANT_ARRAY_CONSTANT_H
 
 #include "ink/ir/constant/constant.h"
-#include "ink/ir/type/array_type.h"
+#include "ink/ir/type/structure_type/array_type.h"
 
 #include <cstddef>
 #include <vector>

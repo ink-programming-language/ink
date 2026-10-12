@@ -2,7 +2,7 @@
 #define INK_IR_CONSTANT_INTEGER_CONSTANT_H
 
 #include "ink/ir/constant/constant.h"
-#include "ink/ir/type/integer_type.h"
+#include "ink/ir/type/builtin_type/integer_type.h"
 
 #include <cstdint>
 

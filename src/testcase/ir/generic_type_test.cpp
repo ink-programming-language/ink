@@ -1,7 +1,7 @@
-#include "ink/ir/type/generic_class_type.h"
-#include "ink/ir/type/generic_function_type.h"
-#include "ink/ir/type/generic_type.h"
-#include "ink/ir/type/generic_var_type.h"
+#include "ink/ir/type/generic_type/generic_class_type.h"
+#include "ink/ir/type/generic_type/generic_function_type.h"
+#include "ink/ir/type/generic_type/generic_type.h"
+#include "ink/ir/type/generic_type/generic_var_type.h"
 
 #include <gtest/gtest.h>
 

@@ -2,7 +2,7 @@
 #define INK_IR_CONSTANT_BOOL_CONSTANT_H
 
 #include "ink/ir/constant/constant.h"
-#include "ink/ir/type/bool_type.h"
+#include "ink/ir/type/builtin_type/bool_type.h"
 
 namespace ink::ir
 {
