@@ -1,5 +1,5 @@
-#ifndef INK_IR_CONSTANT_CONSTANT_CONTEXT_H
-#define INK_IR_CONSTANT_CONSTANT_CONTEXT_H
+#ifndef INK_IR_CONSTANT_CONSTANT_POOL_H
+#define INK_IR_CONSTANT_CONSTANT_POOL_H
 
 #include "ink/ir/constant/array_constant.h"
 #include "ink/ir/constant/bool_constant.h"
@@ -7,7 +7,6 @@
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/constant/null_pointer_constant.h"
 #include "ink/ir/constant/string_constant.h"
-#include "ink/ir/type/type_context.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -20,21 +19,18 @@
 
 namespace ink::ir
 {
-  // Owns and reuses immutable constants for one borrowed TypeContext, which must
-  // outlive this context. Returned pointers remain valid until this context dies;
-  // all IR users must die first. Operations require external synchronization.
-  class ConstantContext final
+  class TypeContext;
+
+  // Owns and reuses immutable constants as an inseparable part of one TypeContext.
+  // Access through TypeContext::constantPool(); constants and types share its lifetime.
+  // External IR users must die first. Operations require external synchronization.
+  class ConstantPool final
   {
     public:
-      explicit ConstantContext(const TypeContext &Types);
-      ~ConstantContext() noexcept;
-
-      ConstantContext(TypeContext &&) = delete;
-      ConstantContext(const TypeContext &&) = delete;
-      ConstantContext(const ConstantContext &) = delete;
-      ConstantContext &operator=(const ConstantContext &) = delete;
-      ConstantContext(ConstantContext &&) = delete;
-      ConstantContext &operator=(ConstantContext &&) = delete;
+      ConstantPool(const ConstantPool &) = delete;
+      ConstantPool &operator=(const ConstantPool &) = delete;
+      ConstantPool(ConstantPool &&) = delete;
+      ConstantPool &operator=(ConstantPool &&) = delete;
 
       const TypeContext &typeContext() const noexcept;
       bool owns(const Constant *ConstantValue) const noexcept;
@@ -56,9 +52,10 @@ namespace ink::ir
       const FloatConstant *getFloatConstant(double Value);
 
       // Owns the element list and borrows only constants owned by this context.
-      // Count and each element's type identity must match the array type.
+      // Count must match, and each element must be able to initialize the array's element type.
       const ArrayConstant *getArrayConstant(const ArrayType *ConstantType, std::vector<const Constant *> Elements = {});
-      const NullPointerConstant *getNullPointerConstant(const PointerType *ConstantType);
+      // Returns the one null pointer literal shared by all pointer types in this context.
+      const NullPointerConstant *getNullPointerConstant() const noexcept;
 
       // Owns decoded UTF-8 bytes, including empty text and embedded NUL. Invalid
       // UTF-8 or lengths exceeding the target limit return nullptr. No escapes,
@@ -67,6 +64,11 @@ namespace ink::ir
       const StringConstant *getStringConstant(std::string Value);
 
     private:
+      friend class TypeContext;
+
+      explicit ConstantPool(const TypeContext &Types);
+      ~ConstantPool() noexcept;
+
       struct ArrayKey
       {
           const ArrayType *ConstantType;
@@ -86,12 +88,12 @@ namespace ink::ir
       const TypeContext &Types;
       BoolConstant False;
       BoolConstant True;
+      NullPointerConstant NullPointer;
       std::vector<std::unique_ptr<Constant>> Storage;
       std::unordered_set<const Constant *> OwnedConstants;
       std::unordered_map<const IntegerType *, std::unordered_map<std::uint64_t, const IntegerConstant *>> IntegerConstants;
       std::unordered_map<const FloatType *, std::unordered_map<std::uint64_t, const FloatConstant *>> FloatConstants;
       std::unordered_map<ArrayKey, const ArrayConstant *, ArrayKeyHash> ArrayConstants;
-      std::unordered_map<const PointerType *, const NullPointerConstant *> NullPointerConstants;
       // Keys borrow immutable stored string bytes. Destroy this cache before Storage.
       std::unordered_map<std::string_view, const StringConstant *> StringConstants;
   };

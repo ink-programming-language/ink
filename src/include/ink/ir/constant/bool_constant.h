@@ -6,7 +6,7 @@
 
 namespace ink::ir
 {
-  class ConstantContext;
+  class ConstantPool;
 
   // The borrowed BoolType must outlive the constant.
   class BoolConstant final : public Constant
@@ -16,7 +16,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class ConstantContext;
+      friend class ConstantPool;
 
       BoolConstant(const BoolType *ConstantType, bool Value) noexcept;
 

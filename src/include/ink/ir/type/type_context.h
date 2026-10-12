@@ -2,18 +2,20 @@
 #define INK_IR_TYPE_TYPE_CONTEXT_H
 
 #include "ink/core/name.h"
+#include "ink/ir/constant/constant_pool.h"
 #include "ink/target/target_context.h"
 #include "ink/ir/type/array_type.h"
 #include "ink/ir/type/bool_type.h"
-#include "ink/ir/type/class_type.h"
+#include "ink/ir/type/nominal_type/class_type.h"
 #include "ink/ir/type/float_type.h"
 #include "ink/ir/type/function_type.h"
 #include "ink/ir/type/integer_type.h"
-#include "ink/ir/type/interface_type.h"
+#include "ink/ir/type/nominal_type/interface_type.h"
+#include "ink/ir/type/null_pointer_type.h"
 #include "ink/ir/type/pointer_type.h"
 #include "ink/ir/type/reference_type.h"
 #include "ink/ir/type/string_type.h"
-#include "ink/ir/type/struct_type.h"
+#include "ink/ir/type/nominal_type/struct_type.h"
 #include "ink/ir/type/variadic_type.h"
 #include "ink/ir/type/void_type.h"
 
@@ -26,8 +28,10 @@
 
 namespace ink::ir
 {
-  // Owns types with fixed layouts for one target. Nominal metadata can be built and then frozen.
-  // Returned pointers are borrowed and remain valid until this context is destroyed; IR users must die first.
+  // Owns types with fixed layouts and their unique ConstantPool for one shared lifetime.
+  // Nominal metadata can be built and then frozen.
+  // Returned pointers are borrowed and remain valid until this context is destroyed; external IR users must die first.
+  // Teardown releases nominal methods, field metadata, constants and finally types, in that order.
   // A context is not thread-safe and types from different contexts cannot be mixed.
   class TypeContext final
   {
@@ -41,11 +45,14 @@ namespace ink::ir
       TypeContext &operator=(TypeContext &&) = delete;
 
       const target::TargetContext &targetContext() const noexcept;
+      ConstantPool &constantPool() noexcept;
+      const ConstantPool &constantPool() const noexcept;
       bool owns(const Type *TypeValue) const noexcept;
 
       const VoidType *getVoidType() const noexcept;
       const VariadicType *getVariadicType() const noexcept;
       const BoolType *getBoolType() const noexcept;
+      const NullPointerType *getNullPointerType() const noexcept;
       const IntegerType *getInt32Type() const noexcept;
       const IntegerType *getUInt32Type() const noexcept;
       const IntegerType *getInt64Type() const noexcept;
@@ -60,7 +67,7 @@ namespace ink::ir
 
       // Each creation has a distinct nominal identity, even for equal layouts.
       // Size is preserved in bytes; zero or non-power-of-two alignment returns nullptr.
-      // Names and methods remain editable until freeze(); layouts never change.
+      // Type names, fields and owned methods remain editable until freeze(); function names/bodies are not frozen and layouts never change.
       ClassType *createClassType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
       InterfaceType *createInterfaceType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
       StructType *createStructType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
@@ -97,6 +104,7 @@ namespace ink::ir
       VoidType Void;
       VariadicType Variadic;
       BoolType Bool;
+      NullPointerType NullPointer;
       IntegerType Int32;
       IntegerType UInt32;
       IntegerType Int64;
@@ -110,6 +118,8 @@ namespace ink::ir
       std::unordered_map<const Type *, const ReferenceType *> ReferenceTypes;
       std::unordered_map<const Type *, std::unordered_map<std::uint64_t, const ArrayType *>> ArrayTypes;
       std::unordered_map<FunctionKey, const FunctionType *, FunctionKeyHash> FunctionTypes;
+      // Declared last so constants are destroyed before any of their referenced types.
+      ConstantPool Constants;
   };
 } // namespace ink::ir
 

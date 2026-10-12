@@ -1,5 +1,5 @@
 #include "ink/core/name_pool.h"
-#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/instruction.h"
 #include "ink/ir/param/argument.h"
@@ -45,7 +45,7 @@ namespace ink::ir::test
   TEST(IRArgumentTest, ReferencesConstantInstructionAndParameterValues)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const auto Literal = Constants.getSignedIntegerConstant(Types.getInt32Type(), 42);
     const auto Signature = Types.getFunctionType(Types.getVoidType(), {Types.getInt32Type()});
     ASSERT_NE(Literal, nullptr);
@@ -73,7 +73,7 @@ namespace ink::ir::test
   TEST(IRArgumentTest, DifferentActualListsShareCalleeParameters)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const auto Signature = Types.getFunctionType(Types.getVoidType(), {Types.getInt32Type()});
     const auto FirstLiteral = Constants.getSignedIntegerConstant(Types.getInt32Type(), 1);
     const auto SecondLiteral = Constants.getSignedIntegerConstant(Types.getInt32Type(), 2);

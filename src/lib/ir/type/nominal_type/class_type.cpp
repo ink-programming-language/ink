@@ -1,4 +1,4 @@
-#include "ink/ir/type/class_type.h"
+#include "ink/ir/type/nominal_type/class_type.h"
 
 namespace ink::ir
 {

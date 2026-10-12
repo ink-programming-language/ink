@@ -1,4 +1,4 @@
-#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/type/type_context.h"
 
 #include <gtest/gtest.h>
@@ -140,31 +140,34 @@ namespace ink::ir::test
     EXPECT_EQ(Types.getPointerType(nullptr), nullptr);
   }
 
-  // Null opaque pointers retain a non-null void pointee and remain distinct from typed and nested null pointers.
-  TEST(IRVoidTypeTest, OpaqueNullConstantsUseCanonicalPointerTypes)
+  // One null literal initializes opaque, typed and nested pointers while preserving its context-owned literal type.
+  TEST(IRVoidTypeTest, OpaquePointersAcceptCanonicalNullLiteral)
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
       TypeContext Types(Target);
       TypeContext Other(Target);
-      ConstantContext Constants(Types);
-      ConstantContext SharedTypes(Types);
+      auto &Constants = Types.constantPool();
+      auto &SharedTypes = Types.constantPool();
+      auto &OtherConstants = Other.constantPool();
       const PointerType *Opaque = Types.getPointerType(Types.getVoidType());
-      const NullPointerConstant *Null = Constants.getNullPointerConstant(Opaque);
-      const NullPointerConstant *TypedNull = Constants.getNullPointerConstant(Types.getPointerType(Types.getBoolType()));
-      const NullPointerConstant *NestedNull = Constants.getNullPointerConstant(Types.getPointerType(Opaque));
+      const PointerType *Typed = Types.getPointerType(Types.getBoolType());
+      const PointerType *Nested = Types.getPointerType(Opaque);
+      const NullPointerConstant *Null = Constants.getNullPointerConstant();
       ASSERT_NE(Null, nullptr);
-      ASSERT_NE(TypedNull, nullptr);
-      ASSERT_NE(NestedNull, nullptr);
-      EXPECT_EQ(Null, Constants.getNullPointerConstant(Opaque));
-      EXPECT_EQ(Null->type(), Opaque);
+      EXPECT_EQ(Null, Constants.getNullPointerConstant());
+      EXPECT_EQ(Null->type(), Types.getNullPointerType());
       EXPECT_EQ(Null->type()->size(), Target.pointerByteWidth());
-      EXPECT_NE(Null, TypedNull);
-      EXPECT_NE(Null, NestedNull);
-      EXPECT_NE(Null, SharedTypes.getNullPointerConstant(Opaque));
+      EXPECT_TRUE(Null->canInitialize(Opaque));
+      EXPECT_TRUE(Null->canInitialize(Typed));
+      EXPECT_TRUE(Null->canInitialize(Nested));
+      EXPECT_EQ(&Constants, &SharedTypes);
+      EXPECT_EQ(Null, SharedTypes.getNullPointerConstant());
+      EXPECT_NE(Null, OtherConstants.getNullPointerConstant());
       EXPECT_TRUE(Constants.owns(Null));
-      EXPECT_FALSE(SharedTypes.owns(Null));
-      EXPECT_EQ(Constants.getNullPointerConstant(Other.getPointerType(Other.getVoidType())), nullptr);
+      EXPECT_TRUE(SharedTypes.owns(Null));
+      EXPECT_FALSE(OtherConstants.owns(Null));
+      EXPECT_FALSE(Null->canInitialize(Other.getPointerType(Other.getVoidType())));
     }
   }
 } // namespace ink::ir::test

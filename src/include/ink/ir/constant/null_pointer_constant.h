@@ -2,23 +2,23 @@
 #define INK_IR_CONSTANT_NULL_POINTER_CONSTANT_H
 
 #include "ink/ir/constant/constant.h"
-#include "ink/ir/type/pointer_type.h"
+#include "ink/ir/type/null_pointer_type.h"
 
 namespace ink::ir
 {
-  class ConstantContext;
+  class ConstantPool;
 
-  // Represents a typed null pointer without storing a host address.
-  // The borrowed PointerType must outlive the constant.
+  // Represents the context's unique null pointer literal without storing a host address.
+  // The borrowed NullPointerType must outlive the constant.
   class NullPointerConstant final : public Constant
   {
     public:
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class ConstantContext;
+      friend class ConstantPool;
 
-      explicit NullPointerConstant(const PointerType *ConstantType) noexcept;
+      explicit NullPointerConstant(const NullPointerType *ConstantType) noexcept;
   };
 } // namespace ink::ir
 

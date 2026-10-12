@@ -1,5 +1,5 @@
 #include "ink/target/target_context.h"
-#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/type/function_type.h"
 #include "ink/ir/type/string_type.h"
 #include "ink/ir/type/type_context.h"
@@ -46,7 +46,7 @@ namespace ink::ir::test
   TEST(IRStringTest, ContentLengthCountsUtf8Bytes)
   {
     TypeContext Types(Target64);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const auto String = Types.getStringType();
     constexpr std::string_view Contents[] = {
         "",
@@ -73,7 +73,7 @@ namespace ink::ir::test
   TEST(IRStringTest, PreservesExactValidBytes)
   {
     TypeContext Types(Target64);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const std::string_view EmbeddedNul("a\0b", 3);
     const auto BinarySafe = Constants.getStringConstant(std::string(EmbeddedNul));
     const auto Bom = Constants.getStringConstant("\xEF\xBB\xBF");
@@ -98,7 +98,7 @@ namespace ink::ir::test
   TEST(IRStringTest, OwnsCopiedAndMovedContent)
   {
     TypeContext Types(Target64);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     std::string Source = "original";
     const auto Copied = Constants.getStringConstant(Source);
     ASSERT_NE(Copied, nullptr);
@@ -119,7 +119,7 @@ namespace ink::ir::test
   TEST(IRStringTest, RejectsInvalidUtf8)
   {
     TypeContext Types(Target64);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const std::string_view InvalidContents[] = {
         "\x80",
         "\xBF",
@@ -151,7 +151,7 @@ namespace ink::ir::test
     for (const target::TargetContext &Target : {Target32, Target64})
     {
       TypeContext Types(Target);
-      ConstantContext Constants(Types);
+      auto &Constants = Types.constantPool();
       const auto String = Types.getStringType();
       ASSERT_NE(String, nullptr);
       const auto First = Constants.getStringConstant("first");

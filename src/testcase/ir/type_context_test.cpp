@@ -1,13 +1,20 @@
+#include "ink/core/name_pool.h"
 #include "ink/ir/constant/array_constant.h"
 #include "ink/ir/constant/bool_constant.h"
-#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/constant/constant_pool.h"
+#include "ink/ir/function/function.h"
+#include "ink/ir/type/nominal_type/method.h"
+#include "ink/ir/instruction/instruction.h"
 #include "ink/ir/type/type_context.h"
 
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cstddef>
+#include <memory>
 #include <type_traits>
 #include <unordered_set>
+#include <utility>
 
 namespace ink::ir::test
 {
@@ -15,6 +22,71 @@ namespace ink::ir::test
   {
     constexpr target::TargetContext Target32(target::PointerWidth::Bits32, target::ByteOrder::LittleEndian);
     constexpr target::TargetContext Target64(target::PointerWidth::Bits64, target::ByteOrder::BigEndian);
+
+    class MethodTypeLifetimeInstruction final : public Instruction
+    {
+      public:
+        MethodTypeLifetimeInstruction(const TypeContext &Types, const Function &Callable, const NominalType &Owner, const FunctionType &ExpectedSignature, const Type &ExpectedReturnType, const ArrayType &Array, bool LateSignature, std::size_t &DestructionCount) noexcept
+            : Types(Types),
+              Callable(Callable),
+              Owner(Owner),
+              ExpectedSignature(ExpectedSignature),
+              ExpectedReturnType(ExpectedReturnType),
+              Array(Array),
+              LateSignature(LateSignature),
+              DestructionCount(DestructionCount)
+        {
+        }
+
+        ~MethodTypeLifetimeInstruction() noexcept override
+        {
+          ++DestructionCount;
+          const auto *Signature = Callable.functionType();
+          EXPECT_EQ(Signature, &ExpectedSignature);
+          EXPECT_TRUE(Types.owns(Signature));
+          EXPECT_TRUE(Types.owns(&Owner));
+          EXPECT_EQ(Owner.size(), 16U);
+          EXPECT_EQ(Owner.alignment(), 8U);
+          EXPECT_TRUE(Owner.isFrozen());
+          if (!Types.owns(Signature))
+          {
+            return;
+          }
+          EXPECT_EQ(Signature->kind(), ValueKind::FunctionType);
+          EXPECT_EQ(Signature->size(), 8U);
+          EXPECT_EQ(Signature->alignment(), 8U);
+          EXPECT_EQ(Signature->returnType(), &ExpectedReturnType);
+          EXPECT_TRUE(Types.owns(Signature->returnType()));
+          EXPECT_EQ(Signature->returnType()->size(), LateSignature ? 16U : 1U);
+          EXPECT_EQ(Signature->parameterCount(), LateSignature ? 3U : 2U);
+          for (const auto *ParameterType : Signature->parameters())
+          {
+            EXPECT_TRUE(Types.owns(ParameterType));
+            EXPECT_TRUE(ParameterType->hasLayout());
+            EXPECT_NE(ParameterType->alignment(), 0U);
+          }
+          EXPECT_FALSE(Signature->parameters().empty());
+          if (!Signature->parameters().empty())
+          {
+            EXPECT_EQ(Signature->parameters().back(), &Array);
+          }
+          EXPECT_TRUE(Types.owns(&Array));
+          EXPECT_EQ(Array.elementType(), Types.getInt32Type());
+          EXPECT_EQ(Array.elementCount(), 3U);
+          EXPECT_EQ(Array.size(), 12U);
+          EXPECT_EQ(Array.alignment(), 4U);
+        }
+
+      private:
+        const TypeContext &Types;
+        const Function &Callable;
+        const NominalType &Owner;
+        const FunctionType &ExpectedSignature;
+        const Type &ExpectedReturnType;
+        const ArrayType &Array;
+        bool LateSignature;
+        std::size_t &DestructionCount;
+    };
 
     static_assert(!std::is_copy_constructible_v<TypeContext>);
     static_assert(!std::is_move_constructible_v<TypeContext>);
@@ -36,9 +108,10 @@ namespace ink::ir::test
     EXPECT_EQ(Types.getFloat32Type(), Types.getFloatType(32));
     EXPECT_EQ(Types.getFloat64Type(), Types.getFloatType(64));
     EXPECT_EQ(Types.getStringType(), Types.getStringType());
+    EXPECT_EQ(Types.getNullPointerType(), Types.getNullPointerType());
     EXPECT_EQ(Types.getIntegerType(16, true), nullptr);
     EXPECT_EQ(Types.getFloatType(16), nullptr);
-    const std::array<const Type *, 9> Builtins = {
+    const std::array<const Type *, 10> Builtins = {
         Types.getVoidType(),
         Types.getBoolType(),
         Types.getInt32Type(),
@@ -48,6 +121,7 @@ namespace ink::ir::test
         Types.getFloat32Type(),
         Types.getFloat64Type(),
         Types.getStringType(),
+        Types.getNullPointerType(),
     };
     const std::unordered_set<const Type *> UniqueTypes(Builtins.begin(), Builtins.end());
     EXPECT_EQ(UniqueTypes.size(), Builtins.size());
@@ -84,6 +158,7 @@ namespace ink::ir::test
     EXPECT_NE(Types64.getInt32Type(), Other64.getInt32Type());
     EXPECT_NE(Types64.getFloat32Type(), Other64.getFloat32Type());
     EXPECT_NE(Types64.getStringType(), Other64.getStringType());
+    EXPECT_NE(Types64.getNullPointerType(), Other64.getNullPointerType());
     EXPECT_FALSE(Types64.owns(Other64.getBoolType()));
   }
 
@@ -163,7 +238,7 @@ namespace ink::ir::test
   TEST(IRTypeContextTest, BooleanConstantsUseContextTypeIdentity)
   {
     TypeContext Types(Target64);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     TypeContext Other(Target64);
     const auto True = Constants.getBoolConstant(true);
     const auto False = Constants.getBoolConstant(false);
@@ -175,5 +250,52 @@ namespace ink::ir::test
     const ArrayType *OtherArray = Other.getArrayType(Other.getBoolType(), 2);
     EXPECT_NE(Constants.getArrayConstant(Array, {True, False}), nullptr);
     EXPECT_EQ(Constants.getArrayConstant(OtherArray, {True, False}), nullptr);
+  }
+
+  // Context teardown destroys frozen nominal methods while signatures created before and after their owners remain readable.
+  TEST(IRTypeContextTest, DestroysOwnedMethodsBeforeSignaturesAndTypeRegistry)
+  {
+    std::array<std::size_t, 6> DestructionCounts{};
+    {
+      TypeContext Types(Target64);
+      const auto *Array = Types.getArrayType(Types.getInt32Type(), 3);
+      ASSERT_NE(Array, nullptr);
+      const auto *EarlySignature = Types.getFunctionType(Types.getBoolType(), {Types.getInt32Type(), Array});
+      ASSERT_NE(EarlySignature, nullptr);
+      const std::array<NominalType *, 3> Owners = {
+          Types.createClassType(16, 8),
+          Types.createInterfaceType(16, 8),
+          Types.createStructType(16, 8),
+      };
+      for (const auto *Owner : Owners)
+      {
+        ASSERT_NE(Owner, nullptr);
+      }
+      const auto *LateSignature = Types.getFunctionType(Owners[2], {Owners[0], Owners[1], Array});
+      ASSERT_NE(LateSignature, nullptr);
+      const std::array<const FunctionType *, 2> Signatures{EarlySignature, LateSignature};
+      const core::Name Name = core::NamePool::instance().intern("IRTypeContextTest.ownedMethod");
+      for (std::size_t OwnerIndex = 0; OwnerIndex < Owners.size(); ++OwnerIndex)
+      {
+        auto *Owner = Owners[OwnerIndex];
+        for (std::size_t SignatureIndex = 0; SignatureIndex < Signatures.size(); ++SignatureIndex)
+        {
+          const auto *Signature = Signatures[SignatureIndex];
+          auto Callable = std::make_unique<Function>(*Signature, Name);
+          auto *Block = Callable->createBlock();
+          ASSERT_NE(Block, nullptr);
+          const std::size_t DestructionIndex = OwnerIndex * Signatures.size() + SignatureIndex;
+          ASSERT_NE(Block->appendInstruction(std::make_unique<MethodTypeLifetimeInstruction>(Types, *Callable, *Owner, *Signature, *Signature->returnType(), *Array, SignatureIndex != 0, DestructionCounts[DestructionIndex])), nullptr);
+          ASSERT_TRUE(Owner->addMethod(Method(std::move(Callable))));
+          EXPECT_EQ(DestructionCounts[DestructionIndex], 0U);
+        }
+        Owner->freeze();
+        EXPECT_EQ(Owner->methodCount(), 2U);
+      }
+    }
+    for (const std::size_t Count : DestructionCounts)
+    {
+      EXPECT_EQ(Count, 1U);
+    }
   }
 } // namespace ink::ir::test

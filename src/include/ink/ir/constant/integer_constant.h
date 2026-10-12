@@ -8,7 +8,7 @@
 
 namespace ink::ir
 {
-  class ConstantContext;
+  class ConstantPool;
 
   // Integer bits are stored by numeric bit position, independent of byte order.
   // The borrowed IntegerType must outlive the constant.
@@ -19,7 +19,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class ConstantContext;
+      friend class ConstantPool;
 
       IntegerConstant(const IntegerType *IntegerTypeValue, std::uint64_t Bits) noexcept;
 

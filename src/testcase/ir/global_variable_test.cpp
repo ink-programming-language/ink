@@ -1,5 +1,5 @@
 #include "ink/core/name_pool.h"
-#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/module/global_variable.h"
 #include "ink/ir/type/type_context.h"
@@ -39,7 +39,7 @@ namespace ink::ir::test
   TEST(IRGlobalVariableTest, ClassifiesAsGlobalVariableOnly)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     GlobalVariable Variable(*Types.getBoolType());
     const auto Signature = Types.getFunctionType(Types.getVoidType());
     ASSERT_NE(Signature, nullptr);
@@ -61,7 +61,7 @@ namespace ink::ir::test
   TEST(IRGlobalVariableTest, ChangesNameIndependentlyOfTypeAndInitializer)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const core::Name OriginalName = core::NamePool::instance().intern("IRGlobalVariableTest.Original");
     const core::Name NewName = core::NamePool::instance().intern("IRGlobalVariableTest.Renamed");
     ASSERT_TRUE(OriginalName.valid());
@@ -85,7 +85,7 @@ namespace ink::ir::test
   TEST(IRGlobalVariableTest, BorrowsReplacesAndClearsInitializer)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const Constant *First = Constants.getBoolConstant(false);
     const Constant *Second = Constants.getBoolConstant(true);
     {
@@ -111,8 +111,8 @@ namespace ink::ir::test
   {
     TypeContext Types(Target);
     TypeContext ForeignTypes(Target);
-    ConstantContext Constants(Types);
-    ConstantContext ForeignConstants(ForeignTypes);
+    auto &Constants = Types.constantPool();
+    auto &ForeignConstants = ForeignTypes.constantPool();
     GlobalVariable Variable(*Types.getBoolType());
     const Constant *Initializer = Constants.getBoolConstant(true);
     const Constant *WrongType = Constants.getSignedIntegerConstant(Types.getInt32Type(), 1);

@@ -1,4 +1,4 @@
-#include "ink/ir/type/struct_type.h"
+#include "ink/ir/type/nominal_type/struct_type.h"
 
 namespace ink::ir
 {

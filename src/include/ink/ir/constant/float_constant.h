@@ -8,7 +8,7 @@
 
 namespace ink::ir
 {
-  class ConstantContext;
+  class ConstantPool;
 
   // IEEE binary32/binary64 bits preserve signed zero, infinities and NaN payloads.
   // Bits use numeric bit positions, independent of host or target byte order.
@@ -20,7 +20,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class ConstantContext;
+      friend class ConstantPool;
 
       FloatConstant(const FloatType *FloatTypeValue, std::uint64_t Bits) noexcept;
 

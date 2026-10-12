@@ -31,6 +31,7 @@ namespace ink::ir
       case ValueKind::Interface:
       case ValueKind::Struct:
       case ValueKind::Pointer:
+      case ValueKind::NullPointer:
       case ValueKind::Reference:
       case ValueKind::FunctionType:
       case ValueKind::GenericClass:

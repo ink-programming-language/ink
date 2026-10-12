@@ -4,9 +4,9 @@
 #include "ink/core/name.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/module/global_variable.h"
-#include "ink/ir/type/class_type.h"
-#include "ink/ir/type/interface_type.h"
-#include "ink/ir/type/struct_type.h"
+#include "ink/ir/type/nominal_type/class_type.h"
+#include "ink/ir/type/nominal_type/interface_type.h"
+#include "ink/ir/type/nominal_type/struct_type.h"
 
 #include <cstddef>
 #include <memory>
@@ -16,6 +16,7 @@ namespace ink::ir
 {
   // Owns functions and global variables, and registers borrowed nominal types for one Ink module.
   // TypeContext and borrowed constants must outlive the module.
+  // Registered types own their methods and member functions independently of this module.
   // Declaration addresses stay valid until the module is destroyed; operations require external synchronization.
   class Module final
   {

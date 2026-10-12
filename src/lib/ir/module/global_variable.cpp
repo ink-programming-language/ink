@@ -41,7 +41,7 @@ namespace ink::ir
 
   bool GlobalVariable::setInitializer(const Constant *NewInitializer) noexcept
   {
-    if (NewInitializer && NewInitializer->type() != VariableType)
+    if (NewInitializer && !NewInitializer->canInitialize(VariableType))
     {
       return false;
     }

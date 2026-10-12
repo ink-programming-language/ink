@@ -1,5 +1,5 @@
 #include "ink/target/target_context.h"
-#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/type/type_context.h"
 
 #include <gtest/gtest.h>
@@ -18,7 +18,7 @@ namespace ink::ir::test
   TEST(IRNumericConstantTest, SignedIntegerBoundariesAndNegativeBits)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const auto Signed32 = Types.getIntegerType(32, true);
     const auto Signed64 = Types.getIntegerType(64, true);
     ASSERT_NE(Signed32, nullptr);
@@ -55,7 +55,7 @@ namespace ink::ir::test
   TEST(IRNumericConstantTest, UnsignedIntegerBoundaries)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     for (const std::uint32_t Width : {32U, 64U})
     {
       const auto UnsignedType = Types.getIntegerType(Width, false);
@@ -80,7 +80,7 @@ namespace ink::ir::test
   TEST(IRNumericConstantTest, IntegerRejectsMissingTypeAndWrongSignedness)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     EXPECT_EQ(Constants.getIntegerConstantFromBits(nullptr, 0), nullptr);
     EXPECT_EQ(Constants.getSignedIntegerConstant(nullptr, 0), nullptr);
     EXPECT_EQ(Constants.getUnsignedIntegerConstant(nullptr, 0), nullptr);
@@ -100,7 +100,7 @@ namespace ink::ir::test
   TEST(IRNumericConstantTest, IntegerRawBitsHaveNoImplicitTruncation)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     for (const bool Signed : {false, true})
     {
       for (const std::uint32_t Width : {32U, 64U})
@@ -147,7 +147,7 @@ namespace ink::ir::test
     {
       const target::TargetContext FloatTarget(target::PointerWidth::Bits64, Order);
       TypeContext FloatTypes(FloatTarget);
-      ConstantContext Constants(FloatTypes);
+      auto &Constants = FloatTypes.constantPool();
       for (const FloatCase &Case : Cases)
       {
         const auto Float = FloatTypes.getFloatType(Case.Width);
@@ -191,7 +191,7 @@ namespace ink::ir::test
     {
       const target::TargetContext FloatTarget(target::PointerWidth::Bits64, Order);
       TypeContext FloatTypes(FloatTarget);
-      ConstantContext Constants(FloatTypes);
+      auto &Constants = FloatTypes.constantPool();
       const auto Float32 = FloatTypes.getFloatType(32);
       const auto Float64 = FloatTypes.getFloatType(64);
       ASSERT_NE(Float32, nullptr);
@@ -219,7 +219,7 @@ namespace ink::ir::test
   TEST(IRNumericConstantTest, FloatNumericFactoriesPreserveSpecialValues)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const auto Float32 = Types.getFloatType(32);
     const auto Float64 = Types.getFloatType(64);
     ASSERT_NE(Float32, nullptr);
@@ -262,7 +262,7 @@ namespace ink::ir::test
   TEST(IRNumericConstantTest, FloatRejectsMissingTypeAndHighBits)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     EXPECT_EQ(Constants.getFloatConstantFromBits(nullptr, 0), nullptr);
     const auto Float32 = Types.getFloatType(32);
     ASSERT_NE(Float32, nullptr);

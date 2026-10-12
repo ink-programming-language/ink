@@ -45,22 +45,52 @@ namespace ink::ir
 
   TypeContext::TypeContext(target::TargetContext Target)
       : Target(Target),
+        NullPointer(*this),
         Int32(Target, 32, true),
         UInt32(Target, 32, false),
         Int64(Target, 64, true),
         UInt64(Target, 64, false),
         Float32(Target, 32),
         Float64(Target, 64),
-        String(Target)
+        String(Target),
+        Constants(*this)
   {
-    OwnedTypes.insert({&Void, &Variadic, &Bool, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64, &String});
+    OwnedTypes.insert({&Void, &Variadic, &Bool, &NullPointer, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64, &String});
   }
 
-  TypeContext::~TypeContext() noexcept = default;
+  TypeContext::~TypeContext() noexcept
+  {
+    // Method bodies can reference constants and any nominal type's field metadata.
+    for (const auto &TypeValue : Storage)
+    {
+      if (NominalType::classof(TypeValue.get()))
+      {
+        static_cast<NominalType *>(TypeValue.get())->Methods.clear();
+      }
+    }
+    // Remove all field initializer references before destroying the constant pool.
+    for (const auto &TypeValue : Storage)
+    {
+      if (NominalType::classof(TypeValue.get()))
+      {
+        static_cast<NominalType *>(TypeValue.get())->Fields.clear();
+      }
+    }
+  }
 
   const target::TargetContext &TypeContext::targetContext() const noexcept
   {
     return Target;
+  }
+
+  ConstantPool &TypeContext::constantPool() noexcept
+  {
+    return Constants;
+  }
+
+  const ConstantPool &TypeContext::constantPool() const noexcept
+  {
+    return Constants;
   }
 
   bool TypeContext::owns(const Type *TypeValue) const noexcept
@@ -81,6 +111,11 @@ namespace ink::ir
   const BoolType *TypeContext::getBoolType() const noexcept
   {
     return &Bool;
+  }
+
+  const NullPointerType *TypeContext::getNullPointerType() const noexcept
+  {
+    return &NullPointer;
   }
 
   const IntegerType *TypeContext::getInt32Type() const noexcept

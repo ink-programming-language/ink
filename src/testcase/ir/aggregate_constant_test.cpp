@@ -1,7 +1,7 @@
 #include "ink/target/target_context.h"
 #include "ink/ir/constant/array_constant.h"
 #include "ink/ir/constant/bool_constant.h"
-#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/constant/null_pointer_constant.h"
 #include "ink/ir/type/type_context.h"
 
@@ -16,7 +16,7 @@ namespace ink::ir::test
   {
     const target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const auto ElementType = Types.getBoolType();
     const auto First = Constants.getBoolConstant(true);
     const auto Second = Constants.getBoolConstant(false);
@@ -44,7 +44,7 @@ namespace ink::ir::test
   {
     const target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     TypeContext OtherTypes(Target);
     const auto ElementType = Types.getBoolType();
     const auto OtherType = OtherTypes.getBoolType();
@@ -66,7 +66,7 @@ namespace ink::ir::test
   {
     const target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const auto EmptyType = Types.getArrayType(Types.getBoolType(), 0);
     ASSERT_NE(EmptyType, nullptr);
     const auto Empty = Constants.getArrayConstant(EmptyType);
@@ -84,23 +84,22 @@ namespace ink::ir::test
     EXPECT_EQ(Outer->elements()[1], Empty);
   }
 
-  // Typed null pointers retain the target pointer type on both 32-bit and 64-bit targets without a host address.
-  TEST(IRNullPointerConstantTest, PreservesTargetPointerTypes)
+  // Null constants retain their own target-sized literal type on both 32-bit and 64-bit targets without a host address.
+  TEST(IRNullPointerConstantTest, PreservesTargetNullPointerTypes)
   {
     constexpr target::TargetContext Target32(target::PointerWidth::Bits32, target::ByteOrder::LittleEndian);
     constexpr target::TargetContext Target64(target::PointerWidth::Bits64, target::ByteOrder::BigEndian);
     TypeContext Types32(Target32);
     TypeContext Types64(Target64);
-    ConstantContext Constants32(Types32);
-    ConstantContext Constants64(Types64);
+    auto &Constants32 = Types32.constantPool();
+    auto &Constants64 = Types64.constantPool();
     const auto Pointer32 = Types32.getPointerType(Types32.getBoolType());
-    const auto Pointer64 = Types64.getPointerType(Types64.getBoolType());
-    const auto Null32 = Constants32.getNullPointerConstant(Pointer32);
-    const auto Null64 = Constants64.getNullPointerConstant(Pointer64);
+    const auto Null32 = Constants32.getNullPointerConstant();
+    const auto Null64 = Constants64.getNullPointerConstant();
     ASSERT_NE(Null32, nullptr);
     ASSERT_NE(Null64, nullptr);
-    EXPECT_EQ(Null32->type(), Pointer32);
-    EXPECT_EQ(Null64->type(), Pointer64);
+    EXPECT_EQ(Null32->type(), Types32.getNullPointerType());
+    EXPECT_EQ(Null64->type(), Types64.getNullPointerType());
     EXPECT_EQ(Null32->type()->size(), 4U);
     EXPECT_EQ(Null64->type()->size(), 8U);
     EXPECT_TRUE(NullPointerConstant::classof(Null32));
@@ -111,13 +110,16 @@ namespace ink::ir::test
     EXPECT_FALSE(NullPointerConstant::classof(nullptr));
   }
 
-  // Null pointer constants reject missing types, and the context rejects missing pointees.
-  TEST(IRNullPointerConstantTest, RejectsMissingTypeAndPointee)
+  // The canonical null constant exists independently of a destination and rejects a missing initialization type.
+  TEST(IRNullPointerConstantTest, RequiresValidInitializationDestination)
   {
     constexpr target::TargetContext Target64(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
     TypeContext Types(Target64);
-    ConstantContext Constants(Types);
-    EXPECT_EQ(Constants.getNullPointerConstant(nullptr), nullptr);
+    auto &Constants = Types.constantPool();
+    const auto Null = Constants.getNullPointerConstant();
+    ASSERT_NE(Null, nullptr);
+    EXPECT_FALSE(Null->canInitialize(nullptr));
+    EXPECT_TRUE(Null->canInitialize(Types.getNullPointerType()));
     EXPECT_EQ(Types.getPointerType(nullptr), nullptr);
   }
 } // namespace ink::ir::test

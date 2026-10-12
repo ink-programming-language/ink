@@ -1,22 +1,39 @@
-#include "ink/ir/function/method.h"
+#include "ink/ir/type/nominal_type/method.h"
+
+#include <utility>
 
 namespace ink::ir
 {
-  Method::Method(core::Name Name, const FunctionType &Signature, MethodVirtualInfo VirtualInfo) noexcept
-      : Name(Name),
-        Signature(&Signature),
+  Method::Method(std::unique_ptr<Function> Callable, MethodVirtualInfo VirtualInfo) noexcept
+      : Callable(std::move(Callable)),
         VirtualInfo(VirtualInfo)
   {
   }
 
+  Method::~Method() noexcept = default;
+
+  Method::Method(Method &&) noexcept = default;
+
+  Method &Method::operator=(Method &&) noexcept = default;
+
+  Function *Method::function() noexcept
+  {
+    return Callable.get();
+  }
+
+  const Function *Method::function() const noexcept
+  {
+    return Callable.get();
+  }
+
   core::Name Method::name() const noexcept
   {
-    return Name;
+    return Callable ? Callable->name() : core::NAME_None;
   }
 
   const FunctionType *Method::functionType() const noexcept
   {
-    return Signature;
+    return Callable ? Callable->functionType() : nullptr;
   }
 
   const MethodVirtualInfo &Method::virtualInfo() const noexcept
@@ -51,7 +68,7 @@ namespace ink::ir
 
   bool Method::valid() const noexcept
   {
-    if (!Name.valid())
+    if (!Callable || !Callable->hasName())
     {
       return false;
     }

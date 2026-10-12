@@ -9,9 +9,10 @@
 
 namespace ink::ir
 {
-  class ConstantContext;
+  class ConstantPool;
 
   // Owns the element list; the type and each element are borrowed and must outlive this constant.
+  // Pointer elements may share the pool's NullPointerType constant; the array supplies their destination pointer type.
   class ArrayConstant final : public Constant
   {
     public:
@@ -20,7 +21,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class ConstantContext;
+      friend class ConstantPool;
 
       ArrayConstant(const ArrayType *ConstantType, std::vector<const Constant *> Elements) noexcept;
 

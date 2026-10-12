@@ -1,6 +1,6 @@
 #include "ink/target/target_context.h"
 #include "ink/ir/constant/bool_constant.h"
-#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/type/type_context.h"
 
 #include <gtest/gtest.h>
@@ -19,7 +19,7 @@ namespace ink::ir::test
   {
     const target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const Type *SharedType = nullptr;
     for (const bool Expected : {false, true})
     {

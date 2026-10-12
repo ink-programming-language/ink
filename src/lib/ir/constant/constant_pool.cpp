@@ -1,4 +1,5 @@
-#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/constant/constant_pool.h"
+#include "ink/ir/type/type_context.h"
 
 #include <algorithm>
 #include <cstring>
@@ -11,8 +12,8 @@
 
 namespace ink::ir
 {
-  static_assert(sizeof(float) == sizeof(std::uint32_t) && std::numeric_limits<float>::is_iec559 && std::numeric_limits<float>::radix == 2 && std::numeric_limits<float>::digits == 24 && std::numeric_limits<float>::max_exponent == 128 && std::numeric_limits<float>::min_exponent == -125, "ConstantContext numeric float lookups require IEEE binary32 float");
-  static_assert(sizeof(double) == sizeof(std::uint64_t) && std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::radix == 2 && std::numeric_limits<double>::digits == 53 && std::numeric_limits<double>::max_exponent == 1024 && std::numeric_limits<double>::min_exponent == -1021, "ConstantContext numeric float lookups require IEEE binary64 double");
+  static_assert(sizeof(float) == sizeof(std::uint32_t) && std::numeric_limits<float>::is_iec559 && std::numeric_limits<float>::radix == 2 && std::numeric_limits<float>::digits == 24 && std::numeric_limits<float>::max_exponent == 128 && std::numeric_limits<float>::min_exponent == -125, "ConstantPool numeric float lookups require IEEE binary32 float");
+  static_assert(sizeof(double) == sizeof(std::uint64_t) && std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::radix == 2 && std::numeric_limits<double>::digits == 53 && std::numeric_limits<double>::max_exponent == 1024 && std::numeric_limits<double>::min_exponent == -1021, "ConstantPool numeric float lookups require IEEE binary64 double");
   static_assert(UTF8PROC_VERSION_MAJOR == 2 && UTF8PROC_VERSION_MINOR == 9 && UTF8PROC_VERSION_PATCH == 0, "Ink requires utf8proc 2.9.0 with Unicode 15.1 data");
 
   namespace
@@ -36,12 +37,12 @@ namespace ink::ir
     }
   } // namespace
 
-  bool ConstantContext::ArrayKey::operator==(const ArrayKey &Other) const noexcept
+  bool ConstantPool::ArrayKey::operator==(const ArrayKey &Other) const noexcept
   {
     return ConstantType == Other.ConstantType && Elements == Other.Elements;
   }
 
-  std::size_t ConstantContext::ArrayKeyHash::operator()(const ArrayKey &Key) const noexcept
+  std::size_t ConstantPool::ArrayKeyHash::operator()(const ArrayKey &Key) const noexcept
   {
     std::size_t Hash = std::hash<const ArrayType *>{}(Key.ConstantType);
     for (const Constant *Element : Key.Elements)
@@ -52,7 +53,7 @@ namespace ink::ir
   }
 
   template <typename ConstantT>
-  const ConstantT *ConstantContext::own(std::unique_ptr<ConstantT> ConstantValue)
+  const ConstantT *ConstantPool::own(std::unique_ptr<ConstantT> ConstantValue)
   {
     const ConstantT *Result = ConstantValue.get();
     OwnedConstants.insert(Result);
@@ -60,32 +61,33 @@ namespace ink::ir
     return Result;
   }
 
-  ConstantContext::ConstantContext(const TypeContext &Types)
+  ConstantPool::ConstantPool(const TypeContext &Types)
       : Types(Types),
         False(Types.getBoolType(), false),
-        True(Types.getBoolType(), true)
+        True(Types.getBoolType(), true),
+        NullPointer(Types.getNullPointerType())
   {
-    OwnedConstants.insert({&False, &True});
+    OwnedConstants.insert({&False, &True, &NullPointer});
   }
 
-  ConstantContext::~ConstantContext() noexcept = default;
+  ConstantPool::~ConstantPool() noexcept = default;
 
-  const TypeContext &ConstantContext::typeContext() const noexcept
+  const TypeContext &ConstantPool::typeContext() const noexcept
   {
     return Types;
   }
 
-  bool ConstantContext::owns(const Constant *ConstantValue) const noexcept
+  bool ConstantPool::owns(const Constant *ConstantValue) const noexcept
   {
     return OwnedConstants.find(ConstantValue) != OwnedConstants.end();
   }
 
-  const BoolConstant *ConstantContext::getBoolConstant(bool Value) const noexcept
+  const BoolConstant *ConstantPool::getBoolConstant(bool Value) const noexcept
   {
     return Value ? &True : &False;
   }
 
-  const IntegerConstant *ConstantContext::getIntegerConstantFromBits(const IntegerType *IntegerTypeValue, std::uint64_t Bits)
+  const IntegerConstant *ConstantPool::getIntegerConstantFromBits(const IntegerType *IntegerTypeValue, std::uint64_t Bits)
   {
     if (!typeContext().owns(IntegerTypeValue) || (IntegerTypeValue->width() == 32 && Bits > std::numeric_limits<std::uint32_t>::max()))
     {
@@ -102,7 +104,7 @@ namespace ink::ir
     return Result;
   }
 
-  const IntegerConstant *ConstantContext::getSignedIntegerConstant(const IntegerType *IntegerTypeValue, std::int64_t Value)
+  const IntegerConstant *ConstantPool::getSignedIntegerConstant(const IntegerType *IntegerTypeValue, std::int64_t Value)
   {
     if (!typeContext().owns(IntegerTypeValue) || !IntegerTypeValue->isSigned())
     {
@@ -120,7 +122,7 @@ namespace ink::ir
     return getIntegerConstantFromBits(IntegerTypeValue, Bits);
   }
 
-  const IntegerConstant *ConstantContext::getUnsignedIntegerConstant(const IntegerType *IntegerTypeValue, std::uint64_t Value)
+  const IntegerConstant *ConstantPool::getUnsignedIntegerConstant(const IntegerType *IntegerTypeValue, std::uint64_t Value)
   {
     if (!typeContext().owns(IntegerTypeValue) || !IntegerTypeValue->isUnsigned())
     {
@@ -129,7 +131,7 @@ namespace ink::ir
     return getIntegerConstantFromBits(IntegerTypeValue, Value);
   }
 
-  const FloatConstant *ConstantContext::getFloatConstantFromBits(const FloatType *FloatTypeValue, std::uint64_t Bits)
+  const FloatConstant *ConstantPool::getFloatConstantFromBits(const FloatType *FloatTypeValue, std::uint64_t Bits)
   {
     if (!typeContext().owns(FloatTypeValue) || (FloatTypeValue->width() == 32 && Bits > std::numeric_limits<std::uint32_t>::max()))
     {
@@ -146,21 +148,21 @@ namespace ink::ir
     return Result;
   }
 
-  const FloatConstant *ConstantContext::getFloatConstant(float Value)
+  const FloatConstant *ConstantPool::getFloatConstant(float Value)
   {
     std::uint32_t Bits = 0;
     std::memcpy(&Bits, &Value, sizeof(Bits));
     return getFloatConstantFromBits(typeContext().getFloat32Type(), Bits);
   }
 
-  const FloatConstant *ConstantContext::getFloatConstant(double Value)
+  const FloatConstant *ConstantPool::getFloatConstant(double Value)
   {
     std::uint64_t Bits = 0;
     std::memcpy(&Bits, &Value, sizeof(Bits));
     return getFloatConstantFromBits(typeContext().getFloat64Type(), Bits);
   }
 
-  const ArrayConstant *ConstantContext::getArrayConstant(const ArrayType *ConstantType, std::vector<const Constant *> Elements)
+  const ArrayConstant *ConstantPool::getArrayConstant(const ArrayType *ConstantType, std::vector<const Constant *> Elements)
   {
     if (!typeContext().owns(ConstantType) || Elements.size() != ConstantType->elementCount())
     {
@@ -168,7 +170,7 @@ namespace ink::ir
     }
     for (const Constant *Element : Elements)
     {
-      if (!owns(Element) || Element->type() != ConstantType->elementType())
+      if (!owns(Element) || !Element->canInitialize(ConstantType->elementType()))
       {
         return nullptr;
       }
@@ -184,23 +186,12 @@ namespace ink::ir
     return Result;
   }
 
-  const NullPointerConstant *ConstantContext::getNullPointerConstant(const PointerType *ConstantType)
+  const NullPointerConstant *ConstantPool::getNullPointerConstant() const noexcept
   {
-    if (!typeContext().owns(ConstantType) || !ConstantType->pointeeType())
-    {
-      return nullptr;
-    }
-    const auto Found = NullPointerConstants.find(ConstantType);
-    if (Found != NullPointerConstants.end())
-    {
-      return Found->second;
-    }
-    const NullPointerConstant *Result = own(std::unique_ptr<NullPointerConstant>(new NullPointerConstant(ConstantType)));
-    NullPointerConstants.emplace(ConstantType, Result);
-    return Result;
+    return &NullPointer;
   }
 
-  const StringConstant *ConstantContext::getStringConstant(std::string Value)
+  const StringConstant *ConstantPool::getStringConstant(std::string Value)
   {
     const StringType *StringTypeValue = typeContext().getStringType();
     if (Value.size() > StringTypeValue->maximumByteLength())

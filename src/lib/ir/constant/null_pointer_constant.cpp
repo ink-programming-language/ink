@@ -2,7 +2,7 @@
 
 namespace ink::ir
 {
-  NullPointerConstant::NullPointerConstant(const PointerType *ConstantType) noexcept
+  NullPointerConstant::NullPointerConstant(const NullPointerType *ConstantType) noexcept
       : Constant(ValueKind::NullPointerConstant, ConstantType)
   {
   }

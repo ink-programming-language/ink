@@ -1,7 +1,7 @@
-#ifndef INK_IR_TYPE_CLASS_TYPE_H
-#define INK_IR_TYPE_CLASS_TYPE_H
+#ifndef INK_IR_TYPE_NOMINAL_TYPE_CLASS_TYPE_H
+#define INK_IR_TYPE_NOMINAL_TYPE_CLASS_TYPE_H
 
-#include "ink/ir/type/nominal_type.h"
+#include "ink/ir/type/nominal_type/nominal_type.h"
 
 namespace ink::ir
 {

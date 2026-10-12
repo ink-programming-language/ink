@@ -1,7 +1,7 @@
 #include "ink/target/target_context.h"
 #include "ink/ir/constant/array_constant.h"
 #include "ink/ir/constant/bool_constant.h"
-#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/constant/float_constant.h"
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/constant/null_pointer_constant.h"
@@ -12,7 +12,7 @@
 #include "ink/ir/param/parameter.h"
 #include "ink/ir/type/array_type.h"
 #include "ink/ir/type/bool_type.h"
-#include "ink/ir/type/class_type.h"
+#include "ink/ir/type/nominal_type/class_type.h"
 #include "ink/ir/type/float_type.h"
 #include "ink/ir/type/function_type.h"
 #include "ink/ir/type/generic_class_type.h"
@@ -20,11 +20,12 @@
 #include "ink/ir/type/generic_type.h"
 #include "ink/ir/type/generic_var_type.h"
 #include "ink/ir/type/integer_type.h"
-#include "ink/ir/type/interface_type.h"
+#include "ink/ir/type/nominal_type/interface_type.h"
+#include "ink/ir/type/null_pointer_type.h"
 #include "ink/ir/type/pointer_type.h"
 #include "ink/ir/type/reference_type.h"
 #include "ink/ir/type/string_type.h"
-#include "ink/ir/type/struct_type.h"
+#include "ink/ir/type/nominal_type/struct_type.h"
 #include "ink/ir/type/type.h"
 #include "ink/ir/type/type_context.h"
 #include "ink/ir/type/void_type.h"
@@ -351,7 +352,7 @@ namespace ink::ir::test
   TEST(IRTypeTest, ClassifiersRejectNullAndOtherKinds)
   {
     TypeContext Types(Target64);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const auto Integer = Types.getIntegerType(32, true);
     const auto Float = Types.getFloatType(64);
     const auto Bool = Types.getBoolType();
@@ -375,7 +376,7 @@ namespace ink::ir::test
     const auto IntegerValue = Constants.getSignedIntegerConstant(Integer, -1);
     const auto FloatValue = Constants.getFloatConstantFromBits(Float, 0);
     const auto ArrayValue = Constants.getArrayConstant(Array, {BoolValue, BoolValue});
-    const auto NullValue = Constants.getNullPointerConstant(Pointer);
+    const auto NullValue = Constants.getNullPointerConstant();
     const auto StringValue = Constants.getStringConstant("text");
     ASSERT_NE(BoolValue, nullptr);
     ASSERT_NE(IntegerValue, nullptr);
@@ -384,7 +385,7 @@ namespace ink::ir::test
     ASSERT_NE(NullValue, nullptr);
     ASSERT_NE(StringValue, nullptr);
 
-    const std::array<const Value *, 19> Values = {
+    const std::array<const Value *, 20> Values = {
         Types.getVoidType(),
         Integer,
         Float,
@@ -404,9 +405,10 @@ namespace ink::ir::test
         NullValue,
         String,
         StringValue,
+        Types.getNullPointerType(),
     };
     using Classifier = bool (*)(const Value *);
-    const std::array<Classifier, 19> Classifiers = {
+    const std::array<Classifier, 20> Classifiers = {
         VoidType::classof,
         IntegerType::classof,
         FloatType::classof,
@@ -426,6 +428,7 @@ namespace ink::ir::test
         NullPointerConstant::classof,
         StringType::classof,
         StringConstant::classof,
+        NullPointerType::classof,
     };
     const SyntheticType Unknown(1, 1, static_cast<ValueKind>(255));
     for (std::size_t ClassifierIndex = 0; ClassifierIndex < Classifiers.size(); ++ClassifierIndex)
@@ -483,6 +486,7 @@ namespace ink::ir::test
     EXPECT_EQ(valueKindName(ValueKind::Interface), "interface");
     EXPECT_EQ(valueKindName(ValueKind::Struct), "struct");
     EXPECT_EQ(valueKindName(ValueKind::Pointer), "pointer");
+    EXPECT_EQ(valueKindName(ValueKind::NullPointer), "null_pointer");
     EXPECT_EQ(valueKindName(ValueKind::Reference), "reference");
     EXPECT_EQ(valueKindName(ValueKind::FunctionType), "function_type");
     EXPECT_EQ(valueKindName(ValueKind::Function), "function");

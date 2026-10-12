@@ -1,6 +1,6 @@
 #include "ink/core/name_pool.h"
-#include "ink/ir/constant/constant_context.h"
-#include "ink/ir/function/method.h"
+#include "ink/ir/constant/constant_pool.h"
+#include "ink/ir/type/nominal_type/method.h"
 #include "ink/ir/instruction/instruction.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/type_context.h"
@@ -271,7 +271,7 @@ namespace ink::ir::test
   TEST(IRModuleTest, RejectsUnregisteredValues)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const auto Signature = Types.getFunctionType(Types.getVoidType(), {Types.getBoolType()});
     const auto ClassLayout = Types.createClassType(16, 8);
     const auto InterfaceLayout = Types.createInterfaceType(16, 8);
@@ -316,7 +316,7 @@ namespace ink::ir::test
     }
   }
 
-  // Registered nominal types preserve source member names and distinct overload signatures.
+  // Registered nominal types own their overloaded methods independently of the module's top-level function list.
   TEST(IRModuleTest, RegisteredClassMembersRetainNamesAndOverloadSignatures)
   {
     TypeContext Types(Target);
@@ -332,9 +332,15 @@ namespace ink::ir::test
     const core::Name ModuleName = core::NamePool::instance().intern("IRModuleTest.math");
     const core::Name MemberName = core::NamePool::instance().intern("method");
     Module Owner(ModuleName);
+    auto IntegerCallable = std::make_unique<Function>(*IntegerSignature, MemberName);
+    auto BooleanCallable = std::make_unique<Function>(*BooleanSignature, MemberName);
+    const auto *IntegerAddress = IntegerCallable.get();
+    const auto *BooleanAddress = BooleanCallable.get();
     ASSERT_TRUE(Owner.addClass(*ClassLayout));
-    ASSERT_TRUE(ClassLayout->addMethod(Method(MemberName, *IntegerSignature)));
-    ASSERT_TRUE(ClassLayout->addMethod(Method(MemberName, *BooleanSignature)));
+    ASSERT_TRUE(ClassLayout->addMethod(Method(std::move(IntegerCallable))));
+    ASSERT_TRUE(ClassLayout->addMethod(Method(std::move(BooleanCallable))));
+    EXPECT_EQ(IntegerCallable, nullptr);
+    EXPECT_EQ(BooleanCallable, nullptr);
 
     const Module &ReadOnly = Owner;
     const auto *ImportedClass = ReadOnly.classType(0);
@@ -345,6 +351,13 @@ namespace ink::ir::test
     ASSERT_EQ(Overloads.size(), 2U);
     EXPECT_EQ(Overloads[0]->name(), MemberName);
     EXPECT_EQ(Overloads[1]->name(), MemberName);
+    EXPECT_EQ(Overloads[0]->function(), IntegerAddress);
+    EXPECT_EQ(Overloads[1]->function(), BooleanAddress);
+    EXPECT_FALSE(ReadOnly.owns(Overloads[0]->function()));
+    EXPECT_FALSE(ReadOnly.owns(Overloads[1]->function()));
+    EXPECT_FALSE(ReadOnly.contains(Overloads[0]->function()));
+    EXPECT_FALSE(ReadOnly.contains(Overloads[1]->function()));
+    EXPECT_EQ(ReadOnly.functionCount(), 0U);
     EXPECT_EQ(Overloads[0]->functionType(), IntegerSignature);
     EXPECT_EQ(Overloads[1]->functionType(), BooleanSignature);
     ASSERT_EQ(ImportedClass->methods().size(), 2U);
@@ -355,36 +368,55 @@ namespace ink::ir::test
     EXPECT_TRUE(ImportedClass->findMethods(core::NAME_None).empty());
   }
 
-  // Types and their method metadata remain usable after a registering module is destroyed.
+  // Destroying the registering module preserves methods and bodies until their nominal type context is destroyed.
   TEST(IRModuleTest, DestroyingModulePreservesBorrowedNominalTypes)
   {
-    TypeContext Types(Target);
-    const auto ClassValue = Types.createClassType(8, 4);
-    const auto InterfaceValue = Types.createInterfaceType(8, 4);
-    const auto StructValue = Types.createStructType(8, 4);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
-    ASSERT_NE(ClassValue, nullptr);
-    ASSERT_NE(InterfaceValue, nullptr);
-    ASSERT_NE(StructValue, nullptr);
-    ASSERT_NE(Signature, nullptr);
-    const core::Name ModuleName = core::NamePool::instance().intern("IRModuleTest.Lifetime");
-    const core::Name MemberName = core::NamePool::instance().intern("execute");
+    bool BodyDestroyed = false;
     {
-      Module Owner(ModuleName);
-      ASSERT_TRUE(Owner.addClass(*ClassValue));
-      ASSERT_TRUE(Owner.addInterface(*InterfaceValue));
-      ASSERT_TRUE(Owner.addStruct(*StructValue));
-      ASSERT_TRUE(ClassValue->addMethod(Method(MemberName, *Signature)));
+      TypeContext Types(Target);
+      const auto ClassValue = Types.createClassType(8, 4);
+      const auto InterfaceValue = Types.createInterfaceType(8, 4);
+      const auto StructValue = Types.createStructType(8, 4);
+      const auto Signature = Types.getFunctionType(Types.getVoidType());
+      ASSERT_NE(ClassValue, nullptr);
+      ASSERT_NE(InterfaceValue, nullptr);
+      ASSERT_NE(StructValue, nullptr);
+      ASSERT_NE(Signature, nullptr);
+      const core::Name ModuleName = core::NamePool::instance().intern("IRModuleTest.Lifetime");
+      const core::Name MemberName = core::NamePool::instance().intern("execute");
+      auto Callable = std::make_unique<Function>(*Signature, MemberName);
+      const auto *CallableAddress = Callable.get();
+      auto *Block = Callable->createBlock();
+      ASSERT_NE(Block, nullptr);
+      const auto *Body = Block->appendInstruction(std::make_unique<ModuleBodyInstruction>(BodyDestroyed));
+      ASSERT_NE(Body, nullptr);
+      ASSERT_TRUE(ClassValue->addMethod(Method(std::move(Callable))));
+      {
+        Module Owner(ModuleName);
+        ASSERT_TRUE(Owner.addClass(*ClassValue));
+        ASSERT_TRUE(Owner.addInterface(*InterfaceValue));
+        ASSERT_TRUE(Owner.addStruct(*StructValue));
+        EXPECT_FALSE(Owner.owns(CallableAddress));
+        EXPECT_FALSE(Owner.contains(CallableAddress));
+        EXPECT_FALSE(BodyDestroyed);
+      }
+      EXPECT_FALSE(BodyDestroyed);
+      EXPECT_TRUE(Types.owns(ClassValue));
+      EXPECT_TRUE(Types.owns(InterfaceValue));
+      EXPECT_TRUE(Types.owns(StructValue));
+      EXPECT_EQ(ClassValue->size(), 8U);
+      EXPECT_EQ(InterfaceValue->size(), 8U);
+      EXPECT_EQ(StructValue->size(), 8U);
+      EXPECT_EQ(ClassValue->methodCount(), 1U);
+      const auto Methods = ClassValue->findMethods(MemberName);
+      ASSERT_EQ(Methods.size(), 1U);
+      EXPECT_TRUE(Methods[0]->valid());
+      EXPECT_EQ(Methods[0]->name(), MemberName);
+      EXPECT_EQ(Methods[0]->function(), CallableAddress);
+      EXPECT_EQ(Methods[0]->functionType(), Signature);
+      EXPECT_EQ(Methods[0]->function()->entryBlock(), Block);
+      EXPECT_EQ(Methods[0]->function()->entryBlock()->instruction(0), Body);
     }
-    EXPECT_TRUE(Types.owns(ClassValue));
-    EXPECT_TRUE(Types.owns(InterfaceValue));
-    EXPECT_TRUE(Types.owns(StructValue));
-    EXPECT_EQ(ClassValue->size(), 8U);
-    EXPECT_EQ(InterfaceValue->size(), 8U);
-    EXPECT_EQ(StructValue->size(), 8U);
-    const auto Methods = ClassValue->findMethods(MemberName);
-    ASSERT_EQ(Methods.size(), 1U);
-    EXPECT_EQ(Methods[0]->name(), MemberName);
-    EXPECT_EQ(Methods[0]->functionType(), Signature);
+    EXPECT_TRUE(BodyDestroyed);
   }
 } // namespace ink::ir::test

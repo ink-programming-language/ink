@@ -24,7 +24,8 @@ namespace ink::ir
 
       const Constant *initializer() const noexcept;
       bool hasInitializer() const noexcept;
-      // nullptr clears the initializer. A different type identity is rejected without changing it.
+      // nullptr clears the initializer. Values must have the same type, or be the local pool's nullptr for a pointer variable.
+      // Rejection preserves the previous initializer; a nullptr constant remains distinct from clearing it.
       bool setInitializer(const Constant *NewInitializer) noexcept;
 
       static bool classof(const Value *Value) noexcept;

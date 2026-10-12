@@ -1,4 +1,4 @@
-#include "ink/ir/type/nominal_type.h"
+#include "ink/ir/type/nominal_type/nominal_type.h"
 
 #include "ink/ir/type/type_context.h"
 
@@ -47,6 +47,63 @@ namespace ink::ir
     return true;
   }
 
+  const std::vector<Field> &NominalType::fields() const noexcept
+  {
+    return Fields;
+  }
+
+  std::size_t NominalType::fieldCount() const noexcept
+  {
+    return Fields.size();
+  }
+
+  const Field *NominalType::field(std::size_t Index) const noexcept
+  {
+    return Index < Fields.size() ? &Fields[Index] : nullptr;
+  }
+
+  bool NominalType::addField(Field Entry)
+  {
+    if (!validField(Entry))
+    {
+      return false;
+    }
+    Fields.push_back(Entry);
+    return true;
+  }
+
+  bool NominalType::replaceField(std::size_t Index, Field Entry)
+  {
+    if (Index >= Fields.size() || !validField(Entry))
+    {
+      return false;
+    }
+    Fields[Index] = Entry;
+    return true;
+  }
+
+  bool NominalType::validField(const Field &Entry) const noexcept
+  {
+    return !Frozen && Context.owns(Entry.type()) && (!Entry.hasInitializer() || Context.constantPool().owns(Entry.initializer())) && Entry.valid() && Entry.offset() <= Size && Entry.type()->size() <= Size - Entry.offset();
+  }
+
+  std::vector<const Field *> NominalType::findFields(core::Name MemberName) const
+  {
+    std::vector<const Field *> Matches;
+    if (!MemberName.valid())
+    {
+      return Matches;
+    }
+    for (const Field &Entry : Fields)
+    {
+      if (Entry.name() == MemberName)
+      {
+        Matches.push_back(&Entry);
+      }
+    }
+    return Matches;
+  }
+
   const std::vector<Method> &NominalType::methods() const noexcept
   {
     return Methods;
@@ -62,7 +119,7 @@ namespace ink::ir
     return Index < Methods.size() ? &Methods[Index] : nullptr;
   }
 
-  bool NominalType::addMethod(Method Entry)
+  bool NominalType::addMethod(Method &&Entry)
   {
     if (!validMethod(Entry))
     {
@@ -72,7 +129,7 @@ namespace ink::ir
     return true;
   }
 
-  bool NominalType::replaceMethod(std::size_t Index, Method Entry)
+  bool NominalType::replaceMethod(std::size_t Index, Method &&Entry)
   {
     if (Index >= Methods.size() || !validMethod(Entry))
     {

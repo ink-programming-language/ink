@@ -10,7 +10,7 @@
 
 namespace ink::ir
 {
-  class ConstantContext;
+  class ConstantPool;
 
   // Owns the decoded UTF-8 bytes; the borrowed type must outlive this constant.
   // Empty strings and embedded NUL are valid. No escapes, normalization or terminator are added.
@@ -23,7 +23,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class ConstantContext;
+      friend class ConstantPool;
 
       StringConstant(const StringType *StringTypeValue, std::string Value) noexcept;
 

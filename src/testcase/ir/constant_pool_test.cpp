@@ -1,5 +1,5 @@
 #include "ink/target/target_context.h"
-#include "ink/ir/constant/constant_context.h"
+#include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/type/type_context.h"
 
 #include <gtest/gtest.h>
@@ -21,15 +21,23 @@ namespace ink::ir::test
     template <typename ConstantType>
     constexpr bool HasContextOwnedIdentity = !std::is_default_constructible_v<ConstantType> && !std::is_copy_constructible_v<ConstantType> && !std::is_move_constructible_v<ConstantType> && !std::is_copy_assignable_v<ConstantType> && !std::is_move_assignable_v<ConstantType>;
 
-    static_assert(!std::is_copy_constructible_v<ConstantContext>);
-    static_assert(!std::is_move_constructible_v<ConstantContext>);
-    static_assert(!std::is_copy_assignable_v<ConstantContext>);
-    static_assert(!std::is_move_assignable_v<ConstantContext>);
-    static_assert(std::is_constructible_v<ConstantContext, const TypeContext &>);
-    static_assert(!std::is_constructible_v<ConstantContext, TypeContext &&>);
-    static_assert(!std::is_constructible_v<ConstantContext, const TypeContext &&>);
-    static_assert(std::is_same_v<decltype(std::declval<const ConstantContext &>().getBoolConstant(true)), const BoolConstant *>);
-    static_assert(noexcept(std::declval<const ConstantContext &>().getBoolConstant(true)));
+    static_assert(!std::is_copy_constructible_v<ConstantPool>);
+    static_assert(!std::is_move_constructible_v<ConstantPool>);
+    static_assert(!std::is_copy_assignable_v<ConstantPool>);
+    static_assert(!std::is_move_assignable_v<ConstantPool>);
+    static_assert(!std::is_constructible_v<ConstantPool, TypeContext &>);
+    static_assert(!std::is_constructible_v<ConstantPool, const TypeContext &>);
+    static_assert(!std::is_destructible_v<ConstantPool>);
+    static_assert(!std::is_constructible_v<ConstantPool, TypeContext &&>);
+    static_assert(!std::is_constructible_v<ConstantPool, const TypeContext &&>);
+    static_assert(std::is_same_v<decltype(std::declval<TypeContext &>().constantPool()), ConstantPool &>);
+    static_assert(std::is_same_v<decltype(std::declval<const TypeContext &>().constantPool()), const ConstantPool &>);
+    static_assert(noexcept(std::declval<TypeContext &>().constantPool()));
+    static_assert(noexcept(std::declval<const TypeContext &>().constantPool()));
+    static_assert(std::is_same_v<decltype(std::declval<const ConstantPool &>().getBoolConstant(true)), const BoolConstant *>);
+    static_assert(noexcept(std::declval<const ConstantPool &>().getBoolConstant(true)));
+    static_assert(std::is_same_v<decltype(std::declval<const ConstantPool &>().getNullPointerConstant()), const NullPointerConstant *>);
+    static_assert(noexcept(std::declval<const ConstantPool &>().getNullPointerConstant()));
 
     static_assert(HasContextOwnedIdentity<BoolConstant>);
     static_assert(HasContextOwnedIdentity<IntegerConstant>);
@@ -40,22 +48,24 @@ namespace ink::ir::test
     static_assert(!std::is_constructible_v<BoolConstant, const BoolType *, bool>);
     static_assert(!std::is_constructible_v<IntegerConstant, const IntegerType *, std::uint64_t>);
     static_assert(!std::is_constructible_v<FloatConstant, const FloatType *, std::uint64_t>);
-    static_assert(!std::is_constructible_v<NullPointerConstant, const PointerType *>);
+    static_assert(!std::is_constructible_v<NullPointerConstant, const NullPointerType *>);
     static_assert(!std::is_constructible_v<StringConstant, const StringType *, std::string>);
     static_assert(!std::is_constructible_v<ArrayConstant, const ArrayType *, std::vector<const Constant *>>);
   } // namespace
 
   // Each context has exactly two canonical booleans and recognizes only its own constants.
-  TEST(IRConstantContextTest, BooleanLookupsRetainContextOwnership)
+  TEST(IRConstantPoolTest, BooleanLookupsRetainContextOwnership)
   {
     const TypeContext Types(Target);
-    const ConstantContext Constants(Types);
-    const ConstantContext Other(Types);
+    const TypeContext OtherTypes(Target);
+    const auto &Constants = Types.constantPool();
+    const auto &Other = OtherTypes.constantPool();
     const BoolConstant *True = Constants.getBoolConstant(true);
     const BoolConstant *False = Constants.getBoolConstant(false);
     ASSERT_NE(True, nullptr);
     ASSERT_NE(False, nullptr);
     EXPECT_EQ(&Constants.typeContext(), &Types);
+    EXPECT_EQ(&Constants, &Types.constantPool());
     EXPECT_EQ(True, Constants.getBoolConstant(true));
     EXPECT_EQ(False, Constants.getBoolConstant(false));
     EXPECT_NE(True, False);
@@ -71,10 +81,10 @@ namespace ink::ir::test
   }
 
   // Numeric integer lookups normalize to raw bits while signedness and width remain part of identity.
-  TEST(IRConstantContextTest, IntegerLookupsReuseNormalizedBitsPerType)
+  TEST(IRConstantPoolTest, IntegerLookupsReuseNormalizedBitsPerType)
   {
-    const TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    TypeContext Types(Target);
+    auto &Constants = Types.constantPool();
     const IntegerConstant *Signed32 = Constants.getSignedIntegerConstant(Types.getInt32Type(), -1);
     const IntegerConstant *Unsigned32 = Constants.getUnsignedIntegerConstant(Types.getUInt32Type(), std::numeric_limits<std::uint32_t>::max());
     const IntegerConstant *Signed64 = Constants.getSignedIntegerConstant(Types.getInt64Type(), -1);
@@ -96,10 +106,10 @@ namespace ink::ir::test
   }
 
   // Numeric floating-point lookups infer the local width and share exact-bit identity without collapsing signed zero or NaN payloads.
-  TEST(IRConstantContextTest, FloatLookupsReuseExactBitsWithoutCollapsingSpecialValues)
+  TEST(IRConstantPoolTest, FloatLookupsReuseExactBitsWithoutCollapsingSpecialValues)
   {
-    const TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    TypeContext Types(Target);
+    auto &Constants = Types.constantPool();
     const FloatConstant *Float32 = Constants.getFloatConstant(1.25f);
     const FloatConstant *Float64 = Constants.getFloatConstant(1.25);
     const FloatConstant *PositiveZero = Constants.getFloatConstant(0.0f);
@@ -129,31 +139,35 @@ namespace ink::ir::test
     EXPECT_TRUE(Constants.owns(Float64));
   }
 
-  // Typed null pointers are reused only when their canonical pointer types match.
-  TEST(IRConstantContextTest, NullPointerLookupUsesPointerTypeIdentity)
+  // Every pool owns one null constant with its own literal type regardless of the destination pointer type.
+  TEST(IRConstantPoolTest, NullPointerLookupUsesOneContextOwnedLiteral)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    const TypeContext OtherTypes(Target);
+    const auto &Constants = Types.constantPool();
+    const auto &Other = OtherTypes.constantPool();
     const PointerType *BoolPointer = Types.getPointerType(Types.getBoolType());
     const PointerType *IntegerPointer = Types.getPointerType(Types.getInt32Type());
-    const NullPointerConstant *BoolNull = Constants.getNullPointerConstant(BoolPointer);
-    const NullPointerConstant *IntegerNull = Constants.getNullPointerConstant(IntegerPointer);
-    ASSERT_NE(BoolNull, nullptr);
-    ASSERT_NE(IntegerNull, nullptr);
-    EXPECT_EQ(BoolNull, Constants.getNullPointerConstant(BoolPointer));
-    EXPECT_EQ(IntegerNull, Constants.getNullPointerConstant(IntegerPointer));
-    EXPECT_NE(BoolNull, IntegerNull);
-    EXPECT_EQ(BoolNull->type(), BoolPointer);
-    EXPECT_EQ(IntegerNull->type(), IntegerPointer);
-    EXPECT_TRUE(Constants.owns(BoolNull));
-    EXPECT_TRUE(Constants.owns(IntegerNull));
+    const NullPointerConstant *Null = Constants.getNullPointerConstant();
+    ASSERT_NE(Null, nullptr);
+    EXPECT_EQ(Null, Constants.getNullPointerConstant());
+    EXPECT_EQ(Null->type(), Types.getNullPointerType());
+    EXPECT_FALSE(PointerType::classof(Null->type()));
+    EXPECT_TRUE(NullPointerType::classof(Null->type()));
+    EXPECT_TRUE(Null->canInitialize(BoolPointer));
+    EXPECT_TRUE(Null->canInitialize(IntegerPointer));
+    EXPECT_TRUE(Constants.owns(Null));
+    EXPECT_FALSE(Other.owns(Null));
+    EXPECT_NE(Null, Other.getNullPointerConstant());
+    EXPECT_NE(Null->type(), Other.getNullPointerConstant()->type());
+    EXPECT_FALSE(Constants.owns(Other.getNullPointerConstant()));
   }
 
   // Strings infer the local type, preserve exact UTF-8 identity and keep borrowed views valid across cache growth.
-  TEST(IRConstantContextTest, StringLookupsPreserveBytesAndStableViews)
+  TEST(IRConstantPoolTest, StringLookupsPreserveBytesAndStableViews)
   {
-    const TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    TypeContext Types(Target);
+    auto &Constants = Types.constantPool();
     const StringType *String = Types.getStringType();
     const std::string EmbeddedNul("a\0b", 3);
     const StringConstant *BinarySafe = Constants.getStringConstant(EmbeddedNul);
@@ -187,28 +201,31 @@ namespace ink::ir::test
     EXPECT_TRUE(Constants.owns(Stable));
   }
 
-  // Inferred string and floating-point types follow each target while constants remain isolated even when contexts share types.
-  TEST(IRConstantContextTest, InferredTypeLookupsRetainContextOwnershipAndTargetLayout)
+  // Inferred string and floating-point types follow each target while each TypeContext retains a unique constant pool.
+  TEST(IRConstantPoolTest, InferredTypeLookupsRetainContextOwnershipAndTargetLayout)
   {
     constexpr target::TargetContext NarrowTarget(target::PointerWidth::Bits32, target::ByteOrder::BigEndian);
-    const TypeContext Types(Target);
-    const TypeContext OtherTypes(Target);
-    const TypeContext NarrowTypes(NarrowTarget);
-    ConstantContext Constants(Types);
-    ConstantContext SharedTypes(Types);
-    ConstantContext Other(OtherTypes);
-    ConstantContext Narrow(NarrowTypes);
+    TypeContext Types(Target);
+    TypeContext OtherTypes(Target);
+    TypeContext NarrowTypes(NarrowTarget);
+    auto &Constants = Types.constantPool();
+    auto &SharedTypes = Types.constantPool();
+    auto &Other = OtherTypes.constantPool();
+    auto &Narrow = NarrowTypes.constantPool();
     struct ContextCase
     {
         const TypeContext *Types;
-        ConstantContext *Constants;
+        ConstantPool *Constants;
     };
     const ContextCase Cases[] = {
         {&Types, &Constants},
-        {&Types, &SharedTypes},
         {&OtherTypes, &Other},
         {&NarrowTypes, &Narrow},
     };
+    EXPECT_EQ(&Constants, &SharedTypes);
+    EXPECT_EQ(Constants.getStringConstant("same text"), SharedTypes.getStringConstant("same text"));
+    EXPECT_EQ(Constants.getFloatConstant(1.25f), SharedTypes.getFloatConstant(1.25f));
+    EXPECT_EQ(Constants.getFloatConstant(1.25), SharedTypes.getFloatConstant(1.25));
     for (const ContextCase &Case : Cases)
     {
       const auto String = Case.Constants->getStringConstant("same text");
@@ -242,10 +259,10 @@ namespace ink::ir::test
   }
 
   // Array identity includes the array type and ordered element list, including empty and nested arrays.
-  TEST(IRConstantContextTest, ArrayLookupsReuseCompleteOrderedKeys)
+  TEST(IRConstantPoolTest, ArrayLookupsReuseCompleteOrderedKeys)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    auto &Constants = Types.constantPool();
     const BoolConstant *True = Constants.getBoolConstant(true);
     const BoolConstant *False = Constants.getBoolConstant(false);
     const ArrayType *PairType = Types.getArrayType(Types.getBoolType(), 2);
@@ -277,46 +294,46 @@ namespace ink::ir::test
   }
 
   // Every typed lookup rejects missing types and types belonging to a different TypeContext.
-  TEST(IRConstantContextTest, TypedLookupsRejectMissingAndForeignTypes)
+  TEST(IRConstantPoolTest, TypedLookupsRejectMissingAndForeignTypes)
   {
-    const TypeContext Types(Target);
-    ConstantContext Constants(Types);
+    TypeContext Types(Target);
+    auto &Constants = Types.constantPool();
     TypeContext Other(Target);
     EXPECT_EQ(Constants.getIntegerConstantFromBits(Other.getInt32Type(), 0), nullptr);
     EXPECT_EQ(Constants.getSignedIntegerConstant(Other.getInt32Type(), 0), nullptr);
     EXPECT_EQ(Constants.getUnsignedIntegerConstant(Other.getUInt32Type(), 0), nullptr);
     EXPECT_EQ(Constants.getFloatConstantFromBits(Other.getFloat32Type(), 0), nullptr);
-    EXPECT_EQ(Constants.getNullPointerConstant(Other.getPointerType(Other.getBoolType())), nullptr);
     EXPECT_EQ(Constants.getArrayConstant(Other.getArrayType(Other.getBoolType(), 0)), nullptr);
     EXPECT_EQ(Constants.getIntegerConstantFromBits(nullptr, 0), nullptr);
     EXPECT_EQ(Constants.getSignedIntegerConstant(nullptr, 0), nullptr);
     EXPECT_EQ(Constants.getUnsignedIntegerConstant(nullptr, 0), nullptr);
     EXPECT_EQ(Constants.getFloatConstantFromBits(nullptr, 0), nullptr);
-    EXPECT_EQ(Constants.getNullPointerConstant(nullptr), nullptr);
     EXPECT_EQ(Constants.getArrayConstant(nullptr), nullptr);
   }
 
-  // Cached arrays still reject foreign element ownership even when both constant contexts share types.
-  TEST(IRConstantContextTest, ArraysRejectOtherConstantContextsWithSharedTypes)
+  // Cached arrays reject foreign elements and nested arrays from a different TypeContext.
+  TEST(IRConstantPoolTest, ArraysRejectConstantsFromOtherTypeContexts)
   {
     TypeContext Types(Target);
-    ConstantContext Constants(Types);
-    ConstantContext Other(Types);
+    TypeContext OtherTypes(Target);
+    auto &Constants = Types.constantPool();
+    auto &Other = OtherTypes.constantPool();
     const BoolConstant *True = Constants.getBoolConstant(true);
     const BoolConstant *False = Constants.getBoolConstant(false);
     const BoolConstant *OtherTrue = Other.getBoolConstant(true);
     const BoolConstant *OtherFalse = Other.getBoolConstant(false);
-    EXPECT_EQ(True->type(), OtherTrue->type());
+    EXPECT_NE(True->type(), OtherTrue->type());
     EXPECT_FALSE(Constants.owns(OtherTrue));
     EXPECT_FALSE(Other.owns(True));
     const ArrayType *PairType = Types.getArrayType(Types.getBoolType(), 2);
+    const ArrayType *OtherPairType = OtherTypes.getArrayType(OtherTypes.getBoolType(), 2);
     const ArrayConstant *Pair = Constants.getArrayConstant(PairType, {True, False});
-    const ArrayConstant *OtherPair = Other.getArrayConstant(PairType, {OtherTrue, OtherFalse});
+    const ArrayConstant *OtherPair = Other.getArrayConstant(OtherPairType, {OtherTrue, OtherFalse});
     ASSERT_NE(Pair, nullptr);
     ASSERT_NE(OtherPair, nullptr);
     EXPECT_EQ(Constants.getArrayConstant(PairType, {OtherTrue, OtherFalse}), nullptr);
     EXPECT_EQ(Constants.getArrayConstant(PairType, {True, OtherFalse}), nullptr);
-    EXPECT_EQ(Other.getArrayConstant(PairType, {True, False}), nullptr);
+    EXPECT_EQ(Other.getArrayConstant(OtherPairType, {True, False}), nullptr);
     const ArrayType *NestedType = Types.getArrayType(PairType, 1);
     ASSERT_NE(Constants.getArrayConstant(NestedType, {Pair}), nullptr);
     EXPECT_EQ(Constants.getArrayConstant(NestedType, {OtherPair}), nullptr);

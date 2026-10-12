@@ -1,4 +1,4 @@
-#include "ink/ir/type/interface_type.h"
+#include "ink/ir/type/nominal_type/interface_type.h"
 
 namespace ink::ir
 {
