@@ -1,4 +1,7 @@
 #include "ink/cli/application.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/diagnostic/diagnostic_formatter.h"
 #include "ink/cli/io.h"
 #include "ink/frontend/context.h"
 #include "ink/frontend/parser/parser.h"

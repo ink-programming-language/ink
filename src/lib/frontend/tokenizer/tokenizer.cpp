@@ -1,4 +1,6 @@
 #include "ink/frontend/tokenizer/tokenizer.h"
+#include "ink/core/diagnostic/diagnostic_builder.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/frontend/tokenizer/unicode.h"
 
 #include <algorithm>

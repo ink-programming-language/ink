@@ -1,4 +1,6 @@
 #include "parser_test_support.h"
+#include "ink/core/diagnostic/diagnostic_builder.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/frontend/parser/parser_diagnostic_emitter.h"
 #include <type_traits>
 #include <limits>

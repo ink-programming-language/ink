@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ink/core/source_range.h"
+#include "ink/core/source/source_range.h"
 #include "ink/frontend/tokenizer/token.h"
 #include <cstddef>
 #include <string_view>

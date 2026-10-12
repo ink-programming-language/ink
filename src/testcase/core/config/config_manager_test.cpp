@@ -1,6 +1,6 @@
-#include "environment_test_support.h"
+#include "../support/environment_test_support.h"
 
-#include "ink/core/config_manager.h"
+#include "ink/core/config/config_manager.h"
 
 #include <limits>
 #include <type_traits>

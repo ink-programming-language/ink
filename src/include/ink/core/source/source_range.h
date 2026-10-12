@@ -1,7 +1,7 @@
 #ifndef INK_CORE_SOURCE_RANGE_H
 #define INK_CORE_SOURCE_RANGE_H
 
-#include "ink/core/source_location.h"
+#include "ink/core/source/source_location.h"
 
 namespace ink::core
 {

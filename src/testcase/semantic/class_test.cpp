@@ -1,4 +1,6 @@
 #include "ink/execution/engine/execution_engine.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/frontend/parser/parser.h"

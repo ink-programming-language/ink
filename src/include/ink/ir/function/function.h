@@ -1,7 +1,7 @@
 #ifndef INK_IR_FUNCTION_FUNCTION_H
 #define INK_IR_FUNCTION_FUNCTION_H
 
-#include "ink/core/name.h"
+#include "ink/core/name/name.h"
 #include "ink/ir/function/basic_block.h"
 #include "ink/ir/param/parameter.h"
 #include "ink/ir/type/structure_type/function_type.h"

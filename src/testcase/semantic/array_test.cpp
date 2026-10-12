@@ -1,10 +1,12 @@
 #include "ink/execution/engine/execution_engine.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/ir/function/function.h"
 #include "ink/frontend/parser/parser.h"
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/context.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
-#include "../core/environment_test_support.h"
+#include "../core/support/environment_test_support.h"
 
 #include <gtest/gtest.h>
 

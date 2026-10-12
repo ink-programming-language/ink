@@ -1,4 +1,4 @@
-#include "ink/core/name_pool.h"
+#include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/type/nominal_type/method.h"
 #include "ink/ir/instruction/instruction.h"

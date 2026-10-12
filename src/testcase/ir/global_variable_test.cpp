@@ -1,4 +1,4 @@
-#include "ink/core/name_pool.h"
+#include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/module/global_variable.h"

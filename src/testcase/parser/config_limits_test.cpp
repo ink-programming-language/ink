@@ -1,5 +1,5 @@
 #include "parser_test_support.h"
-#include "../core/environment_test_support.h"
+#include "../core/support/environment_test_support.h"
 
 #include "ink/frontend/parser/ast_serialization.h"
 

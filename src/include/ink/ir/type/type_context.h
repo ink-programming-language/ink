@@ -1,7 +1,7 @@
 #ifndef INK_IR_TYPE_TYPE_CONTEXT_H
 #define INK_IR_TYPE_TYPE_CONTEXT_H
 
-#include "ink/core/name.h"
+#include "ink/core/name/name.h"
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/target/target_context.h"
 #include "ink/ir/type/structure_type/array_type.h"

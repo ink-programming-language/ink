@@ -9,7 +9,7 @@ namespace ink::core
   enum class ConfigKind : std::size_t
   {
 #define INK_CONFIG(Kind, EnvironmentName, DefaultValue) Kind,
-#include "ink/core/config.def"
+#include "ink/core/config/config.def"
 #undef INK_CONFIG
     Count,
   };

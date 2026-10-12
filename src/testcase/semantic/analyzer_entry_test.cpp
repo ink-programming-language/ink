@@ -1,7 +1,8 @@
 #include "ink/semantic/analyzer/analyzer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/semantic/context.h"
 #include "ink/frontend/parser/parser.h"
-#include "../core/environment_test_support.h"
+#include "../core/support/environment_test_support.h"
 
 #include <gtest/gtest.h>
 

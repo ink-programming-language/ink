@@ -1,4 +1,4 @@
-#include "ink/core/source_manager.h"
+#include "ink/core/source/source_manager.h"
 
 #include <algorithm>
 #include <atomic>

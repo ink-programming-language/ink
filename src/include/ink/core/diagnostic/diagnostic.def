@@ -4,5 +4,5 @@
 
 // Aggregation entry point; concrete diagnostics belong to exactly one classification table.
 INK_DIAGNOSTIC(Unknown, 0x00000000U, Unknown, "INK-0000", Unknown, Unknown, "unknown diagnostic", "unknown diagnostic", INK_DIAGNOSTIC_ARGUMENTS())
-#include "ink/core/diagnostic_user.def"
-#include "ink/core/diagnostic_ice.def"
+#include "ink/core/diagnostic/diagnostic_user.def"
+#include "ink/core/diagnostic/diagnostic_ice.def"

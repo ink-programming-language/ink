@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include "ink/core/diagnostic/diagnostic_builder.h"
 namespace ink::frontend::parser
 {
   bool Parser::declarationStart(std::size_t Ahead) const

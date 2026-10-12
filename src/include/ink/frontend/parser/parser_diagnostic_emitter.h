@@ -1,5 +1,5 @@
 #pragma once
-#include "ink/core/diagnostic.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 namespace ink::frontend::parser
 {
   class ParserDiagnosticEmitter

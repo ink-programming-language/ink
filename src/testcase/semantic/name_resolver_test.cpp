@@ -1,4 +1,5 @@
 #include "ink/ir/ir_builder.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include "ink/semantic/context.h"

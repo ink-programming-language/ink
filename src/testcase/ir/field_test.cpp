@@ -1,4 +1,4 @@
-#include "ink/core/name_pool.h"
+#include "ink/core/name/name_pool.h"
 #include "ink/ir/type/nominal_type/field.h"
 #include "ink/ir/type/type_context.h"
 

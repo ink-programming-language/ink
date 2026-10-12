@@ -1,8 +1,8 @@
 #ifndef INK_TOOLS_INKC_COMPILATION_CONTEXT_H
 #define INK_TOOLS_INKC_COMPILATION_CONTEXT_H
 
-#include "ink/core/diagnostic.h"
-#include "ink/core/source_manager.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/source/source_manager.h"
 #include "ink/target/target_context.h"
 
 namespace ink::inkc

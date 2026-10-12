@@ -220,7 +220,7 @@ namespace ink::frontend::parser
           }
           else if constexpr (std::is_same_v<T, std::string_view> || std::is_same_v<T, std::string>)
           {
-            put(core::archive::quote(Value));
+            put(archive::quote(Value));
           }
           else if constexpr (std::is_same_v<T, NameToken>)
           {
@@ -708,7 +708,7 @@ namespace ink::frontend::parser
         frontend::FrontendContext &Context;
         std::string_view Text;
         ASTArchiveLimits Limits;
-        core::archive::Lexer Lex;
+        archive::Lexer Lex;
         core::ArchiveStatus Status = core::ArchiveStatus::InvalidArchive;
         std::size_t Allocated = 0;
         std::vector<std::uint64_t> Values;

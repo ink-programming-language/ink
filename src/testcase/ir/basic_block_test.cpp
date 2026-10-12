@@ -1,4 +1,4 @@
-#include "ink/core/name_pool.h"
+#include "ink/core/name/name_pool.h"
 #include "ink/ir/function/basic_block.h"
 #include "ink/ir/type/type.h"
 

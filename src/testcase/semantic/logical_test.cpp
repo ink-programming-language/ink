@@ -1,5 +1,7 @@
 #include "../execution/ffi/external_call_test_support.h"
-#include "../core/environment_test_support.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "../core/support/environment_test_support.h"
 
 #include "ink/execution/engine/execution_engine.h"
 #include "ink/ir/constant/bool_constant.h"

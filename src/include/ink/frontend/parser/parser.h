@@ -1,5 +1,5 @@
 #pragma once
-#include "ink/core/config_manager.h"
+#include "ink/core/config/config_manager.h"
 #include "ink/frontend/context.h"
 #include "ink/frontend/parser/token_cursor.h"
 #include <functional>

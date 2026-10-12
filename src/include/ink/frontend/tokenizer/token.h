@@ -1,7 +1,7 @@
 #ifndef INK_FRONTEND_TOKENIZER_TOKEN_H
 #define INK_FRONTEND_TOKENIZER_TOKEN_H
 
-#include "ink/core/source_range.h"
+#include "ink/core/source/source_range.h"
 
 #include <optional>
 #include <string>

@@ -1,7 +1,7 @@
 #ifndef INK_CORE_SOURCE_MANAGER_H
 #define INK_CORE_SOURCE_MANAGER_H
 
-#include "ink/core/source_id.h"
+#include "ink/core/source/source_id.h"
 
 #include <cstddef>
 #include <memory>

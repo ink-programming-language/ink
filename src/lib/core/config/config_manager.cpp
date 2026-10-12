@@ -1,5 +1,5 @@
-#include "ink/core/config_manager.h"
-#include "ink/core/diagnostic.h"
+#include "ink/core/config/config_manager.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 
 #include <charconv>
 #include <cstdlib>
@@ -22,7 +22,7 @@ namespace ink::core
     {
       static const std::unordered_map<ConfigKind, ConfigEntry> Configs = {
 #define INK_CONFIG(Kind, EnvironmentName, DefaultValue) {ConfigKind::Kind, {EnvironmentName, DefaultValue}},
-#include "ink/core/config.def"
+#include "ink/core/config/config.def"
 #undef INK_CONFIG
       };
       const auto Entry = Configs.find(Kind);

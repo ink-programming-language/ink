@@ -1,7 +1,7 @@
 #ifndef INK_IR_FUNCTION_BASIC_BLOCK_H
 #define INK_IR_FUNCTION_BASIC_BLOCK_H
 
-#include "ink/core/name.h"
+#include "ink/core/name/name.h"
 #include "ink/ir/instruction/instruction.h"
 #include "ink/ir/type/value.h"
 

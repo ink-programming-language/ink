@@ -1,12 +1,12 @@
-#ifndef INK_CORE_ARCHIVE_TEXT_H
-#define INK_CORE_ARCHIVE_TEXT_H
+#ifndef INK_FRONTEND_PARSER_ARCHIVE_TEXT_H
+#define INK_FRONTEND_PARSER_ARCHIVE_TEXT_H
 
 #include <charconv>
 #include <cstdint>
 #include <string>
 #include <string_view>
 
-namespace ink::core::archive
+namespace ink::frontend::parser::archive
 {
   inline int hexDigit(char C)
   {
@@ -279,6 +279,6 @@ namespace ink::core::archive
       std::size_t Start = 0;
       std::string Error;
   };
-} // namespace ink::core::archive
+} // namespace ink::frontend::parser::archive
 
 #endif

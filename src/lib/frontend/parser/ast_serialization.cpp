@@ -1,7 +1,10 @@
 #include "ink/frontend/parser/ast_serialization.h"
+#include "ink/core/diagnostic/diagnostic_builder.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/diagnostic/diagnostic_formatter.h"
 #include "ink/frontend/parser/ast_visitor.h"
 #include "ink/frontend/parser/ast_walker.h"
-#include "../../core/archive_text.h"
+#include "archive_text.h"
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Bitstream/BitstreamReader.h>
 #include <llvm/Bitstream/BitstreamWriter.h>

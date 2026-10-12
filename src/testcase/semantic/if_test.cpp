@@ -1,4 +1,6 @@
 #include "ink/semantic/analyzer/analyzer.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/semantic/context.h"
 
 #include "ink/ir/constant/integer_constant.h"

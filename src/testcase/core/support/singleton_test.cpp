@@ -1,4 +1,4 @@
-#include "ink/core/singleton.h"
+#include "ink/core/support/singleton.h"
 
 #include <gtest/gtest.h>
 

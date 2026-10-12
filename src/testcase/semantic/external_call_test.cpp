@@ -1,4 +1,7 @@
 #include "../execution/ffi/external_call_test_support.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/diagnostic/diagnostic_formatter.h"
 
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/context.h"

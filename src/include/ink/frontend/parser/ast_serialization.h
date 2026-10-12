@@ -1,6 +1,7 @@
 #pragma once
-#include "ink/core/archive_status.h"
-#include "ink/core/config_manager.h"
+#include "ink/core/archive/archive_status.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/config/config_manager.h"
 #include "ink/frontend/parser/parser.h"
 #include <cstdint>
 #include <string>

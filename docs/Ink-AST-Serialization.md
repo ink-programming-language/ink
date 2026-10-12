@@ -54,7 +54,7 @@ V4 引入的声明可见性和 `KwPublic`、`KwPrivate` 固定 Token 编号 85�
 
 ## 失败与预算
 
-诊断定义按项目约定拆为两份：`src/include/ink/core/diagnostic_user.def` 仅包含用户源码错误；`src/include/ink/core/diagnostic_ice.def` 包含其他失败，包括资源超限、缺失输入、无效存档和不支持的版本。`diagnostic.def` 仅保留 Unknown 哨兵和两个定义表的聚合入口，已有诊断的编号和显示错误码保持不变。`SourceTooLarge` 和 `ParserLimitExceeded` 也归入 ICE。
+诊断定义按项目约定拆为两份：`src/include/ink/core/diagnostic/diagnostic_user.def` 仅包含用户源码错误；`src/include/ink/core/diagnostic/diagnostic_ice.def` 包含其他失败，包括资源超限、缺失输入、无效存档和不支持的版本。`diagnostic.def` 仅保留 Unknown 哨兵和两个定义表的聚合入口，已有诊断的编号和显示错误码保持不变。`SourceTooLarge` 和 `ParserLimitExceeded` 也归入 ICE。
 
 存档诊断使用具体的 `DiagnosticKind` 和类型化参数，例如 `ASTArchiveSizeLimitExceeded` 携带 `Size`、`MaximumSize`，`ASTArchiveUnsupportedVersion` 携带 `ActualVersion`、`SupportedVersion`。存档错误没有可保证有效的源码位置，因此诊断不伪造 SourceId 或 SourceRange；文件路径由负责文件读写的调用方提供。现有 CLI 的诊断输出格式为 `internal compiler error[INK-P0013]: AST archive size 300 bytes exceeds limit 256 bytes`，ICE 对应退出码 3。
 

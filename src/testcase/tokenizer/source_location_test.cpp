@@ -1,4 +1,5 @@
 #include "tokenizer_test_support.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 
 #include <limits>
 #include <type_traits>

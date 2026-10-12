@@ -2,6 +2,9 @@
 #define INK_TESTCASE_TOKENIZER_TEST_SUPPORT_H
 
 #include "ink/frontend/context.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/diagnostic/diagnostic_formatter.h"
 #include "ink/frontend/tokenizer/tokenizer.h"
 #include "ink/frontend/tokenizer/unicode.h"
 

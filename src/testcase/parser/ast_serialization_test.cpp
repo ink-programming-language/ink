@@ -1,4 +1,6 @@
 #include "parser_test_support.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/frontend/parser/ast_serialization.h"
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Bitstream/BitstreamReader.h>

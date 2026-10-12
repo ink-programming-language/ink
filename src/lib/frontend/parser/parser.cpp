@@ -1,4 +1,6 @@
 #include "parser_internal.h"
+#include "ink/core/diagnostic/diagnostic_builder.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 namespace ink::frontend::parser
 {
   Parser::Parser(frontend::FrontendContext &Context, ParsedUnit &Unit, ParseLimits Limits)

@@ -1,8 +1,8 @@
 #ifndef INK_CORE_NAME_POOL_H
 #define INK_CORE_NAME_POOL_H
 
-#include "ink/core/name.h"
-#include "ink/core/singleton.h"
+#include "ink/core/name/name.h"
+#include "ink/core/support/singleton.h"
 
 #include <deque>
 #include <string>

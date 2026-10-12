@@ -1,4 +1,4 @@
-#include "ink/core/core_define.h"
+#include "ink/core/support/core_define.h"
 
 #include <spdlog/logger.h>
 #include <spdlog/sinks/stdout_sinks.h>

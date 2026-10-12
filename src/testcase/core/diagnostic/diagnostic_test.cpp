@@ -1,5 +1,8 @@
-#include "ink/core/diagnostic.h"
-#include "ink/core/core_define.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/diagnostic/diagnostic_builder.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_formatter.h"
+#include "ink/core/support/core_define.h"
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 #include <cstdlib>
@@ -60,12 +63,12 @@ namespace ink::core::test
   {
     constexpr DiagnosticKind UserKinds[] = {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, Schema) DiagnosticKind::Name,
-#include "ink/core/diagnostic_user.def"
+#include "ink/core/diagnostic/diagnostic_user.def"
 #undef INK_DIAGNOSTIC
     };
     constexpr DiagnosticKind ICEKinds[] = {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, Schema) DiagnosticKind::Name,
-#include "ink/core/diagnostic_ice.def"
+#include "ink/core/diagnostic/diagnostic_ice.def"
 #undef INK_DIAGNOSTIC
     };
     std::set<std::uint32_t> Numbers;

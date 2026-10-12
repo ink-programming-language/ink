@@ -1,7 +1,7 @@
 #ifndef INK_IR_PARAM_ARGUMENT_H
 #define INK_IR_PARAM_ARGUMENT_H
 
-#include "ink/core/name.h"
+#include "ink/core/name/name.h"
 
 namespace ink::ir
 {

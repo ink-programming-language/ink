@@ -1,5 +1,5 @@
-#include "ink/core/name.h"
-#include "ink/core/name_pool.h"
+#include "ink/core/name/name.h"
+#include "ink/core/name/name_pool.h"
 
 #include <gtest/gtest.h>
 

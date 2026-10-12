@@ -2,6 +2,7 @@
 #define INK_SEMANTIC_CONTEXT_H
 
 #include "ink/frontend/context.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 
 namespace ink::semantic
 {

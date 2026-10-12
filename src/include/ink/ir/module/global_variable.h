@@ -1,7 +1,7 @@
 #ifndef INK_IR_MODULE_GLOBAL_VARIABLE_H
 #define INK_IR_MODULE_GLOBAL_VARIABLE_H
 
-#include "ink/core/name.h"
+#include "ink/core/name/name.h"
 #include "ink/ir/constant/constant.h"
 
 namespace ink::ir

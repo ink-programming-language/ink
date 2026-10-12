@@ -1,7 +1,7 @@
 #ifndef INK_IR_TYPE_GENERIC_TYPE_GENERIC_TYPE_H
 #define INK_IR_TYPE_GENERIC_TYPE_GENERIC_TYPE_H
 
-#include "ink/core/name.h"
+#include "ink/core/name/name.h"
 #include "ink/ir/type/type.h"
 
 #include <cstddef>

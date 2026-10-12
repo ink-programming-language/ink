@@ -2,9 +2,10 @@
 #define INK_LIB_SEMANTIC_ANALYZER_ANALYZER_INTERNAL_H
 
 #include "ink/semantic/analyzer/analyzer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/semantic/context.h"
 #include "ink/frontend/parser/token_cursor.h"
-#include "ink/core/config_manager.h"
+#include "ink/core/config/config_manager.h"
 
 #include <cstddef>
 #include <utility>

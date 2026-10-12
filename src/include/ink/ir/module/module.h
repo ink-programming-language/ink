@@ -1,7 +1,7 @@
 #ifndef INK_IR_MODULE_MODULE_H
 #define INK_IR_MODULE_MODULE_H
 
-#include "ink/core/name.h"
+#include "ink/core/name/name.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/module/global_variable.h"
 #include "ink/ir/type/nominal_type/class_type.h"
