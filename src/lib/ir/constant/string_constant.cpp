@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  StringConstant::StringConstant(const StringType *StringTypeValue, std::string Value) noexcept
-      : Constant(ValueKind::StringConstant, StringTypeValue),
+  StringConstant::StringConstant(const ArrayType *ArrayTypeValue, std::string Value) noexcept
+      : Constant(ValueKind::StringConstant, ArrayTypeValue),
         StoredValue(std::move(Value))
   {
   }

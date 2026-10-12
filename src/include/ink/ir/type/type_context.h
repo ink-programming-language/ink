@@ -14,7 +14,6 @@
 #include "ink/ir/type/builtin_type/null_pointer_type.h"
 #include "ink/ir/type/structure_type/pointer_type.h"
 #include "ink/ir/type/structure_type/reference_type.h"
-#include "ink/ir/type/builtin_type/string_type.h"
 #include "ink/ir/type/nominal_type/struct_type.h"
 #include "ink/ir/type/builtin_type/variadic_type.h"
 #include "ink/ir/type/builtin_type/void_type.h"
@@ -53,15 +52,16 @@ namespace ink::ir
       const VariadicType *getVariadicType() const noexcept;
       const BoolType *getBoolType() const noexcept;
       const NullPointerType *getNullPointerType() const noexcept;
+      const IntegerType *getUInt8Type() const noexcept;
       const IntegerType *getInt32Type() const noexcept;
       const IntegerType *getUInt32Type() const noexcept;
       const IntegerType *getInt64Type() const noexcept;
       const IntegerType *getUInt64Type() const noexcept;
       const FloatType *getFloat32Type() const noexcept;
       const FloatType *getFloat64Type() const noexcept;
-      const StringType *getStringType() const noexcept;
 
-      // Width is in bits; unsupported widths return nullptr.
+      // Width is in bits; integers support unsigned 8-bit and signed/unsigned 32/64-bit types.
+      // Unsupported widths or signedness combinations return nullptr.
       const IntegerType *getIntegerType(std::uint32_t Width, bool Signed) const noexcept;
       const FloatType *getFloatType(std::uint32_t Width) const noexcept;
 
@@ -105,13 +105,13 @@ namespace ink::ir
       VariadicType Variadic;
       BoolType Bool;
       NullPointerType NullPointer;
+      IntegerType UInt8;
       IntegerType Int32;
       IntegerType UInt32;
       IntegerType Int64;
       IntegerType UInt64;
       FloatType Float32;
       FloatType Float64;
-      StringType String;
       std::vector<std::unique_ptr<Type>> Storage;
       std::unordered_set<const Type *> OwnedTypes;
       std::unordered_map<const Type *, const PointerType *> PointerTypes;

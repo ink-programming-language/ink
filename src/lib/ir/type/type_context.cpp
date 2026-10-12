@@ -46,16 +46,16 @@ namespace ink::ir
   TypeContext::TypeContext(target::TargetContext Target)
       : Target(Target),
         NullPointer(*this),
+        UInt8(Target, 8, false),
         Int32(Target, 32, true),
         UInt32(Target, 32, false),
         Int64(Target, 64, true),
         UInt64(Target, 64, false),
         Float32(Target, 32),
         Float64(Target, 64),
-        String(Target),
         Constants(*this)
   {
-    OwnedTypes.insert({&Void, &Variadic, &Bool, &NullPointer, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64, &String});
+    OwnedTypes.insert({&Void, &Variadic, &Bool, &NullPointer, &UInt8, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64});
   }
 
   TypeContext::~TypeContext() noexcept
@@ -118,6 +118,11 @@ namespace ink::ir
     return &NullPointer;
   }
 
+  const IntegerType *TypeContext::getUInt8Type() const noexcept
+  {
+    return &UInt8;
+  }
+
   const IntegerType *TypeContext::getInt32Type() const noexcept
   {
     return &Int32;
@@ -148,13 +153,12 @@ namespace ink::ir
     return &Float64;
   }
 
-  const StringType *TypeContext::getStringType() const noexcept
-  {
-    return &String;
-  }
-
   const IntegerType *TypeContext::getIntegerType(std::uint32_t Width, bool Signed) const noexcept
   {
+    if (Width == 8 && !Signed)
+    {
+      return getUInt8Type();
+    }
     if (Width == 32)
     {
       return Signed ? getInt32Type() : getUInt32Type();

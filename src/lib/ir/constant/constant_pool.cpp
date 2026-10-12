@@ -61,7 +61,7 @@ namespace ink::ir
     return Result;
   }
 
-  ConstantPool::ConstantPool(const TypeContext &Types)
+  ConstantPool::ConstantPool(TypeContext &Types)
       : Types(Types),
         False(Types.getBoolType(), false),
         True(Types.getBoolType(), true),
@@ -89,7 +89,7 @@ namespace ink::ir
 
   const IntegerConstant *ConstantPool::getIntegerConstantFromBits(const IntegerType *IntegerTypeValue, std::uint64_t Bits)
   {
-    if (!typeContext().owns(IntegerTypeValue) || (IntegerTypeValue->width() == 32 && Bits > std::numeric_limits<std::uint32_t>::max()))
+    if (!typeContext().owns(IntegerTypeValue) || (IntegerTypeValue->width() < 64 && (Bits >> IntegerTypeValue->width()) != 0))
     {
       return nullptr;
     }
@@ -193,8 +193,7 @@ namespace ink::ir
 
   const StringConstant *ConstantPool::getStringConstant(std::string Value)
   {
-    const StringType *StringTypeValue = typeContext().getStringType();
-    if (Value.size() > StringTypeValue->maximumByteLength())
+    if (Value.size() > Types.targetContext().maximumPointerSizeValue())
     {
       return nullptr;
     }
@@ -208,7 +207,12 @@ namespace ink::ir
     {
       return nullptr;
     }
-    const StringConstant *Result = own(std::unique_ptr<StringConstant>(new StringConstant(StringTypeValue, std::move(Value))));
+    const ArrayType *ArrayTypeValue = Types.getArrayType(Types.getUInt8Type(), Value.size());
+    if (!ArrayTypeValue)
+    {
+      return nullptr;
+    }
+    const StringConstant *Result = own(std::unique_ptr<StringConstant>(new StringConstant(ArrayTypeValue, std::move(Value))));
     Constants.emplace(Result->value(), Result);
     return Result;
   }

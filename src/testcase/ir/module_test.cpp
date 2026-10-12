@@ -35,12 +35,33 @@ namespace ink::ir::test
       private:
         bool &Destroyed;
     };
+
+    class CountedModuleBodyInstruction final : public Instruction
+    {
+      public:
+        explicit CountedModuleBodyInstruction(std::size_t &DestructionCount) noexcept
+            : DestructionCount(DestructionCount)
+        {
+        }
+
+        ~CountedModuleBodyInstruction() noexcept override
+        {
+          ++DestructionCount;
+        }
+
+      private:
+        std::size_t &DestructionCount;
+    };
   } // namespace
 
   static_assert(!std::is_copy_constructible_v<Module>);
   static_assert(!std::is_copy_assignable_v<Module>);
   static_assert(!std::is_move_constructible_v<Module>);
   static_assert(!std::is_move_assignable_v<Module>);
+  static_assert(std::is_same_v<decltype(std::declval<Module &>().initializationFunction()), Function *>);
+  static_assert(std::is_same_v<decltype(std::declval<const Module &>().initializationFunction()), const Function *>);
+  static_assert(std::is_same_v<decltype(std::declval<Module &>().deinitializationFunction()), Function *>);
+  static_assert(std::is_same_v<decltype(std::declval<const Module &>().deinitializationFunction()), const Function *>);
 
   // Named and unnamed modules begin with empty declaration lists and reject every indexed access.
   TEST(IRModuleTest, EmptyModulesPreserveOptionalCanonicalName)
@@ -53,10 +74,10 @@ namespace ink::ir::test
     EXPECT_EQ(Unnamed.globalVariableCount(), 0U);
     EXPECT_EQ(Unnamed.globalVariable(0), nullptr);
     EXPECT_EQ(ReadOnly.globalVariable(0), nullptr);
-    EXPECT_TRUE(Unnamed.functions().empty());
-    EXPECT_EQ(Unnamed.functionCount(), 0U);
-    EXPECT_EQ(Unnamed.function(0), nullptr);
-    EXPECT_EQ(ReadOnly.function(0), nullptr);
+    EXPECT_TRUE(Unnamed.globalFunctions().empty());
+    EXPECT_EQ(Unnamed.globalFunctionCount(), 0U);
+    EXPECT_EQ(Unnamed.globalFunction(0), nullptr);
+    EXPECT_EQ(ReadOnly.globalFunction(0), nullptr);
     EXPECT_TRUE(Unnamed.classes().empty());
     EXPECT_EQ(Unnamed.classCount(), 0U);
     EXPECT_EQ(ReadOnly.classType(0), nullptr);
@@ -86,7 +107,7 @@ namespace ink::ir::test
     Module Owner;
     const Module &ReadOnly = Owner;
     auto *CreatedVariable = Owner.createGlobalVariable(*Types.getBoolType(), VariableName);
-    auto *CreatedFunction = Owner.createFunction(*Signature, FunctionName);
+    auto *CreatedFunction = Owner.createGlobalFunction(*Signature, FunctionName);
     ASSERT_NE(CreatedVariable, nullptr);
     ASSERT_NE(CreatedFunction, nullptr);
     EXPECT_EQ(CreatedVariable->name(), VariableName);
@@ -99,30 +120,30 @@ namespace ink::ir::test
     auto *VariableAddress = AppendedVariable.get();
     auto *FunctionAddress = AppendedFunction.get();
     EXPECT_EQ(Owner.appendGlobalVariable(std::move(AppendedVariable)), VariableAddress);
-    EXPECT_EQ(Owner.appendFunction(std::move(AppendedFunction)), FunctionAddress);
+    EXPECT_EQ(Owner.appendGlobalFunction(std::move(AppendedFunction)), FunctionAddress);
     EXPECT_EQ(AppendedVariable, nullptr);
     EXPECT_EQ(AppendedFunction, nullptr);
     EXPECT_EQ(Owner.appendGlobalVariable(nullptr), nullptr);
-    EXPECT_EQ(Owner.appendFunction(nullptr), nullptr);
+    EXPECT_EQ(Owner.appendGlobalFunction(nullptr), nullptr);
     EXPECT_EQ(Owner.globalVariableCount(), 2U);
-    EXPECT_EQ(Owner.functionCount(), 2U);
+    EXPECT_EQ(Owner.globalFunctionCount(), 2U);
 
     for (std::size_t Index = 0; Index < 64; ++Index)
     {
       ASSERT_NE(Owner.createGlobalVariable(*Types.getBoolType()), nullptr);
-      ASSERT_NE(Owner.createFunction(*Signature), nullptr);
+      ASSERT_NE(Owner.createGlobalFunction(*Signature), nullptr);
     }
 
     EXPECT_EQ(Owner.globalVariableCount(), 66U);
-    EXPECT_EQ(Owner.functionCount(), 66U);
+    EXPECT_EQ(Owner.globalFunctionCount(), 66U);
     EXPECT_EQ(Owner.globalVariables()[0].get(), CreatedVariable);
     EXPECT_EQ(Owner.globalVariables()[1].get(), VariableAddress);
-    EXPECT_EQ(Owner.functions()[0].get(), CreatedFunction);
-    EXPECT_EQ(Owner.functions()[1].get(), FunctionAddress);
+    EXPECT_EQ(Owner.globalFunctions()[0].get(), CreatedFunction);
+    EXPECT_EQ(Owner.globalFunctions()[1].get(), FunctionAddress);
     EXPECT_EQ(Owner.globalVariable(0), CreatedVariable);
     EXPECT_EQ(ReadOnly.globalVariable(1), VariableAddress);
-    EXPECT_EQ(Owner.function(0), CreatedFunction);
-    EXPECT_EQ(ReadOnly.function(1), FunctionAddress);
+    EXPECT_EQ(Owner.globalFunction(0), CreatedFunction);
+    EXPECT_EQ(ReadOnly.globalFunction(1), FunctionAddress);
     EXPECT_TRUE(Owner.owns(CreatedVariable));
     EXPECT_TRUE(Owner.owns(VariableAddress));
     EXPECT_TRUE(Owner.owns(CreatedFunction));
@@ -135,8 +156,8 @@ namespace ink::ir::test
     {
       EXPECT_EQ(Owner.globalVariable(Index), nullptr);
       EXPECT_EQ(ReadOnly.globalVariable(Index), nullptr);
-      EXPECT_EQ(Owner.function(Index), nullptr);
-      EXPECT_EQ(ReadOnly.function(Index), nullptr);
+      EXPECT_EQ(Owner.globalFunction(Index), nullptr);
+      EXPECT_EQ(ReadOnly.globalFunction(Index), nullptr);
     }
   }
 
@@ -148,7 +169,7 @@ namespace ink::ir::test
     ASSERT_NE(Signature, nullptr);
     const core::Name FunctionName = core::NamePool::instance().intern("IRModuleTest.ForeignFunction");
     Module Owner;
-    auto *Callable = Owner.createFunction(*Signature, FunctionName, SymbolLinkage::Import, LanguageLinkage::C, FunctionVisibility::Private);
+    auto *Callable = Owner.createGlobalFunction(*Signature, FunctionName, SymbolLinkage::Import, LanguageLinkage::C, FunctionVisibility::Private);
     ASSERT_NE(Callable, nullptr);
     EXPECT_EQ(Callable->functionType(), Signature);
     EXPECT_EQ(Callable->name(), FunctionName);
@@ -157,6 +178,136 @@ namespace ink::ir::test
     EXPECT_EQ(Callable->visibility(), FunctionVisibility::Private);
     EXPECT_EQ(Callable->parameterCount(), 1U);
     EXPECT_TRUE(Callable->isDeclaration());
+  }
+
+  // Optional lifecycle entries independently select, replace and clear owned declarations before their bodies exist.
+  TEST(IRModuleTest, LifecycleEntriesIndependentlySelectOwnedFunctions)
+  {
+    TypeContext Types(Target);
+    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    ASSERT_NE(Signature, nullptr);
+    Module Owner;
+    const Module &ReadOnly = Owner;
+    EXPECT_EQ(Owner.initializationFunction(), nullptr);
+    EXPECT_EQ(Owner.deinitializationFunction(), nullptr);
+    EXPECT_EQ(ReadOnly.initializationFunction(), nullptr);
+    EXPECT_EQ(ReadOnly.deinitializationFunction(), nullptr);
+    EXPECT_TRUE(Owner.setInitializationFunction(nullptr));
+    EXPECT_TRUE(Owner.setDeinitializationFunction(nullptr));
+
+    auto *First = Owner.createGlobalFunction(*Signature);
+    auto *Second = Owner.appendGlobalFunction(std::make_unique<Function>(*Signature, core::NAME_None, SymbolLinkage::Import, LanguageLinkage::C, FunctionVisibility::Private));
+    ASSERT_NE(First, nullptr);
+    ASSERT_NE(Second, nullptr);
+    ASSERT_TRUE(First->isDeclaration());
+    ASSERT_TRUE(Second->isDeclaration());
+    EXPECT_TRUE(Owner.setInitializationFunction(First));
+    EXPECT_TRUE(Owner.setDeinitializationFunction(First));
+    EXPECT_EQ(ReadOnly.initializationFunction(), First);
+    EXPECT_EQ(ReadOnly.deinitializationFunction(), First);
+    EXPECT_TRUE(Owner.setInitializationFunction(Second));
+    EXPECT_EQ(Owner.initializationFunction(), Second);
+    EXPECT_EQ(Owner.deinitializationFunction(), First);
+    EXPECT_TRUE(Owner.setDeinitializationFunction(Second));
+    EXPECT_TRUE(Owner.setInitializationFunction(nullptr));
+    EXPECT_EQ(Owner.initializationFunction(), nullptr);
+    EXPECT_EQ(Owner.deinitializationFunction(), Second);
+    EXPECT_TRUE(Owner.setInitializationFunction(First));
+    EXPECT_TRUE(Owner.setDeinitializationFunction(nullptr));
+    EXPECT_EQ(Owner.initializationFunction(), First);
+    EXPECT_EQ(Owner.deinitializationFunction(), nullptr);
+    EXPECT_EQ(Owner.globalFunctionCount(), 2U);
+    ASSERT_NE(First->createBlock(), nullptr);
+    EXPECT_FALSE(Owner.initializationFunction()->isDeclaration());
+  }
+
+  // Foreign, detached, nominal member and incompatible functions cannot replace an already selected lifecycle entry.
+  TEST(IRModuleTest, LifecycleEntriesRejectNonGlobalAndIncompatibleFunctions)
+  {
+    TypeContext Types(Target);
+    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    const auto ReturningSignature = Types.getFunctionType(Types.getInt32Type());
+    const auto ParameterSignature = Types.getFunctionType(Types.getVoidType(), {Types.getBoolType()});
+    const auto EmptyStruct = Types.createStructType(0, 1);
+    ASSERT_NE(Signature, nullptr);
+    ASSERT_NE(ReturningSignature, nullptr);
+    ASSERT_NE(ParameterSignature, nullptr);
+    ASSERT_NE(EmptyStruct, nullptr);
+    const auto EmptyStructSignature = Types.getFunctionType(EmptyStruct);
+    ASSERT_NE(EmptyStructSignature, nullptr);
+    Module Owner;
+    Module Other;
+    auto *Selected = Owner.createGlobalFunction(*Signature);
+    auto *Foreign = Other.createGlobalFunction(*Signature);
+    auto *Returning = Owner.createGlobalFunction(*ReturningSignature);
+    auto *Parameterized = Owner.createGlobalFunction(*ParameterSignature);
+    auto *ReturningEmptyStruct = Owner.createGlobalFunction(*EmptyStructSignature);
+    ASSERT_NE(Selected, nullptr);
+    ASSERT_NE(Foreign, nullptr);
+    ASSERT_NE(Returning, nullptr);
+    ASSERT_NE(Parameterized, nullptr);
+    ASSERT_NE(ReturningEmptyStruct, nullptr);
+    Function Detached(*Signature);
+    const auto ClassValue = Types.createClassType(8, 4);
+    ASSERT_NE(ClassValue, nullptr);
+    const core::Name MemberName = core::NamePool::instance().intern("IRModuleTest.LifecycleMember");
+    auto Member = std::make_unique<Function>(*Signature, MemberName);
+    auto *MemberAddress = Member.get();
+    ASSERT_TRUE(ClassValue->addMethod(Method(std::move(Member))));
+    ASSERT_TRUE(Owner.addClass(*ClassValue));
+    ASSERT_TRUE(Owner.setInitializationFunction(Selected));
+    ASSERT_TRUE(Owner.setDeinitializationFunction(Selected));
+    Function *Rejected[] = {
+        Foreign,
+        &Detached,
+        MemberAddress,
+        Returning,
+        Parameterized,
+        ReturningEmptyStruct,
+    };
+    for (Function *Candidate : Rejected)
+    {
+      EXPECT_FALSE(Owner.setInitializationFunction(Candidate));
+      EXPECT_FALSE(Owner.setDeinitializationFunction(Candidate));
+      EXPECT_EQ(Owner.initializationFunction(), Selected);
+      EXPECT_EQ(Owner.deinitializationFunction(), Selected);
+    }
+  }
+
+  // Sharing one lifecycle function keeps its address stable through list growth and destroys its owned body exactly once.
+  TEST(IRModuleTest, LifecycleEntriesBorrowStableFunctionsWithoutDuplicatingOwnership)
+  {
+    TypeContext Types(Target);
+    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    ASSERT_NE(Signature, nullptr);
+    std::size_t DestructionCount = 0;
+    {
+      Module Owner;
+      auto *Shared = Owner.createGlobalFunction(*Signature);
+      ASSERT_NE(Shared, nullptr);
+      auto *Block = Shared->createBlock();
+      ASSERT_NE(Block, nullptr);
+      ASSERT_NE(Block->appendInstruction(std::make_unique<CountedModuleBodyInstruction>(DestructionCount)), nullptr);
+      ASSERT_TRUE(Owner.setInitializationFunction(Shared));
+      ASSERT_TRUE(Owner.setDeinitializationFunction(Shared));
+      EXPECT_EQ(Owner.globalFunctionCount(), 1U);
+      for (std::size_t Index = 0; Index < 64; ++Index)
+      {
+        ASSERT_NE(Owner.createGlobalFunction(*Signature), nullptr);
+      }
+      EXPECT_EQ(Owner.globalFunctionCount(), 65U);
+      EXPECT_EQ(Owner.globalFunction(0), Shared);
+      EXPECT_EQ(Owner.initializationFunction(), Shared);
+      EXPECT_EQ(Owner.deinitializationFunction(), Shared);
+      EXPECT_TRUE(Owner.setInitializationFunction(nullptr));
+      EXPECT_TRUE(Owner.setDeinitializationFunction(nullptr));
+      EXPECT_EQ(DestructionCount, 0U);
+      EXPECT_TRUE(Owner.owns(Shared));
+      EXPECT_TRUE(Owner.setInitializationFunction(Shared));
+      EXPECT_TRUE(Owner.setDeinitializationFunction(Shared));
+      EXPECT_EQ(Owner.globalFunctionCount(), 65U);
+    }
+    EXPECT_EQ(DestructionCount, 1U);
   }
 
   // Destroying a module releases the body instructions of both created and transferred functions.
@@ -169,7 +320,7 @@ namespace ink::ir::test
     bool TransferredBodyDestroyed = false;
     {
       Module Owner;
-      auto *Created = Owner.createFunction(*Signature);
+      auto *Created = Owner.createGlobalFunction(*Signature);
       ASSERT_NE(Created, nullptr);
       auto *CreatedBlock = Created->createBlock();
       ASSERT_NE(CreatedBlock, nullptr);
@@ -179,7 +330,7 @@ namespace ink::ir::test
       auto *TransferredBlock = Transferred->createBlock();
       ASSERT_NE(TransferredBlock, nullptr);
       ASSERT_NE(TransferredBlock->appendInstruction(std::make_unique<ModuleBodyInstruction>(TransferredBodyDestroyed)), nullptr);
-      ASSERT_NE(Owner.appendFunction(std::move(Transferred)), nullptr);
+      ASSERT_NE(Owner.appendGlobalFunction(std::move(Transferred)), nullptr);
       EXPECT_FALSE(CreatedBodyDestroyed);
       EXPECT_FALSE(TransferredBodyDestroyed);
     }
@@ -282,8 +433,8 @@ namespace ink::ir::test
     ASSERT_NE(StructLayout, nullptr);
     Module Owner;
     Module Other;
-    auto *Callable = Owner.createFunction(*Signature);
-    auto *ForeignFunction = Other.createFunction(*Signature);
+    auto *Callable = Owner.createGlobalFunction(*Signature);
+    auto *ForeignFunction = Other.createGlobalFunction(*Signature);
     auto *ForeignVariable = Other.createGlobalVariable(*Types.getBoolType());
     ASSERT_NE(Callable, nullptr);
     ASSERT_NE(ForeignFunction, nullptr);
@@ -357,7 +508,7 @@ namespace ink::ir::test
     EXPECT_FALSE(ReadOnly.owns(Overloads[1]->function()));
     EXPECT_FALSE(ReadOnly.contains(Overloads[0]->function()));
     EXPECT_FALSE(ReadOnly.contains(Overloads[1]->function()));
-    EXPECT_EQ(ReadOnly.functionCount(), 0U);
+    EXPECT_EQ(ReadOnly.globalFunctionCount(), 0U);
     EXPECT_EQ(Overloads[0]->functionType(), IntegerSignature);
     EXPECT_EQ(Overloads[1]->functionType(), BooleanSignature);
     ASSERT_EQ(ImportedClass->methods().size(), 2U);

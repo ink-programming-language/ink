@@ -24,7 +24,6 @@
 #include "ink/ir/type/builtin_type/null_pointer_type.h"
 #include "ink/ir/type/structure_type/pointer_type.h"
 #include "ink/ir/type/structure_type/reference_type.h"
-#include "ink/ir/type/builtin_type/string_type.h"
 #include "ink/ir/type/nominal_type/struct_type.h"
 #include "ink/ir/type/type.h"
 #include "ink/ir/type/type_context.h"
@@ -85,7 +84,6 @@ namespace ink::ir::test
   static_assert(!std::is_default_constructible_v<BoolType>);
   static_assert(!std::is_constructible_v<IntegerType, const target::TargetContext &, std::uint32_t, bool>);
   static_assert(!std::is_constructible_v<FloatType, const target::TargetContext &, std::uint32_t>);
-  static_assert(!std::is_constructible_v<StringType, const target::TargetContext &>);
   static_assert(!std::is_constructible_v<PointerType, const target::TargetContext &, const Type *>);
   static_assert(!std::is_constructible_v<ReferenceType, const target::TargetContext &, const Type *>);
   static_assert(!std::is_constructible_v<ArrayType, const Type *, std::uint64_t, std::uint64_t, std::uint64_t>);
@@ -132,6 +130,27 @@ namespace ink::ir::test
     EXPECT_EQ(Integer64Target->alignment(), 8U);
   }
 
+  // The unsigned byte type has one-byte storage and alignment on both pointer widths, while signed bytes remain unsupported.
+  TEST(IRTypeTest, UInt8HasOneByteLayoutOnEveryTarget)
+  {
+    for (const target::TargetContext &Target : {Target32, Target64})
+    {
+      TypeContext Types(Target);
+      const auto Byte = Types.getUInt8Type();
+      ASSERT_NE(Byte, nullptr);
+      EXPECT_EQ(Byte, Types.getIntegerType(8, false));
+      EXPECT_EQ(Byte->kind(), ValueKind::Integer);
+      EXPECT_EQ(Byte->width(), 8U);
+      EXPECT_TRUE(Byte->isUnsigned());
+      EXPECT_FALSE(Byte->isSigned());
+      EXPECT_EQ(Byte->size(), 1U);
+      EXPECT_EQ(Byte->alignment(), 1U);
+      EXPECT_TRUE(Type::classof(Byte));
+      EXPECT_TRUE(IntegerType::classof(Byte));
+      EXPECT_EQ(Types.getIntegerType(8, true), nullptr);
+    }
+  }
+
   // Unsupported integer widths return an explicit failure for either signedness.
   TEST(IRTypeTest, IntegerRejectsUnsupportedWidths)
   {
@@ -139,7 +158,6 @@ namespace ink::ir::test
     constexpr std::uint32_t UnsupportedWidths[] = {
         0,
         1,
-        8,
         16,
         31,
         33,
@@ -362,7 +380,6 @@ namespace ink::ir::test
     const auto Function = Types.getFunctionType(Bool, {Bool});
     const BasicBlock Block;
     const SyntheticInstruction Operation;
-    const auto String = Types.getStringType();
     ASSERT_NE(Integer, nullptr);
     ASSERT_NE(Float, nullptr);
     ASSERT_NE(Array, nullptr);
@@ -385,7 +402,7 @@ namespace ink::ir::test
     ASSERT_NE(NullValue, nullptr);
     ASSERT_NE(StringValue, nullptr);
 
-    const std::array<const Value *, 20> Values = {
+    const std::array<const Value *, 19> Values = {
         Types.getVoidType(),
         Integer,
         Float,
@@ -403,12 +420,11 @@ namespace ink::ir::test
         FloatValue,
         ArrayValue,
         NullValue,
-        String,
         StringValue,
         Types.getNullPointerType(),
     };
     using Classifier = bool (*)(const Value *);
-    const std::array<Classifier, 20> Classifiers = {
+    const std::array<Classifier, 19> Classifiers = {
         VoidType::classof,
         IntegerType::classof,
         FloatType::classof,
@@ -426,7 +442,6 @@ namespace ink::ir::test
         FloatConstant::classof,
         ArrayConstant::classof,
         NullPointerConstant::classof,
-        StringType::classof,
         StringConstant::classof,
         NullPointerType::classof,
     };
@@ -501,7 +516,6 @@ namespace ink::ir::test
     EXPECT_EQ(valueKindName(ValueKind::FloatConstant), "float_constant");
     EXPECT_EQ(valueKindName(ValueKind::ArrayConstant), "array_constant");
     EXPECT_EQ(valueKindName(ValueKind::NullPointerConstant), "null_pointer_constant");
-    EXPECT_EQ(valueKindName(ValueKind::String), "string");
     EXPECT_EQ(valueKindName(ValueKind::StringConstant), "string_constant");
     EXPECT_EQ(valueKindName(static_cast<ValueKind>(255)), "unknown");
   }

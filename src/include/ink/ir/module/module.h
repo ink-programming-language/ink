@@ -14,7 +14,7 @@
 
 namespace ink::ir
 {
-  // Owns functions and global variables, and registers borrowed nominal types for one Ink module.
+  // Owns global functions and global variables, and registers borrowed nominal types for one Ink module.
   // TypeContext and borrowed constants must outlive the module.
   // Registered types own their methods and member functions independently of this module.
   // Declaration addresses stay valid until the module is destroyed; operations require external synchronization.
@@ -32,7 +32,7 @@ namespace ink::ir
       // Optional canonical module name.
       core::Name name() const noexcept;
       bool hasName() const noexcept;
-      // Ownership is limited to functions and global variables; contains also includes registered types.
+      // Ownership is limited to global functions and global variables; contains also includes registered types.
       bool owns(const Value *Declaration) const noexcept;
       bool contains(const Value *Declaration) const noexcept;
 
@@ -44,12 +44,23 @@ namespace ink::ir
       // Takes ownership; nullptr is rejected without changing the module.
       GlobalVariable *appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable);
 
-      const std::vector<std::unique_ptr<Function>> &functions() const noexcept;
-      std::size_t functionCount() const noexcept;
-      Function *function(std::size_t Index) noexcept;
-      const Function *function(std::size_t Index) const noexcept;
-      Function *createFunction(const FunctionType &Signature, core::Name FunctionName = core::NAME_None, SymbolLinkage SymbolLink = SymbolLinkage::Local, LanguageLinkage LanguageLink = LanguageLinkage::Ink, FunctionVisibility Visibility = FunctionVisibility::Public);
-      Function *appendFunction(std::unique_ptr<Function> Callable);
+      const std::vector<std::unique_ptr<Function>> &globalFunctions() const noexcept;
+      std::size_t globalFunctionCount() const noexcept;
+      Function *globalFunction(std::size_t Index) noexcept;
+      const Function *globalFunction(std::size_t Index) const noexcept;
+      Function *createGlobalFunction(const FunctionType &Signature, core::Name FunctionName = core::NAME_None, SymbolLinkage SymbolLink = SymbolLinkage::Local, LanguageLinkage LanguageLink = LanguageLinkage::Ink, FunctionVisibility Visibility = FunctionVisibility::Public);
+      Function *appendGlobalFunction(std::unique_ptr<Function> Callable);
+
+      // Optional lifecycle entry points borrowed from GlobalFunctions; recording them does not execute them.
+      Function *initializationFunction() noexcept;
+      const Function *initializationFunction() const noexcept;
+      Function *deinitializationFunction() noexcept;
+      const Function *deinitializationFunction() const noexcept;
+      // nullptr clears the entry point. Non-null functions must be owned here and have signature () -> void.
+      // A body may be built later. Rejection preserves the previous entry point and does not transfer ownership.
+      bool setInitializationFunction(Function *Callable) noexcept;
+      bool setDeinitializationFunction(Function *Callable) noexcept;
+
       // Types remain owned by TypeContext. Registration rejects repeated pointers and preserves insertion order.
       // Indexed access returns nullptr out of bounds.
       const std::vector<const ClassType *> &classes() const noexcept;
@@ -70,7 +81,9 @@ namespace ink::ir
     private:
       core::Name Name = core::NAME_None;
       std::vector<std::unique_ptr<GlobalVariable>> GlobalVariables;
-      std::vector<std::unique_ptr<Function>> Functions;
+      std::vector<std::unique_ptr<Function>> GlobalFunctions;
+      Function *InitializationFunction = nullptr;
+      Function *DeinitializationFunction = nullptr;
       std::vector<const ClassType *> Classes;
       std::vector<const InterfaceType *> Interfaces;
       std::vector<const StructType *> Structs;

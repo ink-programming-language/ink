@@ -2,7 +2,7 @@
 #define INK_IR_CONSTANT_STRING_CONSTANT_H
 
 #include "ink/ir/constant/constant.h"
-#include "ink/ir/type/builtin_type/string_type.h"
+#include "ink/ir/type/structure_type/array_type.h"
 
 #include <cstddef>
 #include <string>
@@ -12,7 +12,8 @@ namespace ink::ir
 {
   class ConstantPool;
 
-  // Owns the decoded UTF-8 bytes; the borrowed type must outlive this constant.
+  // Owns decoded UTF-8 bytes as a compact ArrayType(u8, byteLength()) constant.
+  // The borrowed array type must outlive this constant; this is not a pointer-and-length view.
   // Empty strings and embedded NUL are valid. No escapes, normalization or terminator are added.
   class StringConstant final : public Constant
   {
@@ -25,7 +26,7 @@ namespace ink::ir
     private:
       friend class ConstantPool;
 
-      StringConstant(const StringType *StringTypeValue, std::string Value) noexcept;
+      StringConstant(const ArrayType *ArrayTypeValue, std::string Value) noexcept;
 
       std::string StoredValue;
   };

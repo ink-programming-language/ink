@@ -1,9 +1,18 @@
 #include "ink/ir/module/module.h"
+#include "ink/ir/type/builtin_type/void_type.h"
 
 #include <utility>
 
 namespace ink::ir
 {
+  namespace
+  {
+    bool validLifecycleFunction(const Module &Owner, const Function *Callable) noexcept
+    {
+      return !Callable || (Owner.owns(Callable) && Callable->functionType()->parameterCount() == 0 && VoidType::classof(Callable->functionType()->returnType()));
+    }
+  } // namespace
+
   Module::Module(core::Name Name) noexcept
       : Name(Name)
   {
@@ -34,7 +43,7 @@ namespace ink::ir
         return true;
       }
     }
-    for (const auto &Callable : Functions)
+    for (const auto &Callable : GlobalFunctions)
     {
       if (Callable.get() == Declaration)
       {
@@ -110,40 +119,80 @@ namespace ink::ir
     return Result;
   }
 
-  const std::vector<std::unique_ptr<Function>> &Module::functions() const noexcept
+  const std::vector<std::unique_ptr<Function>> &Module::globalFunctions() const noexcept
   {
-    return Functions;
+    return GlobalFunctions;
   }
 
-  std::size_t Module::functionCount() const noexcept
+  std::size_t Module::globalFunctionCount() const noexcept
   {
-    return Functions.size();
+    return GlobalFunctions.size();
   }
 
-  Function *Module::function(std::size_t Index) noexcept
+  Function *Module::globalFunction(std::size_t Index) noexcept
   {
-    return Index < Functions.size() ? Functions[Index].get() : nullptr;
+    return Index < GlobalFunctions.size() ? GlobalFunctions[Index].get() : nullptr;
   }
 
-  const Function *Module::function(std::size_t Index) const noexcept
+  const Function *Module::globalFunction(std::size_t Index) const noexcept
   {
-    return Index < Functions.size() ? Functions[Index].get() : nullptr;
+    return Index < GlobalFunctions.size() ? GlobalFunctions[Index].get() : nullptr;
   }
 
-  Function *Module::createFunction(const FunctionType &Signature, core::Name FunctionName, SymbolLinkage SymbolLink, LanguageLinkage LanguageLink, FunctionVisibility Visibility)
+  Function *Module::createGlobalFunction(const FunctionType &Signature, core::Name FunctionName, SymbolLinkage SymbolLink, LanguageLinkage LanguageLink, FunctionVisibility Visibility)
   {
-    return appendFunction(std::make_unique<Function>(Signature, FunctionName, SymbolLink, LanguageLink, Visibility));
+    return appendGlobalFunction(std::make_unique<Function>(Signature, FunctionName, SymbolLink, LanguageLink, Visibility));
   }
 
-  Function *Module::appendFunction(std::unique_ptr<Function> Callable)
+  Function *Module::appendGlobalFunction(std::unique_ptr<Function> Callable)
   {
     if (!Callable)
     {
       return nullptr;
     }
     Function *Result = Callable.get();
-    Functions.push_back(std::move(Callable));
+    GlobalFunctions.push_back(std::move(Callable));
     return Result;
+  }
+
+  Function *Module::initializationFunction() noexcept
+  {
+    return InitializationFunction;
+  }
+
+  const Function *Module::initializationFunction() const noexcept
+  {
+    return InitializationFunction;
+  }
+
+  Function *Module::deinitializationFunction() noexcept
+  {
+    return DeinitializationFunction;
+  }
+
+  const Function *Module::deinitializationFunction() const noexcept
+  {
+    return DeinitializationFunction;
+  }
+
+  bool Module::setInitializationFunction(Function *Callable) noexcept
+  {
+    if (!validLifecycleFunction(*this, Callable))
+    {
+      return false;
+    }
+    InitializationFunction = Callable;
+    return true;
+  }
+
+  bool Module::setDeinitializationFunction(Function *Callable) noexcept
+  {
+    if (!validLifecycleFunction(*this, Callable))
+    {
+      return false;
+    }
+    DeinitializationFunction = Callable;
+    return true;
   }
 
   const std::vector<const ClassType *> &Module::classes() const noexcept

@@ -60,13 +60,13 @@ namespace ink::ir
       // Owns decoded UTF-8 bytes, including empty text and embedded NUL. Invalid
       // UTF-8 or lengths exceeding the target limit return nullptr. No escapes,
       // normalization or terminator are added; exact byte contents are the key.
-      // Uses this context's unique string type.
+      // Uses this context's ArrayType(u8, byteLength), so size is the byte count and alignment is 1.
       const StringConstant *getStringConstant(std::string Value);
 
     private:
       friend class TypeContext;
 
-      explicit ConstantPool(const TypeContext &Types);
+      explicit ConstantPool(TypeContext &Types);
       ~ConstantPool() noexcept;
 
       struct ArrayKey
@@ -85,7 +85,7 @@ namespace ink::ir
       template <typename ConstantT>
       const ConstantT *own(std::unique_ptr<ConstantT> ConstantValue);
 
-      const TypeContext &Types;
+      TypeContext &Types;
       BoolConstant False;
       BoolConstant True;
       NullPointerConstant NullPointer;

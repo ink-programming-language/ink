@@ -101,26 +101,26 @@ namespace ink::ir::test
     EXPECT_EQ(Types.targetContext(), Target64);
     EXPECT_EQ(Types.getVoidType(), Types.getVoidType());
     EXPECT_EQ(Types.getBoolType(), Types.getBoolType());
+    EXPECT_EQ(Types.getUInt8Type(), Types.getIntegerType(8, false));
     EXPECT_EQ(Types.getInt32Type(), Types.getIntegerType(32, true));
     EXPECT_EQ(Types.getUInt32Type(), Types.getIntegerType(32, false));
     EXPECT_EQ(Types.getInt64Type(), Types.getIntegerType(64, true));
     EXPECT_EQ(Types.getUInt64Type(), Types.getIntegerType(64, false));
     EXPECT_EQ(Types.getFloat32Type(), Types.getFloatType(32));
     EXPECT_EQ(Types.getFloat64Type(), Types.getFloatType(64));
-    EXPECT_EQ(Types.getStringType(), Types.getStringType());
     EXPECT_EQ(Types.getNullPointerType(), Types.getNullPointerType());
     EXPECT_EQ(Types.getIntegerType(16, true), nullptr);
     EXPECT_EQ(Types.getFloatType(16), nullptr);
     const std::array<const Type *, 10> Builtins = {
         Types.getVoidType(),
         Types.getBoolType(),
+        Types.getUInt8Type(),
         Types.getInt32Type(),
         Types.getUInt32Type(),
         Types.getInt64Type(),
         Types.getUInt64Type(),
         Types.getFloat32Type(),
         Types.getFloat64Type(),
-        Types.getStringType(),
         Types.getNullPointerType(),
     };
     const std::unordered_set<const Type *> UniqueTypes(Builtins.begin(), Builtins.end());
@@ -145,8 +145,8 @@ namespace ink::ir::test
     EXPECT_EQ(NativeTypes.getFloat64Type()->alignment(), Native.floatAlignment(64));
     EXPECT_EQ(Types32.getInt64Type()->alignment(), 4U);
     EXPECT_EQ(Types64.getInt64Type()->alignment(), 8U);
-    EXPECT_EQ(Types32.getStringType()->size(), 8U);
-    EXPECT_EQ(Types64.getStringType()->size(), 16U);
+    EXPECT_EQ(Types32.getUInt8Type()->size(), 1U);
+    EXPECT_EQ(Types64.getUInt8Type()->size(), 1U);
     const PointerType *Pointer32 = Types32.getPointerType(Types32.getBoolType());
     const PointerType *Pointer64 = Types64.getPointerType(Types64.getBoolType());
     ASSERT_NE(Pointer32, nullptr);
@@ -155,11 +155,12 @@ namespace ink::ir::test
     EXPECT_EQ(Pointer64->size(), 8U);
     EXPECT_NE(Types64.getVoidType(), Other64.getVoidType());
     EXPECT_NE(Types64.getBoolType(), Other64.getBoolType());
+    EXPECT_NE(Types64.getUInt8Type(), Other64.getUInt8Type());
     EXPECT_NE(Types64.getInt32Type(), Other64.getInt32Type());
     EXPECT_NE(Types64.getFloat32Type(), Other64.getFloat32Type());
-    EXPECT_NE(Types64.getStringType(), Other64.getStringType());
     EXPECT_NE(Types64.getNullPointerType(), Other64.getNullPointerType());
     EXPECT_FALSE(Types64.owns(Other64.getBoolType()));
+    EXPECT_FALSE(Types64.owns(Other64.getUInt8Type()));
   }
 
   // Repeated structural lookups reuse objects and retain identity when owning storage and caches grow.
@@ -222,16 +223,19 @@ namespace ink::ir::test
     TypeContext Types(Target64);
     const TypeContext Other(Target64);
     const Type *Local = Types.getBoolType();
-    const Type *Foreign = Other.getBoolType();
-    EXPECT_EQ(Types.getPointerType(Foreign), nullptr);
-    EXPECT_EQ(Types.getReferenceType(Foreign), nullptr);
-    EXPECT_EQ(Types.getArrayType(Foreign, 0), nullptr);
-    EXPECT_EQ(Types.getArrayType(Foreign, 1), nullptr);
-    EXPECT_EQ(Types.getFunctionType(Foreign), nullptr);
-    EXPECT_EQ(Types.getFunctionType(Local, {Foreign}), nullptr);
+    const std::array<const Type *, 2> ForeignTypes{Other.getBoolType(), Other.getUInt8Type()};
+    for (const Type *Foreign : ForeignTypes)
+    {
+      EXPECT_EQ(Types.getPointerType(Foreign), nullptr);
+      EXPECT_EQ(Types.getReferenceType(Foreign), nullptr);
+      EXPECT_EQ(Types.getArrayType(Foreign, 0), nullptr);
+      EXPECT_EQ(Types.getArrayType(Foreign, 1), nullptr);
+      EXPECT_EQ(Types.getFunctionType(Foreign), nullptr);
+      EXPECT_EQ(Types.getFunctionType(Local, {Foreign}), nullptr);
+      EXPECT_FALSE(Types.owns(Foreign));
+    }
     EXPECT_EQ(Types.getPointerType(nullptr), nullptr);
     EXPECT_EQ(Types.getReferenceType(nullptr), nullptr);
-    EXPECT_FALSE(Types.owns(Foreign));
   }
 
   // Boolean constants use their supplied context's canonical type and can populate matching arrays.

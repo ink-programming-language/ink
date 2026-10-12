@@ -76,6 +76,40 @@ namespace ink::ir::test
     }
   }
 
+  // Unsigned byte factories accept zero through 255 without truncation, reject signed calls and refuse foreign byte types.
+  TEST(IRNumericConstantTest, UInt8FactoriesEnforceByteRangeAndOwnership)
+  {
+    for (const target::PointerWidth Width : {target::PointerWidth::Bits32, target::PointerWidth::Bits64})
+    {
+      const target::TargetContext ByteTarget(Width, target::ByteOrder::LittleEndian);
+      TypeContext Types(ByteTarget);
+      TypeContext Other(ByteTarget);
+      auto &Constants = Types.constantPool();
+      const auto Byte = Types.getUInt8Type();
+      ASSERT_NE(Byte, nullptr);
+      for (const std::uint64_t Value : {std::uint64_t{0}, std::uint64_t{255}})
+      {
+        const auto Unsigned = Constants.getUnsignedIntegerConstant(Byte, Value);
+        const auto Bits = Constants.getIntegerConstantFromBits(Byte, Value);
+        ASSERT_NE(Unsigned, nullptr);
+        ASSERT_NE(Bits, nullptr);
+        EXPECT_EQ(Unsigned, Bits);
+        EXPECT_EQ(Unsigned->type(), Byte);
+        EXPECT_EQ(Unsigned->bits(), Value);
+      }
+      for (const std::uint64_t Overflow : {std::uint64_t{256}, std::numeric_limits<std::uint64_t>::max()})
+      {
+        EXPECT_EQ(Constants.getUnsignedIntegerConstant(Byte, Overflow), nullptr);
+        EXPECT_EQ(Constants.getIntegerConstantFromBits(Byte, Overflow), nullptr);
+      }
+      EXPECT_EQ(Constants.getSignedIntegerConstant(Byte, 0), nullptr);
+      EXPECT_EQ(Constants.getSignedIntegerConstant(Byte, -1), nullptr);
+      EXPECT_EQ(Constants.getSignedIntegerConstant(Byte, 255), nullptr);
+      EXPECT_EQ(Constants.getUnsignedIntegerConstant(Other.getUInt8Type(), 0), nullptr);
+      EXPECT_EQ(Constants.getIntegerConstantFromBits(Other.getUInt8Type(), 0), nullptr);
+    }
+  }
+
   // Numeric factories reject missing types and signedness mismatches even for an otherwise valid zero.
   TEST(IRNumericConstantTest, IntegerRejectsMissingTypeAndWrongSignedness)
   {

@@ -49,7 +49,7 @@ namespace ink::ir::test
     static_assert(!std::is_constructible_v<IntegerConstant, const IntegerType *, std::uint64_t>);
     static_assert(!std::is_constructible_v<FloatConstant, const FloatType *, std::uint64_t>);
     static_assert(!std::is_constructible_v<NullPointerConstant, const NullPointerType *>);
-    static_assert(!std::is_constructible_v<StringConstant, const StringType *, std::string>);
+    static_assert(!std::is_constructible_v<StringConstant, const ArrayType *, std::string>);
     static_assert(!std::is_constructible_v<ArrayConstant, const ArrayType *, std::vector<const Constant *>>);
   } // namespace
 
@@ -163,12 +163,11 @@ namespace ink::ir::test
     EXPECT_FALSE(Constants.owns(Other.getNullPointerConstant()));
   }
 
-  // Strings infer the local type, preserve exact UTF-8 identity and keep borrowed views valid across cache growth.
+  // Strings infer local byte-array types, preserve exact UTF-8 identity and keep borrowed views valid across cache growth.
   TEST(IRConstantPoolTest, StringLookupsPreserveBytesAndStableViews)
   {
     TypeContext Types(Target);
     auto &Constants = Types.constantPool();
-    const StringType *String = Types.getStringType();
     const std::string EmbeddedNul("a\0b", 3);
     const StringConstant *BinarySafe = Constants.getStringConstant(EmbeddedNul);
     const StringConstant *Composed = Constants.getStringConstant("\xC3\xA9");
@@ -181,8 +180,8 @@ namespace ink::ir::test
     ASSERT_NE(Stable, nullptr);
     const std::string_view View = Stable->value();
     const char *Data = View.data();
-    EXPECT_EQ(BinarySafe->type(), String);
-    EXPECT_EQ(Stable->type(), String);
+    EXPECT_EQ(BinarySafe->type(), Types.getArrayType(Types.getUInt8Type(), 3));
+    EXPECT_EQ(Stable->type(), Types.getArrayType(Types.getUInt8Type(), 128));
     EXPECT_EQ(BinarySafe, Constants.getStringConstant(std::string("a\0b", 3)));
     EXPECT_EQ(BinarySafe->value(), std::string_view(EmbeddedNul));
     EXPECT_NE(BinarySafe, Constants.getStringConstant("a"));
@@ -201,7 +200,7 @@ namespace ink::ir::test
     EXPECT_TRUE(Constants.owns(Stable));
   }
 
-  // Inferred string and floating-point types follow each target while each TypeContext retains a unique constant pool.
+  // Byte-array string layouts are target-independent while floating-point layouts and constant identities belong to each context.
   TEST(IRConstantPoolTest, InferredTypeLookupsRetainContextOwnershipAndTargetLayout)
   {
     constexpr target::TargetContext NarrowTarget(target::PointerWidth::Bits32, target::ByteOrder::BigEndian);
@@ -214,7 +213,7 @@ namespace ink::ir::test
     auto &Narrow = NarrowTypes.constantPool();
     struct ContextCase
     {
-        const TypeContext *Types;
+        TypeContext *Types;
         ConstantPool *Constants;
     };
     const ContextCase Cases[] = {
@@ -234,10 +233,11 @@ namespace ink::ir::test
       ASSERT_NE(String, nullptr);
       ASSERT_NE(Float32, nullptr);
       ASSERT_NE(Float64, nullptr);
-      EXPECT_EQ(String->type(), Case.Types->getStringType());
+      EXPECT_EQ(String->type(), Case.Types->getArrayType(Case.Types->getUInt8Type(), 9));
       EXPECT_EQ(Float32->type(), Case.Types->getFloat32Type());
       EXPECT_EQ(Float64->type(), Case.Types->getFloat64Type());
-      EXPECT_EQ(String->type()->size(), Case.Types->targetContext().pointerByteWidth() * 2);
+      EXPECT_EQ(String->type()->size(), 9U);
+      EXPECT_EQ(String->type()->alignment(), 1U);
       EXPECT_EQ(Float64->type()->alignment(), Case.Types->targetContext().floatAlignment(64));
       EXPECT_TRUE(Case.Constants->owns(String));
       EXPECT_TRUE(Case.Constants->owns(Float32));

@@ -37,7 +37,6 @@ namespace ink::ir
       case ValueKind::GenericClass:
       case ValueKind::GenericFunction:
       case ValueKind::GenericVar:
-      case ValueKind::String:
       case ValueKind::Variadic:
         return true;
       default:
