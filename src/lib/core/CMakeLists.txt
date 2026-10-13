@@ -4,7 +4,8 @@ add_library(ink::core ALIAS ink_core)
 
 target_compile_features(ink_core PUBLIC cxx_std_17)
 target_include_directories(ink_core PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>")
-target_link_libraries(ink_core PRIVATE spdlog::spdlog)
+# Assertion macros expose spdlog's bundled fmt headers and must inherit its no-exceptions definitions.
+target_link_libraries(ink_core PUBLIC ink::config spdlog::spdlog)
 ink_disable_exceptions(ink_core)
 
 if(MSVC)

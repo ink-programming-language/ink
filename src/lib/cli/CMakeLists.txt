@@ -4,7 +4,7 @@ add_library(ink::cli ALIAS ink_cli)
 
 target_compile_features(ink_cli PUBLIC cxx_std_17)
 target_include_directories(ink_cli PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>")
-target_link_libraries(ink_cli PRIVATE spdlog::spdlog)
+target_link_libraries(ink_cli PUBLIC ink::config PRIVATE spdlog::spdlog)
 ink_disable_exceptions(ink_cli)
 
 if(WIN32)

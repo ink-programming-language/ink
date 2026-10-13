@@ -6,6 +6,13 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 include(CTest)
 
+include(cmake/InkBuildConfig.cmake)
+set(INK_CONFIG_INCLUDE_DIR "${PROJECT_BINARY_DIR}/include")
+ink_configure_build_config("${INK_CONFIG_INCLUDE_DIR}" "${INK_BUILD_MODE}")
+add_library(ink_config INTERFACE)
+add_library(ink::config ALIAS ink_config)
+target_include_directories(ink_config INTERFACE "$<BUILD_INTERFACE:${INK_CONFIG_INCLUDE_DIR}>")
+
 function(ink_disable_exceptions Target)
   if(MSVC OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
     target_compile_options(${Target} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:/EHs-c->")
