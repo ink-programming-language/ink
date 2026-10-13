@@ -4,6 +4,7 @@
 #include "ink/core/name/name.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/module/global_variable.h"
+#include "ink/ir/package/package_path.h"
 #include "ink/ir/type/nominal_type/class_type.h"
 #include "ink/ir/type/nominal_type/interface_type.h"
 #include "ink/ir/type/nominal_type/struct_type.h"
@@ -14,14 +15,14 @@
 
 namespace ink::ir
 {
-  // Owns global functions and global variables, and registers borrowed nominal types for one Ink module.
+  // Owns its package path, global functions and global variables, and registers borrowed nominal types for one Ink module.
   // TypeContext and borrowed constants must outlive the module.
   // Registered types own their methods and member functions independently of this module.
   // Declaration addresses stay valid until the module is destroyed; operations require external synchronization.
   class Module final
   {
     public:
-      explicit Module(core::Name Name = core::NAME_None) noexcept;
+      explicit Module(core::Name Name = core::NAME_None, PackagePath Package = {}) noexcept;
       ~Module() noexcept;
 
       Module(const Module &) = delete;
@@ -29,9 +30,12 @@ namespace ink::ir
       Module(Module &&) = delete;
       Module &operator=(Module &&) = delete;
 
-      // Optional canonical module name.
+      // Optional canonical short module name, excluding the package path.
       core::Name name() const noexcept;
       bool hasName() const noexcept;
+      // The module owns an independent absolute package path; the default empty path denotes the root package.
+      const PackagePath &package() const noexcept;
+      void setPackage(PackagePath NewPackage) noexcept;
       // Ownership is limited to global functions and global variables; contains also includes registered types.
       bool owns(const Value *Declaration) const noexcept;
       bool contains(const Value *Declaration) const noexcept;
@@ -80,6 +84,7 @@ namespace ink::ir
 
     private:
       core::Name Name = core::NAME_None;
+      PackagePath Package;
       std::vector<std::unique_ptr<GlobalVariable>> GlobalVariables;
       std::vector<std::unique_ptr<Function>> GlobalFunctions;
       Function *InitializationFunction = nullptr;

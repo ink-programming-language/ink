@@ -58,18 +58,22 @@ namespace ink::ir::test
   static_assert(!std::is_copy_assignable_v<Module>);
   static_assert(!std::is_move_constructible_v<Module>);
   static_assert(!std::is_move_assignable_v<Module>);
+  static_assert(std::is_same_v<decltype(std::declval<Module &>().package()), const PackagePath &>);
+  static_assert(std::is_same_v<decltype(std::declval<const Module &>().package()), const PackagePath &>);
   static_assert(std::is_same_v<decltype(std::declval<Module &>().initializationFunction()), Function *>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().initializationFunction()), const Function *>);
   static_assert(std::is_same_v<decltype(std::declval<Module &>().deinitializationFunction()), Function *>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().deinitializationFunction()), const Function *>);
 
-  // Named and unnamed modules begin with empty declaration lists and reject every indexed access.
+  // Named and unnamed modules begin in the root package with empty declaration lists and reject every indexed access.
   TEST(IRModuleTest, EmptyModulesPreserveOptionalCanonicalName)
   {
     Module Unnamed;
     const Module &ReadOnly = Unnamed;
     EXPECT_EQ(Unnamed.name(), core::NAME_None);
     EXPECT_FALSE(Unnamed.hasName());
+    EXPECT_EQ(Unnamed.package(), PackagePath{});
+    EXPECT_EQ(ReadOnly.package(), PackagePath{});
     EXPECT_TRUE(Unnamed.globalVariables().empty());
     EXPECT_EQ(Unnamed.globalVariableCount(), 0U);
     EXPECT_EQ(Unnamed.globalVariable(0), nullptr);
@@ -90,10 +94,40 @@ namespace ink::ir::test
     EXPECT_FALSE(Unnamed.owns(nullptr));
     EXPECT_FALSE(Unnamed.contains(nullptr));
 
-    const core::Name ModuleName = core::NamePool::instance().intern("IRModuleTest.Empty");
+    const core::Name ModuleName = core::NamePool::instance().intern("Empty");
     const Module Named(ModuleName);
     EXPECT_TRUE(Named.hasName());
     EXPECT_EQ(Named.name(), ModuleName);
+  }
+
+  // Modules keep short names separate from owned package paths that survive their source and can be changed independently.
+  TEST(IRModuleTest, OwnsIndependentPackagePathsSeparateFromModuleNames)
+  {
+    auto &Names = core::NamePool::instance();
+    const core::Name ModuleName = Names.intern("material");
+    const core::Name RootName = Names.intern("game");
+    const core::Name PackageName = Names.intern("render");
+    const core::Name ChildName = Names.intern("detail");
+    const PackagePath Expected{{RootName, PackageName}};
+    Module Owner(ModuleName);
+    {
+      PackagePath Source = Expected;
+      Module Other(ModuleName, Source);
+      Owner.setPackage(Source);
+      EXPECT_EQ(Owner.package(), Other.package());
+      EXPECT_EQ(Other.name(), ModuleName);
+      Source.Components.clear();
+      EXPECT_EQ(Other.package(), Expected);
+      Other.setPackage({{RootName, PackageName, ChildName}});
+      EXPECT_NE(Owner.package(), Other.package());
+      EXPECT_EQ(Owner.package(), Expected);
+    }
+    const Module &ReadOnly = Owner;
+    EXPECT_EQ(ReadOnly.name(), ModuleName);
+    EXPECT_EQ(ReadOnly.package(), Expected);
+    Owner.setPackage({});
+    EXPECT_EQ(ReadOnly.package(), PackagePath{});
+    EXPECT_EQ(ReadOnly.name(), ModuleName);
   }
 
   // Creation and ownership transfer preserve insertion order and entity addresses as both lists grow.
@@ -480,7 +514,7 @@ namespace ink::ir::test
     const auto BooleanSignature = Types.getFunctionType(Types.getInt32Type(), {ReceiverType, Types.getBoolType()});
     ASSERT_NE(IntegerSignature, nullptr);
     ASSERT_NE(BooleanSignature, nullptr);
-    const core::Name ModuleName = core::NamePool::instance().intern("IRModuleTest.math");
+    const core::Name ModuleName = core::NamePool::instance().intern("math");
     const core::Name MemberName = core::NamePool::instance().intern("method");
     Module Owner(ModuleName);
     auto IntegerCallable = std::make_unique<Function>(*IntegerSignature, MemberName);
@@ -533,7 +567,7 @@ namespace ink::ir::test
       ASSERT_NE(InterfaceValue, nullptr);
       ASSERT_NE(StructValue, nullptr);
       ASSERT_NE(Signature, nullptr);
-      const core::Name ModuleName = core::NamePool::instance().intern("IRModuleTest.Lifetime");
+      const core::Name ModuleName = core::NamePool::instance().intern("Lifetime");
       const core::Name MemberName = core::NamePool::instance().intern("execute");
       auto Callable = std::make_unique<Function>(*Signature, MemberName);
       const auto *CallableAddress = Callable.get();

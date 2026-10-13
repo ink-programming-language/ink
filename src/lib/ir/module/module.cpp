@@ -13,8 +13,9 @@ namespace ink::ir
     }
   } // namespace
 
-  Module::Module(core::Name Name) noexcept
-      : Name(Name)
+  Module::Module(core::Name Name, PackagePath Package) noexcept
+      : Name(Name),
+        Package(std::move(Package))
   {
   }
 
@@ -28,6 +29,16 @@ namespace ink::ir
   bool Module::hasName() const noexcept
   {
     return Name.valid();
+  }
+
+  const PackagePath &Module::package() const noexcept
+  {
+    return Package;
+  }
+
+  void Module::setPackage(PackagePath NewPackage) noexcept
+  {
+    Package = std::move(NewPackage);
   }
 
   bool Module::owns(const Value *Declaration) const noexcept
