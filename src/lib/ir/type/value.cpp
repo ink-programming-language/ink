@@ -26,4 +26,9 @@ namespace ink::ir
   {
     return Kind;
   }
+
+  const Type *Value::type() const noexcept
+  {
+    return nullptr;
+  }
 } // namespace ink::ir

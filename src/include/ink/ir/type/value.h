@@ -6,6 +6,8 @@
 
 namespace ink::ir
 {
+  class Type;
+
   enum class ValueKind : std::uint8_t
   {
 #define INK_VALUE(Kind, Name, FixedSize) Kind,
@@ -24,6 +26,9 @@ namespace ink::ir
       Value &operator=(const Value &) = delete;
 
       ValueKind kind() const noexcept;
+      // Returns a borrowed recorded type, or nullptr for an untyped value. Does not convert or validate the value.
+      // Type descriptors and basic blocks use the default nullptr result; functions report their full signature.
+      virtual const Type *type() const noexcept;
 
     protected:
       explicit Value(ValueKind Kind) noexcept;

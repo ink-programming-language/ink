@@ -17,7 +17,7 @@ namespace ink::ir
 
       // Concrete instructions have a result type, including void for branches and returns.
       // A generic instruction subclass may leave its result type unspecified.
-      const Type *type() const noexcept;
+      const Type *type() const noexcept override;
       bool isTerminator() const noexcept;
       static bool classof(const Value *Value) noexcept;
 

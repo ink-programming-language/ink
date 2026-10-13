@@ -47,6 +47,8 @@ namespace ink::ir
       Function(Function &&) = delete;
       Function &operator=(Function &&) = delete;
 
+      // Both queries return the full callable signature, not just its return type.
+      const FunctionType *type() const noexcept override;
       const FunctionType *functionType() const noexcept;
       core::Name name() const noexcept;
       bool hasName() const noexcept;

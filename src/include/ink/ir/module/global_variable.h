@@ -17,7 +17,8 @@ namespace ink::ir
       GlobalVariable(GlobalVariable &&) = delete;
       GlobalVariable &operator=(GlobalVariable &&) = delete;
 
-      const Type *type() const noexcept;
+      // Describes the declared storage type; querying it does not load the variable or produce its address.
+      const Type *type() const noexcept override;
       core::Name name() const noexcept;
       bool hasName() const noexcept;
       void setName(core::Name NewName) noexcept;

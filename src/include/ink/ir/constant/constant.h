@@ -12,7 +12,7 @@ namespace ink::ir
     public:
       ~Constant() noexcept override = 0;
 
-      const Type *type() const noexcept;
+      const Type *type() const noexcept override;
       // Accepts the same type identity, or the pool's nullptr value for any pointer type in its TypeContext.
       // The destination supplies the concrete pointer type; this constant keeps its NullPointerType.
       bool canInitialize(const Type *DestinationType) const noexcept;

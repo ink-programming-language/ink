@@ -21,9 +21,14 @@ namespace ink::ir
 
   Function::~Function() noexcept = default;
 
-  const FunctionType *Function::functionType() const noexcept
+  const FunctionType *Function::type() const noexcept
   {
     return Signature;
+  }
+
+  const FunctionType *Function::functionType() const noexcept
+  {
+    return type();
   }
 
   core::Name Function::name() const noexcept

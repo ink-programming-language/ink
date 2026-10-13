@@ -18,7 +18,7 @@ namespace ink::ir
       Function &function() noexcept;
       const Function &function() const noexcept;
       std::size_t index() const noexcept;
-      const Type *type() const noexcept;
+      const Type *type() const noexcept override;
       core::Name name() const noexcept;
       bool hasName() const noexcept;
       void setName(core::Name NewName) noexcept;
