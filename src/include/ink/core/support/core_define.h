@@ -4,23 +4,101 @@
 #include "ink/core/config.h"
 
 #include <spdlog/fmt/fmt.h>
+#include <spdlog/logger.h>
+#include <spdlog/sinks/stdout_sinks.h>
 
 #include <atomic>
+#include <cstdlib>
+#include <memory>
 #include <string_view>
 
-namespace ink::core
-{
-  // Writes and flushes a fatal message before aborting, independently of installed loggers.
-  [[noreturn]] void panic(std::string_view Message, const char *File, int Line) noexcept;
+#if INK_PLATFORM_WINDOWS
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
+#if INK_COMPILER_MSVC_ABI
+#include <intrin.h>
+#endif
+#define INK_DETAIL_IS_DEBUGGER_ATTACHED() (::IsDebuggerPresent() != 0)
+#elif INK_PLATFORM_LINUX || INK_PLATFORM_ANDROID
+#include <csignal>
+#include <cstdio>
+#include <cstring>
+#define INK_DETAIL_IS_DEBUGGER_ATTACHED() \
+  ([]() noexcept \
+  { \
+    const ::std::unique_ptr<::std::FILE, decltype(&::std::fclose)> Status(::std::fopen("/proc/self/status", "r"), &::std::fclose); \
+    if (!Status) \
+    { \
+      return false; \
+    } \
+    char Line[256]; \
+    while (::std::fgets(Line, sizeof(Line), Status.get())) \
+    { \
+      if (::std::strncmp(Line, "TracerPid:", 10) == 0) \
+      { \
+        return ::std::strtol(Line + 10, nullptr, 10) > 0; \
+      } \
+    } \
+    return false; \
+  }())
+#elif INK_PLATFORM_MACOS || INK_PLATFORM_IOS
+#include <csignal>
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#include <unistd.h>
+#define INK_DETAIL_IS_DEBUGGER_ATTACHED() \
+  ([]() noexcept \
+  { \
+    ::kinfo_proc Info{}; \
+    ::std::size_t Size = sizeof(Info); \
+    int Query[] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, ::getpid()}; \
+    return ::sysctl(Query, 4, &Info, &Size, nullptr, 0) == 0 && (Info.kp_proc.p_flag & P_TRACED) != 0; \
+  }())
+#else
+#define INK_DETAIL_IS_DEBUGGER_ATTACHED() false
+#endif
 
-  namespace detail
-  {
-    [[noreturn]] void checkFailed(const char *Expression, const char *File, int Line, std::string_view Message = {}) noexcept;
-    void ensureFailed(const char *Expression, const char *File, int Line, std::string_view Message = {}) noexcept;
-  } // namespace detail
-} // namespace ink::core
+#if INK_PLATFORM_WINDOWS
+#if INK_COMPILER_MSVC_ABI
+#define INK_DETAIL_DEBUG_BREAK() __debugbreak()
+#else
+#define INK_DETAIL_DEBUG_BREAK() ::DebugBreak()
+#endif
+#elif INK_PLATFORM_LINUX || INK_PLATFORM_ANDROID || INK_PLATFORM_MACOS || INK_PLATFORM_IOS
+#if INK_COMPILER_CLANG
+#define INK_DETAIL_DEBUG_BREAK() __builtin_debugtrap()
+#else
+#define INK_DETAIL_DEBUG_BREAK() static_cast<void>(::std::raise(SIGTRAP))
+#endif
+#else
+#define INK_DETAIL_DEBUG_BREAK() static_cast<void>(0)
+#endif
 
-#define PANIC(Message) ::ink::core::panic((Message), __FILE__, __LINE__)
+// Keep the trap at the macro expansion so the debugger stops at the failing call site.
+#define INK_DETAIL_DEBUG_BREAK_IF_ATTACHED() (INK_DETAIL_IS_DEBUGGER_ATTACHED() ? INK_DETAIL_DEBUG_BREAK() : static_cast<void>(0))
+
+#if INK_COMPILER_MSVC_ABI
+// The message is already flushed; terminate without CRT dialogs or duplicate output.
+#define INK_DETAIL_ABORT() (::_set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT), ::std::abort())
+#else
+#define INK_DETAIL_ABORT() ::std::abort()
+#endif
+
+// Writes and flushes a fatal message before aborting, independently of installed loggers.
+#define PANIC(Message) \
+  ([](::std::string_view InkPanicMessage) noexcept \
+  { \
+    const auto InkPanicSink = ::std::make_shared<::spdlog::sinks::stderr_sink_mt>(); \
+    ::spdlog::logger InkPanicLogger("ink-panic", InkPanicSink); \
+    InkPanicLogger.set_pattern("%v"); \
+    InkPanicLogger.critical("{}\npanic at {}:{}", InkPanicMessage, __FILE__, __LINE__); \
+    InkPanicLogger.flush(); \
+  }((Message)), INK_DETAIL_DEBUG_BREAK_IF_ATTACHED(), INK_DETAIL_ABORT())
 
 // One switch controls check and ensure reporting and debugger breaks, independently of NDEBUG.
 #define INK_ENABLE_ASSERTIONS (INK_BUILD_DEBUG || INK_BUILD_DEVELOPMENT)
@@ -30,7 +108,10 @@ namespace ink::core
   { \
     if (!static_cast<bool>(Expression)) \
     { \
-      ::ink::core::detail::checkFailed(#Expression, __FILE__, __LINE__, __VA_ARGS__); \
+      PANIC([](::std::string_view InkCheckMessage) noexcept \
+      { \
+        return InkCheckMessage.empty() ? ::fmt::format("check failed: {}", #Expression) : ::fmt::format("check failed: {}\n{}", #Expression, InkCheckMessage); \
+      }(__VA_ARGS__)); \
     } \
   } while (false)
 
@@ -56,7 +137,22 @@ namespace ink::core
     return !Reported.test_and_set(::std::memory_order_relaxed); \
   }())
 
-#define INK_DETAIL_ENSURE(Expression, Always, ...) (static_cast<bool>(Expression) || (((Always) || INK_DETAIL_ENSURE_ONCE()) && (::ink::core::detail::ensureFailed(#Expression, __FILE__, __LINE__, __VA_ARGS__), false)))
+#define INK_DETAIL_ENSURE(Expression, Always, ...) \
+  (static_cast<bool>(Expression) || (((Always) || INK_DETAIL_ENSURE_ONCE()) && ([](::std::string_view InkEnsureMessage) noexcept \
+  { \
+    const auto InkEnsureSink = ::std::make_shared<::spdlog::sinks::stderr_sink_mt>(); \
+    ::spdlog::logger InkEnsureLogger("ink-ensure", InkEnsureSink); \
+    InkEnsureLogger.set_pattern("%v"); \
+    if (InkEnsureMessage.empty()) \
+    { \
+      InkEnsureLogger.error("ensure failed: {}\nensure at {}:{}", #Expression, __FILE__, __LINE__); \
+    } \
+    else \
+    { \
+      InkEnsureLogger.error("ensure failed: {}\n{}\nensure at {}:{}", #Expression, InkEnsureMessage, __FILE__, __LINE__); \
+    } \
+    InkEnsureLogger.flush(); \
+  }(__VA_ARGS__), INK_DETAIL_DEBUG_BREAK_IF_ATTACHED(), false)))
 
 // All ensures return bool and evaluate their condition exactly once, including after a prior failure.
 // Message arguments are evaluated only when a failure is actually reported. Normal ensures report
