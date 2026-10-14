@@ -5,7 +5,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class Module;
 
   // Describes a variable declaration template and the type of its instantiated values.
   class GenericVarType final : public GenericType
@@ -15,7 +15,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class Module;
 
       // Owns the generic parameter list and borrows its types and ValueType.
       // A null ValueType is preserved for declarations awaiting semantic resolution.

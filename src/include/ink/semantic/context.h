@@ -5,7 +5,6 @@
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/ir/builder/ir_builder.h"
 #include "ink/ir/module/module.h"
-#include "ink/ir/type/type_context.h"
 
 #include <cstddef>
 #include <utility>
@@ -20,8 +19,8 @@ namespace ink::semantic
     public:
       explicit SemanticContext(core::SourceManager &Sources, core::DiagnosticEngine &Diagnostics, target::TargetContext Target)
           : Frontend(Sources, Diagnostics),
-            Types(Target),
-            Builder(Types)
+            Module(Target),
+            Builder(Module)
       {
       }
 
@@ -40,9 +39,9 @@ namespace ink::semantic
         return Self.Frontend.sourceManager();
       }
 
-      auto &typeContext(this auto &&Self) noexcept
+      auto &typePool(this auto &&Self) noexcept
       {
-        return Self.Types;
+        return Self.Module.typePool();
       }
 
       auto &module(this auto &&Self) noexcept
@@ -66,8 +65,7 @@ namespace ink::semantic
       friend class Analyzer;
 
       frontend::FrontendContext Frontend;
-      // Reverse destruction order releases the builder, then the module, then its borrowed types and constants.
-      ir::TypeContext Types;
+      // The builder is destroyed before its module, which owns all IR types and constants.
       ir::Module Module;
       ir::IRBuilder Builder;
       core::SourceId Source;

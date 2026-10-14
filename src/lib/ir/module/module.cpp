@@ -1,5 +1,5 @@
 #include "ink/ir/module/module.h"
-#include "ink/ir/type/builtin_type/void_type.h"
+#include "../type/type_layout.h"
 
 #include <utility>
 
@@ -13,13 +13,80 @@ namespace ink::ir
     }
   } // namespace
 
-  Module::Module(core::Name Name, PackagePath Package) noexcept
-      : Name(Name),
+  Module::Module(target::TargetContext Target, core::Name Name, PackagePath Package)
+      : Target(Target),
+        Types(*this),
+        Constants(*this),
+        Name(Name),
         Package(std::move(Package))
   {
   }
 
-  Module::~Module() noexcept = default;
+  Module::~Module() noexcept
+  {
+    // Release every body while all field metadata, constants and types remain alive.
+    GlobalFunctions.clear();
+    for (const auto &TypeValue : Classes)
+    {
+      TypeValue->Methods.clear();
+    }
+    for (const auto &TypeValue : Interfaces)
+    {
+      TypeValue->Methods.clear();
+    }
+    for (const auto &TypeValue : Structs)
+    {
+      TypeValue->Methods.clear();
+    }
+    GlobalVariables.clear();
+    for (const auto &TypeValue : Classes)
+    {
+      TypeValue->Fields.clear();
+    }
+    for (const auto &TypeValue : Interfaces)
+    {
+      TypeValue->Fields.clear();
+    }
+    for (const auto &TypeValue : Structs)
+    {
+      TypeValue->Fields.clear();
+    }
+  }
+
+  const target::TargetContext &Module::targetContext() const noexcept
+  {
+    return Target;
+  }
+
+  bool Module::ownsType(const Type *TypeValue) const noexcept
+  {
+    if (Types.owns(TypeValue))
+    {
+      return true;
+    }
+    for (const auto &DeclaredType : Classes)
+    {
+      if (DeclaredType.get() == TypeValue)
+      {
+        return true;
+      }
+    }
+    for (const auto &DeclaredType : Interfaces)
+    {
+      if (DeclaredType.get() == TypeValue)
+      {
+        return true;
+      }
+    }
+    for (const auto &DeclaredType : Structs)
+    {
+      if (DeclaredType.get() == TypeValue)
+      {
+        return true;
+      }
+    }
+    return false;
+  }
 
   core::Name Module::name() const noexcept
   {
@@ -47,6 +114,10 @@ namespace ink::ir
     {
       return false;
     }
+    if (Type::classof(Declaration) && ownsType(static_cast<const Type *>(Declaration)))
+    {
+      return true;
+    }
     for (const auto &Variable : GlobalVariables)
     {
       if (Variable.get() == Declaration)
@@ -66,32 +137,7 @@ namespace ink::ir
 
   bool Module::contains(const Value *Declaration) const noexcept
   {
-    if (owns(Declaration))
-    {
-      return true;
-    }
-    for (const auto *ClassValue : Classes)
-    {
-      if (ClassValue == Declaration)
-      {
-        return true;
-      }
-    }
-    for (const auto *InterfaceValue : Interfaces)
-    {
-      if (InterfaceValue == Declaration)
-      {
-        return true;
-      }
-    }
-    for (const auto *StructValue : Structs)
-    {
-      if (StructValue == Declaration)
-      {
-        return true;
-      }
-    }
-    return false;
+    return owns(Declaration);
   }
 
   const std::vector<std::unique_ptr<GlobalVariable>> &Module::globalVariables() const noexcept
@@ -106,12 +152,16 @@ namespace ink::ir
 
   GlobalVariable *Module::createGlobalVariable(const Type &VariableType, core::Name VariableName)
   {
+    if (!ownsType(&VariableType))
+    {
+      return nullptr;
+    }
     return appendGlobalVariable(std::make_unique<GlobalVariable>(VariableType, VariableName));
   }
 
   GlobalVariable *Module::appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable)
   {
-    if (!Variable)
+    if (!Variable || !ownsType(Variable->type()) || (Variable->hasInitializer() && !Constants.owns(Variable->initializer())))
     {
       return nullptr;
     }
@@ -132,12 +182,16 @@ namespace ink::ir
 
   Function *Module::createGlobalFunction(const FunctionType &Signature, core::Name FunctionName, SymbolLinkage SymbolLink, LanguageLinkage LanguageLink, FunctionVisibility Visibility)
   {
+    if (!ownsType(&Signature))
+    {
+      return nullptr;
+    }
     return appendGlobalFunction(std::make_unique<Function>(Signature, FunctionName, SymbolLink, LanguageLink, Visibility));
   }
 
   Function *Module::appendGlobalFunction(std::unique_ptr<Function> Callable)
   {
-    if (!Callable)
+    if (!Callable || !ownsType(Callable->functionType()))
     {
       return nullptr;
     }
@@ -166,7 +220,7 @@ namespace ink::ir
     return true;
   }
 
-  const std::vector<const ClassType *> &Module::classes() const noexcept
+  const std::vector<std::unique_ptr<ClassType>> &Module::classes() const noexcept
   {
     return Classes;
   }
@@ -176,25 +230,19 @@ namespace ink::ir
     return Classes.size();
   }
 
-  const ClassType *Module::classType(std::size_t Index) const noexcept
+  ClassType *Module::createClassType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name)
   {
-    return Index < Classes.size() ? Classes[Index] : nullptr;
-  }
-
-  bool Module::addClass(const ClassType &DeclaredType)
-  {
-    for (const auto *ClassValue : Classes)
+    if (!detail::validAlignment(Alignment))
     {
-      if (ClassValue == &DeclaredType)
-      {
-        return false;
-      }
+      return nullptr;
     }
-    Classes.push_back(&DeclaredType);
-    return true;
+    auto DeclaredType = std::unique_ptr<ClassType>(new ClassType(*this, Size, Alignment, Name));
+    ClassType *Result = DeclaredType.get();
+    Classes.push_back(std::move(DeclaredType));
+    return Result;
   }
 
-  const std::vector<const InterfaceType *> &Module::interfaces() const noexcept
+  const std::vector<std::unique_ptr<InterfaceType>> &Module::interfaces() const noexcept
   {
     return Interfaces;
   }
@@ -204,25 +252,19 @@ namespace ink::ir
     return Interfaces.size();
   }
 
-  const InterfaceType *Module::interfaceType(std::size_t Index) const noexcept
+  InterfaceType *Module::createInterfaceType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name)
   {
-    return Index < Interfaces.size() ? Interfaces[Index] : nullptr;
-  }
-
-  bool Module::addInterface(const InterfaceType &DeclaredType)
-  {
-    for (const auto *InterfaceValue : Interfaces)
+    if (!detail::validAlignment(Alignment))
     {
-      if (InterfaceValue == &DeclaredType)
-      {
-        return false;
-      }
+      return nullptr;
     }
-    Interfaces.push_back(&DeclaredType);
-    return true;
+    auto DeclaredType = std::unique_ptr<InterfaceType>(new InterfaceType(*this, Size, Alignment, Name));
+    InterfaceType *Result = DeclaredType.get();
+    Interfaces.push_back(std::move(DeclaredType));
+    return Result;
   }
 
-  const std::vector<const StructType *> &Module::structs() const noexcept
+  const std::vector<std::unique_ptr<StructType>> &Module::structs() const noexcept
   {
     return Structs;
   }
@@ -232,21 +274,15 @@ namespace ink::ir
     return Structs.size();
   }
 
-  const StructType *Module::structType(std::size_t Index) const noexcept
+  StructType *Module::createStructType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name)
   {
-    return Index < Structs.size() ? Structs[Index] : nullptr;
-  }
-
-  bool Module::addStruct(const StructType &DeclaredType)
-  {
-    for (const auto *StructValue : Structs)
+    if (!detail::validAlignment(Alignment))
     {
-      if (StructValue == &DeclaredType)
-      {
-        return false;
-      }
+      return nullptr;
     }
-    Structs.push_back(&DeclaredType);
-    return true;
+    auto DeclaredType = std::unique_ptr<StructType>(new StructType(*this, Size, Alignment, Name));
+    StructType *Result = DeclaredType.get();
+    Structs.push_back(std::move(DeclaredType));
+    return Result;
   }
 } // namespace ink::ir

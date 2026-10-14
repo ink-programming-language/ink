@@ -2,8 +2,8 @@
 
 namespace ink::ir
 {
-  InterfaceType::InterfaceType(const TypeContext &Context, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
-      : NominalType(ValueKind::Interface, Context, Size, Alignment, Name)
+  InterfaceType::InterfaceType(const Module &Owner, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
+      : NominalType(ValueKind::Interface, Owner, Size, Alignment, Name)
   {
   }
 

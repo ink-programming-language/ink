@@ -1,22 +1,16 @@
-#ifndef INK_IR_TYPE_TYPE_CONTEXT_H
-#define INK_IR_TYPE_TYPE_CONTEXT_H
+#ifndef INK_IR_TYPE_TYPE_POOL_H
+#define INK_IR_TYPE_TYPE_POOL_H
 
-#include "ink/core/name/name.h"
-#include "ink/ir/constant/constant_pool.h"
-#include "ink/target/target_context.h"
-#include "ink/ir/type/structure_type/array_type.h"
 #include "ink/ir/type/builtin_type/bool_type.h"
-#include "ink/ir/type/nominal_type/class_type.h"
 #include "ink/ir/type/builtin_type/float_type.h"
-#include "ink/ir/type/structure_type/function_type.h"
 #include "ink/ir/type/builtin_type/integer_type.h"
-#include "ink/ir/type/nominal_type/interface_type.h"
 #include "ink/ir/type/builtin_type/null_pointer_type.h"
-#include "ink/ir/type/structure_type/pointer_type.h"
-#include "ink/ir/type/structure_type/reference_type.h"
-#include "ink/ir/type/nominal_type/struct_type.h"
 #include "ink/ir/type/builtin_type/variadic_type.h"
 #include "ink/ir/type/builtin_type/void_type.h"
+#include "ink/ir/type/structure_type/array_type.h"
+#include "ink/ir/type/structure_type/function_type.h"
+#include "ink/ir/type/structure_type/pointer_type.h"
+#include "ink/ir/type/structure_type/reference_type.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -27,29 +21,21 @@
 
 namespace ink::ir
 {
-  // Owns types with fixed layouts and their unique ConstantPool for one shared lifetime.
-  // Nominal metadata can be built and then frozen.
-  // Returned pointers are borrowed and remain valid until this context is destroyed; external IR users must die first.
-  // Teardown releases nominal methods, field metadata, constants and finally types, in that order.
-  // A context is not thread-safe and types from different contexts cannot be mixed.
-  class TypeContext final
+  class Module;
+
+  // Owns and canonicalizes builtin and structural types for its containing module.
+  // Nominal operands must belong to that module; returned pointers remain valid until the module is destroyed.
+  // Operations require external synchronization.
+  class TypePool final
   {
     public:
-      explicit TypeContext(target::TargetContext Target);
-      ~TypeContext() noexcept;
+      TypePool(const TypePool &) = delete;
+      TypePool &operator=(const TypePool &) = delete;
+      TypePool(TypePool &&) = delete;
+      TypePool &operator=(TypePool &&) = delete;
 
-      TypeContext(const TypeContext &) = delete;
-      TypeContext &operator=(const TypeContext &) = delete;
-      TypeContext(TypeContext &&) = delete;
-      TypeContext &operator=(TypeContext &&) = delete;
-
-      const target::TargetContext &targetContext() const noexcept;
-
-      auto &constantPool(this auto &&Self) noexcept
-      {
-        return Self.Constants;
-      }
-
+      const Module &module() const noexcept;
+      // Includes only pooled builtin and structural types, excluding the module's nominal types.
       bool owns(const Type *TypeValue) const noexcept;
 
       const VoidType *getVoidType() const noexcept;
@@ -69,14 +55,7 @@ namespace ink::ir
       const IntegerType *getIntegerType(std::uint32_t Width, bool Signed) const noexcept;
       const FloatType *getFloatType(std::uint32_t Width) const noexcept;
 
-      // Each creation has a distinct nominal identity, even for equal layouts.
-      // Size is preserved in bytes; zero or non-power-of-two alignment returns nullptr.
-      // Type names, fields and owned methods remain editable until freeze(); function names/bodies are not frozen and layouts never change.
-      ClassType *createClassType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
-      InterfaceType *createInterfaceType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
-      StructType *createStructType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
-
-      // Structural types are reused. Null or foreign-context operands return nullptr.
+      // Structural types are reused. Null or foreign-module operands return nullptr.
       const PointerType *getPointerType(const Type *PointeeType);
       const ReferenceType *getReferenceType(const Type *ReferencedType);
       // Missing/invalid element layout or size overflow also returns nullptr.
@@ -86,6 +65,11 @@ namespace ink::ir
       const FunctionType *getFunctionType(const Type *ReturnType, std::vector<const Type *> Parameters = {});
 
     private:
+      friend class Module;
+
+      explicit TypePool(Module &Owner);
+      ~TypePool() noexcept;
+
       struct FunctionKey
       {
           const Type *ReturnType;
@@ -104,7 +88,7 @@ namespace ink::ir
 
       bool validParameters(const std::vector<const Type *> &Parameters) const noexcept;
 
-      const target::TargetContext Target;
+      const Module &Owner;
       VoidType Void;
       VariadicType Variadic;
       BoolType Bool;
@@ -122,8 +106,6 @@ namespace ink::ir
       std::unordered_map<const Type *, const ReferenceType *> ReferenceTypes;
       std::unordered_map<const Type *, std::unordered_map<std::uint64_t, const ArrayType *>> ArrayTypes;
       std::unordered_map<FunctionKey, const FunctionType *, FunctionKeyHash> FunctionTypes;
-      // Declared last so constants are destroyed before any of their referenced types.
-      ConstantPool Constants;
   };
 } // namespace ink::ir
 

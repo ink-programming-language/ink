@@ -5,23 +5,24 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class Module;
+  class TypePool;
 
-  // The type of the context's unique null pointer literal, independent of any pointee type.
+  // The type of the module's unique null pointer literal, independent of any pointee type.
   class NullPointerType final : public Type
   {
     public:
-      const TypeContext &typeContext() const noexcept;
+      const Module &module() const noexcept;
       std::uint64_t size() const noexcept override;
       std::uint64_t alignment() const noexcept override;
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class TypePool;
 
-      explicit NullPointerType(const TypeContext &Context) noexcept;
+      explicit NullPointerType(const Module &Owner) noexcept;
 
-      const TypeContext &Context;
+      const Module &Owner;
       std::uint64_t PointerByteWidth = 0;
   };
 } // namespace ink::ir

@@ -6,7 +6,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class TypePool;
 
   class ReferenceType final : public Type
   {
@@ -17,7 +17,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class TypePool;
 
       // ReferencedType is a non-null borrowed pointer and must outlive the reference type.
       ReferenceType(const target::TargetContext &Target, const Type *ReferencedType) noexcept;

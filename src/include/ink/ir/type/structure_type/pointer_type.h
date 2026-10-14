@@ -6,7 +6,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class TypePool;
 
   class PointerType final : public Type
   {
@@ -21,7 +21,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class TypePool;
 
       // PointeeType is a non-null borrowed pointer and must outlive the pointer type.
       PointerType(const target::TargetContext &Target, const Type *PointeeType) noexcept;

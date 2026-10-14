@@ -2,8 +2,8 @@
 
 namespace ink::ir
 {
-  ClassType::ClassType(const TypeContext &Context, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
-      : NominalType(ValueKind::Class, Context, Size, Alignment, Name)
+  ClassType::ClassType(const Module &Owner, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
+      : NominalType(ValueKind::Class, Owner, Size, Alignment, Name)
   {
   }
 

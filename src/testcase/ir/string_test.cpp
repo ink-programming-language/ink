@@ -3,7 +3,7 @@
 #include "ink/ir/module/global_variable.h"
 #include "ink/ir/type/nominal_type/field.h"
 #include "ink/ir/type/structure_type/function_type.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 #include "ink/target/target_context.h"
 
 #include <gtest/gtest.h>
@@ -30,7 +30,7 @@ namespace ink::ir::test
       for (const target::ByteOrder Order : {target::ByteOrder::LittleEndian, target::ByteOrder::BigEndian})
       {
         const target::TargetContext Target(Width, Order);
-        TypeContext Types(Target);
+        Module Types(Target);
         const auto Text = Types.constantPool().getStringConstant("hello, world\n");
         ASSERT_NE(Text, nullptr);
         const Type *TypeValue = Text->type();
@@ -38,7 +38,7 @@ namespace ink::ir::test
         EXPECT_TRUE(TypeValue->hasLayout());
         EXPECT_EQ(TypeValue->size(), 13U);
         EXPECT_EQ(TypeValue->alignment(), 1U);
-        EXPECT_EQ(TypeValue, Types.getArrayType(Types.getUInt8Type(), 13));
+        EXPECT_EQ(TypeValue, Types.typePool().getArrayType(Types.typePool().getUInt8Type(), 13));
         EXPECT_EQ(Text->byteLength(), 13U);
         EXPECT_EQ(Text->value(), "hello, world\n");
       }
@@ -48,7 +48,7 @@ namespace ink::ir::test
   // Empty text and UTF-8 scalar boundaries produce arrays whose element counts and storage sizes equal the encoded byte length.
   TEST(IRStringTest, ContentLengthCountsUtf8Bytes)
   {
-    TypeContext Types(Target64);
+    Module Types(Target64);
     auto &Constants = Types.constantPool();
     constexpr std::string_view Contents[] = {
         "",
@@ -61,13 +61,13 @@ namespace ink::ir::test
     {
       const auto Text = Constants.getStringConstant(std::string(Expected));
       ASSERT_NE(Text, nullptr);
-      EXPECT_EQ(Text->type(), Types.getArrayType(Types.getUInt8Type(), Expected.size()));
+      EXPECT_EQ(Text->type(), Types.typePool().getArrayType(Types.typePool().getUInt8Type(), Expected.size()));
       EXPECT_EQ(Text->value(), Expected);
       EXPECT_EQ(Text->byteLength(), Expected.size());
       EXPECT_EQ(Text->type()->size(), Expected.size());
       ASSERT_TRUE(ArrayType::classof(Text->type()));
       const auto Array = static_cast<const ArrayType *>(Text->type());
-      EXPECT_EQ(Array->elementType(), Types.getUInt8Type());
+      EXPECT_EQ(Array->elementType(), Types.typePool().getUInt8Type());
       EXPECT_EQ(Array->elementCount(), Expected.size());
     }
     const auto Chinese = Constants.getStringConstant("\xE4\xBD\xA0\xE5\xA5\xBD");
@@ -82,7 +82,7 @@ namespace ink::ir::test
   // String constants preserve embedded NUL, BOM, literal escape text and distinct normalization forms without rewriting content.
   TEST(IRStringTest, PreservesExactValidBytes)
   {
-    TypeContext Types(Target64);
+    Module Types(Target64);
     auto &Constants = Types.constantPool();
     const std::string_view EmbeddedNul("a\0b", 3);
     const auto BinarySafe = Constants.getStringConstant(std::string(EmbeddedNul));
@@ -107,7 +107,7 @@ namespace ink::ir::test
   // Constants own both copied and moved text after the caller changes or destroys its source buffer.
   TEST(IRStringTest, OwnsCopiedAndMovedContent)
   {
-    TypeContext Types(Target64);
+    Module Types(Target64);
     auto &Constants = Types.constantPool();
     std::string Source = "original";
     const auto Copied = Constants.getStringConstant(Source);
@@ -128,7 +128,7 @@ namespace ink::ir::test
   // Construction rejects malformed UTF-8, including invalid bytes after NUL and Unicode surrogate or range violations.
   TEST(IRStringTest, RejectsInvalidUtf8)
   {
-    TypeContext Types(Target64);
+    Module Types(Target64);
     auto &Constants = Types.constantPool();
     const std::string_view InvalidContents[] = {
         "\x80",
@@ -160,7 +160,7 @@ namespace ink::ir::test
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      TypeContext Types(Target);
+      Module Types(Target);
       auto &Constants = Types.constantPool();
       const auto First = Constants.getStringConstant("first");
       const auto Second = Constants.getStringConstant("other");
@@ -168,13 +168,13 @@ namespace ink::ir::test
       ASSERT_NE(First, nullptr);
       ASSERT_NE(Second, nullptr);
       ASSERT_NE(Longer, nullptr);
-      const auto Bytes = Types.getArrayType(Types.getUInt8Type(), 5);
+      const auto Bytes = Types.typePool().getArrayType(Types.typePool().getUInt8Type(), 5);
       EXPECT_EQ(First->type(), Bytes);
       EXPECT_EQ(Second->type(), Bytes);
       EXPECT_NE(First, Second);
       EXPECT_NE(Longer->type(), Bytes);
-      const auto Array = Types.getArrayType(Bytes, 2);
-      const auto Function = Types.getFunctionType(Bytes, {Bytes});
+      const auto Array = Types.typePool().getArrayType(Bytes, 2);
+      const auto Function = Types.typePool().getFunctionType(Bytes, {Bytes});
       ASSERT_NE(Array, nullptr);
       ASSERT_NE(Function, nullptr);
       const auto Values = Constants.getArrayConstant(Array, {First, Second});
@@ -194,13 +194,13 @@ namespace ink::ir::test
   // String initializers use ordinary u8 array compatibility for globals and fields, including a zero-byte array.
   TEST(IRStringTest, InitializesMatchingByteArrays)
   {
-    TypeContext Types(Target64);
+    Module Types(Target64);
     auto &Constants = Types.constantPool();
     const core::Name Name = core::NamePool::instance().intern("IRStringTest.Text");
     for (const std::string_view Contents : {std::string_view(), std::string_view("hello"), std::string_view("\xE4\xB8\xAD")})
     {
       const auto Text = Constants.getStringConstant(std::string(Contents));
-      const auto Bytes = Types.getArrayType(Types.getUInt8Type(), Contents.size());
+      const auto Bytes = Types.typePool().getArrayType(Types.typePool().getUInt8Type(), Contents.size());
       ASSERT_NE(Text, nullptr);
       ASSERT_NE(Bytes, nullptr);
       EXPECT_TRUE(Text->canInitialize(Bytes));
@@ -216,18 +216,18 @@ namespace ink::ir::test
     }
   }
 
-  // Mismatched lengths, non-byte elements and foreign-context text are rejected without replacing an existing initializer.
+  // Mismatched lengths, non-byte elements and foreign-module text are rejected without replacing an existing initializer.
   TEST(IRStringTest, RejectsIncompatibleAndForeignByteArrays)
   {
-    TypeContext Types(Target64);
-    TypeContext OtherTypes(Target64);
+    Module Types(Target64);
+    Module OtherTypes(Target64);
     auto &Constants = Types.constantPool();
     const auto Text = Constants.getStringConstant("hello");
     const auto Short = Constants.getStringConstant("hell");
     const auto Foreign = OtherTypes.constantPool().getStringConstant("hello");
-    const auto Bytes = Types.getArrayType(Types.getUInt8Type(), 5);
-    const auto BoolArray = Types.getArrayType(Types.getBoolType(), 5);
-    const auto OtherBytes = OtherTypes.getArrayType(OtherTypes.getUInt8Type(), 5);
+    const auto Bytes = Types.typePool().getArrayType(Types.typePool().getUInt8Type(), 5);
+    const auto BoolArray = Types.typePool().getArrayType(Types.typePool().getBoolType(), 5);
+    const auto OtherBytes = OtherTypes.typePool().getArrayType(OtherTypes.typePool().getUInt8Type(), 5);
     const core::Name Name = core::NamePool::instance().intern("IRStringTest.Text");
     ASSERT_NE(Text, nullptr);
     ASSERT_NE(Short, nullptr);
@@ -245,7 +245,7 @@ namespace ink::ir::test
     EXPECT_FALSE(Field(Bytes, Name, 0, Short).valid());
     EXPECT_FALSE(Field(Bytes, Name, 0, Foreign).valid());
     EXPECT_FALSE(Field(BoolArray, Name, 0, Text).valid());
-    const auto Array = Types.getArrayType(Bytes, 1);
+    const auto Array = Types.typePool().getArrayType(Bytes, 1);
     ASSERT_NE(Array, nullptr);
     EXPECT_EQ(Constants.getArrayConstant(Array, {Foreign}), nullptr);
     EXPECT_EQ(Constants.getArrayConstant(Array, {Short}), nullptr);

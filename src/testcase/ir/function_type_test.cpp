@@ -5,7 +5,7 @@
 #include "ink/ir/type/structure_type/function_type.h"
 #include "ink/ir/type/builtin_type/integer_type.h"
 #include "ink/ir/type/structure_type/pointer_type.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
@@ -34,9 +34,9 @@ namespace ink::ir::test
   // Omitting parameters creates a valid zero-argument signature with the supplied return type.
   TEST(IRFunctionTypeTest, EmptySignaturePreservesReturnType)
   {
-    TypeContext Types(Target64);
-    const auto Bool = Types.getBoolType();
-    const auto Function = Types.getFunctionType(Bool);
+    Module Types(Target64);
+    const auto Bool = Types.typePool().getBoolType();
+    const auto Function = Types.typePool().getFunctionType(Bool);
     ASSERT_NE(Function, nullptr);
     EXPECT_EQ(Function->kind(), ValueKind::FunctionType);
     EXPECT_EQ(Function->returnType(), Bool);
@@ -47,16 +47,16 @@ namespace ink::ir::test
   // Mixed parameter kinds retain their order and repeated type identities alongside an aggregate return type.
   TEST(IRFunctionTypeTest, SignaturePreservesParameterOrderAndDuplicates)
   {
-    TypeContext Types(Target64);
-    const auto Bool = Types.getBoolType();
-    const auto Integer = Types.getIntegerType(32, true);
-    const auto Float = Types.getFloatType(64);
-    const auto Result = Types.getArrayType(Types.getInt64Type(), 3);
+    Module Types(Target64);
+    const auto Bool = Types.typePool().getBoolType();
+    const auto Integer = Types.typePool().getIntegerType(32, true);
+    const auto Float = Types.typePool().getFloatType(64);
+    const auto Result = Types.typePool().getArrayType(Types.typePool().getInt64Type(), 3);
     ASSERT_NE(Integer, nullptr);
     ASSERT_NE(Float, nullptr);
     ASSERT_NE(Result, nullptr);
     const std::vector<const Type *> Expected = {Integer, Bool, Float, Integer};
-    const auto Function = Types.getFunctionType(Result, Expected);
+    const auto Function = Types.typePool().getFunctionType(Result, Expected);
     ASSERT_NE(Function, nullptr);
     EXPECT_EQ(Function->returnType(), Result);
     EXPECT_EQ(Function->parameterCount(), Expected.size());
@@ -66,15 +66,15 @@ namespace ink::ir::test
   // Copying a type list preserves its entries after the source vector is changed and destroyed.
   TEST(IRFunctionTypeTest, SignatureOwnsCopiedParameterList)
   {
-    TypeContext Types(Target64);
-    const auto Bool = Types.getBoolType();
-    const auto Integer = Types.getIntegerType(32, false);
+    Module Types(Target64);
+    const auto Bool = Types.typePool().getBoolType();
+    const auto Integer = Types.typePool().getIntegerType(32, false);
     ASSERT_NE(Integer, nullptr);
     const std::vector<const Type *> Expected = {Bool, Integer, Bool};
     const FunctionType *Function = nullptr;
     {
       std::vector<const Type *> Parameters = Expected;
-      Function = Types.getFunctionType(Integer, Parameters);
+      Function = Types.typePool().getFunctionType(Integer, Parameters);
       ASSERT_NE(Function, nullptr);
       Parameters[0] = Integer;
       Parameters.clear();
@@ -88,15 +88,15 @@ namespace ink::ir::test
   // Moving a type list preserves its entries without retaining a dependency on the source container.
   TEST(IRFunctionTypeTest, SignatureOwnsMovedParameterList)
   {
-    TypeContext Types(Target64);
-    const auto Bool = Types.getBoolType();
-    const auto Pointer = Types.getPointerType(Bool);
+    Module Types(Target64);
+    const auto Bool = Types.typePool().getBoolType();
+    const auto Pointer = Types.typePool().getPointerType(Bool);
     ASSERT_NE(Pointer, nullptr);
     const std::vector<const Type *> Expected = {Pointer, Bool};
     const FunctionType *Function = nullptr;
     {
       std::vector<const Type *> Parameters = Expected;
-      Function = Types.getFunctionType(Bool, std::move(Parameters));
+      Function = Types.typePool().getFunctionType(Bool, std::move(Parameters));
       ASSERT_NE(Function, nullptr);
       Parameters.assign(3, Bool);
     }
@@ -108,16 +108,16 @@ namespace ink::ir::test
   // Missing return types and null parameters at any position report failure explicitly.
   TEST(IRFunctionTypeTest, RejectsNullSignatureTypes)
   {
-    TypeContext Types(Target64);
-    const auto Bool = Types.getBoolType();
-    EXPECT_EQ(Types.getFunctionType(nullptr), nullptr);
-    EXPECT_EQ(Types.getFunctionType(nullptr, {Bool}), nullptr);
-    EXPECT_EQ(Types.getFunctionType(Bool, {nullptr}), nullptr);
+    Module Types(Target64);
+    const auto Bool = Types.typePool().getBoolType();
+    EXPECT_EQ(Types.typePool().getFunctionType(nullptr), nullptr);
+    EXPECT_EQ(Types.typePool().getFunctionType(nullptr, {Bool}), nullptr);
+    EXPECT_EQ(Types.typePool().getFunctionType(Bool, {nullptr}), nullptr);
     for (std::size_t Index = 0; Index < 3; ++Index)
     {
       std::vector<const Type *> Parameters(3, Bool);
       Parameters[Index] = nullptr;
-      EXPECT_EQ(Types.getFunctionType(Bool, std::move(Parameters)), nullptr);
+      EXPECT_EQ(Types.typePool().getFunctionType(Bool, std::move(Parameters)), nullptr);
     }
   }
 
@@ -126,10 +126,10 @@ namespace ink::ir::test
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      TypeContext Types(Target);
-      const auto Aggregate = Types.getArrayType(Types.getInt64Type(), 3);
+      Module Types(Target);
+      const auto Aggregate = Types.typePool().getArrayType(Types.typePool().getInt64Type(), 3);
       ASSERT_NE(Aggregate, nullptr);
-      const auto Function = Types.getFunctionType(Aggregate, {Aggregate, Aggregate});
+      const auto Function = Types.typePool().getFunctionType(Aggregate, {Aggregate, Aggregate});
       ASSERT_NE(Function, nullptr);
       const Type *TypeValue = Function;
       const Value *ValueValue = Function;
@@ -145,12 +145,12 @@ namespace ink::ir::test
   // Higher-order signatures retain callable return and parameter types as well as pointers to callable types.
   TEST(IRFunctionTypeTest, SupportsNestedCallableSignatures)
   {
-    TypeContext Types(Target64);
-    const auto Bool = Types.getBoolType();
-    const auto Callback = Types.getFunctionType(Bool, {Bool});
+    Module Types(Target64);
+    const auto Bool = Types.typePool().getBoolType();
+    const auto Callback = Types.typePool().getFunctionType(Bool, {Bool});
     ASSERT_NE(Callback, nullptr);
-    const auto CallbackPointer = Types.getPointerType(Callback);
-    const auto Factory = Types.getFunctionType(Callback, {Callback, CallbackPointer});
+    const auto CallbackPointer = Types.typePool().getPointerType(Callback);
+    const auto Factory = Types.typePool().getFunctionType(Callback, {Callback, CallbackPointer});
     ASSERT_NE(Factory, nullptr);
     EXPECT_EQ(Factory->returnType(), Callback);
     ASSERT_EQ(Factory->parameterCount(), 2U);
@@ -162,17 +162,17 @@ namespace ink::ir::test
   // Function signatures reject foreign return types and a foreign parameter at any position in a type list.
   TEST(IRFunctionTypeTest, RejectsForeignSignatureTypes)
   {
-    TypeContext Types(Target64);
-    const TypeContext OtherTypes(Target64);
-    const auto Bool = Types.getBoolType();
-    const auto Foreign = OtherTypes.getBoolType();
-    EXPECT_EQ(Types.getFunctionType(Foreign), nullptr);
-    EXPECT_EQ(Types.getFunctionType(Foreign, {Bool}), nullptr);
+    Module Types(Target64);
+    const Module OtherTypes(Target64);
+    const auto Bool = Types.typePool().getBoolType();
+    const auto Foreign = OtherTypes.typePool().getBoolType();
+    EXPECT_EQ(Types.typePool().getFunctionType(Foreign), nullptr);
+    EXPECT_EQ(Types.typePool().getFunctionType(Foreign, {Bool}), nullptr);
     for (std::size_t Index = 0; Index < 3; ++Index)
     {
       std::vector<const Type *> Parameters(3, Bool);
       Parameters[Index] = Foreign;
-      EXPECT_EQ(Types.getFunctionType(Bool, std::move(Parameters)), nullptr);
+      EXPECT_EQ(Types.typePool().getFunctionType(Bool, std::move(Parameters)), nullptr);
     }
   }
 } // namespace ink::ir::test

@@ -9,7 +9,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class TypePool;
 
   // A signature whose capture-free callable value occupies one target-sized function address.
   class FunctionType final : public Type
@@ -23,7 +23,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class TypePool;
 
       // Owns the ordered parameter pointer list and borrows all referenced types.
       FunctionType(const target::TargetContext &Target, const Type *ReturnType, std::vector<const Type *> Parameters) noexcept;

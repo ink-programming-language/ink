@@ -1,5 +1,5 @@
 #include "ink/ir/constant/constant_pool.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <algorithm>
 #include <cstring>
@@ -61,20 +61,20 @@ namespace ink::ir
     return Result;
   }
 
-  ConstantPool::ConstantPool(TypeContext &Types)
-      : Types(Types),
-        False(Types.getBoolType(), false),
-        True(Types.getBoolType(), true),
-        NullPointer(Types.getNullPointerType())
+  ConstantPool::ConstantPool(Module &Owner)
+      : Owner(Owner),
+        False(Owner.typePool().getBoolType(), false),
+        True(Owner.typePool().getBoolType(), true),
+        NullPointer(Owner.typePool().getNullPointerType())
   {
     OwnedConstants.insert({&False, &True, &NullPointer});
   }
 
   ConstantPool::~ConstantPool() noexcept = default;
 
-  const TypeContext &ConstantPool::typeContext() const noexcept
+  const Module &ConstantPool::module() const noexcept
   {
-    return Types;
+    return Owner;
   }
 
   bool ConstantPool::owns(const Constant *ConstantValue) const noexcept
@@ -89,7 +89,7 @@ namespace ink::ir
 
   const IntegerConstant *ConstantPool::getIntegerConstantFromBits(const IntegerType *IntegerTypeValue, std::uint64_t Bits)
   {
-    if (!typeContext().owns(IntegerTypeValue) || (IntegerTypeValue->width() < 64 && (Bits >> IntegerTypeValue->width()) != 0))
+    if (!module().ownsType(IntegerTypeValue) || (IntegerTypeValue->width() < 64 && (Bits >> IntegerTypeValue->width()) != 0))
     {
       return nullptr;
     }
@@ -106,7 +106,7 @@ namespace ink::ir
 
   const IntegerConstant *ConstantPool::getSignedIntegerConstant(const IntegerType *IntegerTypeValue, std::int64_t Value)
   {
-    if (!typeContext().owns(IntegerTypeValue) || !IntegerTypeValue->isSigned())
+    if (!module().ownsType(IntegerTypeValue) || !IntegerTypeValue->isSigned())
     {
       return nullptr;
     }
@@ -124,7 +124,7 @@ namespace ink::ir
 
   const IntegerConstant *ConstantPool::getUnsignedIntegerConstant(const IntegerType *IntegerTypeValue, std::uint64_t Value)
   {
-    if (!typeContext().owns(IntegerTypeValue) || !IntegerTypeValue->isUnsigned())
+    if (!module().ownsType(IntegerTypeValue) || !IntegerTypeValue->isUnsigned())
     {
       return nullptr;
     }
@@ -133,7 +133,7 @@ namespace ink::ir
 
   const FloatConstant *ConstantPool::getFloatConstantFromBits(const FloatType *FloatTypeValue, std::uint64_t Bits)
   {
-    if (!typeContext().owns(FloatTypeValue) || (FloatTypeValue->width() == 32 && Bits > std::numeric_limits<std::uint32_t>::max()))
+    if (!module().ownsType(FloatTypeValue) || (FloatTypeValue->width() == 32 && Bits > std::numeric_limits<std::uint32_t>::max()))
     {
       return nullptr;
     }
@@ -152,19 +152,19 @@ namespace ink::ir
   {
     std::uint32_t Bits = 0;
     std::memcpy(&Bits, &Value, sizeof(Bits));
-    return getFloatConstantFromBits(typeContext().getFloat32Type(), Bits);
+    return getFloatConstantFromBits(module().typePool().getFloat32Type(), Bits);
   }
 
   const FloatConstant *ConstantPool::getFloatConstant(double Value)
   {
     std::uint64_t Bits = 0;
     std::memcpy(&Bits, &Value, sizeof(Bits));
-    return getFloatConstantFromBits(typeContext().getFloat64Type(), Bits);
+    return getFloatConstantFromBits(module().typePool().getFloat64Type(), Bits);
   }
 
   const ArrayConstant *ConstantPool::getArrayConstant(const ArrayType *ConstantType, std::vector<const Constant *> Elements)
   {
-    if (!typeContext().owns(ConstantType) || Elements.size() != ConstantType->elementCount())
+    if (!module().ownsType(ConstantType) || Elements.size() != ConstantType->elementCount())
     {
       return nullptr;
     }
@@ -193,7 +193,7 @@ namespace ink::ir
 
   const StringConstant *ConstantPool::getStringConstant(std::string Value)
   {
-    if (Value.size() > Types.targetContext().maximumPointerSizeValue())
+    if (Value.size() > Owner.targetContext().maximumPointerSizeValue())
     {
       return nullptr;
     }
@@ -207,7 +207,7 @@ namespace ink::ir
     {
       return nullptr;
     }
-    const ArrayType *ArrayTypeValue = Types.getArrayType(Types.getUInt8Type(), Value.size());
+    const ArrayType *ArrayTypeValue = Owner.typePool().getArrayType(Owner.typePool().getUInt8Type(), Value.size());
     if (!ArrayTypeValue)
     {
       return nullptr;

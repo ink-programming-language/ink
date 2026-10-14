@@ -5,7 +5,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class TypePool;
 
   class BoolType final : public Type
   {
@@ -15,7 +15,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class TypePool;
 
       BoolType() noexcept;
   };

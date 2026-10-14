@@ -5,7 +5,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class Module;
 
   // An interface identity with member metadata and a completed, immutable layout.
   class InterfaceType final : public NominalType
@@ -14,9 +14,9 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class Module;
 
-      InterfaceType(const TypeContext &Context, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept;
+      InterfaceType(const Module &Owner, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept;
   };
 } // namespace ink::ir
 

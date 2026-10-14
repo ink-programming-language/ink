@@ -18,11 +18,17 @@ namespace ink::ir::test
   } // namespace
 
   // Explicit object accessors retain const propagation and borrowed lvalue/pointer results on every object category.
-  static_assert(std::same_as<decltype(std::declval<IRBuilder &>().typeContext()), TypeContext &>);
-  static_assert(std::same_as<decltype(std::declval<const IRBuilder &>().typeContext()), const TypeContext &>);
-  static_assert(std::same_as<decltype(std::declval<IRBuilder &&>().typeContext()), TypeContext &>);
-  static_assert(std::same_as<decltype(std::declval<const IRBuilder &&>().typeContext()), const TypeContext &>);
-  static_assert(noexcept(std::declval<IRBuilder &>().typeContext()) && noexcept(std::declval<const IRBuilder &>().typeContext()));
+  static_assert(std::same_as<decltype(std::declval<IRBuilder &>().module()), Module &>);
+  static_assert(std::same_as<decltype(std::declval<const IRBuilder &>().module()), const Module &>);
+  static_assert(std::same_as<decltype(std::declval<IRBuilder &&>().module()), Module &>);
+  static_assert(std::same_as<decltype(std::declval<const IRBuilder &&>().module()), const Module &>);
+  static_assert(noexcept(std::declval<IRBuilder &>().module()) && noexcept(std::declval<const IRBuilder &>().module()));
+
+  static_assert(std::same_as<decltype(std::declval<IRBuilder &>().typePool()), TypePool &>);
+  static_assert(std::same_as<decltype(std::declval<const IRBuilder &>().typePool()), const TypePool &>);
+  static_assert(std::same_as<decltype(std::declval<IRBuilder &&>().typePool()), TypePool &>);
+  static_assert(std::same_as<decltype(std::declval<const IRBuilder &&>().typePool()), const TypePool &>);
+  static_assert(noexcept(std::declval<IRBuilder &>().typePool()) && noexcept(std::declval<const IRBuilder &>().typePool()));
 
   static_assert(std::same_as<decltype(std::declval<IRBuilder &>().constantPool()), ConstantPool &>);
   static_assert(std::same_as<decltype(std::declval<const IRBuilder &>().constantPool()), const ConstantPool &>);
@@ -30,11 +36,17 @@ namespace ink::ir::test
   static_assert(std::same_as<decltype(std::declval<const IRBuilder &&>().constantPool()), const ConstantPool &>);
   static_assert(noexcept(std::declval<IRBuilder &>().constantPool()) && noexcept(std::declval<const IRBuilder &>().constantPool()));
 
-  static_assert(std::same_as<decltype(std::declval<TypeContext &>().constantPool()), ConstantPool &>);
-  static_assert(std::same_as<decltype(std::declval<const TypeContext &>().constantPool()), const ConstantPool &>);
-  static_assert(std::same_as<decltype(std::declval<TypeContext &&>().constantPool()), ConstantPool &>);
-  static_assert(std::same_as<decltype(std::declval<const TypeContext &&>().constantPool()), const ConstantPool &>);
-  static_assert(noexcept(std::declval<TypeContext &>().constantPool()) && noexcept(std::declval<const TypeContext &>().constantPool()));
+  static_assert(std::same_as<decltype(std::declval<Module &>().constantPool()), ConstantPool &>);
+  static_assert(std::same_as<decltype(std::declval<const Module &>().constantPool()), const ConstantPool &>);
+  static_assert(std::same_as<decltype(std::declval<Module &&>().constantPool()), ConstantPool &>);
+  static_assert(std::same_as<decltype(std::declval<const Module &&>().constantPool()), const ConstantPool &>);
+  static_assert(noexcept(std::declval<Module &>().constantPool()) && noexcept(std::declval<const Module &>().constantPool()));
+
+  static_assert(std::same_as<decltype(std::declval<Module &>().typePool()), TypePool &>);
+  static_assert(std::same_as<decltype(std::declval<const Module &>().typePool()), const TypePool &>);
+  static_assert(std::same_as<decltype(std::declval<Module &&>().typePool()), TypePool &>);
+  static_assert(std::same_as<decltype(std::declval<const Module &&>().typePool()), const TypePool &>);
+  static_assert(noexcept(std::declval<Module &>().typePool()) && noexcept(std::declval<const Module &>().typePool()));
 
   static_assert(std::same_as<decltype(std::declval<Parameter &>().function()), Function &>);
   static_assert(std::same_as<decltype(std::declval<const Parameter &>().function()), const Function &>);
@@ -84,6 +96,24 @@ namespace ink::ir::test
   static_assert(std::same_as<decltype(std::declval<const Module &&>().globalFunction(0)), const Function *>);
   static_assert(noexcept(std::declval<Module &>().globalFunction(0)) && noexcept(std::declval<const Module &>().globalFunction(0)));
 
+  static_assert(std::same_as<decltype(std::declval<Module &>().classType(0)), ClassType *>);
+  static_assert(std::same_as<decltype(std::declval<const Module &>().classType(0)), const ClassType *>);
+  static_assert(std::same_as<decltype(std::declval<Module &&>().classType(0)), ClassType *>);
+  static_assert(std::same_as<decltype(std::declval<const Module &&>().classType(0)), const ClassType *>);
+  static_assert(noexcept(std::declval<Module &>().classType(0)) && noexcept(std::declval<const Module &>().classType(0)));
+
+  static_assert(std::same_as<decltype(std::declval<Module &>().interfaceType(0)), InterfaceType *>);
+  static_assert(std::same_as<decltype(std::declval<const Module &>().interfaceType(0)), const InterfaceType *>);
+  static_assert(std::same_as<decltype(std::declval<Module &&>().interfaceType(0)), InterfaceType *>);
+  static_assert(std::same_as<decltype(std::declval<const Module &&>().interfaceType(0)), const InterfaceType *>);
+  static_assert(noexcept(std::declval<Module &>().interfaceType(0)) && noexcept(std::declval<const Module &>().interfaceType(0)));
+
+  static_assert(std::same_as<decltype(std::declval<Module &>().structType(0)), StructType *>);
+  static_assert(std::same_as<decltype(std::declval<const Module &>().structType(0)), const StructType *>);
+  static_assert(std::same_as<decltype(std::declval<Module &&>().structType(0)), StructType *>);
+  static_assert(std::same_as<decltype(std::declval<const Module &&>().structType(0)), const StructType *>);
+  static_assert(noexcept(std::declval<Module &>().structType(0)) && noexcept(std::declval<const Module &>().structType(0)));
+
   static_assert(std::same_as<decltype(std::declval<Module &>().initializationFunction()), Function *>);
   static_assert(std::same_as<decltype(std::declval<const Module &>().initializationFunction()), const Function *>);
   static_assert(std::same_as<decltype(std::declval<Module &&>().initializationFunction()), Function *>);
@@ -102,24 +132,37 @@ namespace ink::ir::test
   static_assert(std::same_as<decltype(std::declval<const Method &&>().function()), const Function *>);
   static_assert(noexcept(std::declval<Method &>().function()) && noexcept(std::declval<const Method &>().function()));
 
-  // Accessing an rvalue owner borrows the same IR objects without moving its owned storage or contexts.
+  // Accessing an rvalue owner borrows the same IR objects without moving its owned storage or pools.
   TEST(IRAccessorConstnessTest, RvalueAccessPreservesOwnershipAndIdentity)
   {
-    TypeContext Types(Target);
-    IRBuilder Builder(Types);
-    Module Owner;
-    auto *Callable = Owner.createGlobalFunction(*Types.getFunctionType(Types.getVoidType(), {Types.getInt32Type()}));
+    Module Owner(Target);
+    Module &Types = Owner;
+    IRBuilder Builder(Owner);
+    auto *Callable = Owner.createGlobalFunction(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()}));
     auto *Entry = Callable->createBlock();
     auto *ParameterValue = Callable->parameter(0);
-    auto *Variable = Owner.createGlobalVariable(*Types.getInt32Type());
+    auto *Variable = Owner.createGlobalVariable(*Types.typePool().getInt32Type());
+    auto *Class = Owner.createClassType(8, 8);
+    auto *Interface = Owner.createInterfaceType(8, 8);
+    auto *Struct = Owner.createStructType(8, 8);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     auto *Return = Builder.createReturn();
     ASSERT_NE(Return, nullptr);
 
-    EXPECT_EQ(&std::move(Builder).typeContext(), &Types);
-    EXPECT_EQ(&std::move(std::as_const(Builder)).typeContext(), &Types);
+    EXPECT_EQ(&std::move(Builder).module(), &Types);
+    EXPECT_EQ(&std::move(std::as_const(Builder)).module(), &Types);
+    EXPECT_EQ(&std::move(Builder).typePool(), &Types.typePool());
+    EXPECT_EQ(&std::move(std::as_const(Builder)).typePool(), &Types.typePool());
     EXPECT_EQ(&std::move(Builder).constantPool(), &Types.constantPool());
     EXPECT_EQ(&std::move(std::as_const(Types)).constantPool(), &Types.constantPool());
+    EXPECT_EQ(&std::move(Owner).typePool(), &Owner.typePool());
+    EXPECT_EQ(&std::move(std::as_const(Owner)).typePool(), &Owner.typePool());
+    EXPECT_EQ(std::move(Owner).classType(0), Class);
+    EXPECT_EQ(std::move(std::as_const(Owner)).classType(0), Class);
+    EXPECT_EQ(std::move(Owner).interfaceType(0), Interface);
+    EXPECT_EQ(std::move(std::as_const(Owner)).interfaceType(0), Interface);
+    EXPECT_EQ(std::move(Owner).structType(0), Struct);
+    EXPECT_EQ(std::move(std::as_const(Owner)).structType(0), Struct);
     EXPECT_EQ(std::move(Owner).globalFunction(0), Callable);
     EXPECT_EQ(std::move(std::as_const(Owner)).globalVariable(0), Variable);
     EXPECT_EQ(std::move(*Callable).entryBlock(), Entry);
@@ -129,11 +172,14 @@ namespace ink::ir::test
     EXPECT_EQ(&std::move(std::as_const(*ParameterValue)).function(), Callable);
     EXPECT_EQ(std::move(std::as_const(*Entry)).function(), Callable);
     EXPECT_EQ(std::move(std::as_const(*Entry)).instruction(0), Return);
+    EXPECT_EQ(Owner.classCount(), 1U);
+    EXPECT_EQ(Owner.interfaceCount(), 1U);
+    EXPECT_EQ(Owner.structCount(), 1U);
     EXPECT_EQ(Owner.globalFunctionCount(), 1U);
     EXPECT_EQ(Callable->blockCount(), 1U);
     EXPECT_EQ(Entry->instructionCount(), 1U);
 
-    auto *Lifecycle = Owner.createGlobalFunction(*Types.getFunctionType(Types.getVoidType()));
+    auto *Lifecycle = Owner.createGlobalFunction(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     ASSERT_TRUE(Owner.setInitializationFunction(Lifecycle));
     ASSERT_TRUE(Owner.setDeinitializationFunction(Lifecycle));
     EXPECT_EQ(std::move(Owner).initializationFunction(), Lifecycle);
@@ -149,15 +195,21 @@ namespace ink::ir::test
   // Const-propagating pointer access never dereferences absent parents, moved-from methods or out-of-range entries.
   TEST(IRAccessorConstnessTest, NullableAndIndexedAccessPreservesNull)
   {
-    TypeContext Types(Target);
-    Module Owner;
-    Function Callable(*Types.getFunctionType(Types.getVoidType()));
+    Module Owner(Target);
+    Module &Types = Owner;
+    Function Callable(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     BasicBlock Detached;
     Method Empty(nullptr);
     Method Member(std::make_unique<Function>(*Callable.functionType()));
     Method Moved(std::move(Member));
     constexpr std::size_t OutOfRange = std::numeric_limits<std::size_t>::max();
 
+    EXPECT_EQ(std::move(Owner).classType(OutOfRange), nullptr);
+    EXPECT_EQ(std::move(std::as_const(Owner)).classType(OutOfRange), nullptr);
+    EXPECT_EQ(std::move(Owner).interfaceType(OutOfRange), nullptr);
+    EXPECT_EQ(std::move(std::as_const(Owner)).interfaceType(OutOfRange), nullptr);
+    EXPECT_EQ(std::move(Owner).structType(OutOfRange), nullptr);
+    EXPECT_EQ(std::move(std::as_const(Owner)).structType(OutOfRange), nullptr);
     EXPECT_EQ(std::move(std::as_const(Owner)).globalVariable(OutOfRange), nullptr);
     EXPECT_EQ(std::move(std::as_const(Owner)).globalFunction(OutOfRange), nullptr);
     EXPECT_EQ(std::move(std::as_const(Owner)).initializationFunction(), nullptr);

@@ -2,28 +2,31 @@
 #define INK_IR_MODULE_MODULE_H
 
 #include "ink/core/name/name.h"
+#include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/module/global_variable.h"
 #include "ink/ir/package/package_path.h"
 #include "ink/ir/type/nominal_type/class_type.h"
 #include "ink/ir/type/nominal_type/interface_type.h"
 #include "ink/ir/type/nominal_type/struct_type.h"
+#include "ink/ir/type/type_pool.h"
+#include "ink/target/target_context.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <utility>
 #include <vector>
 
 namespace ink::ir
 {
-  // Owns its package path, global functions and global variables, and registers borrowed nominal types for one Ink module.
-  // TypeContext and borrowed constants must outlive the module.
-  // Registered types own their methods and member functions independently of this module.
-  // Declaration addresses stay valid until the module is destroyed; operations require external synchronization.
+  // Owns its types, constants, global declarations and package path for one Ink module.
+  // Nominal types are owned directly; TypePool owns builtin and structural types.
+  // Returned pointers remain valid until the module is destroyed; operations require external synchronization.
   class Module final
   {
     public:
-      explicit Module(core::Name Name = core::NAME_None, PackagePath Package = {}) noexcept;
+      explicit Module(target::TargetContext Target, core::Name Name = core::NAME_None, PackagePath Package = {});
       ~Module() noexcept;
 
       Module(const Module &) = delete;
@@ -31,13 +34,28 @@ namespace ink::ir
       Module(Module &&) = delete;
       Module &operator=(Module &&) = delete;
 
+      const target::TargetContext &targetContext() const noexcept;
+
+      auto &typePool(this auto &&Self) noexcept
+      {
+        return Self.Types;
+      }
+
+      auto &constantPool(this auto &&Self) noexcept
+      {
+        return Self.Constants;
+      }
+
+      // Includes this module's builtin, structural and nominal types.
+      bool ownsType(const Type *TypeValue) const noexcept;
+
       // Optional canonical short module name, excluding the package path.
       core::Name name() const noexcept;
       bool hasName() const noexcept;
       // The module owns an independent absolute package path; the default empty path denotes the root package.
       const PackagePath &package() const noexcept;
       void setPackage(PackagePath NewPackage) noexcept;
-      // Ownership is limited to global functions and global variables; contains also includes registered types.
+      // Both queries include local types, global functions and global variables.
       bool owns(const Value *Declaration) const noexcept;
       bool contains(const Value *Declaration) const noexcept;
 
@@ -49,8 +67,9 @@ namespace ink::ir
         return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
       }
 
+      // Rejects foreign types. Appending also rejects initializers outside this module's constant pool.
       GlobalVariable *createGlobalVariable(const Type &VariableType, core::Name VariableName = core::NAME_None);
-      // Takes ownership; nullptr is rejected without changing the module.
+      // Takes ownership by value; invalid input leaves module contents unchanged.
       GlobalVariable *appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable);
 
       const std::vector<std::unique_ptr<Function>> &globalFunctions() const noexcept;
@@ -61,6 +80,7 @@ namespace ink::ir
         return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
       }
 
+      // Rejects signatures outside this module. Appending takes ownership by value.
       Function *createGlobalFunction(const FunctionType &Signature, core::Name FunctionName = core::NAME_None, SymbolLinkage SymbolLink = SymbolLinkage::Local, LanguageLinkage LanguageLink = LanguageLinkage::Ink, FunctionVisibility Visibility = FunctionVisibility::Public);
       Function *appendGlobalFunction(std::unique_ptr<Function> Callable);
 
@@ -80,33 +100,56 @@ namespace ink::ir
       bool setInitializationFunction(Function *Callable) noexcept;
       bool setDeinitializationFunction(Function *Callable) noexcept;
 
-      // Types remain owned by TypeContext. Registration rejects repeated pointers and preserves insertion order.
+      // Each creation owns and registers a distinct nominal identity, even for equal layouts.
+      // Size is preserved in bytes; zero or non-power-of-two alignment returns nullptr without modifying the module.
+      // Type names, fields and owned methods remain editable until freeze(); function names/bodies are not frozen and layouts never change.
       // Indexed access returns nullptr out of bounds.
-      const std::vector<const ClassType *> &classes() const noexcept;
+      const std::vector<std::unique_ptr<ClassType>> &classes() const noexcept;
       std::size_t classCount() const noexcept;
-      const ClassType *classType(std::size_t Index) const noexcept;
-      bool addClass(const ClassType &DeclaredType);
+      auto *classType(this auto &&Self, std::size_t Index) noexcept
+      {
+        auto *Result = Index < Self.Classes.size() ? Self.Classes[Index].get() : nullptr;
+        return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
+      }
 
-      const std::vector<const InterfaceType *> &interfaces() const noexcept;
+      ClassType *createClassType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
+
+      const std::vector<std::unique_ptr<InterfaceType>> &interfaces() const noexcept;
       std::size_t interfaceCount() const noexcept;
-      const InterfaceType *interfaceType(std::size_t Index) const noexcept;
-      bool addInterface(const InterfaceType &DeclaredType);
+      auto *interfaceType(this auto &&Self, std::size_t Index) noexcept
+      {
+        auto *Result = Index < Self.Interfaces.size() ? Self.Interfaces[Index].get() : nullptr;
+        return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
+      }
 
-      const std::vector<const StructType *> &structs() const noexcept;
+      InterfaceType *createInterfaceType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
+
+      const std::vector<std::unique_ptr<StructType>> &structs() const noexcept;
       std::size_t structCount() const noexcept;
-      const StructType *structType(std::size_t Index) const noexcept;
-      bool addStruct(const StructType &DeclaredType);
+      auto *structType(this auto &&Self, std::size_t Index) noexcept
+      {
+        auto *Result = Index < Self.Structs.size() ? Self.Structs[Index].get() : nullptr;
+        return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
+      }
+
+      StructType *createStructType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
 
     private:
+      const target::TargetContext Target;
+      // Nominal identities outlive structural types that refer to them; metadata is cleared by the destructor first.
+      std::vector<std::unique_ptr<ClassType>> Classes;
+      std::vector<std::unique_ptr<InterfaceType>> Interfaces;
+      std::vector<std::unique_ptr<StructType>> Structs;
+      TypePool Types;
+      // Declared after all types so constants are destroyed before their borrowed types.
+      ConstantPool Constants;
+
       core::Name Name = core::NAME_None;
       PackagePath Package;
       std::vector<std::unique_ptr<GlobalVariable>> GlobalVariables;
       std::vector<std::unique_ptr<Function>> GlobalFunctions;
       Function *InitializationFunction = nullptr;
       Function *DeinitializationFunction = nullptr;
-      std::vector<const ClassType *> Classes;
-      std::vector<const InterfaceType *> Interfaces;
-      std::vector<const StructType *> Structs;
   };
 } // namespace ink::ir
 

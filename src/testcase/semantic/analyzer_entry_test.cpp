@@ -2,7 +2,7 @@
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/ir/builder/ir_builder.h"
 #include "ink/ir/module/module.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/type/type_pool.h"
 #include "ink/semantic/context.h"
 #include "ink/frontend/parser/parser.h"
 #include "../core/support/environment_test_support.h"
@@ -20,8 +20,10 @@ namespace ink::semantic::test
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &>().diagnosticEngine()), const core::DiagnosticEngine &>);
   static_assert(std::is_same_v<decltype(std::declval<SemanticContext &>().sourceManager()), core::SourceManager &>);
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &>().sourceManager()), const core::SourceManager &>);
-  static_assert(std::is_same_v<decltype(std::declval<SemanticContext &>().typeContext()), ir::TypeContext &>);
-  static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &>().typeContext()), const ir::TypeContext &>);
+  static_assert(std::is_same_v<decltype(std::declval<SemanticContext &>().typePool()), ir::TypePool &>);
+  static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &>().typePool()), const ir::TypePool &>);
+  static_assert(std::is_same_v<decltype(std::declval<SemanticContext &&>().typePool()), ir::TypePool &>);
+  static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().typePool()), const ir::TypePool &>);
   static_assert(std::is_same_v<decltype(std::declval<SemanticContext &>().module()), ir::Module &>);
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &>().module()), const ir::Module &>);
   static_assert(std::is_same_v<decltype(std::declval<SemanticContext &>().irBuilder()), ir::IRBuilder &>);
@@ -62,13 +64,13 @@ namespace ink::semantic::test
       auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{}"));
       ASSERT_TRUE(Parsed.succeeded());
       ASSERT_TRUE(Analysis.analyze(Context, Parsed));
-      auto *Pointer = Context.typeContext().getPointerType(Context.typeContext().getInt32Type());
+      auto *Pointer = Context.typePool().getPointerType(Context.typePool().getInt32Type());
       ASSERT_NE(Pointer, nullptr);
       auto *Global = Context.module().createGlobalVariable(*Pointer);
       ASSERT_NE(Global, nullptr);
-      const auto *Null = Context.typeContext().constantPool().getNullPointerConstant();
+      const auto *Null = Context.module().constantPool().getNullPointerConstant();
       ASSERT_TRUE(Global->setInitializer(Null));
-      auto *Function = Context.module().createGlobalFunction(*Context.typeContext().getFunctionType(Pointer));
+      auto *Function = Context.module().createGlobalFunction(*Context.typePool().getFunctionType(Pointer));
       ASSERT_NE(Function, nullptr);
       auto *Block = Function->createBlock();
       ASSERT_TRUE(Context.irBuilder().setInsertPoint(*Block));
@@ -76,9 +78,12 @@ namespace ink::semantic::test
       ASSERT_NE(Return, nullptr);
     }
     const SemanticContext &ReadOnly = Context;
-    EXPECT_EQ(ReadOnly.typeContext().targetContext(), Target);
-    EXPECT_EQ(&ReadOnly.irBuilder().typeContext(), &ReadOnly.typeContext());
-    EXPECT_EQ(&ReadOnly.irBuilder().constantPool(), &ReadOnly.typeContext().constantPool());
+    EXPECT_EQ(ReadOnly.module().targetContext(), Target);
+    EXPECT_EQ(&ReadOnly.typePool(), &ReadOnly.module().typePool());
+    EXPECT_EQ(&ReadOnly.typePool().module(), &ReadOnly.module());
+    EXPECT_EQ(&ReadOnly.irBuilder().module(), &ReadOnly.module());
+    EXPECT_EQ(&ReadOnly.irBuilder().typePool(), &ReadOnly.typePool());
+    EXPECT_EQ(&ReadOnly.irBuilder().constantPool(), &ReadOnly.module().constantPool());
     ASSERT_EQ(ReadOnly.module().globalVariableCount(), 1U);
     ASSERT_EQ(ReadOnly.module().globalFunctionCount(), 1U);
     const auto *Global = ReadOnly.module().globalVariable(0);
@@ -86,11 +91,11 @@ namespace ink::semantic::test
     EXPECT_EQ(Global->type()->size(), 4U);
     EXPECT_EQ(Global->type()->alignment(), 4U);
     EXPECT_EQ(Function->functionType()->returnType(), Global->type());
-    EXPECT_TRUE(ReadOnly.typeContext().owns(Global->type()));
-    EXPECT_TRUE(ReadOnly.typeContext().constantPool().owns(Global->initializer()));
+    EXPECT_TRUE(ReadOnly.module().ownsType(Global->type()));
+    EXPECT_TRUE(ReadOnly.module().constantPool().owns(Global->initializer()));
     EXPECT_EQ(Function->entryBlock()->instruction(0), Return);
     EXPECT_EQ(Return->returnedValue(), Global->initializer());
-    EXPECT_EQ(Return->type(), ReadOnly.typeContext().getVoidType());
+    EXPECT_EQ(Return->type(), ReadOnly.typePool().getVoidType());
   }
 
   // Accepted analyses preserve existing module declarations and pooled constants while resetting the insertion point.
@@ -105,8 +110,8 @@ namespace ink::semantic::test
     auto Blocks = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{{}} {}"));
     ASSERT_TRUE(Empty.succeeded());
     ASSERT_TRUE(Blocks.succeeded());
-    auto &Types = Context.typeContext();
-    const auto *Integer = Types.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 42);
+    auto &Types = Context.typePool();
+    const auto *Integer = Context.module().constantPool().getSignedIntegerConstant(Types.getInt32Type(), 42);
     ASSERT_NE(Integer, nullptr);
     auto *Global = Context.module().createGlobalVariable(*Types.getInt32Type());
     ASSERT_NE(Global, nullptr);
@@ -126,7 +131,7 @@ namespace ink::semantic::test
       EXPECT_EQ(Context.module().globalVariable(0), Global);
       EXPECT_EQ(Context.module().globalFunction(0), Function);
       EXPECT_EQ(Global->initializer(), Integer);
-      EXPECT_EQ(Types.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 42), Integer);
+      EXPECT_EQ(Context.module().constantPool().getSignedIntegerConstant(Types.getInt32Type(), 42), Integer);
       EXPECT_EQ(Block->instructionCount(), 0U);
     }
     ASSERT_TRUE(Context.irBuilder().setInsertPoint(*Block));
@@ -152,7 +157,7 @@ namespace ink::semantic::test
     ASSERT_TRUE(Limited.succeeded());
     Cancelled.Status = frontend::parser::ParseStatus::Cancelled;
     Limited.Status = frontend::parser::ParseStatus::LimitExceeded;
-    auto *Function = Context.module().createGlobalFunction(*Context.typeContext().getFunctionType(Context.typeContext().getVoidType()));
+    auto *Function = Context.module().createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
     ASSERT_NE(Function, nullptr);
     auto *Block = Function->createBlock();
     ASSERT_TRUE(Context.irBuilder().setInsertPoint(*Block));
@@ -182,7 +187,7 @@ namespace ink::semantic::test
     ASSERT_TRUE(Parsed.succeeded());
     ASSERT_TRUE(OtherParsed.succeeded());
     SemanticContext Context(OtherSources, OtherDiagnosticEngine, target::TargetContext::native());
-    auto *Function = Context.module().createGlobalFunction(*Context.typeContext().getFunctionType(Context.typeContext().getVoidType()));
+    auto *Function = Context.module().createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
     ASSERT_NE(Function, nullptr);
     auto *Block = Function->createBlock();
     ASSERT_TRUE(Context.irBuilder().setInsertPoint(*Block));

@@ -3,7 +3,7 @@
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/instruction.h"
 #include "ink/ir/type/nominal_type/nominal_type.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
@@ -21,7 +21,7 @@ namespace ink::ir::test
   {
     constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
 
-    std::array<NominalType *, 3> createMetadataTypes(TypeContext &Types, core::Name Name = core::NAME_None)
+    std::array<NominalType *, 3> createMetadataTypes(Module &Types, core::Name Name = core::NAME_None)
     {
       return {Types.createClassType(8, 8, Name), Types.createInterfaceType(8, 8, Name), Types.createStructType(8, 8, Name)};
     }
@@ -63,16 +63,16 @@ namespace ink::ir::test
   static_assert(!std::is_copy_constructible_v<StructType>);
   static_assert(!std::is_move_constructible_v<StructType>);
 
-  // Class, interface and struct metadata lives on the corresponding context-owned type identity.
+  // Class, interface and struct metadata lives on the corresponding module-owned type identity.
   TEST(IRNominalMetadataTest, ClassifiesNominalTypesAndStartsWithEmptyMetadata)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     const auto Values = createMetadataTypes(Types);
     for (std::size_t Index = 0; Index < Values.size(); ++Index)
     {
       const NominalType *Value = Values[Index];
       ASSERT_NE(Value, nullptr);
-      EXPECT_TRUE(Types.owns(Value));
+      EXPECT_TRUE(Types.ownsType(Value));
       EXPECT_TRUE(NominalType::classof(Value));
       EXPECT_TRUE(Type::classof(Value));
       EXPECT_FALSE(Constant::classof(Value));
@@ -89,21 +89,21 @@ namespace ink::ir::test
       EXPECT_FALSE(Value->isFrozen());
     }
     EXPECT_FALSE(NominalType::classof(nullptr));
-    EXPECT_FALSE(NominalType::classof(Types.getInt32Type()));
-    EXPECT_FALSE(NominalType::classof(Types.getFunctionType(Types.getVoidType())));
+    EXPECT_FALSE(NominalType::classof(Types.typePool().getInt32Type()));
+    EXPECT_FALSE(NominalType::classof(Types.typePool().getFunctionType(Types.typePool().getVoidType())));
   }
 
   // Names can be completed without changing any nominal layout or type identity.
   TEST(IRNominalMetadataTest, UpdatesNamesBeforeFreezing)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     const core::Name OriginalName = core::NamePool::instance().intern("IRNominalMetadataTest.Original");
     const core::Name NewName = core::NamePool::instance().intern("IRNominalMetadataTest.Renamed");
     for (NominalType *Value : createMetadataTypes(Types, OriginalName))
     {
       ASSERT_NE(Value, nullptr);
-      const auto Pointer = Types.getPointerType(Value);
-      const auto Array = Types.getArrayType(Value, 2);
+      const auto Pointer = Types.typePool().getPointerType(Value);
+      const auto Array = Types.typePool().getArrayType(Value, 2);
       EXPECT_TRUE(Value->hasName());
       EXPECT_EQ(Value->name(), OriginalName);
       ASSERT_TRUE(Value->setName(NewName));
@@ -112,8 +112,8 @@ namespace ink::ir::test
       EXPECT_FALSE(Value->hasName());
       EXPECT_EQ(Value->size(), 8U);
       EXPECT_EQ(Value->alignment(), 8U);
-      EXPECT_EQ(Types.getPointerType(Value), Pointer);
-      EXPECT_EQ(Types.getArrayType(Value, 2), Array);
+      EXPECT_EQ(Types.typePool().getPointerType(Value), Pointer);
+      EXPECT_EQ(Types.typePool().getArrayType(Value, 2), Array);
       ASSERT_NE(Array, nullptr);
       EXPECT_EQ(Array->size(), 16U);
     }
@@ -122,8 +122,8 @@ namespace ink::ir::test
   // Equal names, layouts and member metadata do not merge independently created nominal types.
   TEST(IRNominalMetadataTest, EqualMetadataKeepsDistinctNominalIdentities)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRNominalMetadataTest.Equal");
     const core::Name MemberName = core::NamePool::instance().intern("method");
@@ -136,7 +136,7 @@ namespace ink::ir::test
       ASSERT_TRUE(First[Index]->addMethod(createMethod(*Signature, MemberName)));
       ASSERT_TRUE(Second[Index]->addMethod(createMethod(*Signature, MemberName)));
       EXPECT_NE(First[Index], Second[Index]);
-      EXPECT_NE(Types.getPointerType(First[Index]), Types.getPointerType(Second[Index]));
+      EXPECT_NE(Types.typePool().getPointerType(First[Index]), Types.typePool().getPointerType(Second[Index]));
       EXPECT_EQ(First[Index]->method(0)->functionType(), Second[Index]->method(0)->functionType());
       EXPECT_NE(First[Index]->method(0)->function(), Second[Index]->method(0)->function());
     }
@@ -145,9 +145,9 @@ namespace ink::ir::test
   // Function-name lookup preserves registration order for independently owned functions with equal signatures.
   TEST(IRNominalMetadataTest, StoresMethodOrderAndVirtualMetadataWithoutIdentityRules)
   {
-    TypeContext Types(Target);
-    const auto FirstSignature = Types.getFunctionType(Types.getVoidType());
-    const auto SecondSignature = Types.getFunctionType(Types.getVoidType(), {Types.getInt32Type()});
+    Module Types(Target);
+    const auto FirstSignature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto SecondSignature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
     ASSERT_NE(FirstSignature, nullptr);
     ASSERT_NE(SecondSignature, nullptr);
     const core::Name MemberName = core::NamePool::instance().intern("method");
@@ -191,10 +191,10 @@ namespace ink::ir::test
   // Invalid names, dispatch properties and foreign signatures never enter the method list.
   TEST(IRNominalMetadataTest, RejectsInvalidAndForeignMethods)
   {
-    TypeContext Types(Target);
-    TypeContext ForeignTypes(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
-    const auto ForeignSignature = ForeignTypes.getFunctionType(ForeignTypes.getVoidType());
+    Module Types(Target);
+    Module ForeignTypes(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto ForeignSignature = ForeignTypes.typePool().getFunctionType(ForeignTypes.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     ASSERT_NE(ForeignSignature, nullptr);
     const core::Name MemberName = core::NamePool::instance().intern("method");
@@ -223,8 +223,8 @@ namespace ink::ir::test
   // Freezing all nominal kinds rejects every metadata mutation while preserving readable members and fixed layouts.
   TEST(IRNominalMetadataTest, FrozenMetadataRejectsMutation)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRNominalMetadataTest.Frozen");
     const core::Name MemberName = core::NamePool::instance().intern("method");
@@ -258,12 +258,12 @@ namespace ink::ir::test
   {
     bool OriginalBodyDestroyed = false;
     bool ReplacementBodyDestroyed = false;
-    TypeContext Types(Target);
-    TypeContext ForeignTypes(Target);
+    Module Types(Target);
+    Module ForeignTypes(Target);
     auto *Value = Types.createClassType(8, 8);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
-    const auto OtherSignature = Types.getFunctionType(Types.getVoidType(), {Types.getInt32Type()});
-    const auto ForeignSignature = ForeignTypes.getFunctionType(ForeignTypes.getVoidType());
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto OtherSignature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
+    const auto ForeignSignature = ForeignTypes.typePool().getFunctionType(ForeignTypes.typePool().getVoidType());
     ASSERT_NE(Value, nullptr);
     ASSERT_NE(Signature, nullptr);
     ASSERT_NE(OtherSignature, nullptr);
@@ -330,8 +330,8 @@ namespace ink::ir::test
   // All nominal kinds resolve names from their bound functions even after the method list is frozen.
   TEST(IRNominalMetadataTest, MethodLookupTracksFunctionRenamingBeforeAndAfterFreezing)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name MemberName = core::NamePool::instance().intern("method");
     const core::Name RenamedName = core::NamePool::instance().intern("renamed");
@@ -368,14 +368,14 @@ namespace ink::ir::test
     }
   }
 
-  // Method storage growth preserves function, parameter and body addresses until the owning type context is destroyed.
-  TEST(IRNominalMetadataTest, OwnsMethodBodiesAtStableAddressesUntilTypeContextDestruction)
+  // Method storage growth preserves function, parameter and body addresses until the owning module is destroyed.
+  TEST(IRNominalMetadataTest, OwnsMethodBodiesAtStableAddressesUntilModuleDestruction)
   {
     std::array<bool, 3> BodiesDestroyed = {};
     {
-      TypeContext Types(Target);
+      Module Types(Target);
       const auto Values = createMetadataTypes(Types);
-      const auto Signature = Types.getFunctionType(Types.getVoidType(), {Types.getInt32Type()});
+      const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
       ASSERT_NE(Signature, nullptr);
       const core::Name MemberName = core::NamePool::instance().intern("method");
       for (std::size_t Index = 0; Index < Values.size(); ++Index)

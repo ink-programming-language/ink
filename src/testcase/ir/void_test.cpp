@@ -1,5 +1,5 @@
 #include "ink/ir/constant/constant_pool.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
@@ -30,24 +30,24 @@ namespace ink::ir::test
 
     static_assert(!std::is_default_constructible_v<VoidType>);
     static_assert(!std::is_copy_constructible_v<VoidType> && !std::is_move_constructible_v<VoidType>);
-    static_assert(std::is_same_v<decltype(std::declval<const TypeContext &>().getVoidType()), const VoidType *>);
-    static_assert(noexcept(std::declval<const TypeContext &>().getVoidType()));
+    static_assert(std::is_same_v<decltype(std::declval<const Module &>().typePool().getVoidType()), const VoidType *>);
+    static_assert(noexcept(std::declval<const Module &>().typePool().getVoidType()));
     static_assert(noexcept(std::declval<const PointerType &>().isOpaque()));
   } // namespace
 
-  // Void has one canonical context-owned identity and a valid zero-byte layout on either target width.
+  // Void has one canonical TypePool-owned identity and a valid zero-byte layout on either target width.
   TEST(IRVoidTypeTest, CanonicalUnitLayoutIsIndependentOfTargetWidth)
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      const TypeContext Types(Target);
-      const TypeContext Other(Target);
-      const VoidType *Void = Types.getVoidType();
+      const Module Types(Target);
+      const Module Other(Target);
+      const VoidType *Void = Types.typePool().getVoidType();
       ASSERT_NE(Void, nullptr);
-      EXPECT_EQ(Void, Types.getVoidType());
-      EXPECT_NE(Void, Other.getVoidType());
-      EXPECT_TRUE(Types.owns(Void));
-      EXPECT_FALSE(Other.owns(Void));
+      EXPECT_EQ(Void, Types.typePool().getVoidType());
+      EXPECT_NE(Void, Other.typePool().getVoidType());
+      EXPECT_TRUE(Types.ownsType(Void));
+      EXPECT_FALSE(Other.ownsType(Void));
       const Type *TypeValue = Void;
       const Value *ValueValue = Void;
       EXPECT_TRUE(TypeValue->hasLayout());
@@ -56,7 +56,7 @@ namespace ink::ir::test
       EXPECT_EQ(ValueValue->kind(), ValueKind::Void);
       EXPECT_TRUE(Type::classof(ValueValue));
       EXPECT_TRUE(VoidType::classof(ValueValue));
-      EXPECT_FALSE(VoidType::classof(Types.getBoolType()));
+      EXPECT_FALSE(VoidType::classof(Types.typePool().getBoolType()));
       EXPECT_FALSE(VoidType::classof(nullptr));
       EXPECT_FALSE(Constant::classof(ValueValue));
     }
@@ -71,16 +71,16 @@ namespace ink::ir::test
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      TypeContext Types(Target);
-      const PointerType *Opaque = Types.getPointerType(Types.getVoidType());
-      const PointerType *Nested = Types.getPointerType(Opaque);
-      const PointerType *Typed = Types.getPointerType(Types.getBoolType());
+      Module Types(Target);
+      const PointerType *Opaque = Types.typePool().getPointerType(Types.typePool().getVoidType());
+      const PointerType *Nested = Types.typePool().getPointerType(Opaque);
+      const PointerType *Typed = Types.typePool().getPointerType(Types.typePool().getBoolType());
       ASSERT_NE(Opaque, nullptr);
       ASSERT_NE(Nested, nullptr);
       ASSERT_NE(Typed, nullptr);
-      EXPECT_EQ(Opaque, Types.getPointerType(Types.getVoidType()));
-      EXPECT_EQ(Nested, Types.getPointerType(Opaque));
-      EXPECT_EQ(Opaque->pointeeType(), Types.getVoidType());
+      EXPECT_EQ(Opaque, Types.typePool().getPointerType(Types.typePool().getVoidType()));
+      EXPECT_EQ(Nested, Types.typePool().getPointerType(Opaque));
+      EXPECT_EQ(Opaque->pointeeType(), Types.typePool().getVoidType());
       EXPECT_EQ(Nested->pointeeType(), Opaque);
       EXPECT_TRUE(Opaque->isOpaque());
       EXPECT_FALSE(Nested->isOpaque());
@@ -89,28 +89,28 @@ namespace ink::ir::test
       EXPECT_EQ(Opaque->size(), Target.pointerByteWidth());
       EXPECT_EQ(Opaque->alignment(), Target.pointerByteWidth());
       EXPECT_EQ(Nested->size(), Target.pointerByteWidth());
-      EXPECT_TRUE(Types.owns(Opaque));
-      EXPECT_TRUE(Types.owns(Nested));
+      EXPECT_TRUE(Types.ownsType(Opaque));
+      EXPECT_TRUE(Types.ownsType(Nested));
     }
   }
 
   // Void can be a function result, a unit parameter, an array element or a referenced unit value.
   TEST(IRVoidTypeTest, UnitTypesComposeWithFunctionsArraysAndReferences)
   {
-    TypeContext Types(Target64);
-    const VoidType *Void = Types.getVoidType();
-    const PointerType *Opaque = Types.getPointerType(Void);
-    const FunctionType *Function = Types.getFunctionType(Void, {Opaque});
-    const FunctionType *UnitParameter = Types.getFunctionType(Void, {Void});
-    const FunctionType *Empty = Types.getFunctionType(Void);
-    const ArrayType *Units = Types.getArrayType(Void, std::numeric_limits<std::uint64_t>::max());
-    const ReferenceType *Reference = Types.getReferenceType(Void);
+    Module Types(Target64);
+    const VoidType *Void = Types.typePool().getVoidType();
+    const PointerType *Opaque = Types.typePool().getPointerType(Void);
+    const FunctionType *Function = Types.typePool().getFunctionType(Void, {Opaque});
+    const FunctionType *UnitParameter = Types.typePool().getFunctionType(Void, {Void});
+    const FunctionType *Empty = Types.typePool().getFunctionType(Void);
+    const ArrayType *Units = Types.typePool().getArrayType(Void, std::numeric_limits<std::uint64_t>::max());
+    const ReferenceType *Reference = Types.typePool().getReferenceType(Void);
     ASSERT_NE(Function, nullptr);
     ASSERT_NE(UnitParameter, nullptr);
     ASSERT_NE(Empty, nullptr);
     ASSERT_NE(Units, nullptr);
     ASSERT_NE(Reference, nullptr);
-    EXPECT_EQ(Function, Types.getFunctionType(Void, {Opaque}));
+    EXPECT_EQ(Function, Types.typePool().getFunctionType(Void, {Opaque}));
     EXPECT_EQ(Function->returnType(), Void);
     ASSERT_EQ(Function->parameterCount(), 1U);
     EXPECT_EQ(Function->parameters()[0], Opaque);
@@ -128,35 +128,35 @@ namespace ink::ir::test
   // Structural lookups reject a foreign void identity in every operand position while accepting the local unit.
   TEST(IRVoidTypeTest, StructuralTypesRejectForeignUnitIdentities)
   {
-    TypeContext Types(Target64);
-    const TypeContext Other(Target64);
-    const VoidType *Void = Types.getVoidType();
-    const VoidType *Foreign = Other.getVoidType();
-    EXPECT_EQ(Types.getPointerType(Foreign), nullptr);
-    EXPECT_EQ(Types.getReferenceType(Foreign), nullptr);
-    EXPECT_EQ(Types.getArrayType(Foreign, 0), nullptr);
-    EXPECT_EQ(Types.getFunctionType(Foreign), nullptr);
-    EXPECT_EQ(Types.getFunctionType(Void, {Foreign}), nullptr);
-    EXPECT_EQ(Types.getPointerType(nullptr), nullptr);
+    Module Types(Target64);
+    const Module Other(Target64);
+    const VoidType *Void = Types.typePool().getVoidType();
+    const VoidType *Foreign = Other.typePool().getVoidType();
+    EXPECT_EQ(Types.typePool().getPointerType(Foreign), nullptr);
+    EXPECT_EQ(Types.typePool().getReferenceType(Foreign), nullptr);
+    EXPECT_EQ(Types.typePool().getArrayType(Foreign, 0), nullptr);
+    EXPECT_EQ(Types.typePool().getFunctionType(Foreign), nullptr);
+    EXPECT_EQ(Types.typePool().getFunctionType(Void, {Foreign}), nullptr);
+    EXPECT_EQ(Types.typePool().getPointerType(nullptr), nullptr);
   }
 
-  // One null literal initializes opaque, typed and nested pointers while preserving its context-owned literal type.
+  // One null literal initializes opaque, typed and nested pointers while preserving its TypePool-owned literal type.
   TEST(IRVoidTypeTest, OpaquePointersAcceptCanonicalNullLiteral)
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      TypeContext Types(Target);
-      TypeContext Other(Target);
+      Module Types(Target);
+      Module Other(Target);
       auto &Constants = Types.constantPool();
       auto &SharedTypes = Types.constantPool();
       auto &OtherConstants = Other.constantPool();
-      const PointerType *Opaque = Types.getPointerType(Types.getVoidType());
-      const PointerType *Typed = Types.getPointerType(Types.getBoolType());
-      const PointerType *Nested = Types.getPointerType(Opaque);
+      const PointerType *Opaque = Types.typePool().getPointerType(Types.typePool().getVoidType());
+      const PointerType *Typed = Types.typePool().getPointerType(Types.typePool().getBoolType());
+      const PointerType *Nested = Types.typePool().getPointerType(Opaque);
       const NullPointerConstant *Null = Constants.getNullPointerConstant();
       ASSERT_NE(Null, nullptr);
       EXPECT_EQ(Null, Constants.getNullPointerConstant());
-      EXPECT_EQ(Null->type(), Types.getNullPointerType());
+      EXPECT_EQ(Null->type(), Types.typePool().getNullPointerType());
       EXPECT_EQ(Null->type()->size(), Target.pointerByteWidth());
       EXPECT_TRUE(Null->canInitialize(Opaque));
       EXPECT_TRUE(Null->canInitialize(Typed));
@@ -167,7 +167,7 @@ namespace ink::ir::test
       EXPECT_TRUE(Constants.owns(Null));
       EXPECT_TRUE(SharedTypes.owns(Null));
       EXPECT_FALSE(OtherConstants.owns(Null));
-      EXPECT_FALSE(Null->canInitialize(Other.getPointerType(Other.getVoidType())));
+      EXPECT_FALSE(Null->canInitialize(Other.typePool().getPointerType(Other.typePool().getVoidType())));
     }
   }
 } // namespace ink::ir::test

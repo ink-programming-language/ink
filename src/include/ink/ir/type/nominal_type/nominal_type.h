@@ -11,10 +11,10 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class Module;
 
   // A distinct declared type with a fixed layout and editable metadata until freeze().
-  // Owns field metadata and methods with their functions; field initializers and referenced types belong to this type's context.
+  // Owns field metadata and methods with their functions; field initializers and referenced types belong to its module.
   // freeze() prevents changes to type metadata but does not freeze function names or bodies.
   class NominalType : public Type
   {
@@ -44,7 +44,7 @@ namespace ink::ir
       // Returns nullptr outside the list. Adding a method can invalidate pointers to earlier entries.
       const Method *method(std::size_t Index) const noexcept;
       // Transfers ownership on success; rejection leaves Entry and the existing list unchanged.
-      // Rejects invalid metadata, foreign-context signatures and changes after freeze().
+      // Rejects invalid metadata, foreign-module signatures and changes after freeze().
       // Entries retain registration order without imposing member identity or overload conflict rules.
       bool addMethod(Method &&Entry);
       // Replaces an owned method before freeze(), destroying its previous function on success.
@@ -59,15 +59,15 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     protected:
-      NominalType(ValueKind Kind, const TypeContext &Context, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept;
+      NominalType(ValueKind Kind, const Module &Owner, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class Module;
 
       bool validField(const Field &Entry) const noexcept;
       bool validMethod(const Method &Entry) const noexcept;
 
-      const TypeContext &Context;
+      const Module &Owner;
       const std::uint64_t Size;
       const std::uint64_t Alignment;
       core::Name Name = core::NAME_None;

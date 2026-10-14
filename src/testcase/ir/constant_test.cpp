@@ -1,7 +1,7 @@
 #include "ink/target/target_context.h"
 #include "ink/ir/constant/bool_constant.h"
 #include "ink/ir/constant/constant_pool.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
@@ -14,11 +14,11 @@ namespace ink::ir::test
   static_assert(!std::is_base_of_v<Type, Constant>);
   static_assert(std::has_virtual_destructor_v<Constant>);
 
-  // Boolean constants share their context-owned type through borrowed polymorphic values.
+  // Boolean constants share their TypePool-owned type through borrowed polymorphic values.
   TEST(IRConstantTest, BoolValuesUseSharedTypeThroughValue)
   {
     const target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
     const Type *SharedType = nullptr;
     for (const bool Expected : {false, true})
@@ -28,7 +28,7 @@ namespace ink::ir::test
       ASSERT_TRUE(BoolConstant::classof(Borrowed));
       const auto *Stored = static_cast<const BoolConstant *>(Borrowed);
       EXPECT_EQ(Stored->value(), Expected);
-      EXPECT_EQ(Stored->type(), Types.getBoolType());
+      EXPECT_EQ(Stored->type(), Types.typePool().getBoolType());
       if (SharedType)
       {
         EXPECT_EQ(Stored->type(), SharedType);

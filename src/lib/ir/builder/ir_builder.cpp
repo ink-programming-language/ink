@@ -3,7 +3,7 @@
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/type/nominal_type/nominal_type.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <memory>
 #include <utility>
@@ -48,8 +48,8 @@ namespace ink::ir
     }
   } // namespace
 
-  IRBuilder::IRBuilder(TypeContext &Types) noexcept
-      : Types(Types)
+  IRBuilder::IRBuilder(Module &Owner) noexcept
+      : Owner(Owner)
   {
   }
 
@@ -65,7 +65,7 @@ namespace ink::ir
 
   bool IRBuilder::setInsertPoint(BasicBlock &Block) noexcept
   {
-    if (!Block.function() || !Types.owns(Block.function()->functionType()))
+    if (!Block.function() || !Owner.ownsType(Block.function()->functionType()))
     {
       return false;
     }
@@ -80,7 +80,7 @@ namespace ink::ir
 
   bool IRBuilder::canAppend() const noexcept
   {
-    if (!insertFunction() || !Types.owns(insertFunction()->functionType()))
+    if (!insertFunction() || !Owner.ownsType(insertFunction()->functionType()))
     {
       return false;
     }
@@ -98,13 +98,13 @@ namespace ink::ir
   bool IRBuilder::validOperand(const Value &Operand) const noexcept
   {
     const Type *OperandType = Operand.type();
-    if (!insertFunction() || !Types.owns(OperandType) || !OperandType->hasLayout())
+    if (!insertFunction() || !Owner.ownsType(OperandType) || !OperandType->hasLayout())
     {
       return false;
     }
     if (Constant::classof(&Operand))
     {
-      return Types.constantPool().owns(static_cast<const Constant *>(&Operand));
+      return Owner.constantPool().owns(static_cast<const Constant *>(&Operand));
     }
     if (Parameter::classof(&Operand))
     {
@@ -136,7 +136,7 @@ namespace ink::ir
 
   bool IRBuilder::canUseAs(const Value &Operand, const Type &ExpectedType) const noexcept
   {
-    if (!Types.owns(&ExpectedType) || !validOperand(Operand))
+    if (!Owner.ownsType(&ExpectedType) || !validOperand(Operand))
     {
       return false;
     }
@@ -166,7 +166,7 @@ namespace ink::ir
 
   CallInstruction *IRBuilder::createCall(const FunctionType &Signature, const Value &Callee, std::vector<Argument> Arguments)
   {
-    if (!canAppend() || !Types.owns(&Signature) || !validOperand(Callee) || Arguments.size() != Signature.parameterCount())
+    if (!canAppend() || !Owner.ownsType(&Signature) || !validOperand(Callee) || Arguments.size() != Signature.parameterCount())
     {
       return nullptr;
     }
@@ -202,17 +202,17 @@ namespace ink::ir
     {
       return nullptr;
     }
-    return append<ICmpInstruction>(*Types.getBoolType(), Predicate, Left, Right);
+    return append<ICmpInstruction>(*Owner.typePool().getBoolType(), Predicate, Left, Right);
   }
 
   GetElementPtrInstruction *IRBuilder::createGetElementPtr(const PointerType &ResultType, const Type &SourceElementType, const Value &Pointer, std::vector<const Value *> Indices, bool InBounds)
   {
-    if (!canAppend() || !Types.owns(&ResultType) || !Types.owns(&SourceElementType) || !SourceElementType.hasLayout() || VoidType::classof(&SourceElementType) || !validOperand(Pointer))
+    if (!canAppend() || !Owner.ownsType(&ResultType) || !Owner.ownsType(&SourceElementType) || !SourceElementType.hasLayout() || VoidType::classof(&SourceElementType) || !validOperand(Pointer))
     {
       return nullptr;
     }
     const Type *PointerValueType = Pointer.type();
-    if (&Pointer != Types.constantPool().getNullPointerConstant() && (!PointerType::classof(PointerValueType) || static_cast<const PointerType *>(PointerValueType)->pointeeType() != &SourceElementType))
+    if (&Pointer != Owner.constantPool().getNullPointerConstant() && (!PointerType::classof(PointerValueType) || static_cast<const PointerType *>(PointerValueType)->pointeeType() != &SourceElementType))
     {
       return nullptr;
     }
@@ -240,7 +240,7 @@ namespace ink::ir
       {
         return nullptr;
       }
-      if (!Types.owns(SelectedType) || !SelectedType->hasLayout())
+      if (!Owner.ownsType(SelectedType) || !SelectedType->hasLayout())
       {
         return nullptr;
       }
@@ -258,33 +258,33 @@ namespace ink::ir
     {
       return nullptr;
     }
-    return append<BranchInstruction>(*Types.getVoidType(), Target);
+    return append<BranchInstruction>(*Owner.typePool().getVoidType(), Target);
   }
 
   ConditionalBranchInstruction *IRBuilder::createConditionalBranch(const Value &Condition, BasicBlock &TrueTarget, BasicBlock &FalseTarget)
   {
-    if (!canAppend() || !canUseAs(Condition, *Types.getBoolType()) || !validTarget(TrueTarget) || !validTarget(FalseTarget))
+    if (!canAppend() || !canUseAs(Condition, *Owner.typePool().getBoolType()) || !validTarget(TrueTarget) || !validTarget(FalseTarget))
     {
       return nullptr;
     }
-    return append<ConditionalBranchInstruction>(*Types.getVoidType(), Condition, TrueTarget, FalseTarget);
+    return append<ConditionalBranchInstruction>(*Owner.typePool().getVoidType(), Condition, TrueTarget, FalseTarget);
   }
 
   ReturnInstruction *IRBuilder::createReturn()
   {
-    if (!canAppend() || insertFunction()->functionType()->returnType() != Types.getVoidType())
+    if (!canAppend() || insertFunction()->functionType()->returnType() != Owner.typePool().getVoidType())
     {
       return nullptr;
     }
-    return append<ReturnInstruction>(*Types.getVoidType());
+    return append<ReturnInstruction>(*Owner.typePool().getVoidType());
   }
 
   ReturnInstruction *IRBuilder::createReturn(const Value &ReturnedValue)
   {
-    if (!canAppend() || insertFunction()->functionType()->returnType() == Types.getVoidType() || !canUseAs(ReturnedValue, *insertFunction()->functionType()->returnType()))
+    if (!canAppend() || insertFunction()->functionType()->returnType() == Owner.typePool().getVoidType() || !canUseAs(ReturnedValue, *insertFunction()->functionType()->returnType()))
     {
       return nullptr;
     }
-    return append<ReturnInstruction>(*Types.getVoidType(), &ReturnedValue);
+    return append<ReturnInstruction>(*Owner.typePool().getVoidType(), &ReturnedValue);
   }
 } // namespace ink::ir

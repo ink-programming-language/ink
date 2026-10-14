@@ -2,7 +2,7 @@
 #include "ink/ir/constant/constant.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/param/parameter.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
@@ -24,11 +24,11 @@ namespace ink::ir::test
   // Function construction creates unnamed formal values in the same order as the signature's parameter types.
   TEST(IRParameterTest, DerivesOrderedTypesAndOwnershipFromSignature)
   {
-    TypeContext Types(Target);
-    const auto Bool = Types.getBoolType();
-    const auto Integer = Types.getInt32Type();
+    Module Types(Target);
+    const auto Bool = Types.typePool().getBoolType();
+    const auto Integer = Types.typePool().getInt32Type();
     const std::vector<const Type *> Parameters = {Integer, Bool, Integer};
-    const auto Signature = Types.getFunctionType(Bool, Parameters);
+    const auto Signature = Types.typePool().getFunctionType(Bool, Parameters);
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
     const Function &ReadOnly = Callable;
@@ -57,8 +57,8 @@ namespace ink::ir::test
   // Functions sharing a signature own distinct formal values whose local names can change independently.
   TEST(IRParameterTest, SharedSignatureCreatesIndependentParameterValues)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType(), {Types.getInt32Type(), Types.getBoolType()});
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type(), Types.typePool().getBoolType()});
     ASSERT_NE(Signature, nullptr);
     Function First(*Signature);
     Function Second(*Signature);
@@ -91,15 +91,15 @@ namespace ink::ir::test
     First.parameter(0)->setName(core::NAME_None);
     EXPECT_FALSE(First.parameter(0)->hasName());
     EXPECT_EQ(Second.parameter(0)->name(), SecondName);
-    EXPECT_EQ(Signature->parameters()[0], Types.getInt32Type());
+    EXPECT_EQ(Signature->parameters()[0], Types.typePool().getInt32Type());
     EXPECT_EQ(First.functionType(), Second.functionType());
   }
 
   // Parameters classify as runtime values without being confused with functions, types or constants.
   TEST(IRParameterTest, ParameterClassificationExcludesOtherValueKinds)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType(), {Types.getInt32Type()});
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
     const Value *ParameterValue = Callable.parameter(0);
@@ -112,7 +112,7 @@ namespace ink::ir::test
     EXPECT_FALSE(FunctionType::classof(ParameterValue));
     EXPECT_FALSE(Parameter::classof(&Callable));
     EXPECT_FALSE(Parameter::classof(Signature));
-    EXPECT_FALSE(Parameter::classof(Types.getInt32Type()));
+    EXPECT_FALSE(Parameter::classof(Types.typePool().getInt32Type()));
     EXPECT_FALSE(Parameter::classof(nullptr));
   }
 } // namespace ink::ir::test

@@ -1,18 +1,18 @@
 #include "ink/ir/type/builtin_type/null_pointer_type.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 namespace ink::ir
 {
-  NullPointerType::NullPointerType(const TypeContext &Context) noexcept
+  NullPointerType::NullPointerType(const Module &Owner) noexcept
       : Type(ValueKind::NullPointer),
-        Context(Context),
-        PointerByteWidth(Context.targetContext().pointerByteWidth())
+        Owner(Owner),
+        PointerByteWidth(Owner.targetContext().pointerByteWidth())
   {
   }
 
-  const TypeContext &NullPointerType::typeContext() const noexcept
+  const Module &NullPointerType::module() const noexcept
   {
-    return Context;
+    return Owner;
   }
 
   std::uint64_t NullPointerType::size() const noexcept

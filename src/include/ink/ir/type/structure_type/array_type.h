@@ -5,7 +5,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class TypePool;
 
   class ArrayType final : public Type
   {
@@ -17,7 +17,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class TypePool;
 
       ArrayType(const Type *ElementType, std::uint64_t ElementCount, std::uint64_t Size, std::uint64_t Alignment) noexcept;
 

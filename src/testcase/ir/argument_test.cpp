@@ -3,7 +3,7 @@
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/instruction.h"
 #include "ink/ir/param/argument.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
@@ -44,10 +44,10 @@ namespace ink::ir::test
   // Actual arguments borrow constants, instruction results and formal parameters without changing their Value identities.
   TEST(IRArgumentTest, ReferencesConstantInstructionAndParameterValues)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
-    const auto Literal = Constants.getSignedIntegerConstant(Types.getInt32Type(), 42);
-    const auto Signature = Types.getFunctionType(Types.getVoidType(), {Types.getInt32Type()});
+    const auto Literal = Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), 42);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
     ASSERT_NE(Literal, nullptr);
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
@@ -72,11 +72,11 @@ namespace ink::ir::test
   // Separate calls supply different actual values while the callee retains the same formal parameter identity.
   TEST(IRArgumentTest, DifferentActualListsShareCalleeParameters)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
-    const auto Signature = Types.getFunctionType(Types.getVoidType(), {Types.getInt32Type()});
-    const auto FirstLiteral = Constants.getSignedIntegerConstant(Types.getInt32Type(), 1);
-    const auto SecondLiteral = Constants.getSignedIntegerConstant(Types.getInt32Type(), 2);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
+    const auto FirstLiteral = Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), 1);
+    const auto SecondLiteral = Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), 2);
     ASSERT_NE(Signature, nullptr);
     ASSERT_NE(FirstLiteral, nullptr);
     ASSERT_NE(SecondLiteral, nullptr);
@@ -97,8 +97,8 @@ namespace ink::ir::test
   // Renaming actual arguments is independent of the names on their referenced formal parameter and function values.
   TEST(IRArgumentTest, LocalNamesDoNotFollowReferencedValueNames)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType(), {Types.getInt32Type()});
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
     ASSERT_NE(Signature, nullptr);
     const core::Name FunctionName = core::NamePool::instance().intern("IRArgumentTest.Callee");
     const core::Name FormalName = core::NamePool::instance().intern("IRArgumentTest.Formal");

@@ -7,14 +7,14 @@
 #include "ink/ir/instruction/getelementptr_instruction.h"
 #include "ink/ir/instruction/icmp_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <utility>
 
 namespace ink::ir
 {
-  // Appends resolved instructions to a function-owned block; owns neither the context nor any IR.
-  // The context and selected block must outlive their use through this builder. Access requires external synchronization.
+  // Appends resolved instructions to a function-owned block; owns neither the module nor any IR.
+  // The module and selected block must outlive their use through this builder. Access requires external synchronization.
   // Creation returns a block-owned instruction, or nullptr without changing the block or insertion point.
   // Checks local types, operand ownership and terminators, but not dominance or whole-function control flow.
   // Operands may be local constants, current-function parameters/instructions or functions; globals require explicit storage operations.
@@ -22,21 +22,26 @@ namespace ink::ir
   class IRBuilder final
   {
     public:
-      explicit IRBuilder(TypeContext &Types) noexcept;
+      explicit IRBuilder(Module &Owner) noexcept;
 
-      auto &typeContext(this auto &&Self) noexcept
+      auto &module(this auto &&Self) noexcept
       {
-        return std::forward_like<decltype(Self) &>(Self.Types);
+        return std::forward_like<decltype(Self) &>(Self.Owner);
+      }
+
+      auto &typePool(this auto &&Self) noexcept
+      {
+        return Self.module().typePool();
       }
 
       auto &constantPool(this auto &&Self) noexcept
       {
-        return Self.typeContext().constantPool();
+        return Self.module().constantPool();
       }
 
       BasicBlock *insertBlock() const noexcept;
       Function *insertFunction() const noexcept;
-      // Rejects detached blocks and foreign-context function signatures, preserving the previous insertion point.
+      // Rejects detached blocks and foreign-module function signatures, preserving the previous insertion point.
       // A terminated block can be selected, but no further instructions can be appended to it.
       [[nodiscard]] bool setInsertPoint(BasicBlock &Block) noexcept;
       void clearInsertPoint() noexcept;
@@ -69,7 +74,7 @@ namespace ink::ir
       template <typename InstructionT, typename... ArgumentTypes>
       InstructionT *append(ArgumentTypes &&...Arguments);
 
-      TypeContext &Types;
+      Module &Owner;
       BasicBlock *InsertBlock = nullptr;
   };
 } // namespace ink::ir

@@ -5,7 +5,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class Module;
 
   // Describes a function template's generic parameters and ordinary callable signature.
   class GenericFunctionType final : public GenericType
@@ -17,7 +17,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class Module;
 
       // Owns both parameter lists and borrows their types and ReturnType.
       // Null types are preserved for signatures awaiting semantic resolution.

@@ -19,10 +19,10 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class Module;
 
-  // Owns and reuses immutable constants as an inseparable part of one TypeContext.
-  // Access through TypeContext::constantPool(); constants and types share its lifetime.
+  // Owns and reuses immutable constants as an inseparable part of one Module.
+  // Access through Module::constantPool(); constants and types share the module lifetime.
   // External IR users must die first. Operations require external synchronization.
   class ConstantPool final
   {
@@ -32,12 +32,12 @@ namespace ink::ir
       ConstantPool(ConstantPool &&) = delete;
       ConstantPool &operator=(ConstantPool &&) = delete;
 
-      const TypeContext &typeContext() const noexcept;
+      const Module &module() const noexcept;
       bool owns(const Constant *ConstantValue) const noexcept;
 
       const BoolConstant *getBoolConstant(bool Value) const noexcept;
 
-      // Typed lookups return nullptr for null/foreign-context types or invalid
+      // Typed lookups return nullptr for null/foreign-module types or invalid
       // content. Raw bits must fit the width; numeric integers match signedness.
       const IntegerConstant *getIntegerConstantFromBits(const IntegerType *IntegerTypeValue, std::uint64_t Bits);
       const IntegerConstant *getSignedIntegerConstant(const IntegerType *IntegerTypeValue, std::int64_t Value);
@@ -46,27 +46,27 @@ namespace ink::ir
       // Exact bits distinguish signed zeros and NaN payloads.
       const FloatConstant *getFloatConstantFromBits(const FloatType *FloatTypeValue, std::uint64_t Bits);
 
-      // Numeric overloads use this context's binary32 type for float and
+      // Numeric overloads use this module's binary32 type for float and
       // binary64 type for double, preserving bits without precision conversion.
       const FloatConstant *getFloatConstant(float Value);
       const FloatConstant *getFloatConstant(double Value);
 
-      // Owns the element list and borrows only constants owned by this context.
+      // Owns the element list and borrows only constants owned by this module.
       // Count must match, and each element must be able to initialize the array's element type.
       const ArrayConstant *getArrayConstant(const ArrayType *ConstantType, std::vector<const Constant *> Elements = {});
-      // Returns the one null pointer literal shared by all pointer types in this context.
+      // Returns the one null pointer literal shared by all pointer types in this module.
       const NullPointerConstant *getNullPointerConstant() const noexcept;
 
       // Owns decoded UTF-8 bytes, including empty text and embedded NUL. Invalid
       // UTF-8 or lengths exceeding the target limit return nullptr. No escapes,
       // normalization or terminator are added; exact byte contents are the key.
-      // Uses this context's ArrayType(u8, byteLength), so size is the byte count and alignment is 1.
+      // Uses this module's ArrayType(u8, byteLength), so size is the byte count and alignment is 1.
       const StringConstant *getStringConstant(std::string Value);
 
     private:
-      friend class TypeContext;
+      friend class Module;
 
-      explicit ConstantPool(TypeContext &Types);
+      explicit ConstantPool(Module &Owner);
       ~ConstantPool() noexcept;
 
       struct ArrayKey
@@ -85,7 +85,7 @@ namespace ink::ir
       template <typename ConstantT>
       const ConstantT *own(std::unique_ptr<ConstantT> ConstantValue);
 
-      TypeContext &Types;
+      Module &Owner;
       BoolConstant False;
       BoolConstant True;
       NullPointerConstant NullPointer;

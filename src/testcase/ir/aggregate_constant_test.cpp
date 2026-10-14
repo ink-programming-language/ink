@@ -3,7 +3,7 @@
 #include "ink/ir/constant/bool_constant.h"
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/constant/null_pointer_constant.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
@@ -15,12 +15,12 @@ namespace ink::ir::test
   TEST(IRArrayConstantTest, OwnsElementListAndBorrowsValues)
   {
     const target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
-    const auto ElementType = Types.getBoolType();
+    const auto ElementType = Types.typePool().getBoolType();
     const auto First = Constants.getBoolConstant(true);
     const auto Second = Constants.getBoolConstant(false);
-    const auto Array = Types.getArrayType(ElementType, 2);
+    const auto Array = Types.typePool().getArrayType(ElementType, 2);
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Second, nullptr);
     ASSERT_NE(Array, nullptr);
@@ -43,14 +43,14 @@ namespace ink::ir::test
   TEST(IRArrayConstantTest, RejectsInvalidElementLists)
   {
     const target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
-    TypeContext OtherTypes(Target);
-    const auto ElementType = Types.getBoolType();
-    const auto OtherType = OtherTypes.getBoolType();
+    Module OtherTypes(Target);
+    const auto ElementType = Types.typePool().getBoolType();
+    const auto OtherType = OtherTypes.typePool().getBoolType();
     const auto Element = Constants.getBoolConstant(true);
-    const auto Array = Types.getArrayType(ElementType, 1);
-    const auto OtherArray = OtherTypes.getArrayType(OtherType, 1);
+    const auto Array = Types.typePool().getArrayType(ElementType, 1);
+    const auto OtherArray = OtherTypes.typePool().getArrayType(OtherType, 1);
     ASSERT_NE(Element, nullptr);
     ASSERT_NE(Array, nullptr);
     ASSERT_NE(OtherArray, nullptr);
@@ -65,16 +65,16 @@ namespace ink::ir::test
   TEST(IRArrayConstantTest, SupportsEmptyAndNestedArrays)
   {
     const target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
-    const auto EmptyType = Types.getArrayType(Types.getBoolType(), 0);
+    const auto EmptyType = Types.typePool().getArrayType(Types.typePool().getBoolType(), 0);
     ASSERT_NE(EmptyType, nullptr);
     const auto Empty = Constants.getArrayConstant(EmptyType);
     ASSERT_NE(Empty, nullptr);
     EXPECT_TRUE(Empty->elements().empty());
     EXPECT_EQ(Empty->elementCount(), 0U);
     EXPECT_EQ(Empty->type(), EmptyType);
-    const auto OuterType = Types.getArrayType(EmptyType, 2);
+    const auto OuterType = Types.typePool().getArrayType(EmptyType, 2);
     ASSERT_NE(OuterType, nullptr);
     const auto Outer = Constants.getArrayConstant(OuterType, {Empty, Empty});
     ASSERT_NE(Outer, nullptr);
@@ -89,17 +89,17 @@ namespace ink::ir::test
   {
     constexpr target::TargetContext Target32(target::PointerWidth::Bits32, target::ByteOrder::LittleEndian);
     constexpr target::TargetContext Target64(target::PointerWidth::Bits64, target::ByteOrder::BigEndian);
-    TypeContext Types32(Target32);
-    TypeContext Types64(Target64);
+    Module Types32(Target32);
+    Module Types64(Target64);
     auto &Constants32 = Types32.constantPool();
     auto &Constants64 = Types64.constantPool();
-    const auto Pointer32 = Types32.getPointerType(Types32.getBoolType());
+    const auto Pointer32 = Types32.typePool().getPointerType(Types32.typePool().getBoolType());
     const auto Null32 = Constants32.getNullPointerConstant();
     const auto Null64 = Constants64.getNullPointerConstant();
     ASSERT_NE(Null32, nullptr);
     ASSERT_NE(Null64, nullptr);
-    EXPECT_EQ(Null32->type(), Types32.getNullPointerType());
-    EXPECT_EQ(Null64->type(), Types64.getNullPointerType());
+    EXPECT_EQ(Null32->type(), Types32.typePool().getNullPointerType());
+    EXPECT_EQ(Null64->type(), Types64.typePool().getNullPointerType());
     EXPECT_EQ(Null32->type()->size(), 4U);
     EXPECT_EQ(Null64->type()->size(), 8U);
     EXPECT_TRUE(NullPointerConstant::classof(Null32));
@@ -114,12 +114,12 @@ namespace ink::ir::test
   TEST(IRNullPointerConstantTest, RequiresValidInitializationDestination)
   {
     constexpr target::TargetContext Target64(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-    TypeContext Types(Target64);
+    Module Types(Target64);
     auto &Constants = Types.constantPool();
     const auto Null = Constants.getNullPointerConstant();
     ASSERT_NE(Null, nullptr);
     EXPECT_FALSE(Null->canInitialize(nullptr));
-    EXPECT_TRUE(Null->canInitialize(Types.getNullPointerType()));
-    EXPECT_EQ(Types.getPointerType(nullptr), nullptr);
+    EXPECT_TRUE(Null->canInitialize(Types.typePool().getNullPointerType()));
+    EXPECT_EQ(Types.typePool().getPointerType(nullptr), nullptr);
   }
 } // namespace ink::ir::test

@@ -3,7 +3,7 @@
 #include "ink/ir/constant/null_pointer_constant.h"
 #include "ink/ir/type/builtin_type/null_pointer_type.h"
 #include "ink/ir/type/structure_type/pointer_type.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 namespace ink::ir
 {
@@ -34,8 +34,8 @@ namespace ink::ir
     {
       return false;
     }
-    const TypeContext &Types = static_cast<const NullPointerType *>(ConstantType)->typeContext();
-    return Types.constantPool().getNullPointerConstant() == this && Types.owns(DestinationType) && PointerType::classof(DestinationType);
+    const Module &Owner = static_cast<const NullPointerType *>(ConstantType)->module();
+    return Owner.constantPool().getNullPointerConstant() == this && Owner.ownsType(DestinationType) && PointerType::classof(DestinationType);
   }
 
   bool Constant::classof(const Value *Value) noexcept

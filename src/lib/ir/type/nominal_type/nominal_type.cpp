@@ -1,14 +1,14 @@
 #include "ink/ir/type/nominal_type/nominal_type.h"
 
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <utility>
 
 namespace ink::ir
 {
-  NominalType::NominalType(ValueKind Kind, const TypeContext &Context, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
+  NominalType::NominalType(ValueKind Kind, const Module &Owner, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
       : Type(Kind),
-        Context(Context),
+        Owner(Owner),
         Size(Size),
         Alignment(Alignment),
         Name(Name)
@@ -84,7 +84,7 @@ namespace ink::ir
 
   bool NominalType::validField(const Field &Entry) const noexcept
   {
-    return !Frozen && Context.owns(Entry.type()) && (!Entry.hasInitializer() || Context.constantPool().owns(Entry.initializer())) && Entry.valid() && Entry.offset() <= Size && Entry.type()->size() <= Size - Entry.offset();
+    return !Frozen && Owner.ownsType(Entry.type()) && (!Entry.hasInitializer() || Owner.constantPool().owns(Entry.initializer())) && Entry.valid() && Entry.offset() <= Size && Entry.type()->size() <= Size - Entry.offset();
   }
 
   std::vector<const Field *> NominalType::findFields(core::Name MemberName) const
@@ -141,7 +141,7 @@ namespace ink::ir
 
   bool NominalType::validMethod(const Method &Entry) const noexcept
   {
-    return !Frozen && Entry.valid() && Context.owns(Entry.functionType());
+    return !Frozen && Entry.valid() && Owner.ownsType(Entry.functionType());
   }
 
   std::vector<const Method *> NominalType::findMethods(core::Name MemberName) const

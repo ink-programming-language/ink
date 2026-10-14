@@ -2,8 +2,8 @@
 
 namespace ink::ir
 {
-  StructType::StructType(const TypeContext &Context, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
-      : NominalType(ValueKind::Struct, Context, Size, Alignment, Name)
+  StructType::StructType(const Module &Owner, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
+      : NominalType(ValueKind::Struct, Owner, Size, Alignment, Name)
   {
   }
 

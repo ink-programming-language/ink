@@ -1,6 +1,6 @@
 #include "ink/target/target_context.h"
 #include "ink/ir/constant/constant_pool.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
@@ -17,10 +17,10 @@ namespace ink::ir::test
   // Signed factories preserve two's-complement boundary patterns and reject 32-bit overflow.
   TEST(IRNumericConstantTest, SignedIntegerBoundariesAndNegativeBits)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
-    const auto Signed32 = Types.getIntegerType(32, true);
-    const auto Signed64 = Types.getIntegerType(64, true);
+    const auto Signed32 = Types.typePool().getIntegerType(32, true);
+    const auto Signed64 = Types.typePool().getIntegerType(64, true);
     ASSERT_NE(Signed32, nullptr);
     ASSERT_NE(Signed64, nullptr);
 
@@ -54,11 +54,11 @@ namespace ink::ir::test
   // Unsigned factories accept the entire width, including the high bit, without truncating overflow.
   TEST(IRNumericConstantTest, UnsignedIntegerBoundaries)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
     for (const std::uint32_t Width : {32U, 64U})
     {
-      const auto UnsignedType = Types.getIntegerType(Width, false);
+      const auto UnsignedType = Types.typePool().getIntegerType(Width, false);
       ASSERT_NE(UnsignedType, nullptr);
       const std::uint64_t Maximum = Width == 32 ? std::numeric_limits<std::uint32_t>::max() : std::numeric_limits<std::uint64_t>::max();
       for (const std::uint64_t Value : {std::uint64_t{0}, Maximum})
@@ -82,10 +82,10 @@ namespace ink::ir::test
     for (const target::PointerWidth Width : {target::PointerWidth::Bits32, target::PointerWidth::Bits64})
     {
       const target::TargetContext ByteTarget(Width, target::ByteOrder::LittleEndian);
-      TypeContext Types(ByteTarget);
-      TypeContext Other(ByteTarget);
+      Module Types(ByteTarget);
+      Module Other(ByteTarget);
       auto &Constants = Types.constantPool();
-      const auto Byte = Types.getUInt8Type();
+      const auto Byte = Types.typePool().getUInt8Type();
       ASSERT_NE(Byte, nullptr);
       for (const std::uint64_t Value : {std::uint64_t{0}, std::uint64_t{255}})
       {
@@ -105,23 +105,23 @@ namespace ink::ir::test
       EXPECT_EQ(Constants.getSignedIntegerConstant(Byte, 0), nullptr);
       EXPECT_EQ(Constants.getSignedIntegerConstant(Byte, -1), nullptr);
       EXPECT_EQ(Constants.getSignedIntegerConstant(Byte, 255), nullptr);
-      EXPECT_EQ(Constants.getUnsignedIntegerConstant(Other.getUInt8Type(), 0), nullptr);
-      EXPECT_EQ(Constants.getIntegerConstantFromBits(Other.getUInt8Type(), 0), nullptr);
+      EXPECT_EQ(Constants.getUnsignedIntegerConstant(Other.typePool().getUInt8Type(), 0), nullptr);
+      EXPECT_EQ(Constants.getIntegerConstantFromBits(Other.typePool().getUInt8Type(), 0), nullptr);
     }
   }
 
   // Numeric factories reject missing types and signedness mismatches even for an otherwise valid zero.
   TEST(IRNumericConstantTest, IntegerRejectsMissingTypeAndWrongSignedness)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
     EXPECT_EQ(Constants.getIntegerConstantFromBits(nullptr, 0), nullptr);
     EXPECT_EQ(Constants.getSignedIntegerConstant(nullptr, 0), nullptr);
     EXPECT_EQ(Constants.getUnsignedIntegerConstant(nullptr, 0), nullptr);
     for (const std::uint32_t Width : {32U, 64U})
     {
-      const auto SignedType = Types.getIntegerType(Width, true);
-      const auto UnsignedType = Types.getIntegerType(Width, false);
+      const auto SignedType = Types.typePool().getIntegerType(Width, true);
+      const auto UnsignedType = Types.typePool().getIntegerType(Width, false);
       ASSERT_NE(SignedType, nullptr);
       ASSERT_NE(UnsignedType, nullptr);
       EXPECT_EQ(Constants.getUnsignedIntegerConstant(SignedType, 0), nullptr);
@@ -133,13 +133,13 @@ namespace ink::ir::test
   // Raw integer bits accept every in-width pattern for either signedness and reject nonzero upper bits.
   TEST(IRNumericConstantTest, IntegerRawBitsHaveNoImplicitTruncation)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
     for (const bool Signed : {false, true})
     {
       for (const std::uint32_t Width : {32U, 64U})
       {
-        const auto Integer = Types.getIntegerType(Width, Signed);
+        const auto Integer = Types.typePool().getIntegerType(Width, Signed);
         ASSERT_NE(Integer, nullptr);
         const std::uint64_t Maximum = Width == 32 ? std::numeric_limits<std::uint32_t>::max() : std::numeric_limits<std::uint64_t>::max();
         const auto Constant = Constants.getIntegerConstantFromBits(Integer, Maximum);
@@ -180,11 +180,11 @@ namespace ink::ir::test
     for (const target::ByteOrder Order : {target::ByteOrder::LittleEndian, target::ByteOrder::BigEndian})
     {
       const target::TargetContext FloatTarget(target::PointerWidth::Bits64, Order);
-      TypeContext FloatTypes(FloatTarget);
+      Module FloatTypes(FloatTarget);
       auto &Constants = FloatTypes.constantPool();
       for (const FloatCase &Case : Cases)
       {
-        const auto Float = FloatTypes.getFloatType(Case.Width);
+        const auto Float = FloatTypes.typePool().getFloatType(Case.Width);
         ASSERT_NE(Float, nullptr);
         const auto Constant = Constants.getFloatConstantFromBits(Float, Case.Bits);
         ASSERT_NE(Constant, nullptr);
@@ -224,10 +224,10 @@ namespace ink::ir::test
     for (const target::ByteOrder Order : {target::ByteOrder::LittleEndian, target::ByteOrder::BigEndian})
     {
       const target::TargetContext FloatTarget(target::PointerWidth::Bits64, Order);
-      TypeContext FloatTypes(FloatTarget);
+      Module FloatTypes(FloatTarget);
       auto &Constants = FloatTypes.constantPool();
-      const auto Float32 = FloatTypes.getFloatType(32);
-      const auto Float64 = FloatTypes.getFloatType(64);
+      const auto Float32 = FloatTypes.typePool().getFloatType(32);
+      const auto Float64 = FloatTypes.typePool().getFloatType(64);
       ASSERT_NE(Float32, nullptr);
       ASSERT_NE(Float64, nullptr);
       for (const Float32Case &Case : Float32Cases)
@@ -252,10 +252,10 @@ namespace ink::ir::test
   // Numeric floating-point factories preserve signed zero and infinities, and retain NaN classification.
   TEST(IRNumericConstantTest, FloatNumericFactoriesPreserveSpecialValues)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
-    const auto Float32 = Types.getFloatType(32);
-    const auto Float64 = Types.getFloatType(64);
+    const auto Float32 = Types.typePool().getFloatType(32);
+    const auto Float64 = Types.typePool().getFloatType(64);
     ASSERT_NE(Float32, nullptr);
     ASSERT_NE(Float64, nullptr);
     struct SpecialCase
@@ -295,10 +295,10 @@ namespace ink::ir::test
   // Raw floating-point factories reject missing types and nonzero high bits instead of narrowing them.
   TEST(IRNumericConstantTest, FloatRejectsMissingTypeAndHighBits)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
     EXPECT_EQ(Constants.getFloatConstantFromBits(nullptr, 0), nullptr);
-    const auto Float32 = Types.getFloatType(32);
+    const auto Float32 = Types.typePool().getFloatType(32);
     ASSERT_NE(Float32, nullptr);
     EXPECT_EQ(Constants.getFloatConstantFromBits(Float32, 0x100000000ULL), nullptr);
     EXPECT_EQ(Constants.getFloatConstantFromBits(Float32, 0xffffffff80000000ULL), nullptr);

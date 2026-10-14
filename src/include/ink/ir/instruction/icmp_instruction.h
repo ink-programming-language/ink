@@ -24,7 +24,7 @@ namespace ink::ir
   };
 
   // Compares two resolved operands of the same integer or pointer type and produces a bool.
-  // Equality predicates also allow the context's null literal with a typed pointer supplying its concrete type.
+  // Equality predicates also allow the module's null literal with a typed pointer supplying its concrete type.
   // Signedness belongs to the predicate; operands and the result type are borrowed.
   class ICmpInstruction final : public Instruction
   {

@@ -9,7 +9,7 @@
 namespace ink::ir
 {
   // A named data member with a borrowed type and an explicit byte offset in its enclosing value.
-  // The type and optional constant initializer share a context and must outlive external copies.
+  // The type and optional constant initializer share a module and must outlive external copies.
   // Field records do not own runtime storage; absence of a constant does not imply zero initialization.
   class Field final
   {

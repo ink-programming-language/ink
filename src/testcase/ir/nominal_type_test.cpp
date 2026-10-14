@@ -1,4 +1,4 @@
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
@@ -14,7 +14,7 @@ namespace ink::ir::test
     constexpr target::TargetContext Target64(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
     constexpr std::uint64_t MaximumSize = std::numeric_limits<std::uint64_t>::max();
 
-    std::array<const Type *, 3> createNominalTypes(TypeContext &Types, std::uint64_t Size, std::uint64_t Alignment)
+    std::array<const Type *, 3> createNominalTypes(Module &Types, std::uint64_t Size, std::uint64_t Alignment)
     {
       return {Types.createClassType(Size, Alignment), Types.createInterfaceType(Size, Alignment), Types.createStructType(Size, Alignment)};
     }
@@ -23,7 +23,7 @@ namespace ink::ir::test
   // Nominal types preserve explicit byte layouts, including empty and maximum-sized storage.
   TEST(IRNominalTypeTest, PreservesLayoutAndConcreteKinds)
   {
-    TypeContext Types(Target64);
+    Module Types(Target64);
     constexpr ValueKind Kinds[] = {
         ValueKind::Class,
         ValueKind::Interface,
@@ -51,11 +51,11 @@ namespace ink::ir::test
     }
   }
 
-  // Equal layouts create distinct nominal identities owned exclusively by their creating context.
-  TEST(IRNominalTypeTest, EqualLayoutsHaveDistinctContextOwnedIdentities)
+  // Equal layouts create distinct nominal identities owned exclusively by their creating module.
+  TEST(IRNominalTypeTest, EqualLayoutsHaveDistinctModuleOwnedIdentities)
   {
-    TypeContext Types(Target64);
-    TypeContext OtherTypes(Target64);
+    Module Types(Target64);
+    Module OtherTypes(Target64);
     const auto First = createNominalTypes(Types, 8, 8);
     const auto Second = createNominalTypes(Types, 8, 8);
     const auto Foreign = createNominalTypes(OtherTypes, 8, 8);
@@ -66,28 +66,28 @@ namespace ink::ir::test
       ASSERT_NE(Foreign[Index], nullptr);
       EXPECT_NE(First[Index], Second[Index]);
       EXPECT_NE(First[Index], Foreign[Index]);
-      EXPECT_TRUE(Types.owns(First[Index]));
-      EXPECT_TRUE(Types.owns(Second[Index]));
-      EXPECT_FALSE(OtherTypes.owns(First[Index]));
-      EXPECT_FALSE(Types.owns(Foreign[Index]));
-      EXPECT_TRUE(OtherTypes.owns(Foreign[Index]));
-      EXPECT_NE(Types.getPointerType(First[Index]), Types.getPointerType(Second[Index]));
-      EXPECT_NE(Types.getReferenceType(First[Index]), Types.getReferenceType(Second[Index]));
-      EXPECT_NE(Types.getArrayType(First[Index], 2), Types.getArrayType(Second[Index], 2));
-      EXPECT_NE(Types.getFunctionType(First[Index], {First[Index]}), Types.getFunctionType(Second[Index], {Second[Index]}));
+      EXPECT_TRUE(Types.ownsType(First[Index]));
+      EXPECT_TRUE(Types.ownsType(Second[Index]));
+      EXPECT_FALSE(OtherTypes.ownsType(First[Index]));
+      EXPECT_FALSE(Types.ownsType(Foreign[Index]));
+      EXPECT_TRUE(OtherTypes.ownsType(Foreign[Index]));
+      EXPECT_NE(Types.typePool().getPointerType(First[Index]), Types.typePool().getPointerType(Second[Index]));
+      EXPECT_NE(Types.typePool().getReferenceType(First[Index]), Types.typePool().getReferenceType(Second[Index]));
+      EXPECT_NE(Types.typePool().getArrayType(First[Index], 2), Types.typePool().getArrayType(Second[Index], 2));
+      EXPECT_NE(Types.typePool().getFunctionType(First[Index], {First[Index]}), Types.typePool().getFunctionType(Second[Index], {Second[Index]}));
     }
   }
 
   // Every nominal type factory rejects zero and non-power-of-two alignments without creating a type.
   TEST(IRNominalTypeTest, RejectsInvalidAlignment)
   {
-    TypeContext Types(Target64);
+    Module Types(Target64);
     for (const std::uint64_t Alignment : {std::uint64_t{0}, std::uint64_t{3}, std::uint64_t{6}, MaximumSize})
     {
       for (const Type *Value : createNominalTypes(Types, 5, Alignment))
       {
         EXPECT_EQ(Value, nullptr);
-        EXPECT_FALSE(Types.owns(Value));
+        EXPECT_FALSE(Types.ownsType(Value));
       }
     }
   }
@@ -95,14 +95,14 @@ namespace ink::ir::test
   // Class, interface and struct identities remain intact in pointer, reference, array and function types.
   TEST(IRNominalTypeTest, ComposesWithStructuralTypes)
   {
-    TypeContext Types(Target64);
+    Module Types(Target64);
     for (const Type *Value : createNominalTypes(Types, 5, 8))
     {
       ASSERT_NE(Value, nullptr);
-      const auto Pointer = Types.getPointerType(Value);
-      const auto Reference = Types.getReferenceType(Value);
-      const auto Array = Types.getArrayType(Value, 3);
-      const auto Function = Types.getFunctionType(Value, {Value});
+      const auto Pointer = Types.typePool().getPointerType(Value);
+      const auto Reference = Types.typePool().getReferenceType(Value);
+      const auto Array = Types.typePool().getArrayType(Value, 3);
+      const auto Function = Types.typePool().getFunctionType(Value, {Value});
       ASSERT_NE(Pointer, nullptr);
       ASSERT_NE(Reference, nullptr);
       ASSERT_NE(Array, nullptr);
@@ -116,40 +116,40 @@ namespace ink::ir::test
       EXPECT_EQ(Function->returnType(), Value);
       ASSERT_EQ(Function->parameterCount(), 1U);
       EXPECT_EQ(Function->parameters()[0], Value);
-      EXPECT_EQ(Types.getPointerType(Value), Pointer);
-      EXPECT_EQ(Types.getReferenceType(Value), Reference);
-      EXPECT_EQ(Types.getArrayType(Value, 3), Array);
-      EXPECT_EQ(Types.getFunctionType(Value, {Value}), Function);
+      EXPECT_EQ(Types.typePool().getPointerType(Value), Pointer);
+      EXPECT_EQ(Types.typePool().getReferenceType(Value), Reference);
+      EXPECT_EQ(Types.typePool().getArrayType(Value, 3), Array);
+      EXPECT_EQ(Types.typePool().getFunctionType(Value, {Value}), Function);
     }
   }
 
-  // Structural type factories reject nominal types belonging to another context in every operand position.
-  TEST(IRNominalTypeTest, RejectsForeignContextOperands)
+  // Structural type factories reject nominal types belonging to another module in every operand position.
+  TEST(IRNominalTypeTest, RejectsForeignModuleOperands)
   {
-    TypeContext Types(Target64);
-    TypeContext OtherTypes(Target64);
+    Module Types(Target64);
+    Module OtherTypes(Target64);
     for (const Type *Value : createNominalTypes(OtherTypes, 8, 8))
     {
       ASSERT_NE(Value, nullptr);
-      EXPECT_EQ(Types.getPointerType(Value), nullptr);
-      EXPECT_EQ(Types.getReferenceType(Value), nullptr);
-      EXPECT_EQ(Types.getArrayType(Value, 0), nullptr);
-      EXPECT_EQ(Types.getArrayType(Value, 3), nullptr);
-      EXPECT_EQ(Types.getFunctionType(Value, {}), nullptr);
-      EXPECT_EQ(Types.getFunctionType(Types.getBoolType(), {Value}), nullptr);
+      EXPECT_EQ(Types.typePool().getPointerType(Value), nullptr);
+      EXPECT_EQ(Types.typePool().getReferenceType(Value), nullptr);
+      EXPECT_EQ(Types.typePool().getArrayType(Value, 0), nullptr);
+      EXPECT_EQ(Types.typePool().getArrayType(Value, 3), nullptr);
+      EXPECT_EQ(Types.typePool().getFunctionType(Value, {}), nullptr);
+      EXPECT_EQ(Types.typePool().getFunctionType(Types.typePool().getBoolType(), {Value}), nullptr);
     }
   }
 
   // Maximum unaligned nominal sizes reject overflowing array strides while allowing empty arrays.
   TEST(IRNominalTypeTest, ArrayChecksNominalStrideOverflow)
   {
-    TypeContext Types(Target64);
+    Module Types(Target64);
     for (const Type *Value : createNominalTypes(Types, MaximumSize, 8))
     {
       ASSERT_NE(Value, nullptr);
       EXPECT_EQ(Value->size(), MaximumSize);
-      EXPECT_EQ(Types.getArrayType(Value, 1), nullptr);
-      const auto Empty = Types.getArrayType(Value, 0);
+      EXPECT_EQ(Types.typePool().getArrayType(Value, 1), nullptr);
+      const auto Empty = Types.typePool().getArrayType(Value, 0);
       ASSERT_NE(Empty, nullptr);
       EXPECT_EQ(Empty->elementType(), Value);
       EXPECT_EQ(Empty->size(), 0U);

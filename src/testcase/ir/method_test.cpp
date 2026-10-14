@@ -2,7 +2,7 @@
 #include "ink/ir/function/function.h"
 #include "ink/ir/type/nominal_type/method.h"
 #include "ink/ir/instruction/instruction.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
@@ -62,8 +62,8 @@ namespace ink::ir::test
   // Default dispatch is a valid direct method without virtual, override, final or slot metadata.
   TEST(IRMethodTest, DirectMethodHasNoVirtualProperties)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.direct");
     auto Callable = std::make_unique<Function>(*Signature, Name);
@@ -85,8 +85,8 @@ namespace ink::ir::test
   // Direct dispatch rejects every nonempty combination of virtual-only flags and assigned slots.
   TEST(IRMethodTest, DirectMethodRejectsVirtualProperties)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.direct");
     for (std::uint32_t Flags = 1; Flags < 8; ++Flags)
@@ -99,8 +99,8 @@ namespace ink::ir::test
   // Virtual methods support independent override and final flags with an optional slot, including slot zero.
   TEST(IRMethodTest, VirtualMethodsAcceptOverrideFinalAndAssignedSlots)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.virtual");
     for (std::uint32_t Flags = 0; Flags < 8; ++Flags)
@@ -122,8 +122,8 @@ namespace ink::ir::test
   // Abstract methods remain virtual and can override a base slot, but cannot forbid their implementation with final.
   TEST(IRMethodTest, AbstractMethodsAllowOverridesAndRejectFinal)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.abstract");
     for (std::uint32_t Flags = 0; Flags < 8; ++Flags)
@@ -141,8 +141,8 @@ namespace ink::ir::test
   // Missing source names and unrecognized dispatch values are invalid.
   TEST(IRMethodTest, RejectsMissingNameAndUnknownDispatch)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.name");
     EXPECT_FALSE(Method(std::make_unique<Function>(*Signature)).valid());
@@ -155,8 +155,8 @@ namespace ink::ir::test
   // Function renames and name removal immediately update method identity and validity without changing dispatch metadata.
   TEST(IRMethodTest, FunctionNameChangesAreReflectedImmediately)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getInt32Type(), {Types.getInt32Type()});
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
     ASSERT_NE(Signature, nullptr);
     const core::Name MemberName = core::NamePool::instance().intern("method");
     const core::Name LoweredName = core::NamePool::instance().intern("ink_math_Point_method_i32");
@@ -186,8 +186,8 @@ namespace ink::ir::test
   // Methods sharing a signature own distinct functions whose names and bodies remain independent.
   TEST(IRMethodTest, SharedSignaturePreservesIndependentFunctionIdentity)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name FirstName = core::NamePool::instance().intern("IRMethodTest.first");
     const core::Name SecondName = core::NamePool::instance().intern("IRMethodTest.second");
@@ -209,8 +209,8 @@ namespace ink::ir::test
   // Mutable and const method access reaches the same function parameters and body, including blocks added after binding.
   TEST(IRMethodTest, BoundFunctionProvidesParametersAndBody)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getInt32Type(), {Types.getInt32Type()});
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.body");
     Method Member(std::make_unique<Function>(*Signature, Name));
@@ -243,8 +243,8 @@ namespace ink::ir::test
     Method MovedEmpty(std::move(Empty));
     expectNoFunction(Empty);
     expectNoFunction(MovedEmpty);
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.moved");
     Method Member(std::make_unique<Function>(*Signature, Name));
@@ -259,8 +259,8 @@ namespace ink::ir::test
   // Moving a method transfers sole ownership and dispatch metadata without relocating its function, parameters or body.
   TEST(IRMethodTest, MoveConstructionPreservesOwnedFunctionIdentity)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getInt32Type(), {Types.getInt32Type()});
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.move");
     std::uint32_t DestructionCount = 0;
@@ -293,9 +293,9 @@ namespace ink::ir::test
   // Move assignment destroys the previous function body exactly once and retains the incoming body's lifetime and identity.
   TEST(IRMethodTest, MoveAssignmentReleasesPreviousFunctionExactlyOnce)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
-    const auto NewSignature = Types.getFunctionType(Types.getInt32Type(), {Types.getInt32Type()});
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto NewSignature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
     ASSERT_NE(Signature, nullptr);
     ASSERT_NE(NewSignature, nullptr);
     const core::Name OldName = core::NamePool::instance().intern("IRMethodTest.old");
@@ -333,8 +333,8 @@ namespace ink::ir::test
   // Destroying the owning method releases every instruction in every block of its function.
   TEST(IRMethodTest, DestructionReleasesOwnedFunctionBody)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Types(Target);
+    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.destroy");
     std::uint32_t DestructionCount = 0;

@@ -5,7 +5,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class Module;
 
   // Describes a class template; member declarations and instantiated layouts are supplied later.
   class GenericClassType final : public GenericType
@@ -14,7 +14,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class Module;
 
       GenericClassType(core::Name Name, std::vector<const Type *> GenericParameters) noexcept;
   };

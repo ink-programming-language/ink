@@ -5,7 +5,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class TypePool;
 
   // Standalone ellipsis marker without an element type or runtime storage layout.
   class VariadicType final : public Type
@@ -18,7 +18,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class TypePool;
 
       VariadicType() noexcept;
   };

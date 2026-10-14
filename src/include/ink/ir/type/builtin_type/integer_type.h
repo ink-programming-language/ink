@@ -6,7 +6,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class TypePool;
 
   class IntegerType final : public Type
   {
@@ -19,7 +19,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class TypePool;
 
       IntegerType(const target::TargetContext &Target, std::uint32_t Width, bool Signed) noexcept;
 

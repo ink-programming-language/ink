@@ -3,15 +3,17 @@
 #include "ink/ir/type/nominal_type/method.h"
 #include "ink/ir/instruction/instruction.h"
 #include "ink/ir/module/module.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/type/type_pool.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace ink::ir::test
 {
@@ -64,11 +66,20 @@ namespace ink::ir::test
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().initializationFunction()), const Function *>);
   static_assert(std::is_same_v<decltype(std::declval<Module &>().deinitializationFunction()), Function *>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().deinitializationFunction()), const Function *>);
+  static_assert(std::is_same_v<decltype(std::declval<const Module &>().classes()), const std::vector<std::unique_ptr<ClassType>> &>);
+  static_assert(std::is_same_v<decltype(std::declval<const Module &>().interfaces()), const std::vector<std::unique_ptr<InterfaceType>> &>);
+  static_assert(std::is_same_v<decltype(std::declval<const Module &>().structs()), const std::vector<std::unique_ptr<StructType>> &>);
+  static_assert(std::is_same_v<decltype(std::declval<Module &>().classType(0)), ClassType *>);
+  static_assert(std::is_same_v<decltype(std::declval<const Module &>().classType(0)), const ClassType *>);
+  static_assert(std::is_same_v<decltype(std::declval<Module &>().interfaceType(0)), InterfaceType *>);
+  static_assert(std::is_same_v<decltype(std::declval<const Module &>().interfaceType(0)), const InterfaceType *>);
+  static_assert(std::is_same_v<decltype(std::declval<Module &>().structType(0)), StructType *>);
+  static_assert(std::is_same_v<decltype(std::declval<const Module &>().structType(0)), const StructType *>);
 
   // Named and unnamed modules begin in the root package with empty declaration lists and reject every indexed access.
   TEST(IRModuleTest, EmptyModulesPreserveOptionalCanonicalName)
   {
-    Module Unnamed;
+    Module Unnamed(Target);
     const Module &ReadOnly = Unnamed;
     EXPECT_EQ(Unnamed.name(), core::NAME_None);
     EXPECT_FALSE(Unnamed.hasName());
@@ -95,7 +106,7 @@ namespace ink::ir::test
     EXPECT_FALSE(Unnamed.contains(nullptr));
 
     const core::Name ModuleName = core::NamePool::instance().intern("Empty");
-    const Module Named(ModuleName);
+    const Module Named(Target, ModuleName);
     EXPECT_TRUE(Named.hasName());
     EXPECT_EQ(Named.name(), ModuleName);
   }
@@ -109,10 +120,10 @@ namespace ink::ir::test
     const core::Name PackageName = Names.intern("render");
     const core::Name ChildName = Names.intern("detail");
     const PackagePath Expected{{RootName, PackageName}};
-    Module Owner(ModuleName);
+    Module Owner(Target, ModuleName);
     {
       PackagePath Source = Expected;
-      Module Other(ModuleName, Source);
+      Module Other(Target, ModuleName, Source);
       Owner.setPackage(Source);
       EXPECT_EQ(Owner.package(), Other.package());
       EXPECT_EQ(Other.name(), ModuleName);
@@ -133,23 +144,22 @@ namespace ink::ir::test
   // Creation and ownership transfer preserve insertion order and entity addresses as both lists grow.
   TEST(IRModuleTest, OwnsCreatedAndAppendedDeclarationsAtStableAddresses)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Owner(Target);
+    const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name VariableName = core::NamePool::instance().intern("IRModuleTest.Variable");
     const core::Name FunctionName = core::NamePool::instance().intern("IRModuleTest.Function");
-    Module Owner;
     const Module &ReadOnly = Owner;
-    auto *CreatedVariable = Owner.createGlobalVariable(*Types.getBoolType(), VariableName);
+    auto *CreatedVariable = Owner.createGlobalVariable(*Owner.typePool().getBoolType(), VariableName);
     auto *CreatedFunction = Owner.createGlobalFunction(*Signature, FunctionName);
     ASSERT_NE(CreatedVariable, nullptr);
     ASSERT_NE(CreatedFunction, nullptr);
     EXPECT_EQ(CreatedVariable->name(), VariableName);
-    EXPECT_EQ(CreatedVariable->type(), Types.getBoolType());
+    EXPECT_EQ(CreatedVariable->type(), Owner.typePool().getBoolType());
     EXPECT_EQ(CreatedFunction->name(), FunctionName);
     EXPECT_EQ(CreatedFunction->functionType(), Signature);
 
-    auto AppendedVariable = std::make_unique<GlobalVariable>(*Types.getInt32Type());
+    auto AppendedVariable = std::make_unique<GlobalVariable>(*Owner.typePool().getInt32Type());
     auto AppendedFunction = std::make_unique<Function>(*Signature);
     auto *VariableAddress = AppendedVariable.get();
     auto *FunctionAddress = AppendedFunction.get();
@@ -164,7 +174,7 @@ namespace ink::ir::test
 
     for (std::size_t Index = 0; Index < 64; ++Index)
     {
-      ASSERT_NE(Owner.createGlobalVariable(*Types.getBoolType()), nullptr);
+      ASSERT_NE(Owner.createGlobalVariable(*Owner.typePool().getBoolType()), nullptr);
       ASSERT_NE(Owner.createGlobalFunction(*Signature), nullptr);
     }
 
@@ -198,11 +208,10 @@ namespace ink::ir::test
   // Function creation forwards signature, name, symbol linkage, language linkage and visibility.
   TEST(IRModuleTest, FunctionCreationPreservesExplicitMetadata)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getInt32Type(), {Types.getBoolType()});
+    Module Owner(Target);
+    const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getInt32Type(), {Owner.typePool().getBoolType()});
     ASSERT_NE(Signature, nullptr);
     const core::Name FunctionName = core::NamePool::instance().intern("IRModuleTest.ForeignFunction");
-    Module Owner;
     auto *Callable = Owner.createGlobalFunction(*Signature, FunctionName, SymbolLinkage::Import, LanguageLinkage::C, FunctionVisibility::Private);
     ASSERT_NE(Callable, nullptr);
     EXPECT_EQ(Callable->functionType(), Signature);
@@ -217,10 +226,9 @@ namespace ink::ir::test
   // Optional lifecycle entries independently select, replace and clear owned declarations before their bodies exist.
   TEST(IRModuleTest, LifecycleEntriesIndependentlySelectOwnedFunctions)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
+    Module Owner(Target);
+    const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
-    Module Owner;
     const Module &ReadOnly = Owner;
     EXPECT_EQ(Owner.initializationFunction(), nullptr);
     EXPECT_EQ(Owner.deinitializationFunction(), nullptr);
@@ -258,21 +266,20 @@ namespace ink::ir::test
   // Foreign, detached, nominal member and incompatible functions cannot replace an already selected lifecycle entry.
   TEST(IRModuleTest, LifecycleEntriesRejectNonGlobalAndIncompatibleFunctions)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
-    const auto ReturningSignature = Types.getFunctionType(Types.getInt32Type());
-    const auto ParameterSignature = Types.getFunctionType(Types.getVoidType(), {Types.getBoolType()});
-    const auto EmptyStruct = Types.createStructType(0, 1);
+    Module Owner(Target);
+    const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
+    const auto ReturningSignature = Owner.typePool().getFunctionType(Owner.typePool().getInt32Type());
+    const auto ParameterSignature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType(), {Owner.typePool().getBoolType()});
+    const auto EmptyStruct = Owner.createStructType(0, 1);
     ASSERT_NE(Signature, nullptr);
     ASSERT_NE(ReturningSignature, nullptr);
     ASSERT_NE(ParameterSignature, nullptr);
     ASSERT_NE(EmptyStruct, nullptr);
-    const auto EmptyStructSignature = Types.getFunctionType(EmptyStruct);
+    const auto EmptyStructSignature = Owner.typePool().getFunctionType(EmptyStruct);
     ASSERT_NE(EmptyStructSignature, nullptr);
-    Module Owner;
-    Module Other;
+    Module Other(Target);
     auto *Selected = Owner.createGlobalFunction(*Signature);
-    auto *Foreign = Other.createGlobalFunction(*Signature);
+    auto *Foreign = Other.createGlobalFunction(*Other.typePool().getFunctionType(Other.typePool().getVoidType()));
     auto *Returning = Owner.createGlobalFunction(*ReturningSignature);
     auto *Parameterized = Owner.createGlobalFunction(*ParameterSignature);
     auto *ReturningEmptyStruct = Owner.createGlobalFunction(*EmptyStructSignature);
@@ -282,13 +289,12 @@ namespace ink::ir::test
     ASSERT_NE(Parameterized, nullptr);
     ASSERT_NE(ReturningEmptyStruct, nullptr);
     Function Detached(*Signature);
-    const auto ClassValue = Types.createClassType(8, 4);
+    const auto ClassValue = Owner.createClassType(8, 4);
     ASSERT_NE(ClassValue, nullptr);
     const core::Name MemberName = core::NamePool::instance().intern("IRModuleTest.LifecycleMember");
     auto Member = std::make_unique<Function>(*Signature, MemberName);
     auto *MemberAddress = Member.get();
     ASSERT_TRUE(ClassValue->addMethod(Method(std::move(Member))));
-    ASSERT_TRUE(Owner.addClass(*ClassValue));
     ASSERT_TRUE(Owner.setInitializationFunction(Selected));
     ASSERT_TRUE(Owner.setDeinitializationFunction(Selected));
     Function *Rejected[] = {
@@ -311,12 +317,11 @@ namespace ink::ir::test
   // Sharing one lifecycle function keeps its address stable through list growth and destroys its owned body exactly once.
   TEST(IRModuleTest, LifecycleEntriesBorrowStableFunctionsWithoutDuplicatingOwnership)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
-    ASSERT_NE(Signature, nullptr);
     std::size_t DestructionCount = 0;
     {
-      Module Owner;
+      Module Owner(Target);
+      const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
+      ASSERT_NE(Signature, nullptr);
       auto *Shared = Owner.createGlobalFunction(*Signature);
       ASSERT_NE(Shared, nullptr);
       auto *Block = Shared->createBlock();
@@ -347,13 +352,12 @@ namespace ink::ir::test
   // Destroying a module releases the body instructions of both created and transferred functions.
   TEST(IRModuleTest, DestructionReleasesOwnedFunctionBodies)
   {
-    TypeContext Types(Target);
-    const auto Signature = Types.getFunctionType(Types.getVoidType());
-    ASSERT_NE(Signature, nullptr);
     bool CreatedBodyDestroyed = false;
     bool TransferredBodyDestroyed = false;
     {
-      Module Owner;
+      Module Owner(Target);
+      const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
+      ASSERT_NE(Signature, nullptr);
       auto *Created = Owner.createGlobalFunction(*Signature);
       ASSERT_NE(Created, nullptr);
       auto *CreatedBlock = Created->createBlock();
@@ -372,66 +376,53 @@ namespace ink::ir::test
     EXPECT_TRUE(TransferredBodyDestroyed);
   }
 
-  // Nominal type registration borrows distinct identities, rejects duplicates and preserves insertion order as lists grow.
-  TEST(IRModuleTest, RegistersBorrowedNominalTypesAtStableAddresses)
+  // Nominal creation immediately owns distinct identities and preserves insertion order and addresses as lists grow.
+  TEST(IRModuleTest, OwnsCreatedNominalTypesAtStableAddresses)
   {
-    TypeContext Types(Target);
-    const auto FirstClass = Types.createClassType(16, 8);
-    const auto FirstInterface = Types.createInterfaceType(16, 8);
-    const auto FirstStruct = Types.createStructType(8, 4);
-    const auto SecondClass = Types.createClassType(16, 8);
-    const auto SecondInterface = Types.createInterfaceType(16, 8);
-    const auto SecondStruct = Types.createStructType(8, 4);
+    Module Owner(Target);
+    const auto FirstClass = Owner.createClassType(16, 8);
+    const auto FirstInterface = Owner.createInterfaceType(16, 8);
+    const auto FirstStruct = Owner.createStructType(8, 4);
+    const auto SecondClass = Owner.createClassType(16, 8);
+    const auto SecondInterface = Owner.createInterfaceType(16, 8);
+    const auto SecondStruct = Owner.createStructType(8, 4);
     ASSERT_NE(FirstClass, nullptr);
     ASSERT_NE(FirstInterface, nullptr);
     ASSERT_NE(FirstStruct, nullptr);
     ASSERT_NE(SecondClass, nullptr);
     ASSERT_NE(SecondInterface, nullptr);
     ASSERT_NE(SecondStruct, nullptr);
-    Module Owner;
     const Module &ReadOnly = Owner;
-    ASSERT_TRUE(Owner.addClass(*FirstClass));
-    ASSERT_TRUE(Owner.addInterface(*FirstInterface));
-    ASSERT_TRUE(Owner.addStruct(*FirstStruct));
-    ASSERT_TRUE(Owner.addClass(*SecondClass));
-    ASSERT_TRUE(Owner.addInterface(*SecondInterface));
-    ASSERT_TRUE(Owner.addStruct(*SecondStruct));
-    EXPECT_FALSE(Owner.addClass(*FirstClass));
-    EXPECT_FALSE(Owner.addInterface(*FirstInterface));
-    EXPECT_FALSE(Owner.addStruct(*FirstStruct));
     EXPECT_EQ(Owner.classCount(), 2U);
     EXPECT_EQ(Owner.interfaceCount(), 2U);
     EXPECT_EQ(Owner.structCount(), 2U);
 
     for (std::size_t Index = 0; Index < 64; ++Index)
     {
-      const auto NewClass = Types.createClassType(16, 8);
-      const auto NewInterface = Types.createInterfaceType(16, 8);
-      const auto NewStruct = Types.createStructType(8, 4);
+      const auto NewClass = Owner.createClassType(16, 8);
+      const auto NewInterface = Owner.createInterfaceType(16, 8);
+      const auto NewStruct = Owner.createStructType(8, 4);
       ASSERT_NE(NewClass, nullptr);
       ASSERT_NE(NewInterface, nullptr);
       ASSERT_NE(NewStruct, nullptr);
-      ASSERT_TRUE(Owner.addClass(*NewClass));
-      ASSERT_TRUE(Owner.addInterface(*NewInterface));
-      ASSERT_TRUE(Owner.addStruct(*NewStruct));
     }
 
     EXPECT_EQ(Owner.classCount(), 66U);
     EXPECT_EQ(Owner.interfaceCount(), 66U);
     EXPECT_EQ(Owner.structCount(), 66U);
-    EXPECT_EQ(Owner.classes()[0], FirstClass);
-    EXPECT_EQ(Owner.classes()[1], SecondClass);
-    EXPECT_EQ(Owner.interfaces()[0], FirstInterface);
-    EXPECT_EQ(Owner.interfaces()[1], SecondInterface);
-    EXPECT_EQ(Owner.structs()[0], FirstStruct);
-    EXPECT_EQ(Owner.structs()[1], SecondStruct);
+    EXPECT_EQ(Owner.classes()[0].get(), FirstClass);
+    EXPECT_EQ(Owner.classes()[1].get(), SecondClass);
+    EXPECT_EQ(Owner.interfaces()[0].get(), FirstInterface);
+    EXPECT_EQ(Owner.interfaces()[1].get(), SecondInterface);
+    EXPECT_EQ(Owner.structs()[0].get(), FirstStruct);
+    EXPECT_EQ(Owner.structs()[1].get(), SecondStruct);
     EXPECT_EQ(ReadOnly.classType(0), FirstClass);
     EXPECT_EQ(ReadOnly.classType(1), SecondClass);
     EXPECT_EQ(ReadOnly.interfaceType(0), FirstInterface);
     EXPECT_EQ(ReadOnly.interfaceType(1), SecondInterface);
     EXPECT_EQ(ReadOnly.structType(0), FirstStruct);
     EXPECT_EQ(ReadOnly.structType(1), SecondStruct);
-    const Value *Registered[] = {
+    const Value *Created[] = {
         FirstClass,
         SecondClass,
         FirstInterface,
@@ -439,48 +430,76 @@ namespace ink::ir::test
         FirstStruct,
         SecondStruct,
     };
-    for (const Value *Candidate : Registered)
+    for (const Value *Candidate : Created)
     {
-      EXPECT_FALSE(Owner.owns(Candidate));
+      EXPECT_TRUE(Owner.owns(Candidate));
       EXPECT_TRUE(Owner.contains(Candidate));
     }
     for (const std::size_t Index : {std::size_t{66}, std::numeric_limits<std::size_t>::max()})
     {
+      EXPECT_EQ(Owner.classType(Index), nullptr);
       EXPECT_EQ(ReadOnly.classType(Index), nullptr);
+      EXPECT_EQ(Owner.interfaceType(Index), nullptr);
       EXPECT_EQ(ReadOnly.interfaceType(Index), nullptr);
+      EXPECT_EQ(Owner.structType(Index), nullptr);
       EXPECT_EQ(ReadOnly.structType(Index), nullptr);
     }
   }
 
-  // Membership excludes foreign and detached functions, unregistered types, constants and nested values.
-  TEST(IRModuleTest, RejectsUnregisteredValues)
+  // Invalid nominal layouts fail without inserting declarations or disturbing previously created identities.
+  TEST(IRModuleTest, RejectedNominalCreationPreservesOwnedLists)
   {
-    TypeContext Types(Target);
-    auto &Constants = Types.constantPool();
-    const auto Signature = Types.getFunctionType(Types.getVoidType(), {Types.getBoolType()});
-    const auto ClassLayout = Types.createClassType(16, 8);
-    const auto InterfaceLayout = Types.createInterfaceType(16, 8);
-    const auto StructLayout = Types.createStructType(8, 4);
+    Module Owner(Target);
+    const auto *Class = Owner.createClassType(8, 8);
+    const auto *Interface = Owner.createInterfaceType(8, 8);
+    const auto *Struct = Owner.createStructType(8, 8);
+    ASSERT_NE(Class, nullptr);
+    ASSERT_NE(Interface, nullptr);
+    ASSERT_NE(Struct, nullptr);
+    for (const std::uint64_t Alignment : {0U, 3U})
+    {
+      EXPECT_EQ(Owner.createClassType(8, Alignment), nullptr);
+      EXPECT_EQ(Owner.createInterfaceType(8, Alignment), nullptr);
+      EXPECT_EQ(Owner.createStructType(8, Alignment), nullptr);
+      ASSERT_EQ(Owner.classCount(), 1U);
+      ASSERT_EQ(Owner.interfaceCount(), 1U);
+      ASSERT_EQ(Owner.structCount(), 1U);
+      EXPECT_EQ(Owner.classType(0), Class);
+      EXPECT_EQ(Owner.interfaceType(0), Interface);
+      EXPECT_EQ(Owner.structType(0), Struct);
+      EXPECT_TRUE(Owner.ownsType(Class));
+      EXPECT_TRUE(Owner.ownsType(Interface));
+      EXPECT_TRUE(Owner.ownsType(Struct));
+    }
+  }
+
+  // Membership excludes foreign and detached functions, foreign types, constants and nested values.
+  TEST(IRModuleTest, RejectsForeignDetachedAndNestedValues)
+  {
+    Module Other(Target);
+    auto &Constants = Other.constantPool();
+    const auto Signature = Other.typePool().getFunctionType(Other.typePool().getVoidType(), {Other.typePool().getBoolType()});
+    const auto ClassLayout = Other.createClassType(16, 8);
+    const auto InterfaceLayout = Other.createInterfaceType(16, 8);
+    const auto StructLayout = Other.createStructType(8, 4);
     ASSERT_NE(Signature, nullptr);
     ASSERT_NE(ClassLayout, nullptr);
     ASSERT_NE(InterfaceLayout, nullptr);
     ASSERT_NE(StructLayout, nullptr);
-    Module Owner;
-    Module Other;
-    auto *Callable = Owner.createGlobalFunction(*Signature);
+    Module Owner(Target);
+    const auto LocalSignature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType(), {Owner.typePool().getBoolType()});
+    ASSERT_NE(LocalSignature, nullptr);
+    auto *Callable = Owner.createGlobalFunction(*LocalSignature);
     auto *ForeignFunction = Other.createGlobalFunction(*Signature);
-    auto *ForeignVariable = Other.createGlobalVariable(*Types.getBoolType());
+    auto *ForeignVariable = Other.createGlobalVariable(*Other.typePool().getBoolType());
     ASSERT_NE(Callable, nullptr);
     ASSERT_NE(ForeignFunction, nullptr);
     ASSERT_NE(ForeignVariable, nullptr);
-    ASSERT_TRUE(Other.addClass(*ClassLayout));
-    ASSERT_TRUE(Other.addInterface(*InterfaceLayout));
-    ASSERT_TRUE(Other.addStruct(*StructLayout));
     auto *ParameterValue = Callable->parameter(0);
     auto *Block = Callable->createBlock();
     ASSERT_NE(ParameterValue, nullptr);
     ASSERT_NE(Block, nullptr);
-    Function Detached(*Signature);
+    Function Detached(*LocalSignature);
     const Value *Rejected[] = {
         ForeignFunction,
         ForeignVariable,
@@ -490,6 +509,7 @@ namespace ink::ir::test
         InterfaceLayout,
         StructLayout,
         Constants.getBoolConstant(true),
+        Owner.constantPool().getBoolConstant(true),
         ParameterValue,
         Block,
     };
@@ -501,38 +521,36 @@ namespace ink::ir::test
     }
   }
 
-  // Registered nominal types own their overloaded methods independently of the module's top-level function list.
-  TEST(IRModuleTest, RegisteredClassMembersRetainNamesAndOverloadSignatures)
+  // Module-owned nominal types own their overloaded methods independently of the module's top-level function list.
+  TEST(IRModuleTest, OwnedClassMembersRetainNamesAndOverloadSignatures)
   {
-    TypeContext Types(Target);
+    const core::Name ModuleName = core::NamePool::instance().intern("math");
+    Module Owner(Target, ModuleName);
     const core::Name ClassName = core::NamePool::instance().intern("Point");
-    const auto ClassLayout = Types.createClassType(8, 4, ClassName);
+    const auto ClassLayout = Owner.createClassType(8, 4, ClassName);
     ASSERT_NE(ClassLayout, nullptr);
-    const auto ReceiverType = Types.getPointerType(ClassLayout);
+    const auto ReceiverType = Owner.typePool().getPointerType(ClassLayout);
     ASSERT_NE(ReceiverType, nullptr);
-    const auto IntegerSignature = Types.getFunctionType(Types.getInt32Type(), {ReceiverType, Types.getInt32Type()});
-    const auto BooleanSignature = Types.getFunctionType(Types.getInt32Type(), {ReceiverType, Types.getBoolType()});
+    const auto IntegerSignature = Owner.typePool().getFunctionType(Owner.typePool().getInt32Type(), {ReceiverType, Owner.typePool().getInt32Type()});
+    const auto BooleanSignature = Owner.typePool().getFunctionType(Owner.typePool().getInt32Type(), {ReceiverType, Owner.typePool().getBoolType()});
     ASSERT_NE(IntegerSignature, nullptr);
     ASSERT_NE(BooleanSignature, nullptr);
-    const core::Name ModuleName = core::NamePool::instance().intern("math");
     const core::Name MemberName = core::NamePool::instance().intern("method");
-    Module Owner(ModuleName);
     auto IntegerCallable = std::make_unique<Function>(*IntegerSignature, MemberName);
     auto BooleanCallable = std::make_unique<Function>(*BooleanSignature, MemberName);
     const auto *IntegerAddress = IntegerCallable.get();
     const auto *BooleanAddress = BooleanCallable.get();
-    ASSERT_TRUE(Owner.addClass(*ClassLayout));
     ASSERT_TRUE(ClassLayout->addMethod(Method(std::move(IntegerCallable))));
     ASSERT_TRUE(ClassLayout->addMethod(Method(std::move(BooleanCallable))));
     EXPECT_EQ(IntegerCallable, nullptr);
     EXPECT_EQ(BooleanCallable, nullptr);
 
     const Module &ReadOnly = Owner;
-    const auto *ImportedClass = ReadOnly.classType(0);
-    ASSERT_NE(ImportedClass, nullptr);
-    EXPECT_EQ(ImportedClass->name(), ClassName);
-    EXPECT_EQ(ImportedClass, ClassLayout);
-    const auto Overloads = ImportedClass->findMethods(MemberName);
+    const auto *OwnedClass = ReadOnly.classType(0);
+    ASSERT_NE(OwnedClass, nullptr);
+    EXPECT_EQ(OwnedClass->name(), ClassName);
+    EXPECT_EQ(OwnedClass, ClassLayout);
+    const auto Overloads = OwnedClass->findMethods(MemberName);
     ASSERT_EQ(Overloads.size(), 2U);
     EXPECT_EQ(Overloads[0]->name(), MemberName);
     EXPECT_EQ(Overloads[1]->name(), MemberName);
@@ -545,24 +563,24 @@ namespace ink::ir::test
     EXPECT_EQ(ReadOnly.globalFunctionCount(), 0U);
     EXPECT_EQ(Overloads[0]->functionType(), IntegerSignature);
     EXPECT_EQ(Overloads[1]->functionType(), BooleanSignature);
-    ASSERT_EQ(ImportedClass->methods().size(), 2U);
-    EXPECT_EQ(ImportedClass->methods()[0].name(), MemberName);
-    EXPECT_EQ(ImportedClass->methods()[0].functionType(), IntegerSignature);
-    EXPECT_EQ(ImportedClass->methods()[1].name(), MemberName);
-    EXPECT_EQ(ImportedClass->methods()[1].functionType(), BooleanSignature);
-    EXPECT_TRUE(ImportedClass->findMethods(core::NAME_None).empty());
+    ASSERT_EQ(OwnedClass->methods().size(), 2U);
+    EXPECT_EQ(OwnedClass->methods()[0].name(), MemberName);
+    EXPECT_EQ(OwnedClass->methods()[0].functionType(), IntegerSignature);
+    EXPECT_EQ(OwnedClass->methods()[1].name(), MemberName);
+    EXPECT_EQ(OwnedClass->methods()[1].functionType(), BooleanSignature);
+    EXPECT_TRUE(OwnedClass->findMethods(core::NAME_None).empty());
   }
 
-  // Destroying the registering module preserves methods and bodies until their nominal type context is destroyed.
-  TEST(IRModuleTest, DestroyingModulePreservesBorrowedNominalTypes)
+  // Destroying an independent module preserves nominal methods until their owning module is destroyed.
+  TEST(IRModuleTest, IndependentModuleDestructionPreservesOwnedNominalTypes)
   {
     bool BodyDestroyed = false;
     {
-      TypeContext Types(Target);
+      Module Types(Target);
       const auto ClassValue = Types.createClassType(8, 4);
       const auto InterfaceValue = Types.createInterfaceType(8, 4);
       const auto StructValue = Types.createStructType(8, 4);
-      const auto Signature = Types.getFunctionType(Types.getVoidType());
+      const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
       ASSERT_NE(ClassValue, nullptr);
       ASSERT_NE(InterfaceValue, nullptr);
       ASSERT_NE(StructValue, nullptr);
@@ -577,10 +595,10 @@ namespace ink::ir::test
       ASSERT_NE(Body, nullptr);
       ASSERT_TRUE(ClassValue->addMethod(Method(std::move(Callable))));
       {
-        Module Owner(ModuleName);
-        ASSERT_TRUE(Owner.addClass(*ClassValue));
-        ASSERT_TRUE(Owner.addInterface(*InterfaceValue));
-        ASSERT_TRUE(Owner.addStruct(*StructValue));
+        Module Owner(Target, ModuleName);
+        EXPECT_FALSE(Owner.ownsType(ClassValue));
+        EXPECT_FALSE(Owner.ownsType(InterfaceValue));
+        EXPECT_FALSE(Owner.ownsType(StructValue));
         EXPECT_FALSE(Owner.owns(CallableAddress));
         EXPECT_FALSE(Owner.contains(CallableAddress));
         EXPECT_FALSE(BodyDestroyed);

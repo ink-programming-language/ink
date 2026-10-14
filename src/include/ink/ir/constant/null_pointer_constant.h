@@ -8,7 +8,7 @@ namespace ink::ir
 {
   class ConstantPool;
 
-  // Represents the context's unique null pointer literal without storing a host address.
+  // Represents the module's unique null pointer literal without storing a host address.
   // The borrowed NullPointerType must outlive the constant.
   class NullPointerConstant final : public Constant
   {

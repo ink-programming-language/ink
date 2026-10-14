@@ -9,7 +9,7 @@
 #include "ink/ir/instruction/icmp_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/module/global_variable.h"
-#include "ink/ir/type/type_context.h"
+#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
@@ -76,18 +76,18 @@ namespace ink::ir::test
   // Base Value pointers dynamically return each constant family's canonical type, including null literals and string arrays.
   TEST(IRValueTest, QueriesAllConstantFamilies)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     auto &Constants = Types.constantPool();
-    const auto *Array = Types.getArrayType(Types.getBoolType(), 1);
+    const auto *Array = Types.typePool().getArrayType(Types.typePool().getBoolType(), 1);
     ASSERT_NE(Array, nullptr);
-    const auto *StringType = Types.getArrayType(Types.getUInt8Type(), 5);
+    const auto *StringType = Types.typePool().getArrayType(Types.typePool().getUInt8Type(), 5);
     ASSERT_NE(StringType, nullptr);
     const TypeQueryCase Cases[] = {
-        {Constants.getBoolConstant(true), Types.getBoolType()},
-        {Constants.getSignedIntegerConstant(Types.getInt32Type(), 42), Types.getInt32Type()},
-        {Constants.getFloatConstant(3.5F), Types.getFloat32Type()},
+        {Constants.getBoolConstant(true), Types.typePool().getBoolType()},
+        {Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), 42), Types.typePool().getInt32Type()},
+        {Constants.getFloatConstant(3.5F), Types.typePool().getFloat32Type()},
         {Constants.getArrayConstant(Array, {Constants.getBoolConstant(false)}), Array},
-        {Constants.getNullPointerConstant(), Types.getNullPointerType()},
+        {Constants.getNullPointerConstant(), Types.typePool().getNullPointerType()},
         {Constants.getStringConstant("value"), StringType},
     };
     for (const auto &Case : Cases)
@@ -101,30 +101,30 @@ namespace ink::ir::test
   // Base Value pointers dynamically expose concrete and generic instruction results, including void and an unspecified null type.
   TEST(IRValueTest, QueriesAllInstructionFamilies)
   {
-    TypeContext Types(Target);
-    const auto *Pointer = Types.getPointerType(Types.getInt32Type());
-    const auto *Signature = Types.getFunctionType(Types.getInt32Type());
+    Module Types(Target);
+    const auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
+    const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type());
     ASSERT_NE(Pointer, nullptr);
     ASSERT_NE(Signature, nullptr);
     Function Callee(*Signature);
     BasicBlock Block;
     const auto *True = Types.constantPool().getBoolConstant(true);
-    const GetElementPtrInstruction Address(*Pointer, *Types.getInt32Type(), *Types.constantPool().getNullPointerConstant(), {});
+    const GetElementPtrInstruction Address(*Pointer, *Types.typePool().getInt32Type(), *Types.constantPool().getNullPointerConstant(), {});
     const CallInstruction Call(Callee);
-    const ICmpInstruction Compare(*Types.getBoolType(), ICmpPredicate::Equal, *True, *True);
-    const BranchInstruction Branch(*Types.getVoidType(), Block);
-    const ConditionalBranchInstruction ConditionalBranch(*Types.getVoidType(), Compare, Block, Block);
-    const ReturnInstruction Return(*Types.getVoidType());
-    const GenericInstruction Typed(Types.getFloat64Type());
+    const ICmpInstruction Compare(*Types.typePool().getBoolType(), ICmpPredicate::Equal, *True, *True);
+    const BranchInstruction Branch(*Types.typePool().getVoidType(), Block);
+    const ConditionalBranchInstruction ConditionalBranch(*Types.typePool().getVoidType(), Compare, Block, Block);
+    const ReturnInstruction Return(*Types.typePool().getVoidType());
+    const GenericInstruction Typed(Types.typePool().getFloat64Type());
     const GenericInstruction Untyped;
     const TypeQueryCase Cases[] = {
         {&Address, Pointer},
-        {&Call, Types.getInt32Type()},
-        {&Compare, Types.getBoolType()},
-        {&Branch, Types.getVoidType()},
-        {&ConditionalBranch, Types.getVoidType()},
-        {&Return, Types.getVoidType()},
-        {&Typed, Types.getFloat64Type()},
+        {&Call, Types.typePool().getInt32Type()},
+        {&Compare, Types.typePool().getBoolType()},
+        {&Branch, Types.typePool().getVoidType()},
+        {&ConditionalBranch, Types.typePool().getVoidType()},
+        {&Return, Types.typePool().getVoidType()},
+        {&Typed, Types.typePool().getFloat64Type()},
         {&Untyped, nullptr},
     };
     for (const auto &Case : Cases)
@@ -142,8 +142,8 @@ namespace ink::ir::test
   // Base Value references return function signatures, parameter types and global storage types without changing object state.
   TEST(IRValueTest, QueriesFunctionParameterAndGlobalWithoutMutation)
   {
-    TypeContext Types(Target);
-    const auto *Signature = Types.getFunctionType(Types.getInt32Type(), {Types.getBoolType()});
+    Module Types(Target);
+    const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getBoolType()});
     ASSERT_NE(Signature, nullptr);
     const auto Name = core::NamePool::instance().intern("IRValueTest.Named");
     ASSERT_TRUE(Name.valid());
@@ -151,7 +151,7 @@ namespace ink::ir::test
     auto *ParameterValue = Callable.parameter(0);
     ASSERT_NE(ParameterValue, nullptr);
     ParameterValue->setName(Name);
-    GlobalVariable Global(*Types.getBoolType(), Name);
+    GlobalVariable Global(*Types.typePool().getBoolType(), Name);
     const auto *Initializer = Types.constantPool().getBoolConstant(true);
     ASSERT_TRUE(Global.setInitializer(Initializer));
     const Value &CallableValue = Callable;
@@ -160,8 +160,8 @@ namespace ink::ir::test
     EXPECT_EQ(CallableValue.type(), Signature);
     EXPECT_EQ(Callable.type(), Signature);
     EXPECT_EQ(Callable.type(), Callable.functionType());
-    EXPECT_EQ(FormalValue.type(), Types.getBoolType());
-    EXPECT_EQ(GlobalValue.type(), Types.getBoolType());
+    EXPECT_EQ(FormalValue.type(), Types.typePool().getBoolType());
+    EXPECT_EQ(GlobalValue.type(), Types.typePool().getBoolType());
     EXPECT_EQ(Callable.name(), Name);
     EXPECT_EQ(Callable.parameterCount(), 1U);
     EXPECT_EQ(Callable.blockCount(), 0U);
@@ -175,18 +175,18 @@ namespace ink::ir::test
   // Type descriptors, basic blocks and unknown value kinds have no operand type even when the descriptor itself has a runtime layout.
   TEST(IRValueTest, RejectsTypesBlocksAndUnknownValues)
   {
-    TypeContext Types(Target);
+    Module Types(Target);
     const Type *Descriptors[] = {
-        Types.getVoidType(),
-        Types.getVariadicType(),
-        Types.getBoolType(),
-        Types.getNullPointerType(),
-        Types.getInt32Type(),
-        Types.getFloat64Type(),
-        Types.getArrayType(Types.getBoolType(), 1),
-        Types.getPointerType(Types.getInt32Type()),
-        Types.getReferenceType(Types.getInt32Type()),
-        Types.getFunctionType(Types.getVoidType()),
+        Types.typePool().getVoidType(),
+        Types.typePool().getVariadicType(),
+        Types.typePool().getBoolType(),
+        Types.typePool().getNullPointerType(),
+        Types.typePool().getInt32Type(),
+        Types.typePool().getFloat64Type(),
+        Types.typePool().getArrayType(Types.typePool().getBoolType(), 1),
+        Types.typePool().getPointerType(Types.typePool().getInt32Type()),
+        Types.typePool().getReferenceType(Types.typePool().getInt32Type()),
+        Types.typePool().getFunctionType(Types.typePool().getVoidType()),
         Types.createClassType(8, 8),
         Types.createInterfaceType(8, 8),
         Types.createStructType(8, 8),
@@ -210,14 +210,14 @@ namespace ink::ir::test
   // A new Value subclass can supply a type through virtual dispatch even when its kind has no registered classifier.
   TEST(IRValueTest, DispatchesCustomTypeOverrideIndependentlyOfKind)
   {
-    TypeContext Types(Target);
-    const TypedUnknownValue Typed(*Types.getInt64Type());
+    Module Types(Target);
+    const TypedUnknownValue Typed(*Types.typePool().getInt64Type());
     const UnknownValue Untyped;
     const Value &TypedValue = Typed;
     const Value *UntypedValue = &Untyped;
     EXPECT_EQ(TypedValue.kind(), UntypedValue->kind());
     EXPECT_EQ(valueKindName(TypedValue.kind()), "unknown");
-    EXPECT_EQ(TypedValue.type(), Types.getInt64Type());
+    EXPECT_EQ(TypedValue.type(), Types.typePool().getInt64Type());
     EXPECT_EQ(UntypedValue->type(), nullptr);
   }
 } // namespace ink::ir::test

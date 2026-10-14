@@ -5,7 +5,7 @@
 
 namespace ink::ir
 {
-  class TypeContext;
+  class TypePool;
 
   // Unit type with one value and a valid zero-byte runtime layout.
   class VoidType final : public Type
@@ -16,7 +16,7 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
-      friend class TypeContext;
+      friend class TypePool;
 
       VoidType() noexcept;
   };
