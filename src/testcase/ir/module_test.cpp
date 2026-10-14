@@ -60,8 +60,8 @@ namespace ink::ir::test
   static_assert(!std::is_copy_assignable_v<Module>);
   static_assert(!std::is_move_constructible_v<Module>);
   static_assert(!std::is_move_assignable_v<Module>);
-  static_assert(std::is_same_v<decltype(std::declval<Module &>().package()), const PackagePath &>);
-  static_assert(std::is_same_v<decltype(std::declval<const Module &>().package()), const PackagePath &>);
+  static_assert(std::is_same_v<decltype(std::declval<Module &>().moduleID()), const ModuleID &>);
+  static_assert(std::is_same_v<decltype(std::declval<const Module &>().moduleID()), const ModuleID &>);
   static_assert(std::is_same_v<decltype(std::declval<Module &>().initializationFunction()), Function *>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().initializationFunction()), const Function *>);
   static_assert(std::is_same_v<decltype(std::declval<Module &>().deinitializationFunction()), Function *>);
@@ -76,15 +76,13 @@ namespace ink::ir::test
   static_assert(std::is_same_v<decltype(std::declval<Module &>().structType(0)), StructType *>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().structType(0)), const StructType *>);
 
-  // Named and unnamed modules begin in the root package with empty declaration lists and reject every indexed access.
-  TEST(IRModuleTest, EmptyModulesPreserveOptionalCanonicalName)
+  // Modules start with empty declaration lists and either an empty identifier or the supplied root-level module identifier.
+  TEST(IRModuleTest, EmptyModulesPreserveOptionalModuleID)
   {
     Module Unnamed(Target);
     const Module &ReadOnly = Unnamed;
-    EXPECT_EQ(Unnamed.name(), core::NAME_None);
-    EXPECT_FALSE(Unnamed.hasName());
-    EXPECT_EQ(Unnamed.package(), PackagePath{});
-    EXPECT_EQ(ReadOnly.package(), PackagePath{});
+    EXPECT_EQ(Unnamed.moduleID(), ModuleID{});
+    EXPECT_EQ(ReadOnly.moduleID(), ModuleID{});
     EXPECT_TRUE(Unnamed.globalVariables().empty());
     EXPECT_EQ(Unnamed.globalVariableCount(), 0U);
     EXPECT_EQ(Unnamed.globalVariable(0), nullptr);
@@ -106,39 +104,44 @@ namespace ink::ir::test
     EXPECT_FALSE(Unnamed.contains(nullptr));
 
     const core::Name ModuleName = core::NamePool::instance().intern("Empty");
-    const Module Named(Target, ModuleName);
-    EXPECT_TRUE(Named.hasName());
-    EXPECT_EQ(Named.name(), ModuleName);
+    const ModuleID ID{{ModuleName}};
+    const Module Named(Target, ID);
+    EXPECT_EQ(Named.moduleID(), ID);
   }
 
-  // Modules keep short names separate from owned package paths that survive their source and can be changed independently.
-  TEST(IRModuleTest, OwnsIndependentPackagePathsSeparateFromModuleNames)
+  // Construction and replacement copy the full identifier; source changes, other modules and source destruction cannot change the owned value.
+  TEST(IRModuleTest, OwnsIndependentModuleIDs)
   {
     auto &Names = core::NamePool::instance();
     const core::Name ModuleName = Names.intern("material");
     const core::Name RootName = Names.intern("game");
     const core::Name PackageName = Names.intern("render");
     const core::Name ChildName = Names.intern("detail");
-    const PackagePath Expected{{RootName, PackageName}};
-    Module Owner(Target, ModuleName);
+    const ModuleID Expected{{RootName, PackageName, ModuleName}};
+    const ModuleID Replacement{{RootName, PackageName, ChildName, ModuleName}};
+    Module Owner(Target);
     {
-      PackagePath Source = Expected;
-      Module Other(Target, ModuleName, Source);
-      Owner.setPackage(Source);
-      EXPECT_EQ(Owner.package(), Other.package());
-      EXPECT_EQ(Other.name(), ModuleName);
+      ModuleID Source = Expected;
+      Module Other(Target, Source);
+      Owner.setModuleID(Source);
+      EXPECT_EQ(Owner.moduleID(), Other.moduleID());
       Source.Components.clear();
-      EXPECT_EQ(Other.package(), Expected);
-      Other.setPackage({{RootName, PackageName, ChildName}});
-      EXPECT_NE(Owner.package(), Other.package());
-      EXPECT_EQ(Owner.package(), Expected);
+      EXPECT_EQ(Other.moduleID(), Expected);
+      Other.setModuleID(Replacement);
+      EXPECT_EQ(Other.moduleID(), Replacement);
+      EXPECT_NE(Owner.moduleID(), Other.moduleID());
+      EXPECT_EQ(Owner.moduleID(), Expected);
     }
     const Module &ReadOnly = Owner;
-    EXPECT_EQ(ReadOnly.name(), ModuleName);
-    EXPECT_EQ(ReadOnly.package(), Expected);
-    Owner.setPackage({});
-    EXPECT_EQ(ReadOnly.package(), PackagePath{});
-    EXPECT_EQ(ReadOnly.name(), ModuleName);
+    EXPECT_EQ(ReadOnly.moduleID(), Expected);
+    ModuleID Source = Replacement;
+    Module Moved(Target, std::move(Source));
+    EXPECT_EQ(Moved.moduleID(), Replacement);
+    ModuleID NewID = Replacement;
+    Owner.setModuleID(std::move(NewID));
+    EXPECT_EQ(ReadOnly.moduleID(), Replacement);
+    Owner.setModuleID({});
+    EXPECT_EQ(ReadOnly.moduleID(), ModuleID{});
   }
 
   // Creation and ownership transfer preserve insertion order and entity addresses as both lists grow.
@@ -525,7 +528,7 @@ namespace ink::ir::test
   TEST(IRModuleTest, OwnedClassMembersRetainNamesAndOverloadSignatures)
   {
     const core::Name ModuleName = core::NamePool::instance().intern("math");
-    Module Owner(Target, ModuleName);
+    Module Owner(Target, {{ModuleName}});
     const core::Name ClassName = core::NamePool::instance().intern("Point");
     const auto ClassLayout = Owner.createClassType(8, 4, ClassName);
     ASSERT_NE(ClassLayout, nullptr);
@@ -595,7 +598,7 @@ namespace ink::ir::test
       ASSERT_NE(Body, nullptr);
       ASSERT_TRUE(ClassValue->addMethod(Method(std::move(Callable))));
       {
-        Module Owner(Target, ModuleName);
+        Module Owner(Target, {{ModuleName}});
         EXPECT_FALSE(Owner.ownsType(ClassValue));
         EXPECT_FALSE(Owner.ownsType(InterfaceValue));
         EXPECT_FALSE(Owner.ownsType(StructValue));

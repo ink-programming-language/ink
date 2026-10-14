@@ -13,12 +13,11 @@ namespace ink::ir
     }
   } // namespace
 
-  Module::Module(target::TargetContext Target, core::Name Name, PackagePath Package)
+  Module::Module(target::TargetContext Target, ModuleID ID)
       : Target(Target),
         Types(*this),
         Constants(*this),
-        Name(Name),
-        Package(std::move(Package))
+        ID(std::move(ID))
   {
   }
 
@@ -88,24 +87,14 @@ namespace ink::ir
     return false;
   }
 
-  core::Name Module::name() const noexcept
+  const ModuleID &Module::moduleID() const noexcept
   {
-    return Name;
+    return ID;
   }
 
-  bool Module::hasName() const noexcept
+  void Module::setModuleID(ModuleID NewID) noexcept
   {
-    return Name.valid();
-  }
-
-  const PackagePath &Module::package() const noexcept
-  {
-    return Package;
-  }
-
-  void Module::setPackage(PackagePath NewPackage) noexcept
-  {
-    Package = std::move(NewPackage);
+    ID = std::move(NewID);
   }
 
   bool Module::owns(const Value *Declaration) const noexcept

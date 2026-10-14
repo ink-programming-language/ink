@@ -5,7 +5,9 @@
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/module/global_variable.h"
-#include "ink/ir/package/package_path.h"
+#include "ink/ir/module/module_id.h"
+#include "ink/ir/module/symbol_import.h"
+#include "ink/ir/module/symbol_export.h"
 #include "ink/ir/type/nominal_type/class_type.h"
 #include "ink/ir/type/nominal_type/interface_type.h"
 #include "ink/ir/type/nominal_type/struct_type.h"
@@ -20,13 +22,13 @@
 
 namespace ink::ir
 {
-  // Owns its types, constants, global declarations and package path for one Ink module.
+  // Owns its types, constants, global declarations, symbol imports/exports and full identifier for one Ink module.
   // Nominal types are owned directly; TypePool owns builtin and structural types.
   // Returned pointers remain valid until the module is destroyed; operations require external synchronization.
   class Module final
   {
     public:
-      explicit Module(target::TargetContext Target, core::Name Name = core::NAME_None, PackagePath Package = {});
+      explicit Module(target::TargetContext Target, ModuleID ID = {});
       ~Module() noexcept;
 
       Module(const Module &) = delete;
@@ -49,12 +51,21 @@ namespace ink::ir
       // Includes this module's builtin, structural and nominal types.
       bool ownsType(const Type *TypeValue) const noexcept;
 
-      // Optional canonical short module name, excluding the package path.
-      core::Name name() const noexcept;
-      bool hasName() const noexcept;
-      // The module owns an independent absolute package path; the default empty path denotes the root package.
-      const PackagePath &package() const noexcept;
-      void setPackage(PackagePath NewPackage) noexcept;
+      // Owns an independent absolute identifier, including the module name; the default empty ID denotes an unnamed module.
+      const ModuleID &moduleID() const noexcept;
+      void setModuleID(ModuleID NewID) noexcept;
+
+      // Symbol records are owned by value; name resolution and validation are handled by the producer.
+      auto &imports(this auto &&Self) noexcept
+      {
+        return Self.Imports;
+      }
+
+      auto &exports(this auto &&Self) noexcept
+      {
+        return Self.Exports;
+      }
+
       // Both queries include local types, global functions and global variables.
       bool owns(const Value *Declaration) const noexcept;
       bool contains(const Value *Declaration) const noexcept;
@@ -144,8 +155,9 @@ namespace ink::ir
       // Declared after all types so constants are destroyed before their borrowed types.
       ConstantPool Constants;
 
-      core::Name Name = core::NAME_None;
-      PackagePath Package;
+      ModuleID ID;
+      std::vector<SymbolImport> Imports;
+      std::vector<SymbolExport> Exports;
       std::vector<std::unique_ptr<GlobalVariable>> GlobalVariables;
       std::vector<std::unique_ptr<Function>> GlobalFunctions;
       Function *InitializationFunction = nullptr;
