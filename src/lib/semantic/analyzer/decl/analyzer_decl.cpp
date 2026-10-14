@@ -1,17 +1,17 @@
 #include "ink/semantic/analyzer/analyzer.h"
 
-#include "ink/semantic/context.h"
+#include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/frontend/parser/ast.h"
 
 #include <cstdlib>
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeDecl(SemanticContext &Context, const frontend::parser::Decl &Declaration)
+  bool Analyzer::analyzeDecl(AnalyzerState &State, const frontend::parser::Decl &Declaration)
   {
     if (Declaration.isComptime())
     {
-      return reportUnsupported(Context, Declaration);
+      return reportUnsupported(State, Declaration);
     }
     switch (Declaration.getKind())
     {
@@ -20,7 +20,7 @@ namespace ink::semantic
 #define INK_ANALYZE_Stmt(Name)
 #define INK_ANALYZE_Decl(Name) \
   case frontend::parser::ASTKind::Name: \
-    return analyze##Name(Context, static_cast<const frontend::parser::Name &>(Declaration));
+    return analyze##Name(State, static_cast<const frontend::parser::Name &>(Declaration));
 #define INK_ANALYZE_SimpleItem(Name)
 #define INK_ANALYZE_BindingPattern(Name)
 #define INK_ANALYZE_MatchPattern(Name)
@@ -39,9 +39,9 @@ namespace ink::semantic
     }
   }
 
-  bool Analyzer::analyzeFieldDecl(SemanticContext &Context, const frontend::parser::FieldDecl &Node)
+  bool Analyzer::analyzeFieldDecl(AnalyzerState &State, const frontend::parser::FieldDecl &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(Context, Node);
+    return reportUnsupported(State, Node);
   }
 } // namespace ink::semantic

@@ -1,5 +1,6 @@
 #include "ink/semantic/analyzer/analyzer.h"
 
+#include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/semantic/context.h"
 #include "ink/frontend/parser/ast.h"
 
@@ -36,12 +37,12 @@ namespace ink::semantic
     };
   } // namespace
 
-  bool Analyzer::analyzeStmt(SemanticContext &Context, const frontend::parser::Stmt &Stmt)
+  bool Analyzer::analyzeStmt(AnalyzerState &State, const frontend::parser::Stmt &Stmt)
   {
     // Compile-time evaluation will be restored with the semantic implementation.
     if (Stmt.isComptime())
     {
-      return reportUnsupported(Context, Stmt);
+      return reportUnsupported(State, Stmt);
     }
     switch (Stmt.getKind())
     {
@@ -49,7 +50,7 @@ namespace ink::semantic
 #define INK_ANALYZE_Expr(Name)
 #define INK_ANALYZE_Stmt(Name) \
   case frontend::parser::ASTKind::Name: \
-    return analyze##Name(Context, static_cast<const frontend::parser::Name &>(Stmt));
+    return analyze##Name(State, static_cast<const frontend::parser::Name &>(Stmt));
 #define INK_ANALYZE_Decl(Name)
 #define INK_ANALYZE_SimpleItem(Name)
 #define INK_ANALYZE_BindingPattern(Name)
@@ -69,24 +70,24 @@ namespace ink::semantic
     }
   }
 
-  bool Analyzer::analyzeSimpleStmt(SemanticContext &Context, const frontend::parser::SimpleStmt &Node)
+  bool Analyzer::analyzeSimpleStmt(AnalyzerState &State, const frontend::parser::SimpleStmt &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(Context, Node);
+    return reportUnsupported(State, Node);
   }
 
-  bool Analyzer::analyzeBlockStmt(SemanticContext &Context, const frontend::parser::BlockStmt &Node)
+  bool Analyzer::analyzeBlockStmt(AnalyzerState &State, const frontend::parser::BlockStmt &Node)
   {
-    if (Context.BlockDepth >= Context.BlockDepthLimit)
+    if (State.BlockDepth >= State.BlockDepthLimit)
     {
-      Context.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
+      State.Context.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
       return false;
     }
-    BlockDepthGuard DepthGuard(Context.BlockDepth);
+    BlockDepthGuard DepthGuard(State.BlockDepth);
     bool Succeeded = true;
     for (const frontend::parser::Stmt *Stmt : Node.statements())
     {
-      if (!analyzeStmt(Context, *Stmt))
+      if (!analyzeStmt(State, *Stmt))
       {
         Succeeded = false;
       }
@@ -94,8 +95,8 @@ namespace ink::semantic
     return Succeeded;
   }
 
-  bool Analyzer::analyzeDeclStmt(SemanticContext &Context, const frontend::parser::DeclStmt &Node)
+  bool Analyzer::analyzeDeclStmt(AnalyzerState &State, const frontend::parser::DeclStmt &Node)
   {
-    return analyzeDecl(Context, *Node.declaration());
+    return analyzeDecl(State, *Node.declaration());
   }
 } // namespace ink::semantic

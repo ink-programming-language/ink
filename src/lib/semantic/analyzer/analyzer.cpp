@@ -1,6 +1,6 @@
 #include "ink/semantic/analyzer/analyzer.h"
 
-#include "ink/core/config/config_manager.h"
+#include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/frontend/parser/parser.h"
 #include "ink/ir/module/module.h"
 #include "ink/semantic/context.h"
@@ -19,48 +19,55 @@ namespace ink::semantic
       return false;
     }
 
-    // Preserve caller-owned output and pooled IR, but refresh per-input state before dispatch.
+    // Preserve caller-owned output and pooled IR, with fresh traversal state for this call.
+    AnalyzerState State(Context, Input, Output);
     Context.Source = Lexed.sourceId();
-    Context.BlockDepthLimit = core::ConfigManager::getSize<core::ConfigKind::SemanticBlockDepthLimit>();
-    Context.BlockDepth = 0;
-    bool Succeeded = true;
-    for (const frontend::parser::Stmt *Stmt : Input.Unit->root()->statements())
+    const auto AnalyzeModule = [this, &State](AnalyzerState::Mode AnalysisMode)
     {
-      if (!analyzeStmt(Context, *Stmt))
+      AnalyzerState::Guard ModeGuard(State, AnalysisMode);
+      bool Succeeded = true;
+      for (const frontend::parser::Stmt *Stmt : State.Input.Unit->root()->statements())
       {
-        Succeeded = false;
+        if (!analyzeStmt(State, *Stmt))
+        {
+          Succeeded = false;
+        }
       }
-    }
-    return Succeeded;
+      return Succeeded;
+    };
+
+    const bool Collected = AnalyzeModule(AnalyzerState::Mode::CollectDecls);
+    const bool Analyzed = AnalyzeModule(AnalyzerState::Mode::FullAnalysis);
+    return Collected && Analyzed;
   }
 
-  bool Analyzer::reportUnsupported(SemanticContext &Context, const frontend::parser::ASTNodeBase &Node)
+  bool Analyzer::reportUnsupported(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node)
   {
-    Context.report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
+    State.Context.report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
     return false;
   }
 
-  bool Analyzer::analyzeMissingStmt(SemanticContext &Context, const frontend::parser::MissingStmt &Node)
+  bool Analyzer::analyzeMissingStmt(AnalyzerState &State, const frontend::parser::MissingStmt &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(Context, Node);
+    return reportUnsupported(State, Node);
   }
 
-  bool Analyzer::analyzeErrorStmt(SemanticContext &Context, const frontend::parser::ErrorStmt &Node)
+  bool Analyzer::analyzeErrorStmt(AnalyzerState &State, const frontend::parser::ErrorStmt &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(Context, Node);
+    return reportUnsupported(State, Node);
   }
 
-  bool Analyzer::analyzeMissingDecl(SemanticContext &Context, const frontend::parser::MissingDecl &Node)
+  bool Analyzer::analyzeMissingDecl(AnalyzerState &State, const frontend::parser::MissingDecl &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(Context, Node);
+    return reportUnsupported(State, Node);
   }
 
-  bool Analyzer::analyzeErrorDecl(SemanticContext &Context, const frontend::parser::ErrorDecl &Node)
+  bool Analyzer::analyzeErrorDecl(AnalyzerState &State, const frontend::parser::ErrorDecl &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(Context, Node);
+    return reportUnsupported(State, Node);
   }
 } // namespace ink::semantic

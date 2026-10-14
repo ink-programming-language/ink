@@ -45,7 +45,7 @@ ctest --test-dir build -C Release --output-on-failure
 
 启用 `BUILD_TESTING` 时，配置阶段检查 Frontend/Core 的 CMake 目标依赖，CTest 的 `FrontendDependencyBoundaryTest` 检查对应源码和头文件，禁止引入 IR 或 Semantic。源码检查使用轻量文本匹配，覆盖 include 和命名空间引用；可单独运行 `ctest --test-dir build -C Release -R FrontendDependencyBoundaryTest --output-on-failure`。
 
-`Analyzer::analyze(SemanticContext &, const frontend::parser::ParseResult &, ir::Module &Output)` 返回 `bool`，显式接收调用方拥有的输入输出模块。入口先校验 Output 借用同一个 `Context.irContext()`，以及解析结果和源码归属，再按源码顺序遍历模块和块，通过 `analyzeStmt`、`analyzeDeclStmt` 和 `analyzeDecl` 到达具体节点处理函数。各处理函数直接接收 `SemanticContext &`；上下文拥有当前源码和块深度等分析状态，每次有效调用重置块深度并读取 `INK_SEMANTIC_BLOCK_DEPTH_LIMIT`。入口不持有或重置外部 Builder，连续调用保留池对象和调用方的模块内容；无效输入或其他 IRContext 的输出模块返回 false。空模块和仅含空块的输入可以完成遍历；具体语义及 comptime 求值尚未实现，命中时报告既有的 `SemanticUnsupported` ICE。当前入口不生成 IR，失败不会回滚已有输出。
+`Analyzer::analyze(SemanticContext &, const frontend::parser::ParseResult &, ir::Module &Output)` 返回 `bool`，显式接收调用方拥有的输入输出模块。入口先校验 Output 借用同一个 `Context.irContext()`，以及解析结果和源码归属，再按源码顺序遍历模块和块，通过 `analyzeStmt`、`analyzeDeclStmt` 和 `analyzeDecl` 到达具体节点处理函数。入口校验通过后创建局部 `AnalyzerState`，借用 `Context`、只读 `Input` 和可写 `Output`，各处理函数接收 `AnalyzerState &`。入口通过同一个 lambda 依次执行 `CollectDecls` 和 `FullAnalysis` 两轮遍历，`AnalyzerState::Guard` 在每轮切换模式并在离开作用域时恢复原模式，两轮结果均成功才返回 true；具体节点的模式差异随语义实现补齐。`AnalyzerState` 拥有块深度和深度上限，每次构造从零开始计数并读取 `INK_SEMANTIC_BLOCK_DEPTH_LIMIT`；`SemanticContext` 保留当前源码选择。入口不持有或重置外部 Builder，连续调用保留池对象和调用方的模块内容；无效输入或其他 IRContext 的输出模块返回 false。空模块和仅含空块的输入可以完成遍历；具体语义及 comptime 求值尚未实现，命中时报告既有的 `SemanticUnsupported` ICE。当前入口不生成 IR，失败不会回滚已有输出。
 
 LLVM/Clang 固定版本为 22.1.8；tokenizer 直接使用 Clang 的 `UnicodeCharSets.h`，parser 的 AST 归档使用 LLVM 支持库。NFC 校验使用 utf8proc 2.9.0 的 Unicode 15.1 实现。spdlog 1.17.0 负责所有自有 C++ 文本输出；CLI 统一通过 `ink::cli::writeOutput` 输出。所有自有 C++ 编译目标在目标级关闭异常。
 
@@ -59,7 +59,7 @@ Frontend 通过统一的 `ink::frontend` 静态库提供 tokenizer、parser/AST 
 
 AST 类声明位于 `src/include/ink/frontend/parser/ast`，每个 class 使用一个 snake_case 头文件，共 80 个类：64 个具体节点、7 个基类和 9 个辅助记录。`ast/types.h` 集中公共别名、`NameToken`、`RestBinding` 和 7 个枚举，`ast/fwd.h` 提供类前向声明，`ast/cast.h` 提供 `isa`、`dyn_cast` 和 `cast`。`src/include/ink/frontend/parser/ast.h` 保留聚合入口，调用方也可直接包含所需节点头文件。命名空间、公开 API 及 `ASTNodes.def` 的节点 ID 保持不变；`ast_context.h`、`ast_kind.h`、`ast_visitor.h` 和 `ast_walker.h` 仍位于 parser 根目录，现有实现仍位于 `src/lib/frontend/parser`。
 
-`frontend::FrontendContext` 直接借用 `core::SourceManager` 和 `core::DiagnosticEngine`，二者必须比上下文存活更久；tokenizer、parser 和 semantic 使用这些服务而不依赖工具层。`SemanticContext(Sources, Diagnostics, Target)` 组合持有前端服务视图，并按值拥有 `ir::IRContext` 和分析状态，通过 `irContext()` 提供借用访问，`typePool()` 转发至 IRContext 的类型池；它不拥有 Module 或 Builder。上层用 `Module(Context.irContext())` 创建输入输出模块，用 `IRBuilder(Context.irContext())` 独立构建 IR，并保证这些模块和所有池对象使用者先于 SemanticContext 销毁。现有 `ink-tokenize`、`ink-parse` 和测试各自拥有服务实例，以保持编译会话之间的源码和诊断隔离。
+`frontend::FrontendContext` 直接借用 `core::SourceManager` 和 `core::DiagnosticEngine`，二者必须比上下文存活更久；tokenizer、parser 和 semantic 使用这些服务而不依赖工具层。`SemanticContext(Sources, Diagnostics, Target)` 组合持有前端服务视图，并按值拥有 `ir::IRContext`、保存当前源码选择，通过 `irContext()` 提供借用访问，`typePool()` 转发至 IRContext 的类型池；它不拥有 Module 或 Builder。上层用 `Module(Context.irContext())` 创建输入输出模块，用 `IRBuilder(Context.irContext())` 独立构建 IR，并保证这些模块和所有池对象使用者先于 SemanticContext 销毁。现有 `ink-tokenize`、`ink-parse` 和测试各自拥有服务实例，以保持编译会话之间的源码和诊断隔离。
 
 `inkc::CompilationContext` 是工具私有的编译会话资源所有者，定义位于 `src/tools/inkc/compilation_context.h`，拥有目标描述、源码管理器和诊断引擎。库和测试不依赖此类型；当前分支尚未恢复 inkc 可执行入口。
 

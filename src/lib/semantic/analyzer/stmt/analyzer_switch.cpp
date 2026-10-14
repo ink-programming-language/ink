@@ -1,13 +1,13 @@
 #include "ink/semantic/analyzer/analyzer.h"
 
-#include "ink/semantic/context.h"
+#include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/frontend/parser/ast.h"
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeSwitchStmt(SemanticContext &Context, const frontend::parser::SwitchStmt &Node)
+  bool Analyzer::analyzeSwitchStmt(AnalyzerState &State, const frontend::parser::SwitchStmt &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(Context, Node);
+    return reportUnsupported(State, Node);
   }
 } // namespace ink::semantic

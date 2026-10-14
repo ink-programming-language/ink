@@ -5,14 +5,13 @@
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/ir/context.h"
 
-#include <cstddef>
 #include <utility>
 
 namespace ink::semantic
 {
-  // Owns the IRContext and analysis state; source and diagnostic services are borrowed.
+  // Owns the IRContext and source selection; source and diagnostic services are borrowed.
   // Caller-owned modules and all other users of its IRContext must die before this context.
-  // Successive analysis calls preserve pooled IR while selecting a new source and resetting traversal state; access is not thread-safe.
+  // Successive analysis calls preserve pooled IR while selecting a new source; access is not thread-safe.
   class SemanticContext final
   {
     public:
@@ -60,8 +59,6 @@ namespace ink::semantic
       frontend::FrontendContext Frontend;
       ir::IRContext IR;
       core::SourceId Source;
-      std::size_t BlockDepthLimit = 0;
-      std::size_t BlockDepth = 0;
   };
 } // namespace ink::semantic
 
