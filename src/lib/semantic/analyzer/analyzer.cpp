@@ -1,6 +1,8 @@
-#include "analyzer_internal.h"
+#include "ink/semantic/analyzer/analyzer.h"
 
+#include "ink/core/config/config_manager.h"
 #include "ink/frontend/parser/parser.h"
+#include "ink/semantic/context.h"
 
 namespace ink::semantic
 {
@@ -16,46 +18,50 @@ namespace ink::semantic
       return false;
     }
 
-    // State belongs to this call; sibling statements are visited even after a recoverable failure.
-    AnalysisState State(Context, Input.Unit->input());
+    // Preserve the context-owned IR, but refresh per-input state before dispatch.
+    Context.Source = Lexed.sourceId();
+    Context.BlockDepthLimit = core::ConfigManager::getSize<core::ConfigKind::SemanticBlockDepthLimit>();
+    Context.BlockDepth = 0;
+    Context.irBuilder().clearInsertPoint();
     bool Succeeded = true;
     for (const frontend::parser::Stmt *Stmt : Input.Unit->root()->statements())
     {
-      if (!analyzeStmt(State, *Stmt))
+      if (!analyzeStmt(Context, *Stmt))
       {
         Succeeded = false;
       }
     }
+    Context.irBuilder().clearInsertPoint();
     return Succeeded;
   }
 
-  bool Analyzer::reportUnsupported(AnalysisState &State, const frontend::parser::ASTNodeBase &Node)
+  bool Analyzer::reportUnsupported(SemanticContext &Context, const frontend::parser::ASTNodeBase &Node)
   {
-    State.report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
+    Context.report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
     return false;
   }
 
-  bool Analyzer::analyzeMissingStmt(AnalysisState &State, const frontend::parser::MissingStmt &Node)
+  bool Analyzer::analyzeMissingStmt(SemanticContext &Context, const frontend::parser::MissingStmt &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(State, Node);
+    return reportUnsupported(Context, Node);
   }
 
-  bool Analyzer::analyzeErrorStmt(AnalysisState &State, const frontend::parser::ErrorStmt &Node)
+  bool Analyzer::analyzeErrorStmt(SemanticContext &Context, const frontend::parser::ErrorStmt &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(State, Node);
+    return reportUnsupported(Context, Node);
   }
 
-  bool Analyzer::analyzeMissingDecl(AnalysisState &State, const frontend::parser::MissingDecl &Node)
+  bool Analyzer::analyzeMissingDecl(SemanticContext &Context, const frontend::parser::MissingDecl &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(State, Node);
+    return reportUnsupported(Context, Node);
   }
 
-  bool Analyzer::analyzeErrorDecl(AnalysisState &State, const frontend::parser::ErrorDecl &Node)
+  bool Analyzer::analyzeErrorDecl(SemanticContext &Context, const frontend::parser::ErrorDecl &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(State, Node);
+    return reportUnsupported(Context, Node);
   }
 } // namespace ink::semantic

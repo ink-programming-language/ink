@@ -108,13 +108,13 @@ namespace ink::frontend::tokenizer::test
   {
     struct Case
     {
-        const char *Source;
+        std::string Source;
         char32_t Value;
     };
     const Case Cases[] = {
         {"'a'", U'a'},
-        {u8"'\u4E2D'", U'\u4E2D'},
-        {u8"'\U0001F600'", U'\U0001F600'},
+        {utf8(u8"'\u4E2D'"), U'\u4E2D'},
+        {utf8(u8"'\U0001F600'"), U'\U0001F600'},
         {"'\\U0001F600'", U'\U0001F600'},
         {"'\\xFF'", U'\u00FF'},
         {"'\\0'", U'\0'},
@@ -130,7 +130,7 @@ namespace ink::frontend::tokenizer::test
       expectKinds(Buffer, {TokenKind::CharLiteral});
       EXPECT_EQ(std::get<CharInfo>(Buffer.tokens()[0].Payload).Value, Entry.Value);
     }
-    for (const auto &Source : {"''", "r''", "'ab'", "r'\\n'", "'e\\u0301'", "'\\x414'", u8"'\U0001F1E8\U0001F1F3'"})
+    for (const auto &Source : std::initializer_list<std::string>{"''", "r''", "'ab'", "r'\\n'", "'e\\u0301'", "'\\x414'", utf8(u8"'\U0001F1E8\U0001F1F3'")})
     {
       expectError(Source, DiagnosticKind::InvalidCharacterLength);
     }
@@ -142,7 +142,7 @@ namespace ink::frontend::tokenizer::test
   {
     const auto Buffer = lex(R"ink("e\u0301" "\x5Cn" "\x22" "\x2F\x2A" "\x00")ink");
     expectKinds(Buffer, {TokenKind::StringLiteral, TokenKind::StringLiteral, TokenKind::StringLiteral, TokenKind::StringLiteral, TokenKind::StringLiteral});
-    EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[0].Payload).Decoded, u8"e\u0301");
+    EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[0].Payload).Decoded, utf8(u8"e\u0301"));
     EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[1].Payload).Decoded, "\\n");
     EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[2].Payload).Decoded, "\"");
     EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[3].Payload).Decoded, "/*");

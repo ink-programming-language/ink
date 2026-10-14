@@ -44,8 +44,12 @@ namespace ink::ir
       TypeContext &operator=(TypeContext &&) = delete;
 
       const target::TargetContext &targetContext() const noexcept;
-      ConstantPool &constantPool() noexcept;
-      const ConstantPool &constantPool() const noexcept;
+
+      auto &constantPool(this auto &&Self) noexcept
+      {
+        return Self.Constants;
+      }
+
       bool owns(const Type *TypeValue) const noexcept;
 
       const VoidType *getVoidType() const noexcept;

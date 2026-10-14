@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/match_pattern.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -18,13 +19,9 @@ namespace ink::frontend::parser
             Pattern(Pattern)
       {
       }
-      MatchPattern *pattern() noexcept
+      auto *pattern(this auto &&Self) noexcept
       {
-        return Pattern;
-      }
-      const MatchPattern *pattern() const noexcept
-      {
-        return Pattern;
+        return Self.Pattern ? &std::forward_like<decltype(Self) &>(*Self.Pattern) : nullptr;
       }
 
     private:

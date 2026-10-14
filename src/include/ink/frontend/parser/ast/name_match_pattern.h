@@ -30,13 +30,9 @@ namespace ink::frontend::parser
       {
         return HasArguments;
       }
-      ASTArray<MatchPattern *> arguments() noexcept
+      auto arguments(this auto &&Self) noexcept
       {
-        return Arguments;
-      }
-      ConstNodeArray<MatchPattern> arguments() const noexcept
-      {
-        return ConstNodeArray<MatchPattern>(Arguments);
+        return NodeArrayFor<decltype(Self), MatchPattern>(Self.Arguments);
       }
 
     private:

@@ -19,13 +19,9 @@ namespace ink::frontend::parser
             Items(Items)
       {
       }
-      ASTArray<SimpleItem *> items() noexcept
+      auto items(this auto &&Self) noexcept
       {
-        return Items;
-      }
-      ConstNodeArray<SimpleItem> items() const noexcept
-      {
-        return ConstNodeArray<SimpleItem>(Items);
+        return NodeArrayFor<decltype(Self), SimpleItem>(Self.Items);
       }
 
     private:

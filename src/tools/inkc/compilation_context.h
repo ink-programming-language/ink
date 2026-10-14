@@ -31,24 +31,14 @@ namespace ink::inkc
         return Target;
       }
 
-      core::DiagnosticEngine &diagnosticEngine() noexcept
+      auto &diagnosticEngine(this auto &&Self) noexcept
       {
-        return Diagnostics;
+        return Self.Diagnostics;
       }
 
-      const core::DiagnosticEngine &diagnosticEngine() const noexcept
+      auto &sourceManager(this auto &&Self) noexcept
       {
-        return Diagnostics;
-      }
-
-      core::SourceManager &sourceManager() noexcept
-      {
-        return Sources;
-      }
-
-      const core::SourceManager &sourceManager() const noexcept
-      {
-        return Sources;
+        return Self.Sources;
       }
 
     private:

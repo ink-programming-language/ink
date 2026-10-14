@@ -7,12 +7,12 @@
 #include "ink/ir/instruction/getelementptr_instruction.h"
 #include "ink/ir/instruction/icmp_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
+#include "ink/ir/type/type_context.h"
+
+#include <utility>
 
 namespace ink::ir
 {
-  class ConstantPool;
-  class TypeContext;
-
   // Appends resolved instructions to a function-owned block; owns neither the context nor any IR.
   // The context and selected block must outlive their use through this builder. Access requires external synchronization.
   // Creation returns a block-owned instruction, or nullptr without changing the block or insertion point.
@@ -24,10 +24,15 @@ namespace ink::ir
     public:
       explicit IRBuilder(TypeContext &Types) noexcept;
 
-      TypeContext &typeContext() noexcept;
-      const TypeContext &typeContext() const noexcept;
-      ConstantPool &constantPool() noexcept;
-      const ConstantPool &constantPool() const noexcept;
+      auto &typeContext(this auto &&Self) noexcept
+      {
+        return std::forward_like<decltype(Self) &>(Self.Types);
+      }
+
+      auto &constantPool(this auto &&Self) noexcept
+      {
+        return Self.typeContext().constantPool();
+      }
 
       BasicBlock *insertBlock() const noexcept;
       Function *insertFunction() const noexcept;

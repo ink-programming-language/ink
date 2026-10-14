@@ -16,16 +16,6 @@ namespace ink::ir
 
   Method &Method::operator=(Method &&) noexcept = default;
 
-  Function *Method::function() noexcept
-  {
-    return Callable.get();
-  }
-
-  const Function *Method::function() const noexcept
-  {
-    return Callable.get();
-  }
-
   core::Name Method::name() const noexcept
   {
     return Callable ? Callable->name() : core::NAME_None;

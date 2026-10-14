@@ -3,6 +3,7 @@
 #include "ink/frontend/context.h"
 #include "ink/frontend/parser/token_cursor.h"
 #include <functional>
+#include <utility>
 namespace ink::frontend::parser
 {
   enum class ParseStatus
@@ -60,13 +61,9 @@ namespace ink::frontend::parser
       {
         return *Context;
       }
-      ModuleAST *root() noexcept
+      auto *root(this auto &&Self) noexcept
       {
-        return Root;
-      }
-      const ModuleAST *root() const noexcept
-      {
-        return Root;
+        return Self.Root ? &std::forward_like<decltype(Self) &>(*Self.Root) : nullptr;
       }
       const SyntaxRecoveryInfo &recoveryInfo() const noexcept
       {

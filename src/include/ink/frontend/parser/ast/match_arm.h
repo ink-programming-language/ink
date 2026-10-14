@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/types.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -15,29 +16,17 @@ namespace ink::frontend::parser
             Range(Range)
       {
       }
-      MatchPattern *pattern() noexcept
+      auto *pattern(this auto &&Self) noexcept
       {
-        return Pattern;
+        return Self.Pattern ? &std::forward_like<decltype(Self) &>(*Self.Pattern) : nullptr;
       }
-      const MatchPattern *pattern() const noexcept
+      auto *guard(this auto &&Self) noexcept
       {
-        return Pattern;
+        return Self.Guard ? &std::forward_like<decltype(Self) &>(*Self.Guard) : nullptr;
       }
-      Expr *guard() noexcept
+      auto *value(this auto &&Self) noexcept
       {
-        return Guard;
-      }
-      const Expr *guard() const noexcept
-      {
-        return Guard;
-      }
-      Expr *value() noexcept
-      {
-        return Value;
-      }
-      const Expr *value() const noexcept
-      {
-        return Value;
+        return Self.Value ? &std::forward_like<decltype(Self) &>(*Self.Value) : nullptr;
       }
       SourceRange range() const noexcept
       {

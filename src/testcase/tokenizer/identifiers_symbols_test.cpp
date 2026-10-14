@@ -49,11 +49,11 @@ namespace ink::frontend::tokenizer::test
   // Identifier boundaries use XID_Start plus underscore and the union of both Clang XID tables.
   TEST_F(TokenizerTest, UnicodeIdentifierBoundaries)
   {
-    const auto Buffer = lex(u8"_ __ _1 a1 a\u0301 \u03B1\u03B2 \u4E2D\u6587 \U0002EBF0");
+    const auto Buffer = lex(utf8(u8"_ __ _1 a1 a\u0301 \u03B1\u03B2 \u4E2D\u6587 \U0002EBF0"));
     expectKinds(Buffer, {TokenKind::Underscore, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier});
-    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[4].Payload).Name, u8"\u00E1");
-    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[5].Payload).Name, u8"\u03B1\u03B2");
-    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[6].Payload).Name, u8"\u4E2D\u6587");
+    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[4].Payload).Name, utf8(u8"\u00E1"));
+    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[5].Payload).Name, utf8(u8"\u03B1\u03B2"));
+    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[6].Payload).Name, utf8(u8"\u4E2D\u6587"));
     expectError(utf8(0x0301) + "a", DiagnosticKind::InvalidCharacter);
     expectError(utf8(0x0661), DiagnosticKind::InvalidCharacter);
   }
@@ -61,13 +61,13 @@ namespace ink::frontend::tokenizer::test
   // Canonically equivalent names share NFC payloads without applying compatibility folding or changing case.
   TEST_F(TokenizerTest, IdentifierNormalizationAndCase)
   {
-    const auto Buffer = lex(u8"e\u0301 \u00E9 \u212A K k \uFB00 \uFF21");
+    const auto Buffer = lex(utf8(u8"e\u0301 \u00E9 \u212A K k \uFB00 \uFF21"));
     expectKinds(Buffer, {TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier});
     EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[0].Payload).Name, std::get<IdentifierInfo>(Buffer.tokens()[1].Payload).Name);
     EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[2].Payload).Name, "K");
     EXPECT_NE(std::get<IdentifierInfo>(Buffer.tokens()[3].Payload).Name, std::get<IdentifierInfo>(Buffer.tokens()[4].Payload).Name);
-    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[5].Payload).Name, u8"\uFB00");
-    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[6].Payload).Name, u8"\uFF21");
+    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[5].Payload).Name, utf8(u8"\uFB00"));
+    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[6].Payload).Name, utf8(u8"\uFF21"));
     EXPECT_NE(Buffer.raw(Buffer.tokens()[0]), Buffer.raw(Buffer.tokens()[1]));
   }
 

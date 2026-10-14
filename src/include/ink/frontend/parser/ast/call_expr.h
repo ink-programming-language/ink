@@ -4,6 +4,7 @@
 #include "ink/frontend/parser/ast/fwd.h"
 #include "ink/frontend/parser/ast_context.h"
 #include "ink/frontend/parser/ast/argument.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -22,13 +23,9 @@ namespace ink::frontend::parser
             Optional(Optional)
       {
       }
-      Expr *callee() noexcept
+      auto *callee(this auto &&Self) noexcept
       {
-        return Callee;
-      }
-      const Expr *callee() const noexcept
-      {
-        return Callee;
+        return Self.Callee ? &std::forward_like<decltype(Self) &>(*Self.Callee) : nullptr;
       }
       ASTArray<Argument> arguments() const noexcept
       {

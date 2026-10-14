@@ -66,13 +66,13 @@ namespace ink::frontend::tokenizer::test
   // NFC and literal decoding never move byte ranges or alter retained source bytes.
   TEST_F(TokenizerTest, OriginalByteRangesSurviveAllTransformations)
   {
-    const std::string Source = u8"e\u0301 r\"x\\\" \"\"\"a\r\nb\rc\"\"\" '\\xFF'";
+    const std::string Source = utf8(u8"e\u0301 r\"x\\\" \"\"\"a\r\nb\rc\"\"\" '\\xFF'");
     const auto Buffer = lex(Source);
     expectKinds(Buffer, {TokenKind::Identifier, TokenKind::StringLiteral, TokenKind::StringLiteral, TokenKind::CharLiteral});
     ASSERT_EQ(Buffer.tokens().size(), 5U);
     EXPECT_EQ(Buffer.source(), Source);
     EXPECT_EQ(Buffer.tokens()[0].Span, core::SourceRange::fromByteOffsets(0, 3));
-    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[0].Payload).Name, u8"\u00E9");
+    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[0].Payload).Name, utf8(u8"\u00E9"));
     EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), "r\"x\\\"");
     EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[1].Payload).Decoded, "x\\");
     EXPECT_EQ(Buffer.raw(Buffer.tokens()[2]), "\"\"\"a\r\nb\rc\"\"\"");
@@ -118,11 +118,11 @@ namespace ink::frontend::tokenizer::test
       core::SourceManager Sources;
       core::DiagnosticEngine DiagnosticEngine;
       frontend::FrontendContext Context(Sources, DiagnosticEngine);
-      return tokenize(Context, u8"e\u0301 \"\\x00\"");
+      return tokenize(Context, utf8(u8"e\u0301 \"\\x00\""));
     }();
     ASSERT_TRUE(Buffer.succeeded());
-    EXPECT_EQ(Buffer.source(), u8"e\u0301 \"\\x00\"");
-    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[0].Payload).Name, u8"\u00E9");
+    EXPECT_EQ(Buffer.source(), utf8(u8"e\u0301 \"\\x00\""));
+    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[0].Payload).Name, utf8(u8"\u00E9"));
     EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[1].Payload).Decoded, std::string(1, '\0'));
   }
 } // namespace ink::frontend::tokenizer::test

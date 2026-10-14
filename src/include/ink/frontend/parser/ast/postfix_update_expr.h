@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/expr.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -20,13 +21,9 @@ namespace ink::frontend::parser
             OperatorRange(OperatorRange)
       {
       }
-      Expr *operand() noexcept
+      auto *operand(this auto &&Self) noexcept
       {
-        return Operand;
-      }
-      const Expr *operand() const noexcept
-      {
-        return Operand;
+        return Self.Operand ? &std::forward_like<decltype(Self) &>(*Self.Operand) : nullptr;
       }
       TokenKind op() const noexcept
       {

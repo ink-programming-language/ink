@@ -83,16 +83,6 @@ namespace ink::ir
     return Target;
   }
 
-  ConstantPool &TypeContext::constantPool() noexcept
-  {
-    return Constants;
-  }
-
-  const ConstantPool &TypeContext::constantPool() const noexcept
-  {
-    return Constants;
-  }
-
   bool TypeContext::owns(const Type *TypeValue) const noexcept
   {
     return OwnedTypes.find(TypeValue) != OwnedTypes.end();

@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/stmt.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -18,13 +19,9 @@ namespace ink::frontend::parser
             Declaration(Declaration)
       {
       }
-      Decl *declaration() noexcept
+      auto *declaration(this auto &&Self) noexcept
       {
-        return Declaration;
-      }
-      const Decl *declaration() const noexcept
-      {
-        return Declaration;
+        return Self.Declaration ? &std::forward_like<decltype(Self) &>(*Self.Declaration) : nullptr;
       }
 
     private:

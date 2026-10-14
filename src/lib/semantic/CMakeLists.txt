@@ -2,9 +2,9 @@ file(GLOB_RECURSE INK_SEMANTIC_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE
 add_library(ink_semantic STATIC ${INK_SEMANTIC_SOURCES})
 add_library(ink::semantic ALIAS ink_semantic)
 
-target_compile_features(ink_semantic PUBLIC cxx_std_20)
+target_compile_features(ink_semantic PUBLIC cxx_std_23)
 target_include_directories(ink_semantic PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>")
-target_link_libraries(ink_semantic PUBLIC ink::frontend)
+target_link_libraries(ink_semantic PUBLIC ink::frontend ink::ir)
 ink_disable_exceptions(ink_semantic)
 
 if(MSVC)

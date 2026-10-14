@@ -29,16 +29,6 @@ namespace ink::ir
     Name = NewName;
   }
 
-  Function *BasicBlock::function() noexcept
-  {
-    return Parent;
-  }
-
-  const Function *BasicBlock::function() const noexcept
-  {
-    return Parent;
-  }
-
   const std::vector<std::unique_ptr<Instruction>> &BasicBlock::instructions() const noexcept
   {
     return Instructions;
@@ -47,16 +37,6 @@ namespace ink::ir
   std::size_t BasicBlock::instructionCount() const noexcept
   {
     return Instructions.size();
-  }
-
-  Instruction *BasicBlock::instruction(std::size_t Index) noexcept
-  {
-    return Index < Instructions.size() ? Instructions[Index].get() : nullptr;
-  }
-
-  const Instruction *BasicBlock::instruction(std::size_t Index) const noexcept
-  {
-    return Index < Instructions.size() ? Instructions[Index].get() : nullptr;
   }
 
   Instruction *BasicBlock::appendInstruction(std::unique_ptr<Instruction> InstructionValue)

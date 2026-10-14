@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <utility>
 
 namespace ink::ir
 {
@@ -42,8 +43,11 @@ namespace ink::ir
       Method &operator=(Method &&) noexcept;
 
       // Empty and moved-from methods have no function or type, report NAME_None, and are invalid.
-      Function *function() noexcept;
-      const Function *function() const noexcept;
+      auto *function(this auto &&Self) noexcept
+      {
+        return Self.Callable ? &std::forward_like<decltype(Self) &>(*Self.Callable) : nullptr;
+      }
+
       core::Name name() const noexcept;
       const FunctionType *functionType() const noexcept;
       const MethodVirtualInfo &virtualInfo() const noexcept;

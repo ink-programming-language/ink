@@ -4,6 +4,7 @@
 #include "ink/frontend/parser/ast/fwd.h"
 #include "ink/frontend/parser/ast_context.h"
 #include "ink/frontend/parser/ast/attribute.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -33,29 +34,17 @@ namespace ink::frontend::parser
       {
         return Constant;
       }
-      BindingPattern *binding() noexcept
+      auto *binding(this auto &&Self) noexcept
       {
-        return Binding;
+        return Self.Binding ? &std::forward_like<decltype(Self) &>(*Self.Binding) : nullptr;
       }
-      const BindingPattern *binding() const noexcept
+      auto *type(this auto &&Self) noexcept
       {
-        return Binding;
+        return Self.Type ? &std::forward_like<decltype(Self) &>(*Self.Type) : nullptr;
       }
-      TypeSyntax *type() noexcept
+      auto *initializer(this auto &&Self) noexcept
       {
-        return Type;
-      }
-      const TypeSyntax *type() const noexcept
-      {
-        return Type;
-      }
-      Expr *initializer() noexcept
-      {
-        return Initializer;
-      }
-      const Expr *initializer() const noexcept
-      {
-        return Initializer;
+        return Self.Initializer ? &std::forward_like<decltype(Self) &>(*Self.Initializer) : nullptr;
       }
       VarDeclForm form() const noexcept
       {

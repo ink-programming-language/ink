@@ -19,13 +19,9 @@ namespace ink::frontend::parser
             Elements(Elements)
       {
       }
-      ASTArray<Expr *> elements() noexcept
+      auto elements(this auto &&Self) noexcept
       {
-        return Elements;
-      }
-      ConstNodeArray<Expr> elements() const noexcept
-      {
-        return ConstNodeArray<Expr>(Elements);
+        return NodeArrayFor<decltype(Self), Expr>(Self.Elements);
       }
 
     private:

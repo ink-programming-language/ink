@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/expr.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -18,13 +19,9 @@ namespace ink::frontend::parser
             Expression(Expression)
       {
       }
-      Expr *expression() noexcept
+      auto *expression(this auto &&Self) noexcept
       {
-        return Expression;
-      }
-      const Expr *expression() const noexcept
-      {
-        return Expression;
+        return Self.Expression ? &std::forward_like<decltype(Self) &>(*Self.Expression) : nullptr;
       }
 
     private:

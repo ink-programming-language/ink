@@ -12,11 +12,17 @@
 
 #include <initializer_list>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace ink::frontend::tokenizer::test
 {
   using core::DiagnosticKind;
+
+  inline std::string utf8(std::u8string_view Text)
+  {
+    return std::string(reinterpret_cast<const char *>(Text.data()), Text.size());
+  }
 
   inline std::string utf8(char32_t Value)
   {

@@ -4,6 +4,7 @@
 #include "ink/frontend/parser/ast/fwd.h"
 #include "ink/frontend/parser/ast_context.h"
 #include "ink/frontend/parser/ast/match_arm.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -21,13 +22,9 @@ namespace ink::frontend::parser
             Arms(Arms)
       {
       }
-      Expr *value() noexcept
+      auto *value(this auto &&Self) noexcept
       {
-        return Value;
-      }
-      const Expr *value() const noexcept
-      {
-        return Value;
+        return Self.Value ? &std::forward_like<decltype(Self) &>(*Self.Value) : nullptr;
       }
       ASTArray<MatchArm> arms() const noexcept
       {

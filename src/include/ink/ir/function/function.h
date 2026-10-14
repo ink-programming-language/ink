@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace ink::ir
@@ -66,15 +67,25 @@ namespace ink::ir
       const std::vector<std::unique_ptr<Parameter>> &parameters() const noexcept;
       std::size_t parameterCount() const noexcept;
       // Indexed access returns nullptr outside the owned parameter or block list.
-      Parameter *parameter(std::size_t Index) noexcept;
-      const Parameter *parameter(std::size_t Index) const noexcept;
+      auto *parameter(this auto &&Self, std::size_t Index) noexcept
+      {
+        auto *Result = Index < Self.Parameters.size() ? Self.Parameters[Index].get() : nullptr;
+        return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
+      }
 
       const std::vector<std::unique_ptr<BasicBlock>> &blocks() const noexcept;
       std::size_t blockCount() const noexcept;
-      BasicBlock *block(std::size_t Index) noexcept;
-      const BasicBlock *block(std::size_t Index) const noexcept;
-      BasicBlock *entryBlock() noexcept;
-      const BasicBlock *entryBlock() const noexcept;
+      auto *block(this auto &&Self, std::size_t Index) noexcept
+      {
+        auto *Result = Index < Self.Blocks.size() ? Self.Blocks[Index].get() : nullptr;
+        return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
+      }
+
+      auto *entryBlock(this auto &&Self) noexcept
+      {
+        return Self.block(0);
+      }
+
       // Returned block addresses stay valid until this function is destroyed.
       BasicBlock *createBlock(core::Name BlockName = core::NAME_None);
       // Means no IR body is present, including while a definition is awaiting construction.

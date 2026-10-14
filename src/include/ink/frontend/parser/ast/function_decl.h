@@ -5,6 +5,7 @@
 #include "ink/frontend/parser/ast_context.h"
 #include "ink/frontend/parser/ast/attribute.h"
 #include "ink/frontend/parser/ast/parameter.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -45,13 +46,9 @@ namespace ink::frontend::parser
       {
         return Parameters;
       }
-      TypeSyntax *returnType() noexcept
+      auto *returnType(this auto &&Self) noexcept
       {
-        return ReturnType;
-      }
-      const TypeSyntax *returnType() const noexcept
-      {
-        return ReturnType;
+        return Self.ReturnType ? &std::forward_like<decltype(Self) &>(*Self.ReturnType) : nullptr;
       }
       FunctionBodyKind bodyKind() const noexcept
       {
@@ -62,21 +59,13 @@ namespace ink::frontend::parser
         return NativeSymbol;
       }
       // Null without native import/export; a string literal, or MissingExpr during recovery, otherwise.
-      Expr *linkage() noexcept
+      auto *linkage(this auto &&Self) noexcept
       {
-        return Linkage;
+        return Self.Linkage ? &std::forward_like<decltype(Self) &>(*Self.Linkage) : nullptr;
       }
-      const Expr *linkage() const noexcept
+      auto *body(this auto &&Self) noexcept
       {
-        return Linkage;
-      }
-      BlockStmt *body() noexcept
-      {
-        return Body;
-      }
-      const BlockStmt *body() const noexcept
-      {
-        return Body;
+        return Self.Body ? &std::forward_like<decltype(Self) &>(*Self.Body) : nullptr;
       }
 
     private:

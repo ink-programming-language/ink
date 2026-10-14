@@ -5,6 +5,7 @@
 #include "ink/ir/type/value.h"
 
 #include <cstddef>
+#include <utility>
 
 namespace ink::ir
 {
@@ -15,8 +16,11 @@ namespace ink::ir
   class Parameter final : public Value
   {
     public:
-      Function &function() noexcept;
-      const Function &function() const noexcept;
+      auto &function(this auto &&Self) noexcept
+      {
+        return std::forward_like<decltype(Self) &>(Self.Parent);
+      }
+
       std::size_t index() const noexcept;
       const Type *type() const noexcept override;
       core::Name name() const noexcept;

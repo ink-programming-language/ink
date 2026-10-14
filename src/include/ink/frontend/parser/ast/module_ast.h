@@ -19,13 +19,9 @@ namespace ink::frontend::parser
             Statements(Statements)
       {
       }
-      ASTArray<Stmt *> statements() noexcept
+      auto statements(this auto &&Self) noexcept
       {
-        return Statements;
-      }
-      ConstNodeArray<Stmt> statements() const noexcept
-      {
-        return ConstNodeArray<Stmt>(Statements);
+        return NodeArrayFor<decltype(Self), Stmt>(Self.Statements);
       }
 
     private:

@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/types.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -18,13 +19,9 @@ namespace ink::frontend::parser
       {
         return Implements;
       }
-      TypeSyntax *type() noexcept
+      auto *type(this auto &&Self) noexcept
       {
-        return Type;
-      }
-      const TypeSyntax *type() const noexcept
-      {
-        return Type;
+        return Self.Type ? &std::forward_like<decltype(Self) &>(*Self.Type) : nullptr;
       }
       SourceRange range() const noexcept
       {

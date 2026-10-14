@@ -19,13 +19,9 @@ namespace ink::frontend::parser
             Elements(Elements)
       {
       }
-      ASTArray<BindingPattern *> elements() noexcept
+      auto elements(this auto &&Self) noexcept
       {
-        return Elements;
-      }
-      ConstNodeArray<BindingPattern> elements() const noexcept
-      {
-        return ConstNodeArray<BindingPattern>(Elements);
+        return NodeArrayFor<decltype(Self), BindingPattern>(Self.Elements);
       }
 
     private:

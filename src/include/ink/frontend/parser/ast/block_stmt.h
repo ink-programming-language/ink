@@ -20,13 +20,9 @@ namespace ink::frontend::parser
             Synthetic(Synthetic)
       {
       }
-      ASTArray<Stmt *> statements() noexcept
+      auto statements(this auto &&Self) noexcept
       {
-        return Statements;
-      }
-      ConstNodeArray<Stmt> statements() const noexcept
-      {
-        return ConstNodeArray<Stmt>(Statements);
+        return NodeArrayFor<decltype(Self), Stmt>(Self.Statements);
       }
       bool synthetic() const noexcept
       {

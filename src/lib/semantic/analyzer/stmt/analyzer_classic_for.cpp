@@ -1,10 +1,13 @@
-#include "../analyzer_internal.h"
+#include "ink/semantic/analyzer/analyzer.h"
+
+#include "ink/semantic/context.h"
+#include "ink/frontend/parser/ast.h"
 
 namespace ink::semantic
 {
-  bool Analyzer::analyzeClassicForStmt(AnalysisState &State, const frontend::parser::ClassicForStmt &Node)
+  bool Analyzer::analyzeClassicForStmt(SemanticContext &Context, const frontend::parser::ClassicForStmt &Node)
   {
     // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(State, Node);
+    return reportUnsupported(Context, Node);
   }
 } // namespace ink::semantic

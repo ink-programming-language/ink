@@ -53,26 +53,6 @@ namespace ink::ir
   {
   }
 
-  TypeContext &IRBuilder::typeContext() noexcept
-  {
-    return Types;
-  }
-
-  const TypeContext &IRBuilder::typeContext() const noexcept
-  {
-    return Types;
-  }
-
-  ConstantPool &IRBuilder::constantPool() noexcept
-  {
-    return Types.constantPool();
-  }
-
-  const ConstantPool &IRBuilder::constantPool() const noexcept
-  {
-    return Types.constantPool();
-  }
-
   BasicBlock *IRBuilder::insertBlock() const noexcept
   {
     return InsertBlock;

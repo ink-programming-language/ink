@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/types.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -20,21 +21,13 @@ namespace ink::frontend::parser
       {
         return Name;
       }
-      TypeSyntax *type() noexcept
+      auto *type(this auto &&Self) noexcept
       {
-        return Type;
+        return Self.Type ? &std::forward_like<decltype(Self) &>(*Self.Type) : nullptr;
       }
-      const TypeSyntax *type() const noexcept
+      auto *defaultValue(this auto &&Self) noexcept
       {
-        return Type;
-      }
-      Expr *defaultValue() noexcept
-      {
-        return DefaultValue;
-      }
-      const Expr *defaultValue() const noexcept
-      {
-        return DefaultValue;
+        return Self.DefaultValue ? &std::forward_like<decltype(Self) &>(*Self.DefaultValue) : nullptr;
       }
       bool variadic() const noexcept
       {

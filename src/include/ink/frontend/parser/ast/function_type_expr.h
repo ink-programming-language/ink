@@ -4,6 +4,7 @@
 #include "ink/frontend/parser/ast/fwd.h"
 #include "ink/frontend/parser/ast_context.h"
 #include "ink/frontend/parser/ast/function_type_parameter.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -25,13 +26,9 @@ namespace ink::frontend::parser
       {
         return Parameters;
       }
-      TypeSyntax *returnType() noexcept
+      auto *returnType(this auto &&Self) noexcept
       {
-        return ReturnType;
-      }
-      const TypeSyntax *returnType() const noexcept
-      {
-        return ReturnType;
+        return Self.ReturnType ? &std::forward_like<decltype(Self) &>(*Self.ReturnType) : nullptr;
       }
 
     private:

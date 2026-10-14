@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/match_pattern.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -19,13 +20,9 @@ namespace ink::frontend::parser
             Negative(Negative)
       {
       }
-      LiteralExpr *value() noexcept
+      auto *value(this auto &&Self) noexcept
       {
-        return Value;
-      }
-      const LiteralExpr *value() const noexcept
-      {
-        return Value;
+        return Self.Value ? &std::forward_like<decltype(Self) &>(*Self.Value) : nullptr;
       }
       bool negative() const noexcept
       {

@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/expr.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -20,13 +21,9 @@ namespace ink::frontend::parser
             Member(Member)
       {
       }
-      Expr *object() noexcept
+      auto *object(this auto &&Self) noexcept
       {
-        return Object;
-      }
-      const Expr *object() const noexcept
-      {
-        return Object;
+        return Self.Object ? &std::forward_like<decltype(Self) &>(*Self.Object) : nullptr;
       }
       TokenKind access() const noexcept
       {

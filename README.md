@@ -35,6 +35,8 @@ ctest --test-dir build -C Release --output-on-failure
 
 使用其他生成器时可按工具链调整生成参数；单配置生成器使用 `-DCMAKE_BUILD_TYPE=Release`，运行 CTest 时可省略 `-C Release`。
 
+项目自有 C++ 目标统一要求 C++23，编译器和标准库必须支持显式对象参数（deducing this）和 `std::forward_like`；配置阶段会编译探测这两个特性。语言标准通过目标级 `cxx_std_23` 声明，第三方目标保留各自的标准要求。CMake 会根据工具链选择标准选项；部分 CMake/MSVC 组合将 C++23 映射为 `/std:c++latest`。
+
 `-DINK_BUILD_MODE=debug|development|shipping` 选择 Ink 构建模式，默认 `debug`。CMake 将 `src/include/ink/core/config.in` 配置为构建目录下的 `include/ink/core/config.h`，提供目标平台、指针大小、编译器身份与版本，以及互斥的 `INK_BUILD_DEBUG`、`INK_BUILD_DEVELOPMENT`、`INK_BUILD_SHIPPING` 宏。所有布尔宏均定义为 `0` 或 `1`，使用 `#if` 判断。`ink::config` 将生成头目录传递给各模块；生成文件不写入源码树。
 
 `core_define.h` 的 `INK_ENABLE_ASSERTIONS` 统一控制六个断言宏：`CHECK`、`CHECK_MSGF`、`CHECK_ALWAYS_MSGF`、`ENSURE`、`ENSURE_MSGF`、`ENSURE_ALWAYS_MSGF`。Debug 和 Development 开启，Shipping 关闭。失败时先输出并刷新日志，再在附加了调试器时触发断点；继续执行后，CHECK 终止进程，ENSURE 返回 `false`。普通 ENSURE 每个调用点仅报告和中断一次，`ENSURE_ALWAYS_MSGF` 每次失败都报告和中断；CHECK 每次失败都会终止，因此它的两个消息版本行为相同。Shipping 中 CHECK 不求值，ENSURE 保留条件求值，所有断言消息参数均不求值。`PANIC` 始终终止。Ink 模式独立于 `CMAKE_BUILD_TYPE`、`--config` 和 `NDEBUG`，不改变编译器优化或调试信息选项；例如 `cmake -S . -B build -DINK_BUILD_MODE=shipping` 配合 `cmake --build build --config Release` 选择 Shipping 行为和 Release 编译选项。多配置生成器的同一构建目录共用所选 Ink 模式，不同模式请使用不同构建目录。
@@ -43,7 +45,7 @@ ctest --test-dir build -C Release --output-on-failure
 
 启用 `BUILD_TESTING` 时，配置阶段检查 Frontend/Core 的 CMake 目标依赖，CTest 的 `FrontendDependencyBoundaryTest` 检查对应源码和头文件，禁止引入 IR 或 Semantic。源码检查使用轻量文本匹配，覆盖 include 和命名空间引用；可单独运行 `ctest --test-dir build -C Release -R FrontendDependencyBoundaryTest --output-on-failure`。
 
-`Analyzer::analyze(SemanticContext &, const frontend::parser::ParseResult &)` 返回 `bool`，校验解析结果及源码归属后，按源码顺序遍历模块和块，通过 `analyzeStmt`、`analyzeDeclStmt` 和 `analyzeDecl` 到达具体节点处理函数。每次调用独立维护块深度，并读取 `INK_SEMANTIC_BLOCK_DEPTH_LIMIT`。空模块和仅含空块的输入可以完成遍历；具体语义及 comptime 求值尚未实现，命中时报告既有的 `SemanticUnsupported` ICE。当前入口不生成 IR，不提供原执行分支的模块返回值或多模块分析能力。
+`Analyzer::analyze(SemanticContext &, const frontend::parser::ParseResult &)` 返回 `bool`，校验解析结果及源码归属后，按源码顺序遍历模块和块，通过 `analyzeStmt`、`analyzeDeclStmt` 和 `analyzeDecl` 到达具体节点处理函数。各处理函数直接接收 `SemanticContext &`；上下文拥有当前源码和块深度等分析状态，每次有效调用重置块深度、读取 `INK_SEMANTIC_BLOCK_DEPTH_LIMIT` 并清空 Builder 插入点，返回前再次清空插入点。连续调用保留同一上下文中的类型、常量和模块内容；无效输入不会修改上下文。空模块和仅含空块的输入可以完成遍历；具体语义及 comptime 求值尚未实现，命中时报告既有的 `SemanticUnsupported` ICE。当前入口不生成 IR，不提供原执行分支的模块返回值或多模块分析能力。
 
 LLVM/Clang 固定版本为 22.1.8；tokenizer 直接使用 Clang 的 `UnicodeCharSets.h`，parser 的 AST 归档使用 LLVM 支持库。NFC 校验使用 utf8proc 2.9.0 的 Unicode 15.1 实现。spdlog 1.17.0 负责所有自有 C++ 文本输出；CLI 统一通过 `ink::cli::writeOutput` 输出。所有自有 C++ 编译目标在目标级关闭异常。
 
@@ -51,11 +53,13 @@ Core 的公共头文件按职责放在 `src/include/ink/core` 下的 `support`�
 
 资源限制在 `src/include/ink/core/config/config.def` 中定义，parser 与 AST 归档可通过对应的 `INK_PARSER_*`、`INK_AST_ARCHIVE_*` 环境变量配置；semantic 配置与诊断定义保留供后续实现使用。内部编译错误经 spdlog 输出后 panic，普通源码错误通过诊断引擎报告。
 
-Frontend 通过统一的 `ink::frontend` 静态库提供 tokenizer、parser/AST 和共享上下文。公共头文件位于 `src/include/ink/frontend`，其中 `tokenizer` 和 `parser` 是两个子目录，命名空间分别为 `ink::frontend::tokenizer` 和 `ink::frontend::parser`；实现位于 `src/lib/frontend` 下对应的子目录。Frontend 的公开编译要求为 C++20；tokenizer 测试单独按 C++17 编译，以保留 UTF-8 字面量行为，最终链接同一个 frontend 库。
+Frontend 通过统一的 `ink::frontend` 静态库提供 tokenizer、parser/AST 和共享上下文。公共头文件位于 `src/include/ink/frontend`，其中 `tokenizer` 和 `parser` 是两个子目录，命名空间分别为 `ink::frontend::tokenizer` 和 `ink::frontend::parser`；实现位于 `src/lib/frontend` 下对应的子目录。Frontend 的公开编译要求为 C++23，tokenizer 测试也使用 C++23，通过测试辅助函数将 `char8_t` UTF-8 字面量显式转换成字节字符串，最终链接同一个 frontend 库。
+
+成对的 const／非 const 访问器使用 C++23 显式对象参数合并定义，保持原来的引用、指针和只读节点数组返回类型。值成员直接通过 `Self` 访问；借用引用和指针指向的对象使用 `std::forward_like<decltype(Self) &>` 传播只读属性，并保持右值调用仍返回借用的左值引用或指针。所有借用结果仍受原对象及底层存储的生命周期约束。
 
 AST 类声明位于 `src/include/ink/frontend/parser/ast`，每个 class 使用一个 snake_case 头文件，共 80 个类：64 个具体节点、7 个基类和 9 个辅助记录。`ast/types.h` 集中公共别名、`NameToken`、`RestBinding` 和 7 个枚举，`ast/fwd.h` 提供类前向声明，`ast/cast.h` 提供 `isa`、`dyn_cast` 和 `cast`。`src/include/ink/frontend/parser/ast.h` 保留聚合入口，调用方也可直接包含所需节点头文件。命名空间、公开 API 及 `ASTNodes.def` 的节点 ID 保持不变；`ast_context.h`、`ast_kind.h`、`ast_visitor.h` 和 `ast_walker.h` 仍位于 parser 根目录，现有实现仍位于 `src/lib/frontend/parser`。
 
-`frontend::FrontendContext` 直接借用 `core::SourceManager` 和 `core::DiagnosticEngine`，二者必须比上下文存活更久；tokenizer、parser 和 semantic 使用这些服务而不依赖工具层。`SemanticContext` 同样接收这两个服务。现有 `ink-tokenize`、`ink-parse` 和测试各自拥有服务实例，以保持编译会话之间的源码和诊断隔离。
+`frontend::FrontendContext` 直接借用 `core::SourceManager` 和 `core::DiagnosticEngine`，二者必须比上下文存活更久；tokenizer、parser 和 semantic 使用这些服务而不依赖工具层。`SemanticContext(Sources, Diagnostics, Target)` 组合持有这个前端服务视图，并按值拥有 `ir::TypeContext`、`ir::Module` 和 `ir::IRBuilder`，通过 `typeContext()`、`module()`、`irBuilder()` 提供借用访问。目标必须显式传入；三个 IR 成员按 Builder、Module、TypeContext 的顺序销毁，全部 IR 使用者必须在上下文销毁前结束。模块随上下文保活，分析入口仍返回成功状态；失败不会回滚上下文中已有的 IR。现有 `ink-tokenize`、`ink-parse` 和测试各自拥有服务实例，以保持编译会话之间的源码和诊断隔离。
 
 `inkc::CompilationContext` 是工具私有的编译会话资源所有者，定义位于 `src/tools/inkc/compilation_context.h`，拥有目标描述、源码管理器和诊断引擎。库和测试不依赖此类型；当前分支尚未恢复 inkc 可执行入口。
 

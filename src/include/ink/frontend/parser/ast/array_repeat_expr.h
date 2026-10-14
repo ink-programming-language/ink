@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/expr.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -19,21 +20,13 @@ namespace ink::frontend::parser
             Count(Count)
       {
       }
-      Expr *value() noexcept
+      auto *value(this auto &&Self) noexcept
       {
-        return Value;
+        return Self.Value ? &std::forward_like<decltype(Self) &>(*Self.Value) : nullptr;
       }
-      const Expr *value() const noexcept
+      auto *count(this auto &&Self) noexcept
       {
-        return Value;
-      }
-      Expr *count() noexcept
-      {
-        return Count;
-      }
-      const Expr *count() const noexcept
-      {
-        return Count;
+        return Self.Count ? &std::forward_like<decltype(Self) &>(*Self.Count) : nullptr;
       }
 
     private:

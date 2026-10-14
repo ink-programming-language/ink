@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/stmt.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -20,29 +21,17 @@ namespace ink::frontend::parser
             ElseBranch(ElseBranch)
       {
       }
-      Expr *condition() noexcept
+      auto *condition(this auto &&Self) noexcept
       {
-        return Condition;
+        return Self.Condition ? &std::forward_like<decltype(Self) &>(*Self.Condition) : nullptr;
       }
-      const Expr *condition() const noexcept
+      auto *thenBranch(this auto &&Self) noexcept
       {
-        return Condition;
+        return Self.ThenBranch ? &std::forward_like<decltype(Self) &>(*Self.ThenBranch) : nullptr;
       }
-      Stmt *thenBranch() noexcept
+      auto *elseBranch(this auto &&Self) noexcept
       {
-        return ThenBranch;
-      }
-      const Stmt *thenBranch() const noexcept
-      {
-        return ThenBranch;
-      }
-      Stmt *elseBranch() noexcept
-      {
-        return ElseBranch;
-      }
-      const Stmt *elseBranch() const noexcept
-      {
-        return ElseBranch;
+        return Self.ElseBranch ? &std::forward_like<decltype(Self) &>(*Self.ElseBranch) : nullptr;
       }
 
     private:

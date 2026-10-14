@@ -3,6 +3,7 @@
 #include "ink/frontend/parser/ast/stmt.h"
 #include "ink/frontend/parser/ast/fwd.h"
 #include "ink/frontend/parser/ast_context.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -22,37 +23,21 @@ namespace ink::frontend::parser
             Body(Body)
       {
       }
-      Stmt *initializer() noexcept
+      auto *initializer(this auto &&Self) noexcept
       {
-        return Initializer;
+        return Self.Initializer ? &std::forward_like<decltype(Self) &>(*Self.Initializer) : nullptr;
       }
-      const Stmt *initializer() const noexcept
+      auto *condition(this auto &&Self) noexcept
       {
-        return Initializer;
+        return Self.Condition ? &std::forward_like<decltype(Self) &>(*Self.Condition) : nullptr;
       }
-      Expr *condition() noexcept
+      auto step(this auto &&Self) noexcept
       {
-        return Condition;
+        return NodeArrayFor<decltype(Self), SimpleItem>(Self.Step);
       }
-      const Expr *condition() const noexcept
+      auto *body(this auto &&Self) noexcept
       {
-        return Condition;
-      }
-      ASTArray<SimpleItem *> step() noexcept
-      {
-        return Step;
-      }
-      ConstNodeArray<SimpleItem> step() const noexcept
-      {
-        return ConstNodeArray<SimpleItem>(Step);
-      }
-      Stmt *body() noexcept
-      {
-        return Body;
-      }
-      const Stmt *body() const noexcept
-      {
-        return Body;
+        return Self.Body ? &std::forward_like<decltype(Self) &>(*Self.Body) : nullptr;
       }
 
     private:

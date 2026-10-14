@@ -11,10 +11,10 @@ list(SORT INK_IR_TEST_SOURCES)
 list(SORT INK_TOKENIZER_TEST_SOURCES)
 list(SORT INK_PARSER_TEST_SOURCES)
 
-# Preserve the tokenizer tests' C++17 UTF-8 literal behavior while linking every active test into one executable.
-# Compile against Core's include directory; ink_tests supplies the C++20 frontend library at link time.
+# Keep tokenizer-specific test definitions on their object target while linking every active test into one executable.
+# UTF-8 test literals are converted explicitly from char8_t to the tokenizer's byte strings.
 add_library(ink_tokenizer_test_objects OBJECT ${INK_TOKENIZER_TEST_SOURCES})
-target_compile_features(ink_tokenizer_test_objects PRIVATE cxx_std_17)
+target_compile_features(ink_tokenizer_test_objects PRIVATE cxx_std_23)
 target_compile_definitions(ink_tokenizer_test_objects PRIVATE INK_LEXICAL_RULES_PATH="${PROJECT_SOURCE_DIR}/docs/Ink-Lexical-Rules.md")
 target_link_libraries(ink_tokenizer_test_objects PRIVATE ink::core GTest::gtest)
 ink_disable_exceptions(ink_tokenizer_test_objects)
@@ -23,7 +23,7 @@ ink_disable_exceptions(ink_tokenizer_test_objects)
 # They depend on the removed IR and execution APIs; only the new entry/dispatch regression tests are active.
 add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_IR_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} semantic/analyzer_entry_test.cpp)
 add_dependencies(ink_tests ink_tokenize ink_parse)
-target_compile_features(ink_tests PRIVATE cxx_std_20)
+target_compile_features(ink_tests PRIVATE cxx_std_23)
 target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::ir ink::frontend ink::semantic ink::llvm LLVMBitstreamReader GTest::gtest_main GTest::gmock spdlog::spdlog)
 ink_disable_exceptions(ink_tests)
 

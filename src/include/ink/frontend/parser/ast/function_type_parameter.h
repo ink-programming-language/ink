@@ -3,6 +3,7 @@
 #include "ink/frontend/parser/ast/types.h"
 #include "ink/frontend/parser/ast/fwd.h"
 #include <optional>
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -20,13 +21,9 @@ namespace ink::frontend::parser
       {
         return Name;
       }
-      TypeSyntax *type() noexcept
+      auto *type(this auto &&Self) noexcept
       {
-        return Type;
-      }
-      const TypeSyntax *type() const noexcept
-      {
-        return Type;
+        return Self.Type ? &std::forward_like<decltype(Self) &>(*Self.Type) : nullptr;
       }
       bool variadic() const noexcept
       {

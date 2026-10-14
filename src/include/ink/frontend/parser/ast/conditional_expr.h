@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/expr.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -20,29 +21,17 @@ namespace ink::frontend::parser
             Else(Else)
       {
       }
-      Expr *condition() noexcept
+      auto *condition(this auto &&Self) noexcept
       {
-        return Condition;
+        return Self.Condition ? &std::forward_like<decltype(Self) &>(*Self.Condition) : nullptr;
       }
-      const Expr *condition() const noexcept
+      auto *then(this auto &&Self) noexcept
       {
-        return Condition;
+        return Self.Then ? &std::forward_like<decltype(Self) &>(*Self.Then) : nullptr;
       }
-      Expr *then() noexcept
+      auto *elseValue(this auto &&Self) noexcept
       {
-        return Then;
-      }
-      const Expr *then() const noexcept
-      {
-        return Then;
-      }
-      Expr *elseValue() noexcept
-      {
-        return Else;
-      }
-      const Expr *elseValue() const noexcept
-      {
-        return Else;
+        return Self.Else ? &std::forward_like<decltype(Self) &>(*Self.Else) : nullptr;
       }
 
     private:

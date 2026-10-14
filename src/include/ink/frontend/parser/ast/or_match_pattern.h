@@ -19,13 +19,9 @@ namespace ink::frontend::parser
             Alternatives(Alternatives)
       {
       }
-      ASTArray<MatchPattern *> alternatives() noexcept
+      auto alternatives(this auto &&Self) noexcept
       {
-        return Alternatives;
-      }
-      ConstNodeArray<MatchPattern> alternatives() const noexcept
-      {
-        return ConstNodeArray<MatchPattern>(Alternatives);
+        return NodeArrayFor<decltype(Self), MatchPattern>(Self.Alternatives);
       }
 
     private:

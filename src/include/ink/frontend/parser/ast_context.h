@@ -85,6 +85,10 @@ namespace ink::frontend::parser
       ASTArray<T *> Values;
   };
 
+  // Select the pointer-array view from the owner's constness, preserving mutable storage.
+  template <typename Owner, typename T>
+  using NodeArrayFor = std::conditional_t<std::is_const_v<std::remove_reference_t<Owner>>, ConstNodeArray<T>, ASTArray<T *>>;
+
   struct ASTCheckpoint
   {
       std::size_t Blocks;

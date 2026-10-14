@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 
 project(ink LANGUAGES C CXX)
 
+include(cmake/InkCxxStandard.cmake)
+ink_check_cxx23_support()
+
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
 include(CTest)

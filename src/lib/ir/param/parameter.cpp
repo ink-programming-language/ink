@@ -11,16 +11,6 @@ namespace ink::ir
   {
   }
 
-  Function &Parameter::function() noexcept
-  {
-    return Parent;
-  }
-
-  const Function &Parameter::function() const noexcept
-  {
-    return Parent;
-  }
-
   std::size_t Parameter::index() const noexcept
   {
     return Index;

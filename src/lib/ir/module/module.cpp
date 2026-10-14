@@ -104,16 +104,6 @@ namespace ink::ir
     return GlobalVariables.size();
   }
 
-  GlobalVariable *Module::globalVariable(std::size_t Index) noexcept
-  {
-    return Index < GlobalVariables.size() ? GlobalVariables[Index].get() : nullptr;
-  }
-
-  const GlobalVariable *Module::globalVariable(std::size_t Index) const noexcept
-  {
-    return Index < GlobalVariables.size() ? GlobalVariables[Index].get() : nullptr;
-  }
-
   GlobalVariable *Module::createGlobalVariable(const Type &VariableType, core::Name VariableName)
   {
     return appendGlobalVariable(std::make_unique<GlobalVariable>(VariableType, VariableName));
@@ -140,16 +130,6 @@ namespace ink::ir
     return GlobalFunctions.size();
   }
 
-  Function *Module::globalFunction(std::size_t Index) noexcept
-  {
-    return Index < GlobalFunctions.size() ? GlobalFunctions[Index].get() : nullptr;
-  }
-
-  const Function *Module::globalFunction(std::size_t Index) const noexcept
-  {
-    return Index < GlobalFunctions.size() ? GlobalFunctions[Index].get() : nullptr;
-  }
-
   Function *Module::createGlobalFunction(const FunctionType &Signature, core::Name FunctionName, SymbolLinkage SymbolLink, LanguageLinkage LanguageLink, FunctionVisibility Visibility)
   {
     return appendGlobalFunction(std::make_unique<Function>(Signature, FunctionName, SymbolLink, LanguageLink, Visibility));
@@ -164,26 +144,6 @@ namespace ink::ir
     Function *Result = Callable.get();
     GlobalFunctions.push_back(std::move(Callable));
     return Result;
-  }
-
-  Function *Module::initializationFunction() noexcept
-  {
-    return InitializationFunction;
-  }
-
-  const Function *Module::initializationFunction() const noexcept
-  {
-    return InitializationFunction;
-  }
-
-  Function *Module::deinitializationFunction() noexcept
-  {
-    return DeinitializationFunction;
-  }
-
-  const Function *Module::deinitializationFunction() const noexcept
-  {
-    return DeinitializationFunction;
   }
 
   bool Module::setInitializationFunction(Function *Callable) noexcept

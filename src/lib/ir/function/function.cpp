@@ -86,16 +86,6 @@ namespace ink::ir
     return Parameters.size();
   }
 
-  Parameter *Function::parameter(std::size_t Index) noexcept
-  {
-    return Index < Parameters.size() ? Parameters[Index].get() : nullptr;
-  }
-
-  const Parameter *Function::parameter(std::size_t Index) const noexcept
-  {
-    return Index < Parameters.size() ? Parameters[Index].get() : nullptr;
-  }
-
   const std::vector<std::unique_ptr<BasicBlock>> &Function::blocks() const noexcept
   {
     return Blocks;
@@ -104,26 +94,6 @@ namespace ink::ir
   std::size_t Function::blockCount() const noexcept
   {
     return Blocks.size();
-  }
-
-  BasicBlock *Function::block(std::size_t Index) noexcept
-  {
-    return Index < Blocks.size() ? Blocks[Index].get() : nullptr;
-  }
-
-  const BasicBlock *Function::block(std::size_t Index) const noexcept
-  {
-    return Index < Blocks.size() ? Blocks[Index].get() : nullptr;
-  }
-
-  BasicBlock *Function::entryBlock() noexcept
-  {
-    return block(0);
-  }
-
-  const BasicBlock *Function::entryBlock() const noexcept
-  {
-    return block(0);
   }
 
   BasicBlock *Function::createBlock(core::Name BlockName)

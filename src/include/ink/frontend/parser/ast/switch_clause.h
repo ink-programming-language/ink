@@ -3,6 +3,7 @@
 #include "ink/frontend/parser/ast/types.h"
 #include "ink/frontend/parser/ast/fwd.h"
 #include "ink/frontend/parser/ast_context.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -20,21 +21,13 @@ namespace ink::frontend::parser
       {
         return Default;
       }
-      Expr *value() noexcept
+      auto *value(this auto &&Self) noexcept
       {
-        return Value;
+        return Self.Value ? &std::forward_like<decltype(Self) &>(*Self.Value) : nullptr;
       }
-      const Expr *value() const noexcept
+      auto statements(this auto &&Self) noexcept
       {
-        return Value;
-      }
-      ASTArray<Stmt *> statements() noexcept
-      {
-        return Statements;
-      }
-      ConstNodeArray<Stmt> statements() const noexcept
-      {
-        return ConstNodeArray<Stmt>(Statements);
+        return NodeArrayFor<decltype(Self), Stmt>(Self.Statements);
       }
       SourceRange range() const noexcept
       {

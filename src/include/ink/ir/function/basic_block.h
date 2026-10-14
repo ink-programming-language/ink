@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace ink::ir
@@ -23,14 +24,21 @@ namespace ink::ir
       core::Name name() const noexcept;
       bool hasName() const noexcept;
       void setName(core::Name NewName) noexcept;
-      Function *function() noexcept;
-      const Function *function() const noexcept;
+
+      auto *function(this auto &&Self) noexcept
+      {
+        return Self.Parent ? &std::forward_like<decltype(Self) &>(*Self.Parent) : nullptr;
+      }
 
       const std::vector<std::unique_ptr<Instruction>> &instructions() const noexcept;
       std::size_t instructionCount() const noexcept;
       // Indexed access returns nullptr outside the owned instruction list.
-      Instruction *instruction(std::size_t Index) noexcept;
-      const Instruction *instruction(std::size_t Index) const noexcept;
+      auto *instruction(this auto &&Self, std::size_t Index) noexcept
+      {
+        auto *Result = Index < Self.Instructions.size() ? Self.Instructions[Index].get() : nullptr;
+        return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
+      }
+
       // Takes ownership; nullptr is rejected without changing the block.
       Instruction *appendInstruction(std::unique_ptr<Instruction> InstructionValue);
       static bool classof(const Value *Value) noexcept;

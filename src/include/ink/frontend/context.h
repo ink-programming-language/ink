@@ -3,6 +3,7 @@
 
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/source/source_manager.h"
+#include <utility>
 
 namespace ink::frontend
 {
@@ -16,24 +17,14 @@ namespace ink::frontend
       {
       }
 
-      core::DiagnosticEngine &diagnosticEngine() noexcept
+      auto &diagnosticEngine(this auto &&Self) noexcept
       {
-        return Diagnostics;
+        return std::forward_like<decltype(Self) &>(Self.Diagnostics);
       }
 
-      const core::DiagnosticEngine &diagnosticEngine() const noexcept
+      auto &sourceManager(this auto &&Self) noexcept
       {
-        return Diagnostics;
-      }
-
-      core::SourceManager &sourceManager() noexcept
-      {
-        return Sources;
-      }
-
-      const core::SourceManager &sourceManager() const noexcept
-      {
-        return Sources;
+        return std::forward_like<decltype(Self) &>(Self.Sources);
       }
 
     private:

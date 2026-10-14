@@ -19,13 +19,9 @@ namespace ink::frontend::parser
             Elements(Elements)
       {
       }
-      ASTArray<MatchPattern *> elements() noexcept
+      auto elements(this auto &&Self) noexcept
       {
-        return Elements;
-      }
-      ConstNodeArray<MatchPattern> elements() const noexcept
-      {
-        return ConstNodeArray<MatchPattern>(Elements);
+        return NodeArrayFor<decltype(Self), MatchPattern>(Self.Elements);
       }
 
     private:

@@ -6,6 +6,7 @@
 #include "ink/frontend/parser/ast/attribute.h"
 #include "ink/frontend/parser/ast/base_spec.h"
 #include "ink/frontend/parser/ast/parameter.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -48,13 +49,9 @@ namespace ink::frontend::parser
       {
         return Form;
       }
-      BlockStmt *body() noexcept
+      auto *body(this auto &&Self) noexcept
       {
-        return Body;
-      }
-      const BlockStmt *body() const noexcept
-      {
-        return Body;
+        return Self.Body ? &std::forward_like<decltype(Self) &>(*Self.Body) : nullptr;
       }
       SourceRange semicolonRange() const noexcept
       {

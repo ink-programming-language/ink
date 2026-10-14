@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/expr.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -20,21 +21,13 @@ namespace ink::frontend::parser
             Optional(Optional)
       {
       }
-      Expr *object() noexcept
+      auto *object(this auto &&Self) noexcept
       {
-        return Object;
+        return Self.Object ? &std::forward_like<decltype(Self) &>(*Self.Object) : nullptr;
       }
-      const Expr *object() const noexcept
+      auto *index(this auto &&Self) noexcept
       {
-        return Object;
-      }
-      Expr *index() noexcept
-      {
-        return Index;
-      }
-      const Expr *index() const noexcept
-      {
-        return Index;
+        return Self.Index ? &std::forward_like<decltype(Self) &>(*Self.Index) : nullptr;
       }
       bool optional() const noexcept
       {

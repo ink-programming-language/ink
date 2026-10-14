@@ -5,6 +5,7 @@
 #include "ink/frontend/parser/ast_context.h"
 #include "ink/frontend/parser/ast/attribute.h"
 #include "ink/frontend/parser/ast/parameter.h"
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -38,25 +39,17 @@ namespace ink::frontend::parser
       {
         return Tail;
       }
-      TypeSyntax *type() noexcept
+      auto *type(this auto &&Self) noexcept
       {
-        return Type;
-      }
-      const TypeSyntax *type() const noexcept
-      {
-        return Type;
+        return Self.Type ? &std::forward_like<decltype(Self) &>(*Self.Type) : nullptr;
       }
       ASTArray<Parameter> payload() const noexcept
       {
         return Payload;
       }
-      Expr *initializer() noexcept
+      auto *initializer(this auto &&Self) noexcept
       {
-        return Initializer;
-      }
-      const Expr *initializer() const noexcept
-      {
-        return Initializer;
+        return Self.Initializer ? &std::forward_like<decltype(Self) &>(*Self.Initializer) : nullptr;
       }
 
     private:
