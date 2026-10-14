@@ -21,10 +21,10 @@
 
 namespace ink::ir
 {
-  class Module;
+  class IRContext;
 
-  // Owns and canonicalizes builtin and structural types for its containing module.
-  // Nominal operands must belong to that module; returned pointers remain valid until the module is destroyed.
+  // Owns and canonicalizes builtin and structural types for its containing IRContext.
+  // Nominal operands are borrowed from modules using that context and must outlive all uses of derived types.
   // Operations require external synchronization.
   class TypePool final
   {
@@ -34,8 +34,8 @@ namespace ink::ir
       TypePool(TypePool &&) = delete;
       TypePool &operator=(TypePool &&) = delete;
 
-      const Module &module() const noexcept;
-      // Includes only pooled builtin and structural types, excluding the module's nominal types.
+      const IRContext &irContext() const noexcept;
+      // Includes only pooled builtin and structural types, excluding module-owned nominal types.
       bool owns(const Type *TypeValue) const noexcept;
 
       const VoidType *getVoidType() const noexcept;
@@ -55,7 +55,7 @@ namespace ink::ir
       const IntegerType *getIntegerType(std::uint32_t Width, bool Signed) const noexcept;
       const FloatType *getFloatType(std::uint32_t Width) const noexcept;
 
-      // Structural types are reused. Null or foreign-module operands return nullptr.
+      // Structural types are reused. Null or foreign-context operands return nullptr.
       const PointerType *getPointerType(const Type *PointeeType);
       const ReferenceType *getReferenceType(const Type *ReferencedType);
       // Missing/invalid element layout or size overflow also returns nullptr.
@@ -65,9 +65,9 @@ namespace ink::ir
       const FunctionType *getFunctionType(const Type *ReturnType, std::vector<const Type *> Parameters = {});
 
     private:
-      friend class Module;
+      friend class IRContext;
 
-      explicit TypePool(Module &Owner);
+      explicit TypePool(IRContext &Owner);
       ~TypePool() noexcept;
 
       struct FunctionKey
@@ -88,7 +88,7 @@ namespace ink::ir
 
       bool validParameters(const std::vector<const Type *> &Parameters) const noexcept;
 
-      const Module &Owner;
+      const IRContext &Owner;
       VoidType Void;
       VariadicType Variadic;
       BoolType Bool;

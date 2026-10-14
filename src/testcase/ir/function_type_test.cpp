@@ -34,7 +34,8 @@ namespace ink::ir::test
   // Omitting parameters creates a valid zero-argument signature with the supplied return type.
   TEST(IRFunctionTypeTest, EmptySignaturePreservesReturnType)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Bool = Types.typePool().getBoolType();
     const auto Function = Types.typePool().getFunctionType(Bool);
     ASSERT_NE(Function, nullptr);
@@ -47,7 +48,8 @@ namespace ink::ir::test
   // Mixed parameter kinds retain their order and repeated type identities alongside an aggregate return type.
   TEST(IRFunctionTypeTest, SignaturePreservesParameterOrderAndDuplicates)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Bool = Types.typePool().getBoolType();
     const auto Integer = Types.typePool().getIntegerType(32, true);
     const auto Float = Types.typePool().getFloatType(64);
@@ -66,7 +68,8 @@ namespace ink::ir::test
   // Copying a type list preserves its entries after the source vector is changed and destroyed.
   TEST(IRFunctionTypeTest, SignatureOwnsCopiedParameterList)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Bool = Types.typePool().getBoolType();
     const auto Integer = Types.typePool().getIntegerType(32, false);
     ASSERT_NE(Integer, nullptr);
@@ -88,7 +91,8 @@ namespace ink::ir::test
   // Moving a type list preserves its entries without retaining a dependency on the source container.
   TEST(IRFunctionTypeTest, SignatureOwnsMovedParameterList)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Bool = Types.typePool().getBoolType();
     const auto Pointer = Types.typePool().getPointerType(Bool);
     ASSERT_NE(Pointer, nullptr);
@@ -108,7 +112,8 @@ namespace ink::ir::test
   // Missing return types and null parameters at any position report failure explicitly.
   TEST(IRFunctionTypeTest, RejectsNullSignatureTypes)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Bool = Types.typePool().getBoolType();
     EXPECT_EQ(Types.typePool().getFunctionType(nullptr), nullptr);
     EXPECT_EQ(Types.typePool().getFunctionType(nullptr, {Bool}), nullptr);
@@ -126,7 +131,8 @@ namespace ink::ir::test
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      Module Types(Target);
+      IRContext TypesContext(Target);
+      Module Types(TypesContext);
       const auto Aggregate = Types.typePool().getArrayType(Types.typePool().getInt64Type(), 3);
       ASSERT_NE(Aggregate, nullptr);
       const auto Function = Types.typePool().getFunctionType(Aggregate, {Aggregate, Aggregate});
@@ -145,7 +151,8 @@ namespace ink::ir::test
   // Higher-order signatures retain callable return and parameter types as well as pointers to callable types.
   TEST(IRFunctionTypeTest, SupportsNestedCallableSignatures)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Bool = Types.typePool().getBoolType();
     const auto Callback = Types.typePool().getFunctionType(Bool, {Bool});
     ASSERT_NE(Callback, nullptr);
@@ -162,8 +169,10 @@ namespace ink::ir::test
   // Function signatures reject foreign return types and a foreign parameter at any position in a type list.
   TEST(IRFunctionTypeTest, RejectsForeignSignatureTypes)
   {
-    Module Types(Target64);
-    const Module OtherTypes(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target64);
+    const Module OtherTypes(OtherTypesContext);
     const auto Bool = Types.typePool().getBoolType();
     const auto Foreign = OtherTypes.typePool().getBoolType();
     EXPECT_EQ(Types.typePool().getFunctionType(Foreign), nullptr);

@@ -25,7 +25,7 @@ namespace ink::ir::test
     };
   } // namespace
 
-  static_assert(!std::is_constructible_v<TypePool, Module &>);
+  static_assert(!std::is_constructible_v<TypePool, IRContext &>);
   static_assert(!std::is_default_constructible_v<TypePool>);
   static_assert(!std::is_destructible_v<TypePool>);
   static_assert(!std::is_copy_constructible_v<TypePool>);
@@ -42,15 +42,17 @@ namespace ink::ir::test
   // Module lists own nominal declarations directly while TypePool owns only builtin and structural identities.
   TEST(IRModuleTypeOwnershipTest, TypePoolExcludesModuleOwnedNominalTypes)
   {
-    Module Owner(Target);
-    Module Other(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
+    IRContext OtherContext(Target);
+    Module Other(OtherContext);
     auto &Pool = Owner.typePool();
     const auto *Class = Owner.createClassType(8, 8);
     const auto *Interface = Owner.createInterfaceType(8, 8);
     const auto *Struct = Owner.createStructType(8, 8);
     const auto *Foreign = Other.createStructType(8, 8);
     const std::array<const Type *, 3> Nominals{Class, Interface, Struct};
-    EXPECT_EQ(&Pool.module(), &Owner);
+    EXPECT_EQ(&Pool.irContext(), &Owner.irContext());
     ASSERT_EQ(Owner.classCount(), 1U);
     ASSERT_EQ(Owner.interfaceCount(), 1U);
     ASSERT_EQ(Owner.structCount(), 1U);
@@ -90,11 +92,13 @@ namespace ink::ir::test
     EXPECT_FALSE(Owner.ownsType(nullptr));
   }
 
-  // Structural caches accept local nominal operands, reject every foreign type category and remain module-local.
+  // Structural caches accept local nominal operands, reject every foreign type category and remain context-local.
   TEST(IRModuleTypeOwnershipTest, StructuralCachesRejectForeignNominalAndPooledTypes)
   {
-    Module Owner(Target);
-    Module Other(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
+    IRContext OtherContext(Target);
+    Module Other(OtherContext);
     auto &Pool = Owner.typePool();
     auto &OtherPool = Other.typePool();
     const auto *Nominal = Owner.createStructType(8, 8);
@@ -140,16 +144,18 @@ namespace ink::ir::test
     EXPECT_NE(LocalSignature, OtherPool.getFunctionType(ForeignNominal, {OtherPool.getBoolType()}));
   }
 
-  // Constants and the canonical null literal remain bound to their defining module even when target layouts match.
-  TEST(IRModuleTypeOwnershipTest, ConstantsAndNullRemainModuleLocal)
+  // Constants and the canonical null literal remain bound to their defining context even when target layouts match.
+  TEST(IRModuleTypeOwnershipTest, ConstantsAndNullRemainContextLocal)
   {
-    Module Owner(Target);
-    Module Other(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
+    IRContext OtherContext(Target);
+    Module Other(OtherContext);
     auto &Constants = Owner.constantPool();
     const auto *LocalNull = Constants.getNullPointerConstant();
     const auto *ForeignNull = Other.constantPool().getNullPointerConstant();
-    EXPECT_EQ(&Constants.module(), &Owner);
-    EXPECT_EQ(&Owner.typePool().getNullPointerType()->module(), &Owner);
+    EXPECT_EQ(&Constants.irContext(), &Owner.irContext());
+    EXPECT_EQ(&Owner.typePool().getNullPointerType()->irContext(), &Owner.irContext());
     EXPECT_EQ(LocalNull->type(), Owner.typePool().getNullPointerType());
     EXPECT_NE(LocalNull, ForeignNull);
     EXPECT_TRUE(Constants.owns(LocalNull));
@@ -174,8 +180,10 @@ namespace ink::ir::test
   // Declaration factories reject foreign types and transfer rejects unpooled initializers without growing either list.
   TEST(IRModuleTypeOwnershipTest, GlobalDeclarationsRejectForeignTypesAndUnpooledInitializers)
   {
-    Module Owner(Target);
-    Module Other(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
+    IRContext OtherContext(Target);
+    Module Other(OtherContext);
     const auto *ForeignSignature = Other.typePool().getFunctionType(Other.typePool().getVoidType());
     const auto *LocalSignature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
     ASSERT_NE(ForeignSignature, nullptr);

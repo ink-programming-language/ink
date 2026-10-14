@@ -39,9 +39,12 @@ namespace ink::ir::test
   // The null literal type is distinct from pointer types and uses its owning module's target pointer layout.
   TEST(IRNullPointerTypeTest, KeepsTargetLayoutAndModuleIdentity)
   {
-    const Module Types32(Target32);
-    const Module Types64(Target64);
-    Module Other64(Target64);
+    IRContext Types32Context(Target32);
+    const Module Types32(Types32Context);
+    IRContext Types64Context(Target64);
+    const Module Types64(Types64Context);
+    IRContext Other64Context(Target64);
+    Module Other64(Other64Context);
     const auto Null32 = Types32.typePool().getNullPointerType();
     const auto Null64 = Types64.typePool().getNullPointerType();
     ASSERT_NE(Null32, nullptr);
@@ -52,8 +55,8 @@ namespace ink::ir::test
     EXPECT_EQ(Null64->alignment(), 8U);
     EXPECT_TRUE(Null32->hasLayout());
     EXPECT_TRUE(Null64->hasLayout());
-    EXPECT_EQ(&Null32->module(), &Types32);
-    EXPECT_EQ(&Null64->module(), &Types64);
+    EXPECT_EQ(&Null32->irContext(), &Types32.irContext());
+    EXPECT_EQ(&Null64->irContext(), &Types64.irContext());
     EXPECT_NE(Null64, Other64.typePool().getNullPointerType());
     EXPECT_EQ(Null64->kind(), ValueKind::NullPointer);
     EXPECT_EQ(valueKindName(ValueKind::NullPointer), "null_pointer");
@@ -71,8 +74,10 @@ namespace ink::ir::test
   // A pool's one null literal retains its address and type through type and constant storage growth and const access.
   TEST(IRNullPointerTypeTest, ReusesOneStableNullLiteralPerPool)
   {
-    Module Types(Target64);
-    Module OtherTypes(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target64);
+    Module OtherTypes(OtherTypesContext);
     auto &Constants = Types.constantPool();
     const auto Null = Constants.getNullPointerConstant();
     ASSERT_NE(Null, nullptr);
@@ -99,8 +104,10 @@ namespace ink::ir::test
   // Only the actual null literal gains conversion to local pointer types; nonpointers and foreign types stay incompatible.
   TEST(IRNullPointerTypeTest, InitializesOnlyIdenticalOrLocalPointerTypes)
   {
-    Module Types(Target64);
-    Module OtherTypes(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target64);
+    Module OtherTypes(OtherTypesContext);
     const auto Null = Types.constantPool().getNullPointerConstant();
     const auto Function = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
     const auto Nominal = Types.createStructType(8, 8);
@@ -157,7 +164,8 @@ namespace ink::ir::test
   // Fields of distinct pointer types share the literal while clearing a field remains distinct from explicit null initialization.
   TEST(IRNullPointerTypeTest, SharesNullAcrossFieldsAndPreservesAbsentInitializers)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Null = Types.constantPool().getNullPointerConstant();
     const auto BoolPointer = Types.typePool().getPointerType(Types.typePool().getBoolType());
     const auto IntPointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
@@ -190,8 +198,10 @@ namespace ink::ir::test
   // Invalid or foreign null field bindings and frozen mutations reject changes without losing the registered initializer.
   TEST(IRNullPointerTypeTest, RejectsInvalidAndFrozenFieldInitializers)
   {
-    Module Types(Target64);
-    Module OtherTypes(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target64);
+    Module OtherTypes(OtherTypesContext);
     const auto Null = Types.constantPool().getNullPointerConstant();
     const auto ForeignNull = OtherTypes.constantPool().getNullPointerConstant();
     const auto Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
@@ -226,8 +236,10 @@ namespace ink::ir::test
   // Distinct pointer globals accept one literal and clear it explicitly; rejected replacements preserve the existing value.
   TEST(IRNullPointerTypeTest, SharesNullAcrossGlobalsAndRejectsInvalidReplacements)
   {
-    Module Types(Target64);
-    Module OtherTypes(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target64);
+    Module OtherTypes(OtherTypesContext);
     const auto Null = Types.constantPool().getNullPointerConstant();
     const auto BoolPointer = Types.typePool().getPointerType(Types.typePool().getBoolType());
     const auto IntPointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
@@ -258,8 +270,10 @@ namespace ink::ir::test
   // Pointer arrays share null elements while array identity, nested element types and constant-pool ownership stay exact.
   TEST(IRNullPointerTypeTest, ReusesNullElementsWithoutConvertingArrayTypes)
   {
-    Module Types(Target64);
-    Module OtherTypes(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target64);
+    Module OtherTypes(OtherTypesContext);
     auto &Constants = Types.constantPool();
     const auto Null = Constants.getNullPointerConstant();
     const auto BoolArrayType = Types.typePool().getArrayType(Types.typePool().getPointerType(Types.typePool().getBoolType()), 2);

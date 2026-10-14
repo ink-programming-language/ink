@@ -41,8 +41,10 @@ namespace ink::ir::test
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      const Module Types(Target);
-      const Module Other(Target);
+      IRContext TypesContext(Target);
+      const Module Types(TypesContext);
+      IRContext OtherContext(Target);
+      const Module Other(OtherContext);
       const VariadicType *Variadic = Types.typePool().getVariadicType();
       ASSERT_NE(Variadic, nullptr);
       EXPECT_EQ(Variadic, Types.typePool().getVariadicType());
@@ -55,7 +57,8 @@ namespace ink::ir::test
   // The ellipsis marker is a Type and a Value, but its zero size does not denote a runtime unit layout.
   TEST(IRVariadicTypeTest, MarkerHasNoRuntimeLayout)
   {
-    const Module Types(Target64);
+    IRContext TypesContext(Target64);
+    const Module Types(TypesContext);
     const Type *TypeValue = Types.typePool().getVariadicType();
     const Value *ValueValue = TypeValue;
     EXPECT_EQ(ValueValue->kind(), ValueKind::Variadic);
@@ -75,7 +78,8 @@ namespace ink::ir::test
   // Layout-bearing arrays and function signatures reject the marker as an element, return type or parameter type.
   TEST(IRVariadicTypeTest, LayoutFactoriesRejectMarkerOperands)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const VariadicType *Variadic = Types.typePool().getVariadicType();
     const VoidType *Void = Types.typePool().getVoidType();
     EXPECT_EQ(Types.typePool().getArrayType(Variadic, 0), nullptr);

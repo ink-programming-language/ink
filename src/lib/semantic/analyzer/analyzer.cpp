@@ -2,13 +2,14 @@
 
 #include "ink/core/config/config_manager.h"
 #include "ink/frontend/parser/parser.h"
+#include "ink/ir/module/module.h"
 #include "ink/semantic/context.h"
 
 namespace ink::semantic
 {
-  bool Analyzer::analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input)
+  bool Analyzer::analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input, ir::Module &Output)
   {
-    if (!Input.succeeded() || !Input.Unit->root())
+    if (&Output.irContext() != &Context.irContext() || !Input.succeeded() || !Input.Unit->root())
     {
       return false;
     }
@@ -18,11 +19,10 @@ namespace ink::semantic
       return false;
     }
 
-    // Preserve the context-owned IR, but refresh per-input state before dispatch.
+    // Preserve caller-owned output and pooled IR, but refresh per-input state before dispatch.
     Context.Source = Lexed.sourceId();
     Context.BlockDepthLimit = core::ConfigManager::getSize<core::ConfigKind::SemanticBlockDepthLimit>();
     Context.BlockDepth = 0;
-    Context.irBuilder().clearInsertPoint();
     bool Succeeded = true;
     for (const frontend::parser::Stmt *Stmt : Input.Unit->root()->statements())
     {
@@ -31,7 +31,6 @@ namespace ink::semantic
         Succeeded = false;
       }
     }
-    Context.irBuilder().clearInsertPoint();
     return Succeeded;
   }
 

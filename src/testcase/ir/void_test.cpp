@@ -40,8 +40,10 @@ namespace ink::ir::test
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      const Module Types(Target);
-      const Module Other(Target);
+      IRContext TypesContext(Target);
+      const Module Types(TypesContext);
+      IRContext OtherContext(Target);
+      const Module Other(OtherContext);
       const VoidType *Void = Types.typePool().getVoidType();
       ASSERT_NE(Void, nullptr);
       EXPECT_EQ(Void, Types.typePool().getVoidType());
@@ -71,7 +73,8 @@ namespace ink::ir::test
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      Module Types(Target);
+      IRContext TypesContext(Target);
+      Module Types(TypesContext);
       const PointerType *Opaque = Types.typePool().getPointerType(Types.typePool().getVoidType());
       const PointerType *Nested = Types.typePool().getPointerType(Opaque);
       const PointerType *Typed = Types.typePool().getPointerType(Types.typePool().getBoolType());
@@ -97,7 +100,8 @@ namespace ink::ir::test
   // Void can be a function result, a unit parameter, an array element or a referenced unit value.
   TEST(IRVoidTypeTest, UnitTypesComposeWithFunctionsArraysAndReferences)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const VoidType *Void = Types.typePool().getVoidType();
     const PointerType *Opaque = Types.typePool().getPointerType(Void);
     const FunctionType *Function = Types.typePool().getFunctionType(Void, {Opaque});
@@ -128,8 +132,10 @@ namespace ink::ir::test
   // Structural lookups reject a foreign void identity in every operand position while accepting the local unit.
   TEST(IRVoidTypeTest, StructuralTypesRejectForeignUnitIdentities)
   {
-    Module Types(Target64);
-    const Module Other(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext OtherContext(Target64);
+    const Module Other(OtherContext);
     const VoidType *Void = Types.typePool().getVoidType();
     const VoidType *Foreign = Other.typePool().getVoidType();
     EXPECT_EQ(Types.typePool().getPointerType(Foreign), nullptr);
@@ -145,8 +151,10 @@ namespace ink::ir::test
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      Module Types(Target);
-      Module Other(Target);
+      IRContext TypesContext(Target);
+      Module Types(TypesContext);
+      IRContext OtherContext(Target);
+      Module Other(OtherContext);
       auto &Constants = Types.constantPool();
       auto &SharedTypes = Types.constantPool();
       auto &OtherConstants = Other.constantPool();

@@ -45,7 +45,8 @@ namespace ink::ir::test
   // Field values preserve borrowed types, names and full-width offsets across independent copies.
   TEST(IRFieldTest, PreservesMetadataWhenCopied)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRFieldTest.member");
     const Field Original(Types.typePool().getInt32Type(), Name, MaximumSize);
     EXPECT_TRUE(Original.hasName());
@@ -62,7 +63,8 @@ namespace ink::ir::test
   // Missing types, absent names and types without layouts are invalid; zero-sized laid-out types remain valid.
   TEST(IRFieldTest, RejectsMissingMetadataAndUnavailableLayouts)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRFieldTest.member");
     const Field MissingType(nullptr, Name);
     EXPECT_EQ(MissingType.type(), nullptr);
@@ -82,7 +84,8 @@ namespace ink::ir::test
   // Every nominal kind preserves registration order and finds all same-name fields without imposing identity rules.
   TEST(IRFieldTest, NominalFieldsPreserveOrderAndAllowDuplicateNames)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRFieldTest.member");
     const core::Name OtherName = core::NamePool::instance().intern("IRFieldTest.other");
     const core::Name MissingName = core::NamePool::instance().intern("IRFieldTest.missing");
@@ -118,7 +121,8 @@ namespace ink::ir::test
   // Replacement updates field metadata and name lookup in place, while invalid indices preserve every entry.
   TEST(IRFieldTest, ReplacesFieldsAndRejectsInvalidIndices)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRFieldTest.member");
     const core::Name OtherName = core::NamePool::instance().intern("IRFieldTest.other");
     for (NominalType *Owner : createNominalTypes(Types, 8))
@@ -148,8 +152,10 @@ namespace ink::ir::test
   // Invalid metadata, foreign types, bounds failures and overflowing field ends reject both mutations without losing existing entries.
   TEST(IRFieldTest, RejectsInvalidFieldsWithoutChangingNominalStorage)
   {
-    Module Types(Target);
-    Module OtherTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target);
+    Module OtherTypes(OtherTypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRFieldTest.member");
     const Field Rejected[] = {
         Field(nullptr, Name),
@@ -187,7 +193,8 @@ namespace ink::ir::test
   // Exact-end and zero-sized fields fit the owner, and metadata registration permits unaligned or overlapping storage.
   TEST(IRFieldTest, AcceptsBoundaryLayoutsWithoutImposingAlignmentOrOverlapRules)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRFieldTest.member");
     const auto Empty = Types.createStructType(0, 1);
     ASSERT_NE(Empty, nullptr);
@@ -212,7 +219,8 @@ namespace ink::ir::test
   // Freezing any nominal kind prevents field addition and replacement while retaining readable metadata and lookup.
   TEST(IRFieldTest, FrozenNominalTypesRejectFieldMutations)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRFieldTest.member");
     const core::Name OtherName = core::NamePool::instance().intern("IRFieldTest.other");
     for (NominalType *Owner : createNominalTypes(Types, 8))

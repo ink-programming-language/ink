@@ -24,7 +24,8 @@ namespace ink::ir::test
   // Function construction creates unnamed formal values in the same order as the signature's parameter types.
   TEST(IRParameterTest, DerivesOrderedTypesAndOwnershipFromSignature)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Bool = Types.typePool().getBoolType();
     const auto Integer = Types.typePool().getInt32Type();
     const std::vector<const Type *> Parameters = {Integer, Bool, Integer};
@@ -57,7 +58,8 @@ namespace ink::ir::test
   // Functions sharing a signature own distinct formal values whose local names can change independently.
   TEST(IRParameterTest, SharedSignatureCreatesIndependentParameterValues)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type(), Types.typePool().getBoolType()});
     ASSERT_NE(Signature, nullptr);
     Function First(*Signature);
@@ -98,7 +100,8 @@ namespace ink::ir::test
   // Parameters classify as runtime values without being confused with functions, types or constants.
   TEST(IRParameterTest, ParameterClassificationExcludesOtherValueKinds)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);

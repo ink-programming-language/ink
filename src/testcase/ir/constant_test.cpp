@@ -18,7 +18,8 @@ namespace ink::ir::test
   TEST(IRConstantTest, BoolValuesUseSharedTypeThroughValue)
   {
     const target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const Type *SharedType = nullptr;
     for (const bool Expected : {false, true})

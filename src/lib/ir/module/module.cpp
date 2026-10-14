@@ -13,10 +13,8 @@ namespace ink::ir
     }
   } // namespace
 
-  Module::Module(target::TargetContext Target, ModuleID ID)
-      : Target(Target),
-        Types(*this),
-        Constants(*this),
+  Module::Module(IRContext &Context, ModuleID ID)
+      : Context(Context),
         ID(std::move(ID))
   {
   }
@@ -41,25 +39,28 @@ namespace ink::ir
     for (const auto &TypeValue : Classes)
     {
       TypeValue->Fields.clear();
+      Context.unregisterNominalType(TypeValue.get());
     }
     for (const auto &TypeValue : Interfaces)
     {
       TypeValue->Fields.clear();
+      Context.unregisterNominalType(TypeValue.get());
     }
     for (const auto &TypeValue : Structs)
     {
       TypeValue->Fields.clear();
+      Context.unregisterNominalType(TypeValue.get());
     }
   }
 
   const target::TargetContext &Module::targetContext() const noexcept
   {
-    return Target;
+    return Context.targetContext();
   }
 
   bool Module::ownsType(const Type *TypeValue) const noexcept
   {
-    if (Types.owns(TypeValue))
+    if (typePool().owns(TypeValue))
     {
       return true;
     }
@@ -150,7 +151,7 @@ namespace ink::ir
 
   GlobalVariable *Module::appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable)
   {
-    if (!Variable || !ownsType(Variable->type()) || (Variable->hasInitializer() && !Constants.owns(Variable->initializer())))
+    if (!Variable || !ownsType(Variable->type()) || (Variable->hasInitializer() && !constantPool().owns(Variable->initializer())))
     {
       return nullptr;
     }
@@ -228,6 +229,7 @@ namespace ink::ir
     auto DeclaredType = std::unique_ptr<ClassType>(new ClassType(*this, Size, Alignment, Name));
     ClassType *Result = DeclaredType.get();
     Classes.push_back(std::move(DeclaredType));
+    Context.registerNominalType(Result);
     return Result;
   }
 
@@ -250,6 +252,7 @@ namespace ink::ir
     auto DeclaredType = std::unique_ptr<InterfaceType>(new InterfaceType(*this, Size, Alignment, Name));
     InterfaceType *Result = DeclaredType.get();
     Interfaces.push_back(std::move(DeclaredType));
+    Context.registerNominalType(Result);
     return Result;
   }
 
@@ -272,6 +275,7 @@ namespace ink::ir
     auto DeclaredType = std::unique_ptr<StructType>(new StructType(*this, Size, Alignment, Name));
     StructType *Result = DeclaredType.get();
     Structs.push_back(std::move(DeclaredType));
+    Context.registerNominalType(Result);
     return Result;
   }
 } // namespace ink::ir

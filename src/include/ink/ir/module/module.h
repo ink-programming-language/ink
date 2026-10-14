@@ -2,7 +2,7 @@
 #define INK_IR_MODULE_MODULE_H
 
 #include "ink/core/name/name.h"
-#include "ink/ir/constant/constant_pool.h"
+#include "ink/ir/context.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/module/global_variable.h"
 #include "ink/ir/module/module_id.h"
@@ -22,13 +22,14 @@
 
 namespace ink::ir
 {
-  // Owns its types, constants, global declarations, symbol imports/exports and full identifier for one Ink module.
-  // Nominal types are owned directly; TypePool owns builtin and structural types.
-  // Returned pointers remain valid until the module is destroyed; operations require external synchronization.
+  // Owns nominal types, global declarations, symbol imports/exports and the identifier for one Ink module.
+  // Borrows its IRContext, which owns builtin/structural types and constants and must outlive this module.
+  // All users of module-owned declarations and nominal types must finish before module destruction.
+  // Returned declaration pointers remain valid until the module is destroyed; access requires external synchronization.
   class Module final
   {
     public:
-      explicit Module(target::TargetContext Target, ModuleID ID = {});
+      explicit Module(IRContext &Context, ModuleID ID = {});
       ~Module() noexcept;
 
       Module(const Module &) = delete;
@@ -38,17 +39,22 @@ namespace ink::ir
 
       const target::TargetContext &targetContext() const noexcept;
 
+      auto &irContext(this auto &&Self) noexcept
+      {
+        return std::forward_like<decltype(Self) &>(Self.Context);
+      }
+
       auto &typePool(this auto &&Self) noexcept
       {
-        return Self.Types;
+        return Self.irContext().typePool();
       }
 
       auto &constantPool(this auto &&Self) noexcept
       {
-        return Self.Constants;
+        return Self.irContext().constantPool();
       }
 
-      // Includes this module's builtin, structural and nominal types.
+      // Recognizes shared pooled types and this module's own nominal types.
       bool ownsType(const Type *TypeValue) const noexcept;
 
       // Owns an independent absolute identifier, including the module name; the default empty ID denotes an unnamed module.
@@ -66,7 +72,7 @@ namespace ink::ir
         return Self.Exports;
       }
 
-      // Both queries include local types, global functions and global variables.
+      // Both queries include shared pooled types, local nominal types, global functions and global variables.
       bool owns(const Value *Declaration) const noexcept;
       bool contains(const Value *Declaration) const noexcept;
 
@@ -78,7 +84,7 @@ namespace ink::ir
         return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
       }
 
-      // Rejects foreign types. Appending also rejects initializers outside this module's constant pool.
+      // Rejects types outside ownsType(). Appending also rejects initializers outside the borrowed context's constant pool.
       GlobalVariable *createGlobalVariable(const Type &VariableType, core::Name VariableName = core::NAME_None);
       // Takes ownership by value; invalid input leaves module contents unchanged.
       GlobalVariable *appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable);
@@ -91,7 +97,7 @@ namespace ink::ir
         return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
       }
 
-      // Rejects signatures outside this module. Appending takes ownership by value.
+      // Rejects signatures outside the borrowed context. Appending takes ownership by value.
       Function *createGlobalFunction(const FunctionType &Signature, core::Name FunctionName = core::NAME_None, SymbolLinkage SymbolLink = SymbolLinkage::Local, LanguageLinkage LanguageLink = LanguageLinkage::Ink, FunctionVisibility Visibility = FunctionVisibility::Public);
       Function *appendGlobalFunction(std::unique_ptr<Function> Callable);
 
@@ -146,14 +152,11 @@ namespace ink::ir
       StructType *createStructType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
 
     private:
-      const target::TargetContext Target;
-      // Nominal identities outlive structural types that refer to them; metadata is cleared by the destructor first.
+      IRContext &Context;
+      // Pooled references do not extend nominal lifetimes; their users must finish before module destruction.
       std::vector<std::unique_ptr<ClassType>> Classes;
       std::vector<std::unique_ptr<InterfaceType>> Interfaces;
       std::vector<std::unique_ptr<StructType>> Structs;
-      TypePool Types;
-      // Declared after all types so constants are destroyed before their borrowed types.
-      ConstantPool Constants;
 
       ModuleID ID;
       std::vector<SymbolImport> Imports;

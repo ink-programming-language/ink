@@ -44,7 +44,8 @@ namespace ink::ir::test
   // Actual arguments borrow constants, instruction results and formal parameters without changing their Value identities.
   TEST(IRArgumentTest, ReferencesConstantInstructionAndParameterValues)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const auto Literal = Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), 42);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
@@ -72,7 +73,8 @@ namespace ink::ir::test
   // Separate calls supply different actual values while the callee retains the same formal parameter identity.
   TEST(IRArgumentTest, DifferentActualListsShareCalleeParameters)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
     const auto FirstLiteral = Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), 1);
@@ -97,7 +99,8 @@ namespace ink::ir::test
   // Renaming actual arguments is independent of the names on their referenced formal parameter and function values.
   TEST(IRArgumentTest, LocalNamesDoNotFollowReferencedValueNames)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
     ASSERT_NE(Signature, nullptr);
     const core::Name FunctionName = core::NamePool::instance().intern("IRArgumentTest.Callee");

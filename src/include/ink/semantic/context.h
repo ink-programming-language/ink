@@ -3,24 +3,22 @@
 
 #include "ink/frontend/context.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
-#include "ink/ir/builder/ir_builder.h"
-#include "ink/ir/module/module.h"
+#include "ink/ir/context.h"
 
 #include <cstddef>
 #include <utility>
 
 namespace ink::semantic
 {
-  // Owns the types, module, builder and analysis state for one module; source and diagnostic services are borrowed.
-  // Borrowed services must outlive this context, and all users of its IR must finish before it is destroyed.
-  // Successive analysis calls preserve IR while selecting a new source and resetting traversal state; access is not thread-safe.
+  // Owns the IRContext and analysis state; source and diagnostic services are borrowed.
+  // Caller-owned modules and all other users of its IRContext must die before this context.
+  // Successive analysis calls preserve pooled IR while selecting a new source and resetting traversal state; access is not thread-safe.
   class SemanticContext final
   {
     public:
       explicit SemanticContext(core::SourceManager &Sources, core::DiagnosticEngine &Diagnostics, target::TargetContext Target)
           : Frontend(Sources, Diagnostics),
-            Module(Target),
-            Builder(Module)
+            IR(Target)
       {
       }
 
@@ -41,17 +39,12 @@ namespace ink::semantic
 
       auto &typePool(this auto &&Self) noexcept
       {
-        return Self.Module.typePool();
+        return Self.IR.typePool();
       }
 
-      auto &module(this auto &&Self) noexcept
+      auto &irContext(this auto &&Self) noexcept
       {
-        return Self.Module;
-      }
-
-      auto &irBuilder(this auto &&Self) noexcept
-      {
-        return Self.Builder;
+        return Self.IR;
       }
 
       // Reports against the input selected by the current analysis call.
@@ -65,9 +58,7 @@ namespace ink::semantic
       friend class Analyzer;
 
       frontend::FrontendContext Frontend;
-      // The builder is destroyed before its module, which owns all IR types and constants.
-      ir::Module Module;
-      ir::IRBuilder Builder;
+      ir::IRContext IR;
       core::SourceId Source;
       std::size_t BlockDepthLimit = 0;
       std::size_t BlockDepth = 0;

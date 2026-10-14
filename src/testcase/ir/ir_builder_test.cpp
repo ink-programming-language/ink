@@ -45,8 +45,10 @@ namespace ink::ir::test
   // Insertion starts unset, switches between owned blocks, and survives rejected detached or foreign-module blocks.
   TEST(IRBuilderTest, ManagesInsertionPointAndPreservesItOnRejection)
   {
-    Module Types(Target);
-    Module ForeignTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext ForeignTypesContext(Target);
+    Module ForeignTypes(ForeignTypesContext);
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     Function Other(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     Function Foreign(*ForeignTypes.typePool().getFunctionType(ForeignTypes.typePool().getVoidType()));
@@ -54,11 +56,11 @@ namespace ink::ir::test
     auto *OtherEntry = Other.createBlock();
     auto *ForeignEntry = Foreign.createBlock();
     BasicBlock Detached;
-    IRBuilder Builder(Types);
-    EXPECT_EQ(&Builder.module(), &Types);
+    IRBuilder Builder(Types.irContext());
+    EXPECT_EQ(&Builder.irContext(), &Types.irContext());
     EXPECT_EQ(&Builder.constantPool(), &Types.constantPool());
     const IRBuilder &ReadOnly = Builder;
-    EXPECT_EQ(&ReadOnly.module(), &Types);
+    EXPECT_EQ(&ReadOnly.irContext(), &Types.irContext());
     EXPECT_EQ(&ReadOnly.constantPool(), &Types.constantPool());
     EXPECT_EQ(Builder.insertBlock(), nullptr);
     EXPECT_EQ(Builder.insertFunction(), nullptr);
@@ -78,13 +80,14 @@ namespace ink::ir::test
   // Every creation entry point rejects a missing insertion block without altering available functions or blocks.
   TEST(IRBuilderTest, RejectsEveryCreationWithoutInsertionPoint)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     auto *Entry = Owner.createBlock();
     auto *Integer = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
     auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     auto *Null = Types.constantPool().getNullPointerConstant();
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     EXPECT_EQ(Builder.createCall(Owner), nullptr);
     EXPECT_EQ(Builder.createCall(*Owner.functionType(), Owner), nullptr);
     EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Integer, *Integer), nullptr);
@@ -100,7 +103,8 @@ namespace ink::ir::test
   // Appended GEP, call, comparison and branches form a function whose owned results are reused across blocks.
   TEST(IRBuilderTest, BuildsConnectedFunctionAndAppendsInOrder)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *Array = Types.typePool().getArrayType(Types.typePool().getInt32Type(), 8);
     auto *ArrayPointer = Types.typePool().getPointerType(Array);
     auto *ElementPointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
@@ -111,7 +115,7 @@ namespace ink::ir::test
     auto *Rejected = Caller.createBlock();
     auto *Exit = Caller.createBlock();
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     auto *Address = Builder.createGetElementPtr(*ElementPointer, *Array, *Caller.parameter(0), {Zero, Caller.parameter(1)}, true);
     ASSERT_NE(Address, nullptr);
@@ -152,12 +156,13 @@ namespace ink::ir::test
   // A second builder observes an externally appended terminator even when a later low-level append leaves it inside the block.
   TEST(IRBuilderTest, DetectsAllTerminatorKindsIncludingNonfinalInstructions)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
     auto *True = Types.constantPool().getBoolConstant(true);
-    IRBuilder First(Types);
-    IRBuilder Second(Types);
+    IRBuilder First(Types.irContext());
+    IRBuilder Second(Types.irContext());
     for (unsigned Kind = 0; Kind < 3; ++Kind)
     {
       auto *Block = Owner.createBlock();
@@ -191,10 +196,12 @@ namespace ink::ir::test
   }
 
   // Direct calls require exact arity and type identity while retaining named argument records on success.
-  TEST(IRBuilderTest, ValidatesDirectCallArgumentsAndSignatureModule)
+  TEST(IRBuilderTest, ValidatesDirectCallArgumentsAndSignatureContext)
   {
-    Module Types(Target);
-    Module ForeignTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext ForeignTypesContext(Target);
+    Module ForeignTypes(ForeignTypesContext);
     Function Caller(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     Function Callee(*Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()}));
     Function Foreign(*ForeignTypes.typePool().getFunctionType(ForeignTypes.typePool().getInt32Type(), {ForeignTypes.typePool().getInt32Type()}));
@@ -202,7 +209,7 @@ namespace ink::ir::test
     auto *Integer = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 7);
     auto *Unsigned = Types.constantPool().getUnsignedIntegerConstant(Types.typePool().getUInt32Type(), 7);
     auto Name = core::NamePool::instance().intern("builder_argument");
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createCall(Callee), nullptr);
     EXPECT_EQ(Builder.createCall(Callee, {Argument(*Integer), Argument(*Integer)}), nullptr);
@@ -221,15 +228,17 @@ namespace ink::ir::test
   // A local canonical null initializes a pointer parameter but foreign nulls and null-to-integer arguments are rejected.
   TEST(IRBuilderTest, AllowsOnlyLocalNullForPointerCallArguments)
   {
-    Module Types(Target);
-    Module ForeignTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext ForeignTypesContext(Target);
+    Module ForeignTypes(ForeignTypesContext);
     auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     Function Caller(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     Function PointerCallee(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Pointer}));
     Function IntegerCallee(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()}));
     auto *Entry = Caller.createBlock();
     auto *Null = Types.constantPool().getNullPointerConstant();
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createCall(PointerCallee, {Argument(*ForeignTypes.constantPool().getNullPointerConstant())}), nullptr);
     EXPECT_EQ(Builder.createCall(IntegerCallee, {Argument(*Null)}), nullptr);
@@ -242,14 +251,15 @@ namespace ink::ir::test
   // Indirect calls accept owned function-valued and function-pointer parameters only with their exact signature.
   TEST(IRBuilderTest, AcceptsFunctionAndFunctionPointerIndirectCalls)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
     auto *OtherSignature = Types.typePool().getFunctionType(Types.typePool().getUInt32Type(), {Types.typePool().getInt32Type()});
     auto *CallablePointer = Types.typePool().getPointerType(Signature);
     Function Caller(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Signature, CallablePointer, Types.typePool().getInt32Type()}));
     Function Direct(*Signature);
     auto *Entry = Caller.createBlock();
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createCall(*OtherSignature, *Caller.parameter(0), {Argument(*Caller.parameter(2))}), nullptr);
     EXPECT_EQ(Builder.createCall(*OtherSignature, *Caller.parameter(1), {Argument(*Caller.parameter(2))}), nullptr);
@@ -269,14 +279,15 @@ namespace ink::ir::test
   // An explicit signature cannot make null, a type object, an integer or an unrelated function's parameter callable.
   TEST(IRBuilderTest, RejectsInvalidIndirectCallees)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     auto *CallablePointer = Types.typePool().getPointerType(Signature);
     Function Caller(*Signature);
     Function Other(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {CallablePointer}));
     auto *Entry = Caller.createBlock();
     TypedInstruction Detached(CallablePointer);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createCall(*Signature, *Types.constantPool().getNullPointerConstant()), nullptr);
     EXPECT_EQ(Builder.createCall(*Signature, *Signature), nullptr);
@@ -289,14 +300,15 @@ namespace ink::ir::test
   // Void and value returns match the enclosing signature, and rejected overloads leave the block open for a valid return.
   TEST(IRBuilderTest, MatchesReturnValueToEnclosingSignature)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     Function VoidFunction(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     Function ValueFunction(*Types.typePool().getFunctionType(Types.typePool().getInt32Type()));
     auto *VoidEntry = VoidFunction.createBlock();
     auto *ValueEntry = ValueFunction.createBlock();
     auto *Integer = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 42);
     auto *Unsigned = Types.constantPool().getUnsignedIntegerConstant(Types.typePool().getUInt32Type(), 42);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*VoidEntry));
     EXPECT_EQ(Builder.createReturn(*Integer), nullptr);
     EXPECT_EQ(VoidEntry->instructionCount(), 0U);
@@ -316,11 +328,13 @@ namespace ink::ir::test
   // Pointer returns accept the local null literal but reject a foreign null without terminating the function.
   TEST(IRBuilderTest, ReturnsCanonicalLocalNullForPointerResult)
   {
-    Module Types(Target);
-    Module ForeignTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext ForeignTypesContext(Target);
+    Module ForeignTypes(ForeignTypesContext);
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getPointerType(Types.typePool().getInt32Type())));
     auto *Entry = Owner.createBlock();
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createReturn(*ForeignTypes.constantPool().getNullPointerConstant()), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 0U);
@@ -332,14 +346,16 @@ namespace ink::ir::test
   // Returns reject unpooled constants, type objects, blocks, void results, untyped instructions and foreign constants.
   TEST(IRBuilderTest, RejectsUnownedConstantsAndNonvalueOperands)
   {
-    Module Types(Target);
-    Module ForeignTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext ForeignTypesContext(Target);
+    Module ForeignTypes(ForeignTypesContext);
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getInt32Type()));
     Function VoidCallee(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     auto *Entry = Owner.createBlock();
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
     UnpooledConstant Unowned(Types.typePool().getInt32Type());
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     auto *VoidCall = Builder.createCall(VoidCallee);
     ASSERT_NE(VoidCall, nullptr);
@@ -359,8 +375,10 @@ namespace ink::ir::test
   // Parameters and instructions require ownership by the current function while a different block in that function is allowed.
   TEST(IRBuilderTest, EnforcesOperandFunctionOwnershipWithoutCheckingDominance)
   {
-    Module Types(Target);
-    Module ForeignTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext ForeignTypesContext(Target);
+    Module ForeignTypes(ForeignTypesContext);
     auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
     Function Owner(*Signature);
     Function Other(*Signature);
@@ -371,7 +389,7 @@ namespace ink::ir::test
     auto *Unrelated = OtherEntry->appendInstruction(std::make_unique<TypedInstruction>(Types.typePool().getInt32Type()));
     auto *ForeignTyped = Sibling->appendInstruction(std::make_unique<TypedInstruction>(ForeignTypes.typePool().getInt32Type()));
     TypedInstruction Detached(Types.typePool().getInt32Type());
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Owner.parameter(0), *Other.parameter(0)), nullptr);
     EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Owner.parameter(0), Detached), nullptr);
@@ -385,7 +403,8 @@ namespace ink::ir::test
   // All declared integer comparison predicates retain their identity and accept matching integer or pointer operands.
   TEST(IRBuilderTest, AcceptsEveryComparisonPredicateForMatchingIntegerAndPointerTypes)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Pointer, Pointer}));
     auto *Entry = Owner.createBlock();
@@ -402,7 +421,7 @@ namespace ink::ir::test
         ICmpPredicate::SignedLessThan,
         ICmpPredicate::SignedLessEqual,
     };
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     for (auto Predicate : Predicates)
     {
@@ -419,7 +438,8 @@ namespace ink::ir::test
   // Integer comparisons reject booleans, floats, different integer or pointer types, and invalid predicate enumerators.
   TEST(IRBuilderTest, RejectsInvalidComparisonTypesAndPredicates)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     auto *OtherPointer = Types.typePool().getPointerType(Types.typePool().getUInt32Type());
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Pointer, OtherPointer}));
@@ -428,7 +448,7 @@ namespace ink::ir::test
     auto *Unsigned = Types.constantPool().getUnsignedIntegerConstant(Types.typePool().getUInt32Type(), 0);
     auto *Boolean = Types.constantPool().getBoolConstant(false);
     auto *Float = Types.constantPool().getFloatConstant(0.0);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Boolean, *Boolean), nullptr);
     EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Float, *Float), nullptr);
@@ -441,14 +461,16 @@ namespace ink::ir::test
   // Null comparisons require one concrete pointer and equality or inequality, in either operand order.
   TEST(IRBuilderTest, RestrictsNullComparisonsToPointerEquality)
   {
-    Module Types(Target);
-    Module ForeignTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext ForeignTypesContext(Target);
+    Module ForeignTypes(ForeignTypesContext);
     auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Pointer}));
     auto *Entry = Owner.createBlock();
     auto *Null = Types.constantPool().getNullPointerConstant();
     auto *Value = Owner.parameter(0);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Null, *Null), nullptr);
     EXPECT_EQ(Builder.createICmp(ICmpPredicate::SignedLessThan, *Value, *Null), nullptr);
@@ -464,7 +486,8 @@ namespace ink::ir::test
   // Branch destinations stay in the current function, conditional branches require bool, and self-edges are permitted.
   TEST(IRBuilderTest, ChecksBranchTargetsAndBooleanConditions)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     Function Other(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     auto *Entry = Owner.createBlock();
@@ -473,7 +496,7 @@ namespace ink::ir::test
     BasicBlock Detached;
     auto *True = Types.constantPool().getBoolConstant(true);
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createBranch(Detached), nullptr);
     EXPECT_EQ(Builder.createBranch(*OtherEntry), nullptr);
@@ -490,14 +513,15 @@ namespace ink::ir::test
   // Empty GEP index lists preserve the source type and the first index performs pointer stepping without selecting an element.
   TEST(IRBuilderTest, PreservesSourceForEmptyAndSingleIndexGEP)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *Array = Types.typePool().getArrayType(Types.typePool().getInt32Type(), 4);
     auto *Pointer = Types.typePool().getPointerType(Array);
     auto *ElementPointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Pointer}));
     auto *Entry = Owner.createBlock();
     auto *One = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 1);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     auto *Empty = Builder.createGetElementPtr(*Pointer, *Array, *Owner.parameter(0), {});
     auto *Step = Builder.createGetElementPtr(*Pointer, *Array, *Owner.parameter(0), {One});
@@ -514,7 +538,8 @@ namespace ink::ir::test
   // Array indexing accepts dynamic, negative and beyond-bound integer offsets without proving the inbounds promise.
   TEST(IRBuilderTest, IndexesNestedArraysWithoutRuntimeBoundsChecks)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *Inner = Types.typePool().getArrayType(Types.typePool().getInt32Type(), 2);
     auto *Outer = Types.typePool().getArrayType(Inner, 3);
     auto *Pointer = Types.typePool().getPointerType(Outer);
@@ -523,7 +548,7 @@ namespace ink::ir::test
     auto *Entry = Owner.createBlock();
     auto *Negative = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), -1);
     auto *Large = Types.constantPool().getUnsignedIntegerConstant(Types.typePool().getUInt64Type(), 1000);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     auto *Address = Builder.createGetElementPtr(*ElementPointer, *Outer, *Owner.parameter(0), {Negative, Owner.parameter(1), Large}, true);
     ASSERT_NE(Address, nullptr);
@@ -537,7 +562,8 @@ namespace ink::ir::test
   // A constant field index selects nominal metadata before a later dynamic array index selects its element.
   TEST(IRBuilderTest, IndexesNominalFieldsAndNestedArrays)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *Array = Types.typePool().getArrayType(Types.typePool().getInt32Type(), 4);
     auto *Record = Types.createStructType(24, 8);
     ASSERT_TRUE(Record->addField(Field(Types.typePool().getInt64Type(), core::NamePool::instance().intern("builder_header"), 0)));
@@ -548,7 +574,7 @@ namespace ink::ir::test
     auto *Entry = Owner.createBlock();
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
     auto *One = Types.constantPool().getUnsignedIntegerConstant(Types.typePool().getUInt64Type(), 1);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     auto *Address = Builder.createGetElementPtr(*ElementPointer, *Record, *Owner.parameter(0), {Zero, One, Owner.parameter(1)});
     ASSERT_NE(Address, nullptr);
@@ -560,7 +586,8 @@ namespace ink::ir::test
   // Nominal selection rejects dynamic, negative and missing field indices without changing the insertion block.
   TEST(IRBuilderTest, RejectsInvalidNominalFieldIndices)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *Record = Types.createStructType(4, 4);
     ASSERT_TRUE(Record->addField(Field(Types.typePool().getInt32Type(), core::NamePool::instance().intern("builder_field"))));
     auto *Pointer = Types.typePool().getPointerType(Record);
@@ -570,7 +597,7 @@ namespace ink::ir::test
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
     auto *Negative = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), -1);
     auto *PastEnd = Types.constantPool().getUnsignedIntegerConstant(Types.typePool().getUInt64Type(), 1);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createGetElementPtr(*ElementPointer, *Record, *Owner.parameter(0), {Zero, Owner.parameter(1)}), nullptr);
     EXPECT_EQ(Builder.createGetElementPtr(*ElementPointer, *Record, *Owner.parameter(0), {Zero, Negative}), nullptr);
@@ -583,8 +610,10 @@ namespace ink::ir::test
   // GEP rejects absent, noninteger and foreign indices together with incompatible pointer, source and result types.
   TEST(IRBuilderTest, RejectsInvalidGEPOperandsAndForeignTypes)
   {
-    Module Types(Target);
-    Module ForeignTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext ForeignTypesContext(Target);
+    Module ForeignTypes(ForeignTypesContext);
     auto *Integer = Types.typePool().getInt32Type();
     auto *Pointer = Types.typePool().getPointerType(Integer);
     auto *OtherPointer = Types.typePool().getPointerType(Types.typePool().getUInt32Type());
@@ -594,7 +623,7 @@ namespace ink::ir::test
     auto *Null = Types.constantPool().getNullPointerConstant();
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Integer, 0);
     auto *ForeignZero = ForeignTypes.constantPool().getSignedIntegerConstant(ForeignTypes.typePool().getInt32Type(), 0);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *Owner.parameter(0), {nullptr}), nullptr);
     EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *Owner.parameter(0), {Types.constantPool().getBoolConstant(false)}), nullptr);
@@ -616,7 +645,8 @@ namespace ink::ir::test
   // Extra indices cannot descend through a scalar or implicitly load through an embedded pointer.
   TEST(IRBuilderTest, RejectsGEPDescentThroughScalarsAndPointers)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *Integer = Types.typePool().getInt32Type();
     auto *Pointer = Types.typePool().getPointerType(Integer);
     auto *PointerPointer = Types.typePool().getPointerType(Pointer);
@@ -625,7 +655,7 @@ namespace ink::ir::test
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Pointer, PointerPointer, UnitPointer, UnitPointerPointer}));
     auto *Entry = Owner.createBlock();
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Integer, 0);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *Owner.parameter(0), {Zero, Zero}), nullptr);
     EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Pointer, *Owner.parameter(1), {Zero, Zero}), nullptr);
@@ -638,7 +668,8 @@ namespace ink::ir::test
   // Unit parameters and calls supply unit arguments, but a terminator in another block cannot supply a unit value.
   TEST(IRBuilderTest, AcceptsUnitArgumentsButRejectsTerminatorOperands)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getVoidType()}));
     Function UnitProducer(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     Function UnitConsumer(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getVoidType()}));
@@ -646,7 +677,7 @@ namespace ink::ir::test
     auto *Sibling = Owner.createBlock();
     auto *Terminator = Sibling->appendInstruction(std::make_unique<ReturnInstruction>(*Types.typePool().getVoidType()));
     ASSERT_NE(Terminator, nullptr);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createCall(UnitConsumer, {Argument(*Terminator)}), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 0U);
@@ -665,7 +696,8 @@ namespace ink::ir::test
   // Global storage declarations cannot be implicitly loaded or converted to addresses when used as operands.
   TEST(IRBuilderTest, RejectsGlobalsAsDirectValueOperands)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getInt32Type()));
@@ -675,7 +707,7 @@ namespace ink::ir::test
     GlobalVariable CallableGlobal(*Types.typePool().getPointerType(Signature));
     auto *Entry = Owner.createBlock();
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     EXPECT_EQ(Builder.createCall(Callee, {Argument(IntegerGlobal)}), nullptr);
     EXPECT_EQ(Builder.createCall(*Signature, CallableGlobal, {Argument(*Zero)}), nullptr);
@@ -689,7 +721,8 @@ namespace ink::ir::test
   // GEP may select a unit array element or nominal field as its endpoint, but cannot descend further through unit.
   TEST(IRBuilderTest, AllowsUnitEndpointsInAggregateGEP)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto *UnitArray = Types.typePool().getArrayType(Types.typePool().getVoidType(), 2);
     ASSERT_NE(UnitArray, nullptr);
     auto *Record = Types.createStructType(0, 1);
@@ -701,7 +734,7 @@ namespace ink::ir::test
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {ArrayPointer, RecordPointer}));
     auto *Entry = Owner.createBlock();
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     auto *Element = Builder.createGetElementPtr(*UnitPointer, *UnitArray, *Owner.parameter(0), {Zero, Zero});
     auto *Field = Builder.createGetElementPtr(*UnitPointer, *Record, *Owner.parameter(1), {Zero, Zero});
@@ -718,13 +751,14 @@ namespace ink::ir::test
   // Builder destruction releases no IR, and a replacement builder can continue appending to the same function-owned block.
   TEST(IRBuilderTest, LeavesInstructionOwnershipWithTheBasicBlock)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getBoolType()));
     auto *Entry = Owner.createBlock();
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
     ICmpInstruction *Compare = nullptr;
     {
-      IRBuilder Builder(Types);
+      IRBuilder Builder(Types.irContext());
       ASSERT_TRUE(Builder.setInsertPoint(*Entry));
       Compare = Builder.createICmp(ICmpPredicate::Equal, *Zero, *Zero);
       ASSERT_NE(Compare, nullptr);
@@ -732,7 +766,7 @@ namespace ink::ir::test
     ASSERT_EQ(Entry->instructionCount(), 1U);
     EXPECT_EQ(Entry->instruction(0), Compare);
     EXPECT_EQ(Compare->left(), Zero);
-    IRBuilder Builder(Types);
+    IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     auto *Return = Builder.createReturn(*Compare);
     ASSERT_NE(Return, nullptr);

@@ -26,7 +26,8 @@ namespace ink::ir::test
   // A new global variable borrows its type and starts unnamed and uninitialized.
   TEST(IRGlobalVariableTest, DefaultsToUnnamedUninitializedVariable)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     GlobalVariable Variable(*Types.typePool().getInt32Type());
     EXPECT_EQ(Variable.type(), Types.typePool().getInt32Type());
     EXPECT_EQ(Variable.name(), core::NAME_None);
@@ -38,7 +39,8 @@ namespace ink::ir::test
   // Global variables classify distinctly from their types, initializer constants and function values.
   TEST(IRGlobalVariableTest, ClassifiesAsGlobalVariableOnly)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     GlobalVariable Variable(*Types.typePool().getBoolType());
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
@@ -60,7 +62,8 @@ namespace ink::ir::test
   // Renaming or removing a global's local name preserves its type and initializer.
   TEST(IRGlobalVariableTest, ChangesNameIndependentlyOfTypeAndInitializer)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const core::Name OriginalName = core::NamePool::instance().intern("IRGlobalVariableTest.Original");
     const core::Name NewName = core::NamePool::instance().intern("IRGlobalVariableTest.Renamed");
@@ -84,7 +87,8 @@ namespace ink::ir::test
   // Initializers are borrowed, replaceable and clearable without transferring ownership from their constant pool.
   TEST(IRGlobalVariableTest, BorrowsReplacesAndClearsInitializer)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const Constant *First = Constants.getBoolConstant(false);
     const Constant *Second = Constants.getBoolConstant(true);
@@ -109,8 +113,10 @@ namespace ink::ir::test
   // A different type or an equivalent type from another module's type pool is rejected while preserving the initializer.
   TEST(IRGlobalVariableTest, RejectsInitializerWithDifferentTypeIdentity)
   {
-    Module Types(Target);
-    Module ForeignTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext ForeignTypesContext(Target);
+    Module ForeignTypes(ForeignTypesContext);
     auto &Constants = Types.constantPool();
     auto &ForeignConstants = ForeignTypes.constantPool();
     GlobalVariable Variable(*Types.typePool().getBoolType());

@@ -98,9 +98,10 @@ namespace ink::ir::test
   // Named and width-based builtin lookups share immutable objects, including signedness distinctions.
   TEST(IRModuleTypeTest, BuiltinLookupsReturnCanonicalTypes)
   {
-    const Module Types(Target64);
+    IRContext TypesContext(Target64);
+    const Module Types(TypesContext);
     EXPECT_EQ(Types.targetContext(), Target64);
-    EXPECT_EQ(&Types.typePool().module(), &Types);
+    EXPECT_EQ(&Types.typePool().irContext(), &Types.irContext());
     EXPECT_EQ(Types.typePool().getVoidType(), Types.typePool().getVoidType());
     EXPECT_EQ(Types.typePool().getBoolType(), Types.typePool().getBoolType());
     EXPECT_EQ(Types.typePool().getUInt8Type(), Types.typePool().getIntegerType(8, false));
@@ -137,14 +138,18 @@ namespace ink::ir::test
     EXPECT_FALSE(Types.typePool().owns(nullptr));
   }
 
-  // Independent modules retain their own target layouts and builtin identities even for equal targets.
-  TEST(IRModuleTypeTest, ModulesKeepSeparateTargetLayoutsAndIdentities)
+  // Modules in independent contexts retain separate target layouts and builtin identities even for equal targets.
+  TEST(IRModuleTypeTest, IndependentContextsKeepSeparateTargetLayoutsAndIdentities)
   {
-    Module Types32(Target32);
-    Module Types64(Target64);
-    const Module Other64(Target64);
+    IRContext Types32Context(Target32);
+    Module Types32(Types32Context);
+    IRContext Types64Context(Target64);
+    Module Types64(Types64Context);
+    IRContext Other64Context(Target64);
+    const Module Other64(Other64Context);
     const target::TargetContext Native = target::TargetContext::native();
-    const Module NativeTypes(Native);
+    IRContext NativeTypesContext(Native);
+    const Module NativeTypes(NativeTypesContext);
     EXPECT_EQ(NativeTypes.targetContext(), Native);
     EXPECT_EQ(NativeTypes.typePool().getInt64Type()->alignment(), Native.integerAlignment(64));
     EXPECT_EQ(NativeTypes.typePool().getFloat64Type()->alignment(), Native.floatAlignment(64));
@@ -171,7 +176,8 @@ namespace ink::ir::test
   // Repeated structural lookups reuse objects and retain identity when owning storage and caches grow.
   TEST(IRModuleTypeTest, StructuralLookupsReuseStableObjects)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const Type *Element = Types.typePool().getInt32Type();
     const PointerType *Pointer = Types.typePool().getPointerType(Element);
     const ReferenceType *Reference = Types.typePool().getReferenceType(Element);
@@ -206,7 +212,8 @@ namespace ink::ir::test
   // Function keys use return types and the order, identities, repetitions and count of parameter types.
   TEST(IRModuleTypeTest, FunctionLookupUsesCompletePreservedSignature)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const Type *Bool = Types.typePool().getBoolType();
     const Type *Int32 = Types.typePool().getInt32Type();
     const FunctionType *Function = Types.typePool().getFunctionType(Bool, {Int32, Bool});
@@ -222,11 +229,13 @@ namespace ink::ir::test
     EXPECT_TRUE(Types.ownsType(Function));
   }
 
-  // All structural operand positions reject types borrowed from another module.
+  // All structural operand positions reject types borrowed from another IRContext.
   TEST(IRModuleTypeTest, RejectsForeignTypeOperands)
   {
-    Module Types(Target64);
-    const Module Other(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext OtherContext(Target64);
+    const Module Other(OtherContext);
     const Type *Local = Types.typePool().getBoolType();
     const std::array<const Type *, 2> ForeignTypes{Other.typePool().getBoolType(), Other.typePool().getUInt8Type()};
     for (const Type *Foreign : ForeignTypes)
@@ -243,12 +252,14 @@ namespace ink::ir::test
     EXPECT_EQ(Types.typePool().getReferenceType(nullptr), nullptr);
   }
 
-  // Boolean constants use their owning module's canonical type and can populate matching arrays.
-  TEST(IRModuleTypeTest, BooleanConstantsUseModuleTypeIdentity)
+  // Boolean constants use their owning context's canonical type and can populate matching arrays.
+  TEST(IRModuleTypeTest, BooleanConstantsUseContextTypeIdentity)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    Module Other(Target64);
+    IRContext OtherContext(Target64);
+    Module Other(OtherContext);
     const auto True = Constants.getBoolConstant(true);
     const auto False = Constants.getBoolConstant(false);
     ASSERT_NE(True, nullptr);
@@ -266,7 +277,8 @@ namespace ink::ir::test
   {
     std::array<std::size_t, 6> DestructionCounts{};
     {
-      Module Types(Target64);
+      IRContext TypesContext(Target64);
+      Module Types(TypesContext);
       const auto *Array = Types.typePool().getArrayType(Types.typePool().getInt32Type(), 3);
       ASSERT_NE(Array, nullptr);
       const auto *EarlySignature = Types.typePool().getFunctionType(Types.typePool().getBoolType(), {Types.typePool().getInt32Type(), Array});

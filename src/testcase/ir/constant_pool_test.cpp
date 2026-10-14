@@ -25,11 +25,11 @@ namespace ink::ir::test
     static_assert(!std::is_move_constructible_v<ConstantPool>);
     static_assert(!std::is_copy_assignable_v<ConstantPool>);
     static_assert(!std::is_move_assignable_v<ConstantPool>);
-    static_assert(!std::is_constructible_v<ConstantPool, Module &>);
-    static_assert(!std::is_constructible_v<ConstantPool, const Module &>);
+    static_assert(!std::is_constructible_v<ConstantPool, IRContext &>);
+    static_assert(!std::is_constructible_v<ConstantPool, const IRContext &>);
     static_assert(!std::is_destructible_v<ConstantPool>);
-    static_assert(!std::is_constructible_v<ConstantPool, Module &&>);
-    static_assert(!std::is_constructible_v<ConstantPool, const Module &&>);
+    static_assert(!std::is_constructible_v<ConstantPool, IRContext &&>);
+    static_assert(!std::is_constructible_v<ConstantPool, const IRContext &&>);
     static_assert(std::is_same_v<decltype(std::declval<Module &>().constantPool()), ConstantPool &>);
     static_assert(std::is_same_v<decltype(std::declval<const Module &>().constantPool()), const ConstantPool &>);
     static_assert(noexcept(std::declval<Module &>().constantPool()));
@@ -56,15 +56,17 @@ namespace ink::ir::test
   // Each constant pool has exactly two canonical booleans and recognizes only its own constants.
   TEST(IRConstantPoolTest, BooleanLookupsRetainPoolOwnership)
   {
-    const Module Types(Target);
-    const Module OtherTypes(Target);
+    IRContext TypesContext(Target);
+    const Module Types(TypesContext);
+    IRContext OtherTypesContext(Target);
+    const Module OtherTypes(OtherTypesContext);
     const auto &Constants = Types.constantPool();
     const auto &Other = OtherTypes.constantPool();
     const BoolConstant *True = Constants.getBoolConstant(true);
     const BoolConstant *False = Constants.getBoolConstant(false);
     ASSERT_NE(True, nullptr);
     ASSERT_NE(False, nullptr);
-    EXPECT_EQ(&Constants.module(), &Types);
+    EXPECT_EQ(&Constants.irContext(), &Types.irContext());
     EXPECT_EQ(&Constants, &Types.constantPool());
     EXPECT_EQ(True, Constants.getBoolConstant(true));
     EXPECT_EQ(False, Constants.getBoolConstant(false));
@@ -83,7 +85,8 @@ namespace ink::ir::test
   // Numeric integer lookups normalize to raw bits while signedness and width remain part of identity.
   TEST(IRConstantPoolTest, IntegerLookupsReuseNormalizedBitsPerType)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const IntegerConstant *Signed32 = Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), -1);
     const IntegerConstant *Unsigned32 = Constants.getUnsignedIntegerConstant(Types.typePool().getUInt32Type(), std::numeric_limits<std::uint32_t>::max());
@@ -108,7 +111,8 @@ namespace ink::ir::test
   // Numeric floating-point lookups infer the local width and share exact-bit identity without collapsing signed zero or NaN payloads.
   TEST(IRConstantPoolTest, FloatLookupsReuseExactBitsWithoutCollapsingSpecialValues)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const FloatConstant *Float32 = Constants.getFloatConstant(1.25f);
     const FloatConstant *Float64 = Constants.getFloatConstant(1.25);
@@ -142,8 +146,10 @@ namespace ink::ir::test
   // Every pool owns one null constant with its own literal type regardless of the destination pointer type.
   TEST(IRConstantPoolTest, NullPointerLookupUsesOnePoolOwnedLiteral)
   {
-    Module Types(Target);
-    const Module OtherTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target);
+    const Module OtherTypes(OtherTypesContext);
     const auto &Constants = Types.constantPool();
     const auto &Other = OtherTypes.constantPool();
     const PointerType *BoolPointer = Types.typePool().getPointerType(Types.typePool().getBoolType());
@@ -166,7 +172,8 @@ namespace ink::ir::test
   // Strings infer local byte-array types, preserve exact UTF-8 identity and keep borrowed views valid across cache growth.
   TEST(IRConstantPoolTest, StringLookupsPreserveBytesAndStableViews)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const std::string EmbeddedNul("a\0b", 3);
     const StringConstant *BinarySafe = Constants.getStringConstant(EmbeddedNul);
@@ -200,13 +207,16 @@ namespace ink::ir::test
     EXPECT_TRUE(Constants.owns(Stable));
   }
 
-  // Byte-array string layouts are target-independent while floating-point layouts and constant identities belong to each module's pools.
-  TEST(IRConstantPoolTest, InferredTypeLookupsRetainModuleOwnershipAndTargetLayout)
+  // Byte-array string layouts are target-independent while floating-point layouts and constant identities belong to each context's pools.
+  TEST(IRConstantPoolTest, InferredTypeLookupsRetainContextOwnershipAndTargetLayout)
   {
     constexpr target::TargetContext NarrowTarget(target::PointerWidth::Bits32, target::ByteOrder::BigEndian);
-    Module Types(Target);
-    Module OtherTypes(Target);
-    Module NarrowTypes(NarrowTarget);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target);
+    Module OtherTypes(OtherTypesContext);
+    IRContext NarrowTypesContext(NarrowTarget);
+    Module NarrowTypes(NarrowTypesContext);
     auto &Constants = Types.constantPool();
     auto &SharedTypes = Types.constantPool();
     auto &Other = OtherTypes.constantPool();
@@ -261,7 +271,8 @@ namespace ink::ir::test
   // Array identity includes the array type and ordered element list, including empty and nested arrays.
   TEST(IRConstantPoolTest, ArrayLookupsReuseCompleteOrderedKeys)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const BoolConstant *True = Constants.getBoolConstant(true);
     const BoolConstant *False = Constants.getBoolConstant(false);
@@ -293,12 +304,14 @@ namespace ink::ir::test
     EXPECT_TRUE(Constants.owns(Nested));
   }
 
-  // Every typed lookup rejects missing types and types belonging to a different Module.
+  // Every typed lookup rejects missing types and types belonging to a different IRContext.
   TEST(IRConstantPoolTest, TypedLookupsRejectMissingAndForeignTypes)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    Module Other(Target);
+    IRContext OtherContext(Target);
+    Module Other(OtherContext);
     EXPECT_EQ(Constants.getIntegerConstantFromBits(Other.typePool().getInt32Type(), 0), nullptr);
     EXPECT_EQ(Constants.getSignedIntegerConstant(Other.typePool().getInt32Type(), 0), nullptr);
     EXPECT_EQ(Constants.getUnsignedIntegerConstant(Other.typePool().getUInt32Type(), 0), nullptr);
@@ -311,11 +324,13 @@ namespace ink::ir::test
     EXPECT_EQ(Constants.getArrayConstant(nullptr), nullptr);
   }
 
-  // Cached arrays reject foreign elements and nested arrays from a different Module.
-  TEST(IRConstantPoolTest, ArraysRejectConstantsFromOtherModules)
+  // Cached arrays reject foreign elements and nested arrays from a different IRContext.
+  TEST(IRConstantPoolTest, ArraysRejectConstantsFromOtherContexts)
   {
-    Module Types(Target);
-    Module OtherTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target);
+    Module OtherTypes(OtherTypesContext);
     auto &Constants = Types.constantPool();
     auto &Other = OtherTypes.constantPool();
     const BoolConstant *True = Constants.getBoolConstant(true);

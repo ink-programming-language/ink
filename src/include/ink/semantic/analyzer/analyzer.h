@@ -12,17 +12,23 @@ namespace ink::frontend::parser
 #undef AST_NODE
 } // namespace ink::frontend::parser
 
+namespace ink::ir
+{
+  class Module;
+} // namespace ink::ir
+
 namespace ink::semantic
 {
   class SemanticContext;
 
-  // Analysis uses Context-owned state and IR; concrete node lowering is not implemented yet.
+  // Analysis uses Context-owned state and caller-owned output; concrete node lowering is not implemented yet.
   class Analyzer
   {
     public:
       // Input must belong to Context's compilation and remain alive for the call.
+      // Output must borrow Context.irContext(); failure does not roll back existing output.
       // Unusable input returns false; unimplemented nodes report the existing SemanticUnsupported ICE.
-      bool analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input);
+      bool analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input, ir::Module &Output);
 
     private:
       bool analyzeStmt(SemanticContext &Context, const frontend::parser::Stmt &Stmt);

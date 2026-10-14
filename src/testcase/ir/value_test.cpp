@@ -76,7 +76,8 @@ namespace ink::ir::test
   // Base Value pointers dynamically return each constant family's canonical type, including null literals and string arrays.
   TEST(IRValueTest, QueriesAllConstantFamilies)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const auto *Array = Types.typePool().getArrayType(Types.typePool().getBoolType(), 1);
     ASSERT_NE(Array, nullptr);
@@ -101,7 +102,8 @@ namespace ink::ir::test
   // Base Value pointers dynamically expose concrete and generic instruction results, including void and an unspecified null type.
   TEST(IRValueTest, QueriesAllInstructionFamilies)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type());
     ASSERT_NE(Pointer, nullptr);
@@ -142,7 +144,8 @@ namespace ink::ir::test
   // Base Value references return function signatures, parameter types and global storage types without changing object state.
   TEST(IRValueTest, QueriesFunctionParameterAndGlobalWithoutMutation)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getBoolType()});
     ASSERT_NE(Signature, nullptr);
     const auto Name = core::NamePool::instance().intern("IRValueTest.Named");
@@ -175,7 +178,8 @@ namespace ink::ir::test
   // Type descriptors, basic blocks and unknown value kinds have no operand type even when the descriptor itself has a runtime layout.
   TEST(IRValueTest, RejectsTypesBlocksAndUnknownValues)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const Type *Descriptors[] = {
         Types.typePool().getVoidType(),
         Types.typePool().getVariadicType(),
@@ -210,7 +214,8 @@ namespace ink::ir::test
   // A new Value subclass can supply a type through virtual dispatch even when its kind has no registered classifier.
   TEST(IRValueTest, DispatchesCustomTypeOverrideIndependentlyOfKind)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const TypedUnknownValue Typed(*Types.typePool().getInt64Type());
     const UnknownValue Untyped;
     const Value &TypedValue = Typed;

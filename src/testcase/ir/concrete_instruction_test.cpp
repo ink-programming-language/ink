@@ -63,7 +63,8 @@ namespace ink::ir::test
   // A function body connects an indexed array element, call result, comparison and both branch forms to value-returning blocks.
   TEST(IRConcreteInstructionTest, ConnectsComputedValuesAndControlFlowAcrossBlocks)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const auto *Array = Types.typePool().getArrayType(Types.typePool().getInt32Type(), 8);
     ASSERT_NE(Array, nullptr);
@@ -160,7 +161,8 @@ namespace ink::ir::test
   // An indirect call borrows its callable parameter while owning an independent ordered copy of named actual arguments.
   TEST(IRConcreteInstructionTest, IndirectCallCopiesArgumentsAndKeepsSignature)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type(), Types.typePool().getBoolType()});
     ASSERT_NE(Signature, nullptr);
     const auto *CallablePointer = Types.typePool().getPointerType(Signature);
@@ -196,7 +198,8 @@ namespace ink::ir::test
   // Empty operand lists and void returns retain concrete types and reject every out-of-range operand lookup.
   TEST(IRConcreteInstructionTest, EmptyOperandListsAndVoidReturnHaveDefinedBoundaries)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Pointer, nullptr);
@@ -226,7 +229,8 @@ namespace ink::ir::test
   // Every signed, unsigned and equality predicate preserves its identity without swapping its integer operands.
   TEST(IRConcreteInstructionTest, PreservesAllIntegerComparisonPredicates)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto *Left = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), -1);
     const auto *Right = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 1);
     ASSERT_NE(Left, nullptr);
@@ -257,7 +261,8 @@ namespace ink::ir::test
   // Concrete instruction kinds classify through Instruction while remaining distinct from each other, types, constants and blocks.
   TEST(IRConcreteInstructionTest, ClassifiesConcreteInstructionsWithoutFalsePositives)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Pointer, nullptr);
@@ -322,7 +327,8 @@ namespace ink::ir::test
   // Destroying instructions releases their operand containers without deleting the externally owned values or branch targets.
   TEST(IRConcreteInstructionTest, InstructionDestructionDoesNotOwnOperandsOrTargets)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
     ASSERT_NE(Pointer, nullptr);

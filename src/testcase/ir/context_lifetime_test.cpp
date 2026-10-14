@@ -93,8 +93,8 @@ namespace ink::ir::test
     };
   } // namespace
 
-  static_assert(!std::is_constructible_v<ConstantPool, Module &>);
-  static_assert(!std::is_constructible_v<ConstantPool, const Module &>);
+  static_assert(!std::is_constructible_v<ConstantPool, IRContext &>);
+  static_assert(!std::is_constructible_v<ConstantPool, const IRContext &>);
   static_assert(!std::is_destructible_v<ConstantPool>);
   static_assert(std::is_same_v<decltype(std::declval<Module &>().constantPool()), ConstantPool &>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().constantPool()), const ConstantPool &>);
@@ -104,7 +104,8 @@ namespace ink::ir::test
   // The single module-owned constant pool and its values survive borrowed accessor scopes and storage growth.
   TEST(IRContextLifetimeTest, ModuleKeepsOneStableConstantPool)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     ConstantPool *Pool = nullptr;
     const IntegerConstant *Initializer = nullptr;
     {
@@ -112,7 +113,7 @@ namespace ink::ir::test
       Pool = &Constants;
       Initializer = Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), 42);
       ASSERT_NE(Initializer, nullptr);
-      EXPECT_EQ(&Constants.module(), &Types);
+      EXPECT_EQ(&Constants.irContext(), &Types.irContext());
     }
     for (std::uint64_t Index = 0; Index < 128; ++Index)
     {
@@ -122,7 +123,7 @@ namespace ink::ir::test
     const Module &ReadOnly = Types;
     EXPECT_EQ(&Types.constantPool(), Pool);
     EXPECT_EQ(&ReadOnly.constantPool(), Pool);
-    EXPECT_EQ(&ReadOnly.constantPool().module(), &Types);
+    EXPECT_EQ(&ReadOnly.constantPool().irContext(), &Types.irContext());
     EXPECT_TRUE(ReadOnly.constantPool().owns(Initializer));
     EXPECT_EQ(Initializer->type(), Types.typePool().getInt32Type());
     EXPECT_EQ(Initializer->bits(), 42U);
@@ -133,7 +134,8 @@ namespace ink::ir::test
   // All nominal kinds preserve explicit zero initializers separately from absent initializers, including copied metadata.
   TEST(IRContextLifetimeTest, FieldDistinguishesAbsentInitializerFromExplicitZero)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRContextLifetimeTest.member");
     const auto Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
     ASSERT_NE(Zero, nullptr);
@@ -164,7 +166,8 @@ namespace ink::ir::test
   // Replacement may set or clear an initializer until freeze, which preserves the previous initializer on rejection.
   TEST(IRContextLifetimeTest, ReplacesClearsAndFreezesFieldInitializers)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRContextLifetimeTest.member");
     const auto First = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 7);
     const auto Second = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 19);
@@ -193,8 +196,10 @@ namespace ink::ir::test
   // Mismatched types, foreign pools and same-type unowned constants reject both mutations without changing existing fields.
   TEST(IRContextLifetimeTest, RejectsInvalidInitializersWithoutChangingFields)
   {
-    Module Types(Target);
-    Module OtherTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target);
+    Module OtherTypes(OtherTypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRContextLifetimeTest.member");
     const auto Initializer = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 11);
     const auto WrongType = Types.constantPool().getBoolConstant(true);
@@ -234,7 +239,8 @@ namespace ink::ir::test
   {
     std::uint32_t DestructionCount = 0;
     {
-      Module Types(Target);
+      IRContext TypesContext(Target);
+      Module Types(TypesContext);
       const core::Name FieldName = core::NamePool::instance().intern("IRContextLifetimeTest.member");
       const core::Name MethodName = core::NamePool::instance().intern("IRContextLifetimeTest.method");
       const auto Owners = createNominalTypes(Types);

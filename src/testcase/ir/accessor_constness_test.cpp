@@ -18,11 +18,11 @@ namespace ink::ir::test
   } // namespace
 
   // Explicit object accessors retain const propagation and borrowed lvalue/pointer results on every object category.
-  static_assert(std::same_as<decltype(std::declval<IRBuilder &>().module()), Module &>);
-  static_assert(std::same_as<decltype(std::declval<const IRBuilder &>().module()), const Module &>);
-  static_assert(std::same_as<decltype(std::declval<IRBuilder &&>().module()), Module &>);
-  static_assert(std::same_as<decltype(std::declval<const IRBuilder &&>().module()), const Module &>);
-  static_assert(noexcept(std::declval<IRBuilder &>().module()) && noexcept(std::declval<const IRBuilder &>().module()));
+  static_assert(std::same_as<decltype(std::declval<IRBuilder &>().irContext()), IRContext &>);
+  static_assert(std::same_as<decltype(std::declval<const IRBuilder &>().irContext()), const IRContext &>);
+  static_assert(std::same_as<decltype(std::declval<IRBuilder &&>().irContext()), IRContext &>);
+  static_assert(std::same_as<decltype(std::declval<const IRBuilder &&>().irContext()), const IRContext &>);
+  static_assert(noexcept(std::declval<IRBuilder &>().irContext()) && noexcept(std::declval<const IRBuilder &>().irContext()));
 
   static_assert(std::same_as<decltype(std::declval<IRBuilder &>().typePool()), TypePool &>);
   static_assert(std::same_as<decltype(std::declval<const IRBuilder &>().typePool()), const TypePool &>);
@@ -135,9 +135,10 @@ namespace ink::ir::test
   // Accessing an rvalue owner borrows the same IR objects without moving its owned storage or pools.
   TEST(IRAccessorConstnessTest, RvalueAccessPreservesOwnershipAndIdentity)
   {
-    Module Owner(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
     Module &Types = Owner;
-    IRBuilder Builder(Owner);
+    IRBuilder Builder(Owner.irContext());
     auto *Callable = Owner.createGlobalFunction(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()}));
     auto *Entry = Callable->createBlock();
     auto *ParameterValue = Callable->parameter(0);
@@ -149,8 +150,8 @@ namespace ink::ir::test
     auto *Return = Builder.createReturn();
     ASSERT_NE(Return, nullptr);
 
-    EXPECT_EQ(&std::move(Builder).module(), &Types);
-    EXPECT_EQ(&std::move(std::as_const(Builder)).module(), &Types);
+    EXPECT_EQ(&std::move(Builder).irContext(), &Types.irContext());
+    EXPECT_EQ(&std::move(std::as_const(Builder)).irContext(), &Types.irContext());
     EXPECT_EQ(&std::move(Builder).typePool(), &Types.typePool());
     EXPECT_EQ(&std::move(std::as_const(Builder)).typePool(), &Types.typePool());
     EXPECT_EQ(&std::move(Builder).constantPool(), &Types.constantPool());
@@ -195,7 +196,8 @@ namespace ink::ir::test
   // Const-propagating pointer access never dereferences absent parents, moved-from methods or out-of-range entries.
   TEST(IRAccessorConstnessTest, NullableAndIndexedAccessPreservesNull)
   {
-    Module Owner(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
     Module &Types = Owner;
     Function Callable(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
     BasicBlock Detached;

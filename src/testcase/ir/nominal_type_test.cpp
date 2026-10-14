@@ -23,7 +23,8 @@ namespace ink::ir::test
   // Nominal types preserve explicit byte layouts, including empty and maximum-sized storage.
   TEST(IRNominalTypeTest, PreservesLayoutAndConcreteKinds)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     constexpr ValueKind Kinds[] = {
         ValueKind::Class,
         ValueKind::Interface,
@@ -54,8 +55,10 @@ namespace ink::ir::test
   // Equal layouts create distinct nominal identities owned exclusively by their creating module.
   TEST(IRNominalTypeTest, EqualLayoutsHaveDistinctModuleOwnedIdentities)
   {
-    Module Types(Target64);
-    Module OtherTypes(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target64);
+    Module OtherTypes(OtherTypesContext);
     const auto First = createNominalTypes(Types, 8, 8);
     const auto Second = createNominalTypes(Types, 8, 8);
     const auto Foreign = createNominalTypes(OtherTypes, 8, 8);
@@ -81,7 +84,8 @@ namespace ink::ir::test
   // Every nominal type factory rejects zero and non-power-of-two alignments without creating a type.
   TEST(IRNominalTypeTest, RejectsInvalidAlignment)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     for (const std::uint64_t Alignment : {std::uint64_t{0}, std::uint64_t{3}, std::uint64_t{6}, MaximumSize})
     {
       for (const Type *Value : createNominalTypes(Types, 5, Alignment))
@@ -95,7 +99,8 @@ namespace ink::ir::test
   // Class, interface and struct identities remain intact in pointer, reference, array and function types.
   TEST(IRNominalTypeTest, ComposesWithStructuralTypes)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     for (const Type *Value : createNominalTypes(Types, 5, 8))
     {
       ASSERT_NE(Value, nullptr);
@@ -126,8 +131,10 @@ namespace ink::ir::test
   // Structural type factories reject nominal types belonging to another module in every operand position.
   TEST(IRNominalTypeTest, RejectsForeignModuleOperands)
   {
-    Module Types(Target64);
-    Module OtherTypes(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target64);
+    Module OtherTypes(OtherTypesContext);
     for (const Type *Value : createNominalTypes(OtherTypes, 8, 8))
     {
       ASSERT_NE(Value, nullptr);
@@ -143,7 +150,8 @@ namespace ink::ir::test
   // Maximum unaligned nominal sizes reject overflowing array strides while allowing empty arrays.
   TEST(IRNominalTypeTest, ArrayChecksNominalStrideOverflow)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     for (const Type *Value : createNominalTypes(Types, MaximumSize, 8))
     {
       ASSERT_NE(Value, nullptr);

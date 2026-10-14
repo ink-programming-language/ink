@@ -24,14 +24,12 @@ namespace ink::semantic::test
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &>().typePool()), const ir::TypePool &>);
   static_assert(std::is_same_v<decltype(std::declval<SemanticContext &&>().typePool()), ir::TypePool &>);
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().typePool()), const ir::TypePool &>);
-  static_assert(std::is_same_v<decltype(std::declval<SemanticContext &>().module()), ir::Module &>);
-  static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &>().module()), const ir::Module &>);
-  static_assert(std::is_same_v<decltype(std::declval<SemanticContext &>().irBuilder()), ir::IRBuilder &>);
-  static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &>().irBuilder()), const ir::IRBuilder &>);
+  static_assert(std::is_same_v<decltype(std::declval<SemanticContext &>().irContext()), ir::IRContext &>);
+  static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &>().irContext()), const ir::IRContext &>);
   static_assert(std::is_same_v<decltype(std::declval<SemanticContext &&>().sourceManager()), core::SourceManager &>);
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().sourceManager()), const core::SourceManager &>);
-  static_assert(std::is_same_v<decltype(std::declval<SemanticContext &&>().module()), ir::Module &>);
-  static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().module()), const ir::Module &>);
+  static_assert(std::is_same_v<decltype(std::declval<SemanticContext &&>().irContext()), ir::IRContext &>);
+  static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().irContext()), const ir::IRContext &>);
 
   // The public entry reaches nested block dispatch and keeps successive calls independent.
   TEST(SemanticAnalyzerEntryTest, TraversesEmptyModulesAndNestedBlocks)
@@ -40,102 +38,109 @@ namespace ink::semantic::test
     core::DiagnosticEngine DiagnosticEngine;
     frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
     SemanticContext Context(Sources, DiagnosticEngine, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
     Analyzer Analysis;
     auto Empty = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
     auto Blocks = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{ {} } {}"));
     ASSERT_TRUE(Empty.succeeded());
     ASSERT_TRUE(Blocks.succeeded());
-    EXPECT_TRUE(Analysis.analyze(Context, Empty));
-    EXPECT_TRUE(Analysis.analyze(Context, Blocks));
-    EXPECT_TRUE(Analysis.analyze(Context, Empty));
+    EXPECT_TRUE(Analysis.analyze(Context, Empty, Output));
+    EXPECT_TRUE(Analysis.analyze(Context, Blocks, Output));
+    EXPECT_TRUE(Analysis.analyze(Context, Empty, Output));
   }
 
-  // Context-owned IR retains its target layout, types and constants after the analyzer and parsed input expire.
-  TEST(SemanticAnalyzerEntryTest, OwnsTargetSpecificIrBeyondAnalysisLifetime)
+  // Caller-owned output retains its target layout, types and constants after the analyzer and parsed input expire.
+  TEST(SemanticAnalyzerEntryTest, PreservesCallerOwnedIrBeyondAnalysisLifetime)
   {
     core::SourceManager Sources;
     core::DiagnosticEngine DiagnosticEngine;
     constexpr target::TargetContext Target(target::PointerWidth::Bits32, target::ByteOrder::BigEndian);
     SemanticContext Context(Sources, DiagnosticEngine, Target);
+    ir::Module Output(Context.irContext());
+    ir::IRBuilder Builder(Context.irContext());
     ir::ReturnInstruction *Return = nullptr;
     {
       frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
       Analyzer Analysis;
       auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{}"));
       ASSERT_TRUE(Parsed.succeeded());
-      ASSERT_TRUE(Analysis.analyze(Context, Parsed));
+      ASSERT_TRUE(Analysis.analyze(Context, Parsed, Output));
       auto *Pointer = Context.typePool().getPointerType(Context.typePool().getInt32Type());
       ASSERT_NE(Pointer, nullptr);
-      auto *Global = Context.module().createGlobalVariable(*Pointer);
+      auto *Global = Output.createGlobalVariable(*Pointer);
       ASSERT_NE(Global, nullptr);
-      const auto *Null = Context.module().constantPool().getNullPointerConstant();
+      const auto *Null = Output.constantPool().getNullPointerConstant();
       ASSERT_TRUE(Global->setInitializer(Null));
-      auto *Function = Context.module().createGlobalFunction(*Context.typePool().getFunctionType(Pointer));
+      auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Pointer));
       ASSERT_NE(Function, nullptr);
       auto *Block = Function->createBlock();
-      ASSERT_TRUE(Context.irBuilder().setInsertPoint(*Block));
-      Return = Context.irBuilder().createReturn(*Null);
+      ASSERT_TRUE(Builder.setInsertPoint(*Block));
+      Return = Builder.createReturn(*Null);
       ASSERT_NE(Return, nullptr);
     }
     const SemanticContext &ReadOnly = Context;
-    EXPECT_EQ(ReadOnly.module().targetContext(), Target);
-    EXPECT_EQ(&ReadOnly.typePool(), &ReadOnly.module().typePool());
-    EXPECT_EQ(&ReadOnly.typePool().module(), &ReadOnly.module());
-    EXPECT_EQ(&ReadOnly.irBuilder().module(), &ReadOnly.module());
-    EXPECT_EQ(&ReadOnly.irBuilder().typePool(), &ReadOnly.typePool());
-    EXPECT_EQ(&ReadOnly.irBuilder().constantPool(), &ReadOnly.module().constantPool());
-    ASSERT_EQ(ReadOnly.module().globalVariableCount(), 1U);
-    ASSERT_EQ(ReadOnly.module().globalFunctionCount(), 1U);
-    const auto *Global = ReadOnly.module().globalVariable(0);
-    const auto *Function = ReadOnly.module().globalFunction(0);
+    const ir::Module &ReadOnlyOutput = Output;
+    const ir::IRBuilder &ReadOnlyBuilder = Builder;
+    EXPECT_EQ(ReadOnlyOutput.targetContext(), Target);
+    EXPECT_EQ(&ReadOnly.typePool(), &ReadOnlyOutput.typePool());
+    EXPECT_EQ(&ReadOnly.typePool().irContext(), &ReadOnly.irContext());
+    EXPECT_EQ(&ReadOnlyBuilder.irContext(), &ReadOnly.irContext());
+    EXPECT_EQ(&ReadOnlyBuilder.typePool(), &ReadOnly.typePool());
+    EXPECT_EQ(&ReadOnlyBuilder.constantPool(), &ReadOnlyOutput.constantPool());
+    ASSERT_EQ(ReadOnlyOutput.globalVariableCount(), 1U);
+    ASSERT_EQ(ReadOnlyOutput.globalFunctionCount(), 1U);
+    const auto *Global = ReadOnlyOutput.globalVariable(0);
+    const auto *Function = ReadOnlyOutput.globalFunction(0);
     EXPECT_EQ(Global->type()->size(), 4U);
     EXPECT_EQ(Global->type()->alignment(), 4U);
     EXPECT_EQ(Function->functionType()->returnType(), Global->type());
-    EXPECT_TRUE(ReadOnly.module().ownsType(Global->type()));
-    EXPECT_TRUE(ReadOnly.module().constantPool().owns(Global->initializer()));
+    EXPECT_TRUE(ReadOnlyOutput.ownsType(Global->type()));
+    EXPECT_TRUE(ReadOnlyOutput.constantPool().owns(Global->initializer()));
     EXPECT_EQ(Function->entryBlock()->instruction(0), Return);
     EXPECT_EQ(Return->returnedValue(), Global->initializer());
     EXPECT_EQ(Return->type(), ReadOnly.typePool().getVoidType());
   }
 
-  // Accepted analyses preserve existing module declarations and pooled constants while resetting the insertion point.
-  TEST(SemanticAnalyzerEntryTest, PreservesOwnedIrAcrossAcceptedInputs)
+  // Accepted analyses preserve caller-owned declarations, pooled constants and independent builder state.
+  TEST(SemanticAnalyzerEntryTest, PreservesCallerOwnedIrAcrossAcceptedInputs)
   {
     core::SourceManager Sources;
     core::DiagnosticEngine DiagnosticEngine;
     frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
     SemanticContext Context(Sources, DiagnosticEngine, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    ir::IRBuilder Builder(Context.irContext());
     Analyzer Analysis;
     auto Empty = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
     auto Blocks = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{{}} {}"));
     ASSERT_TRUE(Empty.succeeded());
     ASSERT_TRUE(Blocks.succeeded());
     auto &Types = Context.typePool();
-    const auto *Integer = Context.module().constantPool().getSignedIntegerConstant(Types.getInt32Type(), 42);
+    const auto *Integer = Output.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 42);
     ASSERT_NE(Integer, nullptr);
-    auto *Global = Context.module().createGlobalVariable(*Types.getInt32Type());
+    auto *Global = Output.createGlobalVariable(*Types.getInt32Type());
     ASSERT_NE(Global, nullptr);
     ASSERT_TRUE(Global->setInitializer(Integer));
-    auto *Function = Context.module().createGlobalFunction(*Types.getFunctionType(Types.getInt32Type()));
+    auto *Function = Output.createGlobalFunction(*Types.getFunctionType(Types.getInt32Type()));
     ASSERT_NE(Function, nullptr);
     auto *Block = Function->createBlock();
     const frontend::parser::ParseResult *Inputs[] = {&Empty, &Blocks, &Empty};
     for (const auto *Input : Inputs)
     {
-      ASSERT_TRUE(Context.irBuilder().setInsertPoint(*Block));
-      ASSERT_TRUE(Analysis.analyze(Context, *Input));
-      EXPECT_EQ(Context.irBuilder().insertBlock(), nullptr);
-      EXPECT_EQ(Context.irBuilder().insertFunction(), nullptr);
-      EXPECT_EQ(Context.module().globalVariableCount(), 1U);
-      EXPECT_EQ(Context.module().globalFunctionCount(), 1U);
-      EXPECT_EQ(Context.module().globalVariable(0), Global);
-      EXPECT_EQ(Context.module().globalFunction(0), Function);
+      ASSERT_TRUE(Builder.setInsertPoint(*Block));
+      ASSERT_TRUE(Analysis.analyze(Context, *Input, Output));
+      EXPECT_EQ(Builder.insertBlock(), Block);
+      EXPECT_EQ(Builder.insertFunction(), Function);
+      EXPECT_EQ(Output.globalVariableCount(), 1U);
+      EXPECT_EQ(Output.globalFunctionCount(), 1U);
+      EXPECT_EQ(Output.globalVariable(0), Global);
+      EXPECT_EQ(Output.globalFunction(0), Function);
       EXPECT_EQ(Global->initializer(), Integer);
-      EXPECT_EQ(Context.module().constantPool().getSignedIntegerConstant(Types.getInt32Type(), 42), Integer);
+      EXPECT_EQ(Output.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 42), Integer);
       EXPECT_EQ(Block->instructionCount(), 0U);
     }
-    ASSERT_TRUE(Context.irBuilder().setInsertPoint(*Block));
-    auto *Return = Context.irBuilder().createReturn(*Integer);
+    ASSERT_TRUE(Builder.setInsertPoint(*Block));
+    auto *Return = Builder.createReturn(*Integer);
     ASSERT_NE(Return, nullptr);
     EXPECT_EQ(Return->returnedValue(), Integer);
   }
@@ -147,6 +152,8 @@ namespace ink::semantic::test
     core::DiagnosticEngine DiagnosticEngine;
     frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
     SemanticContext Context(Sources, DiagnosticEngine, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    ir::IRBuilder Builder(Context.irContext());
     Analyzer Analysis;
     frontend::parser::ParseResult Missing;
     auto Broken = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "var = ;"));
@@ -157,18 +164,18 @@ namespace ink::semantic::test
     ASSERT_TRUE(Limited.succeeded());
     Cancelled.Status = frontend::parser::ParseStatus::Cancelled;
     Limited.Status = frontend::parser::ParseStatus::LimitExceeded;
-    auto *Function = Context.module().createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
     ASSERT_NE(Function, nullptr);
     auto *Block = Function->createBlock();
-    ASSERT_TRUE(Context.irBuilder().setInsertPoint(*Block));
+    ASSERT_TRUE(Builder.setInsertPoint(*Block));
     const frontend::parser::ParseResult *Inputs[] = {&Missing, &Broken, &Cancelled, &Limited};
     for (const auto *Input : Inputs)
     {
-      EXPECT_FALSE(Analysis.analyze(Context, *Input));
-      EXPECT_EQ(Context.irBuilder().insertBlock(), Block);
-      EXPECT_EQ(Context.irBuilder().insertFunction(), Function);
-      EXPECT_EQ(Context.module().globalFunctionCount(), 1U);
-      EXPECT_EQ(Context.module().globalFunction(0), Function);
+      EXPECT_FALSE(Analysis.analyze(Context, *Input, Output));
+      EXPECT_EQ(Builder.insertBlock(), Block);
+      EXPECT_EQ(Builder.insertFunction(), Function);
+      EXPECT_EQ(Output.globalFunctionCount(), 1U);
+      EXPECT_EQ(Output.globalFunction(0), Function);
       EXPECT_EQ(Block->instructionCount(), 0U);
     }
   }
@@ -187,19 +194,64 @@ namespace ink::semantic::test
     ASSERT_TRUE(Parsed.succeeded());
     ASSERT_TRUE(OtherParsed.succeeded());
     SemanticContext Context(OtherSources, OtherDiagnosticEngine, target::TargetContext::native());
-    auto *Function = Context.module().createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    ir::Module Output(Context.irContext());
+    ir::IRBuilder Builder(Context.irContext());
+    auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
     ASSERT_NE(Function, nullptr);
     auto *Block = Function->createBlock();
-    ASSERT_TRUE(Context.irBuilder().setInsertPoint(*Block));
+    ASSERT_TRUE(Builder.setInsertPoint(*Block));
     Analyzer Analysis;
-    EXPECT_FALSE(Analysis.analyze(Context, Parsed));
-    EXPECT_EQ(Context.irBuilder().insertBlock(), Block);
-    EXPECT_EQ(Context.irBuilder().insertFunction(), Function);
-    EXPECT_EQ(Context.module().globalFunctionCount(), 1U);
-    EXPECT_EQ(Context.module().globalFunction(0), Function);
-    EXPECT_TRUE(Analysis.analyze(Context, OtherParsed));
-    EXPECT_EQ(Context.irBuilder().insertBlock(), nullptr);
-    EXPECT_EQ(Context.module().globalFunction(0), Function);
+    EXPECT_FALSE(Analysis.analyze(Context, Parsed, Output));
+    EXPECT_EQ(Builder.insertBlock(), Block);
+    EXPECT_EQ(Builder.insertFunction(), Function);
+    EXPECT_EQ(Output.globalFunctionCount(), 1U);
+    EXPECT_EQ(Output.globalFunction(0), Function);
+    EXPECT_TRUE(Analysis.analyze(Context, OtherParsed, Output));
+    EXPECT_EQ(Builder.insertBlock(), Block);
+    EXPECT_EQ(Output.globalFunction(0), Function);
+  }
+
+  // Explicit output selection isolates module contents while both outputs borrow the semantic context's pools.
+  TEST(SemanticAnalyzerEntryTest, AcceptsIndependentCallerOwnedOutputs)
+  {
+    core::SourceManager Sources;
+    core::DiagnosticEngine Diagnostics;
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module First(Context.irContext());
+    ir::Module Second(Context.irContext());
+    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{}"));
+    ASSERT_TRUE(Parsed.succeeded());
+    auto *Variable = First.createGlobalVariable(*Context.typePool().getInt32Type());
+    ASSERT_NE(Variable, nullptr);
+    Analyzer Analysis;
+    EXPECT_TRUE(Analysis.analyze(Context, Parsed, First));
+    EXPECT_TRUE(Analysis.analyze(Context, Parsed, Second));
+    EXPECT_EQ(First.globalVariable(0), Variable);
+    EXPECT_EQ(Second.globalVariableCount(), 0U);
+    EXPECT_EQ(&First.constantPool(), &Second.constantPool());
+  }
+
+  // A foreign output context is rejected before analysis and leaves both output modules unchanged.
+  TEST(SemanticAnalyzerEntryTest, RejectsOutputFromAnotherIrContext)
+  {
+    core::SourceManager Sources;
+    core::DiagnosticEngine Diagnostics;
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    SemanticContext Foreign(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    ir::Module ForeignOutput(Foreign.irContext());
+    auto *Variable = ForeignOutput.createGlobalVariable(*Foreign.typePool().getInt32Type());
+    ASSERT_NE(Variable, nullptr);
+    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
+    ASSERT_TRUE(Parsed.succeeded());
+    Analyzer Analysis;
+    EXPECT_FALSE(Analysis.analyze(Context, Parsed, ForeignOutput));
+    EXPECT_EQ(ForeignOutput.globalVariable(0), Variable);
+    EXPECT_EQ(ForeignOutput.globalVariableCount(), 1U);
+    EXPECT_EQ(Output.globalVariableCount(), 0U);
+    EXPECT_TRUE(Analysis.analyze(Context, Parsed, Output));
   }
 
   // Statement and declaration dispatch report the concrete unsupported node reached through the public entry.
@@ -241,7 +293,8 @@ namespace ink::semantic::test
       auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, Entry.Source));
       ASSERT_TRUE(Parsed.succeeded());
       SemanticContext Context(Sources, DiagnosticEngine, target::TargetContext::native());
-      EXPECT_DEATH(Analysis.analyze(Context, Parsed), std::string("initial semantic analyzer does not support ") + Entry.Kind);
+      ir::Module Output(Context.irContext());
+      EXPECT_DEATH(Analysis.analyze(Context, Parsed, Output), std::string("initial semantic analyzer does not support ") + Entry.Kind);
     }
   }
 
@@ -254,6 +307,7 @@ namespace ink::semantic::test
     core::DiagnosticEngine DiagnosticEngine;
     frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
     SemanticContext Context(Sources, DiagnosticEngine, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
     Analyzer Analysis;
     auto Siblings = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{{}} {{}}"));
     auto TooDeep = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{{{}}}"));
@@ -261,12 +315,12 @@ namespace ink::semantic::test
     ASSERT_TRUE(Siblings.succeeded());
     ASSERT_TRUE(TooDeep.succeeded());
     ASSERT_TRUE(Empty.succeeded());
-    EXPECT_TRUE(Analysis.analyze(Context, Siblings));
-    EXPECT_DEATH(Analysis.analyze(Context, TooDeep), "INK-S0014");
-    EXPECT_TRUE(Analysis.analyze(Context, Siblings));
+    EXPECT_TRUE(Analysis.analyze(Context, Siblings, Output));
+    EXPECT_DEATH(Analysis.analyze(Context, TooDeep, Output), "INK-S0014");
+    EXPECT_TRUE(Analysis.analyze(Context, Siblings, Output));
     ASSERT_TRUE(Limit.set("0"));
-    EXPECT_TRUE(Analysis.analyze(Context, Empty));
-    EXPECT_DEATH(Analysis.analyze(Context, Siblings), "INK-S0014");
+    EXPECT_TRUE(Analysis.analyze(Context, Empty, Output));
+    EXPECT_DEATH(Analysis.analyze(Context, Siblings, Output), "INK-S0014");
   }
 
   // A comptime block cannot be accepted as an ordinary empty block while evaluation remains absent.
@@ -278,6 +332,7 @@ namespace ink::semantic::test
     auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "comptime {}"));
     ASSERT_TRUE(Parsed.succeeded());
     SemanticContext Context(Sources, DiagnosticEngine, target::TargetContext::native());
-    EXPECT_DEATH(Analyzer{}.analyze(Context, Parsed), "initial semantic analyzer does not support BlockStmt");
+    ir::Module Output(Context.irContext());
+    EXPECT_DEATH(Analyzer{}.analyze(Context, Parsed, Output), "initial semantic analyzer does not support BlockStmt");
   }
 } // namespace ink::semantic::test

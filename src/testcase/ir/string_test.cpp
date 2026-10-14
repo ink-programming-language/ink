@@ -30,7 +30,8 @@ namespace ink::ir::test
       for (const target::ByteOrder Order : {target::ByteOrder::LittleEndian, target::ByteOrder::BigEndian})
       {
         const target::TargetContext Target(Width, Order);
-        Module Types(Target);
+        IRContext TypesContext(Target);
+        Module Types(TypesContext);
         const auto Text = Types.constantPool().getStringConstant("hello, world\n");
         ASSERT_NE(Text, nullptr);
         const Type *TypeValue = Text->type();
@@ -48,7 +49,8 @@ namespace ink::ir::test
   // Empty text and UTF-8 scalar boundaries produce arrays whose element counts and storage sizes equal the encoded byte length.
   TEST(IRStringTest, ContentLengthCountsUtf8Bytes)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     constexpr std::string_view Contents[] = {
         "",
@@ -82,7 +84,8 @@ namespace ink::ir::test
   // String constants preserve embedded NUL, BOM, literal escape text and distinct normalization forms without rewriting content.
   TEST(IRStringTest, PreservesExactValidBytes)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const std::string_view EmbeddedNul("a\0b", 3);
     const auto BinarySafe = Constants.getStringConstant(std::string(EmbeddedNul));
@@ -107,7 +110,8 @@ namespace ink::ir::test
   // Constants own both copied and moved text after the caller changes or destroys its source buffer.
   TEST(IRStringTest, OwnsCopiedAndMovedContent)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     std::string Source = "original";
     const auto Copied = Constants.getStringConstant(Source);
@@ -128,7 +132,8 @@ namespace ink::ir::test
   // Construction rejects malformed UTF-8, including invalid bytes after NUL and Unicode surrogate or range violations.
   TEST(IRStringTest, RejectsInvalidUtf8)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const std::string_view InvalidContents[] = {
         "\x80",
@@ -160,7 +165,8 @@ namespace ink::ir::test
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      Module Types(Target);
+      IRContext TypesContext(Target);
+      Module Types(TypesContext);
       auto &Constants = Types.constantPool();
       const auto First = Constants.getStringConstant("first");
       const auto Second = Constants.getStringConstant("other");
@@ -194,7 +200,8 @@ namespace ink::ir::test
   // String initializers use ordinary u8 array compatibility for globals and fields, including a zero-byte array.
   TEST(IRStringTest, InitializesMatchingByteArrays)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const core::Name Name = core::NamePool::instance().intern("IRStringTest.Text");
     for (const std::string_view Contents : {std::string_view(), std::string_view("hello"), std::string_view("\xE4\xB8\xAD")})
@@ -219,8 +226,10 @@ namespace ink::ir::test
   // Mismatched lengths, non-byte elements and foreign-module text are rejected without replacing an existing initializer.
   TEST(IRStringTest, RejectsIncompatibleAndForeignByteArrays)
   {
-    Module Types(Target64);
-    Module OtherTypes(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext OtherTypesContext(Target64);
+    Module OtherTypes(OtherTypesContext);
     auto &Constants = Types.constantPool();
     const auto Text = Constants.getStringConstant("hello");
     const auto Short = Constants.getStringConstant("hell");

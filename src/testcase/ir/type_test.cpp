@@ -101,10 +101,12 @@ namespace ink::ir::test
   // Both integer widths preserve signedness and use the supplied target's scalar alignment.
   TEST(IRTypeTest, IntegerWidthsSignednessAndTargetAlignment)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      Module TargetTypes(Target);
+      IRContext TargetTypesContext(Target);
+      Module TargetTypes(TargetTypesContext);
       for (const std::uint32_t Width : {32U, 64U})
       {
         for (const bool Signed : {false, true})
@@ -121,7 +123,8 @@ namespace ink::ir::test
       }
     }
 
-    Module Types32(Target32);
+    IRContext Types32Context(Target32);
+    Module Types32(Types32Context);
     const auto Integer32Target = Types32.typePool().getInt64Type();
     const auto Integer64Target = Types.typePool().getIntegerType(64, true);
     ASSERT_NE(Integer32Target, nullptr);
@@ -135,7 +138,8 @@ namespace ink::ir::test
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      Module Types(Target);
+      IRContext TypesContext(Target);
+      Module Types(TypesContext);
       const auto Byte = Types.typePool().getUInt8Type();
       ASSERT_NE(Byte, nullptr);
       EXPECT_EQ(Byte, Types.typePool().getIntegerType(8, false));
@@ -154,7 +158,8 @@ namespace ink::ir::test
   // Unsupported integer widths return an explicit failure for either signedness.
   TEST(IRTypeTest, IntegerRejectsUnsupportedWidths)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     constexpr std::uint32_t UnsupportedWidths[] = {
         0,
         1,
@@ -176,10 +181,12 @@ namespace ink::ir::test
   // Float represents both 32-bit and 64-bit values under the same kind and target-specific alignment.
   TEST(IRTypeTest, FloatWidthsAndTargetAlignment)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      Module TargetTypes(Target);
+      IRContext TargetTypesContext(Target);
+      Module TargetTypes(TargetTypesContext);
       for (const std::uint32_t Width : {32U, 64U})
       {
         const auto Float = TargetTypes.typePool().getFloatType(Width);
@@ -191,7 +198,8 @@ namespace ink::ir::test
       }
     }
 
-    Module Types32(Target32);
+    IRContext Types32Context(Target32);
+    Module Types32(Types32Context);
     const auto Float32Target = Types32.typePool().getFloat64Type();
     const auto Float64Target = Types.typePool().getFloatType(64);
     ASSERT_NE(Float32Target, nullptr);
@@ -203,7 +211,8 @@ namespace ink::ir::test
   // Float rejects zero, neighboring widths, unsupported scalar widths and oversized values.
   TEST(IRTypeTest, FloatRejectsUnsupportedWidths)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     constexpr std::uint32_t UnsupportedWidths[] = {
         0,
         1,
@@ -225,7 +234,8 @@ namespace ink::ir::test
   // Bool exposes its one-byte layout through Type and its kind through Value.
   TEST(IRTypeTest, BoolHasOneBytePolymorphicLayout)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Bool = Types.typePool().getBoolType();
     const Type *TypeValue = Bool;
     const Value *ValueValue = Bool;
@@ -242,7 +252,8 @@ namespace ink::ir::test
   {
     for (const target::TargetContext &Target : {Target32, Target64})
     {
-      Module Types(Target);
+      IRContext TypesContext(Target);
+      Module Types(TypesContext);
       const auto Element = Types.typePool().getBoolType();
       const auto Pointer = Types.typePool().getPointerType(Element);
       const auto Reference = Types.typePool().getReferenceType(Element);
@@ -262,7 +273,8 @@ namespace ink::ir::test
   // Nested arrays retain their immediate element identity and compose element count, size and alignment.
   TEST(IRTypeTest, ArrayPreservesElementsAndNestedLayout)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Element = Types.typePool().getIntegerType(32, false);
     ASSERT_NE(Element, nullptr);
     const auto Inner = Types.typePool().getArrayType(Element, 3);
@@ -283,7 +295,8 @@ namespace ink::ir::test
   // Empty arrays remain valid with zero storage even for the largest valid element layout.
   TEST(IRTypeTest, EmptyArrayAcceptsMaximumElementSize)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Element = Types.typePool().getArrayType(Types.typePool().getBoolType(), MaximumSize);
     ASSERT_NE(Element, nullptr);
     const auto Array = Types.typePool().getArrayType(Element, 0);
@@ -297,7 +310,8 @@ namespace ink::ir::test
   // Zero-sized elements accept the largest element count without introducing storage or losing alignment.
   TEST(IRTypeTest, ArrayOfZeroSizedElementsAcceptsMaximumCount)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Element = Types.typePool().getArrayType(Types.typePool().getInt64Type(), 0);
     ASSERT_NE(Element, nullptr);
     EXPECT_TRUE(Element->hasLayout());
@@ -315,7 +329,8 @@ namespace ink::ir::test
   // Array multiplication accepts the last representable count and explicitly rejects the first overflowing count.
   TEST(IRTypeTest, ArrayChecksElementCountMultiplicationOverflow)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto Element = Types.typePool().getIntegerType(64, true);
     ASSERT_NE(Element, nullptr);
     const auto Largest = Types.typePool().getArrayType(Element, MaximumSize / 8);
@@ -334,7 +349,8 @@ namespace ink::ir::test
   // Arrays accept the largest size aligned to eight bytes without overflowing their element stride.
   TEST(IRTypeTest, ArrayAcceptsLargestAlignedElement)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const auto LargestAlignedElement = Types.typePool().getArrayType(Types.typePool().getInt64Type(), MaximumSize / 8);
     ASSERT_NE(LargestAlignedElement, nullptr);
     const auto Single = Types.typePool().getArrayType(LargestAlignedElement, 1);
@@ -346,7 +362,8 @@ namespace ink::ir::test
   // Arrays reject externally constructed types regardless of their layout or requested element count.
   TEST(IRTypeTest, ArrayRejectsExternallyConstructedTypes)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     const SyntheticType ValidLayout(4, 4);
     const SyntheticType ZeroAlignment(4, 0);
     const SyntheticType NonPowerOfTwoAlignment(4, 3);
@@ -361,7 +378,8 @@ namespace ink::ir::test
   // Array construction rejects a missing element type for both empty and nonempty arrays.
   TEST(IRTypeTest, ArrayRejectsNullElementType)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     EXPECT_EQ(Types.typePool().getArrayType(nullptr, 0), nullptr);
     EXPECT_EQ(Types.typePool().getArrayType(nullptr, 1), nullptr);
   }
@@ -369,7 +387,8 @@ namespace ink::ir::test
   // Type, function, parameter, instruction, block and constant classifiers reject unrelated, null and unknown values.
   TEST(IRTypeTest, ClassifiersRejectNullAndOtherKinds)
   {
-    Module Types(Target64);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const auto Integer = Types.typePool().getIntegerType(32, true);
     const auto Float = Types.typePool().getFloatType(64);
@@ -523,8 +542,10 @@ namespace ink::ir::test
   // TypePool-owned types expose their layout through borrowed Type and Value pointers.
   TEST(IRTypeTest, PoolOwnedTypePreservesConcretePolymorphicLayout)
   {
-    Module Types(Target64);
-    Module Types32(Target32);
+    IRContext TypesContext(Target64);
+    Module Types(TypesContext);
+    IRContext Types32Context(Target32);
+    Module Types32(Types32Context);
     const Type *Integer = Types32.typePool().getInt64Type();
     ASSERT_NE(Integer, nullptr);
     const Value *IntegerValue = Integer;

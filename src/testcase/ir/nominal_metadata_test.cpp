@@ -66,7 +66,8 @@ namespace ink::ir::test
   // Class, interface and struct metadata lives on the corresponding module-owned type identity.
   TEST(IRNominalMetadataTest, ClassifiesNominalTypesAndStartsWithEmptyMetadata)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Values = createMetadataTypes(Types);
     for (std::size_t Index = 0; Index < Values.size(); ++Index)
     {
@@ -96,7 +97,8 @@ namespace ink::ir::test
   // Names can be completed without changing any nominal layout or type identity.
   TEST(IRNominalMetadataTest, UpdatesNamesBeforeFreezing)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const core::Name OriginalName = core::NamePool::instance().intern("IRNominalMetadataTest.Original");
     const core::Name NewName = core::NamePool::instance().intern("IRNominalMetadataTest.Renamed");
     for (NominalType *Value : createMetadataTypes(Types, OriginalName))
@@ -122,7 +124,8 @@ namespace ink::ir::test
   // Equal names, layouts and member metadata do not merge independently created nominal types.
   TEST(IRNominalMetadataTest, EqualMetadataKeepsDistinctNominalIdentities)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRNominalMetadataTest.Equal");
@@ -145,7 +148,8 @@ namespace ink::ir::test
   // Function-name lookup preserves registration order for independently owned functions with equal signatures.
   TEST(IRNominalMetadataTest, StoresMethodOrderAndVirtualMetadataWithoutIdentityRules)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto FirstSignature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     const auto SecondSignature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
     ASSERT_NE(FirstSignature, nullptr);
@@ -191,8 +195,10 @@ namespace ink::ir::test
   // Invalid names, dispatch properties and foreign signatures never enter the method list.
   TEST(IRNominalMetadataTest, RejectsInvalidAndForeignMethods)
   {
-    Module Types(Target);
-    Module ForeignTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext ForeignTypesContext(Target);
+    Module ForeignTypes(ForeignTypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     const auto ForeignSignature = ForeignTypes.typePool().getFunctionType(ForeignTypes.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
@@ -223,7 +229,8 @@ namespace ink::ir::test
   // Freezing all nominal kinds rejects every metadata mutation while preserving readable members and fixed layouts.
   TEST(IRNominalMetadataTest, FrozenMetadataRejectsMutation)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRNominalMetadataTest.Frozen");
@@ -258,8 +265,10 @@ namespace ink::ir::test
   {
     bool OriginalBodyDestroyed = false;
     bool ReplacementBodyDestroyed = false;
-    Module Types(Target);
-    Module ForeignTypes(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
+    IRContext ForeignTypesContext(Target);
+    Module ForeignTypes(ForeignTypesContext);
     auto *Value = Types.createClassType(8, 8);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     const auto OtherSignature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
@@ -330,7 +339,8 @@ namespace ink::ir::test
   // All nominal kinds resolve names from their bound functions even after the method list is frozen.
   TEST(IRNominalMetadataTest, MethodLookupTracksFunctionRenamingBeforeAndAfterFreezing)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name MemberName = core::NamePool::instance().intern("method");
@@ -373,7 +383,8 @@ namespace ink::ir::test
   {
     std::array<bool, 3> BodiesDestroyed = {};
     {
-      Module Types(Target);
+      IRContext TypesContext(Target);
+      Module Types(TypesContext);
       const auto Values = createMetadataTypes(Types);
       const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
       ASSERT_NE(Signature, nullptr);

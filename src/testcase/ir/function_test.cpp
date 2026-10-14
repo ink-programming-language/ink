@@ -45,7 +45,8 @@ namespace ink::ir::test
   // An empty signature creates a public local declaration with no parameters or blocks.
   TEST(IRFunctionTest, EmptySignatureCreatesUnnamedDeclaration)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
@@ -72,7 +73,8 @@ namespace ink::ir::test
   // A function entity, its signature and its parameters have distinct classifications through Value.
   TEST(IRFunctionTest, FunctionEntityDoesNotClassifyAsSignatureOrConstant)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getBoolType(), {Types.typePool().getBoolType()});
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
@@ -96,7 +98,8 @@ namespace ink::ir::test
   // Symbol linkage, language linkage and visibility change independently, including a private C export.
   TEST(IRFunctionTest, UpdatesIndependentLinkageAndVisibility)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name OriginalName = core::NamePool::instance().intern("IRFunctionTest.Original");
@@ -144,7 +147,8 @@ namespace ink::ir::test
   // An Ink import keeps its own name and declaration state independently of an exported function's body.
   TEST(IRFunctionTest, InkImportKeepsIndependentNameLinkageAndBody)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
     ASSERT_NE(Signature, nullptr);
     const core::Name ProviderName = core::NamePool::instance().intern("IRFunctionTest.Provider");
@@ -173,7 +177,8 @@ namespace ink::ir::test
   // Adding blocks creates a definition while preserving insertion order, parent pointers and earlier addresses.
   TEST(IRFunctionTest, OwnsStableBlocksAndTransitionsToDefinition)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
@@ -212,7 +217,8 @@ namespace ink::ir::test
   // Function destruction releases block-owned instructions, and appending null leaves the body unchanged.
   TEST(IRFunctionTest, BodyOwnsInstructionsAndRejectsNullAppend)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     bool FirstDestroyed = false;

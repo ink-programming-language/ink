@@ -1,5 +1,5 @@
 #include "ink/ir/type/type_pool.h"
-#include "ink/ir/module/module.h"
+#include "ink/ir/context.h"
 #include "type_layout.h"
 
 #include <functional>
@@ -8,7 +8,7 @@
 
 namespace ink::ir
 {
-  TypePool::TypePool(Module &Owner)
+  TypePool::TypePool(IRContext &Owner)
       : Owner(Owner),
         NullPointer(Owner),
         UInt8(Owner.targetContext(), 8, false),
@@ -24,7 +24,7 @@ namespace ink::ir
 
   TypePool::~TypePool() noexcept = default;
 
-  const Module &TypePool::module() const noexcept
+  const IRContext &TypePool::irContext() const noexcept
   {
     return Owner;
   }
@@ -62,7 +62,7 @@ namespace ink::ir
   {
     for (const Type *ParameterType : Parameters)
     {
-      if (!Owner.ownsType(ParameterType) || !ParameterType->hasLayout())
+      if (!Owner.containsType(ParameterType) || !ParameterType->hasLayout())
       {
         return false;
       }
@@ -149,7 +149,7 @@ namespace ink::ir
 
   const PointerType *TypePool::getPointerType(const Type *PointeeType)
   {
-    if (!Owner.ownsType(PointeeType))
+    if (!Owner.containsType(PointeeType))
     {
       return nullptr;
     }
@@ -165,7 +165,7 @@ namespace ink::ir
 
   const ReferenceType *TypePool::getReferenceType(const Type *ReferencedType)
   {
-    if (!Owner.ownsType(ReferencedType))
+    if (!Owner.containsType(ReferencedType))
     {
       return nullptr;
     }
@@ -181,7 +181,7 @@ namespace ink::ir
 
   const ArrayType *TypePool::getArrayType(const Type *ElementType, std::uint64_t ElementCount)
   {
-    if (!Owner.ownsType(ElementType) || !ElementType->hasLayout())
+    if (!Owner.containsType(ElementType) || !ElementType->hasLayout())
     {
       return nullptr;
     }
@@ -223,7 +223,7 @@ namespace ink::ir
 
   const FunctionType *TypePool::getFunctionType(const Type *ReturnType, std::vector<const Type *> Parameters)
   {
-    if (!Owner.ownsType(ReturnType) || !ReturnType->hasLayout() || !validParameters(Parameters))
+    if (!Owner.containsType(ReturnType) || !ReturnType->hasLayout() || !validParameters(Parameters))
     {
       return nullptr;
     }

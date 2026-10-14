@@ -1,5 +1,5 @@
 #include "ink/ir/constant/constant_pool.h"
-#include "ink/ir/module/module.h"
+#include "ink/ir/context.h"
 
 #include <algorithm>
 #include <cstring>
@@ -61,7 +61,7 @@ namespace ink::ir
     return Result;
   }
 
-  ConstantPool::ConstantPool(Module &Owner)
+  ConstantPool::ConstantPool(IRContext &Owner)
       : Owner(Owner),
         False(Owner.typePool().getBoolType(), false),
         True(Owner.typePool().getBoolType(), true),
@@ -72,7 +72,7 @@ namespace ink::ir
 
   ConstantPool::~ConstantPool() noexcept = default;
 
-  const Module &ConstantPool::module() const noexcept
+  const IRContext &ConstantPool::irContext() const noexcept
   {
     return Owner;
   }
@@ -89,7 +89,7 @@ namespace ink::ir
 
   const IntegerConstant *ConstantPool::getIntegerConstantFromBits(const IntegerType *IntegerTypeValue, std::uint64_t Bits)
   {
-    if (!module().ownsType(IntegerTypeValue) || (IntegerTypeValue->width() < 64 && (Bits >> IntegerTypeValue->width()) != 0))
+    if (!irContext().containsType(IntegerTypeValue) || (IntegerTypeValue->width() < 64 && (Bits >> IntegerTypeValue->width()) != 0))
     {
       return nullptr;
     }
@@ -106,7 +106,7 @@ namespace ink::ir
 
   const IntegerConstant *ConstantPool::getSignedIntegerConstant(const IntegerType *IntegerTypeValue, std::int64_t Value)
   {
-    if (!module().ownsType(IntegerTypeValue) || !IntegerTypeValue->isSigned())
+    if (!irContext().containsType(IntegerTypeValue) || !IntegerTypeValue->isSigned())
     {
       return nullptr;
     }
@@ -124,7 +124,7 @@ namespace ink::ir
 
   const IntegerConstant *ConstantPool::getUnsignedIntegerConstant(const IntegerType *IntegerTypeValue, std::uint64_t Value)
   {
-    if (!module().ownsType(IntegerTypeValue) || !IntegerTypeValue->isUnsigned())
+    if (!irContext().containsType(IntegerTypeValue) || !IntegerTypeValue->isUnsigned())
     {
       return nullptr;
     }
@@ -133,7 +133,7 @@ namespace ink::ir
 
   const FloatConstant *ConstantPool::getFloatConstantFromBits(const FloatType *FloatTypeValue, std::uint64_t Bits)
   {
-    if (!module().ownsType(FloatTypeValue) || (FloatTypeValue->width() == 32 && Bits > std::numeric_limits<std::uint32_t>::max()))
+    if (!irContext().containsType(FloatTypeValue) || (FloatTypeValue->width() == 32 && Bits > std::numeric_limits<std::uint32_t>::max()))
     {
       return nullptr;
     }
@@ -152,19 +152,19 @@ namespace ink::ir
   {
     std::uint32_t Bits = 0;
     std::memcpy(&Bits, &Value, sizeof(Bits));
-    return getFloatConstantFromBits(module().typePool().getFloat32Type(), Bits);
+    return getFloatConstantFromBits(irContext().typePool().getFloat32Type(), Bits);
   }
 
   const FloatConstant *ConstantPool::getFloatConstant(double Value)
   {
     std::uint64_t Bits = 0;
     std::memcpy(&Bits, &Value, sizeof(Bits));
-    return getFloatConstantFromBits(module().typePool().getFloat64Type(), Bits);
+    return getFloatConstantFromBits(irContext().typePool().getFloat64Type(), Bits);
   }
 
   const ArrayConstant *ConstantPool::getArrayConstant(const ArrayType *ConstantType, std::vector<const Constant *> Elements)
   {
-    if (!module().ownsType(ConstantType) || Elements.size() != ConstantType->elementCount())
+    if (!irContext().containsType(ConstantType) || Elements.size() != ConstantType->elementCount())
     {
       return nullptr;
     }

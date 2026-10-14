@@ -79,7 +79,8 @@ namespace ink::ir::test
   // Modules start with empty declaration lists and either an empty identifier or the supplied root-level module identifier.
   TEST(IRModuleTest, EmptyModulesPreserveOptionalModuleID)
   {
-    Module Unnamed(Target);
+    IRContext UnnamedContext(Target);
+    Module Unnamed(UnnamedContext);
     const Module &ReadOnly = Unnamed;
     EXPECT_EQ(Unnamed.moduleID(), ModuleID{});
     EXPECT_EQ(ReadOnly.moduleID(), ModuleID{});
@@ -105,7 +106,8 @@ namespace ink::ir::test
 
     const core::Name ModuleName = core::NamePool::instance().intern("Empty");
     const ModuleID ID{{ModuleName}};
-    const Module Named(Target, ID);
+    IRContext NamedContext(Target);
+    const Module Named(NamedContext, ID);
     EXPECT_EQ(Named.moduleID(), ID);
   }
 
@@ -119,10 +121,12 @@ namespace ink::ir::test
     const core::Name ChildName = Names.intern("detail");
     const ModuleID Expected{{RootName, PackageName, ModuleName}};
     const ModuleID Replacement{{RootName, PackageName, ChildName, ModuleName}};
-    Module Owner(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
     {
       ModuleID Source = Expected;
-      Module Other(Target, Source);
+      IRContext OtherContext(Target);
+      Module Other(OtherContext, Source);
       Owner.setModuleID(Source);
       EXPECT_EQ(Owner.moduleID(), Other.moduleID());
       Source.Components.clear();
@@ -135,7 +139,8 @@ namespace ink::ir::test
     const Module &ReadOnly = Owner;
     EXPECT_EQ(ReadOnly.moduleID(), Expected);
     ModuleID Source = Replacement;
-    Module Moved(Target, std::move(Source));
+    IRContext MovedContext(Target);
+    Module Moved(MovedContext, std::move(Source));
     EXPECT_EQ(Moved.moduleID(), Replacement);
     ModuleID NewID = Replacement;
     Owner.setModuleID(std::move(NewID));
@@ -147,7 +152,8 @@ namespace ink::ir::test
   // Creation and ownership transfer preserve insertion order and entity addresses as both lists grow.
   TEST(IRModuleTest, OwnsCreatedAndAppendedDeclarationsAtStableAddresses)
   {
-    Module Owner(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
     const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const core::Name VariableName = core::NamePool::instance().intern("IRModuleTest.Variable");
@@ -211,7 +217,8 @@ namespace ink::ir::test
   // Function creation forwards signature, name, symbol linkage, language linkage and visibility.
   TEST(IRModuleTest, FunctionCreationPreservesExplicitMetadata)
   {
-    Module Owner(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
     const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getInt32Type(), {Owner.typePool().getBoolType()});
     ASSERT_NE(Signature, nullptr);
     const core::Name FunctionName = core::NamePool::instance().intern("IRModuleTest.ForeignFunction");
@@ -229,7 +236,8 @@ namespace ink::ir::test
   // Optional lifecycle entries independently select, replace and clear owned declarations before their bodies exist.
   TEST(IRModuleTest, LifecycleEntriesIndependentlySelectOwnedFunctions)
   {
-    Module Owner(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
     const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
     ASSERT_NE(Signature, nullptr);
     const Module &ReadOnly = Owner;
@@ -269,7 +277,8 @@ namespace ink::ir::test
   // Foreign, detached, nominal member and incompatible functions cannot replace an already selected lifecycle entry.
   TEST(IRModuleTest, LifecycleEntriesRejectNonGlobalAndIncompatibleFunctions)
   {
-    Module Owner(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
     const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
     const auto ReturningSignature = Owner.typePool().getFunctionType(Owner.typePool().getInt32Type());
     const auto ParameterSignature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType(), {Owner.typePool().getBoolType()});
@@ -280,7 +289,8 @@ namespace ink::ir::test
     ASSERT_NE(EmptyStruct, nullptr);
     const auto EmptyStructSignature = Owner.typePool().getFunctionType(EmptyStruct);
     ASSERT_NE(EmptyStructSignature, nullptr);
-    Module Other(Target);
+    IRContext OtherContext(Target);
+    Module Other(OtherContext);
     auto *Selected = Owner.createGlobalFunction(*Signature);
     auto *Foreign = Other.createGlobalFunction(*Other.typePool().getFunctionType(Other.typePool().getVoidType()));
     auto *Returning = Owner.createGlobalFunction(*ReturningSignature);
@@ -322,7 +332,8 @@ namespace ink::ir::test
   {
     std::size_t DestructionCount = 0;
     {
-      Module Owner(Target);
+      IRContext OwnerContext(Target);
+      Module Owner(OwnerContext);
       const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
       ASSERT_NE(Signature, nullptr);
       auto *Shared = Owner.createGlobalFunction(*Signature);
@@ -358,7 +369,8 @@ namespace ink::ir::test
     bool CreatedBodyDestroyed = false;
     bool TransferredBodyDestroyed = false;
     {
-      Module Owner(Target);
+      IRContext OwnerContext(Target);
+      Module Owner(OwnerContext);
       const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
       ASSERT_NE(Signature, nullptr);
       auto *Created = Owner.createGlobalFunction(*Signature);
@@ -382,7 +394,8 @@ namespace ink::ir::test
   // Nominal creation immediately owns distinct identities and preserves insertion order and addresses as lists grow.
   TEST(IRModuleTest, OwnsCreatedNominalTypesAtStableAddresses)
   {
-    Module Owner(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
     const auto FirstClass = Owner.createClassType(16, 8);
     const auto FirstInterface = Owner.createInterfaceType(16, 8);
     const auto FirstStruct = Owner.createStructType(8, 4);
@@ -452,7 +465,8 @@ namespace ink::ir::test
   // Invalid nominal layouts fail without inserting declarations or disturbing previously created identities.
   TEST(IRModuleTest, RejectedNominalCreationPreservesOwnedLists)
   {
-    Module Owner(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
     const auto *Class = Owner.createClassType(8, 8);
     const auto *Interface = Owner.createInterfaceType(8, 8);
     const auto *Struct = Owner.createStructType(8, 8);
@@ -479,7 +493,8 @@ namespace ink::ir::test
   // Membership excludes foreign and detached functions, foreign types, constants and nested values.
   TEST(IRModuleTest, RejectsForeignDetachedAndNestedValues)
   {
-    Module Other(Target);
+    IRContext OtherContext(Target);
+    Module Other(OtherContext);
     auto &Constants = Other.constantPool();
     const auto Signature = Other.typePool().getFunctionType(Other.typePool().getVoidType(), {Other.typePool().getBoolType()});
     const auto ClassLayout = Other.createClassType(16, 8);
@@ -489,7 +504,8 @@ namespace ink::ir::test
     ASSERT_NE(ClassLayout, nullptr);
     ASSERT_NE(InterfaceLayout, nullptr);
     ASSERT_NE(StructLayout, nullptr);
-    Module Owner(Target);
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext);
     const auto LocalSignature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType(), {Owner.typePool().getBoolType()});
     ASSERT_NE(LocalSignature, nullptr);
     auto *Callable = Owner.createGlobalFunction(*LocalSignature);
@@ -528,7 +544,8 @@ namespace ink::ir::test
   TEST(IRModuleTest, OwnedClassMembersRetainNamesAndOverloadSignatures)
   {
     const core::Name ModuleName = core::NamePool::instance().intern("math");
-    Module Owner(Target, {{ModuleName}});
+    IRContext OwnerContext(Target);
+    Module Owner(OwnerContext, {{ModuleName}});
     const core::Name ClassName = core::NamePool::instance().intern("Point");
     const auto ClassLayout = Owner.createClassType(8, 4, ClassName);
     ASSERT_NE(ClassLayout, nullptr);
@@ -579,7 +596,8 @@ namespace ink::ir::test
   {
     bool BodyDestroyed = false;
     {
-      Module Types(Target);
+      IRContext TypesContext(Target);
+      Module Types(TypesContext);
       const auto ClassValue = Types.createClassType(8, 4);
       const auto InterfaceValue = Types.createInterfaceType(8, 4);
       const auto StructValue = Types.createStructType(8, 4);
@@ -598,7 +616,8 @@ namespace ink::ir::test
       ASSERT_NE(Body, nullptr);
       ASSERT_TRUE(ClassValue->addMethod(Method(std::move(Callable))));
       {
-        Module Owner(Target, {{ModuleName}});
+        IRContext OwnerContext(Target);
+        Module Owner(OwnerContext, {{ModuleName}});
         EXPECT_FALSE(Owner.ownsType(ClassValue));
         EXPECT_FALSE(Owner.ownsType(InterfaceValue));
         EXPECT_FALSE(Owner.ownsType(StructValue));

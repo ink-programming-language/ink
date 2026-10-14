@@ -17,7 +17,8 @@ namespace ink::ir::test
   // Signed factories preserve two's-complement boundary patterns and reject 32-bit overflow.
   TEST(IRNumericConstantTest, SignedIntegerBoundariesAndNegativeBits)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const auto Signed32 = Types.typePool().getIntegerType(32, true);
     const auto Signed64 = Types.typePool().getIntegerType(64, true);
@@ -54,7 +55,8 @@ namespace ink::ir::test
   // Unsigned factories accept the entire width, including the high bit, without truncating overflow.
   TEST(IRNumericConstantTest, UnsignedIntegerBoundaries)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     for (const std::uint32_t Width : {32U, 64U})
     {
@@ -82,8 +84,10 @@ namespace ink::ir::test
     for (const target::PointerWidth Width : {target::PointerWidth::Bits32, target::PointerWidth::Bits64})
     {
       const target::TargetContext ByteTarget(Width, target::ByteOrder::LittleEndian);
-      Module Types(ByteTarget);
-      Module Other(ByteTarget);
+      IRContext TypesContext(ByteTarget);
+      Module Types(TypesContext);
+      IRContext OtherContext(ByteTarget);
+      Module Other(OtherContext);
       auto &Constants = Types.constantPool();
       const auto Byte = Types.typePool().getUInt8Type();
       ASSERT_NE(Byte, nullptr);
@@ -113,7 +117,8 @@ namespace ink::ir::test
   // Numeric factories reject missing types and signedness mismatches even for an otherwise valid zero.
   TEST(IRNumericConstantTest, IntegerRejectsMissingTypeAndWrongSignedness)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     EXPECT_EQ(Constants.getIntegerConstantFromBits(nullptr, 0), nullptr);
     EXPECT_EQ(Constants.getSignedIntegerConstant(nullptr, 0), nullptr);
@@ -133,7 +138,8 @@ namespace ink::ir::test
   // Raw integer bits accept every in-width pattern for either signedness and reject nonzero upper bits.
   TEST(IRNumericConstantTest, IntegerRawBitsHaveNoImplicitTruncation)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     for (const bool Signed : {false, true})
     {
@@ -180,7 +186,8 @@ namespace ink::ir::test
     for (const target::ByteOrder Order : {target::ByteOrder::LittleEndian, target::ByteOrder::BigEndian})
     {
       const target::TargetContext FloatTarget(target::PointerWidth::Bits64, Order);
-      Module FloatTypes(FloatTarget);
+      IRContext FloatTypesContext(FloatTarget);
+      Module FloatTypes(FloatTypesContext);
       auto &Constants = FloatTypes.constantPool();
       for (const FloatCase &Case : Cases)
       {
@@ -224,7 +231,8 @@ namespace ink::ir::test
     for (const target::ByteOrder Order : {target::ByteOrder::LittleEndian, target::ByteOrder::BigEndian})
     {
       const target::TargetContext FloatTarget(target::PointerWidth::Bits64, Order);
-      Module FloatTypes(FloatTarget);
+      IRContext FloatTypesContext(FloatTarget);
+      Module FloatTypes(FloatTypesContext);
       auto &Constants = FloatTypes.constantPool();
       const auto Float32 = FloatTypes.typePool().getFloatType(32);
       const auto Float64 = FloatTypes.typePool().getFloatType(64);
@@ -252,7 +260,8 @@ namespace ink::ir::test
   // Numeric floating-point factories preserve signed zero and infinities, and retain NaN classification.
   TEST(IRNumericConstantTest, FloatNumericFactoriesPreserveSpecialValues)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const auto Float32 = Types.typePool().getFloatType(32);
     const auto Float64 = Types.typePool().getFloatType(64);
@@ -295,7 +304,8 @@ namespace ink::ir::test
   // Raw floating-point factories reject missing types and nonzero high bits instead of narrowing them.
   TEST(IRNumericConstantTest, FloatRejectsMissingTypeAndHighBits)
   {
-    Module Types(Target);
+    IRContext TypesContext(Target);
+    Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     EXPECT_EQ(Constants.getFloatConstantFromBits(nullptr, 0), nullptr);
     const auto Float32 = Types.typePool().getFloatType(32);
