@@ -718,6 +718,35 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.insertBlock(), Entry);
   }
 
+  // A module's Value identity cannot be used as a callee, argument, comparison, branch condition, return or GEP operand.
+  TEST(IRBuilderTest, RejectsModulesAsOperandsWithoutChangingInsertionState)
+  {
+    IRContext Context(Target);
+    Module Types(Context);
+    const Value &ModuleValue = Types;
+    const auto *Integer = Types.typePool().getInt32Type();
+    const auto *Pointer = Types.typePool().getPointerType(Integer);
+    const auto *Signature = Types.typePool().getFunctionType(Integer, {Integer});
+    Function Owner(*Types.typePool().getFunctionType(Integer));
+    Function Callee(*Signature);
+    auto *Entry = Owner.createBlock();
+    const auto *Zero = Types.constantPool().getSignedIntegerConstant(Integer, 0);
+    IRBuilder Builder(Context);
+    ASSERT_TRUE(Builder.setInsertPoint(*Entry));
+    EXPECT_EQ(Builder.createCall(*Signature, ModuleValue, {Argument(*Zero)}), nullptr);
+    EXPECT_EQ(Builder.createCall(Callee, {Argument(ModuleValue)}), nullptr);
+    EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, ModuleValue, *Zero), nullptr);
+    EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Zero, ModuleValue), nullptr);
+    EXPECT_EQ(Builder.createConditionalBranch(ModuleValue, *Entry, *Entry), nullptr);
+    EXPECT_EQ(Builder.createReturn(ModuleValue), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, ModuleValue, {Zero}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *Types.constantPool().getNullPointerConstant(), {&ModuleValue}), nullptr);
+    EXPECT_EQ(Entry->instructionCount(), 0U);
+    EXPECT_EQ(Builder.insertBlock(), Entry);
+    EXPECT_EQ(Builder.insertFunction(), &Owner);
+    EXPECT_NE(Builder.createReturn(*Zero), nullptr);
+  }
+
   // GEP may select a unit array element or nominal field as its endpoint, but cannot descend further through unit.
   TEST(IRBuilderTest, AllowsUnitEndpointsInAggregateGEP)
   {

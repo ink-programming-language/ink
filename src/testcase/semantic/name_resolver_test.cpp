@@ -1,585 +1,423 @@
-#include "ink/ir/ir_builder.h"
-#include "ink/core/diagnostic/diagnostic_engine.h"
-#include "ink/semantic/name_resolve/name_resolver.h"
-
+#include "ink/core/name/name_pool.h"
+#include "ink/ir/module/module.h"
 #include "ink/semantic/context.h"
+#include "ink/semantic/name_resolve/name_resolver.h"
+#include "ink/semantic/name_resolve/scope_guard.h"
 
 #include <gtest/gtest.h>
 
-#include <string>
+#include <span>
 #include <type_traits>
+#include <utility>
 
 namespace ink::semantic::test
 {
   using namespace ink::ir;
+  using core::Name;
 
-  namespace
-  {
-    using BindResult = NameResolver::BindResult;
-
-    std::unique_ptr<Function> createUnaryFunction(SemanticContext &Context, Name FunctionName, const Type &ParameterType)
-    {
-      IRBuilder Builder(Context.irContext());
-      const Type *Parameters[] = {&ParameterType};
-      const FunctionType *Signature = Context.typePool().getType<TypeKind::Function>(Context.typePool().getType<TypeKind::Void>(), Parameters);
-      return Signature ? Builder.createFunction(FunctionName, *Signature) : nullptr;
-    }
-  } // namespace
-
+  static_assert(std::is_same_v<decltype(std::declval<const Binding &>().targets()), std::span<Value *const>>);
   static_assert(!std::is_copy_constructible_v<NameResolver>);
   static_assert(!std::is_move_constructible_v<NameResolver>);
   static_assert(!std::is_copy_constructible_v<Scope>);
   static_assert(!std::is_move_constructible_v<Scope>);
-  static_assert(!std::is_copy_constructible_v<NameResolver::ScopeGuard>);
-  static_assert(!std::is_move_constructible_v<NameResolver::ScopeGuard>);
+  static_assert(!std::is_copy_constructible_v<ScopeGuard>);
+  static_assert(!std::is_move_constructible_v<ScopeGuard>);
 
-  // Nested guards restore the caller's exact scope on early return while preserving exited scope bindings.
-  TEST(SemanticNameResolverTest, ScopeGuardsRestoreLookupOnEarlyReturn)
+  // Explicit object accessors preserve constness while borrowing lvalue references even from rvalue resolvers.
+  static_assert(std::is_same_v<decltype(std::declval<NameResolver &>().scopeStore()), ScopeStore &>);
+  static_assert(std::is_same_v<decltype(std::declval<const NameResolver &>().scopeStore()), const ScopeStore &>);
+  static_assert(std::is_same_v<decltype(std::declval<NameResolver &&>().scopeStore()), ScopeStore &>);
+  static_assert(std::is_same_v<decltype(std::declval<const NameResolver &&>().scopeStore()), const ScopeStore &>);
+  static_assert(std::is_same_v<decltype(std::declval<NameResolver &>().rootScope()), Scope &>);
+  static_assert(std::is_same_v<decltype(std::declval<const NameResolver &>().rootScope()), const Scope &>);
+  static_assert(std::is_same_v<decltype(std::declval<NameResolver &&>().rootScope()), Scope &>);
+  static_assert(std::is_same_v<decltype(std::declval<const NameResolver &&>().rootScope()), const Scope &>);
+  static_assert(std::is_same_v<decltype(std::declval<NameResolver &>().currentScope()), Scope &>);
+  static_assert(std::is_same_v<decltype(std::declval<const NameResolver &>().currentScope()), const Scope &>);
+  static_assert(std::is_same_v<decltype(std::declval<NameResolver &&>().currentScope()), Scope &>);
+  static_assert(std::is_same_v<decltype(std::declval<const NameResolver &&>().currentScope()), const Scope &>);
+
+  // Scope and guard accessors propagate constness through borrowed references and nullable pointers.
+  static_assert(std::is_same_v<decltype(std::declval<Scope &>().scopeStore()), ScopeStore &>);
+  static_assert(std::is_same_v<decltype(std::declval<const Scope &>().scopeStore()), const ScopeStore &>);
+  static_assert(std::is_same_v<decltype(std::declval<Scope &&>().scopeStore()), ScopeStore &>);
+  static_assert(std::is_same_v<decltype(std::declval<const Scope &&>().scopeStore()), const ScopeStore &>);
+  static_assert(std::is_same_v<decltype(std::declval<Scope &>().parent()), Scope *>);
+  static_assert(std::is_same_v<decltype(std::declval<const Scope &>().parent()), const Scope *>);
+  static_assert(std::is_same_v<decltype(std::declval<Scope &&>().parent()), Scope *>);
+  static_assert(std::is_same_v<decltype(std::declval<const Scope &&>().parent()), const Scope *>);
+  static_assert(std::is_same_v<decltype(std::declval<ScopeGuard &>().scope()), Scope *>);
+  static_assert(std::is_same_v<decltype(std::declval<const ScopeGuard &>().scope()), const Scope *>);
+  static_assert(std::is_same_v<decltype(std::declval<ScopeGuard &&>().scope()), Scope *>);
+  static_assert(std::is_same_v<decltype(std::declval<const ScopeGuard &&>().scope()), const Scope *>);
+
+  // Lookup chooses the nearest lexical binding, isolates sibling locals, and preserves exited scopes.
+  TEST(SemanticNameResolverTest, ResolvesNearestBindingAndIsolatesSiblings)
   {
-    core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
-    SemanticContext Context(Sources, DiagnosticEngine);
-    IRBuilder Builder(Context.irContext());
-    NameResolver Resolver(Context);
-    Scope &Original = Resolver.enterScope();
-    const Name X = Context.namePool().intern("X");
-    auto Outer = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    auto Inner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
+    IRContext Context(target::TargetContext::native());
+    Module ModuleValue(Context);
+    auto *Outer = ModuleValue.createGlobalVariable(*Context.typePool().getBoolType());
+    auto *Inner = ModuleValue.createGlobalVariable(*Context.typePool().getBoolType());
     ASSERT_NE(Outer, nullptr);
     ASSERT_NE(Inner, nullptr);
+    ScopeStore Store;
+    NameResolver Resolver(Store);
+    const Name X = core::NamePool::instance().intern("X");
+    const Name Local = core::NamePool::instance().intern("Local");
+    Scope &Root = Resolver.rootScope();
+    EXPECT_EQ(&Resolver.currentScope(), &Root);
+    EXPECT_EQ(Root.parent(), nullptr);
+    EXPECT_FALSE(Resolver.exitScope());
     ASSERT_EQ(Resolver.bind(X, *Outer), BindResult::Inserted);
-    Scope *SavedChild = nullptr;
-    const auto AnalyzeNested = [&]()
+    const Binding *OuterBinding = Resolver.lookup(X);
+    ASSERT_NE(OuterBinding, nullptr);
+    EXPECT_EQ(OuterBinding->name(), X);
+    EXPECT_FALSE(OuterBinding->isOverloadSet());
+    Scope &Child = Resolver.enterScope();
+    EXPECT_EQ(Child.parent(), &Root);
+    EXPECT_EQ(Resolver.lookup(X), OuterBinding);
+    EXPECT_EQ(Resolver.lookupLocal(X), nullptr);
+    ASSERT_EQ(Resolver.bind(X, *Inner), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(Local, *Inner), BindResult::Inserted);
+    const Binding *ChildBinding = Resolver.lookup(X);
+    ASSERT_NE(ChildBinding, nullptr);
+    ASSERT_EQ(ChildBinding->targets().size(), 1U);
+    EXPECT_EQ(ChildBinding->targets()[0], static_cast<Value *>(Inner));
+    Scope &Grandchild = Resolver.enterScope();
+    EXPECT_EQ(Grandchild.parent(), &Child);
+    EXPECT_EQ(Resolver.lookup(X), ChildBinding);
+    ASSERT_TRUE(Resolver.exitScope());
+    EXPECT_EQ(&Resolver.currentScope(), &Child);
+    ASSERT_TRUE(Resolver.exitScope());
+    EXPECT_EQ(Resolver.lookup(X), OuterBinding);
+    EXPECT_EQ(Resolver.lookup(Local), nullptr);
+    Scope &Sibling = Resolver.enterScope();
+    EXPECT_NE(&Sibling, &Child);
+    EXPECT_EQ(Sibling.parent(), &Root);
+    EXPECT_EQ(Resolver.lookup(X), OuterBinding);
+    EXPECT_EQ(Resolver.lookup(Local), nullptr);
+    NameResolver Resumed(Grandchild);
+    EXPECT_EQ(Resumed.lookup(X), ChildBinding);
+    EXPECT_EQ(Resumed.lookupLocal(X), nullptr);
+  }
+
+  // Only explicit overload bindings accumulate functions, and mixing binding policies never changes an existing binding.
+  TEST(SemanticNameResolverTest, AccumulatesOnlyExplicitOverloads)
+  {
+    IRContext Context(target::TargetContext::native());
+    Module ModuleValue(Context);
+    const auto *Signature = Context.typePool().getFunctionType(Context.typePool().getVoidType());
+    ASSERT_NE(Signature, nullptr);
+    auto *First = ModuleValue.createGlobalFunction(*Signature);
+    auto *Second = ModuleValue.createGlobalFunction(*Signature);
+    auto *Variable = ModuleValue.createGlobalVariable(*Context.typePool().getBoolType());
+    ASSERT_NE(First, nullptr);
+    ASSERT_NE(Second, nullptr);
+    ASSERT_NE(Variable, nullptr);
+    ScopeStore Store;
+    NameResolver Resolver(Store);
+    const Name F = core::NamePool::instance().intern("F");
+    const Name Plain = core::NamePool::instance().intern("Plain");
+    ASSERT_EQ(Resolver.bindOverload(F, *First), BindResult::Inserted);
+    const Binding *Overloads = Resolver.lookup(F);
+    ASSERT_NE(Overloads, nullptr);
+    EXPECT_TRUE(Overloads->isOverloadSet());
+    EXPECT_EQ(Resolver.bindOverload(F, *First), BindResult::AlreadyBound);
+    EXPECT_EQ(Resolver.bind(F, *First), BindResult::Conflict);
+    EXPECT_EQ(Resolver.bind(F, *Variable), BindResult::Conflict);
+    ASSERT_EQ(Resolver.bindOverload(F, *Second), BindResult::Inserted);
+    EXPECT_EQ(Resolver.lookup(F), Overloads);
+    ASSERT_EQ(Overloads->targets().size(), 2U);
+    EXPECT_EQ(Overloads->targets()[0], static_cast<Value *>(First));
+    EXPECT_EQ(Overloads->targets()[1], static_cast<Value *>(Second));
+    ASSERT_EQ(Resolver.bind(Plain, *First), BindResult::Inserted);
+    EXPECT_EQ(Resolver.bind(Plain, *First), BindResult::AlreadyBound);
+    EXPECT_EQ(Resolver.bind(Plain, *Second), BindResult::Conflict);
+    EXPECT_EQ(Resolver.bindOverload(Plain, *First), BindResult::Conflict);
+    EXPECT_EQ(Resolver.bindOverload(Plain, *Second), BindResult::Conflict);
+    const Binding *PlainBinding = Resolver.lookup(Plain);
+    ASSERT_NE(PlainBinding, nullptr);
+    EXPECT_FALSE(PlainBinding->isOverloadSet());
+    ASSERT_EQ(PlainBinding->targets().size(), 1U);
+    EXPECT_EQ(PlainBinding->targets()[0], static_cast<Value *>(First));
+  }
+
+  // An inner overload set hides the entire outer set instead of merging candidates across lexical scopes.
+  TEST(SemanticNameResolverTest, HidesOuterOverloadSetAsAWhole)
+  {
+    IRContext Context(target::TargetContext::native());
+    Module ModuleValue(Context);
+    const auto *Signature = Context.typePool().getFunctionType(Context.typePool().getVoidType());
+    ASSERT_NE(Signature, nullptr);
+    auto *First = ModuleValue.createGlobalFunction(*Signature);
+    auto *Second = ModuleValue.createGlobalFunction(*Signature);
+    auto *Inner = ModuleValue.createGlobalFunction(*Signature);
+    auto *Variable = ModuleValue.createGlobalVariable(*Context.typePool().getBoolType());
+    ASSERT_NE(First, nullptr);
+    ASSERT_NE(Second, nullptr);
+    ASSERT_NE(Inner, nullptr);
+    ASSERT_NE(Variable, nullptr);
+    ScopeStore Store;
+    NameResolver Resolver(Store);
+    const Name F = core::NamePool::instance().intern("F");
+    ASSERT_EQ(Resolver.bindOverload(F, *First), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bindOverload(F, *Second), BindResult::Inserted);
+    const Binding *OuterBinding = Resolver.lookup(F);
+    Resolver.enterScope();
+    ASSERT_EQ(Resolver.bindOverload(F, *Inner), BindResult::Inserted);
+    const Binding *InnerBinding = Resolver.lookup(F);
+    ASSERT_NE(InnerBinding, nullptr);
+    ASSERT_EQ(InnerBinding->targets().size(), 1U);
+    EXPECT_EQ(InnerBinding->targets()[0], static_cast<Value *>(Inner));
+    Resolver.enterScope();
+    ASSERT_EQ(Resolver.bind(F, *Variable), BindResult::Inserted);
+    ASSERT_NE(Resolver.lookup(F), nullptr);
+    EXPECT_FALSE(Resolver.lookup(F)->isOverloadSet());
+    ASSERT_TRUE(Resolver.exitScope());
+    EXPECT_EQ(Resolver.lookup(F), InnerBinding);
+    ASSERT_TRUE(Resolver.exitScope());
+    EXPECT_EQ(Resolver.lookup(F), OuterBinding);
+    ASSERT_NE(OuterBinding, nullptr);
+    EXPECT_EQ(OuterBinding->targets().size(), 2U);
+  }
+
+  // Invalid names and conflicting values fail without replacing bindings or mutating the process-wide name pool.
+  TEST(SemanticNameResolverTest, RejectsInvalidNamesAndConflictingValues)
+  {
+    IRContext Context(target::TargetContext::native());
+    Module ModuleValue(Context);
+    auto *First = ModuleValue.createGlobalVariable(*Context.typePool().getBoolType());
+    auto *Second = ModuleValue.createGlobalVariable(*Context.typePool().getBoolType());
+    const auto *Signature = Context.typePool().getFunctionType(Context.typePool().getVoidType());
+    ASSERT_NE(Signature, nullptr);
+    auto *FunctionValue = ModuleValue.createGlobalFunction(*Signature);
+    ASSERT_NE(First, nullptr);
+    ASSERT_NE(Second, nullptr);
+    ASSERT_NE(FunctionValue, nullptr);
+    ScopeStore Store;
+    NameResolver Resolver(Store);
+    const Name X = core::NamePool::instance().intern("X");
+    const Name Missing = core::NamePool::instance().intern("Missing");
+    const std::size_t NameCount = core::NamePool::instance().size();
+    EXPECT_EQ(Resolver.bind(Name{}, *First), BindResult::InvalidName);
+    EXPECT_EQ(Resolver.bind(Name{}, ModuleValue), BindResult::InvalidName);
+    EXPECT_EQ(Resolver.bindOverload(Name{}, *FunctionValue), BindResult::InvalidName);
+    EXPECT_EQ(Resolver.lookup(Name{}), nullptr);
+    EXPECT_EQ(Resolver.lookupLocal(Name{}), nullptr);
+    EXPECT_EQ(Resolver.lookup(Missing), nullptr);
+    ASSERT_EQ(Resolver.bind(X, *First), BindResult::Inserted);
+    const Binding *Saved = Resolver.lookup(X);
+    EXPECT_EQ(Resolver.bind(X, *First), BindResult::AlreadyBound);
+    EXPECT_EQ(Resolver.bind(X, *Second), BindResult::Conflict);
+    EXPECT_EQ(Resolver.bind(X, ModuleValue), BindResult::Conflict);
+    EXPECT_EQ(Resolver.lookup(X), Saved);
+    ASSERT_NE(Saved, nullptr);
+    ASSERT_EQ(Saved->targets().size(), 1U);
+    EXPECT_EQ(Saved->targets()[0], static_cast<Value *>(First));
+    EXPECT_EQ(core::NamePool::instance().size(), NameCount);
+  }
+
+  // Module and base references share binding identity and member scopes, and member lookup never searches lexical parents.
+  TEST(SemanticNameResolverTest, ResolvesModuleAndValueMembersWithoutParentFallback)
+  {
+    IRContext Context(target::TargetContext::native());
+    Module Owner(Context);
+    Module Unregistered(Context);
+    Value &OwnerValue = Owner;
+    auto *ValueOwner = Owner.createGlobalVariable(*Context.typePool().getBoolType());
+    auto *Member = Owner.createGlobalVariable(*Context.typePool().getBoolType());
+    ASSERT_NE(ValueOwner, nullptr);
+    ASSERT_NE(Member, nullptr);
+    ScopeStore Store;
+    NameResolver Resolver(Store);
+    const Name ModuleName = core::NamePool::instance().intern("Owner");
+    const Name Alias = core::NamePool::instance().intern("Alias");
+    const Name Outer = core::NamePool::instance().intern("Outer");
+    const Name Field = core::NamePool::instance().intern("Field");
+    ASSERT_EQ(Resolver.bind(ModuleName, Owner), BindResult::Inserted);
+    const Binding *ModuleBinding = Resolver.lookupLocal(ModuleName);
+    ASSERT_NE(ModuleBinding, nullptr);
+    ASSERT_EQ(Resolver.bind(Alias, OwnerValue), BindResult::Inserted);
+    EXPECT_EQ(Resolver.bind(ModuleName, Owner), BindResult::AlreadyBound);
+    EXPECT_EQ(Resolver.bind(ModuleName, OwnerValue), BindResult::AlreadyBound);
+    EXPECT_EQ(Resolver.lookupLocal(ModuleName), ModuleBinding);
+    ASSERT_EQ(ModuleBinding->targets().size(), 1U);
+    EXPECT_EQ(ModuleBinding->targets()[0], &OwnerValue);
+    EXPECT_EQ(Resolver.bind(ModuleName, Unregistered), BindResult::Conflict);
+    ASSERT_NE(Resolver.lookup(ModuleName), nullptr);
+    EXPECT_EQ(Resolver.lookup(ModuleName)->targets()[0], static_cast<Value *>(&Owner));
+    EXPECT_EQ(Resolver.lookup(Alias)->targets()[0], static_cast<Value *>(&Owner));
+    ASSERT_EQ(Resolver.bind(Outer, *Member), BindResult::Inserted);
+    Scope *Members = Resolver.enterScope(Owner);
+    ASSERT_NE(Members, nullptr);
+    EXPECT_EQ(Resolver.enterScope(OwnerValue), nullptr);
+    EXPECT_EQ(&Resolver.currentScope(), Members);
+    EXPECT_EQ(Store.memberScope(OwnerValue), Members);
+    EXPECT_EQ(Store.memberScope(Owner), Members);
+    ASSERT_TRUE(Members->owner().has_value());
+    EXPECT_EQ(*Members->owner(), static_cast<Value *>(&Owner));
+    ASSERT_EQ(Resolver.bind(Field, *Member), BindResult::Inserted);
+    const Binding *ModuleField = Resolver.lookupLocal(Field);
+    EXPECT_NE(Resolver.lookup(Outer), nullptr);
+    EXPECT_EQ(Resolver.lookupMember(Owner, Outer), nullptr);
+    EXPECT_EQ(Resolver.lookupMember(Owner, Name{}), nullptr);
+    EXPECT_EQ(Resolver.lookupMember(Unregistered, Field), nullptr);
+    ASSERT_TRUE(Resolver.exitScope());
+    EXPECT_EQ(Resolver.lookupMember(Owner, Field), ModuleField);
+    EXPECT_EQ(Resolver.lookupMember(OwnerValue, Field), ModuleField);
+    EXPECT_EQ(Resolver.lookupMember(OwnerValue, Outer), nullptr);
+    Scope *ValueMembers = Resolver.enterScope(*ValueOwner);
+    ASSERT_NE(ValueMembers, nullptr);
+    ASSERT_TRUE(ValueMembers->owner().has_value());
+    EXPECT_EQ(*ValueMembers->owner(), static_cast<Value *>(ValueOwner));
+    ASSERT_EQ(Resolver.bind(Field, *Member), BindResult::Inserted);
+    EXPECT_EQ(Resolver.lookupMember(*ValueOwner, Field), Resolver.lookupLocal(Field));
+    EXPECT_EQ(Resolver.lookupMember(*ValueOwner, Outer), nullptr);
+    EXPECT_EQ(Resolver.lookupMember(*Member, Field), nullptr);
+  }
+
+  // Resolvers sharing a context keep independent cursors, and a later resolver can resume a persisted scope.
+  TEST(SemanticNameResolverTest, ContextSharesStorageWithoutSharingResolverCursor)
+  {
+    core::SourceManager Sources;
+    core::DiagnosticEngine Diagnostics;
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    Module ModuleValue(Context.irContext());
+    auto *Target = ModuleValue.createGlobalVariable(*Context.typePool().getBoolType());
+    ASSERT_NE(Target, nullptr);
+    const Name X = core::NamePool::instance().intern("X");
+    const auto CheckResolvers = [&]()
     {
-      NameResolver::ScopeGuard Child(Resolver);
-      SavedChild = Child.scope();
-      ASSERT_EQ(&Resolver.currentScope(), SavedChild);
-      ASSERT_EQ(Resolver.bind(X, *Inner), BindResult::Inserted);
+      Scope *Saved = nullptr;
       {
-        NameResolver::ScopeGuard Nested(Resolver);
+        NameResolver First(Context);
+        NameResolver Second(Context);
+        EXPECT_EQ(&First.scopeStore(), &Context.scopeStore());
+        EXPECT_EQ(&First.rootScope(), &Second.rootScope());
+        Saved = &First.enterScope();
+        EXPECT_EQ(&Second.currentScope(), &Second.rootScope());
+        ASSERT_EQ(First.bind(X, *Target), BindResult::Inserted);
+        EXPECT_EQ(Second.lookup(X), nullptr);
+        ASSERT_TRUE(Second.enterScope(*Saved));
+        EXPECT_EQ(Second.lookupLocal(X), First.lookupLocal(X));
+        First.enterScope();
+        EXPECT_EQ(&Second.currentScope(), Saved);
+      }
+      {
+        ASSERT_NE(Saved, nullptr);
+        NameResolver Resumed(*Saved);
+        EXPECT_EQ(&Resumed.scopeStore(), &Context.scopeStore());
+        ASSERT_NE(Resumed.lookupLocal(X), nullptr);
+        EXPECT_EQ(Resumed.lookupLocal(X)->targets()[0], static_cast<Value *>(Target));
+      }
+    };
+    CheckResolvers();
+    Context.scopeStore().removeTarget(*Target);
+  }
+
+  // Nested guards restore the exact saved scope on early return despite additional manual scope changes.
+  TEST(SemanticNameResolverTest, GuardsRestoreExactScopeOnEarlyReturn)
+  {
+    IRContext Context(target::TargetContext::native());
+    Module ModuleValue(Context);
+    auto *Target = ModuleValue.createGlobalVariable(*Context.typePool().getBoolType());
+    ASSERT_NE(Target, nullptr);
+    ScopeStore Store;
+    NameResolver Resolver(Store);
+    Scope &Original = Resolver.enterScope();
+    const Name X = core::NamePool::instance().intern("X");
+    Scope *SavedChild = nullptr;
+    const auto Analyze = [&]()
+    {
+      ScopeGuard Child(Resolver);
+      SavedChild = Child.scope();
+      ASSERT_NE(SavedChild, nullptr);
+      ASSERT_EQ(Resolver.bind(X, *Target), BindResult::Inserted);
+      {
+        ScopeGuard Nested(Resolver);
+        ASSERT_NE(Nested.scope(), nullptr);
         EXPECT_EQ(Nested.scope()->parent(), SavedChild);
-        // Even an additional manually entered scope cannot prevent exact restoration.
         Resolver.enterScope();
-        EXPECT_EQ(Resolver.lookup(X)->targets()[0], Inner.get());
+      }
+      EXPECT_EQ(&Resolver.currentScope(), SavedChild);
+      {
+        ScopeGuard Nested(Resolver);
+        Resolver.enterScope();
         return;
       }
     };
-    AnalyzeNested();
+    Analyze();
     EXPECT_EQ(&Resolver.currentScope(), &Original);
-    ASSERT_NE(Resolver.lookup(X), nullptr);
-    EXPECT_EQ(Resolver.lookup(X)->targets()[0], Outer.get());
+    EXPECT_EQ(Resolver.lookup(X), nullptr);
     ASSERT_NE(SavedChild, nullptr);
     NameResolver Resumed(*SavedChild);
     ASSERT_NE(Resumed.lookupLocal(X), nullptr);
-    EXPECT_EQ(Resumed.lookupLocal(X)->targets()[0], Inner.get());
+    EXPECT_EQ(Resumed.lookupLocal(X)->targets()[0], static_cast<Value *>(Target));
+    {
+      ScopeGuard Existing(Resolver, *SavedChild);
+      EXPECT_EQ(Existing.scope(), SavedChild);
+      EXPECT_EQ(&Resolver.currentScope(), SavedChild);
+    }
+    EXPECT_EQ(&Resolver.currentScope(), &Original);
   }
 
-  // Member guards retain persistent scopes, and failed duplicate/foreign entries never undo subsequent scope changes.
-  TEST(SemanticNameResolverTest, MemberScopeGuardsHandleFailedEntry)
+  // Module and base-reference guards share owner identity; failed entries preserve the cursor and do not undo later entries.
+  TEST(SemanticNameResolverTest, FailedEntriesAndGuardsPreserveCursorChanges)
   {
-    core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
-    SemanticContext Context(Sources, DiagnosticEngine);
-    SemanticContext Other(Sources, DiagnosticEngine);
-    IRBuilder Builder(Context.irContext());
-    IRBuilder OtherBuilder(Other.irContext());
-    Module *Owner = Builder.createModule(Context.namePool().intern("Owner"));
-    Module *Foreign = OtherBuilder.createModule(Other.namePool().intern("Foreign"));
-    ASSERT_NE(Owner, nullptr);
-    ASSERT_NE(Foreign, nullptr);
-    NameResolver Resolver(Context);
-    Scope &Original = Resolver.currentScope();
+    IRContext Context(target::TargetContext::native());
+    Module Owner(Context);
+    Value &OwnerValue = Owner;
+    auto *ValueOwner = Owner.createGlobalVariable(*Context.typePool().getBoolType());
+    ASSERT_NE(ValueOwner, nullptr);
+    ScopeStore Store;
+    ScopeStore Foreign;
+    NameResolver Resolver(Store);
+    Scope &Root = Resolver.rootScope();
     Scope *Members = nullptr;
     {
-      NameResolver::ScopeGuard Guard(Resolver, *Owner);
-      Members = Guard.scope();
+      ScopeGuard OwnerGuard(Resolver, Owner);
+      Members = OwnerGuard.scope();
       ASSERT_NE(Members, nullptr);
+      EXPECT_EQ(Resolver.enterScope(Owner), nullptr);
+      EXPECT_EQ(Resolver.enterScope(OwnerValue), nullptr);
       EXPECT_EQ(&Resolver.currentScope(), Members);
-      EXPECT_EQ(Members->parent(), &Original);
-      {
-        NameResolver::ScopeGuard Duplicate(Resolver, *Owner);
-        EXPECT_EQ(Duplicate.scope(), nullptr);
-        EXPECT_EQ(&Resolver.currentScope(), Members);
-      }
+      EXPECT_FALSE(Resolver.enterScope(Foreign.rootScope()));
       EXPECT_EQ(&Resolver.currentScope(), Members);
       Scope *Deeper = nullptr;
       {
-        NameResolver::ScopeGuard Failed(Resolver, *Foreign);
+        ScopeGuard Duplicate(Resolver, OwnerValue);
+        EXPECT_EQ(Duplicate.scope(), nullptr);
+        Deeper = &Resolver.enterScope();
+      }
+      EXPECT_EQ(&Resolver.currentScope(), Deeper);
+      {
+        ScopeGuard Failed(Resolver, Foreign.rootScope());
         EXPECT_EQ(Failed.scope(), nullptr);
-        EXPECT_EQ(&Resolver.currentScope(), Members);
         Deeper = &Resolver.enterScope();
       }
       EXPECT_EQ(&Resolver.currentScope(), Deeper);
     }
-    EXPECT_EQ(&Resolver.currentScope(), &Original);
-    EXPECT_EQ(Context.scopeStore().memberScope(*Owner), Members);
-    EXPECT_EQ(Context.scopeStore().memberScope(*Foreign), nullptr);
-  }
-
-  // Enter and exit restore lexical lookup, isolate siblings and keep exited scopes and bindings alive.
-  TEST(SemanticNameResolverTest, ResolvesNearestLexicalBinding)
-  {
-    core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
-    SemanticContext Context(Sources, DiagnosticEngine);
-    IRBuilder Builder(Context.irContext());
-    NameResolver Resolver(Context);
-    auto &Root = Resolver.rootScope();
     EXPECT_EQ(&Resolver.currentScope(), &Root);
-    EXPECT_EQ(Root.parent(), nullptr);
-    EXPECT_FALSE(Resolver.exitScope());
-    EXPECT_EQ(&Resolver.currentScope(), &Root);
-    const Name X = Context.namePool().intern("X");
-    const Name Local = Context.namePool().intern("Local");
-    auto OuterOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *Outer = OuterOwner.get();
-    auto InnerOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *Inner = InnerOwner.get();
-    ASSERT_NE(Outer, nullptr);
-    ASSERT_NE(Inner, nullptr);
-    ASSERT_EQ(Resolver.bind(X, *Outer), BindResult::Inserted);
-    const auto *RootBinding = Resolver.lookup(X);
-    ASSERT_NE(RootBinding, nullptr);
-    EXPECT_EQ(RootBinding->name(), X);
-    EXPECT_FALSE(RootBinding->isOverloadSet());
-    EXPECT_EQ(Resolver.lookupLocal(X), RootBinding);
-    auto &Child = Resolver.enterScope();
-    EXPECT_EQ(&Resolver.currentScope(), &Child);
-    EXPECT_EQ(Child.parent(), &Root);
-    EXPECT_EQ(Resolver.lookup(X), RootBinding);
-    EXPECT_EQ(Resolver.lookupLocal(X), nullptr);
-    ASSERT_EQ(Resolver.bind(X, *Inner), BindResult::Inserted);
-    ASSERT_EQ(Resolver.bind(Local, *Inner), BindResult::Inserted);
-    const auto *ChildBinding = Resolver.lookup(X);
-    ASSERT_NE(ChildBinding, nullptr);
-    ASSERT_EQ(ChildBinding->targets().size(), 1U);
-    EXPECT_EQ(ChildBinding->targets()[0], Inner);
-    auto &Grandchild = Resolver.enterScope();
-    EXPECT_EQ(Grandchild.parent(), &Child);
-    EXPECT_EQ(Resolver.lookup(X), ChildBinding);
-    EXPECT_EQ(Resolver.lookupLocal(X), nullptr);
-    ASSERT_TRUE(Resolver.exitScope());
-    EXPECT_EQ(&Resolver.currentScope(), &Child);
-    EXPECT_EQ(Resolver.lookupLocal(X), ChildBinding);
-    ASSERT_TRUE(Resolver.exitScope());
-    EXPECT_EQ(&Resolver.currentScope(), &Root);
-    EXPECT_EQ(Resolver.lookup(X), RootBinding);
-    EXPECT_EQ(Resolver.lookupLocal(X), RootBinding);
-    EXPECT_EQ(Resolver.lookup(Local), nullptr);
-    auto &Sibling = Resolver.enterScope();
-    EXPECT_NE(&Sibling, &Child);
-    EXPECT_EQ(Sibling.parent(), &Root);
-    EXPECT_EQ(Resolver.lookup(X), RootBinding);
-    EXPECT_EQ(Resolver.lookupLocal(X), nullptr);
-    EXPECT_EQ(Resolver.lookup(Local), nullptr);
-    ASSERT_TRUE(Resolver.exitScope());
-    EXPECT_FALSE(Resolver.exitScope());
-    EXPECT_EQ(&Resolver.currentScope(), &Root);
-    EXPECT_EQ(Child.parent(), &Root);
-    EXPECT_EQ(Grandchild.parent(), &Child);
-    EXPECT_EQ(ChildBinding->targets()[0], Inner);
-  }
-
-  // Distinct functions remain ordered candidates, including unresolved signature conflicts; identical targets are not added twice.
-  TEST(SemanticNameResolverTest, CollectsOverloadsWithoutSelectingOrMergingEntities)
-  {
-    core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
-    SemanticContext Context(Sources, DiagnosticEngine);
-    IRBuilder Builder(Context.irContext());
-    NameResolver Resolver(Context);
-    const Name F = Context.namePool().intern("F");
-    const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
-    ASSERT_NE(Int32, nullptr);
-    auto IntegerOverloadOwner = createUnaryFunction(Context, F, *Int32);
-    Function *IntegerOverload = IntegerOverloadOwner.get();
-    auto BoolOverloadOwner = createUnaryFunction(Context, F, Context.typePool().getType<TypeKind::Bool>());
-    Function *BoolOverload = BoolOverloadOwner.get();
-    auto RepeatedSignatureOwner = createUnaryFunction(Context, F, *Int32);
-    Function *RepeatedSignature = RepeatedSignatureOwner.get();
-    auto VariableOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *Variable = VariableOwner.get();
-    ASSERT_NE(IntegerOverload, nullptr);
-    ASSERT_NE(BoolOverload, nullptr);
-    ASSERT_NE(RepeatedSignature, nullptr);
-    ASSERT_NE(Variable, nullptr);
-    ASSERT_EQ(Resolver.bind(F, *IntegerOverload), BindResult::Inserted);
-    const auto *Binding = Resolver.lookup(F);
-    ASSERT_NE(Binding, nullptr);
-    EXPECT_TRUE(Binding->isOverloadSet());
-    ASSERT_EQ(Resolver.bind(F, *BoolOverload), BindResult::Inserted);
-    ASSERT_EQ(Resolver.bind(F, *RepeatedSignature), BindResult::Inserted);
-    EXPECT_EQ(Resolver.bind(F, *IntegerOverload), BindResult::AlreadyBound);
-    EXPECT_EQ(Resolver.bind(F, *Variable), BindResult::Conflict);
-    EXPECT_EQ(Resolver.lookup(F), Binding);
-    ASSERT_EQ(Binding->targets().size(), 3U);
-    EXPECT_EQ(Binding->targets()[0], IntegerOverload);
-    EXPECT_EQ(Binding->targets()[1], BoolOverload);
-    EXPECT_EQ(Binding->targets()[2], RepeatedSignature);
-  }
-
-  // A function-valued call result is an ordinary binding, and distinct non-function values cannot share a name.
-  TEST(SemanticNameResolverTest, RejectsNonFunctionCollisionsWithoutReplacingBindings)
-  {
-    core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
-    SemanticContext Context(Sources, DiagnosticEngine);
-    IRBuilder Builder(Context.irContext());
-    NameResolver Resolver(Context);
-    const Name F = Context.namePool().intern("F");
-    const Name Variable = Context.namePool().intern("Variable");
-    auto FunctionValueOwner = createUnaryFunction(Context, F, Context.typePool().getType<TypeKind::Bool>());
-    Function *FunctionValue = FunctionValueOwner.get();
-    ASSERT_NE(FunctionValue, nullptr);
-    const FunctionType *FactoryType = Context.typePool().getType<TypeKind::Function>(FunctionValue->functionType());
-    ASSERT_NE(FactoryType, nullptr);
-    auto FactoryOwner = Builder.createFunction(Context.namePool().intern("Factory"), *FactoryType);
-    Function *Factory = FactoryOwner.get();
-    ASSERT_NE(Factory, nullptr);
-    auto ResultOwner = Builder.createDetachedCallInstruction(*Factory);
-    Value *Result = ResultOwner.get();
-    auto FirstOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *First = FirstOwner.get();
-    auto SecondOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *Second = SecondOwner.get();
-    ASSERT_NE(Result, nullptr);
-    ASSERT_NE(First, nullptr);
-    ASSERT_NE(Second, nullptr);
-    ASSERT_EQ(Resolver.bind(F, *Result), BindResult::Inserted);
-    EXPECT_EQ(Resolver.bind(F, *Result), BindResult::AlreadyBound);
-    EXPECT_EQ(Resolver.bind(F, *FunctionValue), BindResult::Conflict);
-    EXPECT_EQ(Resolver.bind(F, *First), BindResult::Conflict);
-    const auto *Binding = Resolver.lookup(F);
-    ASSERT_NE(Binding, nullptr);
-    EXPECT_FALSE(Binding->isOverloadSet());
-    ASSERT_EQ(Binding->targets().size(), 1U);
-    EXPECT_EQ(Binding->targets()[0], Result);
-    ASSERT_EQ(Resolver.bind(Variable, *First), BindResult::Inserted);
-    EXPECT_EQ(Resolver.bind(Variable, *Second), BindResult::Conflict);
-    const auto *VariableBinding = Resolver.lookup(Variable);
-    ASSERT_NE(VariableBinding, nullptr);
-    EXPECT_EQ(VariableBinding->targets()[0], First);
-  }
-
-  // Nested bindings hide complete overload sets, and exiting each scope restores the previous set.
-  TEST(SemanticNameResolverTest, HidesOuterOverloadSetsAsAWhole)
-  {
-    core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
-    SemanticContext Context(Sources, DiagnosticEngine);
-    IRBuilder Builder(Context.irContext());
-    NameResolver Resolver(Context);
-    const Name F = Context.namePool().intern("F");
-    const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
-    ASSERT_NE(Int32, nullptr);
-    auto OuterOwner = createUnaryFunction(Context, F, *Int32);
-    Function *Outer = OuterOwner.get();
-    auto SecondOuterOwner = createUnaryFunction(Context, F, Context.typePool().getType<TypeKind::Bool>());
-    Function *SecondOuter = SecondOuterOwner.get();
-    auto InnerOwner = createUnaryFunction(Context, F, Context.typePool().getType<TypeKind::Bool>());
-    Function *Inner = InnerOwner.get();
-    ASSERT_NE(Outer, nullptr);
-    ASSERT_NE(SecondOuter, nullptr);
-    ASSERT_NE(Inner, nullptr);
-    ASSERT_EQ(Resolver.bind(F, *Outer), BindResult::Inserted);
-    ASSERT_EQ(Resolver.bind(F, *SecondOuter), BindResult::Inserted);
-    const auto *OuterBinding = Resolver.lookup(F);
-    ASSERT_NE(OuterBinding, nullptr);
-    ASSERT_EQ(OuterBinding->targets().size(), 2U);
-    Resolver.enterScope();
-    EXPECT_EQ(Resolver.lookup(F), OuterBinding);
-    EXPECT_EQ(Resolver.lookupLocal(F), nullptr);
-    ASSERT_EQ(Resolver.bind(F, *Inner), BindResult::Inserted);
-    const auto *Binding = Resolver.lookup(F);
-    ASSERT_NE(Binding, nullptr);
-    ASSERT_EQ(Binding->targets().size(), 1U);
-    EXPECT_EQ(Binding->targets()[0], Inner);
-    Resolver.enterScope();
-    auto VariableOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *Variable = VariableOwner.get();
-    ASSERT_NE(Variable, nullptr);
-    ASSERT_EQ(Resolver.bind(F, *Variable), BindResult::Inserted);
-    const auto *Local = Resolver.lookup(F);
-    ASSERT_NE(Local, nullptr);
-    EXPECT_FALSE(Local->isOverloadSet());
-    ASSERT_TRUE(Resolver.exitScope());
-    EXPECT_EQ(Resolver.lookup(F), Binding);
-    EXPECT_EQ(Resolver.lookupLocal(F), Binding);
-    ASSERT_TRUE(Resolver.exitScope());
-    EXPECT_EQ(Resolver.lookup(F), OuterBinding);
-    EXPECT_EQ(Resolver.lookupLocal(F), OuterBinding);
-    ASSERT_EQ(OuterBinding->targets().size(), 2U);
-    EXPECT_EQ(OuterBinding->targets()[0], Outer);
-    EXPECT_EQ(OuterBinding->targets()[1], SecondOuter);
-    EXPECT_EQ(Local->targets()[0], Variable);
-  }
-
-  // Invalid names and foreign values fail without changing bindings or names, and resolvers keep independent scope state.
-  TEST(SemanticNameResolverTest, RejectsForeignInputsAndLeavesMissesUnchanged)
-  {
-    core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
-    SemanticContext Context(Sources, DiagnosticEngine);
-    IRBuilder Builder(Context.irContext());
-    SemanticContext OtherContext(Sources, DiagnosticEngine);
-    IRBuilder OtherContextBuilder(OtherContext.irContext());
-    NameResolver Resolver(Context);
-    NameResolver OtherResolver(Context);
-    const Name Missing = Context.namePool().intern("Missing");
-    OtherContext.namePool().intern("Other");
-    const Name OutOfRange = OtherContext.namePool().intern("OutOfRange");
-    auto LocalValueOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *LocalValue = LocalValueOwner.get();
-    auto ForeignValueOwner = OtherContextBuilder.createDetachedAllocaInstruction(OtherContext.typePool().getType<TypeKind::Bool>());
-    Value *ForeignValue = ForeignValueOwner.get();
-    ASSERT_NE(LocalValue, nullptr);
-    ASSERT_NE(ForeignValue, nullptr);
-    const std::size_t NameCount = Context.namePool().size();
-    EXPECT_EQ(Resolver.lookup(Missing), nullptr);
-    EXPECT_EQ(Resolver.lookupLocal(Missing), nullptr);
-    EXPECT_EQ(Resolver.lookup(Name{}), nullptr);
-    EXPECT_EQ(Resolver.lookupLocal(OutOfRange), nullptr);
-    EXPECT_EQ(Resolver.bind(Name{}, *LocalValue), BindResult::InvalidName);
-    EXPECT_EQ(Resolver.bind(OutOfRange, *LocalValue), BindResult::InvalidName);
-    EXPECT_EQ(Resolver.bind(Missing, *ForeignValue), BindResult::ForeignValue);
-    Resolver.enterScope();
-    EXPECT_EQ(&OtherResolver.currentScope(), &OtherResolver.rootScope());
-    ASSERT_EQ(OtherResolver.bind(Missing, *LocalValue), BindResult::Inserted);
-    EXPECT_EQ(&Resolver.rootScope(), &OtherResolver.rootScope());
-    EXPECT_EQ(Resolver.lookup(Missing), OtherResolver.lookup(Missing));
-    EXPECT_EQ(Resolver.lookupLocal(Missing), nullptr);
-    EXPECT_NE(OtherResolver.lookup(Missing), nullptr);
-    EXPECT_EQ(Context.namePool().size(), NameCount);
-  }
-
-  // Qualified paths, relative paths and owner aliases resolve to the same bindings after member scopes are exited.
-  TEST(SemanticNameResolverTest, QualifiedAndRelativePathsShareMemberBindings)
-  {
-    core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
-    SemanticContext Context(Sources, DiagnosticEngine);
-    IRBuilder Builder(Context.irContext());
-    NameResolver Resolver(Context);
-    const Name A = Context.namePool().intern("A");
-    const Name B = Context.namePool().intern("B");
-    const Name C = Context.namePool().intern("C");
-    const Name Alias = Context.namePool().intern("Alias");
-    Module *AValue = Builder.createModule(A);
-    Module *BValue = Builder.createModule(B);
-    auto CValueOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *CValue = CValueOwner.get();
-    ASSERT_NE(AValue, nullptr);
-    ASSERT_NE(BValue, nullptr);
-    ASSERT_NE(CValue, nullptr);
-    auto &Root = Resolver.currentScope();
-    ASSERT_EQ(Resolver.bind(A, *AValue), BindResult::Inserted);
-    ASSERT_EQ(Resolver.bind(Alias, *AValue), BindResult::Inserted);
-    auto *AScope = Resolver.enterScope(*AValue);
-    ASSERT_NE(AScope, nullptr);
-    EXPECT_EQ(&Resolver.currentScope(), AScope);
-    EXPECT_EQ(AScope->parent(), &Root);
-    ASSERT_EQ(Resolver.bind(B, *BValue), BindResult::Inserted);
-    auto *BScope = Resolver.enterScope(*BValue);
-    ASSERT_NE(BScope, nullptr);
-    EXPECT_EQ(BScope->parent(), AScope);
-    ASSERT_EQ(Resolver.bind(C, *CValue), BindResult::Inserted);
-    const auto *CBinding = Resolver.lookupLocal(C);
-    ASSERT_NE(CBinding, nullptr);
-    ASSERT_EQ(CBinding->targets().size(), 1U);
-    EXPECT_EQ(CBinding->targets()[0], CValue);
-    ASSERT_TRUE(Resolver.exitScope());
-    const auto *RelativeB = Resolver.lookup(B);
-    ASSERT_NE(RelativeB, nullptr);
-    ASSERT_EQ(RelativeB->targets().size(), 1U);
-    const auto *RelativeC = Resolver.lookupMember(*RelativeB->targets()[0], C);
-    EXPECT_EQ(RelativeC, CBinding);
-    EXPECT_EQ(&Resolver.currentScope(), AScope);
-    ASSERT_TRUE(Resolver.exitScope());
-    const auto *RootA = Resolver.lookup(A);
-    ASSERT_NE(RootA, nullptr);
-    ASSERT_EQ(RootA->targets().size(), 1U);
-    const auto *QualifiedB = Resolver.lookupMember(*RootA->targets()[0], B);
-    ASSERT_EQ(QualifiedB, RelativeB);
-    EXPECT_EQ(Resolver.lookupMember(*QualifiedB->targets()[0], C), RelativeC);
-    const auto *AliasA = Resolver.lookup(Alias);
-    ASSERT_NE(AliasA, nullptr);
-    ASSERT_EQ(AliasA->targets().size(), 1U);
-    EXPECT_EQ(Resolver.lookupMember(*AliasA->targets()[0], B), QualifiedB);
-    const NameResolver &View = Resolver;
-    EXPECT_EQ(View.lookupMember(*BValue, C), CBinding);
-    EXPECT_EQ(Resolver.lookup(B), nullptr);
-    EXPECT_EQ(Resolver.lookup(C), nullptr);
-    EXPECT_EQ(&Resolver.currentScope(), &Root);
-  }
-
-  // Member lookup returns complete overload sets but never searches lexical parents or nested anonymous blocks.
-  TEST(SemanticNameResolverTest, MemberLookupStaysWithinOwnerScope)
-  {
-    core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
-    SemanticContext Context(Sources, DiagnosticEngine);
-    IRBuilder Builder(Context.irContext());
-    NameResolver Resolver(Context);
-    const Name OwnerName = Context.namePool().intern("Owner");
-    const Name ParentName = Context.namePool().intern("ParentOnly");
-    const Name ChildName = Context.namePool().intern("ChildOnly");
-    const Name F = Context.namePool().intern("F");
-    Module *Owner = Builder.createModule(OwnerName);
-    auto VariableOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *Variable = VariableOwner.get();
-    const IntegerType *Int32 = Context.typePool().getType<TypeKind::Integer>(32, true);
-    ASSERT_NE(Owner, nullptr);
-    ASSERT_NE(Variable, nullptr);
-    ASSERT_NE(Int32, nullptr);
-    auto FirstOwner = createUnaryFunction(Context, F, Context.typePool().getType<TypeKind::Bool>());
-    Function *First = FirstOwner.get();
-    auto SecondOwner = createUnaryFunction(Context, F, *Int32);
-    Function *Second = SecondOwner.get();
-    ASSERT_NE(First, nullptr);
-    ASSERT_NE(Second, nullptr);
-    ASSERT_EQ(Resolver.bind(ParentName, *Variable), BindResult::Inserted);
-    const auto *ParentBinding = Resolver.lookupLocal(ParentName);
-    ASSERT_NE(ParentBinding, nullptr);
-    auto *OwnerScope = Resolver.enterScope(*Owner);
-    ASSERT_NE(OwnerScope, nullptr);
-    EXPECT_EQ(Resolver.lookup(ParentName), ParentBinding);
-    EXPECT_EQ(Resolver.lookupMember(*Owner, ParentName), nullptr);
-    ASSERT_EQ(Resolver.bind(F, *First), BindResult::Inserted);
-    ASSERT_EQ(Resolver.bind(F, *Second), BindResult::Inserted);
-    const auto *Overloads = Resolver.lookupLocal(F);
-    ASSERT_NE(Overloads, nullptr);
-    EXPECT_TRUE(Overloads->isOverloadSet());
-    ASSERT_EQ(Overloads->targets().size(), 2U);
-    auto &Block = Resolver.enterScope();
-    ASSERT_EQ(Resolver.bind(ChildName, *Variable), BindResult::Inserted);
-    EXPECT_NE(Resolver.lookupLocal(ChildName), nullptr);
-    EXPECT_EQ(Resolver.lookupMember(*Owner, ChildName), nullptr);
-    EXPECT_EQ(Resolver.lookupMember(*Owner, F), Overloads);
-    EXPECT_EQ(&Resolver.currentScope(), &Block);
-    ASSERT_TRUE(Resolver.exitScope());
-    EXPECT_EQ(&Resolver.currentScope(), OwnerScope);
-    ASSERT_TRUE(Resolver.exitScope());
-    EXPECT_EQ(Resolver.lookup(F), nullptr);
-    EXPECT_EQ(Resolver.lookupMember(*Owner, F), Overloads);
-    EXPECT_EQ(Overloads->targets()[0], First);
-    EXPECT_EQ(Overloads->targets()[1], Second);
-  }
-
-  // Scope creation rejects foreign and duplicate owners without changing state, while same-named entities stay independent.
-  TEST(SemanticNameResolverTest, MemberScopesUseEntityIdentityAndRejectInvalidRequests)
-  {
-    core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
-    SemanticContext Context(Sources, DiagnosticEngine);
-    IRBuilder Builder(Context.irContext());
-    SemanticContext OtherContext(Sources, DiagnosticEngine);
-    IRBuilder OtherContextBuilder(OtherContext.irContext());
-    NameResolver Resolver(Context);
-    const Name OwnerName = Context.namePool().intern("Owner");
-    const Name MemberName = Context.namePool().intern("Member");
-    Module *First = Builder.createModule(OwnerName);
-    Module *Second = Builder.createModule(OwnerName);
-    auto FirstMemberOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *FirstMember = FirstMemberOwner.get();
-    auto SecondMemberOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *SecondMember = SecondMemberOwner.get();
-    Module *Foreign = OtherContextBuilder.createModule(OtherContext.namePool().intern("Owner"));
-    OtherContext.namePool().intern("Member");
-    const Name OutOfRange = OtherContext.namePool().intern("OutOfRange");
-    ASSERT_NE(First, nullptr);
-    ASSERT_NE(Second, nullptr);
-    ASSERT_NE(FirstMember, nullptr);
-    ASSERT_NE(SecondMember, nullptr);
-    ASSERT_NE(Foreign, nullptr);
-    auto &Root = Resolver.currentScope();
-    const std::size_t NameCount = Context.namePool().size();
-    EXPECT_EQ(Resolver.lookupMember(*First, MemberName), nullptr);
-    EXPECT_EQ(Resolver.enterScope(*Foreign), nullptr);
-    EXPECT_EQ(&Resolver.currentScope(), &Root);
-    auto *FirstScope = Resolver.enterScope(*First);
-    ASSERT_NE(FirstScope, nullptr);
-    ASSERT_EQ(Resolver.bind(MemberName, *FirstMember), BindResult::Inserted);
-    const auto *FirstBinding = Resolver.lookupLocal(MemberName);
-    ASSERT_NE(FirstBinding, nullptr);
-    EXPECT_EQ(Resolver.enterScope(*First), nullptr);
-    EXPECT_EQ(Resolver.enterScope(*Foreign), nullptr);
-    EXPECT_EQ(&Resolver.currentScope(), FirstScope);
-    ASSERT_TRUE(Resolver.exitScope());
-    EXPECT_EQ(Resolver.enterScope(*First), nullptr);
-    EXPECT_EQ(&Resolver.currentScope(), &Root);
-    EXPECT_EQ(Resolver.lookupMember(*First, MemberName), FirstBinding);
-    EXPECT_EQ(Resolver.lookupMember(*Second, MemberName), nullptr);
-    auto *SecondScope = Resolver.enterScope(*Second);
-    ASSERT_NE(SecondScope, nullptr);
-    EXPECT_NE(SecondScope, FirstScope);
-    ASSERT_EQ(Resolver.bind(MemberName, *SecondMember), BindResult::Inserted);
-    const auto *SecondBinding = Resolver.lookupLocal(MemberName);
-    ASSERT_NE(SecondBinding, nullptr);
-    EXPECT_NE(SecondBinding, FirstBinding);
-    EXPECT_EQ(Resolver.lookupMember(*First, MemberName), FirstBinding);
-    EXPECT_EQ(Resolver.lookupMember(*Second, MemberName), SecondBinding);
-    EXPECT_EQ(FirstBinding->targets()[0], FirstMember);
-    EXPECT_EQ(SecondBinding->targets()[0], SecondMember);
-    EXPECT_EQ(Resolver.lookupMember(*First, Name{}), nullptr);
-    EXPECT_EQ(Resolver.lookupMember(*First, OutOfRange), nullptr);
-    EXPECT_EQ(Resolver.lookupMember(*Foreign, MemberName), nullptr);
-    EXPECT_EQ(&Resolver.currentScope(), SecondScope);
-    EXPECT_EQ(Context.namePool().size(), NameCount);
-    ASSERT_TRUE(Resolver.exitScope());
-    EXPECT_EQ(&Resolver.currentScope(), &Root);
-  }
-
-  // Scope and binding identities survive storage growth, and deep parent lookup uses no recursive traversal.
-  TEST(SemanticNameResolverTest, PreservesScopesAndBindingsAcrossGrowth)
-  {
-    core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
-    SemanticContext Context(Sources, DiagnosticEngine);
-    IRBuilder Builder(Context.irContext());
-    NameResolver Resolver(Context);
-    auto &Root = Resolver.rootScope();
-    const Name NameValue = Context.namePool().intern("Visible");
-    auto VariableOwner = Builder.createDetachedAllocaInstruction(Context.typePool().getType<TypeKind::Bool>());
-    Value *Variable = VariableOwner.get();
-    ASSERT_NE(Variable, nullptr);
-    ASSERT_EQ(Resolver.bind(NameValue, *Variable), BindResult::Inserted);
-    const auto *Binding = Resolver.lookup(NameValue);
-    ASSERT_NE(Binding, nullptr);
-    for (unsigned Index = 0; Index < 4096; ++Index)
+    EXPECT_EQ(Store.memberScope(Owner), Members);
+    EXPECT_EQ(Store.memberScope(OwnerValue), Members);
+    Store.removeTarget(OwnerValue);
     {
-      const Name AddedName = Context.namePool().intern("Added" + std::to_string(Index));
-      ASSERT_EQ(Resolver.bind(AddedName, *Variable), BindResult::Inserted);
-    }
-    EXPECT_EQ(&Resolver.rootScope(), &Root);
-    EXPECT_EQ(Resolver.lookup(NameValue), Binding);
-    for (unsigned Index = 0; Index < 4096; ++Index)
-    {
-      Resolver.enterScope();
-    }
-    auto &Deepest = Resolver.currentScope();
-    const Name LocalName = Context.namePool().intern("DeepLocal");
-    ASSERT_EQ(Resolver.bind(LocalName, *Variable), BindResult::Inserted);
-    const auto *LocalBinding = Resolver.lookupLocal(LocalName);
-    ASSERT_NE(LocalBinding, nullptr);
-    EXPECT_EQ(Resolver.lookup(NameValue), Binding);
-    EXPECT_EQ(Resolver.lookupLocal(NameValue), nullptr);
-    ASSERT_EQ(Binding->targets().size(), 1U);
-    EXPECT_EQ(Binding->targets()[0], Variable);
-    const NameResolver &View = Resolver;
-    EXPECT_EQ(&View.rootScope(), &Root);
-    EXPECT_EQ(&View.currentScope(), &Deepest);
-    for (unsigned Index = 0; Index < 4096; ++Index)
-    {
-      const auto *Parent = Resolver.currentScope().parent();
-      ASSERT_TRUE(Resolver.exitScope());
-      EXPECT_EQ(&Resolver.currentScope(), Parent);
+      ScopeGuard BaseOwnerGuard(Resolver, OwnerValue);
+      ASSERT_NE(BaseOwnerGuard.scope(), nullptr);
+      EXPECT_NE(BaseOwnerGuard.scope(), Members);
+      EXPECT_EQ(Store.memberScope(Owner), BaseOwnerGuard.scope());
+      EXPECT_EQ(Store.memberScope(OwnerValue), BaseOwnerGuard.scope());
+      ScopeGuard Duplicate(Resolver, Owner);
+      EXPECT_EQ(Duplicate.scope(), nullptr);
+      EXPECT_EQ(&Resolver.currentScope(), BaseOwnerGuard.scope());
     }
     EXPECT_EQ(&Resolver.currentScope(), &Root);
-    EXPECT_EQ(&View.currentScope(), &Root);
-    EXPECT_FALSE(Resolver.exitScope());
-    EXPECT_EQ(Resolver.lookupLocal(NameValue), Binding);
-    EXPECT_EQ(Resolver.lookup(LocalName), nullptr);
-    EXPECT_NE(Deepest.parent(), nullptr);
-    EXPECT_EQ(LocalBinding->targets()[0], Variable);
+    {
+      ScopeGuard ValueGuard(Resolver, *ValueOwner);
+      ASSERT_NE(ValueGuard.scope(), nullptr);
+      EXPECT_EQ(Resolver.enterScope(*ValueOwner), nullptr);
+      EXPECT_EQ(&Resolver.currentScope(), ValueGuard.scope());
+    }
+    EXPECT_EQ(&Resolver.currentScope(), &Root);
   }
 } // namespace ink::semantic::test

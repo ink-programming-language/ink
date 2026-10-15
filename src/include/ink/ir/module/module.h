@@ -12,6 +12,7 @@
 #include "ink/ir/type/nominal_type/interface_type.h"
 #include "ink/ir/type/nominal_type/struct_type.h"
 #include "ink/ir/type/type_pool.h"
+#include "ink/ir/type/value.h"
 #include "ink/target/target_context.h"
 
 #include <cstddef>
@@ -26,11 +27,11 @@ namespace ink::ir
   // Borrows its IRContext, which owns builtin/structural types and constants and must outlive this module.
   // All users of module-owned declarations and nominal types must finish before module destruction.
   // Returned declaration pointers remain valid until the module is destroyed; access requires external synchronization.
-  class Module final
+  class Module final : public Value
   {
     public:
       explicit Module(IRContext &Context, ModuleID ID = {});
-      ~Module() noexcept;
+      ~Module() noexcept override;
 
       Module(const Module &) = delete;
       Module &operator=(const Module &) = delete;
@@ -150,6 +151,7 @@ namespace ink::ir
       }
 
       StructType *createStructType(std::uint64_t Size, std::uint64_t Alignment, core::Name Name = core::NAME_None);
+      static bool classof(const Value *Value) noexcept;
 
     private:
       IRContext &Context;

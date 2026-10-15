@@ -1,6 +1,8 @@
 #ifndef INK_SEMANTIC_ANALYZER_ANALYZER_STATE_H
 #define INK_SEMANTIC_ANALYZER_ANALYZER_STATE_H
 
+#include "ink/semantic/name_resolve/name_resolver.h"
+
 #include <cstddef>
 
 namespace ink::frontend::parser
@@ -57,6 +59,8 @@ namespace ink::semantic
       SemanticContext &Context;
       const frontend::parser::ParseResult &Input;
       ir::Module &Output;
+      // Each call has an independent cursor; node handlers select the required module/member/block scopes.
+      NameResolver Resolver;
       Mode AnalysisMode = Mode::FullAnalysis;
       std::size_t BlockDepthLimit;
       std::size_t BlockDepth = 0;

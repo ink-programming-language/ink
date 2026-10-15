@@ -4,12 +4,13 @@
 #include "ink/frontend/context.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/ir/context.h"
+#include "ink/semantic/name_resolve/scope_store.h"
 
 #include <utility>
 
 namespace ink::semantic
 {
-  // Owns the IRContext and source selection; source and diagnostic services are borrowed.
+  // Owns the IRContext, persistent scopes and source selection; source and diagnostic services are borrowed.
   // Caller-owned modules and all other users of its IRContext must die before this context.
   // Successive analysis calls preserve pooled IR while selecting a new source; access is not thread-safe.
   class SemanticContext final
@@ -46,6 +47,11 @@ namespace ink::semantic
         return Self.IR;
       }
 
+      auto &scopeStore(this auto &&Self) noexcept
+      {
+        return Self.Scopes;
+      }
+
       // Reports against the input selected by the current analysis call.
       template <core::DiagnosticKind Kind, typename... ArgumentTypes>
       void report(core::SourceRange Span, ArgumentTypes &&...Arguments)
@@ -58,6 +64,7 @@ namespace ink::semantic
 
       frontend::FrontendContext Frontend;
       ir::IRContext IR;
+      ScopeStore Scopes;
       core::SourceId Source;
   };
 } // namespace ink::semantic

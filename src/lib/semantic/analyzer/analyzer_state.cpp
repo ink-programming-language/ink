@@ -20,6 +20,7 @@ namespace ink::semantic
       : Context(Context),
         Input(Input),
         Output(Output),
+        Resolver(Context),
         AnalysisMode(AnalysisMode),
         BlockDepthLimit(core::ConfigManager::getSize<core::ConfigKind::SemanticBlockDepthLimit>())
   {

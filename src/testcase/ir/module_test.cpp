@@ -60,6 +60,7 @@ namespace ink::ir::test
   static_assert(!std::is_copy_assignable_v<Module>);
   static_assert(!std::is_move_constructible_v<Module>);
   static_assert(!std::is_move_assignable_v<Module>);
+  static_assert(std::is_base_of_v<Value, Module>);
   static_assert(std::is_same_v<decltype(std::declval<Module &>().moduleID()), const ModuleID &>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().moduleID()), const ModuleID &>);
   static_assert(std::is_same_v<decltype(std::declval<Module &>().initializationFunction()), Function *>);
@@ -75,6 +76,38 @@ namespace ink::ir::test
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().interfaceType(0)), const InterfaceType *>);
   static_assert(std::is_same_v<decltype(std::declval<Module &>().structType(0)), StructType *>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().structType(0)), const StructType *>);
+
+  // Modules share Value identity without becoming typed operands, other value categories or owned declarations of themselves.
+  TEST(IRModuleTest, ExposesUntypedValueIdentityWithoutChangingOwnership)
+  {
+    IRContext Context(Target);
+    Module Owner(Context);
+    Module Other(Context);
+    const Value &ModuleValue = Owner;
+    EXPECT_EQ(ModuleValue.kind(), ValueKind::Module);
+    EXPECT_EQ(valueKindName(ModuleValue.kind()), "module");
+    EXPECT_EQ(ModuleValue.type(), nullptr);
+    EXPECT_TRUE(Module::classof(&ModuleValue));
+    EXPECT_FALSE(Module::classof(nullptr));
+    EXPECT_FALSE(Module::classof(Owner.typePool().getInt32Type()));
+    EXPECT_FALSE(Type::classof(&ModuleValue));
+    EXPECT_FALSE(Constant::classof(&ModuleValue));
+    EXPECT_FALSE(Instruction::classof(&ModuleValue));
+    EXPECT_FALSE(Function::classof(&ModuleValue));
+    EXPECT_FALSE(BasicBlock::classof(&ModuleValue));
+    EXPECT_FALSE(Owner.owns(&ModuleValue));
+    EXPECT_FALSE(Owner.contains(&ModuleValue));
+    EXPECT_FALSE(Owner.owns(&Other));
+    EXPECT_FALSE(Owner.contains(&Other));
+
+    const auto *Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
+    ASSERT_NE(Signature, nullptr);
+    auto *Callable = Owner.createGlobalFunction(*Signature);
+    ASSERT_NE(Callable, nullptr);
+    EXPECT_FALSE(Module::classof(Callable));
+    EXPECT_TRUE(Owner.owns(Callable));
+    EXPECT_TRUE(Owner.contains(Callable));
+  }
 
   // Modules start with empty declaration lists and either an empty identifier or the supplied root-level module identifier.
   TEST(IRModuleTest, EmptyModulesPreserveOptionalModuleID)
@@ -389,6 +422,25 @@ namespace ink::ir::test
     }
     EXPECT_TRUE(CreatedBodyDestroyed);
     EXPECT_TRUE(TransferredBodyDestroyed);
+  }
+
+  // Deleting a module through Value invokes its destructor and releases its owned function body.
+  TEST(IRModuleTest, DestructionThroughValueReleasesOwnedFunctionBodies)
+  {
+    IRContext Context(Target);
+    bool BodyDestroyed = false;
+    auto Owner = std::make_unique<Module>(Context);
+    const auto *Signature = Owner->typePool().getFunctionType(Owner->typePool().getVoidType());
+    ASSERT_NE(Signature, nullptr);
+    auto *Callable = Owner->createGlobalFunction(*Signature);
+    ASSERT_NE(Callable, nullptr);
+    auto *Entry = Callable->createBlock();
+    ASSERT_NE(Entry, nullptr);
+    ASSERT_NE(Entry->appendInstruction(std::make_unique<ModuleBodyInstruction>(BodyDestroyed)), nullptr);
+    std::unique_ptr<Value> ModuleValue = std::move(Owner);
+    EXPECT_FALSE(BodyDestroyed);
+    ModuleValue.reset();
+    EXPECT_TRUE(BodyDestroyed);
   }
 
   // Nominal creation immediately owns distinct identities and preserves insertion order and addresses as lists grow.

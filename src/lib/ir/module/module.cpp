@@ -14,7 +14,8 @@ namespace ink::ir
   } // namespace
 
   Module::Module(IRContext &Context, ModuleID ID)
-      : Context(Context),
+      : Value(ValueKind::Module),
+        Context(Context),
         ID(std::move(ID))
   {
   }
@@ -277,5 +278,10 @@ namespace ink::ir
     Structs.push_back(std::move(DeclaredType));
     Context.registerNominalType(Result);
     return Result;
+  }
+
+  bool Module::classof(const Value *Value) noexcept
+  {
+    return Value && Value->kind() == ValueKind::Module;
   }
 } // namespace ink::ir
