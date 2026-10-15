@@ -12,12 +12,14 @@ namespace ink::inkc
   {
     public:
       CompilationContext()
-          : Target(target::TargetContext::native())
+          : Target(target::TargetContext::native()),
+            Diagnostics(Sources)
       {
       }
 
       explicit CompilationContext(target::TargetContext Target)
-          : Target(Target)
+          : Target(Target),
+            Diagnostics(Sources)
       {
       }
 
@@ -43,8 +45,8 @@ namespace ink::inkc
 
     private:
       target::TargetContext Target;
-      core::DiagnosticEngine Diagnostics;
       core::SourceManager Sources;
+      core::DiagnosticEngine Diagnostics;
   };
 } // namespace ink::inkc
 

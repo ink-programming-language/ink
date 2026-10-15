@@ -1,13 +1,27 @@
+#include "compilation_context.h"
+
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_formatter.h"
+#include "ink/frontend/context.h"
+#include "ink/frontend/parser/parser.h"
+#include "ink/frontend/tokenizer/tokenizer.h"
+#include "ink/ir/module/module.h"
+#include "ink/semantic/analyzer/analyzer.h"
+#include "ink/semantic/context.h"
+
 #include <cxxopts.hpp>
 #include <spdlog/logger.h>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/ostream_sink.h>
 
+#include <array>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 int main(int ArgumentCount, char **ArgumentValues)
@@ -36,7 +50,7 @@ int main(int ArgumentCount, char **ArgumentValues)
   std::string InputFile;
   std::string HelpValue;
   std::string VersionValue;
-  cxxopts::Options Options("inkc", "Ink compiler command line. Currently validates arguments only; compilation is not implemented.");
+  cxxopts::Options Options("inkc", "Compile an Ink source file into an in-memory IR module. Semantic lowering is still under development.");
   Options.custom_help("-i FILE [options]");
   Options.allow_unrecognised_options();
   auto AddOption = Options.add_options();
@@ -82,6 +96,62 @@ int main(int ArgumentCount, char **ArgumentValues)
     return Error("required option -i FILE is missing");
   }
 
-  // The compilation pipeline will consume InputFile when it is connected.
-  return 0;
+  std::string Source;
+  {
+    std::ifstream Input(InputFile, std::ios::binary);
+    if (!Input)
+    {
+      ErrorOutput.error("inkc: error: cannot open '{}'\n", InputFile);
+      return 2;
+    }
+    std::array<char, 64 * 1024> Buffer;
+    while (Input)
+    {
+      Input.read(Buffer.data(), static_cast<std::streamsize>(Buffer.size()));
+      Source.append(Buffer.data(), static_cast<std::size_t>(Input.gcount()));
+    }
+    if (!Input.eof() || Input.bad())
+    {
+      ErrorOutput.error("inkc: error: cannot read '{}'\n", InputFile);
+      return 2;
+    }
+  }
+
+  ink::inkc::CompilationContext Compilation;
+  ink::core::CollectingDiagnosticConsumer Diagnostics;
+  Compilation.diagnosticEngine().addConsumer(Diagnostics);
+  const auto ReportDiagnostics = [&Diagnostics, &ErrorOutput, &Compilation]()
+  {
+    bool HasErrors = false;
+    for (const ink::core::Diagnostic &Diagnostic : Diagnostics.takeDiagnostics())
+    {
+      HasErrors = HasErrors || ink::core::diagnosticDefaultSeverity(Diagnostic.Kind) == ink::core::DiagnosticSeverity::Error;
+      ErrorOutput.error("{}", ink::core::DiagnosticFormatter{}.format(Diagnostic, Compilation.sourceManager()));
+    }
+    return HasErrors;
+  };
+  ink::frontend::FrontendContext Frontend(Compilation.sourceManager(), Compilation.diagnosticEngine());
+  const ink::core::SourceId SourceId = Compilation.sourceManager().addSource(InputFile, std::move(Source));
+  auto Tokens = ink::frontend::tokenizer::tokenizeSource(Frontend, SourceId);
+  const ink::frontend::parser::ParseResult Result = ink::frontend::parser::parse(Frontend, std::move(Tokens));
+  const bool FrontendErrors = ReportDiagnostics();
+  if (!Result.succeeded() || FrontendErrors)
+  {
+    return OutputFailed || !std::cerr ? 2 : 1;
+  }
+
+  // Module borrows the semantic context's IR pools and must be destroyed before that context.
+  ink::semantic::SemanticContext Semantic(Compilation.sourceManager(), Compilation.diagnosticEngine(), Compilation.targetContext());
+  ink::ir::Module Module(Semantic.irContext());
+  const bool Succeeded = ink::semantic::Analyzer{}.analyze(Semantic, Result, Module);
+  const bool SemanticErrors = ReportDiagnostics();
+  if (!Succeeded && !SemanticErrors)
+  {
+    ErrorOutput.error("inkc: error: semantic analysis failed for '{}'\n", InputFile);
+  }
+  if (OutputFailed || !std::cerr)
+  {
+    return 2;
+  }
+  return Succeeded && !SemanticErrors ? 0 : 1;
 }

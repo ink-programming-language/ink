@@ -9,6 +9,8 @@
 
 namespace ink::core
 {
+  class SourceManager;
+
   struct FormattedDiagnosticNote
   {
       std::optional<SourceRange> Span;
@@ -32,6 +34,9 @@ namespace ink::core
   {
     public:
       FormattedDiagnostic format(const Diagnostic &DiagnosticEntry) const;
+      // Render a complete diagnostic without writing to a stream. Columns are one-based byte offsets.
+      // Source previews expand tabs to eight-column stops and escape non-printable/non-ASCII bytes.
+      std::string format(const Diagnostic &DiagnosticEntry, const SourceManager &Sources) const;
   };
 } // namespace ink::core
 

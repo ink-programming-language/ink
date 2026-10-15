@@ -61,7 +61,7 @@ AST 类声明位于 `src/include/ink/frontend/parser/ast`，每个 class 使用�
 
 `frontend::FrontendContext` 直接借用 `core::SourceManager` 和 `core::DiagnosticEngine`，二者必须比上下文存活更久；tokenizer、parser 和 semantic 使用这些服务而不依赖工具层。`SemanticContext(Sources, Diagnostics, Target)` 组合持有前端服务视图，并按值拥有 `ir::IRContext`、保存当前源码选择，通过 `irContext()` 提供借用访问，`typePool()` 转发至 IRContext 的类型池；它不拥有 Module 或 Builder。上层用 `Module(Context.irContext())` 创建输入输出模块，用 `IRBuilder(Context.irContext())` 独立构建 IR，并保证这些模块和所有池对象使用者先于 SemanticContext 销毁。现有 `ink-tokenize`、`ink-parse` 和测试各自拥有服务实例，以保持编译会话之间的源码和诊断隔离。
 
-`inkc::CompilationContext` 是工具私有的编译会话资源所有者，定义位于 `src/tools/inkc/compilation_context.h`，拥有目标描述、源码管理器和诊断引擎。库和测试不依赖此类型。`inkc` 可执行入口使用 submodule 固定的 cxxopts 3.3.1，以无异常模式解析必需的 `-i FILE` / `--input FILE`，并提供帮助和版本选项；当前只处理参数，不读取、编译或执行源码，尚未连接编译会话。
+`inkc::CompilationContext` 是工具私有的编译会话资源所有者，定义位于 `src/tools/inkc/compilation_context.h`，拥有目标描述、源码管理器和诊断引擎。库和测试不依赖此类型。`inkc` 可执行入口使用 submodule 固定的 cxxopts 3.3.1，以无异常模式解析必需的 `-i FILE` / `--input FILE`，并提供帮助和版本选项。入口按原始字节读取源码，调用 frontend 的 tokenizer/parser，再将成功的解析结果交给 semantic 写入调用方创建的 `ir::Module`；Module 借用 SemanticContext 的 IRContext，并先于它销毁。当前只构建内存模块，不输出 IR 文件或执行源码；具体语义处理仍受上述未实现节点限制。普通源码错误返回 1，参数或文件输入输出错误返回 2，内部编译错误沿用 ICE/panic 机制。
 
 Target 目录提供目标平台描述，头文件位于 `src/include/ink/target`。`target::TargetContext`、`target::PointerWidth` 和 `target::ByteOrder` 定义在 `ink/target/target_context.h` 中；`TargetContext` 保存指针宽度、字节序及标量对齐信息，`native()` 返回宿主目标。inkc 私有的 `CompilationContext` 和 IR 的 `IRContext` 均使用这一描述。
 

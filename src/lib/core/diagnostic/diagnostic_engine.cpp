@@ -25,6 +25,10 @@ namespace ink::core
   {
     if (DiagnosticEntry.classification() == DiagnosticClass::InternalCompilerError)
     {
+      if (Sources)
+      {
+        PANIC(DiagnosticFormatter{}.format(DiagnosticEntry, *Sources));
+      }
       PANIC(fmt::format("internal compiler error[{}]: {}", DiagnosticEntry.code(), DiagnosticFormatter{}.format(DiagnosticEntry).Message));
     }
     const std::vector<DiagnosticConsumer *> Snapshot = Consumers;

@@ -9,10 +9,18 @@
 
 namespace ink::core
 {
+  class SourceManager;
+
   class DiagnosticEngine
   {
     public:
       DiagnosticEngine() = default;
+      // The optional source manager is borrowed and must outlive the engine.
+      explicit DiagnosticEngine(const SourceManager &Sources)
+          : Sources(&Sources)
+      {
+      }
+
       DiagnosticEngine(const DiagnosticEngine &) = delete;
       DiagnosticEngine &operator=(const DiagnosticEngine &) = delete;
       DiagnosticEngine(DiagnosticEngine &&) = delete;
@@ -38,6 +46,7 @@ namespace ink::core
       }
 
     private:
+      const SourceManager *Sources = nullptr;
       std::vector<DiagnosticConsumer *> Consumers;
   };
 } // namespace ink::core

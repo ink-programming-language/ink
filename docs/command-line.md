@@ -23,7 +23,9 @@ inkc -i FILE
 .\build\src\tools\inkc\Release\inkc.exe -i "D:\Ink Sources\example.ink"
 ```
 
-当前入口只解析参数并保存输入路径，不打开或检查文件是否存在，不编译或执行源码，也不生成输出文件。参数有效时静默退出，退出码为 0；缺少输入、缺少路径、空路径、重复选项、未知选项或多余位置参数返回 2。`-h` / `--help` 和 `-V` / `--version` 可单独使用。
+入口按原始字节读取文件，通过共享的源码管理器和诊断引擎依次调用 tokenizer、parser 和 semantic，将解析结果交给 `Analyzer::analyze` 写入内存中的 `ir::Module`。词法或语法分析失败时不会进入 semantic。`CompilationContext` 拥有编译会话服务，`SemanticContext` 拥有 Module 借用的 IR 池，Module 先于 SemanticContext 销毁。当前不执行源码，也不生成输出文件；`-` 在 `inkc` 中仍是文件路径。
+
+成功时静默退出，退出码为 0；普通源码错误返回 1；参数错误、文件打开或读取失败、诊断输出失败返回 2。源码诊断由 `DiagnosticFormatter` 使用诊断自身的 `SourceId` 查询源码，输出文件名、从 1 开始的行号和字节列号、诊断码、半开字节范围 `[Begin, End)`、相关源码行及 `^`/`~` 范围标记，写入 stderr；有位置的关联 note 同样显示源码。预览将制表符展开到 8 列制表位，并将不可打印字节和非 ASCII 字节显示为 `\xHH`，以保持无效 UTF-8 等输入下的标记位置准确；位置头始终使用原始源码的字节列号。内部编译错误同样附带可用的源码信息，并沿用项目统一的 ICE/panic 机制直接终止进程。当前 semantic 仅支持空模块和仅含空块的遍历，函数、变量等具体语义及 IR 生成尚未实现，合法但尚未支持的节点会报告 `SemanticUnsupported`（`INK-S0012`），不会作为成功编译处理。`-h` / `--help` 和 `-V` / `--version` 可单独使用，且不读取文件。
 
 `inkc` 在目标级定义 `CXXOPTS_NO_EXCEPTIONS` 和 `CXXOPTS_NO_REGEX`。由于上游无异常模式的错误分支会直接退出进程，入口使用字符串值、允许暂存未识别参数，并追加一个空保护参数，将缺值和未知参数交由显式状态检查处理；`-i` 保持需要实参，未设置隐式值。保护参数不成为用户输入，正常错误通过工具自身的 spdlog logger 报告。
 
