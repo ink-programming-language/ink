@@ -26,6 +26,7 @@ namespace ink::semantic
           std::string_view Name;
           const ir::Type *Type;
       };
+      // TODO: Extend numeric builtins with i8/i16/u16/i128/u128/f16 once TypePool supports them.
       const Entry Entries[] = {
           {"void", Types.getVoidType()},
           {"bool", Types.getBoolType()},
@@ -163,6 +164,7 @@ namespace ink::semantic
         Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.value()->getSourceRange(), "an array element with runtime layout", ir::valueKindName(Element->kind()));
         return nullptr;
       }
+      // TODO: Evaluate compile-time integer expressions for the element count; currently only integer literals are accepted.
       if (Node.count()->getKind() != ASTKind::LiteralExpr || static_cast<const LiteralExpr *>(Node.count())->literalKind() != TokenKind::IntegerLiteral)
       {
         Context.report<core::DiagnosticKind::SemanticInvalidArrayLength>(Node.count()->getSourceRange());
@@ -231,6 +233,7 @@ namespace ink::semantic
         return nullptr;
       }
       BlockDepthGuard DepthGuard(RecursionDepth);
+      // TODO: Honor Node.isComptime() and evaluate marked type expressions at compile time.
       using namespace frontend::parser;
       switch (Node.getKind())
       {
@@ -247,6 +250,8 @@ namespace ink::semantic
         case ASTKind::FunctionTypeExpr:
           return analyzeFunctionTypeExpr(Context, Input, Resolver, RecursionDepth, RecursionDepthLimit, static_cast<const FunctionTypeExpr &>(Node));
         default:
+          // TODO: Analyze generic type applications (GenericApplyExpr, e.g. Foo::[i32]).
+          // TODO: Evaluate type-valued calls, conditionals, match/do blocks, indexing and tuples.
           break;
       }
       Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "a supported type expression", astKindName(Node.getKind()));
