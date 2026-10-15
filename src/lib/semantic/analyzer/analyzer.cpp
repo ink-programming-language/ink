@@ -37,8 +37,8 @@ namespace ink::semantic
     };
 
     const bool Collected = AnalyzeModule(AnalyzerState::Mode::CollectDecls);
-    const bool Analyzed = AnalyzeModule(AnalyzerState::Mode::FullAnalysis);
-    return Collected && Analyzed;
+    const bool Analyzed = Collected && AnalyzeModule(AnalyzerState::Mode::FullAnalysis);
+    return Analyzed;
   }
 
   bool Analyzer::reportUnsupported(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node)
