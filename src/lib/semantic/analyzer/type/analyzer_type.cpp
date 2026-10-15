@@ -3,6 +3,7 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/frontend/parser/parser.h"
 #include "ink/ir/module/module.h"
+#include "ink/ir/type/structure_type/function_type_parameter.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/semantic/analyzer/block_depth_guard.h"
 #include "ink/semantic/context.h"
@@ -10,7 +11,6 @@
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <string_view>
 #include <variant>
 #include <vector>
@@ -203,9 +203,7 @@ namespace ink::semantic
       {
         return nullptr;
       }
-      std::vector<std::unique_ptr<ir::Parameter>> Storage;
-      std::vector<const ir::Parameter *> Parameters;
-      Storage.reserve(Node.parameters().size());
+      std::vector<ir::FunctionTypeParameter> Parameters;
       Parameters.reserve(Node.parameters().size());
       for (const auto &Parameter : Node.parameters())
       {
@@ -215,8 +213,7 @@ namespace ink::semantic
         {
           return nullptr;
         }
-        Storage.push_back(std::make_unique<ir::Parameter>(Type, Parameter.variadic()));
-        Parameters.push_back(Storage.back().get());
+        Parameters.emplace_back(Type, Parameter.variadic());
       }
       const ir::Type *Result = Context.typePool().getFunctionType(Return, Parameters);
       if (!Result)

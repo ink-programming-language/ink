@@ -87,7 +87,7 @@ namespace ink::ir::test
   static_assert(!std::is_constructible_v<PointerType, const target::TargetContext &, const Type *>);
   static_assert(!std::is_constructible_v<ReferenceType, const target::TargetContext &, const Type *>);
   static_assert(!std::is_constructible_v<ArrayType, const Type *, std::uint64_t, std::uint64_t, std::uint64_t>);
-  static_assert(!std::is_constructible_v<FunctionType, const target::TargetContext &, const Type *, std::span<const Parameter *const>>);
+  static_assert(!std::is_constructible_v<FunctionType, const target::TargetContext &, const Type *, std::span<const FunctionTypeParameter>>);
   static_assert(!std::is_constructible_v<ClassType, std::uint64_t, std::uint64_t>);
   static_assert(!std::is_constructible_v<StructType, std::uint64_t, std::uint64_t>);
   static_assert(!std::is_constructible_v<InterfaceType, std::uint64_t, std::uint64_t>);

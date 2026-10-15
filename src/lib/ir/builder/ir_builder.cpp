@@ -178,8 +178,8 @@ namespace ink::ir
     }
     for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
     {
-      const Parameter &Descriptor = *Signature.parameters()[Index];
-      if (Descriptor.isVariadic() || !Arguments[Index].value() || !canUseAs(*Arguments[Index].value(), *Descriptor.type()))
+      const FunctionTypeParameter &Descriptor = Signature.parameters()[Index];
+      if (Descriptor.Variadic || !Arguments[Index].value() || !canUseAs(*Arguments[Index].value(), *Descriptor.ParameterType))
       {
         return nullptr;
       }

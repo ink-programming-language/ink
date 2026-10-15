@@ -1,21 +1,13 @@
 #include "ink/ir/type/structure_type/function_type.h"
 
-#include <utility>
-
 namespace ink::ir
 {
-  FunctionType::FunctionType(const target::TargetContext &Target, const Type *ReturnType, std::span<const Parameter *const> Parameters)
+  FunctionType::FunctionType(const target::TargetContext &Target, const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters)
       : Type(ValueKind::FunctionType),
         ReturnType(ReturnType),
+        Parameters(Parameters.begin(), Parameters.end()),
         PointerByteWidth(Target.pointerByteWidth())
   {
-    this->Parameters.reserve(Parameters.size());
-    for (const Parameter *Descriptor : Parameters)
-    {
-      auto ParameterValue = std::make_unique<Parameter>(Descriptor->type(), Descriptor->isVariadic());
-      ParameterValue->Index = this->Parameters.size();
-      this->Parameters.push_back(std::move(ParameterValue));
-    }
   }
 
   const Type *FunctionType::returnType() const noexcept
@@ -23,7 +15,7 @@ namespace ink::ir
     return ReturnType;
   }
 
-  const std::vector<std::unique_ptr<const Parameter>> &FunctionType::parameters() const noexcept
+  std::span<const FunctionTypeParameter> FunctionType::parameters() const noexcept
   {
     return Parameters;
   }

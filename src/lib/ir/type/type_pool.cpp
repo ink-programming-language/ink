@@ -59,11 +59,11 @@ namespace ink::ir
     return Result;
   }
 
-  bool TypePool::validParameters(std::span<const Parameter *const> Parameters) const noexcept
+  bool TypePool::validParameters(std::span<const FunctionTypeParameter> Parameters) const noexcept
   {
-    for (const Parameter *Descriptor : Parameters)
+    for (const FunctionTypeParameter &Descriptor : Parameters)
     {
-      if (!Descriptor || !Owner.containsType(Descriptor->type()) || !Descriptor->type()->hasLayout())
+      if (!Owner.containsType(Descriptor.ParameterType) || !Descriptor.ParameterType->hasLayout())
       {
         return false;
       }
@@ -222,18 +222,12 @@ namespace ink::ir
     return Result;
   }
 
-  const FunctionType *TypePool::getFunctionType(const Type *ReturnType, std::initializer_list<Parameter> Parameters)
+  const FunctionType *TypePool::getFunctionType(const Type *ReturnType, std::initializer_list<FunctionTypeParameter> Parameters)
   {
-    std::vector<const Parameter *> Descriptors;
-    Descriptors.reserve(Parameters.size());
-    for (const Parameter &Descriptor : Parameters)
-    {
-      Descriptors.push_back(&Descriptor);
-    }
-    return getFunctionType(ReturnType, std::span<const Parameter *const>(Descriptors));
+    return getFunctionType(ReturnType, std::span<const FunctionTypeParameter>(Parameters.begin(), Parameters.size()));
   }
 
-  const FunctionType *TypePool::getFunctionType(const Type *ReturnType, std::span<const Parameter *const> Parameters)
+  const FunctionType *TypePool::getFunctionType(const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters)
   {
     if (!Owner.containsType(ReturnType) || !ReturnType->hasLayout() || !validParameters(Parameters))
     {
@@ -241,9 +235,9 @@ namespace ink::ir
     }
     FunctionKey Key{ReturnType, {}};
     Key.Parameters.reserve(Parameters.size());
-    for (const Parameter *Descriptor : Parameters)
+    for (const FunctionTypeParameter &Descriptor : Parameters)
     {
-      Key.Parameters.emplace_back(Descriptor->type(), Descriptor->isVariadic());
+      Key.Parameters.emplace_back(Descriptor.ParameterType, Descriptor.Variadic);
     }
     const auto Found = FunctionTypes.find(Key);
     if (Found != FunctionTypes.end())

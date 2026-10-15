@@ -62,7 +62,7 @@ namespace ink::ir::test
           EXPECT_EQ(Signature->parameterCount(), LateSignature ? 3U : 2U);
           for (const auto &Descriptor : Signature->parameters())
           {
-            const Type *ParameterType = Descriptor->type();
+            const Type *ParameterType = Descriptor.ParameterType;
             EXPECT_TRUE(Types.ownsType(ParameterType));
             EXPECT_TRUE(ParameterType->hasLayout());
             EXPECT_NE(ParameterType->alignment(), 0U);
@@ -70,7 +70,7 @@ namespace ink::ir::test
           EXPECT_FALSE(Signature->parameters().empty());
           if (!Signature->parameters().empty())
           {
-            EXPECT_EQ(Signature->parameters().back()->type(), &Array);
+            EXPECT_EQ(Signature->parameters().back().ParameterType, &Array);
           }
           EXPECT_TRUE(Types.ownsType(&Array));
           EXPECT_EQ(Array.elementType(), Types.typePool().getInt32Type());

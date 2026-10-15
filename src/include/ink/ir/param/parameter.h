@@ -10,19 +10,15 @@
 namespace ink::ir
 {
   class Function;
-  class FunctionType;
   class Type;
 
-  // A signature parameter descriptor or a function-owned formal value. Referenced types are borrowed.
+  // A function-owned formal value whose type and variadic status come from the function signature.
   class Parameter final : public Value
   {
     public:
-      Parameter(const Type *ParameterType, bool Variadic = false) noexcept;
-
-      // Signature descriptors have no owning function.
       auto *function(this auto &&Self) noexcept
       {
-        return Self.Parent ? &std::forward_like<decltype(Self) &>(*Self.Parent) : nullptr;
+        return &std::forward_like<decltype(Self) &>(*Self.Parent);
       }
 
       std::size_t index() const noexcept;
@@ -35,14 +31,11 @@ namespace ink::ir
 
     private:
       friend class Function;
-      friend class FunctionType;
 
       Parameter(Function &Parent, std::size_t Index) noexcept;
 
       Function *Parent = nullptr;
-      const Type *ParameterType = nullptr;
       std::size_t Index = 0;
-      bool Variadic = false;
       core::Name Name = core::NAME_None;
   };
 } // namespace ink::ir

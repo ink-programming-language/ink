@@ -19,7 +19,7 @@ namespace ink::ir::test
 
   static_assert(std::is_base_of_v<Value, Parameter>);
   static_assert(!std::is_base_of_v<Type, Parameter>);
-  static_assert(std::is_constructible_v<Parameter, const Type *, bool>);
+  static_assert(!std::is_constructible_v<Parameter, const Type *, bool>);
   static_assert(!std::is_constructible_v<Parameter, Function &, std::size_t>);
   static_assert(!std::is_copy_constructible_v<Parameter> && !std::is_move_constructible_v<Parameter>);
 
@@ -30,9 +30,9 @@ namespace ink::ir::test
     Module Types(TypesContext);
     const auto Bool = Types.typePool().getBoolType();
     const auto Integer = Types.typePool().getInt32Type();
-    const Parameter First(Integer);
-    const Parameter Second(Bool, true);
-    const std::vector<const Parameter *> Parameters = {&First, &Second, &First};
+    const FunctionTypeParameter First(Integer);
+    const FunctionTypeParameter Second(Bool, true);
+    const std::vector<FunctionTypeParameter> Parameters = {First, Second, First};
     const auto Signature = Types.typePool().getFunctionType(Bool, Parameters);
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
@@ -51,10 +51,8 @@ namespace ink::ir::test
       EXPECT_EQ(ParameterValue->function(), &Callable);
       EXPECT_EQ(ReadOnlyParameter->function(), &ReadOnly);
       EXPECT_EQ(ParameterValue->index(), Index);
-      EXPECT_EQ(ParameterValue->type(), Parameters[Index]->type());
-      EXPECT_EQ(ParameterValue->isVariadic(), Parameters[Index]->isVariadic());
-      EXPECT_NE(ParameterValue, Signature->parameters()[Index].get());
-      EXPECT_EQ(Signature->parameters()[Index]->function(), nullptr);
+      EXPECT_EQ(ParameterValue->type(), Parameters[Index].ParameterType);
+      EXPECT_EQ(ParameterValue->isVariadic(), Parameters[Index].Variadic);
       EXPECT_EQ(ParameterValue->name(), core::NAME_None);
       EXPECT_FALSE(ParameterValue->hasName());
     }
@@ -88,7 +86,6 @@ namespace ink::ir::test
       EXPECT_EQ(FirstParameter->isVariadic(), SecondParameter->isVariadic());
       EXPECT_EQ(FirstParameter->isVariadic(), Index == 0);
       EXPECT_EQ(FirstParameter->index(), SecondParameter->index());
-      EXPECT_FALSE(Signature->parameters()[Index]->hasName());
     }
     const core::Name FirstName = core::NamePool::instance().intern("IRParameterTest.First");
     const core::Name SecondName = core::NamePool::instance().intern("IRParameterTest.Second");
@@ -103,14 +100,14 @@ namespace ink::ir::test
     First.parameter(0)->setName(core::NAME_None);
     EXPECT_FALSE(First.parameter(0)->hasName());
     EXPECT_EQ(Second.parameter(0)->name(), SecondName);
-    EXPECT_EQ(Signature->parameters()[0]->type(), Types.typePool().getInt32Type());
-    EXPECT_TRUE(Signature->parameters()[0]->isVariadic());
-    EXPECT_FALSE(Signature->parameters()[0]->hasName());
+    EXPECT_EQ(Signature->parameters()[0].ParameterType, Types.typePool().getInt32Type());
+    EXPECT_TRUE(Signature->parameters()[0].Variadic);
     EXPECT_EQ(First.functionType(), Second.functionType());
+    EXPECT_EQ(Signature, Types.typePool().getFunctionType(Types.typePool().getVoidType(), {{Types.typePool().getInt32Type(), true}, Types.typePool().getBoolType()}));
   }
 
-  // Copying a named function parameter into another signature discards its owner, name and old index while retaining its metadata.
-  TEST(IRParameterTest, SignatureCopiesFunctionParameterWithoutLocalIdentity)
+  // A signature built from a formal value's type metadata survives renaming and destruction of the source function.
+  TEST(IRParameterTest, SignatureFromParameterMetadataOutlivesSourceFunction)
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
@@ -125,19 +122,15 @@ namespace ink::ir::test
       ASSERT_NE(Formal, nullptr);
       Formal->setName(core::NamePool::instance().intern("IRParameterTest.Source"));
       ASSERT_TRUE(Formal->hasName());
-      const std::vector<const Parameter *> Parameters = {Formal};
+      const std::vector<FunctionTypeParameter> Parameters = {{Formal->type(), Formal->isVariadic()}};
       Signature = Types.typePool().getFunctionType(Integer, Parameters);
       ASSERT_NE(Signature, nullptr);
       ASSERT_EQ(Signature->parameterCount(), 1U);
-      EXPECT_NE(Signature->parameters()[0].get(), Formal);
-      EXPECT_EQ(Signature->parameters()[0]->function(), nullptr);
-      EXPECT_EQ(Signature->parameters()[0]->index(), 0U);
-      EXPECT_FALSE(Signature->parameters()[0]->hasName());
       Formal->setName(core::NamePool::instance().intern("IRParameterTest.RenamedSource"));
       EXPECT_EQ(Signature, Types.typePool().getFunctionType(Integer, Parameters));
     }
-    EXPECT_EQ(Signature->parameters()[0]->type(), Integer);
-    EXPECT_TRUE(Signature->parameters()[0]->isVariadic());
+    EXPECT_EQ(Signature->parameters()[0].ParameterType, Integer);
+    EXPECT_TRUE(Signature->parameters()[0].Variadic);
     EXPECT_EQ(Signature, Types.typePool().getFunctionType(Integer, {{Integer, true}}));
   }
 

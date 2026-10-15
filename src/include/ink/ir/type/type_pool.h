@@ -63,10 +63,10 @@ namespace ink::ir
       const ReferenceType *getReferenceType(const Type *ReferencedType);
       // Missing/invalid element layout or size overflow also returns nullptr.
       const ArrayType *getArrayType(const Type *ElementType, std::uint64_t ElementCount);
-      // All types must have runtime layouts. Descriptors are copied without names or function ownership.
+      // All types must have runtime layouts. Signature descriptors are copied by value.
       // Cache identity uses the return type and ordered parameter types and variadic flags.
-      const FunctionType *getFunctionType(const Type *ReturnType, std::initializer_list<Parameter> Parameters = {});
-      const FunctionType *getFunctionType(const Type *ReturnType, std::span<const Parameter *const> Parameters);
+      const FunctionType *getFunctionType(const Type *ReturnType, std::initializer_list<FunctionTypeParameter> Parameters = {});
+      const FunctionType *getFunctionType(const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters);
 
     private:
       friend class IRContext;
@@ -90,7 +90,7 @@ namespace ink::ir
       template <typename TypeT>
       TypeT *own(std::unique_ptr<TypeT> TypeValue);
 
-      bool validParameters(std::span<const Parameter *const> Parameters) const noexcept;
+      bool validParameters(std::span<const FunctionTypeParameter> Parameters) const noexcept;
 
       const IRContext &Owner;
       VoidType Void;

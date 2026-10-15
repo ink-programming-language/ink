@@ -10,7 +10,8 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
-#include <memory>
+#include <span>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -23,19 +24,20 @@ namespace ink::ir::test
 
     void expectParametersEqual(const FunctionType &Function, const std::vector<std::pair<const Type *, bool>> &Expected)
     {
-      const auto &Actual = Function.parameters();
+      const auto Actual = Function.parameters();
       ASSERT_EQ(Actual.size(), Expected.size());
       for (std::size_t Index = 0; Index < Expected.size(); ++Index)
       {
         SCOPED_TRACE(Index);
-        ASSERT_NE(Actual[Index], nullptr);
-        EXPECT_EQ(Actual[Index]->type(), Expected[Index].first);
-        EXPECT_EQ(Actual[Index]->isVariadic(), Expected[Index].second);
-        EXPECT_EQ(Actual[Index]->index(), Index);
-        EXPECT_EQ(Actual[Index]->function(), nullptr);
+        EXPECT_EQ(Actual[Index].ParameterType, Expected[Index].first);
+        EXPECT_EQ(Actual[Index].Variadic, Expected[Index].second);
       }
     }
   } // namespace
+
+  static_assert(!std::is_base_of_v<Value, FunctionTypeParameter>);
+  static_assert(std::is_copy_constructible_v<FunctionTypeParameter> && std::is_copy_assignable_v<FunctionTypeParameter>);
+  static_assert(std::is_same_v<decltype(std::declval<const FunctionType &>().parameters()), std::span<const FunctionTypeParameter>>);
 
   // Omitting parameters creates a valid zero-argument signature with the supplied return type.
   TEST(IRFunctionTypeTest, EmptySignaturePreservesReturnType)
@@ -51,7 +53,7 @@ namespace ink::ir::test
     EXPECT_EQ(Function->parameterCount(), 0U);
   }
 
-  // Mixed parameter descriptors retain ordered types, variadic flags and indices, including repeated inputs.
+  // Mixed parameter descriptors retain ordered types and variadic flags, including repeated inputs.
   TEST(IRFunctionTypeTest, SignaturePreservesParameterOrderAndDuplicates)
   {
     IRContext TypesContext(Target64);
@@ -63,20 +65,18 @@ namespace ink::ir::test
     ASSERT_NE(Integer, nullptr);
     ASSERT_NE(Float, nullptr);
     ASSERT_NE(Result, nullptr);
-    const Parameter First(Integer);
-    const Parameter Second(Bool, true);
-    const Parameter Third(Float);
-    const std::vector<const Parameter *> Parameters = {&First, &Second, &Third, &First};
+    const FunctionTypeParameter First(Integer);
+    const FunctionTypeParameter Second(Bool, true);
+    const FunctionTypeParameter Third(Float);
+    const std::vector<FunctionTypeParameter> Parameters = {First, Second, Third, First};
     const auto Function = Types.typePool().getFunctionType(Result, Parameters);
     ASSERT_NE(Function, nullptr);
     EXPECT_EQ(Function->returnType(), Result);
     EXPECT_EQ(Function->parameterCount(), Parameters.size());
     expectParametersEqual(*Function, {{Integer, false}, {Bool, true}, {Float, false}, {Integer, false}});
-    EXPECT_NE(Function->parameters()[0].get(), &First);
-    EXPECT_NE(Function->parameters()[0].get(), Function->parameters()[3].get());
   }
 
-  // A signature retains independent descriptors after the source pointer list and dynamically owned descriptors disappear.
+  // Source descriptor mutation and destruction leave the canonical signature and its cache identity unchanged.
   TEST(IRFunctionTypeTest, SignatureOwnsCopiedDescriptors)
   {
     IRContext TypesContext(Target64);
@@ -86,22 +86,22 @@ namespace ink::ir::test
     ASSERT_NE(Integer, nullptr);
     const FunctionType *Function = nullptr;
     {
-      std::vector<std::unique_ptr<Parameter>> Descriptors;
-      Descriptors.push_back(std::make_unique<Parameter>(Bool));
-      Descriptors.push_back(std::make_unique<Parameter>(Integer, true));
-      std::vector<const Parameter *> Parameters = {Descriptors[0].get(), Descriptors[1].get(), Descriptors[0].get()};
+      std::vector<FunctionTypeParameter> Parameters = {Bool, {Integer, true}, Bool};
       Function = Types.typePool().getFunctionType(Integer, Parameters);
       ASSERT_NE(Function, nullptr);
-      EXPECT_NE(Function->parameters()[0].get(), Descriptors[0].get());
-      EXPECT_NE(Function->parameters()[1].get(), Descriptors[1].get());
-      Parameters[0] = Descriptors[1].get();
+      Parameters[0].ParameterType = Integer;
+      Parameters[1].Variadic = false;
+      expectParametersEqual(*Function, {{Bool, false}, {Integer, true}, {Bool, false}});
+      const auto ModifiedSignature = Types.typePool().getFunctionType(Integer, Parameters);
+      ASSERT_NE(ModifiedSignature, nullptr);
+      EXPECT_NE(Function, ModifiedSignature);
       Parameters.clear();
-      Descriptors.clear();
       expectParametersEqual(*Function, {{Bool, false}, {Integer, true}, {Bool, false}});
     }
     expectParametersEqual(*Function, {{Bool, false}, {Integer, true}, {Bool, false}});
     EXPECT_EQ(Function->parameterCount(), 3U);
     EXPECT_EQ(Function->returnType(), Integer);
+    EXPECT_EQ(Function, Types.typePool().getFunctionType(Integer, {Bool, {Integer, true}, Bool}));
   }
 
   // Temporary initializer-list descriptors can expire while the signature retains their types and variadic flags.
@@ -139,13 +139,13 @@ namespace ink::ir::test
     EXPECT_NE(FirstVariadic, LastVariadic);
     EXPECT_NE(FirstVariadic, BothVariadic);
     EXPECT_NE(LastVariadic, BothVariadic);
-    const Parameter Repeated(Integer, true);
-    const std::vector<const Parameter *> Parameters = {&Repeated, &Repeated};
+    const FunctionTypeParameter Repeated(Integer, true);
+    const std::vector<FunctionTypeParameter> Parameters = {Repeated, Repeated};
     EXPECT_EQ(BothVariadic, Types.typePool().getFunctionType(Integer, Parameters));
     EXPECT_EQ(FirstVariadic, Types.typePool().getFunctionType(Integer, {{Integer, true}, Integer}));
   }
 
-  // Missing return types, null descriptor pointers and null parameter types fail at every parameter position.
+  // Missing return types and null fixed or variadic parameter types fail at every parameter position.
   TEST(IRFunctionTypeTest, RejectsNullSignatureTypes)
   {
     IRContext TypesContext(Target64);
@@ -155,14 +155,14 @@ namespace ink::ir::test
     EXPECT_EQ(Types.typePool().getFunctionType(nullptr, {Bool}), nullptr);
     EXPECT_EQ(Types.typePool().getFunctionType(Bool, {nullptr}), nullptr);
     EXPECT_EQ(Types.typePool().getFunctionType(Bool, {{nullptr, true}}), nullptr);
-    const Parameter Valid(Bool);
-    const Parameter MissingType(nullptr);
-    const Parameter MissingVariadicType(nullptr, true);
+    const FunctionTypeParameter Valid(Bool);
+    const FunctionTypeParameter MissingType(nullptr);
+    const FunctionTypeParameter MissingVariadicType(nullptr, true);
     for (std::size_t Index = 0; Index < 3; ++Index)
     {
       SCOPED_TRACE(Index);
-      std::vector<const Parameter *> Parameters(3, &Valid);
-      for (const Parameter *Invalid : {static_cast<const Parameter *>(nullptr), &MissingType, &MissingVariadicType})
+      std::vector<FunctionTypeParameter> Parameters(3, Valid);
+      for (const FunctionTypeParameter &Invalid : {MissingType, MissingVariadicType})
       {
         Parameters[Index] = Invalid;
         EXPECT_EQ(Types.typePool().getFunctionType(Bool, Parameters), nullptr);
@@ -205,8 +205,8 @@ namespace ink::ir::test
     ASSERT_NE(Factory, nullptr);
     EXPECT_EQ(Factory->returnType(), Callback);
     ASSERT_EQ(Factory->parameterCount(), 2U);
-    EXPECT_EQ(Factory->parameters()[0]->type(), Callback);
-    EXPECT_EQ(Factory->parameters()[1]->type(), CallbackPointer);
+    EXPECT_EQ(Factory->parameters()[0].ParameterType, Callback);
+    EXPECT_EQ(Factory->parameters()[1].ParameterType, CallbackPointer);
     EXPECT_EQ(CallbackPointer->pointeeType(), Callback);
   }
 
@@ -221,14 +221,14 @@ namespace ink::ir::test
     const auto Foreign = OtherTypes.typePool().getBoolType();
     EXPECT_EQ(Types.typePool().getFunctionType(Foreign), nullptr);
     EXPECT_EQ(Types.typePool().getFunctionType(Foreign, {Bool}), nullptr);
-    const Parameter LocalParameter(Bool);
-    const Parameter ForeignParameter(Foreign);
-    const Parameter ForeignVariadicParameter(Foreign, true);
+    const FunctionTypeParameter LocalParameter(Bool);
+    const FunctionTypeParameter ForeignParameter(Foreign);
+    const FunctionTypeParameter ForeignVariadicParameter(Foreign, true);
     for (std::size_t Index = 0; Index < 3; ++Index)
     {
       SCOPED_TRACE(Index);
-      std::vector<const Parameter *> Parameters(3, &LocalParameter);
-      for (const Parameter *Invalid : {&ForeignParameter, &ForeignVariadicParameter})
+      std::vector<FunctionTypeParameter> Parameters(3, LocalParameter);
+      for (const FunctionTypeParameter &Invalid : {ForeignParameter, ForeignVariadicParameter})
       {
         Parameters[Index] = Invalid;
         EXPECT_EQ(Types.typePool().getFunctionType(Bool, Parameters), nullptr);

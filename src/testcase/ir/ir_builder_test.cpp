@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 namespace ink::ir::test
@@ -195,26 +196,9 @@ namespace ink::ir::test
     }
   }
 
-  // Shared signature descriptors cannot be used as function-local runtime operands.
-  TEST(IRBuilderTest, RejectsSignatureParameterDescriptorsAsOperands)
-  {
-    IRContext Context(Target);
-    auto &Types = Context.typePool();
-    auto *Signature = Types.getFunctionType(Types.getInt32Type(), {Types.getInt32Type()});
-    ASSERT_NE(Signature, nullptr);
-    Function Caller(*Signature);
-    Function Callee(*Signature);
-    auto *Entry = Caller.createBlock();
-    const auto &Descriptor = *Signature->parameters()[0];
-    auto *Zero = Context.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 0);
-    IRBuilder Builder(Context);
-    ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    EXPECT_EQ(Builder.createCall(Callee, {Argument(Descriptor)}), nullptr);
-    EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, Descriptor, *Zero), nullptr);
-    EXPECT_EQ(Builder.createReturn(Descriptor), nullptr);
-    EXPECT_EQ(Entry->instructionCount(), 0U);
-    EXPECT_NE(Builder.createReturn(*Caller.parameter(0)), nullptr);
-  }
+  // Signature descriptors cannot enter runtime operand APIs, even before builder validation.
+  static_assert(!std::is_convertible_v<const FunctionTypeParameter &, const Value &>);
+  static_assert(!std::is_constructible_v<Argument, const FunctionTypeParameter &>);
 
   // Variadic signatures and formal packs are not silently accepted as ordinary scalar calls or operands.
   TEST(IRBuilderTest, RejectsVariadicCallsAndScalarPackUses)

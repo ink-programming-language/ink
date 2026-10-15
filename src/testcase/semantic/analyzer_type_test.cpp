@@ -5,6 +5,7 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/frontend/parser/parser.h"
 #include "ink/ir/module/module.h"
+#include "ink/ir/type/structure_type/function_type_parameter.h"
 #include "ink/semantic/context.h"
 #include "../core/support/environment_test_support.h"
 
@@ -518,22 +519,22 @@ namespace ink::semantic::test
     auto &Types = Context.typePool();
     const auto *Result = Types.getReferenceType(Types.getVoidType());
     const auto *Pointer = Types.getPointerType(Types.getUInt8Type());
-    const auto *FixedType = Types.getFunctionType(Result, {ir::Parameter(Types.getInt32Type()), ir::Parameter(Pointer)});
-    const auto *VariadicType = Types.getFunctionType(Result, {ir::Parameter(Types.getInt32Type()), ir::Parameter(Pointer, true)});
+    const auto *FixedType = Types.getFunctionType(Result, {ir::FunctionTypeParameter(Types.getInt32Type()), ir::FunctionTypeParameter(Pointer)});
+    const auto *VariadicType = Types.getFunctionType(Result, {ir::FunctionTypeParameter(Types.getInt32Type()), ir::FunctionTypeParameter(Pointer, true)});
     ASSERT_NE(FixedType, nullptr);
     ASSERT_NE(VariadicType, nullptr);
     EXPECT_NE(FixedType, VariadicType);
     EXPECT_EQ(analyze(Fixed), FixedType);
     EXPECT_EQ(analyze(Variadic), VariadicType);
     EXPECT_EQ(analyze(Renamed), VariadicType);
-    EXPECT_EQ(analyze(NonFinalVariadic), Types.getFunctionType(Result, {ir::Parameter(Types.getInt32Type(), true), ir::Parameter(Pointer)}));
-    EXPECT_EQ(analyze(Unit), Types.getFunctionType(Types.getVoidType(), {ir::Parameter(Types.getVoidType())}));
+    EXPECT_EQ(analyze(NonFinalVariadic), Types.getFunctionType(Result, {ir::FunctionTypeParameter(Types.getInt32Type(), true), ir::FunctionTypeParameter(Pointer)}));
+    EXPECT_EQ(analyze(Unit), Types.getFunctionType(Types.getVoidType(), {ir::FunctionTypeParameter(Types.getVoidType())}));
     EXPECT_EQ(analyze(Empty), Types.getFunctionType(Types.getVoidType()));
     ASSERT_EQ(VariadicType->parameters().size(), 2U);
-    EXPECT_FALSE(VariadicType->parameters()[0]->isVariadic());
-    EXPECT_TRUE(VariadicType->parameters()[1]->isVariadic());
-    EXPECT_FALSE(VariadicType->parameters()[0]->hasName());
-    EXPECT_FALSE(VariadicType->parameters()[1]->hasName());
+    EXPECT_EQ(VariadicType->parameters()[0].ParameterType, Types.getInt32Type());
+    EXPECT_EQ(VariadicType->parameters()[1].ParameterType, Pointer);
+    EXPECT_FALSE(VariadicType->parameters()[0].Variadic);
+    EXPECT_TRUE(VariadicType->parameters()[1].Variadic);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 

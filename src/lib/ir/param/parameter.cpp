@@ -4,18 +4,11 @@
 
 namespace ink::ir
 {
-  Parameter::Parameter(const Type *ParameterType, bool Variadic) noexcept
-      : Value(ValueKind::Parameter),
-        ParameterType(ParameterType),
-        Variadic(Variadic)
-  {
-  }
-
   Parameter::Parameter(Function &Parent, std::size_t Index) noexcept
-      : Parameter(Parent.functionType()->parameters()[Index]->type(), Parent.functionType()->parameters()[Index]->isVariadic())
+      : Value(ValueKind::Parameter),
+        Parent(&Parent),
+        Index(Index)
   {
-    this->Parent = &Parent;
-    this->Index = Index;
   }
 
   std::size_t Parameter::index() const noexcept
@@ -25,12 +18,12 @@ namespace ink::ir
 
   const Type *Parameter::type() const noexcept
   {
-    return ParameterType;
+    return Parent->functionType()->parameters()[Index].ParameterType;
   }
 
   bool Parameter::isVariadic() const noexcept
   {
-    return Variadic;
+    return Parent->functionType()->parameters()[Index].Variadic;
   }
 
   core::Name Parameter::name() const noexcept

@@ -57,7 +57,7 @@ namespace ink::ir::test
           EXPECT_EQ(Signature.parameterCount(), 1U);
           if (Signature.parameterCount() == 1)
           {
-            EXPECT_EQ(Signature.parameters()[0]->type(), &Owner);
+            EXPECT_EQ(Signature.parameters()[0].ParameterType, &Owner);
           }
           const Field *Member = Owner.field(0);
           EXPECT_NE(Member, nullptr);

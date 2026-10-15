@@ -193,7 +193,7 @@ namespace ink::ir::test
       EXPECT_EQ(Values->elements()[1], Second);
       EXPECT_EQ(Function->returnType(), Bytes);
       ASSERT_EQ(Function->parameterCount(), 1U);
-      EXPECT_EQ(Function->parameters()[0]->type(), Bytes);
+      EXPECT_EQ(Function->parameters()[0].ParameterType, Bytes);
     }
   }
 
