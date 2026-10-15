@@ -582,7 +582,7 @@ namespace ink::semantic::test
   // Expression depth includes call targets and parentheses and is refreshed on each analysis.
   TEST(SemanticFunctionAnalyzerTest, BoundsExpressionDepth)
   {
-    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT");
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set("2"));
     FunctionAnalysis AtLimit("func f(): i32 { return (0); }");
     FunctionAnalysis OverLimit("func f(): i32 { return ((0)); }");
@@ -629,7 +629,7 @@ namespace ink::semantic::test
   // Long pointer chains stop at the default semantic budget and succeed when its override is raised.
   TEST(SemanticFunctionAnalyzerTest, BoundsSignatureTypeNesting)
   {
-    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_TYPE_DEPTH_LIMIT");
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set(nullptr));
     frontend::parser::ParseLimits Limits;
     Limits.MaxNestingDepth = 1024;
@@ -640,13 +640,11 @@ namespace ink::semantic::test
     EXPECT_NE(Input.analyze(), nullptr);
   }
 
-  // Type depth is bounded independently of block depth and refreshed for each analysis, including invalid overrides.
-  TEST(SemanticFunctionAnalyzerTest, UsesConfiguredTypeDepthLimit)
+  // Recursive analysis uses the shared configured budget, refreshed for each analysis including invalid overrides.
+  TEST(SemanticFunctionAnalyzerTest, UsesConfiguredRecursionDepthLimit)
   {
-    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_TYPE_DEPTH_LIMIT");
-    core::test::ScopedEnvironmentVariable BlockEnvironment("INK_SEMANTIC_BLOCK_DEPTH_LIMIT");
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set("2"));
-    ASSERT_TRUE(BlockEnvironment.set("0"));
     FunctionAnalysis AtLimit("import \"C\" func f(x: *u8): void;");
     FunctionAnalysis OverLimit("import \"C\" func f(x: **u8): void;");
     ASSERT_TRUE(AtLimit.Parsed.succeeded());
@@ -662,7 +660,7 @@ namespace ink::semantic::test
   // A zero type-depth limit rejects even a scalar return type while still allowing an empty module.
   TEST(SemanticFunctionAnalyzerTest, ZeroTypeDepthLimitRejectsAnyType)
   {
-    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_TYPE_DEPTH_LIMIT");
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set("0"));
     FunctionAnalysis Empty("");
     FunctionAnalysis Function("func f(): void {}");

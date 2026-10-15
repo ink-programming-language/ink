@@ -91,7 +91,7 @@ namespace ink::ir::test
     EXPECT_EQ(FirstCall[0].value(), FirstLiteral);
     EXPECT_EQ(SecondCall[0].value(), SecondLiteral);
     EXPECT_EQ(Callee.parameter(0), Formal);
-    EXPECT_EQ(&Formal->function(), &Callee);
+    EXPECT_EQ(Formal->function(), &Callee);
     EXPECT_EQ(Callee.parameterCount(), 1U);
     EXPECT_EQ(Callee.functionType(), Signature);
   }

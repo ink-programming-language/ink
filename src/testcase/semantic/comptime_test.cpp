@@ -516,7 +516,7 @@ func Result(): i32 { return comptime Counter; }
   // Iteratively parsed assignment chains still consume the shared compile-time traversal depth before the host stack grows unbounded.
   TEST(SemanticComptimeTest, StopsLongCompileTimeAssignmentChainAtBudget)
   {
-    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT");
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set(nullptr));
     std::string Source = "comptime { var A: i32 = 0; ";
     for (std::size_t Index = 0; Index < 1024; ++Index)
@@ -532,7 +532,7 @@ func Result(): i32 { return comptime Counter; }
   // Runtime assignment chains share the expression nesting limit and retain the existing nesting ICE at its boundary.
   TEST(SemanticComptimeTest, BoundsRuntimeAssignmentChainsByExpressionDepth)
   {
-    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT");
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set("8"));
     const auto Source = [](std::size_t Count)
     {

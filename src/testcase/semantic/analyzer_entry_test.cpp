@@ -301,7 +301,7 @@ namespace ink::semantic::test
   // Nested traversal enforces its budget and restores depth before siblings and subsequent calls.
   TEST(SemanticAnalyzerEntryDeathTest, BoundsBlockTraversalAndRestoresDepth)
   {
-    core::test::ScopedEnvironmentVariable Limit("INK_SEMANTIC_BLOCK_DEPTH_LIMIT");
+    core::test::ScopedEnvironmentVariable Limit("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
     ASSERT_TRUE(Limit.set("2"));
     core::SourceManager Sources;
     core::DiagnosticEngine DiagnosticEngine;

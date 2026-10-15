@@ -168,7 +168,7 @@ namespace ink::ir::test
     EXPECT_EQ(Callable.name(), Name);
     EXPECT_EQ(Callable.parameterCount(), 1U);
     EXPECT_EQ(Callable.blockCount(), 0U);
-    EXPECT_EQ(&ParameterValue->function(), &Callable);
+    EXPECT_EQ(ParameterValue->function(), &Callable);
     EXPECT_EQ(ParameterValue->index(), 0U);
     EXPECT_EQ(ParameterValue->name(), Name);
     EXPECT_EQ(Global.name(), Name);

@@ -7,6 +7,7 @@ namespace ink::frontend::parser
   class ASTNodeBase;
   class Stmt;
   class Decl;
+  class Expr;
 #define AST_NODE(Name, Base, Category, Id) class Name;
 #include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
@@ -15,6 +16,7 @@ namespace ink::frontend::parser
 namespace ink::ir
 {
   class Module;
+  class Type;
 } // namespace ink::ir
 
 namespace ink::semantic
@@ -30,6 +32,12 @@ namespace ink::semantic
       // Output must borrow Context.irContext(); failure does not roll back existing output.
       // Unusable input returns false; unimplemented nodes report the existing SemanticUnsupported ICE.
       bool analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input, ir::Module &Output);
+
+      // Resolves a type annotation belonging to State's input in its current name scope.
+      // The caller validates input/context compatibility, selects the diagnostic source and supplies a node with a non-null expression.
+      // Returns a borrowed context/module-owned type, or nullptr after a user diagnostic.
+      // Nesting limits use the existing ICE policy.
+      const ir::Type *analyzeType(AnalyzerState &State, const frontend::parser::TypeSyntax &Node);
 
     private:
       bool analyzeStmt(AnalyzerState &State, const frontend::parser::Stmt &Stmt);

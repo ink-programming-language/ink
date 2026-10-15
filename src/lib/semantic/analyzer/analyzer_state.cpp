@@ -22,7 +22,7 @@ namespace ink::semantic
         Output(Output),
         Resolver(Context),
         AnalysisMode(AnalysisMode),
-        BlockDepthLimit(core::ConfigManager::getSize<core::ConfigKind::SemanticBlockDepthLimit>())
+        RecursionDepthLimit(core::ConfigManager::getSize<core::ConfigKind::SemanticRecursionDepthLimit>())
   {
   }
 } // namespace ink::semantic

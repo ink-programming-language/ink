@@ -195,6 +195,53 @@ namespace ink::ir::test
     }
   }
 
+  // Shared signature descriptors cannot be used as function-local runtime operands.
+  TEST(IRBuilderTest, RejectsSignatureParameterDescriptorsAsOperands)
+  {
+    IRContext Context(Target);
+    auto &Types = Context.typePool();
+    auto *Signature = Types.getFunctionType(Types.getInt32Type(), {Types.getInt32Type()});
+    ASSERT_NE(Signature, nullptr);
+    Function Caller(*Signature);
+    Function Callee(*Signature);
+    auto *Entry = Caller.createBlock();
+    const auto &Descriptor = *Signature->parameters()[0];
+    auto *Zero = Context.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 0);
+    IRBuilder Builder(Context);
+    ASSERT_TRUE(Builder.setInsertPoint(*Entry));
+    EXPECT_EQ(Builder.createCall(Callee, {Argument(Descriptor)}), nullptr);
+    EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, Descriptor, *Zero), nullptr);
+    EXPECT_EQ(Builder.createReturn(Descriptor), nullptr);
+    EXPECT_EQ(Entry->instructionCount(), 0U);
+    EXPECT_NE(Builder.createReturn(*Caller.parameter(0)), nullptr);
+  }
+
+  // Variadic signatures and formal packs are not silently accepted as ordinary scalar calls or operands.
+  TEST(IRBuilderTest, RejectsVariadicCallsAndScalarPackUses)
+  {
+    IRContext Context(Target);
+    auto &Types = Context.typePool();
+    auto *Integer = Types.getInt32Type();
+    auto *Signature = Types.getFunctionType(Integer, {{Integer, true}});
+    ASSERT_NE(Signature, nullptr);
+    Function Callee(*Signature);
+    Function Caller(*Types.getFunctionType(Integer, {Types.getPointerType(Signature), {Integer, true}}));
+    Function FixedCallee(*Types.getFunctionType(Integer, {Integer}));
+    auto *Entry = Caller.createBlock();
+    auto *Zero = Context.constantPool().getSignedIntegerConstant(Integer, 0);
+    IRBuilder Builder(Context);
+    ASSERT_TRUE(Builder.setInsertPoint(*Entry));
+    EXPECT_EQ(Builder.createCall(Callee), nullptr);
+    EXPECT_EQ(Builder.createCall(Callee, {Argument(*Zero)}), nullptr);
+    EXPECT_EQ(Builder.createCall(Callee, {Argument(*Zero), Argument(*Zero)}), nullptr);
+    EXPECT_EQ(Builder.createCall(*Signature, *Caller.parameter(0), {Argument(*Zero)}), nullptr);
+    EXPECT_EQ(Builder.createCall(FixedCallee, {Argument(*Caller.parameter(1))}), nullptr);
+    EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Caller.parameter(1), *Zero), nullptr);
+    EXPECT_EQ(Builder.createReturn(*Caller.parameter(1)), nullptr);
+    EXPECT_EQ(Entry->instructionCount(), 0U);
+    EXPECT_EQ(Builder.insertBlock(), Entry);
+  }
+
   // Direct calls require exact arity and type identity while retaining named argument records on success.
   TEST(IRBuilderTest, ValidatesDirectCallArgumentsAndSignatureContext)
   {

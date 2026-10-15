@@ -108,7 +108,8 @@ namespace ink::ir
     }
     if (Parameter::classof(&Operand))
     {
-      return &static_cast<const Parameter &>(Operand).function() == insertFunction();
+      const auto &ParameterValue = static_cast<const Parameter &>(Operand);
+      return ParameterValue.function() == insertFunction() && !ParameterValue.isVariadic();
     }
     if (Instruction::classof(&Operand))
     {
@@ -177,7 +178,8 @@ namespace ink::ir
     }
     for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
     {
-      if (!Arguments[Index].value() || !canUseAs(*Arguments[Index].value(), *Signature.parameters()[Index]))
+      const Parameter &Descriptor = *Signature.parameters()[Index];
+      if (Descriptor.isVariadic() || !Arguments[Index].value() || !canUseAs(*Arguments[Index].value(), *Descriptor.type()))
       {
         return nullptr;
       }

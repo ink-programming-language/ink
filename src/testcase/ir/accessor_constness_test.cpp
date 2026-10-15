@@ -48,10 +48,10 @@ namespace ink::ir::test
   static_assert(std::same_as<decltype(std::declval<const Module &&>().typePool()), const TypePool &>);
   static_assert(noexcept(std::declval<Module &>().typePool()) && noexcept(std::declval<const Module &>().typePool()));
 
-  static_assert(std::same_as<decltype(std::declval<Parameter &>().function()), Function &>);
-  static_assert(std::same_as<decltype(std::declval<const Parameter &>().function()), const Function &>);
-  static_assert(std::same_as<decltype(std::declval<Parameter &&>().function()), Function &>);
-  static_assert(std::same_as<decltype(std::declval<const Parameter &&>().function()), const Function &>);
+  static_assert(std::same_as<decltype(std::declval<Parameter &>().function()), Function *>);
+  static_assert(std::same_as<decltype(std::declval<const Parameter &>().function()), const Function *>);
+  static_assert(std::same_as<decltype(std::declval<Parameter &&>().function()), Function *>);
+  static_assert(std::same_as<decltype(std::declval<const Parameter &&>().function()), const Function *>);
   static_assert(noexcept(std::declval<Parameter &>().function()) && noexcept(std::declval<const Parameter &>().function()));
 
   static_assert(std::same_as<decltype(std::declval<BasicBlock &>().function()), Function *>);
@@ -169,8 +169,8 @@ namespace ink::ir::test
     EXPECT_EQ(std::move(*Callable).entryBlock(), Entry);
     EXPECT_EQ(std::move(std::as_const(*Callable)).block(0), Entry);
     EXPECT_EQ(std::move(std::as_const(*Callable)).parameter(0), ParameterValue);
-    EXPECT_EQ(&std::move(*ParameterValue).function(), Callable);
-    EXPECT_EQ(&std::move(std::as_const(*ParameterValue)).function(), Callable);
+    EXPECT_EQ(std::move(*ParameterValue).function(), Callable);
+    EXPECT_EQ(std::move(std::as_const(*ParameterValue)).function(), Callable);
     EXPECT_EQ(std::move(std::as_const(*Entry)).function(), Callable);
     EXPECT_EQ(std::move(std::as_const(*Entry)).instruction(0), Return);
     EXPECT_EQ(Owner.classCount(), 1U);

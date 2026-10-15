@@ -3,12 +3,8 @@
 #endif
 
 // INK_CONFIG(Kind, EnvironmentName, DefaultValue)
-// Semantic analysis: at most 256 nested blocks.
-INK_CONFIG(SemanticBlockDepthLimit, "INK_SEMANTIC_BLOCK_DEPTH_LIMIT", "256")
-// Semantic analysis: at most 256 levels of recursive type analysis.
-INK_CONFIG(SemanticTypeDepthLimit, "INK_SEMANTIC_TYPE_DEPTH_LIMIT", "256")
-// Semantic analysis: at most 256 levels of recursive expression analysis.
-INK_CONFIG(SemanticExpressionDepthLimit, "INK_SEMANTIC_EXPRESSION_DEPTH_LIMIT", "256")
+// Semantic analysis: at most 256 recursive levels shared by blocks, types and expressions.
+INK_CONFIG(SemanticRecursionDepthLimit, "INK_SEMANTIC_RECURSION_DEPTH_LIMIT", "256")
 
 // Parser: at most 128 nesting levels.
 INK_CONFIG(ParserMaxNestingDepth, "INK_PARSER_MAX_NESTING_DEPTH", "128")

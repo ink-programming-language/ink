@@ -48,6 +48,7 @@ namespace ink::ir
       void clearInsertPoint() noexcept;
 
       // Callees must have this exact signature, either directly or through a pointer to it. Arguments are already in parameter order.
+      // Variadic calls and variadic parameter operands are rejected until parameter-pack lowering is available.
       [[nodiscard]] CallInstruction *createCall(const Function &Callee, std::vector<Argument> Arguments = {});
       [[nodiscard]] CallInstruction *createCall(const FunctionType &Signature, const Value &Callee, std::vector<Argument> Arguments = {});
 

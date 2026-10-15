@@ -221,7 +221,7 @@ namespace ink::semantic::test
   // The environment limit accepts its boundary, rejects deeper blocks, and can change between analyses.
   TEST(SemanticAnalyzerTest, UsesConfiguredBlockDepthLimit)
   {
-    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_BLOCK_DEPTH_LIMIT");
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set("2"));
     core::SourceManager Sources;
     core::DiagnosticEngine DiagnosticEngine;
@@ -248,7 +248,7 @@ namespace ink::semantic::test
   // A zero block limit rejects the first block while still allowing an empty module.
   TEST(SemanticAnalyzerTest, ZeroBlockDepthLimitRejectsAnyBlock)
   {
-    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_BLOCK_DEPTH_LIMIT");
+    core::test::ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
     ASSERT_TRUE(Environment.set("0"));
     core::SourceManager Sources;
     core::DiagnosticEngine DiagnosticEngine;

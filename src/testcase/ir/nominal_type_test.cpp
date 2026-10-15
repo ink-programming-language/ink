@@ -120,7 +120,7 @@ namespace ink::ir::test
       EXPECT_EQ(Array->alignment(), 8U);
       EXPECT_EQ(Function->returnType(), Value);
       ASSERT_EQ(Function->parameterCount(), 1U);
-      EXPECT_EQ(Function->parameters()[0], Value);
+      EXPECT_EQ(Function->parameters()[0]->type(), Value);
       EXPECT_EQ(Types.typePool().getPointerType(Value), Pointer);
       EXPECT_EQ(Types.typePool().getReferenceType(Value), Reference);
       EXPECT_EQ(Types.typePool().getArrayType(Value, 3), Array);

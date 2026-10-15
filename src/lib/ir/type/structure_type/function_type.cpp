@@ -4,12 +4,18 @@
 
 namespace ink::ir
 {
-  FunctionType::FunctionType(const target::TargetContext &Target, const Type *ReturnType, std::vector<const Type *> Parameters) noexcept
+  FunctionType::FunctionType(const target::TargetContext &Target, const Type *ReturnType, std::span<const Parameter *const> Parameters)
       : Type(ValueKind::FunctionType),
         ReturnType(ReturnType),
-        Parameters(std::move(Parameters)),
         PointerByteWidth(Target.pointerByteWidth())
   {
+    this->Parameters.reserve(Parameters.size());
+    for (const Parameter *Descriptor : Parameters)
+    {
+      auto ParameterValue = std::make_unique<Parameter>(Descriptor->type(), Descriptor->isVariadic());
+      ParameterValue->Index = this->Parameters.size();
+      this->Parameters.push_back(std::move(ParameterValue));
+    }
   }
 
   const Type *FunctionType::returnType() const noexcept
@@ -17,7 +23,7 @@ namespace ink::ir
     return ReturnType;
   }
 
-  const std::vector<const Type *> &FunctionType::parameters() const noexcept
+  const std::vector<std::unique_ptr<const Parameter>> &FunctionType::parameters() const noexcept
   {
     return Parameters;
   }

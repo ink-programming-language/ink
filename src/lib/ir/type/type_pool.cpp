@@ -42,9 +42,10 @@ namespace ink::ir
   std::size_t TypePool::FunctionKeyHash::operator()(const FunctionKey &Key) const noexcept
   {
     std::size_t Hash = std::hash<const Type *>{}(Key.ReturnType);
-    for (const Type *ParameterType : Key.Parameters)
+    for (const auto &[ParameterType, IsVariadic] : Key.Parameters)
     {
       Hash ^= std::hash<const Type *>{}(ParameterType) + 0x9e3779b9U + (Hash << 6U) + (Hash >> 2U);
+      Hash ^= std::hash<bool>{}(IsVariadic) + 0x9e3779b9U + (Hash << 6U) + (Hash >> 2U);
     }
     return Hash;
   }
@@ -58,11 +59,11 @@ namespace ink::ir
     return Result;
   }
 
-  bool TypePool::validParameters(const std::vector<const Type *> &Parameters) const noexcept
+  bool TypePool::validParameters(std::span<const Parameter *const> Parameters) const noexcept
   {
-    for (const Type *ParameterType : Parameters)
+    for (const Parameter *Descriptor : Parameters)
     {
-      if (!Owner.containsType(ParameterType) || !ParameterType->hasLayout())
+      if (!Descriptor || !Owner.containsType(Descriptor->type()) || !Descriptor->type()->hasLayout())
       {
         return false;
       }
@@ -221,19 +222,35 @@ namespace ink::ir
     return Result;
   }
 
-  const FunctionType *TypePool::getFunctionType(const Type *ReturnType, std::vector<const Type *> Parameters)
+  const FunctionType *TypePool::getFunctionType(const Type *ReturnType, std::initializer_list<Parameter> Parameters)
+  {
+    std::vector<const Parameter *> Descriptors;
+    Descriptors.reserve(Parameters.size());
+    for (const Parameter &Descriptor : Parameters)
+    {
+      Descriptors.push_back(&Descriptor);
+    }
+    return getFunctionType(ReturnType, std::span<const Parameter *const>(Descriptors));
+  }
+
+  const FunctionType *TypePool::getFunctionType(const Type *ReturnType, std::span<const Parameter *const> Parameters)
   {
     if (!Owner.containsType(ReturnType) || !ReturnType->hasLayout() || !validParameters(Parameters))
     {
       return nullptr;
     }
-    FunctionKey Key{ReturnType, std::move(Parameters)};
+    FunctionKey Key{ReturnType, {}};
+    Key.Parameters.reserve(Parameters.size());
+    for (const Parameter *Descriptor : Parameters)
+    {
+      Key.Parameters.emplace_back(Descriptor->type(), Descriptor->isVariadic());
+    }
     const auto Found = FunctionTypes.find(Key);
     if (Found != FunctionTypes.end())
     {
       return Found->second;
     }
-    const FunctionType *Result = own(std::unique_ptr<FunctionType>(new FunctionType(Owner.targetContext(), ReturnType, Key.Parameters)));
+    const FunctionType *Result = own(std::unique_ptr<FunctionType>(new FunctionType(Owner.targetContext(), ReturnType, Parameters)));
     FunctionTypes.emplace(std::move(Key), Result);
     return Result;
   }

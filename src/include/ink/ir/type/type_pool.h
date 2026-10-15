@@ -14,9 +14,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <memory>
+#include <span>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace ink::ir
@@ -60,9 +63,10 @@ namespace ink::ir
       const ReferenceType *getReferenceType(const Type *ReferencedType);
       // Missing/invalid element layout or size overflow also returns nullptr.
       const ArrayType *getArrayType(const Type *ElementType, std::uint64_t ElementCount);
-      // All types must have runtime layouts. Cache identity uses the return type
-      // and the ordered parameter types.
-      const FunctionType *getFunctionType(const Type *ReturnType, std::vector<const Type *> Parameters = {});
+      // All types must have runtime layouts. Descriptors are copied without names or function ownership.
+      // Cache identity uses the return type and ordered parameter types and variadic flags.
+      const FunctionType *getFunctionType(const Type *ReturnType, std::initializer_list<Parameter> Parameters = {});
+      const FunctionType *getFunctionType(const Type *ReturnType, std::span<const Parameter *const> Parameters);
 
     private:
       friend class IRContext;
@@ -73,7 +77,7 @@ namespace ink::ir
       struct FunctionKey
       {
           const Type *ReturnType;
-          std::vector<const Type *> Parameters;
+          std::vector<std::pair<const Type *, bool>> Parameters;
 
           bool operator==(const FunctionKey &Other) const noexcept;
       };
@@ -86,7 +90,7 @@ namespace ink::ir
       template <typename TypeT>
       TypeT *own(std::unique_ptr<TypeT> TypeValue);
 
-      bool validParameters(const std::vector<const Type *> &Parameters) const noexcept;
+      bool validParameters(std::span<const Parameter *const> Parameters) const noexcept;
 
       const IRContext &Owner;
       VoidType Void;

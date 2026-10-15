@@ -1,42 +1,14 @@
 #include "ink/semantic/analyzer/analyzer.h"
 
 #include "ink/semantic/analyzer/analyzer_state.h"
+#include "ink/semantic/analyzer/block_depth_guard.h"
 #include "ink/semantic/context.h"
 #include "ink/frontend/parser/ast.h"
 
-#include <cstddef>
 #include <cstdlib>
 
 namespace ink::semantic
 {
-  namespace
-  {
-    class BlockDepthGuard final
-    {
-      public:
-        explicit BlockDepthGuard(std::size_t &Depth) noexcept
-            : Depth(Depth),
-              SavedDepth(Depth)
-        {
-          ++Depth;
-        }
-
-        ~BlockDepthGuard() noexcept
-        {
-          Depth = SavedDepth;
-        }
-
-        BlockDepthGuard(const BlockDepthGuard &) = delete;
-        BlockDepthGuard &operator=(const BlockDepthGuard &) = delete;
-        BlockDepthGuard(BlockDepthGuard &&) = delete;
-        BlockDepthGuard &operator=(BlockDepthGuard &&) = delete;
-
-      private:
-        std::size_t &Depth;
-        std::size_t SavedDepth;
-    };
-  } // namespace
-
   bool Analyzer::analyzeStmt(AnalyzerState &State, const frontend::parser::Stmt &Stmt)
   {
     // Compile-time evaluation will be restored with the semantic implementation.
@@ -78,12 +50,12 @@ namespace ink::semantic
 
   bool Analyzer::analyzeBlockStmt(AnalyzerState &State, const frontend::parser::BlockStmt &Node)
   {
-    if (State.BlockDepth >= State.BlockDepthLimit)
+    if (State.RecursionDepth >= State.RecursionDepthLimit)
     {
       State.Context.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
       return false;
     }
-    BlockDepthGuard DepthGuard(State.BlockDepth);
+    BlockDepthGuard DepthGuard(State.RecursionDepth);
     bool Succeeded = true;
     for (const frontend::parser::Stmt *Stmt : Node.statements())
     {

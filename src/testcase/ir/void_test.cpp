@@ -117,8 +117,8 @@ namespace ink::ir::test
     EXPECT_EQ(Function, Types.typePool().getFunctionType(Void, {Opaque}));
     EXPECT_EQ(Function->returnType(), Void);
     ASSERT_EQ(Function->parameterCount(), 1U);
-    EXPECT_EQ(Function->parameters()[0], Opaque);
-    EXPECT_EQ(UnitParameter->parameters()[0], Void);
+    EXPECT_EQ(Function->parameters()[0]->type(), Opaque);
+    EXPECT_EQ(UnitParameter->parameters()[0]->type(), Void);
     EXPECT_TRUE(Empty->parameters().empty());
     EXPECT_EQ(Empty->returnType(), Void);
     EXPECT_EQ(Units->elementType(), Void);

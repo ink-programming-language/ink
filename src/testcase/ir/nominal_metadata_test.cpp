@@ -413,7 +413,7 @@ namespace ink::ir::test
         EXPECT_EQ(Value->method(0)->function()->parameter(0), ParameterValue);
         EXPECT_EQ(Value->method(0)->function()->entryBlock(), Block);
         EXPECT_EQ(Value->method(0)->function()->entryBlock()->instruction(0), BodyInstruction);
-        EXPECT_EQ(&ParameterValue->function(), Callable);
+        EXPECT_EQ(ParameterValue->function(), Callable);
         EXPECT_EQ(Block->function(), Callable);
         EXPECT_FALSE(BodiesDestroyed[Index]);
         Value->freeze();

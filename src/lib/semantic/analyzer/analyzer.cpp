@@ -21,7 +21,7 @@ namespace ink::semantic
 
     // Preserve caller-owned output and pooled IR, with fresh traversal state for this call.
     AnalyzerState State(Context, Input, Output);
-    Context.Source = Lexed.sourceId();
+    Context.setSource(Lexed.sourceId());
     const auto AnalyzeModule = [this, &State](AnalyzerState::Mode AnalysisMode)
     {
       AnalyzerState::Guard ModeGuard(State, AnalysisMode);

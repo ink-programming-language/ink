@@ -53,6 +53,11 @@ namespace ink::semantic
       AnalyzerState(AnalyzerState &&) = delete;
       AnalyzerState &operator=(AnalyzerState &&) = delete;
 
+      auto &nameResolver(this auto &&Self) noexcept
+      {
+        return Self.Resolver;
+      }
+
     private:
       friend class Analyzer;
 
@@ -62,8 +67,8 @@ namespace ink::semantic
       // Each call has an independent cursor; node handlers select the required module/member/block scopes.
       NameResolver Resolver;
       Mode AnalysisMode = Mode::FullAnalysis;
-      std::size_t BlockDepthLimit;
-      std::size_t BlockDepth = 0;
+      std::size_t RecursionDepthLimit;
+      std::size_t RecursionDepth = 0;
   };
 } // namespace ink::semantic
 

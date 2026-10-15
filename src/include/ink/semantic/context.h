@@ -52,6 +52,12 @@ namespace ink::semantic
         return Self.Scopes;
       }
 
+      // The analysis entry selects its validated source before invoking node handlers.
+      void setSource(core::SourceId Source) noexcept
+      {
+        this->Source = Source;
+      }
+
       // Reports against the input selected by the current analysis call.
       template <core::DiagnosticKind Kind, typename... ArgumentTypes>
       void report(core::SourceRange Span, ArgumentTypes &&...Arguments)
@@ -60,8 +66,6 @@ namespace ink::semantic
       }
 
     private:
-      friend class Analyzer;
-
       frontend::FrontendContext Frontend;
       ir::IRContext IR;
       ScopeStore Scopes;
