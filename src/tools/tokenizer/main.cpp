@@ -1,13 +1,16 @@
-#include "ink/cli/application.h"
 #include "ink/core/diagnostic/diagnostic_consumer.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/diagnostic/diagnostic_formatter.h"
-#include "ink/cli/io.h"
 #include "ink/frontend/context.h"
 #include "ink/frontend/tokenizer/tokenizer.h"
 
+#include <cxxopts.hpp>
+#include <spdlog/logger.h>
+#include <spdlog/pattern_formatter.h>
+#include <spdlog/sinks/ostream_sink.h>
+
 #include <array>
-#include <filesystem>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -15,6 +18,11 @@
 #include <string>
 #include <string_view>
 #include <utility>
+
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#endif
 
 namespace
 {
@@ -57,42 +65,124 @@ namespace
 
   int runTokenizer(int ArgumentCount, char **ArgumentValues)
   {
-    ink::cli::Application Command({"ink-tokenize", "Tokenize Ink source and print the token stream.", "development"});
-    std::string SourceFile = "-";
-    Command.addOption("INPUT", SourceFile, "Input file, or '-' for standard input").typeName("FILE");
-    const ink::cli::ParseResult ParsedArguments = Command.parse(ArgumentCount, ArgumentValues);
-    if (ParsedArguments.ShouldExit)
+    const auto OutputSink = std::make_shared<spdlog::sinks::ostream_sink_st>(std::cout, true);
+    const auto ErrorSink = std::make_shared<spdlog::sinks::ostream_sink_st>(std::cerr, true);
+    spdlog::logger OutputLogger("ink-tokenize-output", OutputSink);
+    spdlog::logger ErrorLogger("ink-tokenize-error", ErrorSink);
+    bool OutputFailed = false;
+    bool ErrorFailed = false;
+    const auto OutputErrorHandler = [&OutputFailed](const std::string &)
     {
-      return ink::cli::exitStatus(ParsedArguments.Code);
+      OutputFailed = true;
+    };
+    const auto ErrorErrorHandler = [&ErrorFailed](const std::string &)
+    {
+      ErrorFailed = true;
+    };
+    OutputLogger.set_error_handler(OutputErrorHandler);
+    ErrorLogger.set_error_handler(ErrorErrorHandler);
+    OutputLogger.set_formatter(std::make_unique<spdlog::pattern_formatter>("%v", spdlog::pattern_time_type::local, ""));
+    ErrorLogger.set_formatter(std::make_unique<spdlog::pattern_formatter>("%v", spdlog::pattern_time_type::local, ""));
+    const auto Error = [&ErrorLogger](const std::string &Message)
+    {
+      ErrorLogger.error("ink-tokenize: error: {}\nTry 'ink-tokenize --help' for more information.\n", Message);
+      return 2;
+    };
+    int OptionTerminator = ArgumentCount;
+    for (int Index = 1; Index < ArgumentCount; ++Index)
+    {
+      const std::string_view Argument(ArgumentValues[Index]);
+      if (Argument == "--")
+      {
+        OptionTerminator = Index;
+        break;
+      }
+      if (Argument.starts_with("--help=") || Argument.starts_with("--h=") || Argument.starts_with("--version=") || Argument.starts_with("--V="))
+      {
+        return Error("--help and --version do not accept values");
+      }
     }
 
+    bool Help = false;
+    bool Version = false;
+    cxxopts::Options Options("ink-tokenize", "Tokenize Ink source and print the token stream.\nINPUT is a file path, or '-' for standard input (the default).");
+    Options.custom_help("[INPUT] [options]");
+    Options.allow_unrecognised_options();
+    auto AddOption = Options.add_options();
+    AddOption("h,help", "Print help", cxxopts::value<bool>(Help));
+    AddOption("V,version", "Print version", cxxopts::value<bool>(Version));
+    // Only cxxopts' built-in boolean values reach conversion in its no-exception mode.
+    const cxxopts::ParseResult Parsed = Options.parse(ArgumentCount, ArgumentValues);
+    const auto &Unmatched = Parsed.unmatched();
+    if (Unmatched.size() > 1)
+    {
+      return Error("expected at most one input file");
+    }
+    if (!Unmatched.empty())
+    {
+      const std::string &Input = Unmatched.front();
+      if (Input.empty())
+      {
+        return Error("input file path must not be empty");
+      }
+      bool AfterTerminator = false;
+      for (int Index = OptionTerminator; Index < ArgumentCount; ++Index)
+      {
+        AfterTerminator = AfterTerminator || (Index > OptionTerminator && Input == ArgumentValues[Index]);
+      }
+      if (Input.front() == '-' && Input != "-" && !AfterTerminator)
+      {
+        return Error("unexpected argument '" + Input + "'");
+      }
+    }
+    if (Parsed.count("help") > 1 || Parsed.count("version") > 1)
+    {
+      return Error("options must not be repeated");
+    }
+    if (Help && Version)
+    {
+      return Error("option '--help' conflicts with '--version'");
+    }
+    if (Help)
+    {
+      OutputLogger.info("{}", Options.help());
+      return !OutputFailed && std::cout ? 0 : 2;
+    }
+    if (Version)
+    {
+      OutputLogger.info("ink-tokenize development\n");
+      return !OutputFailed && std::cout ? 0 : 2;
+    }
+
+    const std::string SourceFile = Unmatched.empty() ? "-" : Unmatched.front();
     std::string Source;
     if (SourceFile == "-")
     {
-      if (!ink::cli::useBinaryStandardInput() || !readSource(std::cin, Source))
+#ifdef _WIN32
+      if (_setmode(_fileno(stdin), _O_BINARY) == -1)
       {
-        ink::cli::writeOutput(std::cerr, "ink-tokenize: error: cannot read standard input\n");
-        return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
+        ErrorLogger.error("ink-tokenize: error: cannot read standard input\n");
+        return 2;
+      }
+#endif
+      if (!readSource(std::cin, Source))
+      {
+        ErrorLogger.error("ink-tokenize: error: cannot read standard input\n");
+        return 2;
       }
     }
     else
     {
-      std::filesystem::path SourcePath;
-      if (!ink::cli::pathFromUtf8(SourceFile, SourcePath))
-      {
-        ink::cli::writeOutput(std::cerr, "ink-tokenize: error: input path is not valid UTF-8\n");
-        return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
-      }
-      std::ifstream Input(SourcePath, std::ios::binary);
+      std::ifstream Input(SourceFile, std::ios::binary);
       if (!Input)
       {
-        ink::cli::writeOutput(std::cerr, "ink-tokenize: error: cannot open '" + SourceFile + "'\n");
-        return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
+        ErrorLogger.error("ink-tokenize: error: cannot open '{}'\n", SourceFile);
+        return 2;
       }
       if (!readSource(Input, Source))
       {
-        ink::cli::writeOutput(std::cerr, "ink-tokenize: error: cannot read '" + SourceFile + "'\n");
-        return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
+        ErrorLogger.error("ink-tokenize: error: cannot read '{}'\n", SourceFile);
+        return 2;
       }
     }
 
@@ -138,22 +228,17 @@ namespace
         BufferedErrorOutput << '\n';
       }
     }
-    const bool OutputSucceeded = ink::cli::writeOutput(std::cout, BufferedOutput.str());
-    const bool ErrorOutputSucceeded = ink::cli::writeOutput(std::cerr, BufferedErrorOutput.str());
-    if (!OutputSucceeded || !ErrorOutputSucceeded)
+    OutputLogger.info("{}", BufferedOutput.str());
+    ErrorLogger.error("{}", BufferedErrorOutput.str());
+    if (OutputFailed || ErrorFailed || !std::cout || !std::cerr)
     {
-      return ink::cli::exitStatus(ink::cli::ExitCode::InvocationError);
+      return 2;
     }
-    return ink::cli::exitStatus(HasInternalError ? ink::cli::ExitCode::InternalError : Result.succeeded() ? ink::cli::ExitCode::Success
-                                                                                                          : ink::cli::ExitCode::SourceError);
+    return HasInternalError ? 3 : Result.succeeded() ? 0 : 1;
   }
 } // namespace
 
 int main(int ArgumentCount, char **ArgumentValues)
 {
-  const auto Run = [ArgumentCount, ArgumentValues]()
-  {
-    return runTokenizer(ArgumentCount, ArgumentValues);
-  };
-  return ink::cli::runMain("ink-tokenize", Run);
+  return runTokenizer(ArgumentCount, ArgumentValues);
 }

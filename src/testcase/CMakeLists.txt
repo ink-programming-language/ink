@@ -22,7 +22,7 @@ ink_disable_exceptions(ink_tokenizer_test_objects)
 # Original semantic test sources remain under semantic/ as a reference for rebuilding the implementation.
 # Most depend on removed IR and execution APIs; enable only the rebuilt entry and name-resolution tests.
 add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_IR_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} semantic/analyzer_entry_test.cpp semantic/name_resolver_test.cpp semantic/scope_store_test.cpp)
-add_dependencies(ink_tests ink_tokenize ink_parse)
+add_dependencies(ink_tests ink_tokenize ink_parse inkc)
 target_compile_features(ink_tests PRIVATE cxx_std_23)
 target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::ir ink::frontend ink::semantic ink::llvm LLVMBitstreamReader GTest::gtest_main GTest::gmock spdlog::spdlog)
 ink_disable_exceptions(ink_tests)
@@ -40,3 +40,4 @@ add_test(NAME ParserProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_PARSER=$<TARGE
 add_test(NAME ParserAdversarialProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_PARSER=$<TARGET_FILE:ink_parse>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/parser-adversarial-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/parser/adversarial_process_test.cmake")
 set_tests_properties(ParserAdversarialProcessTest PROPERTIES TIMEOUT 120 LABELS "parser;adversarial")
 add_test(NAME TokenizerProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_TOKENIZER=$<TARGET_FILE:ink_tokenize>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/tokenizer-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/tokenizer/process_test.cmake")
+add_test(NAME InkcProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/inkc-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/inkc/process_test.cmake")

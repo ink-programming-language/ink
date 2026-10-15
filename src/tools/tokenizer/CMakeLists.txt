@@ -1,7 +1,8 @@
 file(GLOB_RECURSE INK_TOKENIZE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 add_executable(ink_tokenize ${INK_TOKENIZE_SOURCES})
 target_compile_features(ink_tokenize PRIVATE cxx_std_23)
-target_link_libraries(ink_tokenize PRIVATE ink::cli ink::frontend)
+target_link_libraries(ink_tokenize PRIVATE ink::frontend cxxopts::cxxopts spdlog::spdlog)
+target_compile_definitions(ink_tokenize PRIVATE CXXOPTS_NO_EXCEPTIONS CXXOPTS_NO_REGEX)
 ink_disable_exceptions(ink_tokenize)
 set_target_properties(ink_tokenize PROPERTIES OUTPUT_NAME ink-tokenize)
 

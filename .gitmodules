@@ -14,3 +14,7 @@
 	path = src/third_party/spdlog
 	url = https://github.com/gabime/spdlog.git
 	shallow = true
+[submodule "src/third_party/cxxopts"]
+	path = src/third_party/cxxopts
+	url = https://github.com/jarro2783/cxxopts.git
+	shallow = true

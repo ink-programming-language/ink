@@ -1,6 +1,6 @@
 # ink
 
-`main` 保留完整的 tokenizer、parser、AST、对应测试，以及前端所需的 Core、CLI 和构建依赖，并开始重建 IR 基础类型。Semantic 保留原有头文件、源文件及目录结构、公开分析入口和 analyzer 基于 `ASTNodes.def` 的语句及声明分派；具体语义处理仍报告未实现。`src/testcase/semantic` 中的 17 个原有测试文件完整保留，暂不参与编译和运行；新增的入口与分派回归测试已启用。
+`main` 保留完整的 tokenizer、parser、AST、对应测试，以及前端所需的 Core 和构建依赖，并开始重建 IR 基础类型。Semantic 保留原有头文件、源文件及目录结构、公开分析入口和 analyzer 基于 `ASTNodes.def` 的语句及声明分派；具体语义处理仍报告未实现。`src/testcase/semantic` 中的 17 个原有测试文件完整保留，暂不参与编译和运行；新增的入口与分派回归测试已启用。
 
 精简前的完整主干保存在 [`saved-execution`](https://github.com/ink-programming-language/ink/tree/saved-execution) 分支，快照提交为 `22c3946c4737a7942fc28ab7cfa6f78e6fa3bd31`。原有 semantic 实现、IR、execution、ABI、LLVM backend、inkc 及其测试和文档可在该分支查看。
 
@@ -41,13 +41,13 @@ ctest --test-dir build -C Release --output-on-failure
 
 `core_define.h` 的 `INK_ENABLE_ASSERTIONS` 统一控制六个断言宏：`CHECK`、`CHECK_MSGF`、`CHECK_ALWAYS_MSGF`、`ENSURE`、`ENSURE_MSGF`、`ENSURE_ALWAYS_MSGF`。Debug 和 Development 开启，Shipping 关闭。失败时先输出并刷新日志，再在附加了调试器时触发断点；继续执行后，CHECK 终止进程，ENSURE 返回 `false`。普通 ENSURE 每个调用点仅报告和中断一次，`ENSURE_ALWAYS_MSGF` 每次失败都报告和中断；CHECK 每次失败都会终止，因此它的两个消息版本行为相同。Shipping 中 CHECK 不求值，ENSURE 保留条件求值，所有断言消息参数均不求值。`PANIC` 始终终止。Ink 模式独立于 `CMAKE_BUILD_TYPE`、`--config` 和 `NDEBUG`，不改变编译器优化或调试信息选项；例如 `cmake -S . -B build -DINK_BUILD_MODE=shipping` 配合 `cmake --build build --config Release` 选择 Shipping 行为和 Release 编译选项。多配置生成器的同一构建目录共用所选 Ink 模式，不同模式请使用不同构建目录。
 
-`ink_tests` 包含 Core、IR 类型、tokenizer、parser/AST 及 semantic 分析入口的单元测试，构建时同时构建 `ink-tokenize` 和 `ink-parse`。CTest 还运行 tokenizer、parser 的 CLI 进程测试和 parser 对抗输入测试。单独构建并运行全部启用测试可使用 `cmake --build build --config Release --target run_all_tests`。
+`ink_tests` 包含 Core、IR 类型、tokenizer、parser/AST 及 semantic 分析入口的单元测试，构建时同时构建 `inkc`、`ink-tokenize` 和 `ink-parse`。CTest 还运行三个工具的 CLI 进程测试和 parser 对抗输入测试。单独构建并运行全部启用测试可使用 `cmake --build build --config Release --target run_all_tests`。
 
 启用 `BUILD_TESTING` 时，配置阶段检查 Frontend/Core 的 CMake 目标依赖，CTest 的 `FrontendDependencyBoundaryTest` 检查对应源码和头文件，禁止引入 IR 或 Semantic。源码检查使用轻量文本匹配，覆盖 include 和命名空间引用；可单独运行 `ctest --test-dir build -C Release -R FrontendDependencyBoundaryTest --output-on-failure`。
 
 `Analyzer::analyze(SemanticContext &, const frontend::parser::ParseResult &, ir::Module &Output)` 返回 `bool`，显式接收调用方拥有的输入输出模块。入口先校验 Output 借用同一个 `Context.irContext()`，以及解析结果和源码归属，再按源码顺序遍历模块和块，通过 `analyzeStmt`、`analyzeDeclStmt` 和 `analyzeDecl` 到达具体节点处理函数。入口校验通过后创建局部 `AnalyzerState`，借用 `Context`、只读 `Input` 和可写 `Output`，各处理函数接收 `AnalyzerState &`。入口通过同一个 lambda 依次执行 `CollectDecls` 和 `FullAnalysis` 两轮遍历，`AnalyzerState::Guard` 在每轮切换模式并在离开作用域时恢复原模式，两轮结果均成功才返回 true；具体节点的模式差异随语义实现补齐。`AnalyzerState` 拥有块深度和深度上限，每次构造从零开始计数并读取 `INK_SEMANTIC_BLOCK_DEPTH_LIMIT`；`SemanticContext` 保留当前源码选择。入口不持有或重置外部 Builder，连续调用保留池对象和调用方的模块内容；无效输入或其他 IRContext 的输出模块返回 false。空模块和仅含空块的输入可以完成遍历；具体语义及 comptime 求值尚未实现，命中时报告既有的 `SemanticUnsupported` ICE。当前入口不生成 IR，失败不会回滚已有输出。
 
-LLVM/Clang 固定版本为 22.1.8；tokenizer 直接使用 Clang 的 `UnicodeCharSets.h`，parser 的 AST 归档使用 LLVM 支持库。NFC 校验使用 utf8proc 2.9.0 的 Unicode 15.1 实现。spdlog 1.17.0 负责所有自有 C++ 文本输出；CLI 统一通过 `ink::cli::writeOutput` 输出。所有自有 C++ 编译目标在目标级关闭异常。
+LLVM/Clang 固定版本为 22.1.8；tokenizer 直接使用 Clang 的 `UnicodeCharSets.h`，parser 的 AST 归档使用 LLVM 支持库。NFC 校验使用 utf8proc 2.9.0 的 Unicode 15.1 实现。spdlog 1.17.0 负责所有自有 C++ 文本输出；各命令行工具自行配置输出，并直接使用 cxxopts 3.3.1 解析 `argc` / `argv`，暂不处理命令行参数和路径的 UTF-8 转换。所有自有 C++ 编译目标在目标级关闭异常。
 
 Core 的公共头文件按职责放在 `src/include/ink/core` 下的 `support`、`source`、`name`、`diagnostic`、`config` 和 `archive` 子目录，实现和测试在各自的 Core 目录中按相同职责组织；构建仍使用单个 `ink::core` 库，公共命名空间仍为 `ink::core`。`diagnostic/diagnostic.h` 定义诊断数据和元数据接口，参数 schema 与 traits、构造器、消费接口、引擎和格式化器分别位于 `diagnostic_traits.h`、`diagnostic_builder.h`、`diagnostic_consumer.h`、`diagnostic_engine.h` 和 `diagnostic_formatter.h`，调用方按需包含。AST 文本归档辅助头仅供 parser 内部使用，位于 `src/lib/frontend/parser/archive_text.h`。
 
@@ -61,7 +61,7 @@ AST 类声明位于 `src/include/ink/frontend/parser/ast`，每个 class 使用�
 
 `frontend::FrontendContext` 直接借用 `core::SourceManager` 和 `core::DiagnosticEngine`，二者必须比上下文存活更久；tokenizer、parser 和 semantic 使用这些服务而不依赖工具层。`SemanticContext(Sources, Diagnostics, Target)` 组合持有前端服务视图，并按值拥有 `ir::IRContext`、保存当前源码选择，通过 `irContext()` 提供借用访问，`typePool()` 转发至 IRContext 的类型池；它不拥有 Module 或 Builder。上层用 `Module(Context.irContext())` 创建输入输出模块，用 `IRBuilder(Context.irContext())` 独立构建 IR，并保证这些模块和所有池对象使用者先于 SemanticContext 销毁。现有 `ink-tokenize`、`ink-parse` 和测试各自拥有服务实例，以保持编译会话之间的源码和诊断隔离。
 
-`inkc::CompilationContext` 是工具私有的编译会话资源所有者，定义位于 `src/tools/inkc/compilation_context.h`，拥有目标描述、源码管理器和诊断引擎。库和测试不依赖此类型；当前分支尚未恢复 inkc 可执行入口。
+`inkc::CompilationContext` 是工具私有的编译会话资源所有者，定义位于 `src/tools/inkc/compilation_context.h`，拥有目标描述、源码管理器和诊断引擎。库和测试不依赖此类型。`inkc` 可执行入口使用 submodule 固定的 cxxopts 3.3.1，以无异常模式解析必需的 `-i FILE` / `--input FILE`，并提供帮助和版本选项；当前只处理参数，不读取、编译或执行源码，尚未连接编译会话。
 
 Target 目录提供目标平台描述，头文件位于 `src/include/ink/target`。`target::TargetContext`、`target::PointerWidth` 和 `target::ByteOrder` 定义在 `ink/target/target_context.h` 中；`TargetContext` 保存指针宽度、字节序及标量对齐信息，`native()` 返回宿主目标。inkc 私有的 `CompilationContext` 和 IR 的 `IRContext` 均使用这一描述。
 

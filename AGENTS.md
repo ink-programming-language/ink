@@ -215,7 +215,7 @@ constexpr KeywordEntry Keywords[] = {{"as", KeywordKind::As}, {"async", KeywordK
 ## 输出与日志
 
 - 仓库固定使用 `src/third_party/spdlog` 中的 spdlog 1.17.0 作为统一文本输出和日志库，不得引入第二套日志库。
-- 本仓库自有 C++ 代码产生的所有进程文本输出和运行时日志都必须经过 spdlog；CLI 的 stdout、stderr 输出统一调用 `ink::cli::writeOutput`，其他日志场景使用 spdlog logger 与对应 sink。
+- 本仓库自有 C++ 代码产生的所有进程文本输出和运行时日志都必须经过 spdlog；各命令行工具自行配置 stdout、stderr 对应的 spdlog logger 和 sink，不抽取公共 CLI 输出代码。
 - 禁止直接通过 `std::cout <<`、`std::cerr <<`、`std::clog`、`printf`、`fprintf`、`puts`、`fputs`、`llvm::outs()` 或 `llvm::errs()` 产生进程输出或日志。允许使用 `std::ostringstream` 仅在内存中组装完整消息，再交给 spdlog 输出。
 
 ## 异常机制
