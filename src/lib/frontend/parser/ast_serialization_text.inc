@@ -73,7 +73,7 @@ namespace ink::frontend::parser
                          else if constexpr (std::is_same_v<T, tokenizer::NumericInfo>)
                          {
                            put("numeric ");
-                           value(Payload.Base);
+                           value(static_cast<unsigned>(Payload.Base));
                          }
                          else if constexpr (std::is_same_v<T, tokenizer::StringInfo>)
                          {

@@ -83,7 +83,10 @@ namespace ink::semantic::test
     const Case Cases[] = {
         {"void", Types.getVoidType()},
         {"bool", Types.getBoolType()},
+        {"i8", Types.getInt8Type()},
         {"u8", Types.getUInt8Type()},
+        {"i16", Types.getInt16Type()},
+        {"u16", Types.getUInt16Type()},
         {"i32", Types.getInt32Type()},
         {"u32", Types.getUInt32Type()},
         {"i64", Types.getInt64Type()},
@@ -325,7 +328,7 @@ namespace ink::semantic::test
   TEST_F(SemanticAnalyzerTypeTest, AttributesUnknownNameDiagnosticsToEachInput)
   {
     auto First = read("MissingType");
-    auto Second = read("i16");
+    auto Second = read("i128");
     ASSERT_TRUE(First.succeeded());
     ASSERT_TRUE(Second.succeeded());
     const frontend::parser::ParseResult *Inputs[] = {&First, &Second, &First};
@@ -586,12 +589,27 @@ namespace ink::semantic::test
     }
   }
 
+  // Negated array lengths need an instruction block while type-only analysis has none, so construction reports its ICE.
+  TEST_F(SemanticAnalyzerTypeTest, ReportsConstructionICEForNegatedArrayLengthsWithoutInsertBlock)
+  {
+    constexpr const char *Cases[] = {
+        "[u8; -0]",
+        "[u8; -1]",
+    };
+    for (const char *Text : Cases)
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(analyze(Input), "INK-S0013");
+    }
+  }
+
   // Length operands retain the common unsupported-feature ICE for calls and operations, including constant-only arithmetic.
   TEST_F(SemanticAnalyzerTypeTest, ReportsUnsupportedArrayLengthOperations)
   {
     constexpr const char *Cases[] = {
         "[u8; +3]",
-        "[u8; -1]",
         "[u8; ~0]",
         "[u8; 1 + 2]",
         "[u8; 5 - 2]",
@@ -627,6 +645,9 @@ namespace ink::semantic::test
         std::uint64_t Count;
     };
     const Case Cases[] = {
+        {"Signed8", Constants.getSignedIntegerConstant(Types.getInt8Type(), std::numeric_limits<std::int8_t>::max()), static_cast<std::uint64_t>(std::numeric_limits<std::int8_t>::max())},
+        {"Signed16", Constants.getSignedIntegerConstant(Types.getInt16Type(), std::numeric_limits<std::int16_t>::max()), static_cast<std::uint64_t>(std::numeric_limits<std::int16_t>::max())},
+        {"Unsigned16", Constants.getUnsignedIntegerConstant(Types.getUInt16Type(), std::numeric_limits<std::uint16_t>::max()), std::numeric_limits<std::uint16_t>::max()},
         {"SignedZero", Constants.getSignedIntegerConstant(Types.getInt32Type(), 0), 0},
         {"Signed32", Constants.getSignedIntegerConstant(Types.getInt32Type(), std::numeric_limits<std::int32_t>::max()), static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max())},
         {"Unsigned32", Constants.getUnsignedIntegerConstant(Types.getUInt32Type(), std::numeric_limits<std::uint32_t>::max()), std::numeric_limits<std::uint32_t>::max()},
@@ -670,12 +691,16 @@ namespace ink::semantic::test
     }
   }
 
-  // Negative pooled signed constants are rejected using their signed type, including the minimum i32 and i64 values.
+  // Negative pooled signed constants are rejected using their signed type, including the minimum of every supported signed width.
   TEST_F(SemanticAnalyzerTypeTest, RejectsNegativeIntegerConstantArrayLengths)
   {
     auto &Types = Context.typePool();
     auto &Constants = Output.constantPool();
     const ir::IntegerConstant *Cases[] = {
+        Constants.getSignedIntegerConstant(Types.getInt8Type(), -1),
+        Constants.getSignedIntegerConstant(Types.getInt8Type(), std::numeric_limits<std::int8_t>::min()),
+        Constants.getSignedIntegerConstant(Types.getInt16Type(), -1),
+        Constants.getSignedIntegerConstant(Types.getInt16Type(), std::numeric_limits<std::int16_t>::min()),
         Constants.getSignedIntegerConstant(Types.getInt32Type(), -1),
         Constants.getSignedIntegerConstant(Types.getInt32Type(), std::numeric_limits<std::int32_t>::min()),
         Constants.getSignedIntegerConstant(Types.getInt64Type(), -1),

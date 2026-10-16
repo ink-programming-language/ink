@@ -1,10 +1,12 @@
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
+#include "ink/core/config/numeric_literal.h"
 #include "ink/core/diagnostic/diagnostic_consumer.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/diagnostic/diagnostic_formatter.h"
 #include "ink/core/name/name_pool.h"
 #include "ink/frontend/parser/parser.h"
+#include "ink/ir/instruction/neg_instruction.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/structure_type/function_type_parameter.h"
 #include "ink/semantic/context.h"
@@ -13,11 +15,13 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <initializer_list>
 #include <limits>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace ink::semantic::test
 {
@@ -51,13 +55,43 @@ namespace ink::semantic::test
         const ir::Value *analyze(const frontend::parser::ParseResult &Input, ExprHints Hints = {})
         {
           AnalyzerState State(Context, Input, Output);
+          if (!createInsertBlock(State))
+          {
+            return nullptr;
+          }
           return analyze(State, Input, Hints);
+        }
+
+        ir::BasicBlock *createInsertBlock(AnalyzerState &State)
+        {
+          auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+          EXPECT_NE(Function, nullptr);
+          if (!Function)
+          {
+            return nullptr;
+          }
+          auto *Block = Function->createBlock();
+          EXPECT_NE(Block, nullptr);
+          if (!Block || !State.irBuilder().setInsertPoint(*Block))
+          {
+            return nullptr;
+          }
+          return Block;
         }
 
         const ir::Value *analyze(AnalyzerState &State, const frontend::parser::ParseResult &Input, ExprHints Hints = {})
         {
           Context.setSource(Input.Unit->input().lexedFile().sourceId());
           return Analysis.analyzeExpr(State, syntax(Input), Hints);
+        }
+
+        void expectNegation(const ir::Value *Result, const ir::Value *Operand)
+        {
+          ASSERT_NE(Result, nullptr);
+          ASSERT_NE(Operand, nullptr);
+          ASSERT_TRUE(ir::NegInstruction::classof(Result));
+          EXPECT_EQ(Result->type(), Operand->type());
+          EXPECT_EQ(static_cast<const ir::NegInstruction *>(Result)->operand(), Operand);
         }
 
         void expectFailure(const ir::Value *Result, core::DiagnosticKind Kind)
@@ -217,7 +251,10 @@ namespace ink::semantic::test
         std::uint64_t Bits;
     };
     const Case Cases[] = {
+        {"127", Types.getInt8Type(), 127},
         {"255", Types.getUInt8Type(), 255},
+        {"32767", Types.getInt16Type(), 32767},
+        {"65535", Types.getUInt16Type(), 65535},
         {"2147483647", Types.getInt32Type(), 2147483647},
         {"4294967295", Types.getUInt32Type(), 4294967295ULL},
         {"0xFFFFFFF5", Types.getUInt32Type(), 0xFFFFFFF5ULL},
@@ -249,7 +286,10 @@ namespace ink::semantic::test
         const char *Message;
     };
     const Case Cases[] = {
+        {"128", Types.getInt8Type(), "integer literal is out of range for i8"},
         {"256", Types.getUInt8Type(), "integer literal is out of range for u8"},
+        {"32768", Types.getInt16Type(), "integer literal is out of range for i16"},
+        {"65536", Types.getUInt16Type(), "integer literal is out of range for u16"},
         {"2147483648", nullptr, "integer literal is out of range for i32"},
         {"0xFFFFFFF5", nullptr, "integer literal is out of range for i32"},
         {"4294967296", Types.getUInt32Type(), "integer literal is out of range for u32"},
@@ -265,6 +305,513 @@ namespace ink::semantic::test
       expectFailure(analyze(Input, {.ExpectedType = Entry.Type}), core::DiagnosticKind::SemanticIntegerOutOfRange);
       expectMessage(Entry.Message);
       EXPECT_EQ(Diagnostics.diagnostics()[0].Span, syntax(Input).getSourceRange());
+    }
+  }
+
+  // Unary minus emits same-typed instructions for signed literal operands across widths, parentheses and nondecimal spellings.
+  TEST_F(SemanticAnalyzerExprTest, AcceptsNegativeIntegerLiteralBoundaries)
+  {
+    auto &Types = Context.typePool();
+    struct Case
+    {
+        const char *Text;
+        const ir::IntegerType *Type;
+        std::int64_t Value;
+    };
+    const Case Cases[] = {
+        {"-127", Types.getInt8Type(), -std::numeric_limits<std::int8_t>::max()},
+        {"(-127)", Types.getInt8Type(), -std::numeric_limits<std::int8_t>::max()},
+        {"-(127)", Types.getInt8Type(), -std::numeric_limits<std::int8_t>::max()},
+        {"-0b1111111", Types.getInt8Type(), -std::numeric_limits<std::int8_t>::max()},
+        {"-32767", Types.getInt16Type(), -std::numeric_limits<std::int16_t>::max()},
+        {"-((32767))", Types.getInt16Type(), -std::numeric_limits<std::int16_t>::max()},
+        {"-0o77777", Types.getInt16Type(), -std::numeric_limits<std::int16_t>::max()},
+        {"-2147483647", Types.getInt32Type(), -std::numeric_limits<std::int32_t>::max()},
+        {"-0x7FFFFFFF", Types.getInt32Type(), -std::numeric_limits<std::int32_t>::max()},
+        {"-9223372036854775807", Types.getInt64Type(), -std::numeric_limits<std::int64_t>::max()},
+        {"-((9223372036854775807))", Types.getInt64Type(), -std::numeric_limits<std::int64_t>::max()},
+        {"-0x7FFFFFFFFFFFFFFF", Types.getInt64Type(), -std::numeric_limits<std::int64_t>::max()},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      const auto *Expected = Output.constantPool().getSignedIntegerConstant(Entry.Type, -Entry.Value);
+      ASSERT_NE(Expected, nullptr);
+      expectNegation(analyze(Input, {.ExpectedType = Entry.Type}), Expected);
+      expectNegation(analyze(Input, {.DefaultIntegerLiteralType = Entry.Type}), Expected);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+    auto Input = read("-2147483647");
+    ASSERT_TRUE(Input.succeeded());
+    expectNegation(analyze(Input), Output.constantPool().getSignedIntegerConstant(Types.getInt32Type(), std::numeric_limits<std::int32_t>::max()));
+    auto Narrow = read("-(127)");
+    ASSERT_TRUE(Narrow.succeeded());
+    expectNegation(analyze(Narrow, {.ExpectedType = Types.getInt8Type(), .DefaultIntegerLiteralType = Types.getUInt64Type()}), Output.constantPool().getSignedIntegerConstant(Types.getInt8Type(), std::numeric_limits<std::int8_t>::max()));
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Positive literal operands must fit before negation, so signed minimum literals and larger magnitudes still report integer overflow.
+  TEST_F(SemanticAnalyzerExprTest, RejectsNegativeIntegerOverflow)
+  {
+    auto &Types = Context.typePool();
+    struct Case
+    {
+        const char *Text;
+        const ir::IntegerType *Type;
+    };
+    const Case Cases[] = {
+        {"-128", Types.getInt8Type()},
+        {"-129", Types.getInt8Type()},
+        {"-0x81", Types.getInt8Type()},
+        {"-32768", Types.getInt16Type()},
+        {"-32769", Types.getInt16Type()},
+        {"-2147483648", Types.getInt32Type()},
+        {"-2147483649", Types.getInt32Type()},
+        {"-9223372036854775808", Types.getInt64Type()},
+        {"-9223372036854775809", Types.getInt64Type()},
+        {"-18446744073709551616", Types.getInt64Type()},
+        {"-(-128)", Types.getInt8Type()},
+        {"-(-32768)", Types.getInt16Type()},
+        {"-(-2147483648)", Types.getInt32Type()},
+        {"-(-9223372036854775808)", Types.getInt64Type()},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      SCOPED_TRACE(Entry.Type->toString());
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      expectFailure(analyze(Input, {.ExpectedType = Entry.Type}), core::DiagnosticKind::SemanticIntegerOutOfRange);
+      expectMessage("integer literal is out of range for " + Entry.Type->toString());
+    }
+  }
+
+  // Integer zero, nonzero unsigned operands and repeated negation remain explicit instructions without constant folding.
+  TEST_F(SemanticAnalyzerExprTest, LowersIntegerZeroAndRepeatedNegationWithoutFolding)
+  {
+    auto &Types = Context.typePool();
+    const ir::IntegerType *IntegerTypes[] = {
+        Types.getInt8Type(),
+        Types.getUInt8Type(),
+        Types.getInt16Type(),
+        Types.getUInt16Type(),
+        Types.getInt32Type(),
+        Types.getUInt32Type(),
+        Types.getInt64Type(),
+        Types.getUInt64Type(),
+    };
+    for (const auto *Type : IntegerTypes)
+    {
+      SCOPED_TRACE(Type->toString());
+      for (const char *Text : {"-((0))", "-1"})
+      {
+        auto Input = read(Text);
+        ASSERT_TRUE(Input.succeeded());
+        expectNegation(analyze(Input, {.ExpectedType = Type}), Output.constantPool().getIntegerConstantFromBits(Type, std::string_view(Text) == "-1" ? 1 : 0));
+        EXPECT_TRUE(Diagnostics.diagnostics().empty());
+      }
+    }
+    auto Input = read("-(-127)");
+    ASSERT_TRUE(Input.succeeded());
+    const auto *Result = analyze(Input, {.ExpectedType = Types.getInt8Type()});
+    ASSERT_NE(Result, nullptr);
+    ASSERT_TRUE(ir::NegInstruction::classof(Result));
+    const auto *Inner = static_cast<const ir::NegInstruction *>(Result)->operand();
+    expectNegation(Result, Inner);
+    expectNegation(Inner, Output.constantPool().getSignedIntegerConstant(Types.getInt8Type(), 127));
+    auto Unsigned = read("-18446744073709551615");
+    ASSERT_TRUE(Unsigned.succeeded());
+    expectNegation(analyze(Unsigned, {.ExpectedType = Types.getUInt64Type()}), Output.constantPool().getUnsignedIntegerConstant(Types.getUInt64Type(), std::numeric_limits<std::uint64_t>::max()));
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Bound integer operands retain their declared types in negation instructions, including signed minima and nonzero unsigned constants.
+  TEST_F(SemanticAnalyzerExprTest, LowersBoundIntegerConstantNegationWithoutFolding)
+  {
+    auto &Types = Context.typePool();
+    struct Case
+    {
+        const ir::IntegerType *Type;
+        std::int64_t Minimum;
+    };
+    const Case Cases[] = {
+        {Types.getInt8Type(), std::numeric_limits<std::int8_t>::min()},
+        {Types.getInt16Type(), std::numeric_limits<std::int16_t>::min()},
+        {Types.getInt32Type(), std::numeric_limits<std::int32_t>::min()},
+        {Types.getInt64Type(), std::numeric_limits<std::int64_t>::min()},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Type->toString());
+      for (std::int64_t Value : {std::int64_t{14}, std::int64_t{-14}, Entry.Minimum})
+      {
+        SCOPED_TRACE(Value);
+        auto Input = read("-Count");
+        ASSERT_TRUE(Input.succeeded());
+        AnalyzerState State(Context, Input, Output);
+        auto *Block = createInsertBlock(State);
+        ASSERT_NE(Block, nullptr);
+        State.nameResolver().enterScope();
+        const auto *Constant = Output.constantPool().getSignedIntegerConstant(Entry.Type, Value);
+        ASSERT_NE(Constant, nullptr);
+        ASSERT_EQ(State.nameResolver().bind(name("Count"), const_cast<ir::IntegerConstant &>(*Constant)), BindResult::Inserted);
+        expectNegation(analyze(State, Input, {.DefaultIntegerLiteralType = Types.getUInt64Type()}), Constant);
+        EXPECT_EQ(Block->instructionCount(), 1U);
+        EXPECT_TRUE(Diagnostics.diagnostics().empty());
+        ASSERT_TRUE(State.nameResolver().exitScope());
+      }
+    }
+    for (std::uint64_t Value : {std::uint64_t{0}, std::uint64_t{1}})
+    {
+      auto Input = read("-Count");
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      auto *Block = createInsertBlock(State);
+      ASSERT_NE(Block, nullptr);
+      State.nameResolver().enterScope();
+      const auto *Constant = Output.constantPool().getUnsignedIntegerConstant(Types.getUInt16Type(), Value);
+      ASSERT_NE(Constant, nullptr);
+      ASSERT_EQ(State.nameResolver().bind(name("Count"), const_cast<ir::IntegerConstant &>(*Constant)), BindResult::Inserted);
+      expectNegation(analyze(State, Input), Constant);
+      EXPECT_EQ(Block->instructionCount(), 1U);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+      ASSERT_TRUE(State.nameResolver().exitScope());
+    }
+  }
+
+  // Negation of each numeric parameter type appends a same-typed instruction owned by the current block and usable as a return value.
+  TEST_F(SemanticAnalyzerExprTest, LowersNumericParameterNegation)
+  {
+    auto &Types = Context.typePool();
+    const ir::Type *NumericTypes[] = {
+        Types.getInt8Type(),
+        Types.getUInt8Type(),
+        Types.getInt16Type(),
+        Types.getUInt16Type(),
+        Types.getInt32Type(),
+        Types.getUInt32Type(),
+        Types.getInt64Type(),
+        Types.getUInt64Type(),
+        Types.getFloat32Type(),
+        Types.getFloat64Type(),
+    };
+    for (const auto *Type : NumericTypes)
+    {
+      SCOPED_TRACE(Type->toString());
+      auto Input = read("-Argument");
+      ASSERT_TRUE(Input.succeeded());
+      const auto *Signature = Types.getFunctionType(Type, {ir::FunctionTypeParameter(Type)});
+      auto *Function = Output.createGlobalFunction(*Signature);
+      ASSERT_NE(Function, nullptr);
+      auto *Block = Function->createBlock();
+      ASSERT_NE(Block, nullptr);
+      AnalyzerState State(Context, Input, Output);
+      State.nameResolver().enterScope();
+      ASSERT_EQ(State.nameResolver().bind(name("Argument"), *Function->parameter(0)), BindResult::Inserted);
+      ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+      const auto *Result = analyze(State, Input, {.ExpectedType = Type});
+      ASSERT_NE(Result, nullptr);
+      ASSERT_TRUE(ir::NegInstruction::classof(Result));
+      const auto *Negation = static_cast<const ir::NegInstruction *>(Result);
+      EXPECT_EQ(Negation->type(), Type);
+      EXPECT_EQ(Negation->operand(), Function->parameter(0));
+      ASSERT_EQ(Block->instructionCount(), 1U);
+      EXPECT_EQ(Block->instruction(0), Negation);
+      EXPECT_EQ(State.irBuilder().insertFunction(), Function);
+      EXPECT_EQ(State.irBuilder().insertBlock(), Block);
+      const auto *Return = State.irBuilder().createReturn(*Result);
+      ASSERT_NE(Return, nullptr);
+      EXPECT_EQ(Return->returnedValue(), Result);
+      EXPECT_EQ(Block->instructionCount(), 2U);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+      ASSERT_TRUE(State.nameResolver().exitScope());
+    }
+  }
+
+  // Existing numeric instruction results can be negated repeatedly and consumed by calls, integer comparisons and returns.
+  TEST_F(SemanticAnalyzerExprTest, LowersChainedNegationOfInstructionResults)
+  {
+    auto &Types = Context.typePool();
+    const ir::Type *NumericTypes[] = {Types.getInt32Type(), Types.getFloat64Type()};
+    for (const auto *Type : NumericTypes)
+    {
+      SCOPED_TRACE(Type->toString());
+      auto Input = read("-(-Produced)");
+      ASSERT_TRUE(Input.succeeded());
+      auto *Function = Output.createGlobalFunction(*Types.getFunctionType(Type));
+      auto *Producer = Output.createGlobalFunction(*Types.getFunctionType(Type));
+      auto *Consumer = Output.createGlobalFunction(*Types.getFunctionType(Types.getVoidType(), {ir::FunctionTypeParameter(Type)}));
+      ASSERT_NE(Function, nullptr);
+      ASSERT_NE(Producer, nullptr);
+      ASSERT_NE(Consumer, nullptr);
+      auto *Block = Function->createBlock();
+      ASSERT_NE(Block, nullptr);
+      AnalyzerState State(Context, Input, Output);
+      State.nameResolver().enterScope();
+      ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+      auto *Produced = State.irBuilder().createCall(*Producer);
+      ASSERT_NE(Produced, nullptr);
+      ASSERT_EQ(State.nameResolver().bind(name("Produced"), *Produced), BindResult::Inserted);
+      const auto *Result = analyze(State, Input);
+      ASSERT_NE(Result, nullptr);
+      ASSERT_TRUE(ir::NegInstruction::classof(Result));
+      const auto *Outer = static_cast<const ir::NegInstruction *>(Result);
+      ASSERT_TRUE(ir::NegInstruction::classof(Outer->operand()));
+      const auto *Inner = static_cast<const ir::NegInstruction *>(Outer->operand());
+      EXPECT_EQ(Inner->operand(), Produced);
+      EXPECT_EQ(Inner->type(), Type);
+      EXPECT_EQ(Outer->type(), Type);
+      ASSERT_EQ(Block->instructionCount(), 3U);
+      EXPECT_EQ(Block->instruction(0), Produced);
+      EXPECT_EQ(Block->instruction(1), Inner);
+      EXPECT_EQ(Block->instruction(2), Outer);
+      const auto *Call = State.irBuilder().createCall(*Consumer, {ir::Argument(*Result)});
+      ASSERT_NE(Call, nullptr);
+      EXPECT_EQ(Call->argument(0)->value(), Result);
+      if (ir::IntegerType::classof(Type))
+      {
+        const auto *Compare = State.irBuilder().createICmp(ir::ICmpPredicate::Equal, *Result, *Produced);
+        ASSERT_NE(Compare, nullptr);
+        EXPECT_EQ(Compare->left(), Result);
+        EXPECT_EQ(Compare->right(), Produced);
+      }
+      const auto *Return = State.irBuilder().createReturn(*Result);
+      ASSERT_NE(Return, nullptr);
+      EXPECT_EQ(Return->returnedValue(), Result);
+      EXPECT_EQ(Block->instructionCount(), ir::IntegerType::classof(Type) ? 6U : 5U);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+      ASSERT_TRUE(State.nameResolver().exitScope());
+    }
+  }
+
+  // Foreign-context values, another function's parameters and instructions, and detached instructions cannot supply negation operands.
+  TEST_F(SemanticAnalyzerExprTest, RejectsForeignAndDetachedNegationOperands)
+  {
+    auto &Types = Context.typePool();
+    const auto *Signature = Types.getFunctionType(Types.getVoidType(), {ir::FunctionTypeParameter(Types.getInt32Type())});
+    auto *Current = Output.createGlobalFunction(*Signature);
+    auto *Other = Output.createGlobalFunction(*Signature);
+    auto *Producer = Output.createGlobalFunction(*Types.getFunctionType(Types.getInt32Type()));
+    ASSERT_NE(Current, nullptr);
+    ASSERT_NE(Other, nullptr);
+    ASSERT_NE(Producer, nullptr);
+    auto *CurrentBlock = Current->createBlock();
+    auto *OtherBlock = Other->createBlock();
+    ASSERT_NE(CurrentBlock, nullptr);
+    ASSERT_NE(OtherBlock, nullptr);
+    ir::IRBuilder OtherBuilder(Context.irContext());
+    ASSERT_TRUE(OtherBuilder.setInsertPoint(*OtherBlock));
+    auto *OtherCall = OtherBuilder.createCall(*Producer);
+    ASSERT_NE(OtherCall, nullptr);
+    ir::CallInstruction Detached(*Producer);
+    ir::IRContext ForeignContext(target::TargetContext::native());
+    ir::Module Foreign(ForeignContext);
+    auto *ForeignFunction = Foreign.createGlobalFunction(*Foreign.typePool().getFunctionType(Foreign.typePool().getVoidType(), {ir::FunctionTypeParameter(Foreign.typePool().getInt32Type())}));
+    const auto *ForeignConstant = Foreign.constantPool().getSignedIntegerConstant(Foreign.typePool().getInt32Type(), 1);
+    ASSERT_NE(ForeignFunction, nullptr);
+    ASSERT_NE(ForeignConstant, nullptr);
+    struct Case
+    {
+        ir::Value *Operand;
+        core::DiagnosticKind Diagnostic;
+    };
+    const Case Cases[] = {
+        {Other->parameter(0), core::DiagnosticKind::SemanticInvalidCapture},
+        {OtherCall, core::DiagnosticKind::SemanticTypeMismatch},
+        {&Detached, core::DiagnosticKind::SemanticTypeMismatch},
+        {ForeignFunction->parameter(0), core::DiagnosticKind::SemanticTypeMismatch},
+        {const_cast<ir::IntegerConstant *>(ForeignConstant), core::DiagnosticKind::SemanticTypeMismatch},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(ir::valueKindName(Entry.Operand->kind()));
+      auto Input = read("-Operand");
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      State.nameResolver().enterScope();
+      ASSERT_EQ(State.nameResolver().bind(name("Operand"), *Entry.Operand), BindResult::Inserted);
+      ASSERT_TRUE(State.irBuilder().setInsertPoint(*CurrentBlock));
+      expectFailure(analyze(State, Input), Entry.Diagnostic);
+      EXPECT_EQ(CurrentBlock->instructionCount(), 0U);
+      EXPECT_EQ(OtherBlock->instructionCount(), 1U);
+      EXPECT_EQ(State.irBuilder().insertBlock(), CurrentBlock);
+      ASSERT_TRUE(State.nameResolver().exitScope());
+    }
+  }
+
+  // A terminated block causes the construction ICE, while an instruction operand without a selected function fails ownership validation first.
+  TEST_F(SemanticAnalyzerExprTest, RejectsRuntimeNegationWithoutAppendableBlock)
+  {
+    auto Input = read("-Operand");
+    ASSERT_TRUE(Input.succeeded());
+    auto &Types = Context.typePool();
+    auto *Function = Output.createGlobalFunction(*Types.getFunctionType(Types.getVoidType(), {ir::FunctionTypeParameter(Types.getInt32Type())}));
+    auto *Producer = Output.createGlobalFunction(*Types.getFunctionType(Types.getInt32Type()));
+    ASSERT_NE(Function, nullptr);
+    ASSERT_NE(Producer, nullptr);
+    auto *Block = Function->createBlock();
+    ASSERT_NE(Block, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+    auto *Produced = State.irBuilder().createCall(*Producer);
+    ASSERT_NE(Produced, nullptr);
+    const auto *Return = State.irBuilder().createReturn();
+    ASSERT_NE(Return, nullptr);
+    ASSERT_EQ(State.nameResolver().bind(name("Operand"), *Function->parameter(0)), BindResult::Inserted);
+    EXPECT_DEATH(analyze(State, Input), "INK-S0013");
+    EXPECT_EQ(Block->instructionCount(), 2U);
+    EXPECT_EQ(Block->instruction(1), Return);
+    EXPECT_EQ(State.irBuilder().insertBlock(), Block);
+    State.irBuilder().clearInsertPoint();
+    Diagnostics.clear();
+    State.nameResolver().enterScope();
+    ASSERT_EQ(State.nameResolver().bind(name("Operand"), *Produced), BindResult::Inserted);
+    expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticTypeMismatch);
+    EXPECT_EQ(Block->instructionCount(), 2U);
+    EXPECT_EQ(State.irBuilder().insertBlock(), nullptr);
+    ASSERT_TRUE(State.nameResolver().exitScope());
+  }
+
+  // Constant operands require an insertion block because negation always constructs an instruction instead of folding a value.
+  TEST_F(SemanticAnalyzerExprTest, ReportsConstructionICEForConstantNegationWithoutInsertBlock)
+  {
+    constexpr const char *Cases[] = {
+        "-0",
+        "-1",
+        "-1.5",
+    };
+    for (const char *Text : Cases)
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      EXPECT_EQ(State.irBuilder().insertBlock(), nullptr);
+      EXPECT_DEATH(analyze(State, Input), "INK-S0013");
+    }
+  }
+
+  // Invalid storage, boolean, type and null operands use the construction ICE without changing the current block or initializer.
+  TEST_F(SemanticAnalyzerExprTest, RejectsStorageAndNonnumericNegationOperands)
+  {
+    auto &Types = Context.typePool();
+    auto *Variable = Output.createGlobalVariable(*Types.getInt32Type());
+    auto *Function = Output.createGlobalFunction(*Types.getFunctionType(Types.getVoidType()));
+    ASSERT_NE(Variable, nullptr);
+    ASSERT_NE(Function, nullptr);
+    const auto *Initializer = Output.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 14);
+    ASSERT_NE(Initializer, nullptr);
+    ASSERT_TRUE(Variable->setInitializer(Initializer));
+    auto *Block = Function->createBlock();
+    ASSERT_NE(Block, nullptr);
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("Written"), *Variable), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("nullptr"), const_cast<ir::NullPointerConstant &>(*Output.constantPool().getNullPointerConstant())), BindResult::Inserted);
+    constexpr const char *Cases[] = {
+        "-Written",
+        "-true",
+        "-i32",
+        "-nullptr",
+    };
+    for (const char *Text : Cases)
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+      EXPECT_DEATH(analyze(State, Input), "INK-S0013");
+      EXPECT_EQ(Block->instructionCount(), 0U);
+      EXPECT_EQ(Variable->initializer(), Initializer);
+      EXPECT_EQ(State.irBuilder().insertBlock(), Block);
+    }
+  }
+
+  // A restored nondecimal integer token must contain its two-byte prefix and at least one digit.
+  TEST_F(SemanticAnalyzerExprTest, ReportsICEForTruncatedNondecimalIntegerTokens)
+  {
+    struct Case
+    {
+        const char *Text;
+        core::NumericBase Base;
+    };
+    constexpr Case Cases[] = {
+        {"0", core::NumericBase::Binary},
+        {"0b", core::NumericBase::Binary},
+        {"0", core::NumericBase::Octal},
+        {"0o", core::NumericBase::Octal},
+        {"0", core::NumericBase::Hexadecimal},
+        {"0x", core::NumericBase::Hexadecimal},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      SCOPED_TRACE(static_cast<unsigned>(Entry.Base));
+      const std::size_t Length = std::string_view(Entry.Text).size();
+      std::vector<frontend::tokenizer::Token> Tokens = {
+          {frontend::tokenizer::TokenKind::IntegerLiteral, core::SourceRange::fromByteOffsets(0, Length), frontend::tokenizer::NumericInfo{Entry.Base}},
+          {frontend::tokenizer::TokenKind::Semicolon, core::SourceRange::fromByteOffsets(Length, Length + 1), {}},
+          {frontend::tokenizer::TokenKind::EndOfFile, core::SourceRange::fromByteOffsets(Length + 1, Length + 1), {}},
+      };
+      auto Lexed = frontend::tokenizer::TokenizedBuffer::fromSnapshot(Sources, "<truncated integer snapshot>", std::string(Entry.Text) + ";", std::move(Tokens), true);
+      ASSERT_TRUE(Lexed.has_value());
+      auto Input = frontend::parser::parse(Frontend, std::move(*Lexed));
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(Analysis.analyze(Context, Input, Output), "INK-T0023");
+    }
+  }
+
+  // Invalid digits and partially consumed integer spellings are tokenizer contract failures rather than integer overflow.
+  TEST_F(SemanticAnalyzerExprTest, ReportsICEForMalformedIntegerTokenDigits)
+  {
+    struct Case
+    {
+        const char *Text;
+        core::NumericBase Base;
+    };
+    constexpr Case Cases[] = {
+        {"abc", core::NumericBase::Decimal},
+        {"1a", core::NumericBase::Decimal},
+        {"0b2", core::NumericBase::Binary},
+        {"0b102", core::NumericBase::Binary},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      const std::size_t Length = std::string_view(Entry.Text).size();
+      std::vector<frontend::tokenizer::Token> Tokens = {
+          {frontend::tokenizer::TokenKind::IntegerLiteral, core::SourceRange::fromByteOffsets(0, Length), frontend::tokenizer::NumericInfo{Entry.Base}},
+          {frontend::tokenizer::TokenKind::Semicolon, core::SourceRange::fromByteOffsets(Length, Length + 1), {}},
+          {frontend::tokenizer::TokenKind::EndOfFile, core::SourceRange::fromByteOffsets(Length + 1, Length + 1), {}},
+      };
+      auto Lexed = frontend::tokenizer::TokenizedBuffer::fromSnapshot(Sources, "<malformed integer snapshot>", std::string(Entry.Text) + ";", std::move(Tokens), true);
+      ASSERT_TRUE(Lexed.has_value());
+      auto Input = frontend::parser::parse(Frontend, std::move(*Lexed));
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(Analysis.analyze(Context, Input, Output), "INK-T0023");
+    }
+  }
+
+  // Missing numeric payloads and unsupported bases must terminate with the tokenizer contract ICE.
+  TEST_F(SemanticAnalyzerExprTest, ReportsICEForInvalidIntegerTokenMetadata)
+  {
+    const frontend::tokenizer::TokenPayload Payloads[] = {
+        std::monostate{},
+        frontend::tokenizer::NumericInfo{static_cast<core::NumericBase>(3)},
+    };
+    for (const auto &Payload : Payloads)
+    {
+      SCOPED_TRACE(Payload.index());
+      auto Lexed = frontend::tokenizer::tokenize(Frontend, "0;");
+      ASSERT_TRUE(Lexed.succeeded());
+      // Lexed and its token storage are mutable; the accessor exposes only a const view.
+      auto &Token = const_cast<frontend::tokenizer::Token &>(Lexed.tokens().front());
+      Token.Payload = Payload;
+      auto Input = frontend::parser::parse(Frontend, std::move(Lexed));
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(Analysis.analyze(Context, Input, Output), "INK-T0023");
     }
   }
 
@@ -298,6 +845,59 @@ namespace ink::semantic::test
     EXPECT_EQ(Narrow, Output.constantPool().getFloatConstant(1.5F));
     EXPECT_EQ(Narrow->type(), Context.typePool().getFloat32Type());
     EXPECT_EQ(analyze(Exponent), Output.constantPool().getFloatConstant(100.0));
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Floating-point operands preserve contextual width and zero bits in explicit negation instructions, including chained and bound constants.
+  TEST_F(SemanticAnalyzerExprTest, LowersFloatingPointLiteralAndConstantNegationWithoutFolding)
+  {
+    auto &Types = Context.typePool();
+    auto &Constants = Output.constantPool();
+    struct Case
+    {
+        const char *Text;
+        const ir::FloatType *Type;
+        const ir::FloatConstant *Operand;
+        bool Repeated;
+    };
+    const Case Cases[] = {
+        {"-1.5", Types.getFloat64Type(), Constants.getFloatConstant(1.5), false},
+        {"-(1.5)", Types.getFloat32Type(), Constants.getFloatConstant(1.5F), false},
+        {"-0.0", Types.getFloat64Type(), Constants.getFloatConstant(0.0), false},
+        {"-(0.0)", Types.getFloat32Type(), Constants.getFloatConstant(0.0F), false},
+        {"-(-1.5)", Types.getFloat64Type(), Constants.getFloatConstant(1.5), true},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      ASSERT_NE(Entry.Operand, nullptr);
+      const auto *Result = analyze(Input, {.ExpectedType = Entry.Type});
+      if (Entry.Repeated)
+      {
+        ASSERT_NE(Result, nullptr);
+        ASSERT_TRUE(ir::NegInstruction::classof(Result));
+        const auto *Inner = static_cast<const ir::NegInstruction *>(Result)->operand();
+        expectNegation(Result, Inner);
+        expectNegation(Inner, Entry.Operand);
+      }
+      else
+      {
+        expectNegation(Result, Entry.Operand);
+      }
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+    auto Input = read("-Fraction");
+    ASSERT_TRUE(Input.succeeded());
+    AnalyzerState State(Context, Input, Output);
+    auto *Block = createInsertBlock(State);
+    ASSERT_NE(Block, nullptr);
+    const auto *Constant = Constants.getFloatConstant(-1.5F);
+    ASSERT_NE(Constant, nullptr);
+    ASSERT_EQ(State.nameResolver().bind(name("Fraction"), const_cast<ir::FloatConstant &>(*Constant)), BindResult::Inserted);
+    expectNegation(analyze(State, Input), Constant);
+    EXPECT_EQ(Block->instructionCount(), 1U);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
@@ -934,6 +1534,30 @@ namespace ink::semantic::test
     EXPECT_DEATH(analyze(Valid), "INK-S0014");
   }
 
+  // Negative-literal analysis obeys the depth guard for every unary, parenthesis and literal, restoring depth after recoverable overflow.
+  TEST_F(SemanticAnalyzerExprTest, PreservesRecursionGuardsForNegativeLiterals)
+  {
+    core::test::ScopedEnvironmentVariable Limit("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
+    ASSERT_TRUE(Limit.set("2"));
+    auto Valid = read("-127");
+    auto Overflow = read("-129");
+    auto Parenthesized = read("-(127)");
+    ASSERT_TRUE(Valid.succeeded());
+    ASSERT_TRUE(Overflow.succeeded());
+    ASSERT_TRUE(Parenthesized.succeeded());
+    const ExprHints Hints{.ExpectedType = Context.typePool().getInt8Type()};
+    AnalyzerState ValidState(Context, Valid, Output);
+    ASSERT_NE(createInsertBlock(ValidState), nullptr);
+    expectNegation(analyze(ValidState, Valid, Hints), Output.constantPool().getSignedIntegerConstant(Context.typePool().getInt8Type(), 127));
+    EXPECT_EQ(ValidState.recursionDepth(), 0U);
+    AnalyzerState OverflowState(Context, Overflow, Output);
+    expectFailure(analyze(OverflowState, Overflow, Hints), core::DiagnosticKind::SemanticIntegerOutOfRange);
+    EXPECT_EQ(OverflowState.recursionDepth(), 0U);
+    EXPECT_DEATH(analyze(Parenthesized, Hints), "INK-S0014");
+    ASSERT_TRUE(Limit.set("1"));
+    EXPECT_DEATH(analyze(Valid, Hints), "INK-S0014");
+  }
+
   // Runtime operands select ordinary address, dereference and repeat operations instead of becoming type constructors.
   TEST_F(SemanticAnalyzerExprTest, KeepsRuntimeOperandOperationsUnsupported)
   {
@@ -984,6 +1608,9 @@ namespace ink::semantic::test
         "comptime i32",
         "comptime 14",
         "comptime (*i32)",
+        "comptime -128",
+        "-comptime 128",
+        "-(comptime 128)",
     };
     for (const char *Text : Cases)
     {

@@ -78,12 +78,12 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.insertFunction(), nullptr);
   }
 
-  // Every creation entry point rejects a missing insertion block without altering available functions or blocks.
+  // Every creation entry point rejects a missing insertion block, including negation of numeric constants and runtime operands.
   TEST(IRBuilderTest, RejectsEveryCreationWithoutInsertionPoint)
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
+    Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()}));
     auto *Entry = Owner.createBlock();
     auto *Integer = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
     auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
@@ -92,6 +92,9 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.createCall(Owner), nullptr);
     EXPECT_EQ(Builder.createCall(*Owner.functionType(), Owner), nullptr);
     EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Integer, *Integer), nullptr);
+    EXPECT_EQ(Builder.createNeg(*Integer), nullptr);
+    EXPECT_EQ(Builder.createNeg(*Types.constantPool().getFloatConstant(-0.0)), nullptr);
+    EXPECT_EQ(Builder.createNeg(*Owner.parameter(0)), nullptr);
     EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Types.typePool().getInt32Type(), *Null, {}), nullptr);
     EXPECT_EQ(Builder.createBranch(*Entry), nullptr);
     EXPECT_EQ(Builder.createConditionalBranch(*Types.constantPool().getBoolConstant(true), *Entry, *Entry), nullptr);

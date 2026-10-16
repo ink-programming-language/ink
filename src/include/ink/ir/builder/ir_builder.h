@@ -6,6 +6,7 @@
 #include "ink/ir/instruction/conditional_branch_instruction.h"
 #include "ink/ir/instruction/getelementptr_instruction.h"
 #include "ink/ir/instruction/icmp_instruction.h"
+#include "ink/ir/instruction/neg_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/context.h"
 #include "ink/ir/function/function.h"
@@ -54,6 +55,9 @@ namespace ink::ir
 
       // Requires identical integer or pointer operand types. A local null literal may also compare equal/not-equal to a typed pointer.
       [[nodiscard]] ICmpInstruction *createICmp(ICmpPredicate Predicate, const Value &Left, const Value &Right);
+      // Requires an integer or float and a valid insertion point; constant operands also produce a NegInstruction.
+      // Unsupported operands or invalid insertion state return nullptr without appending.
+      [[nodiscard]] NegInstruction *createNeg(const Value &Operand);
       // Empty indices preserve the source type. The first index steps over source objects; later indices traverse arrays or nominal fields.
       // Field indices must be nonnegative integer constants in range. Array indices need not be constant or in range.
       // InBounds records a caller guarantee; it does not prove runtime address bounds. Opaque pointers cannot be indexed.

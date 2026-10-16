@@ -130,7 +130,7 @@ namespace ink::semantic
         Result = analyzeMemberExpr(State, static_cast<const MemberExpr &>(Node));
         break;
       case ASTKind::UnaryExpr:
-        Result = analyzeUnaryExpr(State, static_cast<const UnaryExpr &>(Node));
+        Result = analyzeUnaryExpr(State, static_cast<const UnaryExpr &>(Node), Hints);
         break;
       case ASTKind::ArrayRepeatExpr:
         Result = analyzeArrayRepeatExpr(State, static_cast<const ArrayRepeatExpr &>(Node));

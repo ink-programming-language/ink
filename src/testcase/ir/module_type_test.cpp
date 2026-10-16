@@ -105,7 +105,10 @@ namespace ink::ir::test
     EXPECT_EQ(&Types.typePool().irContext(), &Types.irContext());
     EXPECT_EQ(Types.typePool().getVoidType(), Types.typePool().getVoidType());
     EXPECT_EQ(Types.typePool().getBoolType(), Types.typePool().getBoolType());
+    EXPECT_EQ(Types.typePool().getInt8Type(), Types.typePool().getIntegerType(8, true));
     EXPECT_EQ(Types.typePool().getUInt8Type(), Types.typePool().getIntegerType(8, false));
+    EXPECT_EQ(Types.typePool().getInt16Type(), Types.typePool().getIntegerType(16, true));
+    EXPECT_EQ(Types.typePool().getUInt16Type(), Types.typePool().getIntegerType(16, false));
     EXPECT_EQ(Types.typePool().getInt32Type(), Types.typePool().getIntegerType(32, true));
     EXPECT_EQ(Types.typePool().getUInt32Type(), Types.typePool().getIntegerType(32, false));
     EXPECT_EQ(Types.typePool().getInt64Type(), Types.typePool().getIntegerType(64, true));
@@ -113,13 +116,16 @@ namespace ink::ir::test
     EXPECT_EQ(Types.typePool().getFloat32Type(), Types.typePool().getFloatType(32));
     EXPECT_EQ(Types.typePool().getFloat64Type(), Types.typePool().getFloatType(64));
     EXPECT_EQ(Types.typePool().getNullPointerType(), Types.typePool().getNullPointerType());
-    EXPECT_EQ(Types.typePool().getIntegerType(16, true), nullptr);
+    EXPECT_EQ(Types.typePool().getIntegerType(24, true), nullptr);
     EXPECT_EQ(Types.typePool().getFloatType(16), nullptr);
-    const std::array<const Type *, 11> Builtins = {
+    const std::array<const Type *, 14> Builtins = {
         Types.typePool().getVoidType(),
         Types.typePool().getVariadicType(),
         Types.typePool().getBoolType(),
+        Types.typePool().getInt8Type(),
         Types.typePool().getUInt8Type(),
+        Types.typePool().getInt16Type(),
+        Types.typePool().getUInt16Type(),
         Types.typePool().getInt32Type(),
         Types.typePool().getUInt32Type(),
         Types.typePool().getInt64Type(),

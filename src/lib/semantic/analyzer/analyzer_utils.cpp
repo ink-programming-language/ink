@@ -1,12 +1,9 @@
 #include "ink/semantic/analyzer/analyzer_utils.h"
 
-#include "ink/frontend/parser/parser.h"
 #include "ink/ir/module/global_variable.h"
 #include "ink/semantic/context.h"
 
-#include <charconv>
 #include <string>
-#include <variant>
 
 namespace ink::semantic
 {
@@ -44,35 +41,5 @@ namespace ink::semantic
       return nullptr;
     }
     return Target;
-  }
-
-  std::optional<std::uint64_t> parseIntegerLiteral(const frontend::parser::ParseResult &Input, const frontend::parser::LiteralExpr &Node)
-  {
-    if (Node.literalKind() != frontend::parser::TokenKind::IntegerLiteral)
-    {
-      return std::nullopt;
-    }
-    const auto &Tokens = Input.Unit->input();
-    const auto *Numeric = std::get_if<frontend::tokenizer::NumericInfo>(&Tokens.token(Node.token()).Payload);
-    if (!Numeric || (Numeric->Base != 2 && Numeric->Base != 8 && Numeric->Base != 10 && Numeric->Base != 16))
-    {
-      return std::nullopt;
-    }
-    std::string_view Text = Tokens.spelling(Node.token());
-    if (Numeric->Base != 10)
-    {
-      if (Text.size() < 2)
-      {
-        return std::nullopt;
-      }
-      Text.remove_prefix(2);
-    }
-    std::uint64_t Value = 0;
-    const auto Parsed = std::from_chars(Text.data(), Text.data() + Text.size(), Value, static_cast<int>(Numeric->Base));
-    if (Parsed.ec != std::errc{} || Parsed.ptr != Text.data() + Text.size())
-    {
-      return std::nullopt;
-    }
-    return Value;
   }
 } // namespace ink::semantic

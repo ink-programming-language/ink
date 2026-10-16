@@ -45,7 +45,10 @@ namespace ink::ir
       const VariadicType *getVariadicType() const noexcept;
       const BoolType *getBoolType() const noexcept;
       const NullPointerType *getNullPointerType() const noexcept;
+      const IntegerType *getInt8Type() const noexcept;
       const IntegerType *getUInt8Type() const noexcept;
+      const IntegerType *getInt16Type() const noexcept;
+      const IntegerType *getUInt16Type() const noexcept;
       const IntegerType *getInt32Type() const noexcept;
       const IntegerType *getUInt32Type() const noexcept;
       const IntegerType *getInt64Type() const noexcept;
@@ -53,8 +56,8 @@ namespace ink::ir
       const FloatType *getFloat32Type() const noexcept;
       const FloatType *getFloat64Type() const noexcept;
 
-      // Width is in bits; integers support unsigned 8-bit and signed/unsigned 32/64-bit types.
-      // Unsupported widths or signedness combinations return nullptr.
+      // Width is in bits; integers support signed/unsigned 8/16/32/64-bit types.
+      // Unsupported widths return nullptr.
       const IntegerType *getIntegerType(std::uint32_t Width, bool Signed) const noexcept;
       const FloatType *getFloatType(std::uint32_t Width) const noexcept;
 
@@ -97,7 +100,10 @@ namespace ink::ir
       VariadicType Variadic;
       BoolType Bool;
       NullPointerType NullPointer;
+      IntegerType Int8;
       IntegerType UInt8;
+      IntegerType Int16;
+      IntegerType UInt16;
       IntegerType Int32;
       IntegerType UInt32;
       IntegerType Int64;

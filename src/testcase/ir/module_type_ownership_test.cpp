@@ -69,7 +69,10 @@ namespace ink::ir::test
       EXPECT_FALSE(Other.ownsType(Nominal));
       EXPECT_FALSE(Other.typePool().owns(Nominal));
     }
-    const std::array<const Type *, 5> Pooled = {
+    const std::array<const Type *, 8> Pooled = {
+        Pool.getInt8Type(),
+        Pool.getInt16Type(),
+        Pool.getUInt16Type(),
         Pool.getInt32Type(),
         Pool.getPointerType(Class),
         Pool.getReferenceType(Interface),

@@ -148,6 +148,17 @@ file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/literals.ink" CONTENT "0; 1; (14); 
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/literals.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_result("Literal expression statements" "0" "")
 
+# Top-level negation needs an instruction block and reports the construction ICE because constant folding is deferred.
+foreach(Expression IN ITEMS "-128" "-32768" "-2147483647" "-(2147483647)" "-0x7FFFFFFF" "-1.5" "-0.0")
+  file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/negative-literals.ink" CONTENT "${Expression};" NEWLINE_STYLE LF)
+  execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/negative-literals.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+  if(Status STREQUAL "0" OR Status MATCHES "[Tt]imeout" OR NOT Error MATCHES "INK-S0013")
+    message(FATAL_ERROR "Top-level negation must report the construction ICE: ${Status}: stdout=${Output}: stderr=${Error}")
+  endif()
+  string(LENGTH "${Expression}" ExpressionLength)
+  expect_source_diagnostic("Top-level negation without a block" "negative-literals.ink:1:1:" "internal compiler error[INK-S0013]" "[bytes 0, ${ExpressionLength})" "${Expression};")
+endforeach()
+
 # Unknown names return a source diagnostic instead of the former unsupported-SimpleStmt panic.
 file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/unknown-name.ink" CONTENT "Missing;" NEWLINE_STYLE LF)
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/unknown-name.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
@@ -163,6 +174,14 @@ if(NOT Status STREQUAL "1" OR Error MATCHES "internal compiler error")
   message(FATAL_ERROR "Integer overflow must fail with a user diagnostic: ${Status}: ${Error}")
 endif()
 expect_source_diagnostic("Integer literal overflow" "integer-overflow.ink:1:1:" "error[INK-S0005]" "[bytes 0, 10)" "2147483648;")
+
+# A positive operand above the i32 maximum fails before unary negation with its own source range.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/negative-integer-overflow.ink" CONTENT "-2147483649;" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/negative-integer-overflow.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "1" OR Error MATCHES "internal compiler error")
+  message(FATAL_ERROR "Negative integer overflow must fail with a user diagnostic: ${Status}: ${Error}")
+endif()
+expect_source_diagnostic("Negative integer literal overflow" "negative-integer-overflow.ink:1:2:" "error[INK-S0005]" "[bytes 1, 11)" "-2147483649;")
 
 # A semantic type result cannot be consumed as a runtime expression statement.
 file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/type-value.ink" CONTENT "i32;" NEWLINE_STYLE LF)

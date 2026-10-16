@@ -30,11 +30,14 @@ namespace ink::semantic
           std::string_view Name;
           const ir::Value *(*GetValue)(SemanticContext &) noexcept;
       };
-      // TODO: Extend numeric builtins with i8/i16/u16/i128/u128/f16 once TypePool supports them.
+      // TODO: Extend numeric builtins with i128/u128/f16 once TypePool supports them.
       static constexpr Entry Entries[] = {
           {"void", getBuiltinType<&ir::TypePool::getVoidType>},
           {"bool", getBuiltinType<&ir::TypePool::getBoolType>},
+          {"i8", getBuiltinType<&ir::TypePool::getInt8Type>},
           {"u8", getBuiltinType<&ir::TypePool::getUInt8Type>},
+          {"i16", getBuiltinType<&ir::TypePool::getInt16Type>},
+          {"u16", getBuiltinType<&ir::TypePool::getUInt16Type>},
           {"i32", getBuiltinType<&ir::TypePool::getInt32Type>},
           {"u32", getBuiltinType<&ir::TypePool::getUInt32Type>},
           {"i64", getBuiltinType<&ir::TypePool::getInt64Type>},

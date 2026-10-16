@@ -1,5 +1,7 @@
 #include "ink/ir/type/builtin_type/integer_type.h"
 
+#include <limits>
+
 namespace ink::ir
 {
   IntegerType::IntegerType(const target::TargetContext &Target, std::uint32_t Width, bool Signed) noexcept
@@ -23,6 +25,21 @@ namespace ink::ir
   bool IntegerType::isUnsigned() const noexcept
   {
     return !Signed;
+  }
+
+  std::uint64_t IntegerType::maximumValue() const noexcept
+  {
+    const std::uint32_t ValueWidth = Width - (Signed ? 1U : 0U);
+    return ValueWidth == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << ValueWidth) - 1;
+  }
+
+  std::int64_t IntegerType::minimumValue() const noexcept
+  {
+    if (!Signed)
+    {
+      return 0;
+    }
+    return Width == 64 ? std::numeric_limits<std::int64_t>::min() : -(std::int64_t{1} << (Width - 1));
   }
 
   std::uint64_t IntegerType::size() const noexcept

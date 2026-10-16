@@ -110,21 +110,21 @@ namespace ink::ir
     {
       return nullptr;
     }
-    if (IntegerTypeValue->width() == 32 && (Value < std::numeric_limits<std::int32_t>::min() || Value > std::numeric_limits<std::int32_t>::max()))
+    if (Value < IntegerTypeValue->minimumValue() || (Value >= 0 && static_cast<std::uint64_t>(Value) > IntegerTypeValue->maximumValue()))
     {
       return nullptr;
     }
     std::uint64_t Bits = static_cast<std::uint64_t>(Value);
-    if (IntegerTypeValue->width() == 32)
+    if (IntegerTypeValue->width() < 64)
     {
-      Bits &= std::numeric_limits<std::uint32_t>::max();
+      Bits &= (std::uint64_t{1} << IntegerTypeValue->width()) - 1;
     }
     return getIntegerConstantFromBits(IntegerTypeValue, Bits);
   }
 
   const IntegerConstant *ConstantPool::getUnsignedIntegerConstant(const IntegerType *IntegerTypeValue, std::uint64_t Value)
   {
-    if (!irContext().containsType(IntegerTypeValue) || !IntegerTypeValue->isUnsigned())
+    if (!irContext().containsType(IntegerTypeValue) || !IntegerTypeValue->isUnsigned() || Value > IntegerTypeValue->maximumValue())
     {
       return nullptr;
     }

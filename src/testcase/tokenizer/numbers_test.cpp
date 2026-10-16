@@ -1,25 +1,57 @@
 #include "tokenizer_test_support.h"
+#include "ink/core/config/numeric_literal.h"
+
+#include <limits>
 
 namespace ink::frontend::tokenizer::test
 {
+  // Numeric metadata accepts exactly the four bases supported by numeric literal prefixes.
+  TEST(TokenizerNumericInfoTest, SupportedBases)
+  {
+    constexpr NumericInfo Decimal;
+    static_assert(Decimal.hasValidBase());
+    static_assert(noexcept(Decimal.hasValidBase()));
+    for (const core::NumericBase Base : {core::NumericBase::Binary, core::NumericBase::Octal, core::NumericBase::Decimal, core::NumericBase::Hexadecimal})
+    {
+      EXPECT_TRUE(NumericInfo{Base}.hasValidBase()) << static_cast<unsigned>(Base);
+    }
+    for (const unsigned Base : {0U, 1U, 3U, 7U, 9U, 11U, 15U, 17U, 36U, std::numeric_limits<unsigned>::max()})
+    {
+      EXPECT_FALSE(NumericInfo{static_cast<core::NumericBase>(Base)}.hasValidBase()) << Base;
+    }
+  }
+
+  // Restored integer and float tokens reject unsupported base metadata before exposing a token buffer.
+  TEST_F(TokenizerTest, SnapshotRejectsUnsupportedNumericBases)
+  {
+    for (const TokenKind Kind : {TokenKind::IntegerLiteral, TokenKind::FloatLiteral})
+    {
+      const std::vector<Token> Tokens = {
+          {Kind, core::SourceRange::fromByteOffsets(0, 1), NumericInfo{static_cast<core::NumericBase>(3)}},
+          {TokenKind::EndOfFile, core::SourceRange::fromByteOffsets(1, 1), {}},
+      };
+      EXPECT_FALSE(TokenizedBuffer::fromSnapshot(Sources, "invalid-base", "1", Tokens, true).has_value());
+    }
+  }
+
   // Decimal leading zeroes remain decimal; prefixes select only binary, octal and hexadecimal.
   TEST_F(TokenizerTest, IntegerFormsAndBases)
   {
     struct Case
     {
         const char *Source;
-        unsigned Base;
+        core::NumericBase Base;
     };
     const Case Cases[] = {
-        {"0", 10},
-        {"0009", 10},
-        {"1234567890", 10},
-        {"0b101", 2},
-        {"0B0", 2},
-        {"0o765", 8},
-        {"0O0", 8},
-        {"0xabcdef", 16},
-        {"0X0123456789ABCDEF", 16},
+        {"0", core::NumericBase::Decimal},
+        {"0009", core::NumericBase::Decimal},
+        {"1234567890", core::NumericBase::Decimal},
+        {"0b101", core::NumericBase::Binary},
+        {"0B0", core::NumericBase::Binary},
+        {"0o765", core::NumericBase::Octal},
+        {"0O0", core::NumericBase::Octal},
+        {"0xabcdef", core::NumericBase::Hexadecimal},
+        {"0X0123456789ABCDEF", core::NumericBase::Hexadecimal},
     };
     for (const auto &Entry : Cases)
     {

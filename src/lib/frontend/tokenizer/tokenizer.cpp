@@ -1,4 +1,5 @@
 #include "ink/frontend/tokenizer/tokenizer.h"
+#include "ink/core/config/numeric_literal.h"
 #include "ink/core/diagnostic/diagnostic_builder.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/frontend/tokenizer/unicode.h"
@@ -234,7 +235,7 @@ namespace ink::frontend::tokenizer
         bool scanNumber()
         {
           const std::size_t Start = Position;
-          unsigned Base = 10;
+          core::NumericBase Base = core::NumericBase::Decimal;
           bool Floating = false;
           if (Source[Position] == '0' && Position + 1 < Source.size())
           {
@@ -242,28 +243,28 @@ namespace ink::frontend::tokenizer
             {
             case 'b':
             case 'B':
-              Base = 2;
+              Base = core::NumericBase::Binary;
               break;
             case 'o':
             case 'O':
-              Base = 8;
+              Base = core::NumericBase::Octal;
               break;
             case 'x':
             case 'X':
-              Base = 16;
+              Base = core::NumericBase::Hexadecimal;
               break;
             default:
               break;
             }
           }
-          if (Base != 10)
+          if (Base != core::NumericBase::Decimal)
           {
-            Position += 2;
+            Position += core::NumericBasePrefixLength;
             const std::size_t DigitsStart = Position;
             while (Position < Source.size())
             {
               const int Digit = digitValue(Source[Position]);
-              if (Digit < 0 || static_cast<unsigned>(Digit) >= Base)
+              if (Digit < 0 || static_cast<unsigned>(Digit) >= static_cast<unsigned>(Base))
               {
                 break;
               }
@@ -277,7 +278,7 @@ namespace ink::frontend::tokenizer
             {
               return fail<DiagnosticKind::MissingBaseDigits>(Start, numericTailEnd());
             }
-            if (Base == 16 && Position < Source.size())
+            if (Base == core::NumericBase::Hexadecimal && Position < Source.size())
             {
               const char Next = Source[Position];
               const bool HexFraction = Next == '.' && Position + 1 < Source.size() && (digitValue(Source[Position + 1]) >= 0 || Source[Position + 1] == 'p' || Source[Position + 1] == 'P');
@@ -606,7 +607,7 @@ namespace ink::frontend::tokenizer
       case TokenKind::FloatLiteral:
       {
         const auto *Info = std::get_if<NumericInfo>(&Entry.Payload);
-        if (!Info || (Info->Base != 2 && Info->Base != 8 && Info->Base != 10 && Info->Base != 16))
+        if (!Info || !Info->hasValidBase())
         {
           return std::nullopt;
         }

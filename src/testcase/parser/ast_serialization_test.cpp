@@ -579,13 +579,22 @@ namespace ink::frontend::parser::test
     EXPECT_DEATH(read("func f(x: T): T { return x; }", Limits), "internal compiler error\\[INK-P0004\\]");
   }
 
-  // Names, nondecimal numbers, raw/multiline strings, escaped NUL and Unicode scalars preserve their decoded payloads.
+  // Numeric base wire IDs stay stable while names, strings and Unicode scalars preserve their decoded payloads.
   TEST_F(ParserTest, ASTSerializationLiteralPayloads)
   {
     const auto Parsed = read("var 中文 = (0b101, 0o17, 0xFF, 12.5, '界', r'字', \"a\\0b\", r\"raw\\n\", \"\"\"line\nnext\"\"\", r\"\"\"raw\nnext\"\"\");\r\n中文;");
     ASSERT_TRUE(Parsed.succeeded());
     const auto Saved = serializeAST(Frontend, Parsed);
     ASSERT_TRUE(Saved.succeeded()) << Saved.Message;
+    std::vector<std::uint64_t> NumericBases;
+    for (const auto &Entry : records(Saved.Bytes))
+    {
+      if (Entry.Code == 4U && Entry.Values.size() == 5U && Entry.Values[3] == 2U)
+      {
+        NumericBases.push_back(Entry.Values[4]);
+      }
+    }
+    EXPECT_EQ(NumericBases, (std::vector<std::uint64_t>{2, 8, 16, 10}));
     auto Loaded = deserializeAST(Frontend, Saved.Bytes);
     ASSERT_TRUE(Loaded.succeeded()) << Loaded.Message;
     bool SawNul = false;

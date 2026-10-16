@@ -14,12 +14,14 @@ namespace ink::ir::test
     constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
   } // namespace
 
-  // Signed factories preserve two's-complement boundary patterns and reject 32-bit overflow.
+  // Signed factories preserve two's-complement boundary patterns and reject values outside every supported width.
   TEST(IRNumericConstantTest, SignedIntegerBoundariesAndNegativeBits)
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
+    const auto Signed8 = Types.typePool().getInt8Type();
+    const auto Signed16 = Types.typePool().getInt16Type();
     const auto Signed32 = Types.typePool().getIntegerType(32, true);
     const auto Signed64 = Types.typePool().getIntegerType(64, true);
     ASSERT_NE(Signed32, nullptr);
@@ -32,6 +34,14 @@ namespace ink::ir::test
         std::uint64_t ExpectedBits;
     };
     const SignedCase Cases[] = {
+        {Signed8, 0, 0},
+        {Signed8, -1, 0xffULL},
+        {Signed8, -128, 0x80ULL},
+        {Signed8, 127, 0x7fULL},
+        {Signed16, 0, 0},
+        {Signed16, -1, 0xffffULL},
+        {Signed16, -32768, 0x8000ULL},
+        {Signed16, 32767, 0x7fffULL},
         {Signed32, 0, 0},
         {Signed32, -1, 0xffffffffULL},
         {Signed32, std::numeric_limits<std::int32_t>::min(), 0x80000000ULL},
@@ -47,7 +57,12 @@ namespace ink::ir::test
       ASSERT_NE(Constant, nullptr);
       EXPECT_EQ(Constant->type(), Case.Type);
       EXPECT_EQ(Constant->bits(), Case.ExpectedBits);
+      EXPECT_EQ(Constant, Constants.getIntegerConstantFromBits(Case.Type, Case.ExpectedBits));
     }
+    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed8, -129), nullptr);
+    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed8, 128), nullptr);
+    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed16, -32769), nullptr);
+    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed16, 32768), nullptr);
     EXPECT_EQ(Constants.getSignedIntegerConstant(Signed32, static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::min()) - 1), nullptr);
     EXPECT_EQ(Constants.getSignedIntegerConstant(Signed32, static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max()) + 1), nullptr);
   }
@@ -58,11 +73,11 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    for (const std::uint32_t Width : {32U, 64U})
+    for (const std::uint32_t Width : {8U, 16U, 32U, 64U})
     {
       const auto UnsignedType = Types.typePool().getIntegerType(Width, false);
       ASSERT_NE(UnsignedType, nullptr);
-      const std::uint64_t Maximum = Width == 32 ? std::numeric_limits<std::uint32_t>::max() : std::numeric_limits<std::uint64_t>::max();
+      const std::uint64_t Maximum = Width == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << Width) - 1;
       for (const std::uint64_t Value : {std::uint64_t{0}, Maximum})
       {
         const auto Constant = Constants.getUnsignedIntegerConstant(UnsignedType, Value);
@@ -70,7 +85,7 @@ namespace ink::ir::test
         EXPECT_EQ(Constant->bits(), Value);
         EXPECT_EQ(Constant->type(), UnsignedType);
       }
-      if (Width == 32)
+      if (Width < 64)
       {
         EXPECT_EQ(Constants.getUnsignedIntegerConstant(UnsignedType, Maximum + 1), nullptr);
         EXPECT_EQ(Constants.getUnsignedIntegerConstant(UnsignedType, std::numeric_limits<std::uint64_t>::max()), nullptr);
@@ -123,7 +138,7 @@ namespace ink::ir::test
     EXPECT_EQ(Constants.getIntegerConstantFromBits(nullptr, 0), nullptr);
     EXPECT_EQ(Constants.getSignedIntegerConstant(nullptr, 0), nullptr);
     EXPECT_EQ(Constants.getUnsignedIntegerConstant(nullptr, 0), nullptr);
-    for (const std::uint32_t Width : {32U, 64U})
+    for (const std::uint32_t Width : {8U, 16U, 32U, 64U})
     {
       const auto SignedType = Types.typePool().getIntegerType(Width, true);
       const auto UnsignedType = Types.typePool().getIntegerType(Width, false);
@@ -143,15 +158,15 @@ namespace ink::ir::test
     auto &Constants = Types.constantPool();
     for (const bool Signed : {false, true})
     {
-      for (const std::uint32_t Width : {32U, 64U})
+      for (const std::uint32_t Width : {8U, 16U, 32U, 64U})
       {
         const auto Integer = Types.typePool().getIntegerType(Width, Signed);
         ASSERT_NE(Integer, nullptr);
-        const std::uint64_t Maximum = Width == 32 ? std::numeric_limits<std::uint32_t>::max() : std::numeric_limits<std::uint64_t>::max();
+        const std::uint64_t Maximum = Width == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << Width) - 1;
         const auto Constant = Constants.getIntegerConstantFromBits(Integer, Maximum);
         ASSERT_NE(Constant, nullptr);
         EXPECT_EQ(Constant->bits(), Maximum);
-        if (Width == 32)
+        if (Width < 64)
         {
           EXPECT_EQ(Constants.getIntegerConstantFromBits(Integer, Maximum + 1), nullptr);
           EXPECT_EQ(Constants.getIntegerConstantFromBits(Integer, std::numeric_limits<std::uint64_t>::max()), nullptr);

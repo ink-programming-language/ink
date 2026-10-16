@@ -1,6 +1,7 @@
 #ifndef INK_FRONTEND_TOKENIZER_TOKEN_H
 #define INK_FRONTEND_TOKENIZER_TOKEN_H
 
+#include "ink/core/config/numeric_literal.h"
 #include "ink/core/source/source_range.h"
 
 #include <optional>
@@ -30,7 +31,12 @@ namespace ink::frontend::tokenizer
 
   struct NumericInfo
   {
-      unsigned Base = 10;
+      core::NumericBase Base = core::NumericBase::Decimal;
+
+      constexpr bool hasValidBase() const noexcept
+      {
+        return Base == core::NumericBase::Binary || Base == core::NumericBase::Octal || Base == core::NumericBase::Decimal || Base == core::NumericBase::Hexadecimal;
+      }
   };
 
   enum class StringMode

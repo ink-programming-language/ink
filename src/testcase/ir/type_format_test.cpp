@@ -49,7 +49,10 @@ namespace ink::ir::test
     auto &Types = Context.typePool();
     EXPECT_EQ(Types.getBoolType()->toString(), "bool");
     EXPECT_EQ(Types.getVoidType()->toString(), "void");
+    EXPECT_EQ(Types.getInt8Type()->toString(), "i8");
     EXPECT_EQ(Types.getUInt8Type()->toString(), "u8");
+    EXPECT_EQ(Types.getInt16Type()->toString(), "i16");
+    EXPECT_EQ(Types.getUInt16Type()->toString(), "u16");
     EXPECT_EQ(Types.getInt32Type()->toString(), "i32");
     EXPECT_EQ(Types.getUInt32Type()->toString(), "u32");
     EXPECT_EQ(Types.getInt64Type()->toString(), "i64");

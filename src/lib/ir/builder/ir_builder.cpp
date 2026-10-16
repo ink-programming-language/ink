@@ -207,6 +207,17 @@ namespace ink::ir
     return append<ICmpInstruction>(*Context.typePool().getBoolType(), Predicate, Left, Right);
   }
 
+  NegInstruction *IRBuilder::createNeg(const Value &Operand)
+  {
+    // TODO: Fold numeric constant operands when constant evaluation is supported by the Builder.
+    const Type *OperandType = Operand.type();
+    if (!canAppend() || !Context.containsType(OperandType) || (!IntegerType::classof(OperandType) && !FloatType::classof(OperandType)) || !validOperand(Operand))
+    {
+      return nullptr;
+    }
+    return append<NegInstruction>(Operand);
+  }
+
   GetElementPtrInstruction *IRBuilder::createGetElementPtr(const PointerType &ResultType, const Type &SourceElementType, const Value &Pointer, std::vector<const Value *> Indices, bool InBounds)
   {
     if (!canAppend() || !Context.containsType(&ResultType) || !Context.containsType(&SourceElementType) || !SourceElementType.hasLayout() || VoidType::classof(&SourceElementType) || !validOperand(Pointer))

@@ -32,6 +32,7 @@ namespace ink::ir
     case ValueKind::GetElementPtrInstruction:
     case ValueKind::CallInstruction:
     case ValueKind::ICmpInstruction:
+    case ValueKind::NegInstruction:
     case ValueKind::BranchInstruction:
     case ValueKind::ConditionalBranchInstruction:
     case ValueKind::ReturnInstruction:

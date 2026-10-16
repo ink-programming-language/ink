@@ -98,7 +98,7 @@ namespace ink::ir::test
   static_assert(!std::is_copy_constructible_v<IntegerType> && !std::is_move_constructible_v<IntegerType>);
   static_assert(!std::is_copy_constructible_v<FunctionType> && !std::is_move_constructible_v<FunctionType>);
 
-  // Both integer widths preserve signedness and use the supplied target's scalar alignment.
+  // Every supported integer width preserves signedness and uses the supplied target's scalar alignment.
   TEST(IRTypeTest, IntegerWidthsSignednessAndTargetAlignment)
   {
     IRContext TypesContext(Target64);
@@ -107,7 +107,7 @@ namespace ink::ir::test
     {
       IRContext TargetTypesContext(Target);
       Module TargetTypes(TargetTypesContext);
-      for (const std::uint32_t Width : {32U, 64U})
+      for (const std::uint32_t Width : {8U, 16U, 32U, 64U})
       {
         for (const bool Signed : {false, true})
         {
@@ -133,7 +133,7 @@ namespace ink::ir::test
     EXPECT_EQ(Integer64Target->alignment(), 8U);
   }
 
-  // The unsigned byte type has one-byte storage and alignment on both pointer widths, while signed bytes remain unsupported.
+  // The unsigned byte type has one-byte storage and alignment on both pointer widths.
   TEST(IRTypeTest, UInt8HasOneByteLayoutOnEveryTarget)
   {
     for (const target::TargetContext &Target : {Target32, Target64})
@@ -151,7 +151,37 @@ namespace ink::ir::test
       EXPECT_EQ(Byte->alignment(), 1U);
       EXPECT_TRUE(Type::classof(Byte));
       EXPECT_TRUE(IntegerType::classof(Byte));
-      EXPECT_EQ(Types.typePool().getIntegerType(8, true), nullptr);
+      EXPECT_EQ(Types.typePool().getIntegerType(8, true), Types.typePool().getInt8Type());
+    }
+  }
+
+  // Integer limits include each signed minimum and the full unsigned range without overflowing host arithmetic.
+  TEST(IRTypeTest, IntegerNumericBoundsMatchWidthAndSignedness)
+  {
+    IRContext TypesContext(Target64);
+    auto &Types = TypesContext.typePool();
+    struct Case
+    {
+        const IntegerType *Type;
+        std::int64_t Minimum;
+        std::uint64_t Maximum;
+    };
+    const Case Cases[] = {
+        {Types.getInt8Type(), -128, 127},
+        {Types.getUInt8Type(), 0, 255},
+        {Types.getInt16Type(), -32768, 32767},
+        {Types.getUInt16Type(), 0, 65535},
+        {Types.getInt32Type(), std::numeric_limits<std::int32_t>::min(), std::numeric_limits<std::int32_t>::max()},
+        {Types.getUInt32Type(), 0, std::numeric_limits<std::uint32_t>::max()},
+        {Types.getInt64Type(), std::numeric_limits<std::int64_t>::min(), std::numeric_limits<std::int64_t>::max()},
+        {Types.getUInt64Type(), 0, std::numeric_limits<std::uint64_t>::max()},
+    };
+    for (const auto &Entry : Cases)
+    {
+      ASSERT_NE(Entry.Type, nullptr);
+      SCOPED_TRACE(Entry.Type->toString());
+      EXPECT_EQ(Entry.Type->minimumValue(), Entry.Minimum);
+      EXPECT_EQ(Entry.Type->maximumValue(), Entry.Maximum);
     }
   }
 
@@ -163,7 +193,10 @@ namespace ink::ir::test
     constexpr std::uint32_t UnsupportedWidths[] = {
         0,
         1,
-        16,
+        7,
+        9,
+        15,
+        17,
         31,
         33,
         63,

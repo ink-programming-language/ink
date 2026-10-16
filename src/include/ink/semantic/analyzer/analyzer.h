@@ -57,7 +57,7 @@ namespace ink::semantic
       // Returns a borrowed IR value, including type/module descriptors and storage objects, without loading storage.
       // Runtime consumers must require a runtime value and explicitly materialize storage reads/addresses.
       // Hints.DefaultIntegerLiteralType changes only uncontextualized integer literals and must belong to the current IR context.
-      // Parentheses preserve both hints; nested operands and other consuming positions select their own hints.
+      // Parentheses and numeric negation preserve both hints; other nested operands select their own hints.
       // Consumers validate the returned value's suitability for their position; names report SemanticUnknownName uniformly.
       // Failure returns nullptr after a diagnostic; unimplemented expressions, nesting and comptime use the existing ICE policy.
       const ir::Value *analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
@@ -72,7 +72,7 @@ namespace ink::semantic
       const ir::Value *analyzeLiteralExpr(AnalyzerState &State, const frontend::parser::LiteralExpr &Node, ExprHints Hints);
       const ir::Value *analyzeParenExpr(AnalyzerState &State, const frontend::parser::ParenExpr &Node, ExprHints Hints);
       const ir::Value *analyzeMemberExpr(AnalyzerState &State, const frontend::parser::MemberExpr &Node);
-      const ir::Value *analyzeUnaryExpr(AnalyzerState &State, const frontend::parser::UnaryExpr &Node);
+      const ir::Value *analyzeUnaryExpr(AnalyzerState &State, const frontend::parser::UnaryExpr &Node, ExprHints Hints);
       const ir::Value *analyzeArrayRepeatExpr(AnalyzerState &State, const frontend::parser::ArrayRepeatExpr &Node);
       const ir::Value *analyzeFunctionTypeExpr(AnalyzerState &State, const frontend::parser::FunctionTypeExpr &Node);
 

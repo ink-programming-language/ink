@@ -11,7 +11,10 @@ namespace ink::ir
   TypePool::TypePool(IRContext &Owner)
       : Owner(Owner),
         NullPointer(Owner),
+        Int8(Owner.targetContext(), 8, true),
         UInt8(Owner.targetContext(), 8, false),
+        Int16(Owner.targetContext(), 16, true),
+        UInt16(Owner.targetContext(), 16, false),
         Int32(Owner.targetContext(), 32, true),
         UInt32(Owner.targetContext(), 32, false),
         Int64(Owner.targetContext(), 64, true),
@@ -19,7 +22,7 @@ namespace ink::ir
         Float32(Owner.targetContext(), 32),
         Float64(Owner.targetContext(), 64)
   {
-    OwnedTypes.insert({&Void, &Variadic, &Bool, &NullPointer, &UInt8, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64});
+    OwnedTypes.insert({&Void, &Variadic, &Bool, &NullPointer, &Int8, &UInt8, &Int16, &UInt16, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64});
   }
 
   TypePool::~TypePool() noexcept = default;
@@ -91,9 +94,24 @@ namespace ink::ir
     return &NullPointer;
   }
 
+  const IntegerType *TypePool::getInt8Type() const noexcept
+  {
+    return &Int8;
+  }
+
   const IntegerType *TypePool::getUInt8Type() const noexcept
   {
     return &UInt8;
+  }
+
+  const IntegerType *TypePool::getInt16Type() const noexcept
+  {
+    return &Int16;
+  }
+
+  const IntegerType *TypePool::getUInt16Type() const noexcept
+  {
+    return &UInt16;
   }
 
   const IntegerType *TypePool::getInt32Type() const noexcept
@@ -128,9 +146,13 @@ namespace ink::ir
 
   const IntegerType *TypePool::getIntegerType(std::uint32_t Width, bool Signed) const noexcept
   {
-    if (Width == 8 && !Signed)
+    if (Width == 8)
     {
-      return getUInt8Type();
+      return Signed ? getInt8Type() : getUInt8Type();
+    }
+    if (Width == 16)
+    {
+      return Signed ? getInt16Type() : getUInt16Type();
     }
     if (Width == 32)
     {

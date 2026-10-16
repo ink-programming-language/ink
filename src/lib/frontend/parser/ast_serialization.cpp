@@ -1,4 +1,5 @@
 #include "ink/frontend/parser/ast_serialization.h"
+#include "ink/core/config/numeric_literal.h"
 #include "ink/core/diagnostic/diagnostic_builder.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/diagnostic/diagnostic_formatter.h"
@@ -604,7 +605,7 @@ namespace ink::frontend::parser
             break;
           case 2:
           {
-            const auto Base = read<unsigned>();
+            const auto Base = read<core::NumericBase>();
             if (Base)
             {
               Payload = tokenizer::NumericInfo{*Base};
