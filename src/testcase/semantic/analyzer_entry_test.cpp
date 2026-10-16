@@ -1,4 +1,5 @@
 #include "ink/semantic/analyzer/analyzer.h"
+#include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/ir/builder/ir_builder.h"
 #include "ink/ir/module/module.h"
@@ -47,6 +48,49 @@ namespace ink::semantic::test
     EXPECT_TRUE(Analysis.analyze(Context, Empty, Output));
     EXPECT_TRUE(Analysis.analyze(Context, Blocks, Output));
     EXPECT_TRUE(Analysis.analyze(Context, Empty, Output));
+  }
+
+  // Concurrent states keep separate insertion points while their generated instructions outlive both states.
+  TEST(SemanticAnalyzerEntryTest, KeepsStateBuildersIndependentAndRetainsGeneratedIr)
+  {
+    core::SourceManager Sources;
+    core::DiagnosticEngine Diagnostics;
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
+    ASSERT_TRUE(Input.succeeded());
+    auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    ASSERT_NE(Function, nullptr);
+    auto *FirstBlock = Function->createBlock();
+    auto *SecondBlock = Function->createBlock();
+    ASSERT_NE(FirstBlock, nullptr);
+    ASSERT_NE(SecondBlock, nullptr);
+    ir::ReturnInstruction *FirstReturn = nullptr;
+    ir::ReturnInstruction *SecondReturn = nullptr;
+    {
+      AnalyzerState First(Context, Input, Output);
+      AnalyzerState Second(Context, Input, Output);
+      ASSERT_TRUE(First.irBuilder().setInsertPoint(*FirstBlock));
+      EXPECT_EQ(Second.irBuilder().insertBlock(), nullptr);
+      ASSERT_TRUE(Second.irBuilder().setInsertPoint(*SecondBlock));
+      FirstReturn = First.irBuilder().createReturn();
+      SecondReturn = Second.irBuilder().createReturn();
+      ASSERT_NE(FirstReturn, nullptr);
+      ASSERT_NE(SecondReturn, nullptr);
+      EXPECT_EQ(FirstBlock->instruction(0), FirstReturn);
+      EXPECT_EQ(SecondBlock->instruction(0), SecondReturn);
+      First.irBuilder().clearInsertPoint();
+      EXPECT_EQ(Second.irBuilder().insertBlock(), SecondBlock);
+    }
+    ASSERT_EQ(Output.globalFunctionCount(), 1U);
+    EXPECT_EQ(Output.globalFunction(0), Function);
+    ASSERT_EQ(FirstBlock->instructionCount(), 1U);
+    ASSERT_EQ(SecondBlock->instructionCount(), 1U);
+    EXPECT_EQ(FirstBlock->instruction(0), FirstReturn);
+    EXPECT_EQ(SecondBlock->instruction(0), SecondReturn);
+    EXPECT_EQ(FirstReturn->type(), Context.typePool().getVoidType());
+    EXPECT_EQ(SecondReturn->type(), Context.typePool().getVoidType());
   }
 
   // Caller-owned output retains its target layout, types and constants after the analyzer and parsed input expire.

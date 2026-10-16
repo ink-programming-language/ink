@@ -1,9 +1,11 @@
 #ifndef INK_SEMANTIC_ANALYZER_ANALYZER_STATE_H
 #define INK_SEMANTIC_ANALYZER_ANALYZER_STATE_H
 
+#include "ink/ir/builder/ir_builder.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include <cstddef>
+#include <utility>
 
 namespace ink::frontend::parser
 {
@@ -19,7 +21,7 @@ namespace ink::semantic
 {
   class SemanticContext;
 
-  // Owns traversal state for one analyze call; Context, Input and Output must outlive it.
+  // Owns traversal state and a builder for one analyze call; Context, Input and Output must outlive it.
   class AnalyzerState final
   {
     public:
@@ -53,9 +55,34 @@ namespace ink::semantic
       AnalyzerState(AnalyzerState &&) = delete;
       AnalyzerState &operator=(AnalyzerState &&) = delete;
 
+      auto &semanticContext(this auto &&Self) noexcept
+      {
+        return std::forward_like<decltype(Self) &>(Self.Context);
+      }
+
+      auto &input(this auto &&Self) noexcept
+      {
+        return Self.Input;
+      }
+
       auto &nameResolver(this auto &&Self) noexcept
       {
         return Self.Resolver;
+      }
+
+      auto &irBuilder(this auto &&Self) noexcept
+      {
+        return Self.Builder;
+      }
+
+      auto &recursionDepth(this auto &&Self) noexcept
+      {
+        return Self.RecursionDepth;
+      }
+
+      std::size_t recursionDepthLimit(this auto &&Self) noexcept
+      {
+        return Self.RecursionDepthLimit;
       }
 
     private:
@@ -66,6 +93,8 @@ namespace ink::semantic
       ir::Module &Output;
       // Each call has an independent cursor; node handlers select the required module/member/block scopes.
       NameResolver Resolver;
+      // Borrows Context and any selected block in Output; owns no IR.
+      ir::IRBuilder Builder;
       Mode AnalysisMode = Mode::FullAnalysis;
       std::size_t RecursionDepthLimit;
       std::size_t RecursionDepth = 0;

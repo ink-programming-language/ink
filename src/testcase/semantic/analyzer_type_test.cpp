@@ -120,6 +120,36 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
+  // Recoverable type lookup failures and later successful resolution preserve the state's selected block and existing IR.
+  TEST_F(SemanticAnalyzerTypeTest, PreservesBuilderStateAcrossTypeFailureAndSuccess)
+  {
+    auto Input = read("*Missing");
+    ASSERT_TRUE(Input.succeeded());
+    auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    ASSERT_NE(Function, nullptr);
+    auto *Block = Function->createBlock();
+    ASSERT_NE(Block, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+    auto *Return = State.irBuilder().createReturn();
+    ASSERT_NE(Return, nullptr);
+    EXPECT_EQ(analyze(State, Input), nullptr);
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownType);
+    EXPECT_EQ(State.irBuilder().insertBlock(), Block);
+    ASSERT_EQ(Block->instructionCount(), 1U);
+    EXPECT_EQ(Block->instruction(0), Return);
+    Diagnostics.clear();
+    auto *Type = Output.createClassType(4, 4);
+    ASSERT_NE(Type, nullptr);
+    ASSERT_EQ(State.nameResolver().bind(name("Missing"), *Type), BindResult::Inserted);
+    EXPECT_EQ(analyze(State, Input), Context.typePool().getPointerType(Type));
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    EXPECT_EQ(State.irBuilder().insertBlock(), Block);
+    ASSERT_EQ(Block->instructionCount(), 1U);
+    EXPECT_EQ(Block->instruction(0), Return);
+  }
+
   // Pointer and reference operators compose recursively and preserve void as a valid referenced type.
   TEST_F(SemanticAnalyzerTypeTest, CanonicalizesNestedPointersAndReferences)
   {

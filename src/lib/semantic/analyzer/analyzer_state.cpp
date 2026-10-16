@@ -1,6 +1,7 @@
 #include "ink/semantic/analyzer/analyzer_state.h"
 
 #include "ink/core/config/config_manager.h"
+#include "ink/semantic/context.h"
 
 namespace ink::semantic
 {
@@ -21,6 +22,7 @@ namespace ink::semantic
         Input(Input),
         Output(Output),
         Resolver(Context),
+        Builder(Context.irContext()),
         AnalysisMode(AnalysisMode),
         RecursionDepthLimit(core::ConfigManager::getSize<core::ConfigKind::SemanticRecursionDepthLimit>())
   {
