@@ -35,6 +35,11 @@ namespace ink::ir
     return Alignment;
   }
 
+  std::string IntegerType::toString() const
+  {
+    return std::string(Signed ? "i" : "u") + std::to_string(Width);
+  }
+
   bool IntegerType::classof(const Value *Value) noexcept
   {
     return Value && Value->kind() == ValueKind::Integer;

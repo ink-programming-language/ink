@@ -16,6 +16,7 @@ namespace ink::ir
       bool isUnsigned() const noexcept;
       std::uint64_t size() const noexcept override;
       std::uint64_t alignment() const noexcept override;
+      std::string toString() const override;
       static bool classof(const Value *Value) noexcept;
 
     private:

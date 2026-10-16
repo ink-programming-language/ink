@@ -24,6 +24,7 @@ namespace ink::ir
       bool hasLayout() const noexcept final;
       std::uint64_t size() const noexcept final;
       std::uint64_t alignment() const noexcept final;
+      std::string toString() const override;
       static bool classof(const Value *Value) noexcept;
 
     protected:

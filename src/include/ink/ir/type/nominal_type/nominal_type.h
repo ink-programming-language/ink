@@ -23,6 +23,7 @@ namespace ink::ir
 
       std::uint64_t size() const noexcept final;
       std::uint64_t alignment() const noexcept final;
+      std::string toString() const override;
       core::Name name() const noexcept;
       bool hasName() const noexcept;
       bool setName(core::Name NewName) noexcept;

@@ -1,5 +1,6 @@
 #include "ink/ir/type/nominal_type/nominal_type.h"
 
+#include "ink/core/name/name_pool.h"
 #include "ink/ir/module/module.h"
 
 #include <utility>
@@ -25,6 +26,12 @@ namespace ink::ir
   std::uint64_t NominalType::alignment() const noexcept
   {
     return Alignment;
+  }
+
+  std::string NominalType::toString() const
+  {
+    const auto NameText = core::NamePool::instance().text(Name);
+    return NameText.empty() ? Value::toString() : std::string(NameText);
   }
 
   core::Name NominalType::name() const noexcept

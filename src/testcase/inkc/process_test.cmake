@@ -143,6 +143,35 @@ file(WRITE "${INK_TEST_DIRECTORY}/blocks.ink" "{}\n{ { } }\n")
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/blocks.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_result("Nested empty blocks" "0" "")
 
+# Supported expression statements complete both semantic passes without producing output.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/literals.ink" CONTENT "0; 1; (14); \"Hello, world!\\n\"; 1.5; 'a'; ((true)); false;" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/literals.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Literal expression statements" "0" "")
+
+# Unknown names return a source diagnostic instead of the former unsupported-SimpleStmt panic.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/unknown-name.ink" CONTENT "Missing;" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/unknown-name.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "1" OR Error MATCHES "internal compiler error")
+  message(FATAL_ERROR "Unknown expression name must fail with a user diagnostic: ${Status}: ${Error}")
+endif()
+expect_source_diagnostic("Unknown expression name" "unknown-name.ink:1:1:" "error[INK-S0001]" "[bytes 0, 7)" "Missing;")
+
+# Untyped integers use i32 and report numeric overflow with the complete literal source span.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/integer-overflow.ink" CONTENT "2147483648;" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/integer-overflow.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "1" OR Error MATCHES "internal compiler error")
+  message(FATAL_ERROR "Integer overflow must fail with a user diagnostic: ${Status}: ${Error}")
+endif()
+expect_source_diagnostic("Integer literal overflow" "integer-overflow.ink:1:1:" "error[INK-S0005]" "[bytes 0, 10)" "2147483648;")
+
+# A semantic type result cannot be consumed as a runtime expression statement.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/type-value.ink" CONTENT "i32;" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/type-value.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "1" OR Error MATCHES "internal compiler error")
+  message(FATAL_ERROR "A type in a runtime statement must fail with a user diagnostic: ${Status}: ${Error}")
+endif()
+expect_source_diagnostic("Type in runtime statement" "type-value.ink:1:1:" "error[INK-S0004]" "[bytes 0, 3)" "i32;")
+
 # Missing sources and directory paths fail as file I/O errors before tokenization.
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/does-not-exist.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_result("Missing source file" "2" "")

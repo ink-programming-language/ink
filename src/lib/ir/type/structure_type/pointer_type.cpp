@@ -1,5 +1,7 @@
 #include "ink/ir/type/structure_type/pointer_type.h"
 
+#include "../../value_string_builder.h"
+
 namespace ink::ir
 {
   PointerType::PointerType(const target::TargetContext &Target, const Type *PointeeType) noexcept
@@ -27,6 +29,17 @@ namespace ink::ir
   std::uint64_t PointerType::alignment() const noexcept
   {
     return PointerByteWidth;
+  }
+
+  std::string PointerType::toString() const
+  {
+    return ValueStringBuilder::format(*this);
+  }
+
+  void PointerType::appendToString(ValueStringBuilder &Builder) const
+  {
+    Builder.append("*");
+    Builder.pushValue(*PointeeType);
   }
 
   bool PointerType::classof(const Value *Value) noexcept

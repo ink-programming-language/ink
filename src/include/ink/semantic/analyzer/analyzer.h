@@ -15,16 +15,26 @@ namespace ink::frontend::parser
 
 namespace ink::ir
 {
+  class IntegerType;
   class Module;
   class Type;
+  class Value;
 } // namespace ink::ir
 
 namespace ink::semantic
 {
   class SemanticContext;
   class AnalyzerState;
+  class Binding;
 
-  // Analysis uses call-local traversal state and caller-owned output; concrete node lowering is not implemented yet.
+  // Supplies contextual typing without encoding the consuming position's requirements or diagnostics.
+  struct ExprHints
+  {
+      const ir::Type *ExpectedType = nullptr;
+      const ir::IntegerType *DefaultIntegerLiteralType = nullptr;
+  };
+
+  // Analysis uses call-local traversal state and caller-owned output; unsupported nodes report SemanticUnsupported.
   class Analyzer
   {
     public:
@@ -35,14 +45,36 @@ namespace ink::semantic
 
       // Resolves a type annotation belonging to State's input in its current name scope.
       // The caller validates input/context compatibility, selects the diagnostic source and supplies a node with a non-null expression.
-      // Returns a borrowed context/module-owned type, or nullptr after a user diagnostic.
-      // Nesting limits use the existing ICE policy.
+      // Returns a borrowed context/module-owned type, or nullptr after a diagnostic.
+      // Unimplemented expressions and nesting limits use the existing ICE policy.
       const ir::Type *analyzeType(AnalyzerState &State, const frontend::parser::TypeSyntax &Node);
+
+      // Analyzes an expression in State's current scope, with the same input/source preconditions as analyzeType().
+      // Hints.ExpectedType is optional and must belong to the current IR context; integer literals default to i32,
+      // floating literals to f64 and character literals to u32. Strings retain their decoded [u8; byteCount] type.
+      // A non-null target materializes literals in that type and checks other values without implicit numeric conversions.
+      // Variable initializers, arguments and return values will supply these targets when their handlers are rebuilt.
+      // Returns a borrowed IR value, including type/module descriptors and storage objects, without loading storage.
+      // Runtime consumers must require a runtime value and explicitly materialize storage reads/addresses.
+      // Hints.DefaultIntegerLiteralType changes only uncontextualized integer literals and must belong to the current IR context.
+      // Parentheses preserve both hints; nested operands and other consuming positions select their own hints.
+      // Consumers validate the returned value's suitability for their position; names report SemanticUnknownName uniformly.
+      // Failure returns nullptr after a diagnostic; unimplemented expressions, nesting and comptime use the existing ICE policy.
+      const ir::Value *analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
 
     private:
       bool analyzeStmt(AnalyzerState &State, const frontend::parser::Stmt &Stmt);
       bool analyzeDecl(AnalyzerState &State, const frontend::parser::Decl &Declaration);
       bool reportUnsupported(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node);
+
+      const ir::Value *analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found);
+      const ir::Value *analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node);
+      const ir::Value *analyzeLiteralExpr(AnalyzerState &State, const frontend::parser::LiteralExpr &Node, ExprHints Hints);
+      const ir::Value *analyzeParenExpr(AnalyzerState &State, const frontend::parser::ParenExpr &Node, ExprHints Hints);
+      const ir::Value *analyzeMemberExpr(AnalyzerState &State, const frontend::parser::MemberExpr &Node);
+      const ir::Value *analyzeUnaryExpr(AnalyzerState &State, const frontend::parser::UnaryExpr &Node);
+      const ir::Value *analyzeArrayRepeatExpr(AnalyzerState &State, const frontend::parser::ArrayRepeatExpr &Node);
+      const ir::Value *analyzeFunctionTypeExpr(AnalyzerState &State, const frontend::parser::FunctionTypeExpr &Node);
 
       // Keep handlers explicit so new AST statements and declarations require a deliberate implementation.
       bool analyzeMissingStmt(AnalyzerState &State, const frontend::parser::MissingStmt &Node);

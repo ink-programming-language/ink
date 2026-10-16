@@ -18,10 +18,13 @@ namespace ink::ir
       bool isOpaque() const noexcept;
       std::uint64_t size() const noexcept override;
       std::uint64_t alignment() const noexcept override;
+      std::string toString() const override;
       static bool classof(const Value *Value) noexcept;
 
     private:
       friend class TypePool;
+
+      void appendToString(ValueStringBuilder &Builder) const override;
 
       // PointeeType is a non-null borrowed pointer and must outlive the pointer type.
       PointerType(const target::TargetContext &Target, const Type *PointeeType) noexcept;

@@ -1,0 +1,1004 @@
+#include "ink/semantic/analyzer/analyzer.h"
+#include "ink/semantic/analyzer/analyzer_state.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/diagnostic/diagnostic_formatter.h"
+#include "ink/core/name/name_pool.h"
+#include "ink/frontend/parser/parser.h"
+#include "ink/ir/module/module.h"
+#include "ink/ir/type/structure_type/function_type_parameter.h"
+#include "ink/semantic/context.h"
+#include "../core/support/environment_test_support.h"
+
+#include <gtest/gtest.h>
+
+#include <cstdint>
+#include <limits>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <utility>
+
+namespace ink::semantic::test
+{
+  namespace
+  {
+    static_assert(std::is_same_v<decltype(std::declval<Analyzer &>().analyzeExpr(std::declval<AnalyzerState &>(), std::declval<const frontend::parser::Expr &>())), const ir::Value *>);
+
+    class SemanticAnalyzerExprTest : public testing::Test
+    {
+      protected:
+        SemanticAnalyzerExprTest()
+            : Frontend(Sources, DiagnosticEngine),
+              Context(Sources, DiagnosticEngine, target::TargetContext::native()),
+              Output(Context.irContext())
+        {
+          DiagnosticEngine.addConsumer(Diagnostics);
+        }
+
+        frontend::parser::ParseResult read(std::string_view Expression)
+        {
+          Diagnostics.clear();
+          return frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "var Result = " + std::string(Expression) + ";"));
+        }
+
+        const frontend::parser::Expr &syntax(const frontend::parser::ParseResult &Input)
+        {
+          const auto *Statement = frontend::parser::cast<frontend::parser::DeclStmt>(Input.Unit->root()->statements()[0]);
+          return *frontend::parser::cast<frontend::parser::VarDecl>(Statement->declaration())->initializer();
+        }
+
+        const ir::Value *analyze(const frontend::parser::ParseResult &Input, ExprHints Hints = {})
+        {
+          AnalyzerState State(Context, Input, Output);
+          return analyze(State, Input, Hints);
+        }
+
+        const ir::Value *analyze(AnalyzerState &State, const frontend::parser::ParseResult &Input, ExprHints Hints = {})
+        {
+          Context.setSource(Input.Unit->input().lexedFile().sourceId());
+          return Analysis.analyzeExpr(State, syntax(Input), Hints);
+        }
+
+        void expectFailure(const ir::Value *Result, core::DiagnosticKind Kind)
+        {
+          EXPECT_EQ(Result, nullptr);
+          ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+          EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, Kind);
+        }
+
+        void expectMessage(std::string_view Message)
+        {
+          ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+          EXPECT_EQ(core::DiagnosticFormatter{}.format(Diagnostics.diagnostics()[0]).Message, Message);
+        }
+
+        static core::Name name(std::string_view Text)
+        {
+          return core::NamePool::instance().intern(Text);
+        }
+
+        core::SourceManager Sources;
+        core::CollectingDiagnosticConsumer Diagnostics;
+        core::DiagnosticEngine DiagnosticEngine;
+        frontend::FrontendContext Frontend;
+        SemanticContext Context;
+        ir::Module Output;
+        Analyzer Analysis;
+    };
+  } // namespace
+
+  // Decimal leading zeroes and explicit binary, octal and hexadecimal forms produce canonical i32 constants.
+  TEST_F(SemanticAnalyzerExprTest, InfersIntegerConstantsAcrossRadices)
+  {
+    struct Case
+    {
+        const char *Text;
+        std::int64_t Value;
+    };
+    constexpr Case Cases[] = {
+        {"0", 0},
+        {"1", 1},
+        {"14", 14},
+        {"00014", 14},
+        {"0b1110", 14},
+        {"0O16", 14},
+        {"0xE", 14},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      const auto *Result = analyze(Input);
+      ASSERT_NE(Result, nullptr);
+      EXPECT_EQ(Result, Output.constantPool().getSignedIntegerConstant(Context.typePool().getInt32Type(), Entry.Value));
+      EXPECT_EQ(Result->type(), Context.typePool().getInt32Type());
+      EXPECT_EQ(analyze(Input), Result);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+  }
+
+  // Integer-literal defaults retain u64 width through parentheses without changing float, character or boolean literal types.
+  TEST_F(SemanticAnalyzerExprTest, AppliesDefaultHintsOnlyToIntegerLiterals)
+  {
+    auto &Types = Context.typePool();
+    auto &Constants = Output.constantPool();
+    struct Case
+    {
+        const char *Text;
+        const ir::Value *Expected;
+    };
+    const Case Cases[] = {
+        {"4294967295", Constants.getUnsignedIntegerConstant(Types.getUInt64Type(), 4294967295ULL)},
+        {"((18446744073709551615))", Constants.getUnsignedIntegerConstant(Types.getUInt64Type(), std::numeric_limits<std::uint64_t>::max())},
+        {"1.5", Constants.getFloatConstant(1.5)},
+        {"'a'", Constants.getUnsignedIntegerConstant(Types.getUInt32Type(), 97)},
+        {"true", Constants.getBoolConstant(true)},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      ASSERT_NE(Entry.Expected, nullptr);
+      EXPECT_EQ(analyze(Input, {.DefaultIntegerLiteralType = Types.getUInt64Type()}), Entry.Expected);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+  }
+
+  // Expected types override integer defaults through parentheses, retaining destination overflow checks.
+  TEST_F(SemanticAnalyzerExprTest, GivesExpectedTypesPrecedenceOverLiteralDefaults)
+  {
+    auto &Types = Context.typePool();
+    auto Valid = read("((255))");
+    auto Overflow = read("((256))");
+    ASSERT_TRUE(Valid.succeeded());
+    ASSERT_TRUE(Overflow.succeeded());
+    const ExprHints Hints{.ExpectedType = Types.getUInt8Type(), .DefaultIntegerLiteralType = Types.getUInt64Type()};
+    EXPECT_EQ(analyze(Valid, Hints), Output.constantPool().getUnsignedIntegerConstant(Types.getUInt8Type(), 255));
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    expectFailure(analyze(Overflow, Hints), core::DiagnosticKind::SemanticIntegerOutOfRange);
+    expectMessage("integer literal is out of range for u8");
+  }
+
+  // Parentheses preserve a narrow integer-literal default and its range instead of reverting to the ordinary i32 default.
+  TEST_F(SemanticAnalyzerExprTest, PreservesNarrowIntegerDefaultsThroughParentheses)
+  {
+    auto &Types = Context.typePool();
+    auto Valid = read("((255))");
+    auto Overflow = read("((256))");
+    ASSERT_TRUE(Valid.succeeded());
+    ASSERT_TRUE(Overflow.succeeded());
+    const ExprHints Hints{.DefaultIntegerLiteralType = Types.getUInt8Type()};
+    EXPECT_EQ(analyze(Valid, Hints), Output.constantPool().getUnsignedIntegerConstant(Types.getUInt8Type(), 255));
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    expectFailure(analyze(Overflow, Hints), core::DiagnosticKind::SemanticIntegerOutOfRange);
+    expectMessage("integer literal is out of range for u8");
+  }
+
+  // Array counts choose their own u64 default instead of inheriting the outer expression's narrow integer default.
+  TEST_F(SemanticAnalyzerExprTest, KeepsArrayCountHintsIndependentOfOuterExpressions)
+  {
+    auto Input = read("[u8; 256]");
+    ASSERT_TRUE(Input.succeeded());
+    auto &Types = Context.typePool();
+    const auto *Expected = Types.getArrayType(Types.getUInt8Type(), 256);
+    ASSERT_NE(Expected, nullptr);
+    EXPECT_EQ(analyze(Input, {.DefaultIntegerLiteralType = Types.getUInt8Type()}), Expected);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Unary operands, member receivers and repeated-array elements use independent defaults before reporting their unimplemented runtime operation.
+  TEST_F(SemanticAnalyzerExprTest, ResetsLiteralHintsForDistinctOperandPositions)
+  {
+    constexpr const char *Cases[] = {
+        "*(256)",
+        "((256)).Missing",
+        "[256; 1]",
+    };
+    for (const char *Text : Cases)
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(analyze(Input, {.DefaultIntegerLiteralType = Context.typePool().getUInt8Type()}), "INK-S0012");
+    }
+  }
+
+  // Expected integer types accept their largest positive values, including the Windows handle bit pattern and u64 maximum.
+  TEST_F(SemanticAnalyzerExprTest, AcceptsExpectedIntegerTypeBoundaries)
+  {
+    auto &Types = Context.typePool();
+    struct Case
+    {
+        const char *Text;
+        const ir::IntegerType *Type;
+        std::uint64_t Bits;
+    };
+    const Case Cases[] = {
+        {"255", Types.getUInt8Type(), 255},
+        {"2147483647", Types.getInt32Type(), 2147483647},
+        {"4294967295", Types.getUInt32Type(), 4294967295ULL},
+        {"0xFFFFFFF5", Types.getUInt32Type(), 0xFFFFFFF5ULL},
+        {"9223372036854775807", Types.getInt64Type(), 9223372036854775807ULL},
+        {"18446744073709551615", Types.getUInt64Type(), std::numeric_limits<std::uint64_t>::max()},
+        {"0xFFFFFFFFFFFFFFFF", Types.getUInt64Type(), std::numeric_limits<std::uint64_t>::max()},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      const auto *Result = analyze(Input, {.ExpectedType = Entry.Type});
+      ASSERT_NE(Result, nullptr);
+      EXPECT_EQ(Result, Output.constantPool().getIntegerConstantFromBits(Entry.Type, Entry.Bits));
+      EXPECT_EQ(Result->type(), Entry.Type);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+  }
+
+  // Integer conversion rejects destination overflow and numbers above uint64 without truncating their bits.
+  TEST_F(SemanticAnalyzerExprTest, RejectsIntegerOverflow)
+  {
+    auto &Types = Context.typePool();
+    struct Case
+    {
+        const char *Text;
+        const ir::Type *Type;
+        const char *Message;
+    };
+    const Case Cases[] = {
+        {"256", Types.getUInt8Type(), "integer literal is out of range for u8"},
+        {"2147483648", nullptr, "integer literal is out of range for i32"},
+        {"0xFFFFFFF5", nullptr, "integer literal is out of range for i32"},
+        {"4294967296", Types.getUInt32Type(), "integer literal is out of range for u32"},
+        {"9223372036854775808", Types.getInt64Type(), "integer literal is out of range for i64"},
+        {"18446744073709551616", Types.getUInt64Type(), "integer literal is out of range for u64"},
+        {"0x10000000000000000", Types.getUInt64Type(), "integer literal is out of range for u64"},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      expectFailure(analyze(Input, {.ExpectedType = Entry.Type}), core::DiagnosticKind::SemanticIntegerOutOfRange);
+      expectMessage(Entry.Message);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Span, syntax(Input).getSourceRange());
+    }
+  }
+
+  // Integer literals cannot initialize bool, float or pointer destinations through implicit numeric conversions.
+  TEST_F(SemanticAnalyzerExprTest, RejectsNonintegerDestinationsForIntegerLiterals)
+  {
+    auto Input = read("1");
+    ASSERT_TRUE(Input.succeeded());
+    auto &Types = Context.typePool();
+    const ir::Type *ExpectedTypes[] = {Types.getBoolType(), Types.getFloat64Type(), Types.getPointerType(Types.getUInt8Type())};
+    for (const auto *ExpectedType : ExpectedTypes)
+    {
+      Diagnostics.clear();
+      expectFailure(analyze(Input, {.ExpectedType = ExpectedType}), core::DiagnosticKind::SemanticTypeMismatch);
+    }
+  }
+
+  // Floating literals use f64 by default and their requested f32 type when representable.
+  TEST_F(SemanticAnalyzerExprTest, ConstructsDefaultAndExpectedFloatConstants)
+  {
+    auto Fraction = read("1.5");
+    auto Exponent = read("1E+2");
+    ASSERT_TRUE(Fraction.succeeded());
+    ASSERT_TRUE(Exponent.succeeded());
+    const auto *Default = analyze(Fraction);
+    ASSERT_NE(Default, nullptr);
+    EXPECT_EQ(Default, Output.constantPool().getFloatConstant(1.5));
+    EXPECT_EQ(Default->type(), Context.typePool().getFloat64Type());
+    const auto *Narrow = analyze(Fraction, {.ExpectedType = Context.typePool().getFloat32Type()});
+    ASSERT_NE(Narrow, nullptr);
+    EXPECT_EQ(Narrow, Output.constantPool().getFloatConstant(1.5F));
+    EXPECT_EQ(Narrow->type(), Context.typePool().getFloat32Type());
+    EXPECT_EQ(analyze(Exponent), Output.constantPool().getFloatConstant(100.0));
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Float overflow and nonfloating destinations report recoverable mismatches instead of materializing infinity.
+  TEST_F(SemanticAnalyzerExprTest, RejectsFloatOverflowAndWrongDestination)
+  {
+    auto NarrowOverflow = read("1e100");
+    auto WideOverflow = read("1e1000");
+    auto Fraction = read("1.5");
+    ASSERT_TRUE(NarrowOverflow.succeeded());
+    ASSERT_TRUE(WideOverflow.succeeded());
+    ASSERT_TRUE(Fraction.succeeded());
+    expectFailure(analyze(NarrowOverflow, {.ExpectedType = Context.typePool().getFloat32Type()}), core::DiagnosticKind::SemanticTypeMismatch);
+    expectMessage("expected f32, got an invalid or out-of-range floating-point literal");
+    Diagnostics.clear();
+    expectFailure(analyze(WideOverflow), core::DiagnosticKind::SemanticTypeMismatch);
+    expectMessage("expected f64, got an invalid or out-of-range floating-point literal");
+    Diagnostics.clear();
+    expectFailure(analyze(Fraction, {.ExpectedType = Context.typePool().getInt32Type()}), core::DiagnosticKind::SemanticTypeMismatch);
+  }
+
+  // Characters use decoded Unicode scalars as u32 values and only fit smaller integer destinations when in range.
+  TEST_F(SemanticAnalyzerExprTest, ConstructsAndChecksDecodedCharacterScalars)
+  {
+    auto Supplementary = read("'\\U0001F600'");
+    auto Ascii = read("'a'");
+    auto Nul = read("'\\0'");
+    ASSERT_TRUE(Supplementary.succeeded());
+    ASSERT_TRUE(Ascii.succeeded());
+    ASSERT_TRUE(Nul.succeeded());
+    EXPECT_EQ(analyze(Supplementary), Output.constantPool().getUnsignedIntegerConstant(Context.typePool().getUInt32Type(), 0x1F600));
+    EXPECT_EQ(analyze(Ascii, {.ExpectedType = Context.typePool().getUInt8Type()}), Output.constantPool().getUnsignedIntegerConstant(Context.typePool().getUInt8Type(), 97));
+    EXPECT_EQ(analyze(Nul), Output.constantPool().getUnsignedIntegerConstant(Context.typePool().getUInt32Type(), 0));
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    expectFailure(analyze(Supplementary, {.ExpectedType = Context.typePool().getUInt8Type()}), core::DiagnosticKind::SemanticIntegerOutOfRange);
+    Diagnostics.clear();
+    expectFailure(analyze(Ascii, {.ExpectedType = Context.typePool().getBoolType()}), core::DiagnosticKind::SemanticTypeMismatch);
+  }
+
+  // Strings retain tokenizer-decoded UTF-8, embedded NUL, raw backslashes and normalized multiline newlines without a terminator.
+  TEST_F(SemanticAnalyzerExprTest, PreservesDecodedStringBytesAndArrayLengths)
+  {
+    struct Case
+    {
+        const char *Text;
+        std::string Bytes;
+        std::size_t ByteCount;
+    };
+    const Case Cases[] = {
+        {"\"Hello, world!\\n\"", "Hello, world!\n", 14},
+        {"\"\\u4E2D\\U0001F600\"", "\xE4\xB8\xAD\xF0\x9F\x98\x80", 7},
+        {"\"a\\0b\"", std::string("a\0b", 3), 3},
+        {"r\"\\n\\x41\"", "\\n\\x41", 6},
+        {"\"\"\"a\r\nb\"\"\"", "a\nb", 3},
+        {"\"\"", "", 0},
+        {"\"\\x5Cn\"", "\\n", 2},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      const auto *Result = analyze(Input);
+      ASSERT_NE(Result, nullptr);
+      ASSERT_TRUE(ir::StringConstant::classof(Result));
+      const auto *String = static_cast<const ir::StringConstant *>(Result);
+      EXPECT_EQ(String->value(), Entry.Bytes);
+      EXPECT_EQ(String->byteLength(), Entry.ByteCount);
+      EXPECT_EQ(Result->type(), Context.typePool().getArrayType(Context.typePool().getUInt8Type(), Entry.ByteCount));
+      EXPECT_EQ(Result, Output.constantPool().getStringConstant(Entry.Bytes));
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+  }
+
+  // String constants own their decoded bytes after the parse unit dies and equivalent spellings reuse one pooled object.
+  TEST_F(SemanticAnalyzerExprTest, OwnsAndInternsDecodedStringContents)
+  {
+    const ir::StringConstant *Stored = nullptr;
+    {
+      auto Input = read("\"A\\0B\"");
+      ASSERT_TRUE(Input.succeeded());
+      const auto *Result = analyze(Input);
+      ASSERT_NE(Result, nullptr);
+      ASSERT_TRUE(ir::StringConstant::classof(Result));
+      Stored = static_cast<const ir::StringConstant *>(Result);
+    }
+    EXPECT_EQ(Stored->value(), std::string("A\0B", 3));
+    auto Equivalent = read("\"\\x41\\x00\\x42\"");
+    ASSERT_TRUE(Equivalent.succeeded());
+    EXPECT_EQ(analyze(Equivalent), Stored);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // String destinations must match the decoded byte array exactly; pointer decay and mismatched element counts are rejected.
+  TEST_F(SemanticAnalyzerExprTest, ChecksExpectedStringArrayType)
+  {
+    auto Input = read("\"ab\"");
+    ASSERT_TRUE(Input.succeeded());
+    auto &Types = Context.typePool();
+    EXPECT_TRUE(analyze(Input, {.ExpectedType = Types.getArrayType(Types.getUInt8Type(), 2)}));
+    struct Case
+    {
+        const ir::Type *ExpectedType;
+        const char *Message;
+    };
+    const Case Cases[] = {
+        {Types.getArrayType(Types.getUInt8Type(), 3), "expected [u8; 3], got [u8; 2]"},
+        {Types.getArrayType(Types.getInt32Type(), 2), "expected [i32; 2], got [u8; 2]"},
+        {Types.getPointerType(Types.getUInt8Type()), "expected *u8, got [u8; 2]"},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Message);
+      Diagnostics.clear();
+      expectFailure(analyze(Input, {.ExpectedType = Entry.ExpectedType}), core::DiagnosticKind::SemanticTypeMismatch);
+      expectMessage(Entry.Message);
+    }
+  }
+
+  // Unbound true and false names produce pooled bool constants while a nearer binding still shadows the fallback.
+  TEST_F(SemanticAnalyzerExprTest, ResolvesBooleanFallbackAfterLexicalLookup)
+  {
+    auto TrueInput = read("true");
+    auto FalseInput = read("false");
+    ASSERT_TRUE(TrueInput.succeeded());
+    ASSERT_TRUE(FalseInput.succeeded());
+    EXPECT_EQ(analyze(TrueInput), Output.constantPool().getBoolConstant(true));
+    EXPECT_EQ(analyze(FalseInput), Output.constantPool().getBoolConstant(false));
+    AnalyzerState State(Context, TrueInput, Output);
+    auto *Shadow = Output.createGlobalVariable(*Context.typePool().getUInt32Type());
+    ASSERT_NE(Shadow, nullptr);
+    ASSERT_EQ(State.nameResolver().bind(name("true"), *Shadow), BindResult::Inserted);
+    EXPECT_EQ(analyze(State, TrueInput), Shadow);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    expectFailure(analyze(FalseInput, {.ExpectedType = Context.typePool().getInt32Type()}), core::DiagnosticKind::SemanticTypeMismatch);
+  }
+
+  // Unknown expression names report exactly one diagnostic attributed to the currently selected input and identifier span.
+  TEST_F(SemanticAnalyzerExprTest, AttributesUnknownNameDiagnosticsToInput)
+  {
+    auto First = read("Missing");
+    auto Second = read("AlsoMissing");
+    ASSERT_TRUE(First.succeeded());
+    ASSERT_TRUE(Second.succeeded());
+    const frontend::parser::ParseResult *Inputs[] = {&First, &Second, &First};
+    for (const auto *Input : Inputs)
+    {
+      Diagnostics.clear();
+      expectFailure(analyze(*Input), core::DiagnosticKind::SemanticUnknownName);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Source, Input->Unit->input().lexedFile().sourceId());
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Span, syntax(*Input).getSourceRange());
+    }
+  }
+
+  // Constant bindings retain pooled value identity and require compatible expected types without implicit integer widening.
+  TEST_F(SemanticAnalyzerExprTest, ResolvesBoundConstantsWithoutChangingTypes)
+  {
+    auto Input = read("Count");
+    ASSERT_TRUE(Input.succeeded());
+    const auto *Constant = Output.constantPool().getSignedIntegerConstant(Context.typePool().getInt32Type(), 14);
+    ASSERT_NE(Constant, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_EQ(State.nameResolver().bind(name("Count"), const_cast<ir::IntegerConstant &>(*Constant)), BindResult::Inserted);
+    const auto *Result = analyze(State, Input, {.ExpectedType = Constant->type()});
+    ASSERT_NE(Result, nullptr);
+    EXPECT_EQ(Result, Constant);
+    EXPECT_EQ(Result->type(), Constant->type());
+    EXPECT_EQ(analyze(State, Input, {.DefaultIntegerLiteralType = Context.typePool().getUInt64Type()}), Constant);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    expectFailure(analyze(State, Input, {.ExpectedType = Context.typePool().getInt64Type()}), core::DiagnosticKind::SemanticTypeMismatch);
+    expectMessage("expected i64, got i32");
+    Diagnostics.clear();
+    expectFailure(analyze(State, Input, {.ExpectedType = Context.typePool().getUInt64Type()}), core::DiagnosticKind::SemanticTypeMismatch);
+    expectMessage("expected u64, got i32");
+  }
+
+  // A bound null pointer literal remains the pool's marker value while initializing a concrete pointer type.
+  TEST_F(SemanticAnalyzerExprTest, AcceptsCompatibleNullPointerConstantBinding)
+  {
+    auto Input = read("Null");
+    ASSERT_TRUE(Input.succeeded());
+    const auto *Null = Output.constantPool().getNullPointerConstant();
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_EQ(State.nameResolver().bind(name("Null"), const_cast<ir::NullPointerConstant &>(*Null)), BindResult::Inserted);
+    const auto *Result = analyze(State, Input, {.ExpectedType = Context.typePool().getPointerType(Context.typePool().getUInt8Type())});
+    ASSERT_NE(Result, nullptr);
+    EXPECT_EQ(Result, Null);
+    EXPECT_EQ(Result->type(), Null->type());
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    expectFailure(analyze(State, Input, {.ExpectedType = Context.typePool().getUInt64Type()}), core::DiagnosticKind::SemanticTypeMismatch);
+  }
+
+  // Global names preserve addressable storage and its initializer without emitting a load or changing the selected block.
+  TEST_F(SemanticAnalyzerExprTest, PreservesGlobalStorageAndBuilderState)
+  {
+    auto Input = read("Written");
+    ASSERT_TRUE(Input.succeeded());
+    auto *Variable = Output.createGlobalVariable(*Context.typePool().getUInt32Type());
+    auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    ASSERT_NE(Variable, nullptr);
+    ASSERT_NE(Function, nullptr);
+    const auto *Initializer = Output.constantPool().getUnsignedIntegerConstant(Context.typePool().getUInt32Type(), 0);
+    ASSERT_TRUE(Variable->setInitializer(Initializer));
+    auto *Block = Function->createBlock();
+    ASSERT_NE(Block, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_EQ(State.nameResolver().bind(name("Written"), *Variable), BindResult::Inserted);
+    ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+    auto *Return = State.irBuilder().createReturn();
+    ASSERT_NE(Return, nullptr);
+    const auto *Result = analyze(State, Input, {.ExpectedType = Variable->type()});
+    ASSERT_NE(Result, nullptr);
+    EXPECT_EQ(Result, Variable);
+    EXPECT_EQ(Result->type(), Variable->type());
+    EXPECT_EQ(Variable->initializer(), Initializer);
+    EXPECT_EQ(State.irBuilder().insertBlock(), Block);
+    ASSERT_EQ(Block->instructionCount(), 1U);
+    EXPECT_EQ(Block->instruction(0), Return);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    expectFailure(analyze(State, Input, {.ExpectedType = Context.typePool().getUInt64Type()}), core::DiagnosticKind::SemanticTypeMismatch);
+    EXPECT_EQ(Variable->initializer(), Initializer);
+    EXPECT_EQ(Block->instructionCount(), 1U);
+  }
+
+  // The nearest lexical binding selects storage independently of an outer constant and exiting restores the outer value.
+  TEST_F(SemanticAnalyzerExprTest, ResolvesNearestBindingWithoutMergingScopes)
+  {
+    auto Input = read("Output");
+    ASSERT_TRUE(Input.succeeded());
+    const auto *Outer = Output.constantPool().getSignedIntegerConstant(Context.typePool().getInt32Type(), 7);
+    auto *Inner = Output.createGlobalVariable(*Context.typePool().getUInt32Type());
+    ASSERT_NE(Outer, nullptr);
+    ASSERT_NE(Inner, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    auto &Resolver = State.nameResolver();
+    ASSERT_EQ(Resolver.bind(name("Output"), const_cast<ir::IntegerConstant &>(*Outer)), BindResult::Inserted);
+    EXPECT_EQ(analyze(State, Input), Outer);
+    Resolver.enterScope();
+    ASSERT_EQ(Resolver.bind(name("Output"), *Inner), BindResult::Inserted);
+    EXPECT_EQ(analyze(State, Input), Inner);
+    ASSERT_TRUE(Resolver.exitScope());
+    EXPECT_EQ(analyze(State, Input), Outer);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Ordinary function bindings and singleton overload sets preserve the same callable identity and complete function type.
+  TEST_F(SemanticAnalyzerExprTest, ResolvesFunctionAndSingletonOverloadBindings)
+  {
+    auto OrdinaryInput = read("WriteFile");
+    auto OverloadInput = read("GetStdHandle");
+    ASSERT_TRUE(OrdinaryInput.succeeded());
+    ASSERT_TRUE(OverloadInput.succeeded());
+    const auto *Signature = Context.typePool().getFunctionType(Context.typePool().getUInt32Type());
+    auto *Function = Output.createGlobalFunction(*Signature);
+    ASSERT_NE(Function, nullptr);
+    AnalyzerState OrdinaryState(Context, OrdinaryInput, Output);
+    AnalyzerState OverloadState(Context, OverloadInput, Output);
+    ASSERT_EQ(OrdinaryState.nameResolver().bind(name("WriteFile"), *Function), BindResult::Inserted);
+    ASSERT_EQ(OrdinaryState.nameResolver().bindOverload(name("GetStdHandle"), *Function), BindResult::Inserted);
+    const ir::Value *Results[] = {analyze(OrdinaryState, OrdinaryInput, {.ExpectedType = Signature}), analyze(OverloadState, OverloadInput, {.ExpectedType = Signature})};
+    for (const auto *Result : Results)
+    {
+      ASSERT_NE(Result, nullptr);
+      EXPECT_EQ(Result, Function);
+      EXPECT_EQ(Result->type(), Signature);
+    }
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Multiple visible function overloads remain ambiguous even when one signature matches the requested expression type.
+  TEST_F(SemanticAnalyzerExprTest, RejectsAmbiguousOverloadNames)
+  {
+    auto Input = read("Function");
+    ASSERT_TRUE(Input.succeeded());
+    auto *First = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    auto *Second = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getUInt32Type()));
+    ASSERT_NE(First, nullptr);
+    ASSERT_NE(Second, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_EQ(State.nameResolver().bindOverload(name("Function"), *First), BindResult::Inserted);
+    ASSERT_EQ(State.nameResolver().bindOverload(name("Function"), *Second), BindResult::Inserted);
+    expectFailure(analyze(State, Input, {.ExpectedType = First->type()}), core::DiagnosticKind::SemanticAmbiguousName);
+  }
+
+  // Registered types and modules remain semantic expression values without acquiring a runtime value type.
+  TEST_F(SemanticAnalyzerExprTest, ResolvesTypeAndModuleNamesAsSemanticValues)
+  {
+    ir::Module Package(Context.irContext());
+    auto *Type = Output.createClassType(4, 4);
+    ASSERT_NE(Type, nullptr);
+    ir::Value *Targets[] = {Type, &Package};
+    for (auto *Target : Targets)
+    {
+      auto Input = read("Target");
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      State.nameResolver().enterScope();
+      ASSERT_EQ(State.nameResolver().bind(name("Target"), *Target), BindResult::Inserted);
+      const auto *Result = analyze(State, Input);
+      ASSERT_NE(Result, nullptr);
+      EXPECT_EQ(Result, Target);
+      EXPECT_EQ(Result->type(), nullptr);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+      expectFailure(analyze(State, Input, {.ExpectedType = Context.typePool().getInt32Type()}), core::DiagnosticKind::SemanticTypeMismatch);
+    }
+  }
+
+  // Basic blocks remain control-flow labels rather than semantic expression values.
+  TEST_F(SemanticAnalyzerExprTest, RejectsBasicBlockNames)
+  {
+    auto Input = read("Block");
+    ASSERT_TRUE(Input.succeeded());
+    auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    ASSERT_NE(Function, nullptr);
+    auto *Block = Function->createBlock();
+    ASSERT_NE(Block, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_EQ(State.nameResolver().bind(name("Block"), *Block), BindResult::Inserted);
+    expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticTypeMismatch);
+  }
+
+  // Builtin type names use ordinary expression lookup and a lexical value shadows the builtin through parentheses.
+  TEST_F(SemanticAnalyzerExprTest, ResolvesAndShadowsBuiltinTypeExpressions)
+  {
+    auto Input = read("((i32))");
+    ASSERT_TRUE(Input.succeeded());
+    const auto *Result = analyze(Input);
+    ASSERT_NE(Result, nullptr);
+    EXPECT_EQ(Result, Context.typePool().getInt32Type());
+    EXPECT_EQ(Result->type(), nullptr);
+    expectFailure(analyze(Input, {.ExpectedType = Context.typePool().getInt32Type()}), core::DiagnosticKind::SemanticTypeMismatch);
+    Diagnostics.clear();
+    auto *Shadow = Output.createGlobalVariable(*Context.typePool().getUInt32Type());
+    ASSERT_NE(Shadow, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_EQ(State.nameResolver().bind(name("i32"), *Shadow), BindResult::Inserted);
+    const auto *Shadowed = analyze(State, Input);
+    ASSERT_NE(Shadowed, nullptr);
+    EXPECT_EQ(Shadowed, Shadow);
+    EXPECT_EQ(Shadowed->type(), Context.typePool().getUInt32Type());
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Alternating 32-bit and 64-bit contexts resolves every builtin to the active context's canonical type or bool constant.
+  TEST_F(SemanticAnalyzerExprTest, ResolvesBuiltinValuesInEachTargetContext)
+  {
+    SemanticContext FirstContext(Sources, DiagnosticEngine, target::TargetContext(target::PointerWidth::Bits32, target::ByteOrder::LittleEndian));
+    SemanticContext SecondContext(Sources, DiagnosticEngine, target::TargetContext(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian));
+    ir::Module FirstOutput(FirstContext.irContext());
+    ir::Module SecondOutput(SecondContext.irContext());
+    auto &FirstTypes = FirstContext.typePool();
+    auto &SecondTypes = SecondContext.typePool();
+    struct Case
+    {
+        const char *Text;
+        const ir::Value *First;
+        const ir::Value *Second;
+    };
+    const Case Cases[] = {
+        {"void", FirstTypes.getVoidType(), SecondTypes.getVoidType()},
+        {"bool", FirstTypes.getBoolType(), SecondTypes.getBoolType()},
+        {"u8", FirstTypes.getUInt8Type(), SecondTypes.getUInt8Type()},
+        {"i32", FirstTypes.getInt32Type(), SecondTypes.getInt32Type()},
+        {"u32", FirstTypes.getUInt32Type(), SecondTypes.getUInt32Type()},
+        {"i64", FirstTypes.getInt64Type(), SecondTypes.getInt64Type()},
+        {"u64", FirstTypes.getUInt64Type(), SecondTypes.getUInt64Type()},
+        {"f32", FirstTypes.getFloat32Type(), SecondTypes.getFloat32Type()},
+        {"f64", FirstTypes.getFloat64Type(), SecondTypes.getFloat64Type()},
+        {"true", FirstContext.irContext().constantPool().getBoolConstant(true), SecondContext.irContext().constantPool().getBoolConstant(true)},
+        {"false", FirstContext.irContext().constantPool().getBoolConstant(false), SecondContext.irContext().constantPool().getBoolConstant(false)},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      ASSERT_NE(Entry.First, Entry.Second);
+      FirstContext.setSource(Input.Unit->input().lexedFile().sourceId());
+      SecondContext.setSource(Input.Unit->input().lexedFile().sourceId());
+      AnalyzerState FirstState(FirstContext, Input, FirstOutput);
+      AnalyzerState SecondState(SecondContext, Input, SecondOutput);
+      EXPECT_EQ(Analysis.analyzeExpr(FirstState, syntax(Input)), Entry.First);
+      EXPECT_EQ(Analysis.analyzeExpr(SecondState, syntax(Input)), Entry.Second);
+      EXPECT_EQ(Analysis.analyzeExpr(FirstState, syntax(Input)), Entry.First);
+      EXPECT_EQ(Analysis.analyzeExpr(SecondState, syntax(Input)), Entry.Second);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+  }
+
+  // Parentheses preserve runtime constant identity, addressable storage and expected-type adaptation.
+  TEST_F(SemanticAnalyzerExprTest, PreservesRuntimeResultsThroughParentheses)
+  {
+    auto Literal = read("((255))");
+    auto Storage = read("((Written))");
+    ASSERT_TRUE(Literal.succeeded());
+    ASSERT_TRUE(Storage.succeeded());
+    EXPECT_EQ(analyze(Literal, {.ExpectedType = Context.typePool().getUInt8Type()}), Output.constantPool().getUnsignedIntegerConstant(Context.typePool().getUInt8Type(), 255));
+    auto *Variable = Output.createGlobalVariable(*Context.typePool().getUInt32Type());
+    ASSERT_NE(Variable, nullptr);
+    AnalyzerState State(Context, Storage, Output);
+    ASSERT_EQ(State.nameResolver().bind(name("Written"), *Variable), BindResult::Inserted);
+    const auto *Result = analyze(State, Storage, {.ExpectedType = Variable->type()});
+    ASSERT_NE(Result, nullptr);
+    EXPECT_EQ(Result, Variable);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Module and type members resolve semantic values, constants and storage through the same expression path.
+  TEST_F(SemanticAnalyzerExprTest, ResolvesSemanticAndRuntimeMemberExpressions)
+  {
+    ir::Module Package(Context.irContext());
+    ir::Module Nested(Context.irContext());
+    auto *Type = Package.createClassType(4, 4);
+    auto *Variable = Package.createGlobalVariable(*Context.typePool().getUInt32Type());
+    const auto *Constant = Package.constantPool().getSignedIntegerConstant(Context.typePool().getInt32Type(), 14);
+    ASSERT_NE(Type, nullptr);
+    ASSERT_NE(Variable, nullptr);
+    ASSERT_NE(Constant, nullptr);
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
+    ASSERT_NE(Resolver.enterScope(Package), nullptr);
+    ASSERT_EQ(Resolver.bind(name("T"), *Type), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("Nested"), Nested), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("Written"), *Variable), BindResult::Inserted);
+    ASSERT_NE(Resolver.enterScope(*Type), nullptr);
+    ASSERT_EQ(Resolver.bind(name("Count"), const_cast<ir::IntegerConstant &>(*Constant)), BindResult::Inserted);
+    ASSERT_TRUE(Resolver.exitScope());
+    ASSERT_TRUE(Resolver.exitScope());
+    struct Case
+    {
+        const char *Text;
+        const ir::Value *Value;
+        const ir::Type *Type;
+    };
+    const Case Cases[] = {
+        {"((Pkg)).T", Type, nullptr},
+        {"(Pkg.Nested)", &Nested, nullptr},
+        {"(Pkg.T).Count", Constant, Constant->type()},
+        {"Pkg.Written", Variable, Variable->type()},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      const auto *Result = analyze(Input);
+      ASSERT_NE(Result, nullptr);
+      EXPECT_EQ(Result, Entry.Value);
+      EXPECT_EQ(Result->type(), Entry.Type);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+  }
+
+  // Failed member lookup reports one unknown-name diagnostic and never falls back to an outer lexical binding.
+  TEST_F(SemanticAnalyzerExprTest, ReportsUnknownMemberWithoutLexicalFallback)
+  {
+    auto Input = read("(Pkg).Missing");
+    ASSERT_TRUE(Input.succeeded());
+    ir::Module Package(Context.irContext());
+    auto *Type = Output.createClassType(4, 4);
+    ASSERT_NE(Type, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    auto &Resolver = State.nameResolver();
+    ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("Missing"), *Type), BindResult::Inserted);
+    ASSERT_NE(Resolver.enterScope(Package), nullptr);
+    ASSERT_TRUE(Resolver.exitScope());
+    expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticUnknownName);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Source, Input.Unit->input().lexedFile().sourceId());
+  }
+
+  // Current-function parameters are values rather than addressable storage, and parameters from another function cannot be captured.
+  TEST_F(SemanticAnalyzerExprTest, ValidatesParameterFunctionOwnership)
+  {
+    auto Input = read("Argument");
+    ASSERT_TRUE(Input.succeeded());
+    const auto *Signature = Context.typePool().getFunctionType(Context.typePool().getVoidType(), {ir::FunctionTypeParameter(Context.typePool().getUInt32Type())});
+    auto *Current = Output.createGlobalFunction(*Signature);
+    auto *Other = Output.createGlobalFunction(*Signature);
+    ASSERT_NE(Current, nullptr);
+    ASSERT_NE(Other, nullptr);
+    auto *Block = Current->createBlock();
+    ASSERT_NE(Block, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+    ASSERT_EQ(State.nameResolver().bind(name("Argument"), *Current->parameter(0)), BindResult::Inserted);
+    const auto *Result = analyze(State, Input);
+    ASSERT_NE(Result, nullptr);
+    EXPECT_EQ(Result, Current->parameter(0));
+    EXPECT_EQ(Result->type(), Context.typePool().getUInt32Type());
+    State.nameResolver().enterScope();
+    ASSERT_EQ(State.nameResolver().bind(name("Argument"), *Other->parameter(0)), BindResult::Inserted);
+    expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticInvalidCapture);
+    ASSERT_TRUE(State.nameResolver().exitScope());
+    State.irBuilder().clearInsertPoint();
+    Diagnostics.clear();
+    expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticInvalidCapture);
+    EXPECT_EQ(Block->instructionCount(), 0U);
+  }
+
+  // A bound instruction remains its original current-function value and cannot be reused from a different function.
+  TEST_F(SemanticAnalyzerExprTest, ResolvesCurrentFunctionInstructionValues)
+  {
+    auto Input = read("Handle");
+    ASSERT_TRUE(Input.succeeded());
+    auto &Types = Context.typePool();
+    auto *Current = Output.createGlobalFunction(*Types.getFunctionType(Types.getVoidType()));
+    auto *Other = Output.createGlobalFunction(*Types.getFunctionType(Types.getVoidType()));
+    auto *Callee = Output.createGlobalFunction(*Types.getFunctionType(Types.getUInt32Type()));
+    ASSERT_NE(Current, nullptr);
+    ASSERT_NE(Other, nullptr);
+    ASSERT_NE(Callee, nullptr);
+    auto *CurrentBlock = Current->createBlock();
+    auto *OtherBlock = Other->createBlock();
+    ASSERT_NE(CurrentBlock, nullptr);
+    ASSERT_NE(OtherBlock, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_TRUE(State.irBuilder().setInsertPoint(*CurrentBlock));
+    const auto *Call = State.irBuilder().createCall(*Callee);
+    ASSERT_NE(Call, nullptr);
+    ASSERT_EQ(State.nameResolver().bind(name("Handle"), const_cast<ir::CallInstruction &>(*Call)), BindResult::Inserted);
+    const auto *Result = analyze(State, Input);
+    ASSERT_NE(Result, nullptr);
+    EXPECT_EQ(Result, Call);
+    EXPECT_EQ(Result->type(), Types.getUInt32Type());
+    EXPECT_EQ(CurrentBlock->instructionCount(), 1U);
+    ASSERT_TRUE(State.irBuilder().setInsertPoint(*OtherBlock));
+    expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticTypeMismatch);
+    EXPECT_EQ(OtherBlock->instructionCount(), 0U);
+  }
+
+  // Even a manually constructed variable with a registered variadic marker cannot denote runtime storage.
+  TEST_F(SemanticAnalyzerExprTest, RejectsStorageWithoutRuntimeLayout)
+  {
+    auto Input = read("Pack");
+    ASSERT_TRUE(Input.succeeded());
+    ir::GlobalVariable Variable(*Context.typePool().getVariadicType());
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_EQ(State.nameResolver().bind(name("Pack"), Variable), BindResult::Inserted);
+    expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticTypeMismatch);
+  }
+
+  // Names may refer to another module in the same IR context but foreign-context constants, functions and storage are rejected.
+  TEST_F(SemanticAnalyzerExprTest, EnforcesNameTargetContextCompatibility)
+  {
+    auto Input = read("Target");
+    ASSERT_TRUE(Input.succeeded());
+    ir::Module Sibling(Context.irContext());
+    ir::IRContext ForeignContext(target::TargetContext::native());
+    ir::Module Foreign(ForeignContext);
+    auto *Shared = Sibling.createGlobalVariable(*Context.typePool().getUInt32Type());
+    ASSERT_NE(Shared, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_EQ(State.nameResolver().bind(name("Target"), *Shared), BindResult::Inserted);
+    EXPECT_EQ(analyze(State, Input), Shared);
+    auto *ForeignStorage = Foreign.createGlobalVariable(*Foreign.typePool().getUInt32Type());
+    auto *ForeignFunction = Foreign.createGlobalFunction(*Foreign.typePool().getFunctionType(Foreign.typePool().getVoidType()));
+    auto *ForeignType = Foreign.createClassType(4, 4);
+    const auto *ForeignConstant = Foreign.constantPool().getUnsignedIntegerConstant(Foreign.typePool().getUInt32Type(), 1);
+    ASSERT_NE(ForeignStorage, nullptr);
+    ASSERT_NE(ForeignFunction, nullptr);
+    ASSERT_NE(ForeignType, nullptr);
+    ASSERT_NE(ForeignConstant, nullptr);
+    ir::Value *ForeignTargets[] = {ForeignStorage, ForeignFunction, ForeignType, &Foreign, const_cast<ir::IntegerConstant *>(ForeignConstant)};
+    for (auto *Target : ForeignTargets)
+    {
+      Diagnostics.clear();
+      State.nameResolver().enterScope();
+      ASSERT_EQ(State.nameResolver().bind(name("Target"), *Target), BindResult::Inserted);
+      expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticTypeMismatch);
+      ASSERT_TRUE(State.nameResolver().exitScope());
+    }
+  }
+
+  // Expected types from another IR context fail before creating literal constants, even with an otherwise matching representation.
+  TEST_F(SemanticAnalyzerExprTest, RejectsForeignExpectedTypes)
+  {
+    ir::IRContext Foreign(target::TargetContext::native());
+    struct Case
+    {
+        const char *Text;
+        const ir::Type *Expected;
+    };
+    const Case Cases[] = {
+        {"1", Foreign.typePool().getInt32Type()},
+        {"1.5", Foreign.typePool().getFloat64Type()},
+        {"'a'", Foreign.typePool().getUInt32Type()},
+        {"true", Foreign.typePool().getBoolType()},
+        {"\"a\"", Foreign.typePool().getArrayType(Foreign.typePool().getUInt8Type(), 1)},
+    };
+    for (const auto &Entry : Cases)
+    {
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      expectFailure(analyze(Input, {.ExpectedType = Entry.Expected}), core::DiagnosticKind::SemanticTypeMismatch);
+    }
+  }
+
+  // A default integer type from another IR context is rejected even when an explicit local expected type would otherwise take precedence.
+  TEST_F(SemanticAnalyzerExprTest, RejectsForeignDefaultIntegerLiteralTypes)
+  {
+    auto Input = read("1");
+    ASSERT_TRUE(Input.succeeded());
+    ir::IRContext Foreign(target::TargetContext::native());
+    const auto *ForeignDefault = Foreign.typePool().getUInt64Type();
+    expectFailure(analyze(Input, {.DefaultIntegerLiteralType = ForeignDefault}), core::DiagnosticKind::SemanticTypeMismatch);
+    Diagnostics.clear();
+    expectFailure(analyze(Input, {.ExpectedType = Context.typePool().getInt32Type(), .DefaultIntegerLiteralType = ForeignDefault}), core::DiagnosticKind::SemanticTypeMismatch);
+  }
+
+  // Leaf analysis consumes one semantic recursion level and restores the caller's depth after both successful and failed lookup.
+  TEST_F(SemanticAnalyzerExprTest, EnforcesAndRestoresRecursionDepth)
+  {
+    core::test::ScopedEnvironmentVariable Limit("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
+    ASSERT_TRUE(Limit.set("1"));
+    auto Valid = read("14");
+    auto Missing = read("Missing");
+    ASSERT_TRUE(Valid.succeeded());
+    ASSERT_TRUE(Missing.succeeded());
+    AnalyzerState ValidState(Context, Valid, Output);
+    EXPECT_TRUE(analyze(ValidState, Valid));
+    EXPECT_EQ(ValidState.recursionDepth(), 0U);
+    AnalyzerState State(Context, Missing, Output);
+    expectFailure(analyze(State, Missing), core::DiagnosticKind::SemanticUnknownName);
+    EXPECT_EQ(State.recursionDepth(), 0U);
+    Diagnostics.clear();
+    const auto *Constant = Output.constantPool().getSignedIntegerConstant(Context.typePool().getInt32Type(), 14);
+    ASSERT_NE(Constant, nullptr);
+    ASSERT_EQ(State.nameResolver().bind(name("Missing"), const_cast<ir::IntegerConstant &>(*Constant)), BindResult::Inserted);
+    EXPECT_EQ(analyze(State, Missing), Constant);
+    EXPECT_EQ(analyze(State, Missing), Constant);
+    EXPECT_EQ(State.recursionDepth(), 0U);
+    ASSERT_TRUE(Limit.set("0"));
+    EXPECT_DEATH(analyze(Valid), "INK-S0014");
+  }
+
+  // Runtime operands select ordinary address, dereference and repeat operations instead of becoming type constructors.
+  TEST_F(SemanticAnalyzerExprTest, KeepsRuntimeOperandOperationsUnsupported)
+  {
+    auto *Variable = Output.createGlobalVariable(*Context.typePool().getUInt32Type());
+    auto *Pointer = Output.createGlobalVariable(*Context.typePool().getPointerType(Context.typePool().getUInt32Type()));
+    ASSERT_NE(Variable, nullptr);
+    ASSERT_NE(Pointer, nullptr);
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("Written"), *Variable), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("Pointer"), *Pointer), BindResult::Inserted);
+    constexpr const char *Cases[] = {
+        "&Written",
+        "*Pointer",
+        "[Written; 3]",
+        "[14; 3]",
+    };
+    for (const char *Text : Cases)
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(analyze(Input), "INK-S0012");
+    }
+  }
+
+  // Dereferencing a current-function pointer parameter selects the runtime operation instead of requiring a type expression.
+  TEST_F(SemanticAnalyzerExprTest, KeepsPointerParameterDereferenceUnsupported)
+  {
+    auto Input = read("*Argument");
+    ASSERT_TRUE(Input.succeeded());
+    auto &Types = Context.typePool();
+    const auto *Signature = Types.getFunctionType(Types.getVoidType(), {ir::FunctionTypeParameter(Types.getPointerType(Types.getUInt32Type()))});
+    auto *Function = Output.createGlobalFunction(*Signature);
+    ASSERT_NE(Function, nullptr);
+    auto *Block = Function->createBlock();
+    ASSERT_NE(Block, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+    ASSERT_EQ(State.nameResolver().bind(name("Argument"), *Function->parameter(0)), BindResult::Inserted);
+    EXPECT_DEATH(analyze(State, Input), "INK-S0012");
+    EXPECT_EQ(Block->instructionCount(), 0U);
+  }
+
+  // Explicit comptime expressions follow the common unsupported-feature policy regardless of their operand category.
+  TEST_F(SemanticAnalyzerExprTest, ReportsUnsupportedComptimeExpressions)
+  {
+    constexpr const char *Cases[] = {
+        "comptime i32",
+        "comptime 14",
+        "comptime (*i32)",
+    };
+    for (const char *Text : Cases)
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(analyze(Input), "INK-S0012");
+    }
+  }
+
+  // Call expressions keep the existing unsupported-feature ICE policy until call lowering is implemented.
+  TEST_F(SemanticAnalyzerExprTest, ReportsUnsupportedCallExpression)
+  {
+    auto Input = read("WriteFile()");
+    ASSERT_TRUE(Input.succeeded());
+    EXPECT_DEATH(analyze(Input), "INK-S0012");
+  }
+} // namespace ink::semantic::test

@@ -14,10 +14,13 @@ namespace ink::ir
       std::uint64_t elementCount() const noexcept;
       std::uint64_t size() const noexcept override;
       std::uint64_t alignment() const noexcept override;
+      std::string toString() const override;
       static bool classof(const Value *Value) noexcept;
 
     private:
       friend class TypePool;
+
+      void appendToString(ValueStringBuilder &Builder) const override;
 
       ArrayType(const Type *ElementType, std::uint64_t ElementCount, std::uint64_t Size, std::uint64_t Alignment) noexcept;
 

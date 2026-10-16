@@ -1,6 +1,7 @@
 #include "ink/semantic/analyzer/analyzer.h"
 
 #include "ink/semantic/analyzer/analyzer_state.h"
+#include "ink/semantic/analyzer/analyzer_utils.h"
 #include "ink/semantic/analyzer/block_depth_guard.h"
 #include "ink/semantic/context.h"
 #include "ink/frontend/parser/ast.h"
@@ -44,8 +45,25 @@ namespace ink::semantic
 
   bool Analyzer::analyzeSimpleStmt(AnalyzerState &State, const frontend::parser::SimpleStmt &Node)
   {
-    // TODO: Rebuild semantic analysis for this node.
-    return reportUnsupported(State, Node);
+    if (State.AnalysisMode == AnalyzerState::Mode::CollectDecls)
+    {
+      return true;
+    }
+    bool Succeeded = true;
+    for (const frontend::parser::SimpleItem *Item : Node.items())
+    {
+      if (!frontend::parser::ExprItem::classof(Item))
+      {
+        // TODO: Restore assignments and the remaining simple items.
+        return reportUnsupported(State, Node);
+      }
+      const auto &Expression = *static_cast<const frontend::parser::ExprItem *>(Item)->expression();
+      if (!requireRuntimeValue(State.Context, Expression.getSourceRange(), analyzeExpr(State, Expression)))
+      {
+        Succeeded = false;
+      }
+    }
+    return Succeeded;
   }
 
   bool Analyzer::analyzeBlockStmt(AnalyzerState &State, const frontend::parser::BlockStmt &Node)

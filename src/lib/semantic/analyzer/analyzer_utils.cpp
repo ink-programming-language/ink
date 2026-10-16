@@ -1,48 +1,15 @@
 #include "ink/semantic/analyzer/analyzer_utils.h"
 
-#include "ink/ir/type/type_pool.h"
+#include "ink/frontend/parser/parser.h"
+#include "ink/ir/module/global_variable.h"
 #include "ink/semantic/context.h"
+
+#include <charconv>
+#include <string>
+#include <variant>
 
 namespace ink::semantic
 {
-  namespace
-  {
-    template <auto Getter>
-    const ir::Type *getBuiltinType(const ir::TypePool &Types) noexcept
-    {
-      return (Types.*Getter)();
-    }
-  } // namespace
-
-  const ir::Type *lookupBuiltinType(const ir::TypePool &Types, std::string_view Name)
-  {
-    struct Entry
-    {
-        std::string_view Name;
-        const ir::Type *(*GetType)(const ir::TypePool &) noexcept;
-    };
-    // TODO: Extend numeric builtins with i8/i16/u16/i128/u128/f16 once TypePool supports them.
-    static constexpr Entry Entries[] = {
-        {"void", getBuiltinType<&ir::TypePool::getVoidType>},
-        {"bool", getBuiltinType<&ir::TypePool::getBoolType>},
-        {"u8", getBuiltinType<&ir::TypePool::getUInt8Type>},
-        {"i32", getBuiltinType<&ir::TypePool::getInt32Type>},
-        {"u32", getBuiltinType<&ir::TypePool::getUInt32Type>},
-        {"i64", getBuiltinType<&ir::TypePool::getInt64Type>},
-        {"u64", getBuiltinType<&ir::TypePool::getUInt64Type>},
-        {"f32", getBuiltinType<&ir::TypePool::getFloat32Type>},
-        {"f64", getBuiltinType<&ir::TypePool::getFloat64Type>},
-    };
-    for (const auto &Candidate : Entries)
-    {
-      if (Candidate.Name == Name)
-      {
-        return Candidate.GetType(Types);
-      }
-    }
-    return nullptr;
-  }
-
   const ir::Type *requireType(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target)
   {
     if (!Target)
@@ -51,7 +18,7 @@ namespace ink::semantic
     }
     if (!ir::Type::classof(Target))
     {
-      Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Range, "a type", ir::valueKindName(Target->kind()));
+      Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Range, "a type", ir::GlobalVariable::classof(Target) ? "variable storage" : ir::valueKindName(Target->kind()));
       return nullptr;
     }
     const auto *Type = static_cast<const ir::Type *>(Target);
@@ -61,5 +28,51 @@ namespace ink::semantic
       return nullptr;
     }
     return Type;
+  }
+
+  const ir::Value *requireRuntimeValue(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target)
+  {
+    if (!Target)
+    {
+      return nullptr;
+    }
+    const ir::Type *Type = Target->type();
+    if (!Context.irContext().containsType(Type) || (!Type->hasLayout() && !ir::NullPointerConstant::classof(Target)))
+    {
+      const auto Actual = ir::Type::classof(Target) ? static_cast<const ir::Type *>(Target)->toString() : std::string(ir::valueKindName(Target->kind()));
+      Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Range, "a runtime value or variable storage", Actual);
+      return nullptr;
+    }
+    return Target;
+  }
+
+  std::optional<std::uint64_t> parseIntegerLiteral(const frontend::parser::ParseResult &Input, const frontend::parser::LiteralExpr &Node)
+  {
+    if (Node.literalKind() != frontend::parser::TokenKind::IntegerLiteral)
+    {
+      return std::nullopt;
+    }
+    const auto &Tokens = Input.Unit->input();
+    const auto *Numeric = std::get_if<frontend::tokenizer::NumericInfo>(&Tokens.token(Node.token()).Payload);
+    if (!Numeric || (Numeric->Base != 2 && Numeric->Base != 8 && Numeric->Base != 10 && Numeric->Base != 16))
+    {
+      return std::nullopt;
+    }
+    std::string_view Text = Tokens.spelling(Node.token());
+    if (Numeric->Base != 10)
+    {
+      if (Text.size() < 2)
+      {
+        return std::nullopt;
+      }
+      Text.remove_prefix(2);
+    }
+    std::uint64_t Value = 0;
+    const auto Parsed = std::from_chars(Text.data(), Text.data() + Text.size(), Value, static_cast<int>(Numeric->Base));
+    if (Parsed.ec != std::errc{} || Parsed.ptr != Text.data() + Text.size())
+    {
+      return std::nullopt;
+    }
+    return Value;
   }
 } // namespace ink::semantic

@@ -22,10 +22,13 @@ namespace ink::ir
       std::size_t parameterCount() const noexcept;
       std::uint64_t size() const noexcept override;
       std::uint64_t alignment() const noexcept override;
+      std::string toString() const override;
       static bool classof(const Value *Value) noexcept;
 
     private:
       friend class TypePool;
+
+      void appendToString(ValueStringBuilder &Builder) const override;
 
       // Owns immutable copies of parameter descriptors and borrows all referenced types.
       FunctionType(const target::TargetContext &Target, const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters);

@@ -1,5 +1,7 @@
 #include "ink/ir/type/structure_type/array_type.h"
 
+#include "../../value_string_builder.h"
+
 namespace ink::ir
 {
   ArrayType::ArrayType(const Type *ElementType, std::uint64_t ElementCount, std::uint64_t Size, std::uint64_t Alignment) noexcept
@@ -29,6 +31,18 @@ namespace ink::ir
   std::uint64_t ArrayType::alignment() const noexcept
   {
     return Alignment;
+  }
+
+  std::string ArrayType::toString() const
+  {
+    return ValueStringBuilder::format(*this);
+  }
+
+  void ArrayType::appendToString(ValueStringBuilder &Builder) const
+  {
+    Builder.append("[");
+    Builder.pushText("; " + std::to_string(ElementCount) + "]");
+    Builder.pushValue(*ElementType);
   }
 
   bool ArrayType::classof(const Value *Value) noexcept

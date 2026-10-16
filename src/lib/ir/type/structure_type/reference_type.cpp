@@ -1,5 +1,7 @@
 #include "ink/ir/type/structure_type/reference_type.h"
 
+#include "../../value_string_builder.h"
+
 namespace ink::ir
 {
   ReferenceType::ReferenceType(const target::TargetContext &Target, const Type *ReferencedType) noexcept
@@ -22,6 +24,17 @@ namespace ink::ir
   std::uint64_t ReferenceType::alignment() const noexcept
   {
     return PointerByteWidth;
+  }
+
+  std::string ReferenceType::toString() const
+  {
+    return ValueStringBuilder::format(*this);
+  }
+
+  void ReferenceType::appendToString(ValueStringBuilder &Builder) const
+  {
+    Builder.append("&");
+    Builder.pushValue(*ReferencedType);
   }
 
   bool ReferenceType::classof(const Value *Value) noexcept

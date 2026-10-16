@@ -24,6 +24,11 @@ namespace ink::ir
     return Alignment;
   }
 
+  std::string FloatType::toString() const
+  {
+    return "f" + std::to_string(Width);
+  }
+
   bool FloatType::classof(const Value *Value) noexcept
   {
     return Value && Value->kind() == ValueKind::Float;

@@ -1,5 +1,7 @@
 #include "ink/ir/type/value.h"
 
+#include "../value_string_builder.h"
+
 namespace ink::ir
 {
   std::string_view valueKindName(ValueKind Kind) noexcept
@@ -30,5 +32,15 @@ namespace ink::ir
   const Type *Value::type() const noexcept
   {
     return nullptr;
+  }
+
+  std::string Value::toString() const
+  {
+    return std::string(valueKindName(kind()));
+  }
+
+  void Value::appendToString(ValueStringBuilder &Builder) const
+  {
+    Builder.append(toString());
   }
 } // namespace ink::ir

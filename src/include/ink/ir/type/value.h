@@ -2,11 +2,13 @@
 #define INK_IR_TYPE_VALUE_H
 
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 namespace ink::ir
 {
   class Type;
+  class ValueStringBuilder;
 
   enum class ValueKind : std::uint8_t
   {
@@ -29,11 +31,20 @@ namespace ink::ir
       // Returns a borrowed recorded type, or nullptr for an untyped value. Does not convert or validate the value.
       // Modules, type descriptors and basic blocks use the default nullptr result; functions report their full signature.
       virtual const Type *type() const noexcept;
+      // Returns a short diagnostic description of this object, not its type or a complete IR dump.
+      // The default implementation returns the value kind name.
+      virtual std::string toString() const;
 
     protected:
       explicit Value(ValueKind Kind) noexcept;
 
     private:
+      friend class ValueStringBuilder;
+
+      // Composite values schedule their children here so formatting does not recurse through toString().
+      // Other values use their virtual toString() implementation as a leaf description.
+      virtual void appendToString(ValueStringBuilder &Builder) const;
+
       ValueKind Kind = ValueKind::Bool;
   };
 } // namespace ink::ir

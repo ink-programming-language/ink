@@ -135,7 +135,7 @@ namespace ink::semantic::test
     ASSERT_NE(Return, nullptr);
     EXPECT_EQ(analyze(State, Input), nullptr);
     ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownType);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownName);
     EXPECT_EQ(State.irBuilder().insertBlock(), Block);
     ASSERT_EQ(Block->instructionCount(), 1U);
     EXPECT_EQ(Block->instruction(0), Return);
@@ -177,6 +177,85 @@ namespace ink::semantic::test
     }
   }
 
+  // The type wrapper and direct expression analysis share canonical constructors, including array counts beyond i32.
+  TEST_F(SemanticAnalyzerTypeTest, SharesTypeExpressionsWithGeneralAnalysis)
+  {
+    auto &Types = Context.typePool();
+    struct Case
+    {
+        const char *Text;
+        const ir::Type *Expected;
+    };
+    const Case Cases[] = {
+        {"((i32))", Types.getInt32Type()},
+        {"*(&(*i32))", Types.getPointerType(Types.getReferenceType(Types.getPointerType(Types.getInt32Type())))},
+        {"[*u8; 14]", Types.getArrayType(Types.getPointerType(Types.getUInt8Type()), 14)},
+        {"[u8; 2147483648]", Types.getArrayType(Types.getUInt8Type(), 2147483648ULL)},
+        {"[u8; 18446744073709551615]", Types.getArrayType(Types.getUInt8Type(), std::numeric_limits<std::uint64_t>::max())},
+        {"func(i32, *u8...): &void", Types.getFunctionType(Types.getReferenceType(Types.getVoidType()), {ir::FunctionTypeParameter(Types.getInt32Type()), ir::FunctionTypeParameter(Types.getPointerType(Types.getUInt8Type()), true)})},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      Context.setSource(Input.Unit->input().lexedFile().sourceId());
+      const auto *Result = Analysis.analyzeExpr(State, *syntax(Input).expression());
+      ASSERT_NE(Result, nullptr);
+      EXPECT_EQ(Result, Entry.Expected);
+      EXPECT_EQ(Result->type(), nullptr);
+      EXPECT_EQ(analyze(State, Input), Entry.Expected);
+      EXPECT_EQ(State.recursionDepth(), 0U);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+      EXPECT_FALSE(Analysis.analyzeExpr(State, *syntax(Input).expression(), {.ExpectedType = Types.getInt32Type()}));
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
+    }
+  }
+
+  // Successfully analyzed literal values are rejected once by the enclosing type requirement, retaining its full source span.
+  TEST_F(SemanticAnalyzerTypeTest, RejectsLiteralValuesAfterExpressionAnalysis)
+  {
+    constexpr const char *Cases[] = {
+        "14",
+        "1.5",
+        "true",
+        "'a'",
+        "\"hello\"",
+        "((14))",
+    };
+    for (const char *Text : Cases)
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      Context.setSource(Input.Unit->input().lexedFile().sourceId());
+      ASSERT_TRUE(Analysis.analyzeExpr(State, *syntax(Input).expression()));
+      EXPECT_EQ(analyze(State, Input), nullptr);
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Span, syntax(Input).expression()->getSourceRange());
+      EXPECT_EQ(State.recursionDepth(), 0U);
+    }
+  }
+
+  // Marked type expressions and array count expressions use the same unsupported-comptime policy.
+  TEST_F(SemanticAnalyzerTypeTest, ReportsUnsupportedComptimeTypeExpressions)
+  {
+    constexpr const char *Cases[] = {
+        "comptime *i32",
+        "[u8; comptime 4]",
+    };
+    for (const char *Text : Cases)
+    {
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(analyze(Input), "INK-S0012");
+    }
+  }
+
   // Named nominal types retain declaration identity and nearer bindings override both outer types and builtins.
   TEST_F(SemanticAnalyzerTypeTest, PreservesNominalIdentityAndLexicalShadowing)
   {
@@ -203,7 +282,7 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // A visible value or overload set blocks outer type and builtin fallback instead of supplying its value type.
+  // Visible values and overloads block type fallback, with singleton functions rejected by the consumer and multiple targets ambiguous.
   TEST_F(SemanticAnalyzerTypeTest, RejectsValuesAndOverloadsInTypePosition)
   {
     auto Input = read("Foo");
@@ -228,13 +307,22 @@ namespace ink::semantic::test
     Diagnostics.clear();
     AnalyzerState BuiltinState(Context, BuiltinInput, Output);
     ASSERT_EQ(BuiltinState.nameResolver().bindOverload(name("i32"), *Function), BindResult::Inserted);
+    EXPECT_EQ(Analysis.analyzeExpr(BuiltinState, *syntax(BuiltinInput).expression()), Function);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
     EXPECT_EQ(analyze(BuiltinState, BuiltinInput), nullptr);
     ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
     EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
+    auto *OtherFunction = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getUInt32Type()));
+    ASSERT_NE(OtherFunction, nullptr);
+    ASSERT_EQ(BuiltinState.nameResolver().bindOverload(name("i32"), *OtherFunction), BindResult::Inserted);
+    Diagnostics.clear();
+    EXPECT_EQ(analyze(BuiltinState, BuiltinInput), nullptr);
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticAmbiguousName);
   }
 
   // Unknown names and unsupported integer widths emit one diagnostic against the currently selected input.
-  TEST_F(SemanticAnalyzerTypeTest, AttributesUnknownTypeDiagnosticsToEachInput)
+  TEST_F(SemanticAnalyzerTypeTest, AttributesUnknownNameDiagnosticsToEachInput)
   {
     auto First = read("MissingType");
     auto Second = read("i16");
@@ -247,7 +335,7 @@ namespace ink::semantic::test
       EXPECT_EQ(analyze(*Input), nullptr);
       ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
       const auto &Diagnostic = Diagnostics.diagnostics()[0];
-      EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticUnknownType);
+      EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticUnknownName);
       EXPECT_EQ(Diagnostic.Source, Input->Unit->input().lexedFile().sourceId());
       EXPECT_EQ(Diagnostic.Span, syntax(*Input).expression()->getSourceRange());
     }
@@ -337,10 +425,6 @@ namespace ink::semantic::test
         "func(): Pkg",
         "Value",
         "(Value)",
-        "*Value",
-        "&Value",
-        "&(Value)",
-        "[Value; 3]",
         "func(Value): void",
         "func(): Value",
     };
@@ -359,7 +443,7 @@ namespace ink::semantic::test
     }
   }
 
-  // Missing members never fall back to a lexical parent, and values or optional member access cannot denote types.
+  // Missing members retain unknown-name diagnostics without lexical fallback, while resolved non-type members fail the consumer requirement.
   TEST_F(SemanticAnalyzerTypeTest, RejectsInvalidMemberAccessWithoutLexicalFallback)
   {
     ir::Module Package(Context.irContext());
@@ -385,11 +469,9 @@ namespace ink::semantic::test
         core::DiagnosticKind Expected;
     };
     constexpr Case Cases[] = {
-        {"Pkg.Missing", core::DiagnosticKind::SemanticUnknownType},
-        {"Pkg.Outer.Missing", core::DiagnosticKind::SemanticUnknownType},
+        {"Pkg.Missing", core::DiagnosticKind::SemanticUnknownName},
+        {"Pkg.Outer.Missing", core::DiagnosticKind::SemanticUnknownName},
         {"Pkg.Value", core::DiagnosticKind::SemanticTypeMismatch},
-        {"Value.Missing", core::DiagnosticKind::SemanticTypeMismatch},
-        {"Pkg?.Outer", core::DiagnosticKind::SemanticTypeMismatch},
     };
     for (const auto &Entry : Cases)
     {
@@ -402,7 +484,34 @@ namespace ink::semantic::test
     }
   }
 
-  // Integer literals in every supported radix determine canonical array lengths up to the uint64 maximum.
+  // Type annotations retain the common unsupported-feature ICE for runtime operations, optional access and calls.
+  TEST_F(SemanticAnalyzerTypeTest, ReportsUnsupportedOperationsInTypePosition)
+  {
+    ir::Module Package(Context.irContext());
+    auto *Variable = Output.createGlobalVariable(*Context.typePool().getInt32Type());
+    ASSERT_NE(Variable, nullptr);
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("Value"), *Variable), BindResult::Inserted);
+    constexpr const char *Cases[] = {
+        "*Value",
+        "&Value",
+        "&(Value)",
+        "[Value; 3]",
+        "Value.Missing",
+        "Pkg?.Outer",
+        "MakeType()",
+    };
+    for (const char *Text : Cases)
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(analyze(Input), "INK-S0012");
+    }
+  }
+
+  // Integer literals retain the full uint64 range through parentheses, and character integer constants are valid lengths.
   TEST_F(SemanticAnalyzerTypeTest, AcceptsLiteralArrayLengths)
   {
     struct Case
@@ -417,7 +526,12 @@ namespace ink::semantic::test
         {"[u8; 0b1010]", 10},
         {"[u8; 0o17]", 15},
         {"[u8; 00012]", 12},
+        {"[u8; (4)]", 4},
+        {"[u8; ((3))]", 3},
+        {"[u8; 'a']", 97},
+        {"[u8; '\\0']", 0},
         {"[u8; 18446744073709551615]", std::numeric_limits<std::uint64_t>::max()},
+        {"[u8; ((18446744073709551615))]", std::numeric_limits<std::uint64_t>::max()},
     };
     for (const auto &Entry : Cases)
     {
@@ -442,33 +556,38 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Noninteger literals, parentheses, names, members, calls and literals above uint64 cannot supply array lengths.
+  // Noninteger results fail the length requirement while unresolved names and overflowing literals preserve their expression diagnostics.
   TEST_F(SemanticAnalyzerTypeTest, RejectsInvalidArrayLengths)
   {
-    constexpr const char *Cases[] = {
-        "[i32; 1.5]",
-        "[i32; true]",
-        "[i32; (4)]",
-        "[i32; ((3))]",
-        "[i32; Count]",
-        "[i32; Pkg.Count]",
-        "[i32; 18446744073709551616]",
-        "[i32; 0x10000000000000000]",
-        "[i32; Count()]",
-    };
-    for (const char *Text : Cases)
+    struct Case
     {
-      SCOPED_TRACE(Text);
-      auto Input = read(Text);
+        const char *Text;
+        core::DiagnosticKind Expected;
+    };
+    constexpr Case Cases[] = {
+        {"[i32; 1.5]", core::DiagnosticKind::SemanticInvalidArrayLength},
+        {"[i32; true]", core::DiagnosticKind::SemanticInvalidArrayLength},
+        {"[i32; \"4\"]", core::DiagnosticKind::SemanticInvalidArrayLength},
+        {"[i32; u32]", core::DiagnosticKind::SemanticInvalidArrayLength},
+        {"[i32; *u32]", core::DiagnosticKind::SemanticInvalidArrayLength},
+        {"[i32; Count]", core::DiagnosticKind::SemanticUnknownName},
+        {"[i32; Pkg.Count]", core::DiagnosticKind::SemanticUnknownName},
+        {"[i32; 18446744073709551616]", core::DiagnosticKind::SemanticIntegerOutOfRange},
+        {"[i32; 0x10000000000000000]", core::DiagnosticKind::SemanticIntegerOutOfRange},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
       ASSERT_TRUE(Input.succeeded());
       EXPECT_EQ(analyze(Input), nullptr);
       ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticInvalidArrayLength);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, Entry.Expected);
     }
   }
 
-  // Unary and binary operations are rejected even when their operands and result would be valid integer constants.
-  TEST_F(SemanticAnalyzerTypeTest, RejectsArrayLengthOperations)
+  // Length operands retain the common unsupported-feature ICE for calls and operations, including constant-only arithmetic.
+  TEST_F(SemanticAnalyzerTypeTest, ReportsUnsupportedArrayLengthOperations)
   {
     constexpr const char *Cases[] = {
         "[u8; +3]",
@@ -485,43 +604,117 @@ namespace ink::semantic::test
         "[u8; 1 << 4]",
         "[u8; 24 >> 2]",
         "[u8; (1 + 2)]",
+        "[i32; Count()]",
     };
     for (const char *Text : Cases)
     {
       SCOPED_TRACE(Text);
       auto Input = read(Text);
       ASSERT_TRUE(Input.succeeded());
-      EXPECT_EQ(analyze(Input), nullptr);
-      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticInvalidArrayLength);
+      EXPECT_DEATH(analyze(Input), "INK-S0012");
     }
   }
 
-  // Names and members are rejected even when their bindings refer to valid pooled integer constants.
-  TEST_F(SemanticAnalyzerTypeTest, RejectsBoundIntegerConstantArrayLengths)
+  // Bound integer constants keep their declared types and supply lengths through names, members and parentheses.
+  TEST_F(SemanticAnalyzerTypeTest, AcceptsBoundIntegerConstantArrayLengths)
   {
-    auto Input = read("[u8; Count]");
-    auto MemberInput = read("[u8; Pkg.Count]");
-    ASSERT_TRUE(Input.succeeded());
-    ASSERT_TRUE(MemberInput.succeeded());
-    ir::Module Package(Context.irContext());
-    const auto *Count = Output.constantPool().getUnsignedIntegerConstant(Context.typePool().getUInt32Type(), 6);
-    ASSERT_NE(Count, nullptr);
-    AnalyzerState State(Context, Input, Output);
-    auto &Resolver = State.nameResolver();
-    ASSERT_EQ(Resolver.bind(name("Count"), const_cast<ir::IntegerConstant &>(*Count)), BindResult::Inserted);
-    ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
-    ASSERT_NE(Resolver.enterScope(Package), nullptr);
-    ASSERT_EQ(Resolver.bind(name("Count"), const_cast<ir::IntegerConstant &>(*Count)), BindResult::Inserted);
-    ASSERT_TRUE(Resolver.exitScope());
-    const frontend::parser::ParseResult *Inputs[] = {&Input, &MemberInput};
-    for (const auto *Current : Inputs)
+    auto &Types = Context.typePool();
+    auto &Constants = Output.constantPool();
+    struct Case
     {
-      Diagnostics.clear();
-      EXPECT_EQ(analyze(*Current), nullptr);
+        const char *Name;
+        const ir::IntegerConstant *Constant;
+        std::uint64_t Count;
+    };
+    const Case Cases[] = {
+        {"SignedZero", Constants.getSignedIntegerConstant(Types.getInt32Type(), 0), 0},
+        {"Signed32", Constants.getSignedIntegerConstant(Types.getInt32Type(), std::numeric_limits<std::int32_t>::max()), static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max())},
+        {"Unsigned32", Constants.getUnsignedIntegerConstant(Types.getUInt32Type(), std::numeric_limits<std::uint32_t>::max()), std::numeric_limits<std::uint32_t>::max()},
+        {"Signed64", Constants.getSignedIntegerConstant(Types.getInt64Type(), std::numeric_limits<std::int64_t>::max()), static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())},
+        {"Unsigned64", Constants.getUnsignedIntegerConstant(Types.getUInt64Type(), std::numeric_limits<std::uint64_t>::max()), std::numeric_limits<std::uint64_t>::max()},
+        {"Unsigned8", Constants.getUnsignedIntegerConstant(Types.getUInt8Type(), 255), 255},
+    };
+    ir::Module Package(Context.irContext());
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
+    auto *PackageScope = Resolver.enterScope(Package);
+    ASSERT_NE(PackageScope, nullptr);
+    ASSERT_TRUE(Resolver.exitScope());
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Name);
+      ASSERT_NE(Entry.Constant, nullptr);
+      ASSERT_EQ(Resolver.bind(name(Entry.Name), const_cast<ir::IntegerConstant &>(*Entry.Constant)), BindResult::Inserted);
+      ASSERT_TRUE(Resolver.enterScope(*PackageScope));
+      ASSERT_EQ(Resolver.bind(name(Entry.Name), const_cast<ir::IntegerConstant &>(*Entry.Constant)), BindResult::Inserted);
+      ASSERT_TRUE(Resolver.exitScope());
+      const std::string Expressions[] = {
+          Entry.Name,
+          "((" + std::string(Entry.Name) + "))",
+          "Pkg." + std::string(Entry.Name),
+          "((Pkg." + std::string(Entry.Name) + "))",
+      };
+      for (const auto &Expression : Expressions)
+      {
+        SCOPED_TRACE(Expression);
+        auto Input = read("[u8; " + Expression + "]");
+        ASSERT_TRUE(Input.succeeded());
+        AnalyzerState State(Context, Input, Output);
+        EXPECT_EQ(analyze(State, Input), Types.getArrayType(Types.getUInt8Type(), Entry.Count));
+        const auto *Array = frontend::parser::cast<frontend::parser::ArrayRepeatExpr>(syntax(Input).expression());
+        ASSERT_NE(Array, nullptr);
+        EXPECT_EQ(Analysis.analyzeExpr(State, *Array->count(), {.DefaultIntegerLiteralType = Types.getUInt64Type()}), Entry.Constant);
+        EXPECT_TRUE(Diagnostics.diagnostics().empty());
+        EXPECT_EQ(State.recursionDepth(), 0U);
+      }
+    }
+  }
+
+  // Negative pooled signed constants are rejected using their signed type, including the minimum i32 and i64 values.
+  TEST_F(SemanticAnalyzerTypeTest, RejectsNegativeIntegerConstantArrayLengths)
+  {
+    auto &Types = Context.typePool();
+    auto &Constants = Output.constantPool();
+    const ir::IntegerConstant *Cases[] = {
+        Constants.getSignedIntegerConstant(Types.getInt32Type(), -1),
+        Constants.getSignedIntegerConstant(Types.getInt32Type(), std::numeric_limits<std::int32_t>::min()),
+        Constants.getSignedIntegerConstant(Types.getInt64Type(), -1),
+        Constants.getSignedIntegerConstant(Types.getInt64Type(), std::numeric_limits<std::int64_t>::min()),
+    };
+    for (const auto *Constant : Cases)
+    {
+      ASSERT_NE(Constant, nullptr);
+      auto Input = read("[u8; ((Count))]");
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      State.nameResolver().enterScope();
+      ASSERT_EQ(State.nameResolver().bind(name("Count"), const_cast<ir::IntegerConstant &>(*Constant)), BindResult::Inserted);
+      EXPECT_EQ(analyze(State, Input), nullptr);
       ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
       EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticInvalidArrayLength);
+      EXPECT_EQ(State.recursionDepth(), 0U);
+      ASSERT_TRUE(State.nameResolver().exitScope());
     }
+  }
+
+  // Module values and missing module members respectively fail the length requirement and ordinary name lookup.
+  TEST_F(SemanticAnalyzerTypeTest, RejectsModuleValuesAndUnknownMembersAsArrayLengths)
+  {
+    ir::Module Package(Context.irContext());
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
+    ASSERT_NE(Resolver.enterScope(Package), nullptr);
+    ASSERT_TRUE(Resolver.exitScope());
+    auto ModuleInput = read("[u8; Pkg]");
+    ASSERT_TRUE(ModuleInput.succeeded());
+    EXPECT_EQ(analyze(ModuleInput), nullptr);
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticInvalidArrayLength);
+    auto MissingInput = read("[u8; Pkg.Missing]");
+    ASSERT_TRUE(MissingInput.succeeded());
+    EXPECT_EQ(analyze(MissingInput), nullptr);
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownName);
   }
 
   // A length that fits uint64 still fails when multiplying it by the element size overflows the array layout.
@@ -534,7 +727,7 @@ namespace ink::semantic::test
     EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
   }
 
-  // A bound variable is rejected as length syntax even when initialized with an integer constant.
+  // A bound variable is not an integer constant even when initialized with one.
   TEST_F(SemanticAnalyzerTypeTest, RejectsMutableVariableAsArrayLength)
   {
     auto Input = read("[u8; Count]");
@@ -547,6 +740,26 @@ namespace ink::semantic::test
     EXPECT_EQ(analyze(State, Input), nullptr);
     ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
     EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticInvalidArrayLength);
+  }
+
+  // A visible current-function parameter has an integer type but cannot provide a compile-time array length.
+  TEST_F(SemanticAnalyzerTypeTest, RejectsParameterAsArrayLength)
+  {
+    auto Input = read("[u8; Count]");
+    ASSERT_TRUE(Input.succeeded());
+    const auto *Signature = Context.typePool().getFunctionType(Context.typePool().getVoidType(), {ir::FunctionTypeParameter(Context.typePool().getUInt32Type())});
+    auto *Function = Output.createGlobalFunction(*Signature);
+    ASSERT_NE(Function, nullptr);
+    auto *Block = Function->createBlock();
+    ASSERT_NE(Block, nullptr);
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+    ASSERT_EQ(State.nameResolver().bind(name("Count"), *Function->parameter(0)), BindResult::Inserted);
+    EXPECT_EQ(analyze(State, Input), nullptr);
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticInvalidArrayLength);
+    EXPECT_EQ(State.irBuilder().insertBlock(), Block);
+    EXPECT_EQ(Block->instructionCount(), 0U);
   }
 
   // Function signatures preserve ordered parameter types and variadic flags while discarding parameter names.
@@ -586,7 +799,7 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Failures in nested type constructors propagate the original unknown-type diagnostic exactly once.
+  // Failures in nested type constructors propagate the original unknown-name diagnostic exactly once.
   TEST_F(SemanticAnalyzerTypeTest, PropagatesNestedTypeFailureWithoutDuplicateDiagnostics)
   {
     constexpr const char *Cases[] = {
@@ -603,7 +816,7 @@ namespace ink::semantic::test
       ASSERT_TRUE(Input.succeeded());
       EXPECT_EQ(analyze(Input), nullptr);
       ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownType);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownName);
     }
   }
 
@@ -672,7 +885,7 @@ namespace ink::semantic::test
     AnalyzerState FailureState(Context, Missing, Output);
     EXPECT_EQ(analyze(FailureState, Missing), nullptr);
     ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownType);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownName);
     Diagnostics.clear();
     ASSERT_TRUE(Resolver.enterScope(*PackageScope));
     ASSERT_EQ(Resolver.bind(name("Missing"), *Type), BindResult::Inserted);
@@ -683,20 +896,26 @@ namespace ink::semantic::test
     EXPECT_DEATH(analyze(Nested), "INK-S0014");
   }
 
-  // Nested array element types consume recursion depth while literal lengths allow depth restoration across calls.
+  // Array element and count expressions share the recursion budget, including parentheses around the count.
   TEST_F(SemanticAnalyzerTypeTest, EnforcesArrayTypeDepthAndRestoresItAcrossCalls)
   {
     core::test::ScopedEnvironmentVariable Limit("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
     ASSERT_TRUE(Limit.set("2"));
     auto Valid = read("[u8; 3]");
     auto Nested = read("[[u8; 3]; 2]");
+    auto Parenthesized = read("[u8; (3)]");
     ASSERT_TRUE(Valid.succeeded());
     ASSERT_TRUE(Nested.succeeded());
+    ASSERT_TRUE(Parenthesized.succeeded());
     AnalyzerState State(Context, Valid, Output);
     const auto *Expected = Context.typePool().getArrayType(Context.typePool().getUInt8Type(), 3);
     EXPECT_EQ(analyze(State, Valid), Expected);
     EXPECT_EQ(analyze(State, Valid), Expected);
     EXPECT_DEATH(analyze(Nested), "INK-S0014");
+    EXPECT_DEATH(analyze(Parenthesized), "INK-S0014");
     EXPECT_EQ(analyze(State, Valid), Expected);
+    EXPECT_EQ(State.recursionDepth(), 0U);
+    ASSERT_TRUE(Limit.set("3"));
+    EXPECT_EQ(analyze(Parenthesized), Expected);
   }
 } // namespace ink::semantic::test

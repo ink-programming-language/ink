@@ -1,6 +1,7 @@
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
 #include "ink/ir/builder/ir_builder.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/type_pool.h"
@@ -31,6 +32,39 @@ namespace ink::semantic::test
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().sourceManager()), const core::SourceManager &>);
   static_assert(std::is_same_v<decltype(std::declval<SemanticContext &&>().irContext()), ir::IRContext &>);
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().irContext()), const ir::IRContext &>);
+
+  // Declaration collection skips expression statements, and full analysis accepts the implemented literal/name forms.
+  TEST(SemanticAnalyzerEntryTest, AnalyzesLiteralAndBuiltinBooleanStatements)
+  {
+    core::SourceManager Sources;
+    core::DiagnosticEngine Diagnostics;
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "0; 1; 14; \"Hello, world!\\n\"; true; false;"));
+    ASSERT_TRUE(Input.succeeded());
+    EXPECT_TRUE(Analyzer{}.analyze(Context, Input, Output));
+    EXPECT_EQ(Output.globalFunctionCount(), 0U);
+    EXPECT_EQ(Output.globalVariableCount(), 0U);
+  }
+
+  // Unknown expression names are diagnosed once each during full analysis, including following sibling statements.
+  TEST(SemanticAnalyzerEntryTest, ReportsUnknownExpressionNamesDuringFullAnalysis)
+  {
+    core::SourceManager Sources;
+    core::CollectingDiagnosticConsumer Consumer;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Consumer);
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "Missing; Other;"));
+    ASSERT_TRUE(Input.succeeded());
+    EXPECT_FALSE(Analyzer{}.analyze(Context, Input, Output));
+    ASSERT_EQ(Consumer.diagnostics().size(), 2U);
+    EXPECT_EQ(Consumer.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownName);
+    EXPECT_EQ(Consumer.diagnostics()[1].Kind, core::DiagnosticKind::SemanticUnknownName);
+  }
 
   // The public entry reaches nested block dispatch and keeps successive calls independent.
   TEST(SemanticAnalyzerEntryTest, TraversesEmptyModulesAndNestedBlocks)
@@ -307,7 +341,7 @@ namespace ink::semantic::test
         const char *Kind;
     };
     constexpr Case Cases[] = {
-        {"value;", "SimpleStmt"},
+        {"value = 1;", "SimpleStmt"},
         {"if (true) {}", "IfStmt"},
         {"while (true) {}", "WhileStmt"},
         {"for (;;) {}", "ClassicForStmt"},

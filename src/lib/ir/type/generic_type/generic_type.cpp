@@ -1,5 +1,7 @@
 #include "ink/ir/type/generic_type/generic_type.h"
 
+#include "ink/core/name/name_pool.h"
+
 #include <utility>
 
 namespace ink::ir
@@ -41,6 +43,12 @@ namespace ink::ir
   std::uint64_t GenericType::alignment() const noexcept
   {
     return 1;
+  }
+
+  std::string GenericType::toString() const
+  {
+    const auto NameText = core::NamePool::instance().text(Name);
+    return NameText.empty() ? Value::toString() : std::string(NameText);
   }
 
   bool GenericType::classof(const Value *Value) noexcept
