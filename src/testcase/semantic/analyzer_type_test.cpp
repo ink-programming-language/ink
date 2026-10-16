@@ -102,6 +102,24 @@ namespace ink::semantic::test
     }
   }
 
+  // Reusing builtin lookup across live contexts returns each context's own canonical type.
+  TEST_F(SemanticAnalyzerTypeTest, ResolvesBuiltinsInEachIrContext)
+  {
+    auto Input = read("i32");
+    ASSERT_TRUE(Input.succeeded());
+    SemanticContext OtherContext(Sources, DiagnosticEngine, target::TargetContext::native());
+    ir::Module OtherOutput(OtherContext.irContext());
+    OtherContext.setSource(Input.Unit->input().lexedFile().sourceId());
+    AnalyzerState OtherState(OtherContext, Input, OtherOutput);
+    const auto *First = Context.typePool().getInt32Type();
+    const auto *Second = OtherContext.typePool().getInt32Type();
+    ASSERT_NE(First, Second);
+    EXPECT_EQ(analyze(Input), First);
+    EXPECT_EQ(Analysis.analyzeType(OtherState, syntax(Input)), Second);
+    EXPECT_EQ(analyze(Input), First);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
   // Pointer and reference operators compose recursively and preserve void as a valid referenced type.
   TEST_F(SemanticAnalyzerTypeTest, CanonicalizesNestedPointersAndReferences)
   {

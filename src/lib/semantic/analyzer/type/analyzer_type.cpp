@@ -5,6 +5,7 @@
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/structure_type/function_type_parameter.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
+#include "ink/semantic/analyzer/analyzer_utils.h"
 #include "ink/semantic/analyzer/block_depth_guard.h"
 #include "ink/semantic/context.h"
 
@@ -19,35 +20,6 @@ namespace ink::semantic
 {
   namespace
   {
-    const ir::Type *builtinType(ir::TypePool &Types, std::string_view Name)
-    {
-      struct Entry
-      {
-          std::string_view Name;
-          const ir::Type *Type;
-      };
-      // TODO: Extend numeric builtins with i8/i16/u16/i128/u128/f16 once TypePool supports them.
-      const Entry Entries[] = {
-          {"void", Types.getVoidType()},
-          {"bool", Types.getBoolType()},
-          {"u8", Types.getUInt8Type()},
-          {"i32", Types.getInt32Type()},
-          {"u32", Types.getUInt32Type()},
-          {"i64", Types.getInt64Type()},
-          {"u64", Types.getUInt64Type()},
-          {"f32", Types.getFloat32Type()},
-          {"f64", Types.getFloat64Type()},
-      };
-      for (const auto &Candidate : Entries)
-      {
-        if (Candidate.Name == Name)
-        {
-          return Candidate.Type;
-        }
-      }
-      return nullptr;
-    }
-
     const ir::Value *singleTarget(SemanticContext &Context, const frontend::parser::Expr &Node, const Binding &Found)
     {
       if (Found.isOverloadSet() || Found.targets().size() != 1)
@@ -56,26 +28,6 @@ namespace ink::semantic
         return nullptr;
       }
       return Found.targets().front();
-    }
-
-    const ir::Type *requireType(SemanticContext &Context, const frontend::parser::Expr &Node, const ir::Value *Target)
-    {
-      if (!Target)
-      {
-        return nullptr;
-      }
-      if (!ir::Type::classof(Target))
-      {
-        Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "a type", ir::valueKindName(Target->kind()));
-        return nullptr;
-      }
-      const auto *Type = static_cast<const ir::Type *>(Target);
-      if (!Context.irContext().containsType(Type))
-      {
-        Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "a type in the current IR context", "a foreign or unregistered type");
-        return nullptr;
-      }
-      return Type;
     }
 
     const ir::Value *analyzeTypeExpr(SemanticContext &Context, const frontend::parser::TokenBuffer &Input, const NameResolver &Resolver, std::size_t &RecursionDepth, std::size_t RecursionDepthLimit, const frontend::parser::Expr &Node);
@@ -87,7 +39,7 @@ namespace ink::semantic
       {
         return singleTarget(Context, Node, *Found);
       }
-      if (const ir::Type *Builtin = builtinType(Context.typePool(), Name.Text))
+      if (const ir::Type *Builtin = lookupBuiltinType(Context.typePool(), Name.Text))
       {
         return Builtin;
       }
@@ -120,7 +72,7 @@ namespace ink::semantic
           return nullptr;
         }
       }
-      else if (!requireType(Context, *Node.object(), Owner))
+      else if (!requireType(Context, Node.object()->getSourceRange(), Owner))
       {
         return nullptr;
       }
@@ -142,7 +94,7 @@ namespace ink::semantic
         Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "a supported type expression", astKindName(Node.getKind()));
         return nullptr;
       }
-      const ir::Type *Operand = requireType(Context, *Node.operand(), analyzeTypeExpr(Context, Input, Resolver, RecursionDepth, RecursionDepthLimit, *Node.operand()));
+      const ir::Type *Operand = requireType(Context, Node.operand()->getSourceRange(), analyzeTypeExpr(Context, Input, Resolver, RecursionDepth, RecursionDepthLimit, *Node.operand()));
       if (!Operand)
       {
         return nullptr;
@@ -154,7 +106,7 @@ namespace ink::semantic
     const ir::Type *analyzeArrayTypeExpr(SemanticContext &Context, const frontend::parser::TokenBuffer &Input, const NameResolver &Resolver, std::size_t &RecursionDepth, std::size_t RecursionDepthLimit, const frontend::parser::ArrayRepeatExpr &Node)
     {
       using namespace frontend::parser;
-      const ir::Type *Element = requireType(Context, *Node.value(), analyzeTypeExpr(Context, Input, Resolver, RecursionDepth, RecursionDepthLimit, *Node.value()));
+      const ir::Type *Element = requireType(Context, Node.value()->getSourceRange(), analyzeTypeExpr(Context, Input, Resolver, RecursionDepth, RecursionDepthLimit, *Node.value()));
       if (!Element)
       {
         return nullptr;
@@ -200,7 +152,7 @@ namespace ink::semantic
     const ir::Type *analyzeFunctionTypeExpr(SemanticContext &Context, const frontend::parser::TokenBuffer &Input, const NameResolver &Resolver, std::size_t &RecursionDepth, std::size_t RecursionDepthLimit, const frontend::parser::FunctionTypeExpr &Node)
     {
       const auto &ReturnExpr = *Node.returnType()->expression();
-      const ir::Type *Return = requireType(Context, ReturnExpr, analyzeTypeExpr(Context, Input, Resolver, RecursionDepth, RecursionDepthLimit, ReturnExpr));
+      const ir::Type *Return = requireType(Context, ReturnExpr.getSourceRange(), analyzeTypeExpr(Context, Input, Resolver, RecursionDepth, RecursionDepthLimit, ReturnExpr));
       if (!Return)
       {
         return nullptr;
@@ -210,7 +162,7 @@ namespace ink::semantic
       for (const auto &Parameter : Node.parameters())
       {
         const auto &ParameterExpr = *Parameter.type()->expression();
-        const ir::Type *Type = requireType(Context, ParameterExpr, analyzeTypeExpr(Context, Input, Resolver, RecursionDepth, RecursionDepthLimit, ParameterExpr));
+        const ir::Type *Type = requireType(Context, ParameterExpr.getSourceRange(), analyzeTypeExpr(Context, Input, Resolver, RecursionDepth, RecursionDepthLimit, ParameterExpr));
         if (!Type)
         {
           return nullptr;
@@ -262,6 +214,6 @@ namespace ink::semantic
   const ir::Type *Analyzer::analyzeType(AnalyzerState &State, const frontend::parser::TypeSyntax &Node)
   {
     const auto &Expression = *Node.expression();
-    return requireType(State.Context, Expression, analyzeTypeExpr(State.Context, State.Input.Unit->input(), State.Resolver, State.RecursionDepth, State.RecursionDepthLimit, Expression));
+    return requireType(State.Context, Expression.getSourceRange(), analyzeTypeExpr(State.Context, State.Input.Unit->input(), State.Resolver, State.RecursionDepth, State.RecursionDepthLimit, Expression));
   }
 } // namespace ink::semantic
