@@ -86,20 +86,22 @@ namespace ink::core::test
 
     constexpr bool evaluateSuccessfulAssertions()
     {
-      CHECK(true);
-      CHECK_MSGF(true, "check {}", 1);
-      CHECK_ALWAYS_MSGF(true, "always check {}", 2);
-      return ENSURE(true) && ENSURE_MSGF(true, "ensure {}", 3) && ENSURE_ALWAYS_MSGF(true, "always ensure {}", 4);
+      check(true);
+      checkMsgf(true, "check {}", 1);
+      checkAlways(true);
+      checkAlwaysMsgf(true, "always check {}", 2);
+      return ensure(true) && ensureMsgf(true, "ensure {}", 3) && ensureAlways(true) && ensureAlwaysMsgf(true, "always ensure {}", 4);
     }
 
     template <unsigned Tag>
     bool failTemplateEnsure()
     {
-      return ENSURE_MSGF(false, "template {}", Tag);
+      return ensureMsgf(false, "template {}", Tag);
     }
 
-    static_assert(ENSURE(true));
-    static_assert(ENSURE_ALWAYS_MSGF(true, "always ensure"));
+    static_assert(ensure(true));
+    static_assert(ensureAlways(true));
+    static_assert(ensureAlwaysMsgf(true, "always ensure"));
     static_assert(evaluateSuccessfulAssertions());
   } // namespace
 
@@ -118,15 +120,16 @@ namespace ink::core::test
     EXPECT_FALSE(std::string_view(INK_COMPILER_VERSION).empty());
   }
 
-  // Ordinary checks evaluate successful conditions once when enabled and skip formatting arguments.
+  // All check variants evaluate successful conditions once when enabled and skip formatting arguments.
   TEST(CoreDefineTest, ChecksEvaluateConditionsOnlyWhenEnabled)
   {
     int Conditions = 0;
     int Arguments = 0;
-    CHECK(++Conditions > 0);
-    CHECK_MSGF(++Conditions > 0, "unused {}", ++Arguments);
-    CHECK_ALWAYS_MSGF(++Conditions > 0, "unused {}", ++Arguments);
-    EXPECT_EQ(Conditions, INK_ENABLE_ASSERTIONS ? 3 : 0);
+    check(++Conditions > 0);
+    checkMsgf(++Conditions > 0, "unused {}", ++Arguments);
+    checkAlways(++Conditions > 0);
+    checkAlwaysMsgf(++Conditions > 0, "unused {}", ++Arguments);
+    EXPECT_EQ(Conditions, INK_ENABLE_ASSERTIONS ? 4 : 0);
     EXPECT_EQ(Arguments, 0);
   }
 
@@ -135,13 +138,15 @@ namespace ink::core::test
   {
     int Conversions = 0;
     ExplicitCondition Condition{true, &Conversions};
-    CHECK(Condition);
-    CHECK_MSGF(Condition, "check");
-    CHECK_ALWAYS_MSGF(Condition, "always check");
-    EXPECT_TRUE(ENSURE(Condition));
-    EXPECT_TRUE(ENSURE_MSGF(Condition, "ensure"));
-    EXPECT_TRUE(ENSURE_ALWAYS_MSGF(Condition, "always ensure"));
-    EXPECT_EQ(Conversions, 3 + (INK_ENABLE_ASSERTIONS ? 3 : 0));
+    check(Condition);
+    checkMsgf(Condition, "check");
+    checkAlways(Condition);
+    checkAlwaysMsgf(Condition, "always check");
+    EXPECT_TRUE(ensure(Condition));
+    EXPECT_TRUE(ensureMsgf(Condition, "ensure"));
+    EXPECT_TRUE(ensureAlways(Condition));
+    EXPECT_TRUE(ensureAlwaysMsgf(Condition, "always ensure"));
+    EXPECT_EQ(Conversions, 4 + (INK_ENABLE_ASSERTIONS ? 4 : 0));
   }
 
   // Statement macros remain a single statement when used directly in an if/else branch.
@@ -149,15 +154,19 @@ namespace ink::core::test
   {
     int UnexpectedBranches = 0;
     if (true)
-      CHECK(true);
+      check(true);
     else
       ++UnexpectedBranches;
     if (true)
-      CHECK_MSGF(true, "check");
+      checkMsgf(true, "check");
     else
       ++UnexpectedBranches;
     if (true)
-      CHECK_ALWAYS_MSGF(true, "always check");
+      checkAlways(true);
+    else
+      ++UnexpectedBranches;
+    if (true)
+      checkAlwaysMsgf(true, "always check");
     else
       ++UnexpectedBranches;
     EXPECT_EQ(UnexpectedBranches, 0);
@@ -170,9 +179,10 @@ namespace ink::core::test
     int Conditions = 0;
     int Arguments = 0;
     testing::internal::CaptureStderr();
-    CHECK(++Conditions < 0);
-    CHECK_MSGF(++Conditions < 0, "ignored {}", ++Arguments);
-    CHECK_ALWAYS_MSGF(++Conditions < 0, "ignored {}", ++Arguments);
+    check(++Conditions < 0);
+    checkMsgf(++Conditions < 0, "ignored {}", ++Arguments);
+    checkAlways(++Conditions < 0);
+    checkAlwaysMsgf(++Conditions < 0, "ignored {}", ++Arguments);
     const std::string Output = testing::internal::GetCapturedStderr();
     EXPECT_EQ(Conditions, 0);
     EXPECT_EQ(Arguments, 0);
@@ -186,14 +196,16 @@ namespace ink::core::test
     int Conditions = 0;
     int Arguments = 0;
     testing::internal::CaptureStderr();
-    const bool First = ENSURE(++Conditions > 0);
-    const bool Second = ENSURE_MSGF(++Conditions > 0, "unused {}", ++Arguments);
-    const bool Third = ENSURE_ALWAYS_MSGF(++Conditions > 0, "unused {}", ++Arguments);
+    const bool First = ensure(++Conditions > 0);
+    const bool Second = ensureMsgf(++Conditions > 0, "unused {}", ++Arguments);
+    const bool Third = ensureAlways(++Conditions > 0);
+    const bool Fourth = ensureAlwaysMsgf(++Conditions > 0, "unused {}", ++Arguments);
     const std::string Output = testing::internal::GetCapturedStderr();
     EXPECT_TRUE(First);
     EXPECT_TRUE(Second);
     EXPECT_TRUE(Third);
-    EXPECT_EQ(Conditions, 3);
+    EXPECT_TRUE(Fourth);
+    EXPECT_EQ(Conditions, 4);
     EXPECT_EQ(Arguments, 0);
     EXPECT_TRUE(Output.empty());
   }
@@ -207,11 +219,11 @@ namespace ink::core::test
     testing::internal::CaptureStderr();
     for (int Iteration = 0; Iteration < 4; ++Iteration)
     {
-      if (!ENSURE(++Conditions < 0))
+      if (!ensure(++Conditions < 0))
       {
         ++Failures;
       }
-      if (!ENSURE_MSGF(++Conditions < 0, "first failure {}", ++Arguments))
+      if (!ensureMsgf(++Conditions < 0, "first failure {}", ++Arguments))
       {
         ++Failures;
       }
@@ -236,7 +248,7 @@ namespace ink::core::test
     testing::internal::CaptureStderr();
     for (std::size_t Index = 0; Index < Results.size(); ++Index)
     {
-      Results[Index] = ENSURE_MSGF(Index == 0, "failure {}", ++Arguments);
+      Results[Index] = ensureMsgf(Index == 0, "failure {}", ++Arguments);
     }
     const std::string Output = testing::internal::GetCapturedStderr();
     EXPECT_TRUE(Results[0]);
@@ -280,16 +292,20 @@ namespace ink::core::test
     testing::internal::CaptureStderr();
     for (int Iteration = 0; Iteration < 3; ++Iteration)
     {
-      if (!ENSURE_ALWAYS_MSGF(++Conditions < 0, "failure {}", ++Arguments))
+      if (!ensureAlways(++Conditions < 0))
+      {
+        ++Failures;
+      }
+      if (!ensureAlwaysMsgf(++Conditions < 0, "failure {}", ++Arguments))
       {
         ++Failures;
       }
     }
     const std::string Output = testing::internal::GetCapturedStderr();
-    EXPECT_EQ(Conditions, 3);
-    EXPECT_EQ(Failures, 3);
+    EXPECT_EQ(Conditions, 6);
+    EXPECT_EQ(Failures, 6);
     EXPECT_EQ(Arguments, INK_ENABLE_ASSERTIONS ? 3 : 0);
-    EXPECT_EQ(countOccurrences(Output, "ensure failed:"), INK_ENABLE_ASSERTIONS ? 3U : 0U);
+    EXPECT_EQ(countOccurrences(Output, "ensure failed:"), INK_ENABLE_ASSERTIONS ? 6U : 0U);
 #if INK_ENABLE_ASSERTIONS
     EXPECT_NE(Output.find("failure 3"), std::string::npos);
 #else
@@ -306,7 +322,7 @@ namespace ink::core::test
     testing::internal::CaptureStderr();
     for (int Iteration = 0; Iteration < 3; ++Iteration)
     {
-      if (!ENSURE(Condition))
+      if (!ensure(Condition))
       {
         ++Failures;
       }
@@ -336,7 +352,7 @@ namespace ink::core::test
         }
         for (int Iteration = 0; Iteration < 16; ++Iteration)
         {
-          if (!ENSURE_MSGF(Conditions.fetch_add(1, std::memory_order_relaxed) < 0, "concurrent {}", Arguments.fetch_add(1, std::memory_order_relaxed)))
+          if (!ensureMsgf(Conditions.fetch_add(1, std::memory_order_relaxed) < 0, "concurrent {}", Arguments.fetch_add(1, std::memory_order_relaxed)))
           {
             Failures.fetch_add(1, std::memory_order_relaxed);
           }
@@ -363,7 +379,7 @@ namespace ink::core::test
     spdlog::set_level(spdlog::level::off);
     testing::internal::CaptureStderr();
     const int ExpectedLine = __LINE__ + 1;
-    const bool Result = ENSURE_MSGF(2 + 2 == 5, "value {} {{ready}}", 42);
+    const bool Result = ensureMsgf(2 + 2 == 5, "value {} {{ready}}", 42);
     const std::string Output = testing::internal::GetCapturedStderr();
     spdlog::set_level(PreviousLevel);
     EXPECT_FALSE(Result);
@@ -377,11 +393,12 @@ namespace ink::core::test
   // Failed checks terminate after reporting their original expression and formatted message.
   TEST(CoreDefineDeathTest, ChecksTerminateWithExpressionAndMessage)
   {
-    EXPECT_DEATH(CHECK(2 + 2 == 5), "check failed: 2 \\+ 2 == 5");
-    EXPECT_DEATH(CHECK_MSGF(false, "value {} {{ready}}", 42), "value 42 \\{ready\\}");
-    EXPECT_DEATH(CHECK_MSGF(false, "message without arguments"), "message without arguments");
-    EXPECT_DEATH(CHECK_ALWAYS_MSGF(false, "always check {}", 17), "always check 17");
-    EXPECT_DEATH(CHECK_ALWAYS_MSGF(false, "always message without arguments"), "always message without arguments");
+    EXPECT_DEATH(check(2 + 2 == 5), "check failed: 2 \\+ 2 == 5");
+    EXPECT_DEATH(checkMsgf(false, "value {} {{ready}}", 42), "value 42 \\{ready\\}");
+    EXPECT_DEATH(checkMsgf(false, "message without arguments"), "message without arguments");
+    EXPECT_DEATH(checkAlways(2 + 2 == 5), "check failed: 2 \\+ 2 == 5");
+    EXPECT_DEATH(checkAlwaysMsgf(false, "always check {}", 17), "always check 17");
+    EXPECT_DEATH(checkAlwaysMsgf(false, "always message without arguments"), "always message without arguments");
   }
 
   // Check diagnostics retain the call-site source line and cannot be hidden by the global logger level.
@@ -390,11 +407,11 @@ namespace ink::core::test
     const auto Fail = []()
     {
       spdlog::set_level(spdlog::level::off);
-      CHECK_MSGF(false, "logging disabled {}", 23);
+      checkMsgf(false, "logging disabled {}", 23);
     };
     EXPECT_DEATH(Fail(), "logging disabled 23");
     const std::string ExpectedLocation = "panic at .*core_define_test.cpp:" + std::to_string(__LINE__ + 1);
-    EXPECT_DEATH(CHECK(false), ExpectedLocation);
+    EXPECT_DEATH(check(false), ExpectedLocation);
   }
 #endif
 } // namespace ink::core::test

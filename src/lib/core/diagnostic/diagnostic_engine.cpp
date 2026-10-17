@@ -27,9 +27,9 @@ namespace ink::core
     {
       if (Sources)
       {
-        PANIC(DiagnosticFormatter{}.format(DiagnosticEntry, *Sources));
+        panic(DiagnosticFormatter{}.format(DiagnosticEntry, *Sources));
       }
-      PANIC(fmt::format("internal compiler error[{}]: {}", DiagnosticEntry.code(), DiagnosticFormatter{}.format(DiagnosticEntry).Message));
+      panic(fmt::format("internal compiler error[{}]: {}", DiagnosticEntry.code(), DiagnosticFormatter{}.format(DiagnosticEntry).Message));
     }
     const std::vector<DiagnosticConsumer *> Snapshot = Consumers;
     for (DiagnosticConsumer *Consumer : Snapshot)

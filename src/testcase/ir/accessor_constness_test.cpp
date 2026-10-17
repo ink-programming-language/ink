@@ -54,6 +54,12 @@ namespace ink::ir::test
   static_assert(std::same_as<decltype(std::declval<const Parameter &&>().function()), const Function *>);
   static_assert(noexcept(std::declval<Parameter &>().function()) && noexcept(std::declval<const Parameter &>().function()));
 
+  static_assert(std::same_as<decltype(std::declval<Instruction &>().parentBlock()), BasicBlock *>);
+  static_assert(std::same_as<decltype(std::declval<const Instruction &>().parentBlock()), const BasicBlock *>);
+  static_assert(std::same_as<decltype(std::declval<Instruction &&>().parentBlock()), BasicBlock *>);
+  static_assert(std::same_as<decltype(std::declval<const Instruction &&>().parentBlock()), const BasicBlock *>);
+  static_assert(noexcept(std::declval<Instruction &>().parentBlock()) && noexcept(std::declval<const Instruction &>().parentBlock()));
+
   static_assert(std::same_as<decltype(std::declval<BasicBlock &>().function()), Function *>);
   static_assert(std::same_as<decltype(std::declval<const BasicBlock &>().function()), const Function *>);
   static_assert(std::same_as<decltype(std::declval<BasicBlock &&>().function()), Function *>);
@@ -173,6 +179,8 @@ namespace ink::ir::test
     EXPECT_EQ(std::move(std::as_const(*ParameterValue)).function(), Callable);
     EXPECT_EQ(std::move(std::as_const(*Entry)).function(), Callable);
     EXPECT_EQ(std::move(std::as_const(*Entry)).instruction(0), Return);
+    EXPECT_EQ(std::move(*Return).parentBlock(), Entry);
+    EXPECT_EQ(std::move(std::as_const(*Return)).parentBlock(), Entry);
     EXPECT_EQ(Owner.classCount(), 1U);
     EXPECT_EQ(Owner.interfaceCount(), 1U);
     EXPECT_EQ(Owner.structCount(), 1U);

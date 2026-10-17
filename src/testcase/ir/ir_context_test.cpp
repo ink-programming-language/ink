@@ -1,5 +1,6 @@
 #include "ink/ir/context.h"
 #include "ink/core/name/name_pool.h"
+#include "ink/core/support/core_define.h"
 #include "ink/ir/builder/ir_builder.h"
 #include "ink/ir/module/module.h"
 
@@ -137,7 +138,7 @@ namespace ink::ir::test
     EXPECT_NE(Next.createGlobalVariable(*Text->type()), nullptr);
   }
 
-  // Independent builders share resources while preserving insertion points and rejecting foreign contexts and function operands.
+  // Independent builders preserve insertion points, reject foreign operands and observe a shared block's asserted terminator state.
   TEST(IRContextTest, BuildersKeepIndependentStateAcrossModules)
   {
     IRContext Context(Target);
@@ -170,7 +171,9 @@ namespace ink::ir::test
     EXPECT_EQ(SecondBuilder.insertBlock(), SecondBlock);
     ASSERT_TRUE(FirstBuilder.setInsertPoint(*SecondBlock));
     ASSERT_NE(FirstBuilder.createReturn(*SecondFunction->parameter(0)), nullptr);
-    EXPECT_EQ(SecondBuilder.createReturn(*SecondFunction->parameter(0)), nullptr);
+#if INK_ENABLE_ASSERTIONS
+    EXPECT_DEATH(static_cast<void>(SecondBuilder.createReturn(*SecondFunction->parameter(0))), "check failed: canAppend");
+#endif
     EXPECT_EQ(FirstBlock->instructionCount(), 1U);
     EXPECT_EQ(SecondBlock->instructionCount(), 1U);
   }

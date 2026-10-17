@@ -1,5 +1,10 @@
 #include "ink/core/name/name_pool.h"
+#include "ink/ir/context.h"
 #include "ink/ir/function/basic_block.h"
+#include "ink/ir/function/function.h"
+#include "ink/ir/instruction/branch_instruction.h"
+#include "ink/ir/instruction/conditional_branch_instruction.h"
+#include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/type/type.h"
 
 #include <gtest/gtest.h>
@@ -12,6 +17,14 @@ namespace ink::ir::test
 {
   namespace
   {
+    constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
+
+    class PlainInstruction final : public Instruction
+    {
+      public:
+        PlainInstruction() noexcept = default;
+    };
+
     template <typename ValueType, typename = void>
     struct HasSize : std::false_type
     {
@@ -38,6 +51,10 @@ namespace ink::ir::test
   static_assert(std::is_base_of_v<Value, BasicBlock>);
   static_assert(!std::is_base_of_v<Type, BasicBlock>);
   static_assert(std::has_virtual_destructor_v<BasicBlock>);
+  static_assert(!std::is_copy_constructible_v<BasicBlock>);
+  static_assert(!std::is_copy_assignable_v<BasicBlock>);
+  static_assert(!std::is_move_constructible_v<BasicBlock>);
+  static_assert(!std::is_move_assignable_v<BasicBlock>);
   static_assert(!HasSize<Value>::value);
   static_assert(!HasAlignment<Value>::value);
   static_assert(!HasSize<BasicBlock>::value);
@@ -53,6 +70,7 @@ namespace ink::ir::test
     EXPECT_EQ(Value->kind(), ValueKind::BasicBlock);
     EXPECT_EQ(Block.name(), core::NAME_None);
     EXPECT_FALSE(Block.hasName());
+    EXPECT_FALSE(Block.hasTerminator());
     EXPECT_TRUE(BasicBlock::classof(Value));
     EXPECT_FALSE(Type::classof(Value));
     EXPECT_FALSE(BasicBlock::classof(nullptr));
@@ -91,5 +109,96 @@ namespace ink::ir::test
     EXPECT_EQ(Block.name(), core::NAME_None);
     EXPECT_FALSE(Block.hasName());
     EXPECT_EQ(Block.kind(), ValueKind::BasicBlock);
+  }
+
+  // Appending records the actual owning block for both function-owned and detached blocks.
+  TEST(IRBasicBlockTest, RecordsInstructionParentOnAppend)
+  {
+    IRContext Context(Target);
+    Function Owner(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    auto *Entry = Owner.createBlock();
+    auto *Other = Owner.createBlock();
+    auto Operation = std::make_unique<PlainInstruction>();
+    auto *Result = Operation.get();
+    EXPECT_EQ(Result->parentBlock(), nullptr);
+
+    ASSERT_EQ(Entry->appendInstruction(std::move(Operation)), Result);
+    ASSERT_EQ(Result->parentBlock(), Entry);
+    EXPECT_EQ(std::as_const(*Result).parentBlock(), Entry);
+    EXPECT_EQ(Result->parentBlock()->function(), &Owner);
+    EXPECT_EQ(Entry->instruction(0), Result);
+    EXPECT_EQ(Other->instructionCount(), 0U);
+    EXPECT_FALSE(Entry->hasTerminator());
+
+    BasicBlock Detached;
+    auto *DetachedResult = Detached.appendInstruction(std::make_unique<PlainInstruction>());
+    ASSERT_NE(DetachedResult, nullptr);
+    ASSERT_EQ(DetachedResult->parentBlock(), &Detached);
+    EXPECT_EQ(DetachedResult->parentBlock()->function(), nullptr);
+    EXPECT_FALSE(Detached.hasTerminator());
+  }
+
+  // Rejecting a null instruction preserves both empty and terminated block state.
+  TEST(IRBasicBlockTest, NullAppendPreservesTerminatorStateAndOwnership)
+  {
+    IRContext Context(Target);
+    BasicBlock Block;
+    EXPECT_EQ(Block.appendInstruction(nullptr), nullptr);
+    EXPECT_EQ(Block.instructionCount(), 0U);
+    EXPECT_FALSE(Block.hasTerminator());
+
+    auto *Terminator = Block.appendInstruction(std::make_unique<ReturnInstruction>(*Context.typePool().getVoidType()));
+    ASSERT_NE(Terminator, nullptr);
+    EXPECT_TRUE(Block.hasTerminator());
+    EXPECT_EQ(Block.appendInstruction(nullptr), nullptr);
+    EXPECT_EQ(Block.instructionCount(), 1U);
+    EXPECT_EQ(Block.instruction(0), Terminator);
+    EXPECT_EQ(Terminator->parentBlock(), &Block);
+    EXPECT_TRUE(Block.hasTerminator());
+  }
+
+  // Every terminator kind remains visible after low-level appends place a later nonterminator in the block.
+  TEST(IRBasicBlockTest, RetainsTerminatorStateAfterLaterInstructions)
+  {
+    IRContext Context(Target);
+    const auto *Void = Context.typePool().getVoidType();
+    const auto *True = Context.constantPool().getBoolConstant(true);
+    BasicBlock TargetBlock;
+    constexpr ValueKind TerminatorKinds[] = {
+        ValueKind::BranchInstruction,
+        ValueKind::ConditionalBranchInstruction,
+        ValueKind::ReturnInstruction,
+    };
+    for (const ValueKind Kind : TerminatorKinds)
+    {
+      BasicBlock Block;
+      EXPECT_FALSE(Block.hasTerminator());
+      auto *Prefix = Block.appendInstruction(std::make_unique<PlainInstruction>());
+      ASSERT_NE(Prefix, nullptr);
+      EXPECT_FALSE(Block.hasTerminator());
+
+      std::unique_ptr<Instruction> Terminator;
+      if (Kind == ValueKind::BranchInstruction)
+      {
+        Terminator = std::make_unique<BranchInstruction>(*Void, TargetBlock);
+      }
+      else if (Kind == ValueKind::ConditionalBranchInstruction)
+      {
+        Terminator = std::make_unique<ConditionalBranchInstruction>(*Void, *True, TargetBlock, TargetBlock);
+      }
+      else
+      {
+        Terminator = std::make_unique<ReturnInstruction>(*Void);
+      }
+      ASSERT_NE(Block.appendInstruction(std::move(Terminator)), nullptr);
+      EXPECT_TRUE(Block.hasTerminator());
+
+      auto *Suffix = Block.appendInstruction(std::make_unique<PlainInstruction>());
+      ASSERT_NE(Suffix, nullptr);
+      EXPECT_FALSE(Suffix->isTerminator());
+      EXPECT_EQ(Suffix->parentBlock(), &Block);
+      EXPECT_EQ(Block.instructionCount(), 3U);
+      EXPECT_TRUE(Block.hasTerminator());
+    }
   }
 } // namespace ink::ir::test

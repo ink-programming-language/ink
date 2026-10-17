@@ -2,7 +2,9 @@
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/core/diagnostic/diagnostic_consumer.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/diagnostic/diagnostic_formatter.h"
 #include "ink/core/name/name_pool.h"
+#include "ink/core/support/core_define.h"
 #include "ink/frontend/parser/parser.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/structure_type/function_type_parameter.h"
@@ -177,6 +179,72 @@ namespace ink::semantic::test
       EXPECT_EQ(analyze(Input), Entry.Expected);
       EXPECT_EQ(analyze(Input), Entry.Expected);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+  }
+
+  // Type descriptions accept a registered marker without layout, including pointer and reference constructors over it.
+  TEST_F(SemanticAnalyzerTypeTest, ResolvesTypesWithoutRequiringRuntimeLayout)
+  {
+    auto &Types = Context.typePool();
+    const auto *Marker = Types.getVariadicType();
+    ASSERT_FALSE(Marker->hasLayout());
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("Pack"), const_cast<ir::VariadicType &>(*Marker)), BindResult::Inserted);
+    struct Case
+    {
+        const char *Text;
+        const ir::Type *Expected;
+    };
+    const Case Cases[] = {
+        {"Pack", Marker},
+        {"((Pack))", Marker},
+        {"*Pack", Types.getPointerType(Marker)},
+        {"&Pack", Types.getReferenceType(Marker)},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      ASSERT_NE(Entry.Expected, nullptr);
+      EXPECT_EQ(analyze(Input), Entry.Expected);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+  }
+
+  // Array elements and function signature positions reject a layout-free marker once at its precise type span, even for empty arrays or variadic parameters.
+  TEST_F(SemanticAnalyzerTypeTest, RequiresRuntimeLayoutAtTypeConsumptionSites)
+  {
+    const auto *Marker = Context.typePool().getVariadicType();
+    ASSERT_FALSE(Marker->hasLayout());
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("Pack"), const_cast<ir::VariadicType &>(*Marker)), BindResult::Inserted);
+    struct Case
+    {
+        const char *Text;
+        const char *Expected;
+    };
+    constexpr Case Cases[] = {
+        {"[Pack; 0]", "an array element with runtime layout"},
+        {"func(i32): Pack", "a return type with runtime layout"},
+        {"func(First: Pack): void", "a parameter type with runtime layout"},
+        {"func(i32, Remaining: Pack...): void", "a parameter type with runtime layout"},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      const std::size_t MarkerOffset = std::string_view(Entry.Text).find("Pack");
+      ASSERT_NE(MarkerOffset, std::string_view::npos);
+      const std::size_t Start = syntax(Input).getSourceRange().getBegin().getByteOffset() + MarkerOffset;
+      EXPECT_EQ(analyze(Input), nullptr);
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      const auto &Diagnostic = Diagnostics.diagnostics()[0];
+      EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticTypeMismatch);
+      EXPECT_EQ(Diagnostic.Source, Input.Unit->input().lexedFile().sourceId());
+      EXPECT_EQ(Diagnostic.Span, core::SourceRange::fromByteOffsets(Start, Start + std::string_view("Pack").size()));
+      EXPECT_EQ(core::DiagnosticFormatter{}.format(Diagnostic).Message, std::string("expected ") + Entry.Expected + ", got variadic");
     }
   }
 
@@ -589,9 +657,12 @@ namespace ink::semantic::test
     }
   }
 
-  // Negated array lengths need an instruction block while type-only analysis has none, so construction reports its ICE.
-  TEST_F(SemanticAnalyzerTypeTest, ReportsConstructionICEForNegatedArrayLengthsWithoutInsertBlock)
+  // Numeric array-length negation checks the missing insertion block before type-only analysis can consume its result.
+  TEST_F(SemanticAnalyzerTypeTest, ChecksInsertBlockForNegatedArrayLengths)
   {
+#if !INK_ENABLE_ASSERTIONS
+    GTEST_SKIP() << "Insertion-state assertions are disabled.";
+#endif
     constexpr const char *Cases[] = {
         "[u8; -0]",
         "[u8; -1]",
@@ -601,7 +672,7 @@ namespace ink::semantic::test
       SCOPED_TRACE(Text);
       auto Input = read(Text);
       ASSERT_TRUE(Input.succeeded());
-      EXPECT_DEATH(analyze(Input), "INK-S0013");
+      EXPECT_DEATH(analyze(Input), "check failed: canAppend");
     }
   }
 

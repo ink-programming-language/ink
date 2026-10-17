@@ -32,6 +32,18 @@ namespace ink::ir::test
   static_assert(std::is_base_of_v<Value, Instruction>);
   static_assert(!std::is_base_of_v<Type, Instruction>);
   static_assert(std::has_virtual_destructor_v<Instruction>);
+  static_assert(!std::is_copy_constructible_v<TrackedInstruction>);
+  static_assert(!std::is_copy_assignable_v<TrackedInstruction>);
+  static_assert(!std::is_move_constructible_v<TrackedInstruction>);
+  static_assert(!std::is_move_assignable_v<TrackedInstruction>);
+
+  // A newly constructed instruction has no block owner before it is appended.
+  TEST(IRInstructionTest, StartsWithoutParentBlock)
+  {
+    bool Destroyed = false;
+    const TrackedInstruction Operation(Destroyed);
+    EXPECT_EQ(Operation.parentBlock(), nullptr);
+  }
 
   // Destroying a concrete instruction through Value runs its derived destructor and preserves instruction identity until deletion.
   TEST(IRInstructionTest, OwnedValueDestroysConcreteInstruction)

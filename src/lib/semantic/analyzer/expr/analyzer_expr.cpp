@@ -2,6 +2,7 @@
 
 #include "ink/core/name/name_pool.h"
 #include "ink/frontend/parser/ast.h"
+#include "ink/ir/function/basic_block.h"
 #include "ink/ir/module/global_variable.h"
 #include "ink/ir/module/module.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
@@ -68,18 +69,11 @@ namespace ink::semantic
       }
       if (ir::Instruction::classof(Value) && !static_cast<const ir::Instruction *>(Value)->isTerminator())
       {
-        if (const ir::Function *Function = State.irBuilder().insertFunction())
+        const ir::Function *Function = State.irBuilder().insertFunction();
+        const ir::BasicBlock *Parent = static_cast<const ir::Instruction *>(Value)->parentBlock();
+        if (Function && Parent && Parent->function() == Function)
         {
-          for (const auto &Block : Function->blocks())
-          {
-            for (const auto &Instruction : Block->instructions())
-            {
-              if (Instruction.get() == Value)
-              {
-                return true;
-              }
-            }
-          }
+          return true;
         }
       }
       Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "a function, constant, variable or value in the current function", ir::valueKindName(Value->kind()));
@@ -102,14 +96,15 @@ namespace ink::semantic
       return nullptr;
     }
     const ir::Type *ExpectedType = Hints.ExpectedType;
-    if (ExpectedType && (!Context.irContext().containsType(ExpectedType) || !ExpectedType->hasLayout()))
+    // Hints are supplied by the analyzer; foreign types violate its internal context contract.
+    if (ExpectedType && !Context.irContext().containsType(ExpectedType))
     {
-      Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "a target type with runtime layout in the current IR context", "a foreign, unregistered or non-runtime type");
+      Context.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
       return nullptr;
     }
     if (Hints.DefaultIntegerLiteralType && !Context.irContext().containsType(Hints.DefaultIntegerLiteralType))
     {
-      Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "an integer literal default type in the current IR context", "a foreign or unregistered integer type");
+      Context.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
       return nullptr;
     }
 
@@ -142,28 +137,6 @@ namespace ink::semantic
         // TODO: Restore calls, generic applications, remaining operators and type-valued compile-time evaluation.
         reportUnsupported(State, Node);
         return nullptr;
-    }
-    if (!Result)
-    {
-      return nullptr;
-    }
-    if (!validateResult(State, Node, Result))
-    {
-      return nullptr;
-    }
-    if (!ExpectedType)
-    {
-      return Result;
-    }
-    if (!requireRuntimeValue(Context, Node.getSourceRange(), Result))
-    {
-      return nullptr;
-    }
-    const bool Compatible = ir::Constant::classof(Result) ? static_cast<const ir::Constant *>(Result)->canInitialize(ExpectedType) : Result->type() == ExpectedType;
-    if (!Compatible)
-    {
-      Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), ExpectedType->toString(), Result->type()->toString());
-      return nullptr;
     }
     return Result;
   }

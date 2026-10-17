@@ -1,6 +1,7 @@
 #include "ink/semantic/analyzer/analyzer.h"
 
 #include "ink/frontend/parser/ast/unary_expr.h"
+#include "ink/ir/module/global_variable.h"
 #include "ink/ir/module/module.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/semantic/context.h"
@@ -22,6 +23,12 @@ namespace ink::semantic
       const auto *Operand = analyzeExpr(State, *Node.operand(), Hints);
       if (!Operand)
       {
+        return nullptr;
+      }
+      const auto *OperandType = Operand->type();
+      if (ir::GlobalVariable::classof(Operand) || (!ir::IntegerType::classof(OperandType) && !ir::FloatType::classof(OperandType)))
+      {
+        reportUnsupported(State, Node);
         return nullptr;
       }
       const auto *Result = State.irBuilder().createNeg(*Operand);

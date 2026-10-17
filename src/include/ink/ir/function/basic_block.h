@@ -32,6 +32,8 @@ namespace ink::ir
 
       const std::vector<std::unique_ptr<Instruction>> &instructions() const noexcept;
       std::size_t instructionCount() const noexcept;
+      // Reports any terminator, including one followed by low-level appended instructions.
+      bool hasTerminator() const noexcept;
       // Indexed access returns nullptr outside the owned instruction list.
       auto *instruction(this auto &&Self, std::size_t Index) noexcept
       {
@@ -39,7 +41,7 @@ namespace ink::ir
         return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
       }
 
-      // Takes ownership; nullptr is rejected without changing the block.
+      // Takes ownership and records the instruction's parent; nullptr leaves the block unchanged.
       Instruction *appendInstruction(std::unique_ptr<Instruction> InstructionValue);
       static bool classof(const Value *Value) noexcept;
 
@@ -49,6 +51,7 @@ namespace ink::ir
       core::Name Name = core::NAME_None;
       Function *Parent = nullptr;
       std::vector<std::unique_ptr<Instruction>> Instructions;
+      bool HasTerminator = false;
   };
 } // namespace ink::ir
 

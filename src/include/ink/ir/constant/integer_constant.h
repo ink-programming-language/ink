@@ -5,6 +5,7 @@
 #include "ink/ir/type/builtin_type/integer_type.h"
 
 #include <cstdint>
+#include <optional>
 
 namespace ink::ir
 {
@@ -16,6 +17,9 @@ namespace ink::ir
   {
     public:
       std::uint64_t bits() const noexcept;
+      bool isNegative() const noexcept;
+      // Returns the numeric value for nonnegative constants, including the full unsigned 64-bit range.
+      [[nodiscard]] std::optional<std::uint64_t> tryGetNonNegativeUInt64() const noexcept;
       static bool classof(const Value *Value) noexcept;
 
     private:

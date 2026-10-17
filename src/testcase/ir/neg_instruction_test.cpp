@@ -1,3 +1,4 @@
+#include "ink/core/support/core_define.h"
 #include "ink/ir/builder/ir_builder.h"
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/function.h"
@@ -189,7 +190,7 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.insertBlock(), Block);
   }
 
-  // Negation rejects foreign or unregistered constants and all nonnumeric values without appending instructions or changing the insertion point.
+  // Negation asserts on missing insertion state before operand validation, then rejects foreign, unregistered and nonnumeric operands in a valid block.
   TEST(IRNegInstructionTest, RejectsForeignUnpooledAndNonnumericOperands)
   {
     IRContext Context(Target);
@@ -215,15 +216,18 @@ namespace ink::ir::test
         &Owner,
     };
     IRBuilder Builder(Context);
+#if INK_ENABLE_ASSERTIONS
     for (const auto *Operand : Operands)
     {
       ASSERT_NE(Operand, nullptr);
-      EXPECT_EQ(Builder.createNeg(*Operand), nullptr);
+      EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Operand)), "check failed: canAppend");
     }
+#endif
     EXPECT_EQ(Builder.insertBlock(), nullptr);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     for (const auto *Operand : Operands)
     {
+      ASSERT_NE(Operand, nullptr);
       EXPECT_EQ(Builder.createNeg(*Operand), nullptr);
     }
     EXPECT_EQ(Entry->instructionCount(), 0U);
@@ -306,7 +310,7 @@ namespace ink::ir::test
     EXPECT_EQ(Entry->instruction(5), Return);
   }
 
-  // Runtime negation rejects missing insertion, foreign-function or detached operands, storage and variadic packs without appending instructions.
+  // Runtime negation asserts on missing insertion state and rejects foreign-function, detached, storage and variadic operands in a valid block.
   TEST(IRNegInstructionTest, RejectsUnusableRuntimeOperandsWithoutMutation)
   {
     IRContext Context(Target);
@@ -327,7 +331,9 @@ namespace ink::ir::test
     DetachedNumericInstruction Detached(Integer);
     GlobalVariable Storage(*Integer);
     IRBuilder Builder(Context);
-    EXPECT_EQ(Builder.createNeg(*Owner.parameter(0)), nullptr);
+#if INK_ENABLE_ASSERTIONS
+    EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Owner.parameter(0))), "check failed: canAppend");
+#endif
     EXPECT_EQ(Entry->instructionCount(), 0U);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     const Value *Operands[] = {
@@ -350,9 +356,12 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.insertBlock(), Entry);
   }
 
-  // Any terminator blocks negation of constants and runtime values even when a low-level append has made the terminator nonfinal.
+  // Any terminator makes numeric, instruction and terminator negation assert, even when a low-level append has made the terminator nonfinal.
   TEST(IRNegInstructionTest, RejectsAllNegationAfterTerminator)
   {
+#if !INK_ENABLE_ASSERTIONS
+    GTEST_SKIP() << "IRBuilder insertion-state checks require assertions.";
+#else
     IRContext Context(Target);
     const auto *Integer = Context.typePool().getInt32Type();
     Function Owner(*Context.typePool().getFunctionType(Integer, {Integer}));
@@ -364,18 +373,19 @@ namespace ink::ir::test
     ASSERT_NE(Return, nullptr);
     const auto *LowLevelNeg = Entry->appendInstruction(std::make_unique<NegInstruction>(*Owner.parameter(0)));
     ASSERT_NE(LowLevelNeg, nullptr);
-    EXPECT_EQ(Builder.createNeg(*Owner.parameter(0)), nullptr);
-    EXPECT_EQ(Builder.createNeg(*LowLevelNeg), nullptr);
-    EXPECT_EQ(Builder.createNeg(*Return), nullptr);
+    EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Owner.parameter(0))), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createNeg(*LowLevelNeg)), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Return)), "check failed: canAppend");
     const auto *Positive = Context.constantPool().getSignedIntegerConstant(Integer, 14);
     const auto *Negative = Context.constantPool().getSignedIntegerConstant(Integer, -14);
     ASSERT_NE(Positive, nullptr);
     ASSERT_NE(Negative, nullptr);
-    EXPECT_EQ(Builder.createNeg(*Positive), nullptr);
-    EXPECT_EQ(Builder.createNeg(*Negative), nullptr);
+    EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Positive)), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Negative)), "check failed: canAppend");
     EXPECT_EQ(Entry->instructionCount(), 2U);
     EXPECT_EQ(Entry->instruction(0), Return);
     EXPECT_EQ(Entry->instruction(1), LowLevelNeg);
     EXPECT_EQ(Builder.insertBlock(), Entry);
+#endif
   }
 } // namespace ink::ir::test

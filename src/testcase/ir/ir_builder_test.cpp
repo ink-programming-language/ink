@@ -1,4 +1,5 @@
 #include "ink/core/name/name_pool.h"
+#include "ink/core/support/core_define.h"
 #include "ink/ir/builder/ir_builder.h"
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/function.h"
@@ -78,9 +79,12 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.insertFunction(), nullptr);
   }
 
-  // Every creation entry point rejects a missing insertion block, including negation of numeric constants and runtime operands.
+  // Every creation entry point asserts on a missing insertion block, including negation of numeric constants and runtime operands.
   TEST(IRBuilderTest, RejectsEveryCreationWithoutInsertionPoint)
   {
+#if !INK_ENABLE_ASSERTIONS
+    GTEST_SKIP() << "Insertion-state checks require enabled assertions.";
+#else
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()}));
@@ -89,19 +93,20 @@ namespace ink::ir::test
     auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     auto *Null = Types.constantPool().getNullPointerConstant();
     IRBuilder Builder(Types.irContext());
-    EXPECT_EQ(Builder.createCall(Owner), nullptr);
-    EXPECT_EQ(Builder.createCall(*Owner.functionType(), Owner), nullptr);
-    EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Integer, *Integer), nullptr);
-    EXPECT_EQ(Builder.createNeg(*Integer), nullptr);
-    EXPECT_EQ(Builder.createNeg(*Types.constantPool().getFloatConstant(-0.0)), nullptr);
-    EXPECT_EQ(Builder.createNeg(*Owner.parameter(0)), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Types.typePool().getInt32Type(), *Null, {}), nullptr);
-    EXPECT_EQ(Builder.createBranch(*Entry), nullptr);
-    EXPECT_EQ(Builder.createConditionalBranch(*Types.constantPool().getBoolConstant(true), *Entry, *Entry), nullptr);
-    EXPECT_EQ(Builder.createReturn(), nullptr);
-    EXPECT_EQ(Builder.createReturn(*Integer), nullptr);
+    EXPECT_DEATH(static_cast<void>(Builder.createCall(Owner)), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createCall(*Owner.functionType(), Owner)), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createICmp(ICmpPredicate::Equal, *Integer, *Integer)), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Integer)), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Types.constantPool().getFloatConstant(-0.0))), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Owner.parameter(0))), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createGetElementPtr(*Pointer, *Types.typePool().getInt32Type(), *Null, {})), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createBranch(*Entry)), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createConditionalBranch(*Types.constantPool().getBoolConstant(true), *Entry, *Entry)), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createReturn()), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createReturn(*Integer)), "check failed: canAppend");
     EXPECT_EQ(Entry->instructionCount(), 0U);
     EXPECT_EQ(Builder.insertBlock(), nullptr);
+#endif
   }
 
   // Appended GEP, call, comparison and branches form a function whose owned results are reused across blocks.
@@ -157,9 +162,12 @@ namespace ink::ir::test
     EXPECT_NE(Builder.createReturn(*Zero), nullptr);
   }
 
-  // A second builder observes an externally appended terminator even when a later low-level append leaves it inside the block.
+  // Every append entry point asserts when another builder appended any terminator, even before a later low-level instruction.
   TEST(IRBuilderTest, DetectsAllTerminatorKindsIncludingNonfinalInstructions)
   {
+#if !INK_ENABLE_ASSERTIONS
+    GTEST_SKIP() << "Insertion-state checks require enabled assertions.";
+#else
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
@@ -186,17 +194,19 @@ namespace ink::ir::test
       }
       ASSERT_NE(Block->appendInstruction(std::make_unique<ICmpInstruction>(*Types.typePool().getBoolType(), ICmpPredicate::Equal, *Zero, *Zero)), nullptr);
       EXPECT_TRUE(Second.setInsertPoint(*Block));
-      EXPECT_EQ(Second.createICmp(ICmpPredicate::Equal, *Zero, *Zero), nullptr);
-      EXPECT_EQ(Second.createCall(Owner), nullptr);
-      EXPECT_EQ(Second.createCall(*Owner.functionType(), Owner), nullptr);
-      EXPECT_EQ(Second.createGetElementPtr(*Types.typePool().getPointerType(Types.typePool().getInt32Type()), *Types.typePool().getInt32Type(), *Types.constantPool().getNullPointerConstant(), {}), nullptr);
-      EXPECT_EQ(Second.createReturn(), nullptr);
-      EXPECT_EQ(Second.createReturn(*Zero), nullptr);
-      EXPECT_EQ(Second.createBranch(*Block), nullptr);
-      EXPECT_EQ(Second.createConditionalBranch(*True, *Block, *Block), nullptr);
+      EXPECT_DEATH(static_cast<void>(Second.createICmp(ICmpPredicate::Equal, *Zero, *Zero)), "check failed: canAppend");
+      EXPECT_DEATH(static_cast<void>(Second.createCall(Owner)), "check failed: canAppend");
+      EXPECT_DEATH(static_cast<void>(Second.createCall(*Owner.functionType(), Owner)), "check failed: canAppend");
+      EXPECT_DEATH(static_cast<void>(Second.createNeg(*Zero)), "check failed: canAppend");
+      EXPECT_DEATH(static_cast<void>(Second.createGetElementPtr(*Types.typePool().getPointerType(Types.typePool().getInt32Type()), *Types.typePool().getInt32Type(), *Types.constantPool().getNullPointerConstant(), {})), "check failed: canAppend");
+      EXPECT_DEATH(static_cast<void>(Second.createReturn()), "check failed: canAppend");
+      EXPECT_DEATH(static_cast<void>(Second.createReturn(*Zero)), "check failed: canAppend");
+      EXPECT_DEATH(static_cast<void>(Second.createBranch(*Block)), "check failed: canAppend");
+      EXPECT_DEATH(static_cast<void>(Second.createConditionalBranch(*True, *Block, *Block)), "check failed: canAppend");
       EXPECT_EQ(Block->instructionCount(), 2U);
       EXPECT_EQ(Second.insertBlock(), Block);
     }
+#endif
   }
 
   // Signature descriptors cannot enter runtime operand APIs, even before builder validation.

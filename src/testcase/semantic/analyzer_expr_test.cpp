@@ -5,6 +5,7 @@
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/diagnostic/diagnostic_formatter.h"
 #include "ink/core/name/name_pool.h"
+#include "ink/core/support/core_define.h"
 #include "ink/frontend/parser/parser.h"
 #include "ink/ir/instruction/neg_instruction.h"
 #include "ink/ir/module/module.h"
@@ -17,6 +18,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <limits>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -641,8 +643,8 @@ namespace ink::semantic::test
     }
   }
 
-  // A terminated block causes the construction ICE, while an instruction operand without a selected function fails ownership validation first.
-  TEST_F(SemanticAnalyzerExprTest, RejectsRuntimeNegationWithoutAppendableBlock)
+  // A terminated block triggers the insertion-state check, while an instruction without a selected function fails ownership validation first.
+  TEST_F(SemanticAnalyzerExprTest, ChecksTerminatedNegationBlockAndRejectsUnownedInstruction)
   {
     auto Input = read("-Operand");
     ASSERT_TRUE(Input.succeeded());
@@ -660,7 +662,9 @@ namespace ink::semantic::test
     const auto *Return = State.irBuilder().createReturn();
     ASSERT_NE(Return, nullptr);
     ASSERT_EQ(State.nameResolver().bind(name("Operand"), *Function->parameter(0)), BindResult::Inserted);
-    EXPECT_DEATH(analyze(State, Input), "INK-S0013");
+#if INK_ENABLE_ASSERTIONS
+    EXPECT_DEATH(analyze(State, Input), "check failed: canAppend");
+#endif
     EXPECT_EQ(Block->instructionCount(), 2U);
     EXPECT_EQ(Block->instruction(1), Return);
     EXPECT_EQ(State.irBuilder().insertBlock(), Block);
@@ -674,9 +678,12 @@ namespace ink::semantic::test
     ASSERT_TRUE(State.nameResolver().exitScope());
   }
 
-  // Constant operands require an insertion block because negation always constructs an instruction instead of folding a value.
-  TEST_F(SemanticAnalyzerExprTest, ReportsConstructionICEForConstantNegationWithoutInsertBlock)
+  // Numeric constant negation checks for an insertion block because it always constructs an instruction instead of folding a value.
+  TEST_F(SemanticAnalyzerExprTest, ChecksInsertBlockForConstantNegation)
   {
+#if !INK_ENABLE_ASSERTIONS
+    GTEST_SKIP() << "Insertion-state assertions are disabled.";
+#endif
     constexpr const char *Cases[] = {
         "-0",
         "-1",
@@ -689,16 +696,17 @@ namespace ink::semantic::test
       ASSERT_TRUE(Input.succeeded());
       AnalyzerState State(Context, Input, Output);
       EXPECT_EQ(State.irBuilder().insertBlock(), nullptr);
-      EXPECT_DEATH(analyze(State, Input), "INK-S0013");
+      EXPECT_DEATH(analyze(State, Input), "check failed: canAppend");
     }
   }
 
-  // Invalid storage, boolean, type and null operands use the construction ICE without changing the current block or initializer.
+  // Invalid negation operands report a source type error before insertion checks and preserve the selected block and storage initializer.
   TEST_F(SemanticAnalyzerExprTest, RejectsStorageAndNonnumericNegationOperands)
   {
     auto &Types = Context.typePool();
     auto *Variable = Output.createGlobalVariable(*Types.getInt32Type());
     auto *Function = Output.createGlobalFunction(*Types.getFunctionType(Types.getVoidType()));
+    ir::Module Package(Context.irContext());
     ASSERT_NE(Variable, nullptr);
     ASSERT_NE(Function, nullptr);
     const auto *Initializer = Output.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 14);
@@ -708,24 +716,89 @@ namespace ink::semantic::test
     ASSERT_NE(Block, nullptr);
     NameResolver Resolver(Context);
     ASSERT_EQ(Resolver.bind(name("Written"), *Variable), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("Callable"), *Function), BindResult::Inserted);
     ASSERT_EQ(Resolver.bind(name("nullptr"), const_cast<ir::NullPointerConstant &>(*Output.constantPool().getNullPointerConstant())), BindResult::Inserted);
-    constexpr const char *Cases[] = {
-        "-Written",
-        "-true",
-        "-i32",
-        "-nullptr",
-    };
-    for (const char *Text : Cases)
+    struct Case
     {
-      SCOPED_TRACE(Text);
-      auto Input = read(Text);
+        const char *Text;
+        const char *Actual;
+    };
+    constexpr Case Cases[] = {
+        {"-Written", "global_variable"},
+        {"-true", "bool_constant"},
+        {"-((true))", "bool_constant"},
+        {"-i32", "i32"},
+        {"-Pkg", "module"},
+        {"-nullptr", "null_pointer_constant"},
+        {"-\"abc\"", "string_constant"},
+        {"-Callable", "function"},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
       ASSERT_TRUE(Input.succeeded());
+      const auto *Expression = frontend::parser::cast<frontend::parser::UnaryExpr>(&syntax(Input));
+      ASSERT_NE(Expression, nullptr);
+      for (bool WithInsertBlock : {false, true})
+      {
+        SCOPED_TRACE(WithInsertBlock);
+        Diagnostics.clear();
+        AnalyzerState State(Context, Input, Output);
+        if (WithInsertBlock)
+        {
+          ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+        }
+        expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticTypeMismatch);
+        expectMessage(std::string("expected an integer or floating-point value, got ") + Entry.Actual);
+        ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+        EXPECT_EQ(Diagnostics.diagnostics()[0].Span, Expression->operand()->getSourceRange());
+        EXPECT_EQ(Diagnostics.diagnostics()[0].Source, Input.Unit->input().lexedFile().sourceId());
+        EXPECT_EQ(Block->instructionCount(), 0U);
+        EXPECT_EQ(Variable->initializer(), Initializer);
+        EXPECT_EQ(State.irBuilder().insertBlock(), WithInsertBlock ? Block : nullptr);
+      }
+    }
+  }
+
+  // Current-function boolean, pointer, function and unit parameters fail numeric negation without appending any instruction.
+  TEST_F(SemanticAnalyzerExprTest, RejectsNonnumericParameterNegationOperands)
+  {
+    auto &Types = Context.typePool();
+    const auto *CallableType = Types.getFunctionType(Types.getVoidType());
+    ASSERT_NE(CallableType, nullptr);
+    const ir::Type *ParameterTypes[] = {
+        Types.getBoolType(),
+        Types.getPointerType(Types.getInt32Type()),
+        CallableType,
+        Types.getVoidType(),
+    };
+    for (const auto *Type : ParameterTypes)
+    {
+      SCOPED_TRACE(Type->toString());
+      auto Input = read("-Argument");
+      ASSERT_TRUE(Input.succeeded());
+      const auto *Expression = frontend::parser::cast<frontend::parser::UnaryExpr>(&syntax(Input));
+      ASSERT_NE(Expression, nullptr);
+      const auto *Signature = Types.getFunctionType(Types.getVoidType(), {ir::FunctionTypeParameter(Type)});
+      ASSERT_NE(Signature, nullptr);
+      auto *Function = Output.createGlobalFunction(*Signature);
+      ASSERT_NE(Function, nullptr);
+      auto *Block = Function->createBlock();
+      ASSERT_NE(Block, nullptr);
       AnalyzerState State(Context, Input, Output);
+      State.nameResolver().enterScope();
+      ASSERT_EQ(State.nameResolver().bind(name("Argument"), *Function->parameter(0)), BindResult::Inserted);
       ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
-      EXPECT_DEATH(analyze(State, Input), "INK-S0013");
+      expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticTypeMismatch);
+      expectMessage("expected an integer or floating-point value, got parameter");
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Span, Expression->operand()->getSourceRange());
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Source, Input.Unit->input().lexedFile().sourceId());
       EXPECT_EQ(Block->instructionCount(), 0U);
-      EXPECT_EQ(Variable->initializer(), Initializer);
       EXPECT_EQ(State.irBuilder().insertBlock(), Block);
+      ASSERT_TRUE(State.nameResolver().exitScope());
     }
   }
 
@@ -1398,11 +1471,9 @@ namespace ink::semantic::test
     EXPECT_EQ(Block->instructionCount(), 0U);
   }
 
-  // A bound instruction remains its original current-function value and cannot be reused from a different function.
+  // Directly appended instructions retain identity through nested parentheses and sibling blocks; foreign functions, detached instructions and detached blocks remain unusable.
   TEST_F(SemanticAnalyzerExprTest, ResolvesCurrentFunctionInstructionValues)
   {
-    auto Input = read("Handle");
-    ASSERT_TRUE(Input.succeeded());
     auto &Types = Context.typePool();
     auto *Current = Output.createGlobalFunction(*Types.getFunctionType(Types.getVoidType()));
     auto *Other = Output.createGlobalFunction(*Types.getFunctionType(Types.getVoidType()));
@@ -1411,22 +1482,62 @@ namespace ink::semantic::test
     ASSERT_NE(Other, nullptr);
     ASSERT_NE(Callee, nullptr);
     auto *CurrentBlock = Current->createBlock();
+    auto *SiblingBlock = Current->createBlock();
     auto *OtherBlock = Other->createBlock();
     ASSERT_NE(CurrentBlock, nullptr);
+    ASSERT_NE(SiblingBlock, nullptr);
     ASSERT_NE(OtherBlock, nullptr);
-    AnalyzerState State(Context, Input, Output);
-    ASSERT_TRUE(State.irBuilder().setInsertPoint(*CurrentBlock));
-    const auto *Call = State.irBuilder().createCall(*Callee);
+    auto *Call = CurrentBlock->appendInstruction(std::make_unique<ir::CallInstruction>(*Callee));
     ASSERT_NE(Call, nullptr);
-    ASSERT_EQ(State.nameResolver().bind(name("Handle"), const_cast<ir::CallInstruction &>(*Call)), BindResult::Inserted);
-    const auto *Result = analyze(State, Input);
-    ASSERT_NE(Result, nullptr);
-    EXPECT_EQ(Result, Call);
-    EXPECT_EQ(Result->type(), Types.getUInt32Type());
-    EXPECT_EQ(CurrentBlock->instructionCount(), 1U);
-    ASSERT_TRUE(State.irBuilder().setInsertPoint(*OtherBlock));
-    expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticTypeMismatch);
-    EXPECT_EQ(OtherBlock->instructionCount(), 0U);
+    ir::CallInstruction Detached(*Callee);
+    ir::BasicBlock DetachedBlock;
+    auto *AttachedToDetachedBlock = DetachedBlock.appendInstruction(std::make_unique<ir::CallInstruction>(*Callee));
+    ASSERT_NE(AttachedToDetachedBlock, nullptr);
+    ir::Instruction *DetachedValues[] = {&Detached, AttachedToDetachedBlock};
+    for (const auto *Expression : {"Handle", "(((Handle)))"})
+    {
+      SCOPED_TRACE(Expression);
+      auto Input = read(Expression);
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      State.nameResolver().enterScope();
+      ASSERT_EQ(State.nameResolver().bind(name("Handle"), *Call), BindResult::Inserted);
+      for (auto *Block : {CurrentBlock, SiblingBlock})
+      {
+        ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+        const auto *Result = analyze(State, Input);
+        ASSERT_NE(Result, nullptr);
+        EXPECT_EQ(Result, Call);
+        EXPECT_EQ(Result->type(), Types.getUInt32Type());
+        EXPECT_TRUE(Diagnostics.diagnostics().empty());
+        EXPECT_EQ(State.irBuilder().insertBlock(), Block);
+      }
+      ASSERT_TRUE(State.irBuilder().setInsertPoint(*OtherBlock));
+      expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticTypeMismatch);
+      EXPECT_EQ(State.irBuilder().insertBlock(), OtherBlock);
+      for (auto *Value : DetachedValues)
+      {
+        State.nameResolver().enterScope();
+        ASSERT_EQ(State.nameResolver().bind(name("Handle"), *Value), BindResult::Inserted);
+        Diagnostics.clear();
+        ASSERT_TRUE(State.irBuilder().setInsertPoint(*CurrentBlock));
+        expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticTypeMismatch);
+        EXPECT_EQ(State.irBuilder().insertBlock(), CurrentBlock);
+        Diagnostics.clear();
+        State.irBuilder().clearInsertPoint();
+        expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticTypeMismatch);
+        EXPECT_EQ(State.irBuilder().insertBlock(), nullptr);
+        ASSERT_TRUE(State.nameResolver().exitScope());
+      }
+      EXPECT_EQ(State.recursionDepth(), 0U);
+      EXPECT_EQ(CurrentBlock->instructionCount(), 1U);
+      EXPECT_EQ(CurrentBlock->instruction(0), Call);
+      EXPECT_EQ(SiblingBlock->instructionCount(), 0U);
+      EXPECT_EQ(OtherBlock->instructionCount(), 0U);
+      EXPECT_EQ(DetachedBlock.instructionCount(), 1U);
+      EXPECT_EQ(DetachedBlock.instruction(0), AttachedToDetachedBlock);
+      ASSERT_TRUE(State.nameResolver().exitScope());
+    }
   }
 
   // Even a manually constructed variable with a registered variadic marker cannot denote runtime storage.
@@ -1472,8 +1583,8 @@ namespace ink::semantic::test
     }
   }
 
-  // Expected types from another IR context fail before creating literal constants, even with an otherwise matching representation.
-  TEST_F(SemanticAnalyzerExprTest, RejectsForeignExpectedTypes)
+  // Foreign expected-type hints violate the analyzer contract before literal construction or name lookup.
+  TEST_F(SemanticAnalyzerExprTest, ReportsICEForForeignExpectedTypeHints)
   {
     ir::IRContext Foreign(target::TargetContext::native());
     struct Case
@@ -1487,25 +1598,91 @@ namespace ink::semantic::test
         {"'a'", Foreign.typePool().getUInt32Type()},
         {"true", Foreign.typePool().getBoolType()},
         {"\"a\"", Foreign.typePool().getArrayType(Foreign.typePool().getUInt8Type(), 1)},
+        {"Missing", Foreign.typePool().getInt32Type()},
     };
     for (const auto &Entry : Cases)
     {
+      SCOPED_TRACE(Entry.Text);
       auto Input = read(Entry.Text);
       ASSERT_TRUE(Input.succeeded());
-      expectFailure(analyze(Input, {.ExpectedType = Entry.Expected}), core::DiagnosticKind::SemanticTypeMismatch);
+      EXPECT_DEATH(analyze(Input, {.ExpectedType = Entry.Expected}), "INK-S0013");
     }
   }
 
-  // A default integer type from another IR context is rejected even when an explicit local expected type would otherwise take precedence.
-  TEST_F(SemanticAnalyzerExprTest, RejectsForeignDefaultIntegerLiteralTypes)
+  // Foreign integer-default hints violate the contract even when unused or overridden by an explicit local expected type.
+  TEST_F(SemanticAnalyzerExprTest, ReportsICEForForeignDefaultIntegerLiteralHints)
   {
-    auto Input = read("1");
-    ASSERT_TRUE(Input.succeeded());
     ir::IRContext Foreign(target::TargetContext::native());
     const auto *ForeignDefault = Foreign.typePool().getUInt64Type();
-    expectFailure(analyze(Input, {.DefaultIntegerLiteralType = ForeignDefault}), core::DiagnosticKind::SemanticTypeMismatch);
-    Diagnostics.clear();
-    expectFailure(analyze(Input, {.ExpectedType = Context.typePool().getInt32Type(), .DefaultIntegerLiteralType = ForeignDefault}), core::DiagnosticKind::SemanticTypeMismatch);
+    constexpr const char *Cases[] = {
+        "1",
+        "1.5",
+        "true",
+        "Missing",
+    };
+    for (const char *Text : Cases)
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(analyze(Input, {.DefaultIntegerLiteralType = ForeignDefault}), "INK-S0013");
+    }
+    auto Input = read("1");
+    ASSERT_TRUE(Input.succeeded());
+    EXPECT_DEATH(analyze(Input, {.ExpectedType = Context.typePool().getInt32Type(), .DefaultIntegerLiteralType = ForeignDefault}), "INK-S0013");
+  }
+
+  // A registered target without layout reaches literal-category and value-compatibility checks instead of failing at expression entry.
+  TEST_F(SemanticAnalyzerExprTest, DefersLayoutlessExpectedTypesToExpressionConsumers)
+  {
+    auto &Types = Context.typePool();
+    const auto *ExpectedType = Types.getVariadicType();
+    ASSERT_TRUE(Context.irContext().containsType(ExpectedType));
+    ASSERT_FALSE(ExpectedType->hasLayout());
+    auto LiteralInput = read("(1)");
+    ASSERT_TRUE(LiteralInput.succeeded());
+    const auto *Parentheses = frontend::parser::cast<frontend::parser::ParenExpr>(&syntax(LiteralInput));
+    ASSERT_NE(Parentheses, nullptr);
+    expectFailure(analyze(LiteralInput, {.ExpectedType = ExpectedType}), core::DiagnosticKind::SemanticTypeMismatch);
+    expectMessage("expected an integer type, got " + ExpectedType->toString());
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Span, Parentheses->expression()->getSourceRange());
+    auto BoundInput = read("Count");
+    ASSERT_TRUE(BoundInput.succeeded());
+    AnalyzerState State(Context, BoundInput, Output);
+    const auto *Constant = Output.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 14);
+    ASSERT_NE(Constant, nullptr);
+    ASSERT_EQ(State.nameResolver().bind(name("Count"), const_cast<ir::IntegerConstant &>(*Constant)), BindResult::Inserted);
+    expectFailure(analyze(State, BoundInput, {.ExpectedType = ExpectedType}), core::DiagnosticKind::SemanticTypeMismatch);
+    expectMessage("expected " + ExpectedType->toString() + ", got i32");
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Span, syntax(BoundInput).getSourceRange());
+  }
+
+  // Local targets without layout preserve unknown-name diagnostics through parentheses and numeric negation.
+  TEST_F(SemanticAnalyzerExprTest, PreservesUnknownNamesWithLayoutlessExpectedTypeHints)
+  {
+    const auto *ExpectedType = Context.typePool().getVariadicType();
+    ASSERT_FALSE(ExpectedType->hasLayout());
+    constexpr const char *Cases[] = {
+        "Missing",
+        "((Missing))",
+        "-((Missing))",
+    };
+    for (const char *Text : Cases)
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      const auto *Expression = &syntax(Input);
+      while (frontend::parser::ParenExpr::classof(Expression) || frontend::parser::UnaryExpr::classof(Expression))
+      {
+        Expression = frontend::parser::ParenExpr::classof(Expression) ? static_cast<const frontend::parser::ParenExpr *>(Expression)->expression() : static_cast<const frontend::parser::UnaryExpr *>(Expression)->operand();
+      }
+      ASSERT_TRUE(frontend::parser::NameExpr::classof(Expression));
+      expectFailure(analyze(Input, {.ExpectedType = ExpectedType, .DefaultIntegerLiteralType = Context.typePool().getUInt8Type()}), core::DiagnosticKind::SemanticUnknownName);
+      expectMessage("unknown name 'Missing'");
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Span, Expression->getSourceRange());
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Source, Input.Unit->input().lexedFile().sourceId());
+    }
   }
 
   // Leaf analysis consumes one semantic recursion level and restores the caller's depth after both successful and failed lookup.

@@ -1,5 +1,6 @@
 #include "ink/ir/builder/ir_builder.h"
 
+#include "ink/core/support/core_define.h"
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/type/nominal_type/nominal_type.h"
@@ -37,14 +38,12 @@ namespace ink::ir
       {
         return nullptr;
       }
-      const auto &ConstantIndex = static_cast<const IntegerConstant &>(Index);
-      const auto &IndexType = static_cast<const IntegerType &>(*ConstantIndex.type());
-      const std::uint64_t Bits = ConstantIndex.bits();
-      if ((IndexType.isSigned() && (Bits & (std::uint64_t{1} << (IndexType.width() - 1U))) != 0) || Bits >= Aggregate.fieldCount())
+      const auto FieldIndex = static_cast<const IntegerConstant &>(Index).tryGetNonNegativeUInt64();
+      if (!FieldIndex || *FieldIndex >= Aggregate.fieldCount())
       {
         return nullptr;
       }
-      return Aggregate.field(static_cast<std::size_t>(Bits))->type();
+      return Aggregate.field(static_cast<std::size_t>(*FieldIndex))->type();
     }
   } // namespace
 
@@ -84,15 +83,7 @@ namespace ink::ir
     {
       return false;
     }
-    // Inspect the actual block each time: other builders and direct appends can change it.
-    for (const auto &InstructionValue : InsertBlock->instructions())
-    {
-      if (InstructionValue->isTerminator())
-      {
-        return false;
-      }
-    }
-    return true;
+    return !InsertBlock->hasTerminator();
   }
 
   bool IRBuilder::validOperand(const Value &Operand) const noexcept
@@ -113,23 +104,10 @@ namespace ink::ir
     }
     if (Instruction::classof(&Operand))
     {
-      // A unit-returning call produces a unit value; a terminator's void type does not make it an operand.
-      if (static_cast<const Instruction &>(Operand).isTerminator())
-      {
-        return false;
-      }
-      // Instructions currently have no parent link. Membership is sufficient here; dominance is a verifier concern.
-      for (const auto &Block : insertFunction()->blocks())
-      {
-        for (const auto &InstructionValue : Block->instructions())
-        {
-          if (InstructionValue.get() == &Operand)
-          {
-            return true;
-          }
-        }
-      }
-      return false;
+      const auto &InstructionValue = static_cast<const Instruction &>(Operand);
+      const BasicBlock *Parent = InstructionValue.parentBlock();
+      // A unit-producing call is a value; terminators are not. Function membership does not prove dominance.
+      return !InstructionValue.isTerminator() && Parent && Parent->function() == insertFunction();
     }
     // Globals describe storage. Using their contents or address requires an explicit operation, not an implicit load here.
     return Function::classof(&Operand);
@@ -167,7 +145,8 @@ namespace ink::ir
 
   CallInstruction *IRBuilder::createCall(const FunctionType &Signature, const Value &Callee, std::vector<Argument> Arguments)
   {
-    if (!canAppend() || !Context.containsType(&Signature) || !validOperand(Callee) || Arguments.size() != Signature.parameterCount())
+    check(canAppend());
+    if (!Context.containsType(&Signature) || !validOperand(Callee) || Arguments.size() != Signature.parameterCount())
     {
       return nullptr;
     }
@@ -189,7 +168,8 @@ namespace ink::ir
 
   ICmpInstruction *IRBuilder::createICmp(ICmpPredicate Predicate, const Value &Left, const Value &Right)
   {
-    if (!canAppend() || !validPredicate(Predicate) || !validOperand(Left) || !validOperand(Right))
+    check(canAppend());
+    if (!validPredicate(Predicate) || !validOperand(Left) || !validOperand(Right))
     {
       return nullptr;
     }
@@ -209,9 +189,10 @@ namespace ink::ir
 
   NegInstruction *IRBuilder::createNeg(const Value &Operand)
   {
+    check(canAppend());
     // TODO: Fold numeric constant operands when constant evaluation is supported by the Builder.
     const Type *OperandType = Operand.type();
-    if (!canAppend() || !Context.containsType(OperandType) || (!IntegerType::classof(OperandType) && !FloatType::classof(OperandType)) || !validOperand(Operand))
+    if (!validOperand(Operand) || (!IntegerType::classof(OperandType) && !FloatType::classof(OperandType)))
     {
       return nullptr;
     }
@@ -220,7 +201,8 @@ namespace ink::ir
 
   GetElementPtrInstruction *IRBuilder::createGetElementPtr(const PointerType &ResultType, const Type &SourceElementType, const Value &Pointer, std::vector<const Value *> Indices, bool InBounds)
   {
-    if (!canAppend() || !Context.containsType(&ResultType) || !Context.containsType(&SourceElementType) || !SourceElementType.hasLayout() || VoidType::classof(&SourceElementType) || !validOperand(Pointer))
+    check(canAppend());
+    if (!Context.containsType(&ResultType) || !Context.containsType(&SourceElementType) || !SourceElementType.hasLayout() || VoidType::classof(&SourceElementType) || !validOperand(Pointer))
     {
       return nullptr;
     }
@@ -267,7 +249,8 @@ namespace ink::ir
 
   BranchInstruction *IRBuilder::createBranch(BasicBlock &Target)
   {
-    if (!canAppend() || !validTarget(Target))
+    check(canAppend());
+    if (!validTarget(Target))
     {
       return nullptr;
     }
@@ -276,7 +259,8 @@ namespace ink::ir
 
   ConditionalBranchInstruction *IRBuilder::createConditionalBranch(const Value &Condition, BasicBlock &TrueTarget, BasicBlock &FalseTarget)
   {
-    if (!canAppend() || !canUseAs(Condition, *Context.typePool().getBoolType()) || !validTarget(TrueTarget) || !validTarget(FalseTarget))
+    check(canAppend());
+    if (!canUseAs(Condition, *Context.typePool().getBoolType()) || !validTarget(TrueTarget) || !validTarget(FalseTarget))
     {
       return nullptr;
     }
@@ -285,7 +269,8 @@ namespace ink::ir
 
   ReturnInstruction *IRBuilder::createReturn()
   {
-    if (!canAppend() || insertFunction()->functionType()->returnType() != Context.typePool().getVoidType())
+    check(canAppend());
+    if (insertFunction()->functionType()->returnType() != Context.typePool().getVoidType())
     {
       return nullptr;
     }
@@ -294,7 +279,8 @@ namespace ink::ir
 
   ReturnInstruction *IRBuilder::createReturn(const Value &ReturnedValue)
   {
-    if (!canAppend() || insertFunction()->functionType()->returnType() == Context.typePool().getVoidType() || !canUseAs(ReturnedValue, *insertFunction()->functionType()->returnType()))
+    check(canAppend());
+    if (insertFunction()->functionType()->returnType() == Context.typePool().getVoidType() || !canUseAs(ReturnedValue, *insertFunction()->functionType()->returnType()))
     {
       return nullptr;
     }

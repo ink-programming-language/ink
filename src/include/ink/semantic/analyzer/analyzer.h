@@ -27,7 +27,8 @@ namespace ink::semantic
   class AnalyzerState;
   class Binding;
 
-  // Supplies contextual typing without encoding the consuming position's requirements or diagnostics.
+  // Supplies call-local contextual typing; each child expression explicitly inherits or replaces these hints.
+  // Consuming positions validate runtime layout requirements and report their own semantic diagnostics.
   struct ExprHints
   {
       const ir::Type *ExpectedType = nullptr;
@@ -50,7 +51,8 @@ namespace ink::semantic
       const ir::Type *analyzeType(AnalyzerState &State, const frontend::parser::TypeSyntax &Node);
 
       // Analyzes an expression in State's current scope, with the same input/source preconditions as analyzeType().
-      // Hints.ExpectedType is optional and must belong to the current IR context; integer literals default to i32,
+      // Non-null hint types must belong to the current IR context; violations report SemanticConstructionFailed ICE.
+      // Hints.ExpectedType is optional; integer literals default to i32,
       // floating literals to f64 and character literals to u32. Strings retain their decoded [u8; byteCount] type.
       // A non-null target materializes literals in that type and checks other values without implicit numeric conversions.
       // Variable initializers, arguments and return values will supply these targets when their handlers are rebuilt.
@@ -59,6 +61,7 @@ namespace ink::semantic
       // Hints.DefaultIntegerLiteralType changes only uncontextualized integer literals and must belong to the current IR context.
       // Parentheses and numeric negation preserve both hints; other nested operands select their own hints.
       // Consumers validate the returned value's suitability for their position; names report SemanticUnknownName uniformly.
+      // Runtime layout is required by individual consumers, not by the presence of an expected-type hint.
       // Failure returns nullptr after a diagnostic; unimplemented expressions, nesting and comptime use the existing ICE policy.
       const ir::Value *analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
 

@@ -6,8 +6,6 @@
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/semantic/context.h"
 
-#include <cstdint>
-
 namespace ink::semantic
 {
   const ir::Value *Analyzer::analyzeArrayRepeatExpr(AnalyzerState &State, const frontend::parser::ArrayRepeatExpr &Node)
@@ -45,15 +43,13 @@ namespace ink::semantic
       Context.report<core::DiagnosticKind::SemanticInvalidArrayLength>(Node.count()->getSourceRange());
       return nullptr;
     }
-    const auto &Constant = static_cast<const ir::IntegerConstant &>(*CountValue);
-    const auto &CountType = static_cast<const ir::IntegerType &>(*Constant.type());
-    const std::uint64_t Count = Constant.bits();
-    if (CountType.isSigned() && (Count & (std::uint64_t{1} << (CountType.width() - 1))) != 0)
+    const auto Count = static_cast<const ir::IntegerConstant &>(*CountValue).tryGetNonNegativeUInt64();
+    if (!Count)
     {
       Context.report<core::DiagnosticKind::SemanticInvalidArrayLength>(Node.count()->getSourceRange());
       return nullptr;
     }
-    const ir::Type *Result = Context.typePool().getArrayType(Element, Count);
+    const ir::Type *Result = Context.typePool().getArrayType(Element, *Count);
     if (!Result)
     {
       Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "an array with representable size and valid alignment", "an invalid array layout");

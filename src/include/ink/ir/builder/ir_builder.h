@@ -17,8 +17,9 @@ namespace ink::ir
 {
   // Appends resolved instructions to a function-owned block; borrows an IRContext and owns no IR.
   // The context and selected block must outlive their use through this builder. Access requires external synchronization.
-  // Creation returns a block-owned instruction, or nullptr without changing the block or insertion point.
-  // Checks local types, operand ownership and terminators, but not dominance or whole-function control flow.
+  // Creation requires an insertion block with no terminator; invalid insertion state is asserted with check().
+  // Creation returns a block-owned instruction, or nullptr for invalid types or operands without changing the block or insertion point.
+  // Checks local types and operand ownership, but not dominance or whole-function control flow.
   // Operands may be local constants, current-function parameters/instructions or functions; globals require explicit storage operations.
   // Unit parameters and unit-producing calls are values; terminators cannot be operands.
   class IRBuilder final
@@ -44,7 +45,7 @@ namespace ink::ir
       BasicBlock *insertBlock() const noexcept;
       Function *insertFunction() const noexcept;
       // Rejects detached blocks and foreign-context function signatures, preserving the previous insertion point.
-      // A terminated block can be selected, but no further instructions can be appended to it.
+      // A terminated block can be selected, but instruction creation on it violates the asserted insertion precondition.
       [[nodiscard]] bool setInsertPoint(BasicBlock &Block) noexcept;
       void clearInsertPoint() noexcept;
 
@@ -56,7 +57,7 @@ namespace ink::ir
       // Requires identical integer or pointer operand types. A local null literal may also compare equal/not-equal to a typed pointer.
       [[nodiscard]] ICmpInstruction *createICmp(ICmpPredicate Predicate, const Value &Left, const Value &Right);
       // Requires an integer or float and a valid insertion point; constant operands also produce a NegInstruction.
-      // Unsupported operands or invalid insertion state return nullptr without appending.
+      // Unsupported operands return nullptr without appending; invalid insertion state is asserted with check().
       [[nodiscard]] NegInstruction *createNeg(const Value &Operand);
       // Empty indices preserve the source type. The first index steps over source objects; later indices traverse arrays or nominal fields.
       // Field indices must be nonnegative integer constants in range. Array indices need not be constant or in range.

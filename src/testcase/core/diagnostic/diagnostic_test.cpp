@@ -10,16 +10,16 @@
 
 namespace ink::core::test
 {
-  // PANIC flushes its message and call-site location before terminating, even when normal logging is disabled.
+  // panic flushes its message and call-site location before terminating, even when normal logging is disabled.
   TEST(DiagnosticDeathTest, PanicWritesBeforeTerminating)
   {
     const auto Fail = []()
     {
       spdlog::set_level(spdlog::level::off);
-      PANIC("fatal {message}");
+      panic("fatal {message}");
     };
     EXPECT_DEATH(Fail(), "fatal \\{message\\}");
-    EXPECT_DEATH(PANIC("fatal"), "panic at .*diagnostic_test.cpp:");
+    EXPECT_DEATH(panic("fatal"), "panic at .*diagnostic_test.cpp:");
   }
 
   // An ICE is printed and aborts even without a diagnostic consumer.

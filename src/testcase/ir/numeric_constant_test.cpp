@@ -14,7 +14,7 @@ namespace ink::ir::test
     constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
   } // namespace
 
-  // Signed factories preserve two's-complement boundary patterns and reject values outside every supported width.
+  // Signed factories preserve boundary patterns, numeric queries reject negative values, and out-of-width values fail.
   TEST(IRNumericConstantTest, SignedIntegerBoundariesAndNegativeBits)
   {
     IRContext TypesContext(Target);
@@ -58,6 +58,17 @@ namespace ink::ir::test
       EXPECT_EQ(Constant->type(), Case.Type);
       EXPECT_EQ(Constant->bits(), Case.ExpectedBits);
       EXPECT_EQ(Constant, Constants.getIntegerConstantFromBits(Case.Type, Case.ExpectedBits));
+      EXPECT_EQ(Constant->isNegative(), Case.Value < 0);
+      const auto NonNegativeValue = Constant->tryGetNonNegativeUInt64();
+      if (Case.Value < 0)
+      {
+        EXPECT_EQ(NonNegativeValue, std::nullopt);
+      }
+      else
+      {
+        ASSERT_TRUE(NonNegativeValue.has_value());
+        EXPECT_EQ(*NonNegativeValue, static_cast<std::uint64_t>(Case.Value));
+      }
     }
     EXPECT_EQ(Constants.getSignedIntegerConstant(Signed8, -129), nullptr);
     EXPECT_EQ(Constants.getSignedIntegerConstant(Signed8, 128), nullptr);
@@ -67,7 +78,7 @@ namespace ink::ir::test
     EXPECT_EQ(Constants.getSignedIntegerConstant(Signed32, static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max()) + 1), nullptr);
   }
 
-  // Unsigned factories accept the entire width, including the high bit, without truncating overflow.
+  // Unsigned factories and numeric queries preserve zero, the high-bit boundary and the full maximum without signed reinterpretation.
   TEST(IRNumericConstantTest, UnsignedIntegerBoundaries)
   {
     IRContext TypesContext(Target);
@@ -78,12 +89,17 @@ namespace ink::ir::test
       const auto UnsignedType = Types.typePool().getIntegerType(Width, false);
       ASSERT_NE(UnsignedType, nullptr);
       const std::uint64_t Maximum = Width == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << Width) - 1;
-      for (const std::uint64_t Value : {std::uint64_t{0}, Maximum})
+      const std::uint64_t HighBit = std::uint64_t{1} << (Width - 1U);
+      for (const std::uint64_t Value : {std::uint64_t{0}, HighBit - 1, HighBit, HighBit + 1, Maximum})
       {
         const auto Constant = Constants.getUnsignedIntegerConstant(UnsignedType, Value);
         ASSERT_NE(Constant, nullptr);
         EXPECT_EQ(Constant->bits(), Value);
         EXPECT_EQ(Constant->type(), UnsignedType);
+        EXPECT_FALSE(Constant->isNegative());
+        const auto NonNegativeValue = Constant->tryGetNonNegativeUInt64();
+        ASSERT_TRUE(NonNegativeValue.has_value());
+        EXPECT_EQ(*NonNegativeValue, Value);
       }
       if (Width < 64)
       {

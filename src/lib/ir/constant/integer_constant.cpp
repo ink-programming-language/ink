@@ -13,6 +13,21 @@ namespace ink::ir
     return Bits;
   }
 
+  bool IntegerConstant::isNegative() const noexcept
+  {
+    const auto &Integer = static_cast<const IntegerType &>(*type());
+    return Integer.isSigned() && (Bits & (std::uint64_t{1} << (Integer.width() - 1U))) != 0;
+  }
+
+  std::optional<std::uint64_t> IntegerConstant::tryGetNonNegativeUInt64() const noexcept
+  {
+    if (isNegative())
+    {
+      return std::nullopt;
+    }
+    return Bits;
+  }
+
   bool IntegerConstant::classof(const Value *Value) noexcept
   {
     return Value && Value->kind() == ValueKind::IntegerConstant;

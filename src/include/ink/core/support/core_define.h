@@ -90,7 +90,7 @@
 #endif
 
 // Writes and flushes a fatal message before aborting, independently of installed loggers.
-#define PANIC(Message) \
+#define panic(Message) \
   ([](::std::string_view InkPanicMessage) noexcept \
   { \
     const auto InkPanicSink = ::std::make_shared<::spdlog::sinks::stderr_sink_mt>(); \
@@ -108,7 +108,7 @@
   { \
     if (!static_cast<bool>(Expression)) \
     { \
-      PANIC([](::std::string_view InkCheckMessage) noexcept \
+      panic([](::std::string_view InkCheckMessage) noexcept \
       { \
         return InkCheckMessage.empty() ? ::fmt::format("check failed: {}", #Expression) : ::fmt::format("check failed: {}\n{}", #Expression, InkCheckMessage); \
       }(__VA_ARGS__)); \
@@ -116,16 +116,18 @@
   } while (false)
 
 // Disabled checks discard the condition and message arguments.
-// Formatted variants accept a format string followed by optional arguments: CHECK_MSGF(Ready, "id={}", Id).
-// Every enabled check failure is fatal, so the AlwaysMsgF form has the same behavior as MsgF.
+// Formatted variants accept a format string followed by optional arguments: checkMsgf(Ready, "id={}", Id).
+// Every enabled check failure is fatal, so Always variants have the same behavior as ordinary checks.
 #if INK_ENABLE_ASSERTIONS
-#define CHECK(Expression) INK_DETAIL_CHECK(Expression, ::std::string_view{})
-#define CHECK_MSGF(Expression, ...) INK_DETAIL_CHECK(Expression, ::fmt::format(__VA_ARGS__))
-#define CHECK_ALWAYS_MSGF(Expression, ...) CHECK_MSGF(Expression, __VA_ARGS__)
+#define check(Expression) INK_DETAIL_CHECK(Expression, ::std::string_view{})
+#define checkMsgf(Expression, ...) INK_DETAIL_CHECK(Expression, ::fmt::format(__VA_ARGS__))
+#define checkAlways(Expression) check(Expression)
+#define checkAlwaysMsgf(Expression, ...) checkMsgf(Expression, __VA_ARGS__)
 #else
-#define CHECK(Expression) static_cast<void>(0)
-#define CHECK_MSGF(Expression, ...) static_cast<void>(0)
-#define CHECK_ALWAYS_MSGF(Expression, ...) static_cast<void>(0)
+#define check(Expression) static_cast<void>(0)
+#define checkMsgf(Expression, ...) static_cast<void>(0)
+#define checkAlways(Expression) static_cast<void>(0)
+#define checkAlwaysMsgf(Expression, ...) static_cast<void>(0)
 #endif
 
 #if INK_ENABLE_ASSERTIONS
@@ -156,14 +158,16 @@
 
 // All ensures return bool and evaluate their condition exactly once, including after a prior failure.
 // Message arguments are evaluated only when a failure is actually reported. Normal ensures report
-// and break once per call site (per template specialization); AlwaysMsgF reports and breaks every failure.
-#define ENSURE(Expression) INK_DETAIL_ENSURE(Expression, false, ::std::string_view{})
-#define ENSURE_MSGF(Expression, ...) INK_DETAIL_ENSURE(Expression, false, ::fmt::format(__VA_ARGS__))
-#define ENSURE_ALWAYS_MSGF(Expression, ...) INK_DETAIL_ENSURE(Expression, true, ::fmt::format(__VA_ARGS__))
+// and break once per call site (per template specialization); Always variants report and break every failure.
+#define ensure(Expression) INK_DETAIL_ENSURE(Expression, false, ::std::string_view{})
+#define ensureMsgf(Expression, ...) INK_DETAIL_ENSURE(Expression, false, ::fmt::format(__VA_ARGS__))
+#define ensureAlways(Expression) INK_DETAIL_ENSURE(Expression, true, ::std::string_view{})
+#define ensureAlwaysMsgf(Expression, ...) INK_DETAIL_ENSURE(Expression, true, ::fmt::format(__VA_ARGS__))
 #else
-#define ENSURE(Expression) static_cast<bool>(Expression)
-#define ENSURE_MSGF(Expression, ...) static_cast<bool>(Expression)
-#define ENSURE_ALWAYS_MSGF(Expression, ...) static_cast<bool>(Expression)
+#define ensure(Expression) static_cast<bool>(Expression)
+#define ensureMsgf(Expression, ...) static_cast<bool>(Expression)
+#define ensureAlways(Expression) static_cast<bool>(Expression)
+#define ensureAlwaysMsgf(Expression, ...) static_cast<bool>(Expression)
 #endif
 
 // Keep compiler-specific force-inlining behind a shared macro, as in UE's FORCEINLINE.

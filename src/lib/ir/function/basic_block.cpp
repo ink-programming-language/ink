@@ -39,6 +39,11 @@ namespace ink::ir
     return Instructions.size();
   }
 
+  bool BasicBlock::hasTerminator() const noexcept
+  {
+    return HasTerminator;
+  }
+
   Instruction *BasicBlock::appendInstruction(std::unique_ptr<Instruction> InstructionValue)
   {
     if (!InstructionValue)
@@ -47,6 +52,8 @@ namespace ink::ir
     }
     Instruction *Result = InstructionValue.get();
     Instructions.push_back(std::move(InstructionValue));
+    Result->Parent = this;
+    HasTerminator = HasTerminator || Result->isTerminator();
     return Result;
   }
 
