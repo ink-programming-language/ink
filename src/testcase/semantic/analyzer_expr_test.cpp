@@ -2005,11 +2005,12 @@ namespace ink::semantic::test
     }
   }
 
-  // Call expressions keep the existing unsupported-feature ICE policy until call lowering is implemented.
-  TEST_F(SemanticAnalyzerExprTest, ReportsUnsupportedCallExpression)
+  // Call analysis reports an unknown callee by name before attempting to construct a call instruction.
+  TEST_F(SemanticAnalyzerExprTest, ReportsUnknownCallCallee)
   {
     auto Input = read("WriteFile()");
     ASSERT_TRUE(Input.succeeded());
-    EXPECT_DEATH(analyze(Input), "INK-S0012");
+    expectFailure(analyze(Input), core::DiagnosticKind::SemanticUnknownName);
+    expectMessage("unknown name 'WriteFile'");
   }
 } // namespace ink::semantic::test

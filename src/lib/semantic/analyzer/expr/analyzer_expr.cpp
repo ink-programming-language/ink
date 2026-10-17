@@ -40,7 +40,7 @@ namespace ink::semantic
     switch (Node.getKind())
     {
       case ASTKind::NameExpr:
-        Result = analyzeNameExpr(State, static_cast<const NameExpr &>(Node));
+        Result = analyzeNameExpr(State, static_cast<const NameExpr &>(Node), Hints.IsCallCallee);
         break;
       case ASTKind::LiteralExpr:
         Result = analyzeLiteralExpr(State, static_cast<const LiteralExpr &>(Node), Hints);
@@ -49,7 +49,10 @@ namespace ink::semantic
         Result = analyzeParenExpr(State, static_cast<const ParenExpr &>(Node), Hints);
         break;
       case ASTKind::MemberExpr:
-        Result = analyzeMemberExpr(State, static_cast<const MemberExpr &>(Node));
+        Result = analyzeMemberExpr(State, static_cast<const MemberExpr &>(Node), Hints.IsCallCallee);
+        break;
+      case ASTKind::CallExpr:
+        Result = analyzeCallExpr(State, static_cast<const CallExpr &>(Node));
         break;
       case ASTKind::UnaryExpr:
         Result = analyzeUnaryExpr(State, static_cast<const UnaryExpr &>(Node), Hints);
@@ -66,7 +69,7 @@ namespace ink::semantic
           Context.report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "expression node kind must belong to the expression AST category");
           return nullptr;
         }
-        // TODO: Restore calls, generic applications, remaining operators and type-valued compile-time evaluation.
+        // TODO: Restore generic applications, remaining operators and type-valued compile-time evaluation.
         reportUnsupported(State, Node);
         return nullptr;
     }

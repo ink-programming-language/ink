@@ -20,6 +20,7 @@ namespace ink::semantic
     if (Node.op() == TokenKind::Minus)
     {
       // TODO: Preserve untyped integer values through negation before materialization; signed-minimum literals such as -128 for i8 currently fail while typing their positive operand.
+      Hints.IsCallCallee = false;
       const auto *Operand = analyzeExpr(State, *Node.operand(), Hints);
       if (!Operand)
       {

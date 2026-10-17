@@ -53,7 +53,12 @@ namespace ink::semantic
 
   bool Analyzer::reportUnsupported(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node)
   {
-    State.Context.report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
+    return reportUnsupported(State, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
+  }
+
+  bool Analyzer::reportUnsupported(AnalyzerState &State, core::SourceRange Range, std::string_view Description)
+  {
+    State.Context.report<core::DiagnosticKind::SemanticUnsupported>(Range, Description);
     return false;
   }
 

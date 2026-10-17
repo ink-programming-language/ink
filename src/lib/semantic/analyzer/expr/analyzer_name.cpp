@@ -100,11 +100,16 @@ namespace ink::semantic
     }
   } // namespace
 
-  const ir::Value *Analyzer::analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found)
+  const ir::Value *Analyzer::analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found, bool IsCallCallee)
   {
     if (Found.targets().size() != 1)
     {
       // TODO: Select an overload using the call arguments or an expected function signature.
+      if (IsCallCallee)
+      {
+        reportUnsupported(State, Node.getSourceRange(), "function overload selection");
+        return nullptr;
+      }
       State.semanticContext().report<core::DiagnosticKind::SemanticAmbiguousName>(Node.getSourceRange());
       return nullptr;
     }
@@ -117,19 +122,20 @@ namespace ink::semantic
     }
     if (ir::Parameter::classof(Value) && static_cast<const ir::Parameter *>(Value)->isVariadic())
     {
-      State.semanticContext().report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), "variadic parameter values");
+      // TODO: Materialize variadic parameter packs before using them as expression values.
+      reportUnsupported(State, Node.getSourceRange(), "variadic parameter values");
       return nullptr;
     }
     return Value;
   }
 
-  const ir::Value *Analyzer::analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node)
+  const ir::Value *Analyzer::analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee)
   {
     auto &Context = State.semanticContext();
     const auto Name = Node.name();
     if (const Binding *Found = State.nameResolver().lookup(core::NamePool::instance().find(Name.Text)))
     {
-      return analyzeBinding(State, Node, *Found);
+      return analyzeBinding(State, Node, *Found, IsCallCallee);
     }
     if (const ir::Value *Builtin = lookupBuiltinValue(Context, Name.Text))
     {

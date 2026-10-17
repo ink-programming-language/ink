@@ -220,10 +220,21 @@ file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/syntax.ink" CONTENT "func f(): void
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/syntax.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_source_error("Missing initializer" "syntax.ink:2:9:" "error[INK-P0002]" "[bytes 26, 26)" "var a = ;")
 
-# Fixed-parameter definitions analyze returns inside nested blocks and implicitly terminate void bodies.
-file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/functions.ink" CONTENT "func identity(Value: i32): i32 { { return Value; } } func empty(): void {}" NEWLINE_STYLE LF)
+# Fixed-parameter definitions support direct, indirect and nested positional calls alongside implicit void returns.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/functions.ink" CONTENT "func identity(Value: i32): i32 { { return Value; } } func apply(Callback: func(i32): i32): i32 { return Callback(identity(7)); } func main(): i32 { return apply(identity); } func empty(): void {}" NEWLINE_STYLE LF)
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/functions.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_result("Function definitions" "0" "")
+
+# Incorrect call arity is a recoverable user diagnostic with the call expression's source range.
+set(CallAritySource "func identity(Value: i32): i32 { return Value; }\nfunc main(): i32 { return identity(); }")
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/call-arity.ink" CONTENT "${CallAritySource}" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/call-arity.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "1" OR Error MATCHES "internal compiler error")
+  message(FATAL_ERROR "Incorrect call arity must fail with a user diagnostic: ${Status}: ${Error}")
+endif()
+string(FIND "${CallAritySource}" "identity()" CallStart)
+math(EXPR CallEnd "${CallStart} + 10")
+expect_source_diagnostic("Incorrect call arity" "call-arity.ink:2:27:" "error[INK-S0008]" "[bytes ${CallStart}, ${CallEnd})" "func main(): i32 { return identity(); }")
 
 # A return outside any function reports a recoverable semantic diagnostic with its source range.
 file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/return-outside.ink" CONTENT "return;" NEWLINE_STYLE LF)

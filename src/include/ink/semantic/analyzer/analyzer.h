@@ -1,6 +1,13 @@
 #ifndef INK_SEMANTIC_ANALYZER_ANALYZER_H
 #define INK_SEMANTIC_ANALYZER_ANALYZER_H
 
+#include <string_view>
+
+namespace ink::core
+{
+  class SourceRange;
+} // namespace ink::core
+
 namespace ink::frontend::parser
 {
   struct ParseResult;
@@ -33,6 +40,8 @@ namespace ink::semantic
   {
       const ir::Type *ExpectedType = nullptr;
       const ir::IntegerType *DefaultIntegerLiteralType = nullptr;
+      // Only transparent parentheses propagate callee context to a final name or member binding.
+      bool IsCallCallee = false;
   };
 
   // Analysis uses call-local traversal state and caller-owned output; unsupported nodes report SemanticUnsupported.
@@ -56,11 +65,12 @@ namespace ink::semantic
       // Hints.ExpectedType is optional; integer literals default to i32,
       // floating literals to f64 and character literals to u32. Strings retain their decoded [u8; byteCount] type.
       // A non-null target materializes literals in that type and checks other values without implicit numeric conversions.
-      // Variable initializers, arguments and return values will supply these targets when their handlers are rebuilt.
+      // Call arguments and return values supply their declared target types; variable initializers will do so when rebuilt.
       // Returns a borrowed IR value, including type/module descriptors and storage objects, without loading storage.
       // Runtime consumers must require a runtime value and explicitly materialize storage reads/addresses.
       // Hints.DefaultIntegerLiteralType changes only uncontextualized integer literals and must belong to the current IR context.
-      // Parentheses and numeric negation preserve both hints; other nested operands select their own hints.
+      // Parentheses and numeric negation preserve both type hints; other nested operands select their own hints.
+      // Hints.IsCallCallee marks the final callee binding and propagates only through parentheses.
       // Consumers validate the returned value's suitability for their position; names report SemanticUnknownName uniformly.
       // Runtime layout is required by individual consumers, not by the presence of an expected-type hint.
       // Failure returns nullptr after a diagnostic; unimplemented expressions, nesting and comptime use the existing ICE policy.
@@ -70,12 +80,14 @@ namespace ink::semantic
       bool analyzeStmt(AnalyzerState &State, const frontend::parser::Stmt &Stmt);
       bool analyzeDecl(AnalyzerState &State, const frontend::parser::Decl &Declaration);
       bool reportUnsupported(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node);
+      bool reportUnsupported(AnalyzerState &State, core::SourceRange Range, std::string_view Description);
 
-      const ir::Value *analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found);
-      const ir::Value *analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node);
+      const ir::Value *analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found, bool IsCallCallee = false);
+      const ir::Value *analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee = false);
       const ir::Value *analyzeLiteralExpr(AnalyzerState &State, const frontend::parser::LiteralExpr &Node, ExprHints Hints);
       const ir::Value *analyzeParenExpr(AnalyzerState &State, const frontend::parser::ParenExpr &Node, ExprHints Hints);
-      const ir::Value *analyzeMemberExpr(AnalyzerState &State, const frontend::parser::MemberExpr &Node);
+      const ir::Value *analyzeMemberExpr(AnalyzerState &State, const frontend::parser::MemberExpr &Node, bool IsCallCallee = false);
+      const ir::Value *analyzeCallExpr(AnalyzerState &State, const frontend::parser::CallExpr &Node);
       const ir::Value *analyzeUnaryExpr(AnalyzerState &State, const frontend::parser::UnaryExpr &Node, ExprHints Hints);
       const ir::Value *analyzeArrayRepeatExpr(AnalyzerState &State, const frontend::parser::ArrayRepeatExpr &Node);
       const ir::Value *analyzeFunctionTypeExpr(AnalyzerState &State, const frontend::parser::FunctionTypeExpr &Node);

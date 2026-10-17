@@ -8,9 +8,14 @@
 
 namespace ink::semantic
 {
-  const ir::Value *Analyzer::analyzeMemberExpr(AnalyzerState &State, const frontend::parser::MemberExpr &Node)
+  const ir::Value *Analyzer::analyzeMemberExpr(AnalyzerState &State, const frontend::parser::MemberExpr &Node, bool IsCallCallee)
   {
     auto &Context = State.semanticContext();
+    if (!Node.object())
+    {
+      Context.report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "MemberExpr requires an object expression");
+      return nullptr;
+    }
     if (Node.access() != frontend::parser::TokenKind::Dot)
     {
       reportUnsupported(State, Node);
@@ -34,6 +39,6 @@ namespace ink::semantic
       Context.report<core::DiagnosticKind::SemanticUnknownName>(Name.Range, Name.Text);
       return nullptr;
     }
-    return analyzeBinding(State, Node, *Found);
+    return analyzeBinding(State, Node, *Found, IsCallCallee);
   }
 } // namespace ink::semantic
