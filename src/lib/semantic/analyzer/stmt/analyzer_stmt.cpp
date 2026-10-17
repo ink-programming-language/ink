@@ -2,17 +2,14 @@
 
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/semantic/analyzer/analyzer_utils.h"
-#include "ink/semantic/analyzer/block_depth_guard.h"
-#include "ink/semantic/context.h"
 #include "ink/frontend/parser/ast.h"
-
-#include <cstdlib>
+#include "ink/semantic/context.h"
 
 namespace ink::semantic
 {
   bool Analyzer::analyzeStmt(AnalyzerState &State, const frontend::parser::Stmt &Stmt)
   {
-    // Compile-time evaluation will be restored with the semantic implementation.
+    // TODO: Restore compile-time statement evaluation.
     if (Stmt.isComptime())
     {
       return reportUnsupported(State, Stmt);
@@ -39,7 +36,8 @@ namespace ink::semantic
 #undef INK_ANALYZE_BindingPattern
 #undef INK_ANALYZE_MatchPattern
     default:
-      std::abort();
+      State.semanticContext().report<core::DiagnosticKind::SemanticInvalidAST>(Stmt.getSourceRange(), "statement node kind must belong to the statement AST category");
+      return false;
     }
   }
 
@@ -59,25 +57,6 @@ namespace ink::semantic
       }
       const auto &Expression = *static_cast<const frontend::parser::ExprItem *>(Item)->expression();
       if (!requireRuntimeValue(State.Context, Expression.getSourceRange(), analyzeExpr(State, Expression)))
-      {
-        Succeeded = false;
-      }
-    }
-    return Succeeded;
-  }
-
-  bool Analyzer::analyzeBlockStmt(AnalyzerState &State, const frontend::parser::BlockStmt &Node)
-  {
-    if (State.RecursionDepth >= State.RecursionDepthLimit)
-    {
-      State.Context.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
-      return false;
-    }
-    BlockDepthGuard DepthGuard(State.RecursionDepth);
-    bool Succeeded = true;
-    for (const frontend::parser::Stmt *Stmt : Node.statements())
-    {
-      if (!analyzeStmt(State, *Stmt))
       {
         Succeeded = false;
       }

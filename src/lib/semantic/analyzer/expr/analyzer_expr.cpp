@@ -61,6 +61,11 @@ namespace ink::semantic
         Result = analyzeFunctionTypeExpr(State, static_cast<const FunctionTypeExpr &>(Node));
         break;
       default:
+        if (categoryOf(Node.getKind()) != ASTCategory::Expr)
+        {
+          Context.report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "expression node kind must belong to the expression AST category");
+          return nullptr;
+        }
         // TODO: Restore calls, generic applications, remaining operators and type-valued compile-time evaluation.
         reportUnsupported(State, Node);
         return nullptr;

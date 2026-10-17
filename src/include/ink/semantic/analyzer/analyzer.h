@@ -41,11 +41,12 @@ namespace ink::semantic
     public:
       // Input must belong to Context's compilation and remain alive for the call.
       // Output must borrow Context.irContext(); failure does not roll back existing output.
+      // Scope bindings borrow Output's declarations; remove those targets from Context.scopeStore() before destroying them.
       // Unusable input returns false; unimplemented nodes report the existing SemanticUnsupported ICE.
       bool analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input, ir::Module &Output);
 
       // Resolves a type annotation belonging to State's input in its current name scope.
-      // The caller validates input/context compatibility, selects the diagnostic source and supplies a node with a non-null expression.
+      // The caller validates input/context compatibility and selects the diagnostic source; a missing expression reports SemanticInvalidAST ICE.
       // Returns a borrowed context/module-owned type, or nullptr after a diagnostic.
       // Unimplemented expressions and nesting limits use the existing ICE policy.
       const ir::Type *analyzeType(AnalyzerState &State, const frontend::parser::TypeSyntax &Node);

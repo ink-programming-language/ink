@@ -31,6 +31,15 @@ namespace ink::semantic::test
   {
     static_assert(std::is_same_v<decltype(std::declval<Analyzer &>().analyzeExpr(std::declval<AnalyzerState &>(), std::declval<const frontend::parser::Expr &>())), const ir::Value *>);
 
+    class InvalidExpression final : public frontend::parser::Expr
+    {
+      public:
+        explicit InvalidExpression(core::SourceRange Range)
+            : Expr(frontend::parser::ASTKind::SimpleStmt, Range)
+        {
+        }
+    };
+
     class SemanticAnalyzerExprTest : public testing::Test
     {
       protected:
@@ -864,6 +873,135 @@ namespace ink::semantic::test
       ASSERT_TRUE(Input.succeeded());
       EXPECT_DEATH(Analysis.analyze(Context, Input, Output), "INK-T0023");
     }
+  }
+
+  // A real expression object carrying a statement kind must fail public expression dispatch with the AST contract ICE.
+  TEST_F(SemanticAnalyzerExprTest, ReportsInvalidASTForWrongExpressionCategory)
+  {
+    auto Input = read("14");
+    ASSERT_TRUE(Input.succeeded());
+    auto *Expression = Input.Unit->context().make<InvalidExpression>(syntax(Input).getSourceRange());
+    AnalyzerState State(Context, Input, Output);
+    Context.setSource(Input.Unit->input().lexedFile().sourceId());
+    EXPECT_DEATH(Analysis.analyzeExpr(State, *Expression), "INK-S0061.*invalid AST: expression node kind must belong to the expression AST category");
+  }
+
+  // Literal references at the end of the token array and at the invalid-token sentinel violate the AST input contract.
+  TEST_F(SemanticAnalyzerExprTest, ReportsInvalidASTForOutOfRangeLiteralTokenIndices)
+  {
+    auto Input = read("14");
+    ASSERT_TRUE(Input.succeeded());
+    AnalyzerState State(Context, Input, Output);
+    Context.setSource(Input.Unit->input().lexedFile().sourceId());
+    const frontend::parser::TokenId Indices[] = {Input.Unit->input().size(), frontend::parser::InvalidTokenId};
+    for (const auto Index : Indices)
+    {
+      SCOPED_TRACE(Index);
+      auto *Literal = Input.Unit->context().make<frontend::parser::LiteralExpr>(syntax(Input).getSourceRange(), Index, frontend::parser::TokenKind::IntegerLiteral);
+      EXPECT_DEATH(Analysis.analyzeExpr(State, *Literal), "INK-S0061.*invalid AST: LiteralExpr token index must reference a token in its input");
+    }
+  }
+
+  // A LiteralExpr cannot reinterpret an integer token as a float, character or string token.
+  TEST_F(SemanticAnalyzerExprTest, ReportsInvalidASTForMismatchedLiteralTokenKinds)
+  {
+    auto Input = read("14");
+    ASSERT_TRUE(Input.succeeded());
+    const auto &Original = static_cast<const frontend::parser::LiteralExpr &>(syntax(Input));
+    AnalyzerState State(Context, Input, Output);
+    Context.setSource(Input.Unit->input().lexedFile().sourceId());
+    const frontend::parser::TokenKind Kinds[] = {frontend::parser::TokenKind::FloatLiteral, frontend::parser::TokenKind::CharLiteral, frontend::parser::TokenKind::StringLiteral};
+    for (const auto Kind : Kinds)
+    {
+      SCOPED_TRACE(static_cast<unsigned>(Kind));
+      auto *Literal = Input.Unit->context().make<frontend::parser::LiteralExpr>(Original.getSourceRange(), Original.token(), Kind);
+      EXPECT_DEATH(Analysis.analyzeExpr(State, *Literal), "INK-S0061.*invalid AST: LiteralExpr kind must match its referenced token kind");
+    }
+  }
+
+  // Character literal tokens require CharInfo even when their source spelling is otherwise valid.
+  TEST_F(SemanticAnalyzerExprTest, ReportsInvalidASTForMissingCharacterMetadata)
+  {
+    const frontend::tokenizer::TokenPayload Payloads[] = {
+        std::monostate{},
+        frontend::tokenizer::NumericInfo{core::NumericBase::Decimal},
+    };
+    for (const auto &Payload : Payloads)
+    {
+      SCOPED_TRACE(Payload.index());
+      auto Lexed = frontend::tokenizer::tokenize(Frontend, "'a';");
+      ASSERT_TRUE(Lexed.succeeded());
+      // Lexed owns mutable token storage; its public accessor exposes a const view.
+      const_cast<frontend::tokenizer::Token &>(Lexed.tokens().front()).Payload = Payload;
+      auto Input = frontend::parser::parse(Frontend, std::move(Lexed));
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(Analysis.analyze(Context, Input, Output), "INK-S0061.*invalid AST: character LiteralExpr must reference a token with CharInfo metadata");
+    }
+  }
+
+  // Character metadata cannot contain either surrogate boundary or a code point above the Unicode scalar range.
+  TEST_F(SemanticAnalyzerExprTest, ReportsInvalidASTForNonScalarCharacterMetadata)
+  {
+    constexpr char32_t Values[] = {0xd800, 0xdfff, 0x110000};
+    for (const auto Value : Values)
+    {
+      SCOPED_TRACE(static_cast<std::uint32_t>(Value));
+      auto Lexed = frontend::tokenizer::tokenize(Frontend, "'a';");
+      ASSERT_TRUE(Lexed.succeeded());
+      // Lexed owns mutable token storage; its public accessor exposes a const view.
+      const_cast<frontend::tokenizer::Token &>(Lexed.tokens().front()).Payload = frontend::tokenizer::CharInfo{Value};
+      auto Input = frontend::parser::parse(Frontend, std::move(Lexed));
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(Analysis.analyze(Context, Input, Output), "INK-S0061.*invalid AST: character LiteralExpr metadata must contain a Unicode scalar value");
+    }
+  }
+
+  // String literal tokens require StringInfo and cannot use absent or character metadata.
+  TEST_F(SemanticAnalyzerExprTest, ReportsInvalidASTForMissingStringMetadata)
+  {
+    const frontend::tokenizer::TokenPayload Payloads[] = {
+        std::monostate{},
+        frontend::tokenizer::CharInfo{U'a'},
+    };
+    for (const auto &Payload : Payloads)
+    {
+      SCOPED_TRACE(Payload.index());
+      auto Lexed = frontend::tokenizer::tokenize(Frontend, "\"text\";");
+      ASSERT_TRUE(Lexed.succeeded());
+      // Lexed owns mutable token storage; its public accessor exposes a const view.
+      const_cast<frontend::tokenizer::Token &>(Lexed.tokens().front()).Payload = Payload;
+      auto Input = frontend::parser::parse(Frontend, std::move(Lexed));
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_DEATH(Analysis.analyze(Context, Input, Output), "INK-S0061.*invalid AST: string LiteralExpr must reference a token with StringInfo metadata");
+    }
+  }
+
+  // Function type expressions must retain their required return annotation before signature analysis starts.
+  TEST_F(SemanticAnalyzerExprTest, ReportsInvalidASTForMissingFunctionTypeReturnAnnotation)
+  {
+    auto Input = read("func(): void");
+    ASSERT_TRUE(Input.succeeded());
+    auto *Statement = frontend::parser::cast<frontend::parser::DeclStmt>(Input.Unit->root()->statements()[0]);
+    auto *Original = frontend::parser::cast<frontend::parser::FunctionTypeExpr>(frontend::parser::cast<frontend::parser::VarDecl>(Statement->declaration())->initializer());
+    auto *Expression = Input.Unit->context().make<frontend::parser::FunctionTypeExpr>(Original->getSourceRange(), Original->parameters(), nullptr);
+    AnalyzerState State(Context, Input, Output);
+    Context.setSource(Input.Unit->input().lexedFile().sourceId());
+    EXPECT_DEATH(Analysis.analyzeExpr(State, *Expression), "INK-S0061.*invalid AST: FunctionTypeExpr requires a return type annotation");
+  }
+
+  // Every function type parameter needs a type annotation even when the enclosing return annotation is valid.
+  TEST_F(SemanticAnalyzerExprTest, ReportsInvalidASTForMissingFunctionTypeParameterAnnotation)
+  {
+    auto Input = read("func(): void");
+    ASSERT_TRUE(Input.succeeded());
+    auto *Statement = frontend::parser::cast<frontend::parser::DeclStmt>(Input.Unit->root()->statements()[0]);
+    auto *Original = frontend::parser::cast<frontend::parser::FunctionTypeExpr>(frontend::parser::cast<frontend::parser::VarDecl>(Statement->declaration())->initializer());
+    const frontend::parser::FunctionTypeParameter Parameters[] = {frontend::parser::FunctionTypeParameter(std::nullopt, nullptr, false, Original->getSourceRange())};
+    auto &AST = Input.Unit->context();
+    auto *Expression = AST.make<frontend::parser::FunctionTypeExpr>(Original->getSourceRange(), AST.copyArray<frontend::parser::FunctionTypeParameter>(Parameters), Original->returnType());
+    AnalyzerState State(Context, Input, Output);
+    Context.setSource(Input.Unit->input().lexedFile().sourceId());
+    EXPECT_DEATH(Analysis.analyzeExpr(State, *Expression), "INK-S0061.*invalid AST: FunctionTypeExpr parameter requires a type annotation");
   }
 
   // Integer literals cannot initialize bool, float or pointer destinations through implicit numeric conversions.

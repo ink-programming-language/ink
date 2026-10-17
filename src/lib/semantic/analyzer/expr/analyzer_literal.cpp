@@ -106,7 +106,17 @@ namespace ink::semantic
     auto &Context = State.semanticContext();
     const ir::Type *ExpectedType = Hints.ExpectedType;
     const auto &Input = State.input().Unit->input();
+    if (Node.token() >= Input.size())
+    {
+      Context.report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "LiteralExpr token index must reference a token in its input");
+      return nullptr;
+    }
     const auto &Token = Input.token(Node.token());
+    if (Token.Kind != Node.literalKind())
+    {
+      Context.report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "LiteralExpr kind must match its referenced token kind");
+      return nullptr;
+    }
     using frontend::parser::TokenKind;
     switch (Node.literalKind())
     {
@@ -152,9 +162,14 @@ namespace ink::semantic
           return nullptr;
         }
         const auto *Character = std::get_if<frontend::tokenizer::CharInfo>(&Token.Payload);
-        if (!Character || Character->Value > 0x10ffff || (Character->Value >= 0xd800 && Character->Value <= 0xdfff))
+        if (!Character)
         {
-          Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "a Unicode scalar literal", "invalid character metadata");
+          Context.report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "character LiteralExpr must reference a token with CharInfo metadata");
+          return nullptr;
+        }
+        if (Character->Value > 0x10ffff || (Character->Value >= 0xd800 && Character->Value <= 0xdfff))
+        {
+          Context.report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "character LiteralExpr metadata must contain a Unicode scalar value");
           return nullptr;
         }
         const auto *Type = ExpectedType ? static_cast<const ir::IntegerType *>(ExpectedType) : Context.typePool().getUInt32Type();
@@ -165,7 +180,7 @@ namespace ink::semantic
         const auto *String = std::get_if<frontend::tokenizer::StringInfo>(&Token.Payload);
         if (!String)
         {
-          Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), "a string literal", "invalid string metadata");
+          Context.report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "string LiteralExpr must reference a token with StringInfo metadata");
           return nullptr;
         }
         const auto *StringType = Context.typePool().getArrayType(Context.typePool().getUInt8Type(), String->Decoded.size());

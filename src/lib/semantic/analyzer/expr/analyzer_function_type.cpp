@@ -13,6 +13,11 @@ namespace ink::semantic
   const ir::Value *Analyzer::analyzeFunctionTypeExpr(AnalyzerState &State, const frontend::parser::FunctionTypeExpr &Node)
   {
     auto &Context = State.semanticContext();
+    if (!Node.returnType())
+    {
+      Context.report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "FunctionTypeExpr requires a return type annotation");
+      return nullptr;
+    }
     const ir::Type *Return = analyzeType(State, *Node.returnType());
     if (!Return)
     {
@@ -27,6 +32,11 @@ namespace ink::semantic
     Parameters.reserve(Node.parameters().size());
     for (const auto &Parameter : Node.parameters())
     {
+      if (!Parameter.type())
+      {
+        Context.report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "FunctionTypeExpr parameter requires a type annotation");
+        return nullptr;
+      }
       const ir::Type *Type = analyzeType(State, *Parameter.type());
       if (!Type)
       {

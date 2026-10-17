@@ -2,8 +2,7 @@
 
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/frontend/parser/ast.h"
-
-#include <cstdlib>
+#include "ink/semantic/context.h"
 
 namespace ink::semantic
 {
@@ -35,7 +34,8 @@ namespace ink::semantic
 #undef INK_ANALYZE_BindingPattern
 #undef INK_ANALYZE_MatchPattern
     default:
-      std::abort();
+      State.semanticContext().report<core::DiagnosticKind::SemanticInvalidAST>(Declaration.getSourceRange(), "declaration node kind must belong to the declaration AST category");
+      return false;
     }
   }
 

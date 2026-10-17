@@ -4,12 +4,13 @@
 #include "ink/frontend/parser/parser.h"
 #include "ink/ir/module/module.h"
 #include "ink/semantic/context.h"
+#include "ink/semantic/name_resolve/scope_guard.h"
 
 namespace ink::semantic
 {
   bool Analyzer::analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input, ir::Module &Output)
   {
-    if (&Output.irContext() != &Context.irContext() || !Input.succeeded() || !Input.Unit->root())
+    if (&Output.irContext() != &Context.irContext() || !Input.succeeded())
     {
       return false;
     }
@@ -18,27 +19,36 @@ namespace ink::semantic
     {
       return false;
     }
+    Context.setSource(Lexed.sourceId());
+    if (!Input.Unit->root())
+    {
+      Context.report<core::DiagnosticKind::SemanticInvalidAST>({}, "successful parse result requires a module AST root");
+      return false;
+    }
 
     // Preserve caller-owned output and pooled IR, with fresh traversal state for this call.
     AnalyzerState State(Context, Input, Output);
-    Context.setSource(Lexed.sourceId());
-    const auto AnalyzeModule = [this, &State](AnalyzerState::Mode AnalysisMode)
+    Scope *ModuleScope = Context.scopeStore().memberScope(Output);
+    if (!ModuleScope)
     {
-      AnalyzerState::Guard ModeGuard(State, AnalysisMode);
-      bool Succeeded = true;
-      for (const frontend::parser::Stmt *Stmt : State.Input.Unit->root()->statements())
+      ModuleScope = Context.scopeStore().createScope(State.Resolver.rootScope(), Output);
+    }
+    if (!ModuleScope)
+    {
+      Context.report<core::DiagnosticKind::SemanticConstructionFailed>(Input.Unit->root()->getSourceRange());
+      return false;
+    }
+    ScopeGuard ModuleGuard(State.Resolver, *ModuleScope);
+    // TODO: Restore declaration collection and forward references before analyzing function bodies.
+    bool Succeeded = true;
+    for (const frontend::parser::Stmt *Stmt : Input.Unit->root()->statements())
+    {
+      if (!analyzeStmt(State, *Stmt))
       {
-        if (!analyzeStmt(State, *Stmt))
-        {
-          Succeeded = false;
-        }
+        Succeeded = false;
       }
-      return Succeeded;
-    };
-
-    const bool Collected = AnalyzeModule(AnalyzerState::Mode::CollectDecls);
-    const bool Analyzed = Collected && AnalyzeModule(AnalyzerState::Mode::FullAnalysis);
-    return Analyzed;
+    }
+    return Succeeded;
   }
 
   bool Analyzer::reportUnsupported(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node)

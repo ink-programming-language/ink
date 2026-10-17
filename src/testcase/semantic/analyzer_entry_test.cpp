@@ -11,12 +11,34 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
 
 namespace ink::semantic::test
 {
+  namespace
+  {
+    class InvalidStatement final : public frontend::parser::Stmt
+    {
+      public:
+        explicit InvalidStatement(core::SourceRange Range)
+            : Stmt(frontend::parser::ASTKind::LiteralExpr, Range)
+        {
+        }
+    };
+
+    class InvalidDeclaration final : public frontend::parser::Decl
+    {
+      public:
+        explicit InvalidDeclaration(core::SourceRange Range)
+            : Decl(frontend::parser::ASTKind::SimpleStmt, Range)
+        {
+        }
+    };
+  } // namespace
+
   // Explicit object accessors preserve mutable/const service and IR references, including calls on rvalues.
   static_assert(std::is_same_v<decltype(std::declval<SemanticContext &>().diagnosticEngine()), core::DiagnosticEngine &>);
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &>().diagnosticEngine()), const core::DiagnosticEngine &>);
@@ -33,7 +55,7 @@ namespace ink::semantic::test
   static_assert(std::is_same_v<decltype(std::declval<SemanticContext &&>().irContext()), ir::IRContext &>);
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().irContext()), const ir::IRContext &>);
 
-  // Declaration collection skips expression statements, and full analysis accepts the implemented literal/name forms.
+  // A single analysis pass accepts the implemented literal and builtin boolean statement forms.
   TEST(SemanticAnalyzerEntryTest, AnalyzesLiteralAndBuiltinBooleanStatements)
   {
     core::SourceManager Sources;
@@ -48,8 +70,8 @@ namespace ink::semantic::test
     EXPECT_EQ(Output.globalVariableCount(), 0U);
   }
 
-  // Unknown expression names are diagnosed once each during full analysis, including following sibling statements.
-  TEST(SemanticAnalyzerEntryTest, ReportsUnknownExpressionNamesDuringFullAnalysis)
+  // Unknown expression names are diagnosed once each, including following sibling statements in the single pass.
+  TEST(SemanticAnalyzerEntryTest, ReportsUnknownExpressionNamesOnce)
   {
     core::SourceManager Sources;
     core::CollectingDiagnosticConsumer Consumer;
@@ -64,6 +86,25 @@ namespace ink::semantic::test
     ASSERT_EQ(Consumer.diagnostics().size(), 2U);
     EXPECT_EQ(Consumer.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownName);
     EXPECT_EQ(Consumer.diagnostics()[1].Kind, core::DiagnosticKind::SemanticUnknownName);
+  }
+
+  // Returns in ordinary module blocks are source errors and each statement is visited once.
+  TEST(SemanticAnalyzerEntryTest, ReportsReturnOutsideFunctionOnce)
+  {
+    core::SourceManager Sources;
+    core::CollectingDiagnosticConsumer Consumer;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Consumer);
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{ return; } return 1;"));
+    ASSERT_TRUE(Input.succeeded());
+    EXPECT_FALSE(Analyzer{}.analyze(Context, Input, Output));
+    ASSERT_EQ(Consumer.diagnostics().size(), 2U);
+    EXPECT_EQ(Consumer.diagnostics()[0].Kind, core::DiagnosticKind::SemanticReturnOutsideFunction);
+    EXPECT_EQ(Consumer.diagnostics()[1].Kind, core::DiagnosticKind::SemanticReturnOutsideFunction);
+    EXPECT_EQ(Output.globalFunctionCount(), 0U);
   }
 
   // The public entry reaches nested block dispatch and keeps successive calls independent.
@@ -258,6 +299,20 @@ namespace ink::semantic::test
     }
   }
 
+  // A successful parse result must carry a module root even when its source and token buffer are valid.
+  TEST(SemanticAnalyzerEntryDeathTest, ReportsInvalidASTForMissingModuleRoot)
+  {
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    SemanticContext Context(Sources, DiagnosticEngine, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    frontend::parser::ParseResult Input;
+    Input.Unit = std::make_unique<frontend::parser::ParsedUnit>(std::make_shared<frontend::parser::TokenBuffer>(frontend::tokenizer::tokenize(Frontend, "")));
+    ASSERT_TRUE(Input.succeeded());
+    EXPECT_DEATH(Analyzer{}.analyze(Context, Input, Output), "internal compiler error\\[INK-S0061\\]: invalid AST: successful parse result requires a module AST root");
+  }
+
   // Input from another compilation is rejected while input owned by the same context remains usable.
   TEST(SemanticAnalyzerEntryTest, RejectsForeignSourceContext)
   {
@@ -347,7 +402,6 @@ namespace ink::semantic::test
         {"for (;;) {}", "ClassicForStmt"},
         {"for (Item in Items) {}", "ForInStmt"},
         {"switch (X) {}", "SwitchStmt"},
-        {"return;", "ReturnStmt"},
         {"break;", "BreakStmt"},
         {"continue;", "ContinueStmt"},
         {"yield 1;", "YieldStmt"},
@@ -412,5 +466,40 @@ namespace ink::semantic::test
     SemanticContext Context(Sources, DiagnosticEngine, target::TargetContext::native());
     ir::Module Output(Context.irContext());
     EXPECT_DEATH(Analyzer{}.analyze(Context, Parsed, Output), "initial semantic analyzer does not support BlockStmt");
+  }
+
+  // A real statement object carrying an expression kind must fail statement dispatch with the AST contract ICE.
+  TEST(SemanticAnalyzerEntryDeathTest, ReportsInvalidASTForWrongStatementCategory)
+  {
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "0;"));
+    ASSERT_TRUE(Parsed.succeeded());
+    auto *Invalid = Parsed.Unit->context().make<InvalidStatement>(Parsed.Unit->root()->getSourceRange());
+    // ASTContext owns mutable pointer storage; the node-array API exposes its entries through a const view.
+    const_cast<frontend::parser::Stmt *&>(Parsed.Unit->root()->statements()[0]) = Invalid;
+    SemanticContext Context(Sources, DiagnosticEngine, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    EXPECT_DEATH(Analyzer{}.analyze(Context, Parsed, Output), "INK-S0061.*invalid AST: statement node kind must belong to the statement AST category");
+  }
+
+  // A real declaration object carrying a statement kind must fail declaration dispatch with the AST contract ICE.
+  TEST(SemanticAnalyzerEntryDeathTest, ReportsInvalidASTForWrongDeclarationCategory)
+  {
+    core::SourceManager Sources;
+    core::DiagnosticEngine DiagnosticEngine;
+    frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
+    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "0;"));
+    ASSERT_TRUE(Parsed.succeeded());
+    const auto Range = Parsed.Unit->root()->getSourceRange();
+    auto &AST = Parsed.Unit->context();
+    auto *Invalid = AST.make<InvalidDeclaration>(Range);
+    auto *Statement = AST.make<frontend::parser::DeclStmt>(Range, Invalid);
+    // ASTContext owns mutable pointer storage; the node-array API exposes its entries through a const view.
+    const_cast<frontend::parser::Stmt *&>(Parsed.Unit->root()->statements()[0]) = Statement;
+    SemanticContext Context(Sources, DiagnosticEngine, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    EXPECT_DEATH(Analyzer{}.analyze(Context, Parsed, Output), "INK-S0061.*invalid AST: declaration node kind must belong to the declaration AST category");
   }
 } // namespace ink::semantic::test

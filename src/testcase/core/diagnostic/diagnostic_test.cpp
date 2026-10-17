@@ -30,6 +30,13 @@ namespace ink::core::test
     EXPECT_DEATH(Engine.report<DiagnosticKind::ASTArchiveUnsupportedVersion>({}, 9U, 1U), "unsupported AST archive version 9; supported version is 1");
   }
 
+  // Invalid semantic AST diagnostics print their invariant description and stable code before termination.
+  TEST(DiagnosticDeathTest, PrintsInvalidSemanticASTReason)
+  {
+    DiagnosticEngine Engine;
+    EXPECT_DEATH(Engine.report<DiagnosticKind::SemanticInvalidAST>({}, "FunctionDecl definition requires a body"), "internal compiler error\\[INK-S0061\\]: invalid AST: FunctionDecl definition requires a body");
+  }
+
   // A consumer cannot intercept or suppress an ICE before the engine prints and panics.
   TEST(DiagnosticDeathTest, PanicsBeforeDispatchingToConsumers)
   {
@@ -169,5 +176,28 @@ namespace ink::core::test
     EXPECT_EQ(DiagnosticFormatter{}.format(Diagnostic).Message, "invalid AST archive tree: missing required child");
     Diagnostic.Arguments.clear();
     EXPECT_EQ(DiagnosticFormatter{}.format(Diagnostic).Message, "invalid AST archive tree");
+  }
+
+  // Invalid semantic AST diagnostics own their description and preserve their registered identity, classification and fallback.
+  TEST(DiagnosticTest, InvalidSemanticASTOwnsDescriptionAndHasStableIdentity)
+  {
+    const SourceId Source(29);
+    const SourceRange Span = SourceRange::fromByteOffsets(3, 11);
+    auto Diagnostic = makeDiagnostic<DiagnosticKind::SemanticInvalidAST>(Span, std::string("FunctionDecl definition requires a body"));
+    Diagnostic.Source = Source;
+    EXPECT_EQ(Diagnostic.Kind, DiagnosticKind::SemanticInvalidAST);
+    EXPECT_EQ(diagnosticNumber(Diagnostic.Kind), 0x0300003DU);
+    EXPECT_STREQ(Diagnostic.code(), "INK-S0061");
+    EXPECT_EQ(Diagnostic.classification(), DiagnosticClass::InternalCompilerError);
+    EXPECT_EQ(Diagnostic.Source, Source);
+    EXPECT_EQ(Diagnostic.Span, Span);
+    const auto Formatted = DiagnosticFormatter{}.format(Diagnostic);
+    EXPECT_EQ(Formatted.Severity, DiagnosticSeverity::Error);
+    EXPECT_EQ(Formatted.Message, "invalid AST: FunctionDecl definition requires a body");
+    ASSERT_EQ(Diagnostic.Arguments.size(), 1U);
+    EXPECT_EQ(Diagnostic.Arguments[0].Name, DiagnosticArgumentName::Description);
+    EXPECT_EQ(std::get<std::string>(Diagnostic.Arguments[0].Value), "FunctionDecl definition requires a body");
+    Diagnostic.Arguments.clear();
+    EXPECT_EQ(DiagnosticFormatter{}.format(Diagnostic).Message, "invalid AST");
   }
 } // namespace ink::core::test

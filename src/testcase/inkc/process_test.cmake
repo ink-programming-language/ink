@@ -201,7 +201,7 @@ expect_result("Missing source file" "2" "")
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_result("Directory input" "2" "")
 
-# A lexical error after a valid declaration prevents unsupported semantic analysis.
+# A lexical error after a valid declaration prevents semantic analysis.
 file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/lexical.ink" CONTENT "func f(): void {}\n@" NEWLINE_STYLE LF)
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/lexical.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_source_error("Invalid token" "lexical.ink:2:1:" "error[INK-T0004]" "[bytes 18, 19)" "@")
@@ -220,13 +220,26 @@ file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/syntax.ink" CONTENT "func f(): void
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/syntax.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_source_error("Missing initializer" "syntax.ink:2:9:" "error[INK-P0002]" "[bytes 26, 26)" "var a = ;")
 
-# A syntactically valid function reaches the current semantic unsupported-node panic with source context.
-file(WRITE "${INK_TEST_DIRECTORY}/unsupported.ink" "func f(): void {}\n")
+# Fixed-parameter definitions analyze returns inside nested blocks and implicitly terminate void bodies.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/functions.ink" CONTENT "func identity(Value: i32): i32 { { return Value; } } func empty(): void {}" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/functions.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Function definitions" "0" "")
+
+# A return outside any function reports a recoverable semantic diagnostic with its source range.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/return-outside.ink" CONTENT "return;" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/return-outside.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "1" OR Error MATCHES "internal compiler error")
+  message(FATAL_ERROR "A return outside a function must fail with a user diagnostic: ${Status}: ${Error}")
+endif()
+expect_source_diagnostic("Return outside function" "return-outside.ink:1:1:" "error[INK-S0016]" "[bytes 0, 7)" "return;")
+
+# Unsupported function attributes retain the semantic unsupported-node panic and complete source context.
+file(WRITE "${INK_TEST_DIRECTORY}/unsupported.ink" "[tag] func f(): void {}\n")
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/unsupported.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 if(Status STREQUAL "0" OR Status MATCHES "[Tt]imeout" OR NOT Error MATCHES "FunctionDecl")
   message(FATAL_ERROR "Semantic analysis did not report its unsupported function: ${Status}: stdout=${Output}: stderr=${Error}")
 endif()
-expect_source_diagnostic("Unsupported function" "unsupported.ink:1:1:" "internal compiler error[INK-S0012]" "[bytes 0, 17)" "func f(): void {}")
+expect_source_diagnostic("Unsupported function" "unsupported.ink:1:2:" "internal compiler error[INK-S0012]" "[bytes 1, 23)" "[tag] func f(): void {}")
 if(NOT Error MATCHES "\\^~+")
   message(FATAL_ERROR "The unsupported declaration must underline its source range: ${Error}")
 endif()
