@@ -16,8 +16,8 @@ namespace ink::ir::test
     class SyntheticType final : public Type
     {
       public:
-        explicit SyntheticType(ValueKind Kind) noexcept
-            : Type(Kind)
+        SyntheticType(ValueKind Kind, const MetaType &Meta) noexcept
+            : Type(Kind, Meta)
         {
         }
 
@@ -35,8 +35,8 @@ namespace ink::ir::test
     class SyntheticGenericType final : public GenericType
     {
       public:
-        SyntheticGenericType(ValueKind Kind, core::Name Name) noexcept
-            : GenericType(Kind, Name, {})
+        SyntheticGenericType(ValueKind Kind, const MetaType &Meta, core::Name Name) noexcept
+            : GenericType(Kind, Meta, Name, {})
         {
         }
     };
@@ -47,6 +47,7 @@ namespace ink::ir::test
   {
     IRContext Context(Target64);
     auto &Types = Context.typePool();
+    EXPECT_EQ(Types.getMetaType()->toString(), "type");
     EXPECT_EQ(Types.getBoolType()->toString(), "bool");
     EXPECT_EQ(Types.getVoidType()->toString(), "void");
     EXPECT_EQ(Types.getInt8Type()->toString(), "i8");
@@ -120,11 +121,13 @@ namespace ink::ir::test
   // Generic declarations print their available names without requiring runtime layout or instantiated members.
   TEST(IRTypeFormatTest, FormatsGenericDeclarationNamesAndUnnamedFallbacks)
   {
+    IRContext Context(Target64);
+    const MetaType &Meta = *Context.typePool().getMetaType();
     auto &Names = core::NamePool::instance();
-    const SyntheticGenericType Class(ValueKind::GenericClass, Names.intern("FormatTemplate"));
-    const SyntheticGenericType Function(ValueKind::GenericFunction, Names.intern("FormatFunction"));
-    const SyntheticGenericType Variable(ValueKind::GenericVar, Names.intern("FormatVariable"));
-    const SyntheticGenericType Unnamed(ValueKind::GenericClass, core::NAME_None);
+    const SyntheticGenericType Class(ValueKind::GenericClass, Meta, Names.intern("FormatTemplate"));
+    const SyntheticGenericType Function(ValueKind::GenericFunction, Meta, Names.intern("FormatFunction"));
+    const SyntheticGenericType Variable(ValueKind::GenericVar, Meta, Names.intern("FormatVariable"));
+    const SyntheticGenericType Unnamed(ValueKind::GenericClass, Meta, core::NAME_None);
     EXPECT_EQ(Class.toString(), "FormatTemplate");
     EXPECT_EQ(Function.toString(), "FormatFunction");
     EXPECT_EQ(Variable.toString(), "FormatVariable");
@@ -150,10 +153,12 @@ namespace ink::ir::test
   // External Type subclasses need not implement a concrete kind's metadata to obtain a safe fallback spelling.
   TEST(IRTypeFormatTest, FormatsSyntheticAndUnknownTypesWithoutInvalidDowncasts)
   {
-    const SyntheticType Struct(ValueKind::Struct);
-    const SyntheticType Integer(ValueKind::Integer);
-    const SyntheticType Pointer(ValueKind::Pointer);
-    const SyntheticType Unknown(static_cast<ValueKind>(255));
+    IRContext Context(Target64);
+    const MetaType &Meta = *Context.typePool().getMetaType();
+    const SyntheticType Struct(ValueKind::Struct, Meta);
+    const SyntheticType Integer(ValueKind::Integer, Meta);
+    const SyntheticType Pointer(ValueKind::Pointer, Meta);
+    const SyntheticType Unknown(static_cast<ValueKind>(255), Meta);
     EXPECT_EQ(Struct.toString(), "struct");
     EXPECT_EQ(Integer.toString(), "integer");
     EXPECT_EQ(Pointer.toString(), "pointer");

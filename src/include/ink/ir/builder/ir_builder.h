@@ -59,11 +59,12 @@ namespace ink::ir
       // Requires an integer or float and a valid insertion point; constant operands also produce a NegInstruction.
       // Unsupported operands return nullptr without appending; invalid insertion state is asserted with check().
       [[nodiscard]] NegInstruction *createNeg(const Value &Operand);
-      // Empty indices preserve the source type. The first index steps over source objects; later indices traverse arrays or nominal fields.
+      // Infers the result pointer type from the source type and index path. Empty indices preserve the source type.
+      // The first index steps over source objects; later indices traverse arrays or nominal fields.
       // Field indices must be nonnegative integer constants in range. Array indices need not be constant or in range.
       // InBounds records a caller guarantee; it does not prove runtime address bounds. Opaque pointers cannot be indexed.
       // Selecting a unit array element or field may produce an opaque pointer, but cannot traverse that unit further.
-      [[nodiscard]] GetElementPtrInstruction *createGetElementPtr(const PointerType &ResultType, const Type &SourceElementType, const Value &Pointer, std::vector<const Value *> Indices, bool InBounds = false);
+      [[nodiscard]] GetElementPtrInstruction *createGetElementPtr(const Type &SourceElementType, const Value &Pointer, std::vector<const Value *> Indices, bool InBounds = false);
 
       [[nodiscard]] BranchInstruction *createBranch(BasicBlock &Target);
       [[nodiscard]] ConditionalBranchInstruction *createConditionalBranch(const Value &Condition, BasicBlock &TrueTarget, BasicBlock &FalseTarget);

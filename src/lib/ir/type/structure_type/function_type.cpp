@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  FunctionType::FunctionType(const target::TargetContext &Target, const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters)
-      : Type(ValueKind::FunctionType),
+  FunctionType::FunctionType(const MetaType &Meta, const target::TargetContext &Target, const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters)
+      : Type(ValueKind::FunctionType, Meta),
         ReturnType(ReturnType),
         Parameters(Parameters.begin(), Parameters.end()),
         PointerByteWidth(Target.pointerByteWidth())

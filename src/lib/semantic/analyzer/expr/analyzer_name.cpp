@@ -2,6 +2,9 @@
 
 #include "ink/core/name/name_pool.h"
 #include "ink/frontend/parser/ast/name_expr.h"
+#include "ink/ir/function/basic_block.h"
+#include "ink/ir/module/global_variable.h"
+#include "ink/ir/module/module.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/semantic/context.h"
 
@@ -11,6 +14,44 @@ namespace ink::semantic
 {
   namespace
   {
+    bool isValidBindingValue(AnalyzerState &State, const ir::Value &Value) noexcept
+    {
+      const auto &Context = State.semanticContext().irContext();
+      if (ir::Type::classof(&Value))
+      {
+        return Context.containsType(static_cast<const ir::Type *>(&Value));
+      }
+      if (ir::Module::classof(&Value))
+      {
+        return &static_cast<const ir::Module &>(Value).irContext() == &Context;
+      }
+      const ir::Type *Type = Value.type();
+      if (!Context.containsType(Type) || (!Type->hasLayout() && !ir::NullPointerConstant::classof(&Value)))
+      {
+        return false;
+      }
+      if (ir::Constant::classof(&Value))
+      {
+        return Context.constantPool().owns(static_cast<const ir::Constant *>(&Value));
+      }
+      if (ir::GlobalVariable::classof(&Value) || ir::Function::classof(&Value))
+      {
+        return true;
+      }
+      if (ir::Parameter::classof(&Value))
+      {
+        return static_cast<const ir::Parameter &>(Value).function() == State.irBuilder().insertFunction();
+      }
+      if (ir::Instruction::classof(&Value))
+      {
+        const auto &Instruction = static_cast<const ir::Instruction &>(Value);
+        const ir::BasicBlock *Parent = Instruction.parentBlock();
+        const ir::Function *Function = State.irBuilder().insertFunction();
+        return !Instruction.isTerminator() && Function && Parent && Parent->function() == Function;
+      }
+      return false;
+    }
+
     template <auto Getter>
     const ir::Value *getBuiltinType(SemanticContext &Context) noexcept
     {
@@ -32,6 +73,7 @@ namespace ink::semantic
       };
       // TODO: Extend numeric builtins with i128/u128/f16 once TypePool supports them.
       static constexpr Entry Entries[] = {
+          {"type", getBuiltinType<&ir::TypePool::getMetaType>},
           {"void", getBuiltinType<&ir::TypePool::getVoidType>},
           {"bool", getBuiltinType<&ir::TypePool::getBoolType>},
           {"i8", getBuiltinType<&ir::TypePool::getInt8Type>},
@@ -66,7 +108,19 @@ namespace ink::semantic
       State.semanticContext().report<core::DiagnosticKind::SemanticAmbiguousName>(Node.getSourceRange());
       return nullptr;
     }
-    return Found.targets().front();
+    const ir::Value *Value = Found.targets().front();
+    // Bound objects are compiler-produced IR; invalid ownership or storage is an internal model violation.
+    if (!Value || !isValidBindingValue(State, *Value))
+    {
+      State.semanticContext().report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
+      return nullptr;
+    }
+    if (ir::Parameter::classof(Value) && static_cast<const ir::Parameter *>(Value)->isVariadic())
+    {
+      State.semanticContext().report<core::DiagnosticKind::SemanticUnsupported>(Node.getSourceRange(), "variadic parameter values");
+      return nullptr;
+    }
+    return Value;
   }
 
   const ir::Value *Analyzer::analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node)

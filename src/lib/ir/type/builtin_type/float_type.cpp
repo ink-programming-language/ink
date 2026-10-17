@@ -2,8 +2,8 @@
 
 namespace ink::ir
 {
-  FloatType::FloatType(const target::TargetContext &Target, std::uint32_t Width) noexcept
-      : Type(ValueKind::Float),
+  FloatType::FloatType(const MetaType &Meta, const target::TargetContext &Target, std::uint32_t Width) noexcept
+      : Type(ValueKind::Float, Meta),
         Width(Width),
         Alignment(Target.floatAlignment(Width))
   {

@@ -5,11 +5,16 @@
 
 namespace ink::ir
 {
+  class MetaType;
+
   // Common base for IR types; size and alignment remain type-specific.
   class Type : public Value
   {
     public:
       ~Type() noexcept override;
+
+      // Type descriptors are compile-time values whose type is their context's unique metatype.
+      const Type *type() const noexcept override;
 
       // False for type markers or templates awaiting instantiation; size/alignment then carry no runtime layout.
       virtual bool hasLayout() const noexcept;
@@ -22,7 +27,11 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     protected:
-      explicit Type(ValueKind Kind) noexcept;
+      // Borrows Meta, which must outlive this descriptor.
+      Type(ValueKind Kind, const MetaType &Meta) noexcept;
+
+    private:
+      const MetaType &Meta;
   };
 } // namespace ink::ir
 

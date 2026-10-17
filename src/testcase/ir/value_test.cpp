@@ -226,12 +226,13 @@ namespace ink::ir::test
     EXPECT_EQ(Global.initializer(), Initializer);
   }
 
-  // Type descriptors, basic blocks and unknown value kinds have no operand type even when the descriptor itself has a runtime layout.
-  TEST(IRValueTest, RejectsTypesBlocksAndUnknownValues)
+  // Type descriptors expose the canonical metatype while blocks and unknown values retain an unspecified type.
+  TEST(IRValueTest, QueriesMetatypeForDescriptorsAndLeavesBlocksAndUnknownValuesUntyped)
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     const Type *Descriptors[] = {
+        Types.typePool().getMetaType(),
         Types.typePool().getVoidType(),
         Types.typePool().getVariadicType(),
         Types.typePool().getBoolType(),
@@ -250,7 +251,7 @@ namespace ink::ir::test
     {
       ASSERT_NE(Descriptor, nullptr);
       const Value &DescriptorValue = *Descriptor;
-      EXPECT_EQ(DescriptorValue.type(), nullptr);
+      EXPECT_EQ(DescriptorValue.type(), Types.typePool().getMetaType());
     }
     BasicBlock Block;
     const UnknownValue Unknown;

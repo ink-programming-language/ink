@@ -20,7 +20,7 @@ namespace ink::ir
     private:
       friend class TypePool;
 
-      VariadicType() noexcept;
+      explicit VariadicType(const MetaType &Meta) noexcept;
   };
 } // namespace ink::ir
 

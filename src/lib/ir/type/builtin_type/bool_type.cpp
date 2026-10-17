@@ -2,8 +2,8 @@
 
 namespace ink::ir
 {
-  BoolType::BoolType() noexcept
-      : Type(ValueKind::Bool)
+  BoolType::BoolType(const MetaType &Meta) noexcept
+      : Type(ValueKind::Bool, Meta)
   {
   }
 

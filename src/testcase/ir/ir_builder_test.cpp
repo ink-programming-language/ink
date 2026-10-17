@@ -90,7 +90,6 @@ namespace ink::ir::test
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()}));
     auto *Entry = Owner.createBlock();
     auto *Integer = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
-    auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     auto *Null = Types.constantPool().getNullPointerConstant();
     IRBuilder Builder(Types.irContext());
     EXPECT_DEATH(static_cast<void>(Builder.createCall(Owner)), "check failed: canAppend");
@@ -99,7 +98,7 @@ namespace ink::ir::test
     EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Integer)), "check failed: canAppend");
     EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Types.constantPool().getFloatConstant(-0.0))), "check failed: canAppend");
     EXPECT_DEATH(static_cast<void>(Builder.createNeg(*Owner.parameter(0))), "check failed: canAppend");
-    EXPECT_DEATH(static_cast<void>(Builder.createGetElementPtr(*Pointer, *Types.typePool().getInt32Type(), *Null, {})), "check failed: canAppend");
+    EXPECT_DEATH(static_cast<void>(Builder.createGetElementPtr(*Types.typePool().getInt32Type(), *Null, {})), "check failed: canAppend");
     EXPECT_DEATH(static_cast<void>(Builder.createBranch(*Entry)), "check failed: canAppend");
     EXPECT_DEATH(static_cast<void>(Builder.createConditionalBranch(*Types.constantPool().getBoolConstant(true), *Entry, *Entry)), "check failed: canAppend");
     EXPECT_DEATH(static_cast<void>(Builder.createReturn()), "check failed: canAppend");
@@ -126,7 +125,7 @@ namespace ink::ir::test
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
     IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    auto *Address = Builder.createGetElementPtr(*ElementPointer, *Array, *Caller.parameter(0), {Zero, Caller.parameter(1)}, true);
+    auto *Address = Builder.createGetElementPtr(*Array, *Caller.parameter(0), {Zero, Caller.parameter(1)}, true);
     ASSERT_NE(Address, nullptr);
     auto *Call = Builder.createCall(Callee, {Argument(*Address)});
     ASSERT_NE(Call, nullptr);
@@ -198,7 +197,7 @@ namespace ink::ir::test
       EXPECT_DEATH(static_cast<void>(Second.createCall(Owner)), "check failed: canAppend");
       EXPECT_DEATH(static_cast<void>(Second.createCall(*Owner.functionType(), Owner)), "check failed: canAppend");
       EXPECT_DEATH(static_cast<void>(Second.createNeg(*Zero)), "check failed: canAppend");
-      EXPECT_DEATH(static_cast<void>(Second.createGetElementPtr(*Types.typePool().getPointerType(Types.typePool().getInt32Type()), *Types.typePool().getInt32Type(), *Types.constantPool().getNullPointerConstant(), {})), "check failed: canAppend");
+      EXPECT_DEATH(static_cast<void>(Second.createGetElementPtr(*Types.typePool().getInt32Type(), *Types.constantPool().getNullPointerConstant(), {})), "check failed: canAppend");
       EXPECT_DEATH(static_cast<void>(Second.createReturn()), "check failed: canAppend");
       EXPECT_DEATH(static_cast<void>(Second.createReturn(*Zero)), "check failed: canAppend");
       EXPECT_DEATH(static_cast<void>(Second.createBranch(*Block)), "check failed: canAppend");
@@ -554,32 +553,32 @@ namespace ink::ir::test
     EXPECT_NE(Builder.createBranch(*Sibling), nullptr);
   }
 
-  // Empty GEP index lists preserve the source type and the first index performs pointer stepping without selecting an element.
+  // Empty and single-index GEPs infer the source pointer type because the first index steps over objects without selecting an element.
   TEST(IRBuilderTest, PreservesSourceForEmptyAndSingleIndexGEP)
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     auto *Array = Types.typePool().getArrayType(Types.typePool().getInt32Type(), 4);
     auto *Pointer = Types.typePool().getPointerType(Array);
-    auto *ElementPointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Pointer}));
     auto *Entry = Owner.createBlock();
     auto *One = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 1);
     IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    auto *Empty = Builder.createGetElementPtr(*Pointer, *Array, *Owner.parameter(0), {});
-    auto *Step = Builder.createGetElementPtr(*Pointer, *Array, *Owner.parameter(0), {One});
+    auto *Empty = Builder.createGetElementPtr(*Array, *Owner.parameter(0), {});
+    auto *Step = Builder.createGetElementPtr(*Array, *Owner.parameter(0), {One});
     ASSERT_NE(Empty, nullptr);
     ASSERT_NE(Step, nullptr);
     EXPECT_EQ(Empty->indexCount(), 0U);
     EXPECT_FALSE(Empty->isInBounds());
+    EXPECT_EQ(Empty->type(), Pointer);
+    EXPECT_EQ(Step->type(), Pointer);
     EXPECT_EQ(Step->index(0), One);
     EXPECT_EQ(Step->sourceElementType(), Array);
-    EXPECT_EQ(Builder.createGetElementPtr(*ElementPointer, *Array, *Owner.parameter(0), {One}), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 2U);
   }
 
-  // Array indexing accepts dynamic, negative and beyond-bound integer offsets without proving the inbounds promise.
+  // Nested-array GEPs create their inferred element pointer type without prior pooling and accept offsets without proving the inbounds promise.
   TEST(IRBuilderTest, IndexesNestedArraysWithoutRuntimeBoundsChecks)
   {
     IRContext TypesContext(Target);
@@ -587,15 +586,16 @@ namespace ink::ir::test
     auto *Inner = Types.typePool().getArrayType(Types.typePool().getInt32Type(), 2);
     auto *Outer = Types.typePool().getArrayType(Inner, 3);
     auto *Pointer = Types.typePool().getPointerType(Outer);
-    auto *ElementPointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Pointer, Types.typePool().getInt32Type()}));
     auto *Entry = Owner.createBlock();
     auto *Negative = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), -1);
     auto *Large = Types.constantPool().getUnsignedIntegerConstant(Types.typePool().getUInt64Type(), 1000);
     IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    auto *Address = Builder.createGetElementPtr(*ElementPointer, *Outer, *Owner.parameter(0), {Negative, Owner.parameter(1), Large}, true);
+    auto *Address = Builder.createGetElementPtr(*Outer, *Owner.parameter(0), {Negative, Owner.parameter(1), Large}, true);
     ASSERT_NE(Address, nullptr);
+    EXPECT_EQ(Address->type(), Types.typePool().getPointerType(Types.typePool().getInt32Type()));
+    EXPECT_EQ(Address->sourceElementType(), Outer);
     EXPECT_EQ(Address->indexCount(), 3U);
     EXPECT_EQ(Address->index(0), Negative);
     EXPECT_EQ(Address->index(1), Owner.parameter(1));
@@ -603,7 +603,7 @@ namespace ink::ir::test
     EXPECT_TRUE(Address->isInBounds());
   }
 
-  // A constant field index selects nominal metadata before a later dynamic array index selects its element.
+  // Nominal-field metadata followed by a dynamic array index determines the inferred element pointer type.
   TEST(IRBuilderTest, IndexesNominalFieldsAndNestedArrays)
   {
     IRContext TypesContext(Target);
@@ -613,16 +613,15 @@ namespace ink::ir::test
     ASSERT_TRUE(Record->addField(Field(Types.typePool().getInt64Type(), core::NamePool::instance().intern("builder_header"), 0)));
     ASSERT_TRUE(Record->addField(Field(Array, core::NamePool::instance().intern("builder_values"), 8)));
     auto *Pointer = Types.typePool().getPointerType(Record);
-    auto *ElementPointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Pointer, Types.typePool().getInt32Type()}));
     auto *Entry = Owner.createBlock();
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
     auto *One = Types.constantPool().getUnsignedIntegerConstant(Types.typePool().getUInt64Type(), 1);
     IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    auto *Address = Builder.createGetElementPtr(*ElementPointer, *Record, *Owner.parameter(0), {Zero, One, Owner.parameter(1)});
+    auto *Address = Builder.createGetElementPtr(*Record, *Owner.parameter(0), {Zero, One, Owner.parameter(1)});
     ASSERT_NE(Address, nullptr);
-    EXPECT_EQ(Address->type(), ElementPointer);
+    EXPECT_EQ(Address->type(), Types.typePool().getPointerType(Types.typePool().getInt32Type()));
     EXPECT_EQ(Address->sourceElementType(), Record);
     EXPECT_EQ(Address->index(1), One);
   }
@@ -635,7 +634,6 @@ namespace ink::ir::test
     auto *Record = Types.createStructType(4, 4);
     ASSERT_TRUE(Record->addField(Field(Types.typePool().getInt32Type(), core::NamePool::instance().intern("builder_field"))));
     auto *Pointer = Types.typePool().getPointerType(Record);
-    auto *ElementPointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Pointer, Types.typePool().getInt32Type()}));
     auto *Entry = Owner.createBlock();
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
@@ -643,15 +641,15 @@ namespace ink::ir::test
     auto *PastEnd = Types.constantPool().getUnsignedIntegerConstant(Types.typePool().getUInt64Type(), 1);
     IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    EXPECT_EQ(Builder.createGetElementPtr(*ElementPointer, *Record, *Owner.parameter(0), {Zero, Owner.parameter(1)}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*ElementPointer, *Record, *Owner.parameter(0), {Zero, Negative}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*ElementPointer, *Record, *Owner.parameter(0), {Zero, PastEnd}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Record, *Owner.parameter(0), {Zero, Owner.parameter(1)}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Record, *Owner.parameter(0), {Zero, Negative}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Record, *Owner.parameter(0), {Zero, PastEnd}), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 0U);
     EXPECT_EQ(Builder.insertBlock(), Entry);
-    EXPECT_NE(Builder.createGetElementPtr(*ElementPointer, *Record, *Owner.parameter(0), {Zero, Zero}), nullptr);
+    EXPECT_NE(Builder.createGetElementPtr(*Record, *Owner.parameter(0), {Zero, Zero}), nullptr);
   }
 
-  // GEP rejects absent, noninteger and foreign indices together with incompatible pointer, source and result types.
+  // GEP rejects invalid indices, source types and pointer operands while inferring a typed result from a local null literal.
   TEST(IRBuilderTest, RejectsInvalidGEPOperandsAndForeignTypes)
   {
     IRContext TypesContext(Target);
@@ -660,8 +658,6 @@ namespace ink::ir::test
     Module ForeignTypes(ForeignTypesContext);
     auto *Integer = Types.typePool().getInt32Type();
     auto *Pointer = Types.typePool().getPointerType(Integer);
-    auto *OtherPointer = Types.typePool().getPointerType(Types.typePool().getUInt32Type());
-    auto *ForeignPointer = ForeignTypes.typePool().getPointerType(ForeignTypes.typePool().getInt32Type());
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Pointer}));
     auto *Entry = Owner.createBlock();
     auto *Null = Types.constantPool().getNullPointerConstant();
@@ -669,21 +665,22 @@ namespace ink::ir::test
     auto *ForeignZero = ForeignTypes.constantPool().getSignedIntegerConstant(ForeignTypes.typePool().getInt32Type(), 0);
     IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *Owner.parameter(0), {nullptr}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *Owner.parameter(0), {Types.constantPool().getBoolConstant(false)}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *Owner.parameter(0), {Types.constantPool().getFloatConstant(0.0)}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *Owner.parameter(0), {ForeignZero}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *Zero, {Zero}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*OtherPointer, *Types.typePool().getUInt32Type(), *Owner.parameter(0), {}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*OtherPointer, *Integer, *Owner.parameter(0), {}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*ForeignPointer, *Integer, *Owner.parameter(0), {}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *ForeignTypes.typePool().getInt32Type(), *Null, {}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *ForeignTypes.constantPool().getNullPointerConstant(), {}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Types.typePool().getPointerType(Types.typePool().getVoidType()), *Types.typePool().getVoidType(), *Null, {}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Integer, *Owner.parameter(0), {nullptr}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Integer, *Owner.parameter(0), {Types.constantPool().getBoolConstant(false)}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Integer, *Owner.parameter(0), {Types.constantPool().getFloatConstant(0.0)}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Integer, *Owner.parameter(0), {ForeignZero}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Integer, *Zero, {Zero}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Types.typePool().getUInt32Type(), *Owner.parameter(0), {}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*ForeignTypes.typePool().getInt32Type(), *Null, {}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Integer, *ForeignTypes.constantPool().getNullPointerConstant(), {}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Types.typePool().getVoidType(), *Null, {}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Types.typePool().getVariadicType(), *Null, {}), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 0U);
-    auto *Address = Builder.createGetElementPtr(*Pointer, *Integer, *Null, {Zero});
+    auto *Address = Builder.createGetElementPtr(*Integer, *Null, {Zero});
     ASSERT_NE(Address, nullptr);
     EXPECT_EQ(Address->pointer(), Null);
+    EXPECT_EQ(Address->type(), Pointer);
+    EXPECT_EQ(Address->sourceElementType(), Integer);
   }
 
   // Extra indices cannot descend through a scalar or implicitly load through an embedded pointer.
@@ -701,12 +698,16 @@ namespace ink::ir::test
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Integer, 0);
     IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *Owner.parameter(0), {Zero, Zero}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Pointer, *Owner.parameter(1), {Zero, Zero}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*UnitPointer, *Types.typePool().getVoidType(), *Owner.parameter(2), {Zero}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Integer, *Owner.parameter(0), {Zero, Zero}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Owner.parameter(1), {Zero, Zero}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Types.typePool().getVoidType(), *Owner.parameter(2), {Zero}), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 0U);
-    EXPECT_NE(Builder.createGetElementPtr(*PointerPointer, *Pointer, *Owner.parameter(1), {Zero}), nullptr);
-    EXPECT_NE(Builder.createGetElementPtr(*UnitPointerPointer, *UnitPointer, *Owner.parameter(3), {Zero}), nullptr);
+    auto *PointerAddress = Builder.createGetElementPtr(*Pointer, *Owner.parameter(1), {Zero});
+    auto *UnitPointerAddress = Builder.createGetElementPtr(*UnitPointer, *Owner.parameter(3), {Zero});
+    ASSERT_NE(PointerAddress, nullptr);
+    ASSERT_NE(UnitPointerAddress, nullptr);
+    EXPECT_EQ(PointerAddress->type(), PointerPointer);
+    EXPECT_EQ(UnitPointerAddress->type(), UnitPointerPointer);
   }
 
   // Unit parameters and calls supply unit arguments, but a terminator in another block cannot supply a unit value.
@@ -757,7 +758,7 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.createCall(*Signature, CallableGlobal, {Argument(*Zero)}), nullptr);
     EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, IntegerGlobal, *Zero), nullptr);
     EXPECT_EQ(Builder.createReturn(IntegerGlobal), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Types.typePool().getInt32Type(), PointerGlobal, {Zero}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Types.typePool().getInt32Type(), PointerGlobal, {Zero}), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 0U);
     EXPECT_EQ(Builder.insertBlock(), Entry);
   }
@@ -769,7 +770,6 @@ namespace ink::ir::test
     Module Types(Context);
     const Value &ModuleValue = Types;
     const auto *Integer = Types.typePool().getInt32Type();
-    const auto *Pointer = Types.typePool().getPointerType(Integer);
     const auto *Signature = Types.typePool().getFunctionType(Integer, {Integer});
     Function Owner(*Types.typePool().getFunctionType(Integer));
     Function Callee(*Signature);
@@ -783,15 +783,15 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Zero, ModuleValue), nullptr);
     EXPECT_EQ(Builder.createConditionalBranch(ModuleValue, *Entry, *Entry), nullptr);
     EXPECT_EQ(Builder.createReturn(ModuleValue), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, ModuleValue, {Zero}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*Pointer, *Integer, *Types.constantPool().getNullPointerConstant(), {&ModuleValue}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Integer, ModuleValue, {Zero}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Integer, *Types.constantPool().getNullPointerConstant(), {&ModuleValue}), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 0U);
     EXPECT_EQ(Builder.insertBlock(), Entry);
     EXPECT_EQ(Builder.insertFunction(), &Owner);
     EXPECT_NE(Builder.createReturn(*Zero), nullptr);
   }
 
-  // GEP may select a unit array element or nominal field as its endpoint, but cannot descend further through unit.
+  // Unit array elements and nominal fields infer the canonical opaque pointer result, but cannot be traversed further.
   TEST(IRBuilderTest, AllowsUnitEndpointsInAggregateGEP)
   {
     IRContext TypesContext(Target);
@@ -801,7 +801,6 @@ namespace ink::ir::test
     auto *Record = Types.createStructType(0, 1);
     ASSERT_NE(Record, nullptr);
     ASSERT_TRUE(Record->addField(Field(Types.typePool().getVoidType(), core::NamePool::instance().intern("builder_unit"))));
-    auto *UnitPointer = Types.typePool().getPointerType(Types.typePool().getVoidType());
     auto *ArrayPointer = Types.typePool().getPointerType(UnitArray);
     auto *RecordPointer = Types.typePool().getPointerType(Record);
     Function Owner(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {ArrayPointer, RecordPointer}));
@@ -809,15 +808,16 @@ namespace ink::ir::test
     auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
     IRBuilder Builder(Types.irContext());
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    auto *Element = Builder.createGetElementPtr(*UnitPointer, *UnitArray, *Owner.parameter(0), {Zero, Zero});
-    auto *Field = Builder.createGetElementPtr(*UnitPointer, *Record, *Owner.parameter(1), {Zero, Zero});
+    auto *Element = Builder.createGetElementPtr(*UnitArray, *Owner.parameter(0), {Zero, Zero});
+    auto *Field = Builder.createGetElementPtr(*Record, *Owner.parameter(1), {Zero, Zero});
     ASSERT_NE(Element, nullptr);
     ASSERT_NE(Field, nullptr);
+    const auto *UnitPointer = Types.typePool().getPointerType(Types.typePool().getVoidType());
     EXPECT_EQ(Element->type(), UnitPointer);
     EXPECT_EQ(Field->type(), UnitPointer);
-    EXPECT_EQ(Builder.createGetElementPtr(*UnitPointer, *UnitArray, *Owner.parameter(0), {Zero, Zero, Zero}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*UnitPointer, *Record, *Owner.parameter(1), {Zero, Zero, Zero}), nullptr);
-    EXPECT_EQ(Builder.createGetElementPtr(*UnitPointer, *Types.typePool().getVoidType(), *Element, {Zero}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*UnitArray, *Owner.parameter(0), {Zero, Zero, Zero}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Record, *Owner.parameter(1), {Zero, Zero, Zero}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Types.typePool().getVoidType(), *Element, {Zero}), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 2U);
   }
 

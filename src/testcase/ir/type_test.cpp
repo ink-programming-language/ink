@@ -49,8 +49,8 @@ namespace ink::ir::test
     class SyntheticType final : public Type
     {
       public:
-        SyntheticType(std::uint64_t Size, std::uint64_t Alignment, ValueKind Kind = ValueKind::Struct) noexcept
-            : Type(Kind),
+        SyntheticType(const MetaType &Meta, std::uint64_t Size, std::uint64_t Alignment, ValueKind Kind = ValueKind::Struct) noexcept
+            : Type(Kind, Meta),
               Size(Size),
               Alignment(Alignment)
         {
@@ -82,18 +82,18 @@ namespace ink::ir::test
   static_assert(std::has_virtual_destructor_v<Type>);
   static_assert(!std::is_default_constructible_v<VoidType>);
   static_assert(!std::is_default_constructible_v<BoolType>);
-  static_assert(!std::is_constructible_v<IntegerType, const target::TargetContext &, std::uint32_t, bool>);
-  static_assert(!std::is_constructible_v<FloatType, const target::TargetContext &, std::uint32_t>);
-  static_assert(!std::is_constructible_v<PointerType, const target::TargetContext &, const Type *>);
-  static_assert(!std::is_constructible_v<ReferenceType, const target::TargetContext &, const Type *>);
-  static_assert(!std::is_constructible_v<ArrayType, const Type *, std::uint64_t, std::uint64_t, std::uint64_t>);
-  static_assert(!std::is_constructible_v<FunctionType, const target::TargetContext &, const Type *, std::span<const FunctionTypeParameter>>);
+  static_assert(!std::is_constructible_v<IntegerType, const MetaType &, const target::TargetContext &, std::uint32_t, bool>);
+  static_assert(!std::is_constructible_v<FloatType, const MetaType &, const target::TargetContext &, std::uint32_t>);
+  static_assert(!std::is_constructible_v<PointerType, const MetaType &, const target::TargetContext &, const Type *>);
+  static_assert(!std::is_constructible_v<ReferenceType, const MetaType &, const target::TargetContext &, const Type *>);
+  static_assert(!std::is_constructible_v<ArrayType, const MetaType &, const Type *, std::uint64_t, std::uint64_t, std::uint64_t>);
+  static_assert(!std::is_constructible_v<FunctionType, const MetaType &, const target::TargetContext &, const Type *, std::span<const FunctionTypeParameter>>);
   static_assert(!std::is_constructible_v<ClassType, std::uint64_t, std::uint64_t>);
   static_assert(!std::is_constructible_v<StructType, std::uint64_t, std::uint64_t>);
   static_assert(!std::is_constructible_v<InterfaceType, std::uint64_t, std::uint64_t>);
-  static_assert(!std::is_constructible_v<GenericClassType, core::Name, std::vector<const Type *>>);
-  static_assert(!std::is_constructible_v<GenericFunctionType, core::Name, std::vector<const Type *>, const Type *, std::vector<const Type *>>);
-  static_assert(!std::is_constructible_v<GenericVarType, core::Name, std::vector<const Type *>, const Type *>);
+  static_assert(!std::is_constructible_v<GenericClassType, const MetaType &, core::Name, std::vector<const Type *>>);
+  static_assert(!std::is_constructible_v<GenericFunctionType, const MetaType &, core::Name, std::vector<const Type *>, const Type *, std::vector<const Type *>>);
+  static_assert(!std::is_constructible_v<GenericVarType, const MetaType &, core::Name, std::vector<const Type *>, const Type *>);
   static_assert(!std::is_copy_constructible_v<BoolType> && !std::is_move_constructible_v<BoolType>);
   static_assert(!std::is_copy_constructible_v<IntegerType> && !std::is_move_constructible_v<IntegerType>);
   static_assert(!std::is_copy_constructible_v<FunctionType> && !std::is_move_constructible_v<FunctionType>);
@@ -397,9 +397,9 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const SyntheticType ValidLayout(4, 4);
-    const SyntheticType ZeroAlignment(4, 0);
-    const SyntheticType NonPowerOfTwoAlignment(4, 3);
+    const SyntheticType ValidLayout(*Types.typePool().getMetaType(), 4, 4);
+    const SyntheticType ZeroAlignment(*Types.typePool().getMetaType(), 4, 0);
+    const SyntheticType NonPowerOfTwoAlignment(*Types.typePool().getMetaType(), 4, 3);
     EXPECT_EQ(Types.typePool().getArrayType(&ValidLayout, 0), nullptr);
     EXPECT_EQ(Types.typePool().getArrayType(&ValidLayout, 1), nullptr);
     EXPECT_EQ(Types.typePool().getArrayType(&ZeroAlignment, 0), nullptr);
@@ -454,7 +454,7 @@ namespace ink::ir::test
     ASSERT_NE(NullValue, nullptr);
     ASSERT_NE(StringValue, nullptr);
 
-    const std::array<const Value *, 19> Values = {
+    const std::array<const Value *, 20> Values = {
         Types.typePool().getVoidType(),
         Integer,
         Float,
@@ -474,9 +474,10 @@ namespace ink::ir::test
         NullValue,
         StringValue,
         Types.typePool().getNullPointerType(),
+        Types.typePool().getMetaType(),
     };
     using Classifier = bool (*)(const Value *);
-    const std::array<Classifier, 19> Classifiers = {
+    const std::array<Classifier, 20> Classifiers = {
         VoidType::classof,
         IntegerType::classof,
         FloatType::classof,
@@ -496,8 +497,9 @@ namespace ink::ir::test
         NullPointerConstant::classof,
         StringConstant::classof,
         NullPointerType::classof,
+        MetaType::classof,
     };
-    const SyntheticType Unknown(1, 1, static_cast<ValueKind>(255));
+    const SyntheticType Unknown(*Types.typePool().getMetaType(), 1, 1, static_cast<ValueKind>(255));
     for (std::size_t ClassifierIndex = 0; ClassifierIndex < Classifiers.size(); ++ClassifierIndex)
     {
       EXPECT_FALSE(Classifiers[ClassifierIndex](nullptr));

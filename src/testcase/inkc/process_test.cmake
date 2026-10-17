@@ -148,15 +148,19 @@ file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/literals.ink" CONTENT "0; 1; (14); 
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/literals.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_result("Literal expression statements" "0" "")
 
-# Top-level negation needs an instruction block and reports the construction ICE because constant folding is deferred.
+# Top-level negation needs an instruction block and fails an insertion check or construction ICE because constant folding is deferred.
 foreach(Expression IN ITEMS "-128" "-32768" "-2147483647" "-(2147483647)" "-0x7FFFFFFF" "-1.5" "-0.0")
   file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/negative-literals.ink" CONTENT "${Expression};" NEWLINE_STYLE LF)
   execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/negative-literals.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
-  if(Status STREQUAL "0" OR Status MATCHES "[Tt]imeout" OR NOT Error MATCHES "INK-S0013")
-    message(FATAL_ERROR "Top-level negation must report the construction ICE: ${Status}: stdout=${Output}: stderr=${Error}")
+  if(Status STREQUAL "0" OR Status MATCHES "[Tt]imeout")
+    message(FATAL_ERROR "Top-level negation must fail an insertion check or construction ICE: ${Status}: stdout=${Output}: stderr=${Error}")
   endif()
-  string(LENGTH "${Expression}" ExpressionLength)
-  expect_source_diagnostic("Top-level negation without a block" "negative-literals.ink:1:1:" "internal compiler error[INK-S0013]" "[bytes 0, ${ExpressionLength})" "${Expression};")
+  if(Error MATCHES "INK-S0013")
+    string(LENGTH "${Expression}" ExpressionLength)
+    expect_source_diagnostic("Top-level negation without a block" "negative-literals.ink:1:1:" "internal compiler error[INK-S0013]" "[bytes 0, ${ExpressionLength})" "${Expression};")
+  elseif(NOT Error MATCHES "check failed: canAppend")
+    message(FATAL_ERROR "Top-level negation must fail an insertion check or construction ICE: ${Status}: stdout=${Output}: stderr=${Error}")
+  endif()
 endforeach()
 
 # Unknown names return a source diagnostic instead of the former unsupported-SimpleStmt panic.

@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  ArrayType::ArrayType(const Type *ElementType, std::uint64_t ElementCount, std::uint64_t Size, std::uint64_t Alignment) noexcept
-      : Type(ValueKind::Array),
+  ArrayType::ArrayType(const MetaType &Meta, const Type *ElementType, std::uint64_t ElementCount, std::uint64_t Size, std::uint64_t Alignment) noexcept
+      : Type(ValueKind::Array, Meta),
         ElementType(ElementType),
         ElementCount(ElementCount),
         Size(Size),

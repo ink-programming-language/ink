@@ -16,7 +16,7 @@ namespace ink::ir
     private:
       friend class Module;
 
-      GenericClassType(core::Name Name, std::vector<const Type *> GenericParameters) noexcept;
+      GenericClassType(const MetaType &Meta, core::Name Name, std::vector<const Type *> GenericParameters) noexcept;
   };
 } // namespace ink::ir
 

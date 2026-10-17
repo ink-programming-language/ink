@@ -17,7 +17,7 @@ namespace ink::ir
     private:
       friend class TypePool;
 
-      BoolType() noexcept;
+      explicit BoolType(const MetaType &Meta) noexcept;
   };
 } // namespace ink::ir
 

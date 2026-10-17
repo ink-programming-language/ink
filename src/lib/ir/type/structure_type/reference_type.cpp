@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  ReferenceType::ReferenceType(const target::TargetContext &Target, const Type *ReferencedType) noexcept
-      : Type(ValueKind::Reference),
+  ReferenceType::ReferenceType(const MetaType &Meta, const target::TargetContext &Target, const Type *ReferencedType) noexcept
+      : Type(ValueKind::Reference, Meta),
         ReferencedType(ReferencedType),
         PointerByteWidth(Target.pointerByteWidth())
   {

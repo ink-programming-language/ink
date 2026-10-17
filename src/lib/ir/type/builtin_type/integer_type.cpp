@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  IntegerType::IntegerType(const target::TargetContext &Target, std::uint32_t Width, bool Signed) noexcept
-      : Type(ValueKind::Integer),
+  IntegerType::IntegerType(const MetaType &Meta, const target::TargetContext &Target, std::uint32_t Width, bool Signed) noexcept
+      : Type(ValueKind::Integer, Meta),
         Width(Width),
         Signed(Signed),
         Alignment(Target.integerAlignment(Width))

@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  PointerType::PointerType(const target::TargetContext &Target, const Type *PointeeType) noexcept
-      : Type(ValueKind::Pointer),
+  PointerType::PointerType(const MetaType &Meta, const target::TargetContext &Target, const Type *PointeeType) noexcept
+      : Type(ValueKind::Pointer, Meta),
         PointeeType(PointeeType),
         PointerByteWidth(Target.pointerByteWidth())
   {

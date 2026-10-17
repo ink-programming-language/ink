@@ -4,6 +4,7 @@
 #include "ink/ir/type/builtin_type/bool_type.h"
 #include "ink/ir/type/builtin_type/float_type.h"
 #include "ink/ir/type/builtin_type/integer_type.h"
+#include "ink/ir/type/builtin_type/meta_type.h"
 #include "ink/ir/type/builtin_type/null_pointer_type.h"
 #include "ink/ir/type/builtin_type/variadic_type.h"
 #include "ink/ir/type/builtin_type/void_type.h"
@@ -41,6 +42,7 @@ namespace ink::ir
       // Includes only pooled builtin and structural types, excluding module-owned nominal types.
       bool owns(const Type *TypeValue) const noexcept;
 
+      const MetaType *getMetaType() const noexcept;
       const VoidType *getVoidType() const noexcept;
       const VariadicType *getVariadicType() const noexcept;
       const BoolType *getBoolType() const noexcept;
@@ -62,6 +64,7 @@ namespace ink::ir
       const FloatType *getFloatType(std::uint32_t Width) const noexcept;
 
       // Structural types are reused. Null or foreign-context operands return nullptr.
+      // Pointer and reference operands cannot be the compile-time-only metatype.
       const PointerType *getPointerType(const Type *PointeeType);
       const ReferenceType *getReferenceType(const Type *ReferencedType);
       // Missing/invalid element layout or size overflow also returns nullptr.
@@ -96,6 +99,7 @@ namespace ink::ir
       bool validParameters(std::span<const FunctionTypeParameter> Parameters) const noexcept;
 
       const IRContext &Owner;
+      MetaType Meta;
       VoidType Void;
       VariadicType Variadic;
       BoolType Bool;

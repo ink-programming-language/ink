@@ -8,7 +8,7 @@
 namespace ink::ir
 {
   NominalType::NominalType(ValueKind Kind, const Module &Owner, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
-      : Type(Kind),
+      : Type(Kind, *Owner.typePool().getMetaType()),
         Owner(Owner),
         Size(Size),
         Alignment(Alignment),

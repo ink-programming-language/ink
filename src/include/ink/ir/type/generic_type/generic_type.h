@@ -30,7 +30,7 @@ namespace ink::ir
     protected:
       // Owns the generic parameter pointer list and borrows its types. Null types
       // and empty lists are preserved for later semantic resolution and validation.
-      GenericType(ValueKind Kind, core::Name Name, std::vector<const Type *> GenericParameters) noexcept;
+      GenericType(ValueKind Kind, const MetaType &Meta, core::Name Name, std::vector<const Type *> GenericParameters) noexcept;
 
     private:
       core::Name Name = core::NAME_None;

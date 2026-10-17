@@ -199,10 +199,10 @@ namespace ink::ir
     return append<NegInstruction>(Operand);
   }
 
-  GetElementPtrInstruction *IRBuilder::createGetElementPtr(const PointerType &ResultType, const Type &SourceElementType, const Value &Pointer, std::vector<const Value *> Indices, bool InBounds)
+  GetElementPtrInstruction *IRBuilder::createGetElementPtr(const Type &SourceElementType, const Value &Pointer, std::vector<const Value *> Indices, bool InBounds)
   {
     check(canAppend());
-    if (!Context.containsType(&ResultType) || !Context.containsType(&SourceElementType) || !SourceElementType.hasLayout() || VoidType::classof(&SourceElementType) || !validOperand(Pointer))
+    if (!Context.containsType(&SourceElementType) || !SourceElementType.hasLayout() || VoidType::classof(&SourceElementType) || !validOperand(Pointer))
     {
       return nullptr;
     }
@@ -240,11 +240,12 @@ namespace ink::ir
         return nullptr;
       }
     }
-    if (ResultType.pointeeType() != SelectedType)
+    const PointerType *ResultType = typePool().getPointerType(SelectedType);
+    if (!ResultType)
     {
       return nullptr;
     }
-    return append<GetElementPtrInstruction>(ResultType, SourceElementType, Pointer, std::move(Indices), InBounds);
+    return append<GetElementPtrInstruction>(*ResultType, SourceElementType, Pointer, std::move(Indices), InBounds);
   }
 
   BranchInstruction *IRBuilder::createBranch(BasicBlock &Target)

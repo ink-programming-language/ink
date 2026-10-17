@@ -2,8 +2,8 @@
 
 namespace ink::ir
 {
-  VariadicType::VariadicType() noexcept
-      : Type(ValueKind::Variadic)
+  VariadicType::VariadicType(const MetaType &Meta) noexcept
+      : Type(ValueKind::Variadic, Meta)
   {
   }
 

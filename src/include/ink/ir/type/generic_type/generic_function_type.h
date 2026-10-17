@@ -21,7 +21,7 @@ namespace ink::ir
 
       // Owns both parameter lists and borrows their types and ReturnType.
       // Null types are preserved for signatures awaiting semantic resolution.
-      GenericFunctionType(core::Name Name, std::vector<const Type *> GenericParameters, const Type *ReturnType, std::vector<const Type *> Parameters) noexcept;
+      GenericFunctionType(const MetaType &Meta, core::Name Name, std::vector<const Type *> GenericParameters, const Type *ReturnType, std::vector<const Type *> Parameters) noexcept;
 
       const Type *ReturnType = nullptr;
       std::vector<const Type *> Parameters;

@@ -10,19 +10,23 @@ namespace ink::ir
 {
   TypePool::TypePool(IRContext &Owner)
       : Owner(Owner),
-        NullPointer(Owner),
-        Int8(Owner.targetContext(), 8, true),
-        UInt8(Owner.targetContext(), 8, false),
-        Int16(Owner.targetContext(), 16, true),
-        UInt16(Owner.targetContext(), 16, false),
-        Int32(Owner.targetContext(), 32, true),
-        UInt32(Owner.targetContext(), 32, false),
-        Int64(Owner.targetContext(), 64, true),
-        UInt64(Owner.targetContext(), 64, false),
-        Float32(Owner.targetContext(), 32),
-        Float64(Owner.targetContext(), 64)
+        Meta(),
+        Void(Meta),
+        Variadic(Meta),
+        Bool(Meta),
+        NullPointer(Meta, Owner),
+        Int8(Meta, Owner.targetContext(), 8, true),
+        UInt8(Meta, Owner.targetContext(), 8, false),
+        Int16(Meta, Owner.targetContext(), 16, true),
+        UInt16(Meta, Owner.targetContext(), 16, false),
+        Int32(Meta, Owner.targetContext(), 32, true),
+        UInt32(Meta, Owner.targetContext(), 32, false),
+        Int64(Meta, Owner.targetContext(), 64, true),
+        UInt64(Meta, Owner.targetContext(), 64, false),
+        Float32(Meta, Owner.targetContext(), 32),
+        Float64(Meta, Owner.targetContext(), 64)
   {
-    OwnedTypes.insert({&Void, &Variadic, &Bool, &NullPointer, &Int8, &UInt8, &Int16, &UInt16, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64});
+    OwnedTypes.insert({&Meta, &Void, &Variadic, &Bool, &NullPointer, &Int8, &UInt8, &Int16, &UInt16, &Int32, &UInt32, &Int64, &UInt64, &Float32, &Float64});
   }
 
   TypePool::~TypePool() noexcept = default;
@@ -72,6 +76,11 @@ namespace ink::ir
       }
     }
     return true;
+  }
+
+  const MetaType *TypePool::getMetaType() const noexcept
+  {
+    return &Meta;
   }
 
   const VoidType *TypePool::getVoidType() const noexcept
@@ -172,7 +181,7 @@ namespace ink::ir
 
   const PointerType *TypePool::getPointerType(const Type *PointeeType)
   {
-    if (!Owner.containsType(PointeeType))
+    if (!Owner.containsType(PointeeType) || MetaType::classof(PointeeType))
     {
       return nullptr;
     }
@@ -181,14 +190,14 @@ namespace ink::ir
     {
       return Found->second;
     }
-    const PointerType *Result = own(std::unique_ptr<PointerType>(new PointerType(Owner.targetContext(), PointeeType)));
+    const PointerType *Result = own(std::unique_ptr<PointerType>(new PointerType(Meta, Owner.targetContext(), PointeeType)));
     PointerTypes.emplace(PointeeType, Result);
     return Result;
   }
 
   const ReferenceType *TypePool::getReferenceType(const Type *ReferencedType)
   {
-    if (!Owner.containsType(ReferencedType))
+    if (!Owner.containsType(ReferencedType) || MetaType::classof(ReferencedType))
     {
       return nullptr;
     }
@@ -197,7 +206,7 @@ namespace ink::ir
     {
       return Found->second;
     }
-    const ReferenceType *Result = own(std::unique_ptr<ReferenceType>(new ReferenceType(Owner.targetContext(), ReferencedType)));
+    const ReferenceType *Result = own(std::unique_ptr<ReferenceType>(new ReferenceType(Meta, Owner.targetContext(), ReferencedType)));
     ReferenceTypes.emplace(ReferencedType, Result);
     return Result;
   }
@@ -239,7 +248,7 @@ namespace ink::ir
       }
       Size = Stride * ElementCount;
     }
-    const ArrayType *Result = own(std::unique_ptr<ArrayType>(new ArrayType(ElementType, ElementCount, Size, Alignment)));
+    const ArrayType *Result = own(std::unique_ptr<ArrayType>(new ArrayType(Meta, ElementType, ElementCount, Size, Alignment)));
     ArrayTypes[ElementType].emplace(ElementCount, Result);
     return Result;
   }
@@ -266,7 +275,7 @@ namespace ink::ir
     {
       return Found->second;
     }
-    const FunctionType *Result = own(std::unique_ptr<FunctionType>(new FunctionType(Owner.targetContext(), ReturnType, Parameters)));
+    const FunctionType *Result = own(std::unique_ptr<FunctionType>(new FunctionType(Meta, Owner.targetContext(), ReturnType, Parameters)));
     FunctionTypes.emplace(std::move(Key), Result);
     return Result;
   }

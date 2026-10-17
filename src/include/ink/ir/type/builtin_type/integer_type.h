@@ -25,7 +25,7 @@ namespace ink::ir
     private:
       friend class TypePool;
 
-      IntegerType(const target::TargetContext &Target, std::uint32_t Width, bool Signed) noexcept;
+      IntegerType(const MetaType &Meta, const target::TargetContext &Target, std::uint32_t Width, bool Signed) noexcept;
 
       std::uint32_t Width = 0;
       bool Signed = false;

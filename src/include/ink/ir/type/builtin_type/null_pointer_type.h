@@ -20,7 +20,7 @@ namespace ink::ir
     private:
       friend class TypePool;
 
-      explicit NullPointerType(const IRContext &Owner) noexcept;
+      NullPointerType(const MetaType &Meta, const IRContext &Owner) noexcept;
 
       const IRContext &Owner;
       std::uint64_t PointerByteWidth = 0;

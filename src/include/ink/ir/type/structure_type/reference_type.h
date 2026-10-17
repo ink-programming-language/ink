@@ -23,7 +23,7 @@ namespace ink::ir
       void appendToString(ValueStringBuilder &Builder) const override;
 
       // ReferencedType is a non-null borrowed pointer and must outlive the reference type.
-      ReferenceType(const target::TargetContext &Target, const Type *ReferencedType) noexcept;
+      ReferenceType(const MetaType &Meta, const target::TargetContext &Target, const Type *ReferencedType) noexcept;
 
       const Type *ReferencedType = nullptr;
       std::uint64_t PointerByteWidth = 0;

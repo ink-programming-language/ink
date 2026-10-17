@@ -143,7 +143,7 @@ namespace ink::ir
 
   GlobalVariable *Module::createGlobalVariable(const Type &VariableType, core::Name VariableName)
   {
-    if (!ownsType(&VariableType))
+    if (!ownsType(&VariableType) || !VariableType.hasLayout())
     {
       return nullptr;
     }
@@ -152,7 +152,7 @@ namespace ink::ir
 
   GlobalVariable *Module::appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable)
   {
-    if (!Variable || !ownsType(Variable->type()) || (Variable->hasInitializer() && !constantPool().owns(Variable->initializer())))
+    if (!Variable || !ownsType(Variable->type()) || !Variable->type()->hasLayout() || (Variable->hasInitializer() && !constantPool().owns(Variable->initializer())))
     {
       return nullptr;
     }

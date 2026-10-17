@@ -1,13 +1,20 @@
 #include "ink/ir/type/type.h"
+#include "ink/ir/type/builtin_type/meta_type.h"
 
 namespace ink::ir
 {
-  Type::Type(ValueKind Kind) noexcept
-      : Value(Kind)
+  Type::Type(ValueKind Kind, const MetaType &Meta) noexcept
+      : Value(Kind),
+        Meta(Meta)
   {
   }
 
   Type::~Type() noexcept = default;
+
+  const Type *Type::type() const noexcept
+  {
+    return &Meta;
+  }
 
   bool Type::hasLayout() const noexcept
   {
@@ -38,6 +45,7 @@ namespace ink::ir
       case ValueKind::GenericFunction:
       case ValueKind::GenericVar:
       case ValueKind::Variadic:
+      case ValueKind::MetaType:
         return true;
       default:
         return false;

@@ -29,7 +29,7 @@ namespace ink::ir
 
       ValueKind kind() const noexcept;
       // Returns a borrowed recorded type, or nullptr for an untyped value. Does not convert or validate the value.
-      // Modules, type descriptors and basic blocks use the default nullptr result; functions report their full signature.
+      // Modules and basic blocks use the default nullptr result; type descriptors report their metatype and functions their full signature.
       virtual const Type *type() const noexcept;
       // Returns a short diagnostic description of this object, not its type or a complete IR dump.
       // The default implementation returns the value kind name.

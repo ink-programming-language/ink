@@ -20,7 +20,7 @@ namespace ink::ir
     private:
       friend class TypePool;
 
-      FloatType(const target::TargetContext &Target, std::uint32_t Width) noexcept;
+      FloatType(const MetaType &Meta, const target::TargetContext &Target, std::uint32_t Width) noexcept;
 
       std::uint32_t Width = 0;
       std::uint64_t Alignment = 0;

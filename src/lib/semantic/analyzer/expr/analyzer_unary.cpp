@@ -48,6 +48,11 @@ namespace ink::semantic
     {
       // analyzeExpr has already validated this type's membership in the current IR context.
       const auto *Type = static_cast<const ir::Type *>(Operand);
+      if (ir::MetaType::classof(Type))
+      {
+        Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.operand()->getSourceRange(), "a type with runtime storage", Type->toString());
+        return nullptr;
+      }
       auto &Types = Context.typePool();
       return Node.op() == TokenKind::Star ? static_cast<const ir::Type *>(Types.getPointerType(Type)) : Types.getReferenceType(Type);
     }

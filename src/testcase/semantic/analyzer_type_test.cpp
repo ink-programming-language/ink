@@ -83,6 +83,7 @@ namespace ink::semantic::test
         const ir::Type *Expected;
     };
     const Case Cases[] = {
+        {"type", Types.getMetaType()},
         {"void", Types.getVoidType()},
         {"bool", Types.getBoolType()},
         {"i8", Types.getInt8Type()},
@@ -104,6 +105,20 @@ namespace ink::semantic::test
       ASSERT_TRUE(Input.succeeded());
       EXPECT_EQ(analyze(Input), Entry.Expected);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+  }
+
+  // The metatype is valid as a compile-time type annotation but cannot appear in runtime storage or signatures.
+  TEST_F(SemanticAnalyzerTypeTest, RejectsMetaTypeInRuntimeTypeConstructors)
+  {
+    for (const char *Text : {"*type", "&type", "[type; 0]", "[type; 4]", "func(type): void", "func(): type"})
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_EQ(analyze(Input), nullptr);
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
     }
   }
 
@@ -258,6 +273,7 @@ namespace ink::semantic::test
         const ir::Type *Expected;
     };
     const Case Cases[] = {
+        {"((type))", Types.getMetaType()},
         {"((i32))", Types.getInt32Type()},
         {"*(&(*i32))", Types.getPointerType(Types.getReferenceType(Types.getPointerType(Types.getInt32Type())))},
         {"[*u8; 14]", Types.getArrayType(Types.getPointerType(Types.getUInt8Type()), 14)},
@@ -275,7 +291,8 @@ namespace ink::semantic::test
       const auto *Result = Analysis.analyzeExpr(State, *syntax(Input).expression());
       ASSERT_NE(Result, nullptr);
       EXPECT_EQ(Result, Entry.Expected);
-      EXPECT_EQ(Result->type(), nullptr);
+      EXPECT_EQ(Result->type(), Types.getMetaType());
+      EXPECT_EQ(Analysis.analyzeExpr(State, *syntax(Input).expression(), {.ExpectedType = Types.getMetaType()}), Entry.Expected);
       EXPECT_EQ(analyze(State, Input), Entry.Expected);
       EXPECT_EQ(State.recursionDepth(), 0U);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -412,7 +429,7 @@ namespace ink::semantic::test
     }
   }
 
-  // A nominal type from another module in the same context is reusable, but a foreign context's type is rejected.
+  // A nominal type from another module in the same context is reusable; binding a foreign type violates the compiler's context contract.
   TEST_F(SemanticAnalyzerTypeTest, EnforcesIrContextCompatibilityForNamedTypes)
   {
     auto Input = read("OtherType");
@@ -429,9 +446,8 @@ namespace ink::semantic::test
     EXPECT_EQ(analyze(State, Input), Shared);
     State.nameResolver().enterScope();
     ASSERT_EQ(State.nameResolver().bind(name("OtherType"), *Foreign), BindResult::Inserted);
-    EXPECT_EQ(analyze(State, Input), nullptr);
-    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
+    EXPECT_DEATH(analyze(State, Input), "INK-S0013");
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
   // Parenthesized module and nominal member owners retain their identity while resolving chained type names.

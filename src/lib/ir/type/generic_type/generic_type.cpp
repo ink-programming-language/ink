@@ -6,8 +6,8 @@
 
 namespace ink::ir
 {
-  GenericType::GenericType(ValueKind Kind, core::Name Name, std::vector<const Type *> GenericParameters) noexcept
-      : Type(Kind),
+  GenericType::GenericType(ValueKind Kind, const MetaType &Meta, core::Name Name, std::vector<const Type *> GenericParameters) noexcept
+      : Type(Kind, Meta),
         Name(Name),
         GenericParameters(std::move(GenericParameters))
   {
