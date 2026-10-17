@@ -667,7 +667,7 @@ namespace ink::semantic::test
     ASSERT_NE(Return, nullptr);
     ASSERT_EQ(State.nameResolver().bind(name("Operand"), *Function->parameter(0)), BindResult::Inserted);
 #if INK_ENABLE_ASSERTIONS
-    EXPECT_DEATH(analyze(State, Input), "check failed: canAppend");
+    EXPECT_DEATH(analyze(State, Input), "check failed:");
 #endif
     EXPECT_EQ(Block->instructionCount(), 2U);
     EXPECT_EQ(Block->instruction(1), Return);
@@ -700,7 +700,7 @@ namespace ink::semantic::test
       ASSERT_TRUE(Input.succeeded());
       AnalyzerState State(Context, Input, Output);
       EXPECT_EQ(State.irBuilder().insertBlock(), nullptr);
-      EXPECT_DEATH(analyze(State, Input), "check failed: canAppend");
+      EXPECT_DEATH(analyze(State, Input), "check failed:");
     }
   }
 

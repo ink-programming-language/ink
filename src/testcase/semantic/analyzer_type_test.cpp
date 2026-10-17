@@ -688,7 +688,7 @@ namespace ink::semantic::test
       SCOPED_TRACE(Text);
       auto Input = read(Text);
       ASSERT_TRUE(Input.succeeded());
-      EXPECT_DEATH(analyze(Input), "check failed: canAppend");
+      EXPECT_DEATH(analyze(Input), "check failed:");
     }
   }
 

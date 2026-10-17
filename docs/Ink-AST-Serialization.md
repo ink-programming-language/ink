@@ -42,7 +42,7 @@ Tokenizer 的 `TokenizedBuffer::fromSnapshot` 校验源码大小、成功源码�
 
 布尔值只能是 0 或 1；可选值以布尔存在标志开头；数组为元素数后接元素字段。普通 TokenId 保存零起始下标，`NameToken::Id` 使用 0 表示 InvalidTokenId，否则保存下标加 1。字面量 TokenId 及其种类和范围必须与 Token 表对应；带 `comptime` 标记的字面量节点范围允许向前覆盖前缀，结束位置仍须与字面量 Token 一致。名称文本及其范围必须与引用的 Token 和源码对应。
 
-Token payload 使用明确标签：0=无数据、1=IdentifierInfo、2=NumericInfo、3=StringInfo、4=CharInfo，不依赖 `std::variant` 的 alternative 顺序。`ASTKind` 使用 ASTNodes.def 中的固定编号；其余枚举使用 `ast_serialization_enums.def` 中独立固定的文件编号，不依赖 C++ 枚举声明顺序。新增 TokenKind 但未补全映射会触发静态断言。
+Token payload 使用明确标签：0=无数据、1=IdentifierInfo、2=NumericInfo、3=StringInfo、4=CharInfo，不依赖 `std::variant` 的 alternative 顺序。`ASTKind` 直接使用 ASTNodes.def 中的固定编号，这些编号属于当前归档格式的持久化契约，不得重编号或复用已删除节点的编号；C++ 枚举和 AST 节点的对象内存布局及 ABI 不属于该契约。其余枚举使用 `ast_serialization_enums.def` 中独立固定的文件编号，不依赖 C++ 枚举声明顺序。新增 TokenKind 但未补全映射会触发静态断言。
 
 当前 V5 为 `FunctionDecl` 保存原生符号语法，使用 Frontend 自有的 `NativeSymbolKind`，通过 `nativeSymbolKind()` 查询；固定文件编码保持 `None=0`、`Import=1`、`Export=2`，在 linkage 子节点之后保存。该枚举只记录源码显式的原生 import/export，`None` 表示没有原生说明符，不表达最终 IR 符号方向；移除对 IR 枚举的依赖不改变存档版本或文件编码。`KwExport` 使用新 Token 编号 87，已移除的 `KwExtern` 编号 84 永久保留不用。普通函数和仅带 `[abi("C")]` 属性的函数使用 `None` 且 linkage 为空；显式 `import "C"` 或 `export "C"` 必须具有 linkage，正常时为 `STRING_LITERAL`，缺失 ABI 字符串的恢复树使用 `MissingExpr`。结构校验拒绝方向与 linkage 不一致的快照，ABI 名称的完整解码字节保存在 Token 的 `StringInfo` 中。
 

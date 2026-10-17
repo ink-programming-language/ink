@@ -53,8 +53,6 @@ namespace ink::ir::test
   static_assert(!std::is_copy_assignable_v<Method>);
   static_assert(std::is_nothrow_move_constructible_v<Method>);
   static_assert(std::is_nothrow_move_assignable_v<Method>);
-  static_assert(std::is_same_v<decltype(std::declval<Method &>().function()), Function *>);
-  static_assert(std::is_same_v<decltype(std::declval<const Method &>().function()), const Function *>);
   static_assert(!std::is_constructible_v<Method, Function &>);
   static_assert(!std::is_constructible_v<Method, Function &&>);
   static_assert(!std::is_convertible_v<std::unique_ptr<Function>, Method>);

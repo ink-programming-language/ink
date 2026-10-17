@@ -63,19 +63,9 @@ namespace ink::ir::test
   static_assert(std::is_base_of_v<Value, Module>);
   static_assert(std::is_same_v<decltype(std::declval<Module &>().moduleID()), const ModuleID &>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().moduleID()), const ModuleID &>);
-  static_assert(std::is_same_v<decltype(std::declval<Module &>().initializationFunction()), Function *>);
-  static_assert(std::is_same_v<decltype(std::declval<const Module &>().initializationFunction()), const Function *>);
-  static_assert(std::is_same_v<decltype(std::declval<Module &>().deinitializationFunction()), Function *>);
-  static_assert(std::is_same_v<decltype(std::declval<const Module &>().deinitializationFunction()), const Function *>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().classes()), const std::vector<std::unique_ptr<ClassType>> &>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().interfaces()), const std::vector<std::unique_ptr<InterfaceType>> &>);
   static_assert(std::is_same_v<decltype(std::declval<const Module &>().structs()), const std::vector<std::unique_ptr<StructType>> &>);
-  static_assert(std::is_same_v<decltype(std::declval<Module &>().classType(0)), ClassType *>);
-  static_assert(std::is_same_v<decltype(std::declval<const Module &>().classType(0)), const ClassType *>);
-  static_assert(std::is_same_v<decltype(std::declval<Module &>().interfaceType(0)), InterfaceType *>);
-  static_assert(std::is_same_v<decltype(std::declval<const Module &>().interfaceType(0)), const InterfaceType *>);
-  static_assert(std::is_same_v<decltype(std::declval<Module &>().structType(0)), StructType *>);
-  static_assert(std::is_same_v<decltype(std::declval<const Module &>().structType(0)), const StructType *>);
 
   // Modules share Value identity without becoming typed operands, other value categories or owned declarations of themselves.
   TEST(IRModuleTest, ExposesUntypedValueIdentityWithoutChangingOwnership)

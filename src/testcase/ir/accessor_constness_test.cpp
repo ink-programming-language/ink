@@ -18,6 +18,21 @@ namespace ink::ir::test
   } // namespace
 
   // Explicit object accessors retain const propagation and borrowed lvalue/pointer results on every object category.
+  static_assert(std::same_as<decltype(std::declval<IRContext &>().typePool()), TypePool &>);
+  static_assert(std::same_as<decltype(std::declval<const IRContext &>().typePool()), const TypePool &>);
+  static_assert(std::same_as<decltype(std::declval<IRContext &&>().typePool()), TypePool &>);
+  static_assert(std::same_as<decltype(std::declval<const IRContext &&>().typePool()), const TypePool &>);
+
+  static_assert(std::same_as<decltype(std::declval<IRContext &>().constantPool()), ConstantPool &>);
+  static_assert(std::same_as<decltype(std::declval<const IRContext &>().constantPool()), const ConstantPool &>);
+  static_assert(std::same_as<decltype(std::declval<IRContext &&>().constantPool()), ConstantPool &>);
+  static_assert(std::same_as<decltype(std::declval<const IRContext &&>().constantPool()), const ConstantPool &>);
+
+  static_assert(std::same_as<decltype(std::declval<Module &>().irContext()), IRContext &>);
+  static_assert(std::same_as<decltype(std::declval<const Module &>().irContext()), const IRContext &>);
+  static_assert(std::same_as<decltype(std::declval<Module &&>().irContext()), IRContext &>);
+  static_assert(std::same_as<decltype(std::declval<const Module &&>().irContext()), const IRContext &>);
+
   static_assert(std::same_as<decltype(std::declval<IRBuilder &>().irContext()), IRContext &>);
   static_assert(std::same_as<decltype(std::declval<const IRBuilder &>().irContext()), const IRContext &>);
   static_assert(std::same_as<decltype(std::declval<IRBuilder &&>().irContext()), IRContext &>);

@@ -30,10 +30,6 @@ namespace ink::ir::test
     static_assert(!std::is_destructible_v<ConstantPool>);
     static_assert(!std::is_constructible_v<ConstantPool, IRContext &&>);
     static_assert(!std::is_constructible_v<ConstantPool, const IRContext &&>);
-    static_assert(std::is_same_v<decltype(std::declval<Module &>().constantPool()), ConstantPool &>);
-    static_assert(std::is_same_v<decltype(std::declval<const Module &>().constantPool()), const ConstantPool &>);
-    static_assert(noexcept(std::declval<Module &>().constantPool()));
-    static_assert(noexcept(std::declval<const Module &>().constantPool()));
     static_assert(std::is_same_v<decltype(std::declval<const ConstantPool &>().getBoolConstant(true)), const BoolConstant *>);
     static_assert(noexcept(std::declval<const ConstantPool &>().getBoolConstant(true)));
     static_assert(std::is_same_v<decltype(std::declval<const ConstantPool &>().getNullPointerConstant()), const NullPointerConstant *>);

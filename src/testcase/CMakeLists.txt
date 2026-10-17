@@ -19,8 +19,8 @@ target_compile_definitions(ink_tokenizer_test_objects PRIVATE INK_LEXICAL_RULES_
 target_link_libraries(ink_tokenizer_test_objects PRIVATE ink::core GTest::gtest)
 ink_disable_exceptions(ink_tokenizer_test_objects)
 
-# Original semantic test sources remain under semantic/ as a reference for rebuilding the implementation.
-# Most depend on removed IR and execution APIs; enable only the rebuilt entry, type, expression, function and name-resolution tests.
+# Historical semantic sources live under docs/reference/semantic-tests/ and are not compiled or counted as active tests.
+# Keep the rebuilt entry, type, expression, function, call and name-resolution test sources explicit.
 add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_IR_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} semantic/analyzer_entry_test.cpp semantic/analyzer_type_test.cpp semantic/analyzer_expr_test.cpp semantic/analyzer_function_decl_test.cpp semantic/analyzer_call_test.cpp semantic/name_resolver_test.cpp semantic/scope_store_test.cpp)
 add_dependencies(ink_tests ink_tokenize ink_parse inkc)
 target_compile_features(ink_tests PRIVATE cxx_std_23)

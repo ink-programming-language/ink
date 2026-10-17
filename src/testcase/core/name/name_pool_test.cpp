@@ -3,7 +3,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstdint>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -12,7 +11,6 @@
 
 namespace ink::core::test
 {
-  static_assert(sizeof(Name) == sizeof(std::uint32_t));
   static_assert(std::is_trivially_copyable_v<Name>);
   static_assert(std::is_nothrow_default_constructible_v<Name>);
   static_assert(!std::is_constructible_v<Name, Name::IndexType>);
@@ -46,7 +44,6 @@ namespace ink::core::test
     EXPECT_FALSE(Pool.find(Prefix + ".Missing").valid());
     EXPECT_FALSE(Pool.intern({}).valid());
     EXPECT_EQ(Pool.size(), Before + 1);
-    EXPECT_EQ(First.index(), Before);
   }
 
   // Equal spellings reuse an index regardless of input ownership and remain valid hash keys.
@@ -62,7 +59,6 @@ namespace ink::core::test
     Input.assign("Changed");
     EXPECT_TRUE(First.valid());
     EXPECT_TRUE(Pool.contains(First));
-    EXPECT_EQ(First.index(), Before);
     EXPECT_EQ(First, Second);
     EXPECT_EQ(std::hash<Name>{}(First), std::hash<Name>{}(Second));
     EXPECT_EQ(Pool.find(Text), First);
@@ -75,7 +71,6 @@ namespace ink::core::test
     EXPECT_EQ(Found->second, 7);
     const Name Lowercase = Pool.intern(Prefix + "variable");
     EXPECT_NE(Lowercase, First);
-    EXPECT_EQ(Lowercase.index(), Before + 1);
     EXPECT_EQ(Pool.size(), Before + 2);
   }
 

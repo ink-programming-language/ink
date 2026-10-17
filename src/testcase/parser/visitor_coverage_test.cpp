@@ -1,26 +1,34 @@
 #include "parser_test_support.h"
+#include <algorithm>
+#include <iterator>
 namespace ink::frontend::parser::test
 {
   namespace
   {
     struct DispatchCounter : ASTVisitor<DispatchCounter>
     {
-        std::size_t Count = 0;
-        void visitASTNodeBase(ASTNodeBase *)
-        {
-          ++Count;
+        std::vector<ASTKind> Kinds;
+#define AST_NODE(Name, Base, Category, Id) \
+        void visit##Name(Name *)          \
+        {                                 \
+          Kinds.push_back(ASTKind::Name); \
         }
+#include "ink/frontend/parser/ASTNodes.def"
+#undef AST_NODE
     };
     struct ConstDispatchCounter : ConstASTVisitor<ConstDispatchCounter>
     {
-        std::size_t Count = 0;
-        void visitASTNodeBase(const ASTNodeBase *)
-        {
-          ++Count;
+        std::vector<ASTKind> Kinds;
+#define AST_NODE(Name, Base, Category, Id) \
+        void visit##Name(const Name *)    \
+        {                                 \
+          Kinds.push_back(ASTKind::Name); \
         }
+#include "ink/frontend/parser/ASTNodes.def"
+#undef AST_NODE
     };
   } // namespace
-  // Every concrete kind defaults to runtime and retains its dispatch and category when the common comptime flag changes.
+  // Every concrete kind defaults to runtime and dispatches once to its mutable and const leaf callbacks after becoming comptime.
   TEST(ASTVisitorTest, EveryRegisteredKind)
   {
     ASTContext Context;
@@ -90,31 +98,38 @@ namespace ink::frontend::parser::test
     Nodes.push_back(Context.make<LiteralMatchPattern>(Range, static_cast<LiteralExpr *>(nullptr), bool{}));
     Nodes.push_back(Context.make<GroupedMatchPattern>(Range, static_cast<MatchPattern *>(nullptr)));
     Nodes.push_back(Context.make<OrMatchPattern>(Range, ASTArray<MatchPattern *>{}));
-    constexpr std::size_t RegisteredCount = 0
-#define AST_NODE(Name, Base, Category, Id) +1
+    constexpr ASTKind RegisteredKinds[] = {
+#define AST_NODE(Name, Base, Category, Id) ASTKind::Name,
 #include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
-        ;
-    ASSERT_EQ(Nodes.size(), RegisteredCount);
+    };
+    ASSERT_EQ(Nodes.size(), std::size(RegisteredKinds));
     DispatchCounter Mutable;
     ConstDispatchCounter Constant;
     for (auto *Node : Nodes)
     {
+      const ASTKind Kind = Node->getKind();
+      const std::size_t ExpectedCount = Mutable.Kinds.size() + 1;
+      SCOPED_TRACE(astKindName(Kind));
       EXPECT_FALSE(Node->isComptime());
       Node->setComptime();
       EXPECT_TRUE(Node->isComptime());
+      EXPECT_EQ(Node->getKind(), Kind);
       Mutable.visit(Node);
       Constant.visit(Node);
+      ASSERT_EQ(Mutable.Kinds.size(), ExpectedCount);
+      ASSERT_EQ(Constant.Kinds.size(), ExpectedCount);
+      EXPECT_EQ(Mutable.Kinds.back(), Kind);
+      EXPECT_EQ(Constant.Kinds.back(), Kind);
       EXPECT_NE(std::string_view(astKindName(Node->getKind())), "InvalidASTKind");
-      EXPECT_EQ(isa<Expr>(Node), categoryOf(Node->getKind()) == ASTCategory::Expr);
-      EXPECT_EQ(isa<Stmt>(Node), categoryOf(Node->getKind()) == ASTCategory::Stmt);
-      EXPECT_EQ(isa<Decl>(Node), categoryOf(Node->getKind()) == ASTCategory::Decl);
-      EXPECT_EQ(isa<BindingPattern>(Node), categoryOf(Node->getKind()) == ASTCategory::BindingPattern);
-      EXPECT_EQ(isa<MatchPattern>(Node), categoryOf(Node->getKind()) == ASTCategory::MatchPattern);
       Node->setComptime(false);
       EXPECT_FALSE(Node->isComptime());
     }
-    EXPECT_EQ(Mutable.Count, RegisteredCount);
-    EXPECT_EQ(Constant.Count, RegisteredCount);
+    for (ASTKind Kind : RegisteredKinds)
+    {
+      SCOPED_TRACE(astKindName(Kind));
+      EXPECT_EQ(std::count(Mutable.Kinds.begin(), Mutable.Kinds.end(), Kind), 1);
+      EXPECT_EQ(std::count(Constant.Kinds.begin(), Constant.Kinds.end(), Kind), 1);
+    }
   }
 } // namespace ink::frontend::parser::test

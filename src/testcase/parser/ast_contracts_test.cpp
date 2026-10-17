@@ -76,7 +76,6 @@ namespace ink::frontend::parser::test
 #undef INK_TEST_BindingPattern
 #undef INK_TEST_MatchPattern
     };
-    static_assert(std::is_same_v<decltype(std::declval<const BinaryExpr &>().left()), const Expr *>);
     static_assert(std::is_same_v<decltype(std::declval<const ModuleAST &>().statements()[0]), const Stmt *>);
     static_assert(std::is_same_v<decltype(std::declval<const Parameter &>().type()), const TypeSyntax *>);
     static_assert(std::is_same_v<decltype(dyn_cast<Expr>(static_cast<const ASTNodeBase *>(nullptr))), const Expr *>);

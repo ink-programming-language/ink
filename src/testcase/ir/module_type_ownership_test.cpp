@@ -32,12 +32,6 @@ namespace ink::ir::test
   static_assert(!std::is_move_constructible_v<TypePool>);
   static_assert(!std::is_copy_assignable_v<TypePool>);
   static_assert(!std::is_move_assignable_v<TypePool>);
-  static_assert(std::is_same_v<decltype(std::declval<Module &>().typePool()), TypePool &>);
-  static_assert(std::is_same_v<decltype(std::declval<const Module &>().typePool()), const TypePool &>);
-  static_assert(std::is_same_v<decltype(std::declval<Module &&>().typePool()), TypePool &>);
-  static_assert(std::is_same_v<decltype(std::declval<const Module &&>().typePool()), const TypePool &>);
-  static_assert(noexcept(std::declval<Module &>().typePool()));
-  static_assert(noexcept(std::declval<const Module &>().typePool()));
 
   // Module lists own nominal declarations directly while TypePool owns only builtin and structural identities.
   TEST(IRModuleTypeOwnershipTest, TypePoolExcludesModuleOwnedNominalTypes)

@@ -165,8 +165,8 @@ namespace ink::ir::test
     EXPECT_EQ(Unknown.toString(), "unknown");
   }
 
-  // Formatting deeply nested pointer chains uses bounded call-stack depth instead of recursive descent.
-  TEST(IRTypeFormatTest, FormatsDeepPointerChainsIteratively)
+  // Formatting a deeply nested pointer chain preserves every pointer marker without exhausting the call stack.
+  TEST(IRTypeFormatTest, FormatsDeepPointerChainsWithoutStackOverflow)
   {
     IRContext Context(Target64);
     const Type *Current = Context.typePool().getInt32Type();
@@ -180,8 +180,8 @@ namespace ink::ir::test
     EXPECT_EQ(ValueObject.toString(), std::string(Depth, '*') + "i32");
   }
 
-  // Alternating callable, array, reference and pointer types retain bounded call-stack depth across every composite formatter.
-  TEST(IRTypeFormatTest, FormatsDeepMixedCompositeTypesIteratively)
+  // Deeply nested callable, array, reference and pointer types preserve their complete spelling without exhausting the call stack.
+  TEST(IRTypeFormatTest, FormatsDeepMixedCompositeTypesWithoutStackOverflow)
   {
     IRContext Context(Target64);
     auto &Types = Context.typePool();

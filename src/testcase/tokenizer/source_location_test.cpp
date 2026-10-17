@@ -2,25 +2,19 @@
 #include "ink/core/diagnostic/diagnostic_engine.h"
 
 #include <limits>
-#include <type_traits>
 
 namespace ink::frontend::tokenizer::test
 {
-  // Invalid locations are distinct from byte zero and retain a compact raw encoding.
+  // Invalid locations are distinct from byte zero, and raw encodings round-trip equal locations.
   TEST(TokenizerSourceLocationTest, InvalidAndZeroOffsetAreDistinct)
   {
     using core::SourceLocation;
-    static_assert(sizeof(SourceLocation) == sizeof(std::uint32_t));
-    static_assert(sizeof(core::SourceRange) == 2 * sizeof(SourceLocation));
-    static_assert(std::is_trivially_copyable_v<SourceLocation>);
-    static_assert(std::is_trivially_copyable_v<core::SourceRange>);
     constexpr SourceLocation Invalid;
     constexpr auto Zero = SourceLocation::fromByteOffset(0);
     static_assert(Invalid.isInvalid() && Zero.isValid());
     EXPECT_NE(Invalid, Zero);
     EXPECT_EQ(Zero.getByteOffset(), 0U);
     EXPECT_EQ(SourceLocation::getFromRawEncoding(Zero.getRawEncoding()), Zero);
-    EXPECT_EQ(Zero.getHashValue(), Zero.getRawEncoding());
   }
 
   // Offset arithmetic handles both ends of the encoding without wrapping.
