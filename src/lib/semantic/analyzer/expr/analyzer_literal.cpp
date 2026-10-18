@@ -1,6 +1,7 @@
 #include "ink/semantic/analyzer/analyzer.h"
 
 #include "ink/core/config/numeric_literal.h"
+#include "ink/core/support/unicode.h"
 #include "ink/frontend/parser/parser.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/semantic/analyzer/analyzer_utils.h"
@@ -106,7 +107,7 @@ namespace ink::semantic
         EXPECTED_TYPE(Context, Node.getSourceRange(), ExpectedType, ir::IntegerType, "an integer type");
         const auto *Character = std::get_if<frontend::tokenizer::CharInfo>(&Token.Payload);
         RETURN_REPORT_IF_FALSE(Context, Character, core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "character LiteralExpr must reference a token with CharInfo metadata");
-        RETURN_REPORT_IF(Context, Character->Value > 0x10ffff || (Character->Value >= 0xd800 && Character->Value <= 0xdfff), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "character LiteralExpr metadata must contain a Unicode scalar value");
+        RETURN_REPORT_IF_FALSE(Context, core::isUnicodeScalarValue(Character->Value), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "character LiteralExpr metadata must contain a Unicode scalar value");
         const auto *Type = ExpectedType ? static_cast<const ir::IntegerType *>(ExpectedType) : Context.typePool().getUInt32Type();
         return materializeInteger(State, Node.getSourceRange(), static_cast<std::uint64_t>(Character->Value), *Type);
       }

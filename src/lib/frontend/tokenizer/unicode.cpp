@@ -1,5 +1,7 @@
 #include "ink/frontend/tokenizer/unicode.h"
 
+#include "ink/core/support/unicode.h"
+
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
@@ -103,7 +105,7 @@ namespace ink::frontend::tokenizer::unicode
     }
 
     const auto Second = static_cast<unsigned char>(Source[Offset + 1]);
-    if ((First == 0xE0 && Second < 0xA0) || (First == 0xED && Second > 0x9F) || (First == 0xF0 && Second < 0x90) || (First == 0xF4 && Second > 0x8F))
+    if ((First == 0xE0 && Second < 0xA0) || (First == 0xF0 && Second < 0x90) || !core::isUnicodeScalarValue(Value))
     {
       return {0, Length, false};
     }

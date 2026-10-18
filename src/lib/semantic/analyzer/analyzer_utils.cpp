@@ -7,6 +7,53 @@
 
 namespace ink::semantic
 {
+  namespace
+  {
+    template <auto Getter>
+    const ir::Value *getBuiltinType(SemanticContext &Context) noexcept
+    {
+      return (Context.typePool().*Getter)();
+    }
+
+    template <bool Value>
+    const ir::Value *getBuiltinBool(SemanticContext &Context) noexcept
+    {
+      return Context.irContext().constantPool().getBoolConstant(Value);
+    }
+  } // namespace
+
+  const ir::Value *lookupBuiltinValue(SemanticContext &Context, std::string_view Name)
+  {
+    struct Entry
+    {
+        std::string_view Name;
+        const ir::Value *(*GetValue)(SemanticContext &) noexcept;
+    };
+    // TODO: Extend numeric builtins with i128/u128/f16 once TypePool supports them.
+    static constexpr Entry Entries[] = {
+        {"type", getBuiltinType<&ir::TypePool::getMetaType>},
+        {"void", getBuiltinType<&ir::TypePool::getVoidType>},
+        {"bool", getBuiltinType<&ir::TypePool::getBoolType>},
+        {"i8", getBuiltinType<&ir::TypePool::getInt8Type>},
+        {"u8", getBuiltinType<&ir::TypePool::getUInt8Type>},
+        {"i16", getBuiltinType<&ir::TypePool::getInt16Type>},
+        {"u16", getBuiltinType<&ir::TypePool::getUInt16Type>},
+        {"i32", getBuiltinType<&ir::TypePool::getInt32Type>},
+        {"u32", getBuiltinType<&ir::TypePool::getUInt32Type>},
+        {"i64", getBuiltinType<&ir::TypePool::getInt64Type>},
+        {"u64", getBuiltinType<&ir::TypePool::getUInt64Type>},
+        {"f32", getBuiltinType<&ir::TypePool::getFloat32Type>},
+        {"f64", getBuiltinType<&ir::TypePool::getFloat64Type>},
+        {"true", getBuiltinBool<true>},
+        {"false", getBuiltinBool<false>},
+    };
+    for (const auto &Candidate : Entries)
+    {
+      RETURN_IF(Candidate.Name == Name, Candidate.GetValue(Context));
+    }
+    return nullptr;
+  }
+
   const ir::Type *requireType(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target)
   {
     RETURN_IF_NULL(Target, nullptr);

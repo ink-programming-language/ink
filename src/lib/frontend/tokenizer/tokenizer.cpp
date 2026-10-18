@@ -2,6 +2,7 @@
 #include "ink/core/config/numeric_literal.h"
 #include "ink/core/diagnostic/diagnostic_builder.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/support/unicode.h"
 #include "ink/frontend/tokenizer/unicode.h"
 
 #include <algorithm>
@@ -33,11 +34,6 @@ namespace ink::frontend::tokenizer
         return Character - 'A' + 10;
       }
       return -1;
-    }
-
-    bool isScalar(char32_t Value) noexcept
-    {
-      return Value <= 0x10FFFF && (Value < 0xD800 || Value > 0xDFFF);
     }
 
     class Scanner
@@ -402,7 +398,7 @@ namespace ink::frontend::tokenizer
               }
               Value = (Value << 4U) | static_cast<char32_t>(digitValue(Source[Position++]));
             }
-            return isScalar(Value) || fail<DiagnosticKind::InvalidUnicodeScalar>(Start, Position);
+            return core::isUnicodeScalarValue(Value) || fail<DiagnosticKind::InvalidUnicodeScalar>(Start, Position);
           }
           if (Character == 'N')
           {
@@ -427,7 +423,7 @@ namespace ink::frontend::tokenizer
               return fail<DiagnosticKind::UnknownUnicodeName>(Start, Position);
             }
             Value = *NamedValue;
-            return isScalar(Value) || fail<DiagnosticKind::InvalidUnicodeScalar>(Start, Position);
+            return core::isUnicodeScalarValue(Value) || fail<DiagnosticKind::InvalidUnicodeScalar>(Start, Position);
           }
           // Include the whole offending scalar in the diagnostic range.
           Position += unicode::decode(Source, Position - 1).Length - 1;
@@ -644,7 +640,7 @@ namespace ink::frontend::tokenizer
       case TokenKind::CharLiteral:
       {
         const auto *Info = std::get_if<CharInfo>(&Entry.Payload);
-        if (!Info || !isScalar(Info->Value))
+        if (!Info || !core::isUnicodeScalarValue(Info->Value))
         {
           return std::nullopt;
         }

@@ -3,6 +3,9 @@
 
 #include "ink/core/diagnostic/diagnostic.h"
 #include "ink/core/source/source_range.h"
+#include "ink/core/support/return_macros.h"
+
+#include <string_view>
 
 namespace ink::ir
 {
@@ -14,6 +17,9 @@ namespace ink::semantic
 {
   class SemanticContext;
 
+  // Returns a builtin type or boolean constant from Context, or nullptr for an unknown name.
+  const ir::Value *lookupBuiltinValue(SemanticContext &Context, std::string_view Name);
+
   // Requires a type registered in Context's IRContext; reports against Range in the currently selected source.
   // Returns a borrowed type, or nullptr on failure; a null Target propagates without another diagnostic.
   // Storage objects are non-type values and receive their own diagnostic.
@@ -23,26 +29,6 @@ namespace ink::semantic
   // Type/module descriptors are semantic results but cannot be consumed as runtime operands.
   const ir::Value *requireRuntimeValue(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target);
 } // namespace ink::semantic
-
-// Evaluates Value once and evaluates ReturnValue only when returning; condition declarations retain their if scope.
-#define RETURN_IF(Value, ReturnValue) \
-  do \
-  { \
-    if (Value) \
-    { \
-      return (ReturnValue); \
-    } \
-  } while (false)
-
-// Propagates a null result without adding a diagnostic or changing the variable's scope.
-#define RETURN_IF_NULL(Value, FailureValue) \
-  do \
-  { \
-    if ((Value) == nullptr) \
-    { \
-      return (FailureValue); \
-    } \
-  } while (false)
 
 // Evaluates Value once; report arguments start with the source range and are evaluated only when Value is false.
 #define RETURN_REPORT_IF_FALSE(Context, Value, Kind, FailureValue, ...) \
