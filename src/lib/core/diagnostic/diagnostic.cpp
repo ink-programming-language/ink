@@ -202,22 +202,16 @@ namespace ink::core
       return "OperandIndex";
     case DiagnosticArgumentName::RequestedSize:
       return "RequestedSize";
-    case DiagnosticArgumentName::AllocationLimit:
-      return "AllocationLimit";
     case DiagnosticArgumentName::Index:
       return "Index";
     case DiagnosticArgumentName::RegionLength:
       return "RegionLength";
-    case DiagnosticArgumentName::MaximumValue:
-      return "MaximumValue";
     case DiagnosticArgumentName::Format:
       return "Format";
     case DiagnosticArgumentName::ExpectedDigits:
       return "ExpectedDigits";
     case DiagnosticArgumentName::ActualDigits:
       return "ActualDigits";
-    case DiagnosticArgumentName::MaximumSize:
-      return "MaximumSize";
     case DiagnosticArgumentName::ExpectedCount:
       return "ExpectedCount";
     case DiagnosticArgumentName::ActualCount:
@@ -232,10 +226,6 @@ namespace ink::core
       return "Offset";
     case DiagnosticArgumentName::Size:
       return "Size";
-    case DiagnosticArgumentName::ActualVersion:
-      return "ActualVersion";
-    case DiagnosticArgumentName::SupportedVersion:
-      return "SupportedVersion";
     case DiagnosticArgumentName::Alignment:
       return "Alignment";
     case DiagnosticArgumentName::MaximumAlignment:

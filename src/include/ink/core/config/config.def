@@ -14,16 +14,3 @@ INK_CONFIG(ParserMaxDiagnostics, "INK_PARSER_MAX_DIAGNOSTICS", "100")
 INK_CONFIG(ParserMaxWork, "INK_PARSER_MAX_WORK", "10000000")
 // Parser AST storage budget: 64 MiB = 64 * 1024 * 1024 bytes.
 INK_CONFIG(ParserMaxAllocationBytes, "INK_PARSER_MAX_ALLOCATION_BYTES", "67108864")
-
-// Maximum AST archive size: 256 MiB = 256 * 1024 * 1024 bytes.
-INK_CONFIG(ASTArchiveMaxBytes, "INK_AST_ARCHIVE_MAX_BYTES", "268435456")
-// Maximum source text size in an AST archive: 64 MiB = 64 * 1024 * 1024 bytes.
-INK_CONFIG(ASTArchiveMaxSourceBytes, "INK_AST_ARCHIVE_MAX_SOURCE_BYTES", "67108864")
-// AST archive: at most 1,000,000 syntax nodes.
-INK_CONFIG(ASTArchiveMaxNodes, "INK_AST_ARCHIVE_MAX_NODES", "1000000")
-// AST archive: at most 2,000,000 tokens.
-INK_CONFIG(ASTArchiveMaxTokens, "INK_AST_ARCHIVE_MAX_TOKENS", "2000000")
-// AST archive: at most 1,000,000 elements per array or recovery record list.
-INK_CONFIG(ASTArchiveMaxArrayElements, "INK_AST_ARCHIVE_MAX_ARRAY_ELEMENTS", "1000000")
-// Cumulative decoded AST storage, including temporary copies: 256 MiB = 256 * 1024 * 1024 bytes.
-INK_CONFIG(ASTArchiveMaxAllocationBytes, "INK_AST_ARCHIVE_MAX_ALLOCATION_BYTES", "268435456")

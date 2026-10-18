@@ -1,8 +1,6 @@
 #include "parser_test_support.h"
 #include "../core/support/environment_test_support.h"
 
-#include "ink/frontend/parser/ast_serialization.h"
-
 namespace ink::frontend::parser::test
 {
   namespace
@@ -52,23 +50,6 @@ namespace ink::frontend::parser::test
     }
   }
 
-  // Every archive budget has an independent configured default without replacing caller-assigned values.
-  TEST(ConfigLimitsTest, ArchiveDefaultsFollowEnvironment)
-  {
-    const LimitConfigCase<ASTArchiveLimits> Cases[] = {
-        {"INK_AST_ARCHIVE_MAX_BYTES", &ASTArchiveLimits::MaxArchiveBytes, 256 * 1024 * 1024},
-        {"INK_AST_ARCHIVE_MAX_SOURCE_BYTES", &ASTArchiveLimits::MaxSourceBytes, 64 * 1024 * 1024},
-        {"INK_AST_ARCHIVE_MAX_NODES", &ASTArchiveLimits::MaxNodes, 1000000},
-        {"INK_AST_ARCHIVE_MAX_TOKENS", &ASTArchiveLimits::MaxTokens, 2000000},
-        {"INK_AST_ARCHIVE_MAX_ARRAY_ELEMENTS", &ASTArchiveLimits::MaxArrayElements, 1000000},
-        {"INK_AST_ARCHIVE_MAX_ALLOCATION_BYTES", &ASTArchiveLimits::MaxAllocationBytes, 256 * 1024 * 1024},
-    };
-    for (const auto &Entry : Cases)
-    {
-      expectConfiguredLimit(Entry);
-    }
-  }
-
   // parse() observes the configured work budget, while an explicit limit still permits the same input.
   TEST_F(ParserTest, ConfiguredWorkBudgetAndExplicitOverride)
   {
@@ -91,25 +72,5 @@ namespace ink::frontend::parser::test
     Limits.MaxDiagnostics = 1;
     EXPECT_TRUE(read("; ;", Limits).HasSyntaxErrors);
     EXPECT_EQ(Diagnostics.diagnostics().size(), 1U);
-  }
-
-  // Both archive entry points enforce configured size limits and accept an explicit exact-size budget.
-  TEST_F(ParserTest, ConfiguredArchiveBudgetAndExplicitOverride)
-  {
-    const auto Parsed = read("var x = 1;");
-    ASSERT_TRUE(Parsed.succeeded());
-    core::test::ScopedEnvironmentVariable Environment("INK_AST_ARCHIVE_MAX_BYTES");
-    ASSERT_TRUE(Environment.set(nullptr));
-    const auto Archive = serializeAST(Frontend, Parsed);
-    ASSERT_TRUE(Archive.succeeded());
-    ASSERT_TRUE(Environment.set("0"));
-    EXPECT_DEATH(serializeAST(Frontend, Parsed), "internal compiler error\\[INK-P0013\\]");
-    EXPECT_DEATH(deserializeAST(Frontend, Archive.Bytes), "internal compiler error\\[INK-P0013\\]");
-    ASTArchiveLimits Limits;
-    Limits.MaxArchiveBytes = Archive.Bytes.size();
-    const auto ExplicitArchive = serializeAST(Frontend, Parsed, Limits);
-    ASSERT_TRUE(ExplicitArchive.succeeded());
-    EXPECT_EQ(ExplicitArchive.Bytes, Archive.Bytes);
-    EXPECT_TRUE(deserializeAST(Frontend, Archive.Bytes, Limits).succeeded());
   }
 } // namespace ink::frontend::parser::test

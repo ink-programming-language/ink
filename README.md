@@ -9,7 +9,6 @@
 - [词法规则](docs/Ink-Lexical-Rules.md)
 - [语法规则](docs/Ink-grammar-Rules.bnf)
 - [Parser 设计](docs/Ink-Parser-Design.md)
-- [AST 序列化](docs/Ink-AST-Serialization.md)
 - [命令行接口](docs/command-line.md)
 - [Parser 测试与覆盖率](src/testcase/parser/README.md)
 
@@ -53,11 +52,11 @@ ctest --test-dir build -C Release --output-on-failure
 
 数组长度目前只接受 `IntegerLiteral`，支持二、八、十、十六进制，数值须可表示为 `uint64_t`；直接读取字面量，不执行递归求值。名称、成员、括号和一元或二元运算均不支持。此路径尚不执行编译期函数或泛型实例化，完整声明和语句分析仍待重建。
 
-LLVM/Clang 固定版本为 22.1.8；tokenizer 直接使用 Clang 的 `UnicodeCharSets.h`，parser 的 AST 归档使用 LLVM 支持库。NFC 校验使用 utf8proc 2.9.0 的 Unicode 15.1 实现。spdlog 1.17.0 负责所有自有 C++ 文本输出；各命令行工具自行配置输出，并直接使用 cxxopts 3.3.1 解析 `argc` / `argv`，暂不处理命令行参数和路径的 UTF-8 转换。所有自有 C++ 编译目标在目标级关闭异常。
+LLVM/Clang 固定版本为 22.1.8；tokenizer 直接使用 Clang 的 `UnicodeCharSets.h` 和 LLVM 支持库的 Unicode 接口。NFC 校验使用 utf8proc 2.9.0 的 Unicode 15.1 实现。spdlog 1.17.0 负责所有自有 C++ 文本输出；各命令行工具自行配置输出，并直接使用 cxxopts 3.3.1 解析 `argc` / `argv`，暂不处理命令行参数和路径的 UTF-8 转换。所有自有 C++ 编译目标在目标级关闭异常。
 
-Core 的公共头文件按职责放在 `src/include/ink/core` 下的 `support`、`source`、`name`、`diagnostic`、`config` 和 `archive` 子目录，实现和测试在各自的 Core 目录中按相同职责组织；构建仍使用单个 `ink::core` 库，公共命名空间仍为 `ink::core`。`diagnostic/diagnostic.h` 定义诊断数据和元数据接口，参数 schema 与 traits、构造器、消费接口、引擎和格式化器分别位于 `diagnostic_traits.h`、`diagnostic_builder.h`、`diagnostic_consumer.h`、`diagnostic_engine.h` 和 `diagnostic_formatter.h`，调用方按需包含。AST 文本归档辅助头仅供 parser 内部使用，位于 `src/lib/frontend/parser/archive_text.h`。
+Core 的公共头文件按职责放在 `src/include/ink/core` 下的 `support`、`source`、`name`、`diagnostic` 和 `config` 子目录，实现和测试在各自的 Core 目录中按相同职责组织；构建仍使用单个 `ink::core` 库，公共命名空间仍为 `ink::core`。`diagnostic/diagnostic.h` 定义诊断数据和元数据接口，参数 schema 与 traits、构造器、消费接口、引擎和格式化器分别位于 `diagnostic_traits.h`、`diagnostic_builder.h`、`diagnostic_consumer.h`、`diagnostic_engine.h` 和 `diagnostic_formatter.h`，调用方按需包含。
 
-资源限制在 `src/include/ink/core/config/config.def` 中定义，parser 与 AST 归档可通过对应的 `INK_PARSER_*`、`INK_AST_ARCHIVE_*` 环境变量配置；semantic 配置与诊断定义保留供后续实现使用。内部编译错误经 spdlog 输出后 panic，普通源码错误通过诊断引擎报告。
+资源限制在 `src/include/ink/core/config/config.def` 中定义，parser 可通过对应的 `INK_PARSER_*` 环境变量配置；semantic 配置与诊断定义保留供后续实现使用。内部编译错误经 spdlog 输出后 panic，普通源码错误通过诊断引擎报告。
 
 Frontend 通过统一的 `ink::frontend` 静态库提供 tokenizer、parser/AST 和共享上下文。公共头文件位于 `src/include/ink/frontend`，其中 `tokenizer` 和 `parser` 是两个子目录，命名空间分别为 `ink::frontend::tokenizer` 和 `ink::frontend::parser`；实现位于 `src/lib/frontend` 下对应的子目录。Frontend 的公开编译要求为 C++23，tokenizer 测试也使用 C++23，通过测试辅助函数将 `char8_t` UTF-8 字面量显式转换成字节字符串，最终链接同一个 frontend 库。
 

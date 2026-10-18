@@ -26,8 +26,7 @@ namespace ink::core::test
   TEST(DiagnosticDeathTest, PrintsParameterizedICEWithoutConsumers)
   {
     DiagnosticEngine Engine;
-    EXPECT_DEATH(Engine.report<DiagnosticKind::ASTArchiveSizeLimitExceeded>({}, 300U, 256U), "internal compiler error\\[INK-P0013\\]: AST archive size 300 bytes exceeds limit 256 bytes");
-    EXPECT_DEATH(Engine.report<DiagnosticKind::ASTArchiveUnsupportedVersion>({}, 9U, 1U), "unsupported AST archive version 9; supported version is 1");
+    EXPECT_DEATH(Engine.report<DiagnosticKind::ParserInvalidTokenReference>({}, 300U, 256U), "internal compiler error\\[INK-P0048\\]: token index 300 is out of bounds for input of 256 tokens");
   }
 
   // Invalid semantic AST diagnostics print their invariant description and stable code before termination.
@@ -60,9 +59,9 @@ namespace ink::core::test
     DiagnosticEngine Engine;
     auto Promoted = makeDiagnosticBuilder<DiagnosticKind::ParserExpectedToken>({}, ";").classification(DiagnosticClass::InternalCompilerError).build();
     EXPECT_DEATH(Engine.report(Promoted), "internal compiler error\\[INK-P0001\\]: expected ;");
-    auto Malformed = makeDiagnostic<DiagnosticKind::ASTArchiveInvalidTree>({}, "missing required child");
+    auto Malformed = makeDiagnostic<DiagnosticKind::SemanticInvalidAST>({}, "missing required child");
     Malformed.Arguments.clear();
-    EXPECT_DEATH(Engine.report(Malformed), "internal compiler error\\[INK-P0009\\]: invalid AST archive tree");
+    EXPECT_DEATH(Engine.report(Malformed), "internal compiler error\\[INK-S0061\\]: invalid AST");
   }
 
   // The two definition files stay disjoint, retain unique stable identities and enforce their declared classifications.
@@ -125,19 +124,16 @@ namespace ink::core::test
     const auto &User = Consumer.diagnostics()[0];
     EXPECT_EQ(User.classification(), DiagnosticClass::User);
     EXPECT_EQ(DiagnosticFormatter{}.format(User).Message, "expected ;");
-    const auto Limit = makeDiagnostic<DiagnosticKind::ASTArchiveSizeLimitExceeded>({}, 300U, 256U);
-    EXPECT_EQ(Limit.classification(), DiagnosticClass::InternalCompilerError);
-    EXPECT_TRUE(Limit.Span.isInvalid());
-    EXPECT_EQ(DiagnosticFormatter{}.format(Limit).Severity, DiagnosticSeverity::Error);
-    EXPECT_EQ(DiagnosticFormatter{}.format(Limit).Message, "AST archive size 300 bytes exceeds limit 256 bytes");
-    ASSERT_EQ(Limit.Arguments.size(), 2U);
-    EXPECT_EQ(Limit.Arguments[0].Name, DiagnosticArgumentName::Size);
-    EXPECT_EQ(std::get<std::uint64_t>(Limit.Arguments[0].Value), 300U);
-    EXPECT_EQ(Limit.Arguments[1].Name, DiagnosticArgumentName::MaximumSize);
-    EXPECT_EQ(std::get<std::uint64_t>(Limit.Arguments[1].Value), 256U);
-    const auto Version = makeDiagnostic<DiagnosticKind::ASTArchiveUnsupportedVersion>({}, 9U, 1U);
-    EXPECT_EQ(Version.classification(), DiagnosticClass::InternalCompilerError);
-    EXPECT_EQ(DiagnosticFormatter{}.format(Version).Message, "unsupported AST archive version 9; supported version is 1");
+    const auto InvalidReference = makeDiagnostic<DiagnosticKind::ParserInvalidTokenReference>({}, 300U, 256U);
+    EXPECT_EQ(InvalidReference.classification(), DiagnosticClass::InternalCompilerError);
+    EXPECT_TRUE(InvalidReference.Span.isInvalid());
+    EXPECT_EQ(DiagnosticFormatter{}.format(InvalidReference).Severity, DiagnosticSeverity::Error);
+    EXPECT_EQ(DiagnosticFormatter{}.format(InvalidReference).Message, "token index 300 is out of bounds for input of 256 tokens");
+    ASSERT_EQ(InvalidReference.Arguments.size(), 2U);
+    EXPECT_EQ(InvalidReference.Arguments[0].Name, DiagnosticArgumentName::ActualValue);
+    EXPECT_EQ(std::get<std::uint64_t>(InvalidReference.Arguments[0].Value), 300U);
+    EXPECT_EQ(InvalidReference.Arguments[1].Name, DiagnosticArgumentName::Size);
+    EXPECT_EQ(std::get<std::uint64_t>(InvalidReference.Arguments[1].Value), 256U);
   }
 
   // Source-aware reporting preserves each source and span for both argument-free and parameterized diagnostics.
@@ -166,16 +162,6 @@ namespace ink::core::test
     EXPECT_EQ(Second.Source, SecondSource);
     EXPECT_EQ(Second.Span, SecondSpan);
     EXPECT_EQ(DiagnosticFormatter{}.format(Second).Message, "expected ;");
-  }
-
-  // An owned verifier reason survives its producer, and malformed diagnostic arguments use the registered fallback.
-  TEST(DiagnosticTest, ArchiveICEOwnsReasonAndHasFormattingFallback)
-  {
-    auto Diagnostic = makeDiagnostic<DiagnosticKind::ASTArchiveInvalidTree>({}, std::string("missing required child"));
-    EXPECT_EQ(Diagnostic.classification(), DiagnosticClass::InternalCompilerError);
-    EXPECT_EQ(DiagnosticFormatter{}.format(Diagnostic).Message, "invalid AST archive tree: missing required child");
-    Diagnostic.Arguments.clear();
-    EXPECT_EQ(DiagnosticFormatter{}.format(Diagnostic).Message, "invalid AST archive tree");
   }
 
   // Invalid semantic AST diagnostics own their description and preserve their registered identity, classification and fallback.

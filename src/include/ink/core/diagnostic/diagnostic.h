@@ -76,8 +76,6 @@ namespace ink::core
     FieldCount,
     Offset,
     Size,
-    ActualVersion,
-    SupportedVersion,
     Alignment,
     MaximumAlignment,
     CallDepthLimit,
@@ -89,14 +87,11 @@ namespace ink::core
     FieldType,
     OperandIndex,
     RequestedSize,
-    AllocationLimit,
     Index,
     RegionLength,
-    MaximumValue,
     Format,
     ExpectedDigits,
     ActualDigits,
-    MaximumSize,
   };
 
   enum class DiagnosticArgumentType : std::uint8_t

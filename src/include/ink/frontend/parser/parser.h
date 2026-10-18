@@ -77,7 +77,6 @@ namespace ink::frontend::parser
       ModuleAST *Root = nullptr;
       SyntaxRecoveryInfo Recovery;
       friend class Parser;
-      friend class ASTReader;
   };
   struct ParseResult
   {

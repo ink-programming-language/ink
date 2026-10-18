@@ -1,5 +1,4 @@
-// AST_NODE(Name, Base, Category, Id). IDs are stable and independent of declaration order.
-// Assign new IDs to new nodes; do not renumber existing nodes or reuse removed IDs.
+// AST_NODE(Name, Base, Category, Id).
 AST_NODE(ModuleAST, ASTNodeBase, Root, 0)
 AST_NODE(TypeSyntax, ASTNodeBase, Root, 1)
 AST_NODE(MissingExpr, Expr, Expr, 2)

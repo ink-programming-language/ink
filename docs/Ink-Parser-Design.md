@@ -160,7 +160,7 @@ AST_NODE(BlockStmt, Stmt, Stmt, 34)
 AST_NODE(AssignmentItem, SimpleItem, SimpleItem, 32)
 ```
 
-由该表生成 ASTKind、种类名称、分类映射、Visitor 分派和节点覆盖检查。ASTKind 使用显式 ID，不依赖登记顺序；新增节点分配新 ID，不修改已有节点的 ID，也不复用已删除节点的 ID。当前 AST 归档格式直接使用 ASTNodes.def 中的固定编号，这些编号属于持久化格式契约，具体编码见 [Ink-AST-Serialization.md](Ink-AST-Serialization.md)；C++ 枚举和 AST 节点的对象内存布局及 ABI 不属于该契约。抽象分类不依赖枚举值连续，categoryOf 使用生成的映射判断。
+由该表生成 ASTKind、种类名称、分类映射、Visitor 分派和节点覆盖检查。ASTKind 使用显式 ID，不依赖登记顺序。抽象分类不依赖枚举值连续，categoryOf 使用生成的映射判断。
 
 叶节点 classof 判断精确 Kind，Expr::classof 判断分类。提供 isa<T>、dyn_cast<T> 和 cast<T>：isa 与 dyn_cast 对空指针返回 false 或空；cast 要求非空且种类匹配，违反时属于内部错误。const 重载保留 const，不允许转为可写指针。LLVM 的类型转换接口可作为接口风格参考，项目不必因此引入 LLVM 依赖。[1]
 

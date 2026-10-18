@@ -23,7 +23,6 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 namespace ink::semantic::test
 {
@@ -789,7 +788,7 @@ namespace ink::semantic::test
     }
   }
 
-  // A restored nondecimal integer token must contain its two-byte prefix and at least one digit.
+  // A nondecimal integer token must contain its two-byte prefix and at least one digit.
   TEST_F(SemanticAnalyzerExprTest, ReportsICEForTruncatedNondecimalIntegerTokens)
   {
     struct Case
@@ -810,14 +809,13 @@ namespace ink::semantic::test
       SCOPED_TRACE(Entry.Text);
       SCOPED_TRACE(static_cast<unsigned>(Entry.Base));
       const std::size_t Length = std::string_view(Entry.Text).size();
-      std::vector<frontend::tokenizer::Token> Tokens = {
-          {frontend::tokenizer::TokenKind::IntegerLiteral, core::SourceRange::fromByteOffsets(0, Length), frontend::tokenizer::NumericInfo{Entry.Base}},
-          {frontend::tokenizer::TokenKind::Semicolon, core::SourceRange::fromByteOffsets(Length, Length + 1), {}},
-          {frontend::tokenizer::TokenKind::EndOfFile, core::SourceRange::fromByteOffsets(Length + 1, Length + 1), {}},
-      };
-      auto Lexed = frontend::tokenizer::TokenizedBuffer::fromSnapshot(Sources, "<truncated integer snapshot>", std::string(Entry.Text) + ";", std::move(Tokens), true);
-      ASSERT_TRUE(Lexed.has_value());
-      auto Input = frontend::parser::parse(Frontend, std::move(*Lexed));
+      auto Lexed = frontend::tokenizer::tokenize(Frontend, "\"" + std::string(Entry.Text) + "\";");
+      ASSERT_TRUE(Lexed.succeeded());
+      auto &Token = const_cast<frontend::tokenizer::Token &>(Lexed.tokens().front());
+      Token.Kind = frontend::tokenizer::TokenKind::IntegerLiteral;
+      Token.Span = core::SourceRange::fromByteOffsets(1, Length + 1);
+      Token.Payload = frontend::tokenizer::NumericInfo{Entry.Base};
+      auto Input = frontend::parser::parse(Frontend, std::move(Lexed));
       ASSERT_TRUE(Input.succeeded());
       EXPECT_DEATH(Analysis.analyze(Context, Input, Output), "INK-T0023");
     }
@@ -841,14 +839,13 @@ namespace ink::semantic::test
     {
       SCOPED_TRACE(Entry.Text);
       const std::size_t Length = std::string_view(Entry.Text).size();
-      std::vector<frontend::tokenizer::Token> Tokens = {
-          {frontend::tokenizer::TokenKind::IntegerLiteral, core::SourceRange::fromByteOffsets(0, Length), frontend::tokenizer::NumericInfo{Entry.Base}},
-          {frontend::tokenizer::TokenKind::Semicolon, core::SourceRange::fromByteOffsets(Length, Length + 1), {}},
-          {frontend::tokenizer::TokenKind::EndOfFile, core::SourceRange::fromByteOffsets(Length + 1, Length + 1), {}},
-      };
-      auto Lexed = frontend::tokenizer::TokenizedBuffer::fromSnapshot(Sources, "<malformed integer snapshot>", std::string(Entry.Text) + ";", std::move(Tokens), true);
-      ASSERT_TRUE(Lexed.has_value());
-      auto Input = frontend::parser::parse(Frontend, std::move(*Lexed));
+      auto Lexed = frontend::tokenizer::tokenize(Frontend, "\"" + std::string(Entry.Text) + "\";");
+      ASSERT_TRUE(Lexed.succeeded());
+      auto &Token = const_cast<frontend::tokenizer::Token &>(Lexed.tokens().front());
+      Token.Kind = frontend::tokenizer::TokenKind::IntegerLiteral;
+      Token.Span = core::SourceRange::fromByteOffsets(1, Length + 1);
+      Token.Payload = frontend::tokenizer::NumericInfo{Entry.Base};
+      auto Input = frontend::parser::parse(Frontend, std::move(Lexed));
       ASSERT_TRUE(Input.succeeded());
       EXPECT_DEATH(Analysis.analyze(Context, Input, Output), "INK-T0023");
     }

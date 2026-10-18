@@ -21,19 +21,6 @@ namespace ink::frontend::tokenizer::test
     }
   }
 
-  // Restored integer and float tokens reject unsupported base metadata before exposing a token buffer.
-  TEST_F(TokenizerTest, SnapshotRejectsUnsupportedNumericBases)
-  {
-    for (const TokenKind Kind : {TokenKind::IntegerLiteral, TokenKind::FloatLiteral})
-    {
-      const std::vector<Token> Tokens = {
-          {Kind, core::SourceRange::fromByteOffsets(0, 1), NumericInfo{static_cast<core::NumericBase>(3)}},
-          {TokenKind::EndOfFile, core::SourceRange::fromByteOffsets(1, 1), {}},
-      };
-      EXPECT_FALSE(TokenizedBuffer::fromSnapshot(Sources, "invalid-base", "1", Tokens, true).has_value());
-    }
-  }
-
   // Decimal leading zeroes remain decimal; prefixes select only binary, octal and hexadecimal.
   TEST_F(TokenizerTest, IntegerFormsAndBases)
   {
