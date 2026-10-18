@@ -361,7 +361,7 @@ namespace ink::frontend::parser
       case ASTKind::VarDecl:
       {
         const auto *Value = static_cast<const VarDecl *>(Node);
-        Valid = Valid && validRecords(Value->attributes()) && Value->binding() != nullptr && (Value->form() == VarDeclForm::Initialized) == (Value->initializer() != nullptr);
+        Valid = Valid && validRecords(Value->attributes()) && Value->binding() != nullptr;
         Valid = Valid && (Value->initializer() || (!Value->constant() && isa<NameBindingPattern>(Value->binding())));
         break;
       }

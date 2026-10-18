@@ -28,27 +28,35 @@ namespace ink::semantic
         const auto &Instruction = static_cast<const ir::Instruction &>(Value);
         const ir::BasicBlock *Parent = Instruction.parentBlock();
         const ir::Function *Function = State.irBuilder().insertFunction();
-        return !Instruction.isTerminator() && Function && Parent && Parent->function() == Function;
+        return !Instruction.isTerminator() && !ir::StoreInstruction::classof(&Instruction) && Function && Parent && Parent->function() == Function;
       }
       return false;
     }
   } // namespace
 
-  const ir::Value *Analyzer::analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found, bool IsCallCallee)
+  ExprResult Analyzer::analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found, bool IsCallCallee)
   {
     const bool HasSingleTarget = Found.targets().size() == 1;
     // TODO: Select an overload using the call arguments or an expected function signature.
-    UNSUPPORT_IF(State, !HasSingleTarget && IsCallCallee, nullptr, Node.getSourceRange(), "function overload selection");
-    RETURN_REPORT_IF_FALSE(State.semanticContext(), HasSingleTarget, core::DiagnosticKind::SemanticAmbiguousName, nullptr, Node.getSourceRange());
+    UNSUPPORT_IF(State, !HasSingleTarget && IsCallCallee, ExprResult{}, Node.getSourceRange(), "function overload selection");
+    RETURN_REPORT_IF_FALSE(State.semanticContext(), HasSingleTarget, core::DiagnosticKind::SemanticAmbiguousName, ExprResult{}, Node.getSourceRange());
     const ir::Value *Value = Found.targets().front();
     // Bound objects are compiler-produced IR; invalid ownership or storage is an internal model violation.
-    RETURN_REPORT_IF(State.semanticContext(), !Value || !isValidBindingValue(State, *Value), core::DiagnosticKind::SemanticConstructionFailed, nullptr, Node.getSourceRange());
+    RETURN_REPORT_IF(State.semanticContext(), !Value || !isValidBindingValue(State, *Value), core::DiagnosticKind::SemanticConstructionFailed, ExprResult{}, Node.getSourceRange());
     // TODO: Materialize variadic parameter packs before using them as expression values.
-    UNSUPPORT_IF(State, ir::Parameter::classof(Value) && static_cast<const ir::Parameter *>(Value)->isVariadic(), nullptr, Node.getSourceRange(), "variadic parameter values");
-    return Value;
+    UNSUPPORT_IF(State, ir::Parameter::classof(Value) && static_cast<const ir::Parameter *>(Value)->isVariadic(), ExprResult{}, Node.getSourceRange(), "variadic parameter values");
+    if (const auto *Variable = Found.variableInfo())
+    {
+      RETURN_REPORT_IF(State.semanticContext(), !State.semanticContext().irContext().containsType(Variable->DeclaredType) || !Variable->DeclaredType->hasLayout(), core::DiagnosticKind::SemanticConstructionFailed, ExprResult{}, Node.getSourceRange());
+      const ir::Type *StorageType = Value->type();
+      const bool ValidStorage = ir::GlobalVariable::classof(Value) ? StorageType == Variable->DeclaredType : ir::PointerType::classof(StorageType) && !static_cast<const ir::PointerType *>(StorageType)->isOpaque() && static_cast<const ir::PointerType *>(StorageType)->pointeeType() == Variable->DeclaredType;
+      RETURN_REPORT_IF_FALSE(State.semanticContext(), ValidStorage, core::DiagnosticKind::SemanticConstructionFailed, ExprResult{}, Node.getSourceRange());
+      return ExprResult::lvalue(*Value, *Variable->DeclaredType, &Found);
+    }
+    return ExprResult::fromValue(Value);
   }
 
-  const ir::Value *Analyzer::analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee)
+  ExprResult Analyzer::analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee)
   {
     auto &Context = State.semanticContext();
     const auto Name = Node.name();
@@ -58,9 +66,9 @@ namespace ink::semantic
     }
     if (const ir::Value *Builtin = lookupBuiltinValue(Context, Name.Text))
     {
-      return Builtin;
+      return ExprResult::fromValue(Builtin);
     }
     Context.report<core::DiagnosticKind::SemanticUnknownName>(Name.Range, Name.Text);
-    return nullptr;
+    return {};
   }
 } // namespace ink::semantic

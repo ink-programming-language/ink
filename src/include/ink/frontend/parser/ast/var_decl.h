@@ -16,14 +16,13 @@ namespace ink::frontend::parser
       {
         return Node && Node->getKind() == Kind;
       }
-      VarDecl(SourceRange Range, ASTArray<Attribute> Attributes, bool Constant, BindingPattern *Binding, TypeSyntax *Type, Expr *Initializer, VarDeclForm Form)
+      VarDecl(SourceRange Range, ASTArray<Attribute> Attributes, bool Constant, BindingPattern *Binding, TypeSyntax *Type, Expr *Initializer)
           : Decl(Kind, Range),
             Attributes(Attributes),
             Constant(Constant),
             Binding(Binding),
             Type(Type),
-            Initializer(Initializer),
-            Form(Form)
+            Initializer(Initializer)
       {
       }
       ASTArray<Attribute> attributes() const noexcept
@@ -46,10 +45,6 @@ namespace ink::frontend::parser
       {
         return Self.Initializer ? &std::forward_like<decltype(Self) &>(*Self.Initializer) : nullptr;
       }
-      VarDeclForm form() const noexcept
-      {
-        return Form;
-      }
 
     private:
       ASTArray<Attribute> Attributes;
@@ -57,6 +52,5 @@ namespace ink::frontend::parser
       BindingPattern *Binding;
       TypeSyntax *Type;
       Expr *Initializer;
-      VarDeclForm Form;
   };
 } // namespace ink::frontend::parser

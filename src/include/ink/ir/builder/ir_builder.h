@@ -1,13 +1,16 @@
 #ifndef INK_IR_BUILDER_IR_BUILDER_H
 #define INK_IR_BUILDER_IR_BUILDER_H
 
+#include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/conditional_branch_instruction.h"
 #include "ink/ir/instruction/getelementptr_instruction.h"
 #include "ink/ir/instruction/icmp_instruction.h"
+#include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/neg_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
+#include "ink/ir/instruction/store_instruction.h"
 #include "ink/ir/context.h"
 #include "ink/ir/function/function.h"
 
@@ -21,7 +24,7 @@ namespace ink::ir
   // Creation returns a block-owned instruction, or nullptr for invalid types or operands without changing the block or insertion point.
   // Checks local types and operand ownership, but not dominance or whole-function control flow.
   // Operands may be local constants, current-function parameters/instructions or functions; globals require explicit storage operations.
-  // Unit parameters and unit-producing calls are values; terminators cannot be operands.
+  // Unit parameters and unit-producing calls are values; terminators and stores cannot be operands.
   class IRBuilder final
   {
     public:
@@ -59,6 +62,12 @@ namespace ink::ir
       // Requires an integer or float and a valid insertion point; constant operands also produce a NegInstruction.
       // Unsupported operands return nullptr without appending; invalid insertion state is asserted with check().
       [[nodiscard]] NegInstruction *createNeg(const Value &Operand);
+      // Allocates one non-void object with a runtime layout; zero-sized aggregates are supported.
+      [[nodiscard]] AllocaInstruction *createAlloca(const Type &AllocatedType);
+      // Memory addresses must be usable, non-opaque pointers with the exact loaded or stored type.
+      // Null literals can initialize pointer slots, but cannot be used as untyped memory addresses.
+      [[nodiscard]] LoadInstruction *createLoad(const Type &LoadedType, const Value &Pointer);
+      [[nodiscard]] StoreInstruction *createStore(const Value &StoredValue, const Value &Pointer);
       // Infers the result pointer type from the source type and index path. Empty indices preserve the source type.
       // The first index steps over source objects; later indices traverse arrays or nominal fields.
       // Field indices must be nonnegative integer constants in range. Array indices need not be constant or in range.
@@ -77,6 +86,7 @@ namespace ink::ir
       bool canAppend() const noexcept;
       bool validOperand(const Value &Operand) const noexcept;
       bool canUseAs(const Value &Operand, const Type &ExpectedType) const noexcept;
+      const Type *memoryPointeeType(const Value &Pointer) const noexcept;
       bool validTarget(const BasicBlock &Target) const noexcept;
 
       template <typename InstructionT, typename... ArgumentTypes>

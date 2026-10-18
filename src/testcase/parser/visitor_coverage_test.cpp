@@ -81,7 +81,7 @@ namespace ink::frontend::parser::test
     Nodes.push_back(Context.make<DeferStmt>(Range, static_cast<Stmt *>(nullptr)));
     Nodes.push_back(Context.make<DirectImportStmt>(Range, ASTArray<ImportEntry>{}));
     Nodes.push_back(Context.make<FromImportStmt>(Range, std::size_t{}, ASTArray<TokenId>{}, ASTArray<NameToken>{}, ASTArray<ImportEntry>{}));
-    Nodes.push_back(Context.make<VarDecl>(Range, ASTArray<Attribute>{}, bool{}, static_cast<BindingPattern *>(nullptr), static_cast<TypeSyntax *>(nullptr), static_cast<Expr *>(nullptr), VarDeclForm{}));
+    Nodes.push_back(Context.make<VarDecl>(Range, ASTArray<Attribute>{}, bool{}, static_cast<BindingPattern *>(nullptr), static_cast<TypeSyntax *>(nullptr), static_cast<Expr *>(nullptr)));
     Nodes.push_back(Context.make<FieldDecl>(Range, ASTArray<Attribute>{}, NameToken{}, FieldTailKind{}, static_cast<TypeSyntax *>(nullptr), ASTArray<Parameter>{}, static_cast<Expr *>(nullptr)));
     Nodes.push_back(Context.make<FunctionDecl>(Range, ASTArray<Attribute>{}, NameToken{}, ASTArray<Parameter>{}, ASTArray<Parameter>{}, static_cast<TypeSyntax *>(nullptr), FunctionBodyKind{}, static_cast<BlockStmt *>(nullptr)));
     Nodes.push_back(Context.make<ClassDecl>(Range, ASTArray<Attribute>{}, NameToken{}, ASTArray<Parameter>{}, ASTArray<BaseSpec>{}, AggregateForm{}, static_cast<BlockStmt *>(nullptr), Range));

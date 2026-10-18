@@ -4,6 +4,7 @@
 #include "ink/core/diagnostic/diagnostic.h"
 #include "ink/core/source/source_range.h"
 #include "ink/core/support/return_macros.h"
+#include "ink/semantic/analyzer/expr_result.h"
 
 #include <string_view>
 
@@ -17,17 +18,17 @@ namespace ink::semantic
 {
   class SemanticContext;
 
-  // Returns a builtin type or boolean constant from Context, or nullptr for an unknown name.
+  // Returns a builtin type, boolean or null pointer constant from Context, or nullptr for an unknown name.
   const ir::Value *lookupBuiltinValue(SemanticContext &Context, std::string_view Name);
 
   // Requires a type registered in Context's IRContext; reports against Range in the currently selected source.
   // Returns a borrowed type, or nullptr on failure; a null Target propagates without another diagnostic.
   // Storage objects are non-type values and receive their own diagnostic.
-  const ir::Type *requireType(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target);
+  const ir::Type *requireType(SemanticContext &Context, core::SourceRange Range, ExprResult Target);
 
   // Validates a runtime value or storage object without loading storage, preserving its identity.
   // Type/module descriptors are semantic results but cannot be consumed as runtime operands.
-  const ir::Value *requireRuntimeValue(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target);
+  const ir::Value *requireRuntimeValue(SemanticContext &Context, core::SourceRange Range, ExprResult Target);
 } // namespace ink::semantic
 
 // Evaluates Value once; report arguments start with the source range and are evaluated only when Value is false.
@@ -74,7 +75,7 @@ namespace ink::semantic
     } \
   } while (false)
 
-// Reports invalid hints against the supplied source range and returns nullptr from the handler.
+// Reports invalid hints against the supplied source range and returns an empty result from the handler.
 #define CHECK_VALID_TYPE(Context, TypeValue, Range) \
   do \
   { \
@@ -83,11 +84,11 @@ namespace ink::semantic
     if (InkCheckValidTypeValue && !InkCheckValidTypeContext.irContext().containsType(InkCheckValidTypeValue)) \
     { \
       InkCheckValidTypeContext.template report<::ink::core::DiagnosticKind::SemanticConstructionFailed>((Range)); \
-      return nullptr; \
+      return {}; \
     } \
   } while (false)
 
-// Checks the supplied type class and reports its description on mismatch, then returns nullptr from the handler.
+// Checks the supplied type class and reports its description on mismatch, then returns an empty result from the handler.
 #define EXPECTED_TYPE(Context, Range, TypeValue, TypeClass, Description) \
   do \
   { \
@@ -95,7 +96,7 @@ namespace ink::semantic
     if (InkCheckExpectedType && !TypeClass::classof(InkCheckExpectedType)) \
     { \
       (Context).template report<::ink::core::DiagnosticKind::SemanticTypeMismatch>((Range), (Description), InkCheckExpectedType->toString()); \
-      return nullptr; \
+      return {}; \
     } \
   } while (false)
 

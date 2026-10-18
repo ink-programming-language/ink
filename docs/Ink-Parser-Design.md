@@ -392,7 +392,7 @@ open_stmt 与 closed_stmt 不需要对应 AST 类型。parseIfStmt 递归解析�
 
 comptime 只修饰当前 BNF 允许的语句类别，不能使 comptime return 等额外结构成为合法语法。Parser 直接返回普通语句或表达式节点，通过 ASTNodeBase::setComptime() 标记需要编译期处理；默认 isComptime() 为 false。声明语句同时标记 DeclStmt 及其内部 Decl，标记不递归传播到其他子节点。被标记节点的源码范围包含 comptime 前缀，重复表达式前缀合并为同一个标记；遍历仍按普通节点结构进行。
 
-VarDecl 保存 var 或 const、绑定模式、可选类型和可选初始化器，同时记录源语法形式。当前规则只允许无初始化的 var IDENTIFIER；解构声明和 const 必须有初始化器。FieldDecl 保存名称和尾部种类，四种尾部分别是 None、Typed、InitializerOnly、Payload；对应的类型、初始化器和荷载列表按种类满足各自约束。
+VarDecl 保存 var 或 const、绑定模式、可选类型和可选初始化器；初始化器为空表示没有初始化，缺失或损坏的必需表达式使用 MissingExpr 或 ErrorExpr 保留恢复结构，不额外保存可由初始化器推导的形式字段。当前规则只允许无初始化的 var IDENTIFIER；解构声明和 const 必须有初始化器。FieldDecl 保存名称和尾部种类，四种尾部分别是 None、Typed、InitializerOnly、Payload；对应的类型、初始化器和荷载列表按种类满足各自约束。
 
 declaration 的核心解析函数不消费结尾分号。普通 var_decl 由声明语句入口消费分号，经典 for 的 for_init 复用同一核心函数，再由 for 头部消费分隔分号，避免重复消费或错误恢复跨过头部边界。
 
@@ -600,7 +600,7 @@ func test(): int {
 | class_decl、enum_decl、interface_decl | 各自 Decl 类型与共享主体字段 |
 | function_decl、callable_signature、callable_body | FunctionDecl、签名记录与 body kind |
 | generic_params、param_list、param | 泛型或普通 Parameter 列表 |
-| declaration、var_decl | VarDecl，保留声明形式 |
+| declaration、var_decl | VarDecl，保留 var/const、绑定模式、类型和初始化器 |
 | field_decl 及各尾部 | FieldDecl 与 FieldTailKind |
 | base_clause、base_spec | BaseSpec 列表与 implements 标记 |
 | block_stmt、class_body | BlockStmt 或成员主体的有序 Stmt 列表 |

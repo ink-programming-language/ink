@@ -3,7 +3,6 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/frontend/parser/ast/expr.h"
 #include "ink/frontend/parser/ast/return_stmt.h"
-#include "ink/ir/module/global_variable.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/semantic/analyzer/analyzer_utils.h"
 #include "ink/semantic/context.h"
@@ -25,11 +24,9 @@ namespace ink::semantic
       return true;
     }
     RETURN_REPORT_IF(Context, ReturnsVoid, core::DiagnosticKind::SemanticTypeMismatch, false, Node.value()->getSourceRange(), "no return value", "a return value");
-    const ir::Value *Value = requireRuntimeValue(Context, Node.value()->getSourceRange(), analyzeExpr(State, *Node.value(), ExprHints{ReturnType}));
-    RETURN_IF_NULL(Value, false);
-    // TODO: Materialize variable storage reads before returning their values.
-    UNSUPPORT_IF(State, ir::GlobalVariable::classof(Value), false, Node.value()->getSourceRange(), frontend::parser::astKindName(Node.value()->getKind()));
-    RETURN_REPORT_IF_FALSE(Context, Builder.createReturn(*Value), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
+    const ExprResult Value = toRValue(State, Node.value()->getSourceRange(), analyzeExpr(State, *Node.value(), ExprHints{ReturnType}));
+    RETURN_IF(!Value, false);
+    RETURN_REPORT_IF_FALSE(Context, Builder.createReturn(*Value.Value), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
     return true;
   }
 } // namespace ink::semantic

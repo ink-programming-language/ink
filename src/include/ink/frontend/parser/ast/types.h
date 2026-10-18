@@ -35,11 +35,6 @@ namespace ink::frontend::parser
     Arguments,
     Value
   };
-  enum class VarDeclForm
-  {
-    Uninitialized,
-    Initialized
-  };
   enum class FieldTailKind
   {
     None,

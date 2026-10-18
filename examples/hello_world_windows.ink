@@ -10,16 +10,5 @@ func main(): i32
   var Output = GetStdHandle(StdOutputHandle);
   var Written: u32 = 0;
 
-  // The message contains 12 ASCII bytes followed by CRLF, for 14 bytes total.
-  if (WriteFile(Output, "hello, world\r\n", 14, &Written, null) == 0)
-  {
-    return 1;
-  }
-
-  if (Written != 14)
-  {
-    return 1;
-  }
-
-  return 0;
+  return WriteFile(Output, "hello, world\r\n", 14, &Written, null);
 }

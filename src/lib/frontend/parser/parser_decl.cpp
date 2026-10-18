@@ -128,7 +128,7 @@ namespace ink::frontend::parser
       expect(TokenKind::Assign);
       Initializer = missingExpr();
     }
-    return make<VarDecl>(range(Start), Attributes, Constant, Binding, Type, Initializer, Initializer ? VarDeclForm::Initialized : VarDeclForm::Uninitialized);
+    return make<VarDecl>(range(Start), Attributes, Constant, Binding, Type, Initializer);
   }
   Decl *Parser::parseDecl(ASTArray<Attribute> Attributes)
   {

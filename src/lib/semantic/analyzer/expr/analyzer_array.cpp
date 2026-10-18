@@ -9,23 +9,23 @@
 
 namespace ink::semantic
 {
-  const ir::Value *Analyzer::analyzeArrayRepeatExpr(AnalyzerState &State, const frontend::parser::ArrayRepeatExpr &Node)
+  ExprResult Analyzer::analyzeArrayRepeatExpr(AnalyzerState &State, const frontend::parser::ArrayRepeatExpr &Node)
   {
-    const ir::Value *Value = analyzeExpr(State, *Node.value());
-    RETURN_IF(!Value, nullptr);
+    const ExprResult Value = analyzeExpr(State, *Node.value());
+    RETURN_IF(!Value, ExprResult{});
     auto &Context = State.semanticContext();
-    RETURN_REPORT_IF(Context, ir::Module::classof(Value), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.value()->getSourceRange(), "an array element type or runtime value", ir::valueKindName(Value->kind()));
+    RETURN_REPORT_IF(Context, Value.Kind == ExprResultKind::Module, core::DiagnosticKind::SemanticTypeMismatch, ExprResult{}, Node.value()->getSourceRange(), "an array element type or runtime value", ir::valueKindName(Value.Value->kind()));
     // TODO: Construct repeated runtime arrays after value array analysis is supported.
-    UNSUPPORT_IF(State, !ir::Type::classof(Value), nullptr, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
-    const auto *Element = static_cast<const ir::Type *>(Value);
-    CHECK_HAS_LAYOUT(Context, Node.value()->getSourceRange(), Element, "an array element with runtime layout", nullptr);
-    const ir::Value *CountValue = analyzeExpr(State, *Node.count(), {.DefaultIntegerLiteralType = Context.typePool().getUInt64Type()});
-    RETURN_IF(!CountValue, nullptr);
-    RETURN_REPORT_IF_FALSE(Context, ir::IntegerConstant::classof(CountValue), core::DiagnosticKind::SemanticInvalidArrayLength, nullptr, Node.count()->getSourceRange());
-    const auto Count = static_cast<const ir::IntegerConstant &>(*CountValue).tryGetNonNegativeUInt64();
-    RETURN_REPORT_IF_FALSE(Context, Count, core::DiagnosticKind::SemanticInvalidArrayLength, nullptr, Node.count()->getSourceRange());
+    UNSUPPORT_IF(State, Value.Kind != ExprResultKind::Type, ExprResult{}, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
+    const auto *Element = static_cast<const ir::Type *>(Value.Value);
+    CHECK_HAS_LAYOUT(Context, Node.value()->getSourceRange(), Element, "an array element with runtime layout", ExprResult{});
+    const ExprResult CountValue = analyzeExpr(State, *Node.count(), {.DefaultIntegerLiteralType = Context.typePool().getUInt64Type()});
+    RETURN_IF(!CountValue, ExprResult{});
+    RETURN_REPORT_IF_FALSE(Context, CountValue.Kind == ExprResultKind::RValue && ir::IntegerConstant::classof(CountValue.Value), core::DiagnosticKind::SemanticInvalidArrayLength, ExprResult{}, Node.count()->getSourceRange());
+    const auto Count = static_cast<const ir::IntegerConstant &>(*CountValue.Value).tryGetNonNegativeUInt64();
+    RETURN_REPORT_IF_FALSE(Context, Count, core::DiagnosticKind::SemanticInvalidArrayLength, ExprResult{}, Node.count()->getSourceRange());
     const ir::Type *Result = Context.typePool().getArrayType(Element, *Count);
-    RETURN_REPORT_IF_FALSE(Context, Result, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), "an array with representable size and valid alignment", "an invalid array layout");
-    return Result;
+    RETURN_REPORT_IF_FALSE(Context, Result, core::DiagnosticKind::SemanticTypeMismatch, ExprResult{}, Node.getSourceRange(), "an array with representable size and valid alignment", "an invalid array layout");
+    return ExprResult::fromValue(Result);
   }
 } // namespace ink::semantic

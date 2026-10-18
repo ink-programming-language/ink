@@ -89,8 +89,8 @@ namespace ink::ir
     {
       const auto &InstructionValue = static_cast<const Instruction &>(Operand);
       const BasicBlock *Parent = InstructionValue.parentBlock();
-      // A unit-producing call is a value; terminators are not. Function membership does not prove dominance.
-      return !InstructionValue.isTerminator() && Parent && Parent->function() == insertFunction();
+      // A unit-producing call is a value; terminators and stores are not. Function membership does not prove dominance.
+      return !InstructionValue.isTerminator() && !StoreInstruction::classof(&InstructionValue) && Parent && Parent->function() == insertFunction();
     }
     // Globals describe storage. Using their contents or address requires an explicit operation, not an implicit load here.
     return Function::classof(&Operand);
@@ -106,6 +106,15 @@ namespace ink::ir
   bool IRBuilder::validTarget(const BasicBlock &Target) const noexcept
   {
     return insertFunction() && Target.function() == insertFunction();
+  }
+
+  const Type *IRBuilder::memoryPointeeType(const Value &Pointer) const noexcept
+  {
+    RETURN_IF(!validOperand(Pointer) || !PointerType::classof(Pointer.type()), nullptr);
+    const auto &PointerValueType = static_cast<const PointerType &>(*Pointer.type());
+    const Type *PointeeType = PointerValueType.pointeeType();
+    RETURN_IF(PointerValueType.isOpaque() || !Context.containsType(PointeeType) || !PointeeType->hasLayout(), nullptr);
+    return PointeeType;
   }
 
   template <typename InstructionT, typename... ArgumentTypes>
@@ -156,6 +165,30 @@ namespace ink::ir
     const Type *OperandType = Operand.type();
     RETURN_IF(!validOperand(Operand) || (!IntegerType::classof(OperandType) && !FloatType::classof(OperandType)), nullptr);
     return append<NegInstruction>(Operand);
+  }
+
+  AllocaInstruction *IRBuilder::createAlloca(const Type &AllocatedType)
+  {
+    check(canAppend());
+    RETURN_IF(!Context.containsType(&AllocatedType) || !AllocatedType.hasLayout() || VoidType::classof(&AllocatedType), nullptr);
+    const PointerType *ResultType = typePool().getPointerType(&AllocatedType);
+    RETURN_IF_NULL(ResultType, nullptr);
+    return append<AllocaInstruction>(*ResultType, AllocatedType);
+  }
+
+  LoadInstruction *IRBuilder::createLoad(const Type &LoadedType, const Value &Pointer)
+  {
+    check(canAppend());
+    RETURN_IF(!Context.containsType(&LoadedType) || memoryPointeeType(Pointer) != &LoadedType, nullptr);
+    return append<LoadInstruction>(LoadedType, Pointer);
+  }
+
+  StoreInstruction *IRBuilder::createStore(const Value &StoredValue, const Value &Pointer)
+  {
+    check(canAppend());
+    const Type *StoredType = memoryPointeeType(Pointer);
+    RETURN_IF(!StoredType || !canUseAs(StoredValue, *StoredType), nullptr);
+    return append<StoreInstruction>(*Context.typePool().getVoidType(), StoredValue, Pointer);
   }
 
   GetElementPtrInstruction *IRBuilder::createGetElementPtr(const Type &SourceElementType, const Value &Pointer, std::vector<const Value *> Indices, bool InBounds)

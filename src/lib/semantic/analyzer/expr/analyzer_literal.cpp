@@ -74,13 +74,13 @@ namespace ink::semantic
     }
   } // namespace
 
-  const ir::Value *Analyzer::analyzeLiteralExpr(AnalyzerState &State, const frontend::parser::LiteralExpr &Node, ExprHints Hints)
+  ExprResult Analyzer::analyzeLiteralExpr(AnalyzerState &State, const frontend::parser::LiteralExpr &Node, ExprHints Hints)
   {
     auto &Context = State.semanticContext();
     const ir::Type *ExpectedType = Hints.ExpectedType;
     const auto &Input = State.input();
     const auto &Token = Input.requireToken(Node.token(), Context.diagnosticEngine(), Node.getSourceRange());
-    RETURN_REPORT_IF(Context, Token.Kind != Node.literalKind(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "LiteralExpr kind must match its referenced token kind");
+    RETURN_REPORT_IF(Context, Token.Kind != Node.literalKind(), core::DiagnosticKind::SemanticInvalidAST, ExprResult{}, Node.getSourceRange(), "LiteralExpr kind must match its referenced token kind");
     using frontend::parser::TokenKind;
     switch (Node.literalKind())
     {
@@ -90,41 +90,41 @@ namespace ink::semantic
         const auto *DefaultType = Hints.DefaultIntegerLiteralType ? Hints.DefaultIntegerLiteralType : Context.typePool().getInt32Type();
         const auto *Type = ExpectedType ? static_cast<const ir::IntegerType *>(ExpectedType) : DefaultType;
         const auto Value = parseIntegerLiteral(Context, Input, Node, Token);
-        RETURN_REPORT_IF_FALSE(Context, Value, core::DiagnosticKind::SemanticIntegerOutOfRange, nullptr, Node.getSourceRange(), Type->toString());
-        return materializeInteger(State, Node.getSourceRange(), *Value, *Type);
+        RETURN_REPORT_IF_FALSE(Context, Value, core::DiagnosticKind::SemanticIntegerOutOfRange, ExprResult{}, Node.getSourceRange(), Type->toString());
+        return ExprResult::fromValue(materializeInteger(State, Node.getSourceRange(), *Value, *Type));
       }
       case TokenKind::FloatLiteral:
       {
         EXPECTED_TYPE(Context, Node.getSourceRange(), ExpectedType, ir::FloatType, "a floating-point type");
         const auto *Numeric = std::get_if<frontend::tokenizer::NumericInfo>(&Token.Payload);
-        RETURN_REPORT_IF(Context, !Numeric || Numeric->Base != core::NumericBase::Decimal, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), "a decimal floating-point literal", "invalid numeric metadata");
+        RETURN_REPORT_IF(Context, !Numeric || Numeric->Base != core::NumericBase::Decimal, core::DiagnosticKind::SemanticTypeMismatch, ExprResult{}, Node.getSourceRange(), "a decimal floating-point literal", "invalid numeric metadata");
         const auto *Type = ExpectedType ? static_cast<const ir::FloatType *>(ExpectedType) : Context.typePool().getFloat64Type();
         const std::string_view Text = Input.spelling(Token);
-        return materializeFloat(State, Node, Text, *Type);
+        return ExprResult::fromValue(materializeFloat(State, Node, Text, *Type));
       }
       case TokenKind::CharLiteral:
       {
         EXPECTED_TYPE(Context, Node.getSourceRange(), ExpectedType, ir::IntegerType, "an integer type");
         const auto *Character = std::get_if<frontend::tokenizer::CharInfo>(&Token.Payload);
-        RETURN_REPORT_IF_FALSE(Context, Character, core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "character LiteralExpr must reference a token with CharInfo metadata");
-        RETURN_REPORT_IF_FALSE(Context, core::isUnicodeScalarValue(Character->Value), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "character LiteralExpr metadata must contain a Unicode scalar value");
+        RETURN_REPORT_IF_FALSE(Context, Character, core::DiagnosticKind::SemanticInvalidAST, ExprResult{}, Node.getSourceRange(), "character LiteralExpr must reference a token with CharInfo metadata");
+        RETURN_REPORT_IF_FALSE(Context, core::isUnicodeScalarValue(Character->Value), core::DiagnosticKind::SemanticInvalidAST, ExprResult{}, Node.getSourceRange(), "character LiteralExpr metadata must contain a Unicode scalar value");
         const auto *Type = ExpectedType ? static_cast<const ir::IntegerType *>(ExpectedType) : Context.typePool().getUInt32Type();
-        return materializeInteger(State, Node.getSourceRange(), static_cast<std::uint64_t>(Character->Value), *Type);
+        return ExprResult::fromValue(materializeInteger(State, Node.getSourceRange(), static_cast<std::uint64_t>(Character->Value), *Type));
       }
       case TokenKind::StringLiteral:
       {
         const auto *String = std::get_if<frontend::tokenizer::StringInfo>(&Token.Payload);
-        RETURN_REPORT_IF_FALSE(Context, String, core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "string LiteralExpr must reference a token with StringInfo metadata");
+        RETURN_REPORT_IF_FALSE(Context, String, core::DiagnosticKind::SemanticInvalidAST, ExprResult{}, Node.getSourceRange(), "string LiteralExpr must reference a token with StringInfo metadata");
         const auto *StringType = Context.typePool().getArrayType(Context.typePool().getUInt8Type(), String->Decoded.size());
-        RETURN_REPORT_IF_FALSE(Context, StringType, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), "a string with representable byte length", "an invalid string layout");
-        CHECK_TYPE_MATCH(Context, Node.getSourceRange(), ExpectedType, StringType, nullptr);
+        RETURN_REPORT_IF_FALSE(Context, StringType, core::DiagnosticKind::SemanticTypeMismatch, ExprResult{}, Node.getSourceRange(), "a string with representable byte length", "an invalid string layout");
+        CHECK_TYPE_MATCH(Context, Node.getSourceRange(), ExpectedType, StringType, ExprResult{});
         const auto *Constant = Context.irContext().constantPool().getStringConstant(String->Decoded);
-        RETURN_REPORT_IF_FALSE(Context, Constant, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), "a valid UTF-8 string with representable byte length", "invalid string bytes or length");
-        return Constant;
+        RETURN_REPORT_IF_FALSE(Context, Constant, core::DiagnosticKind::SemanticTypeMismatch, ExprResult{}, Node.getSourceRange(), "a valid UTF-8 string with representable byte length", "invalid string bytes or length");
+        return ExprResult::fromValue(Constant);
       }
       default:
         reportUnsupported(State, Node);
-        return nullptr;
+        return {};
     }
   }
 } // namespace ink::semantic

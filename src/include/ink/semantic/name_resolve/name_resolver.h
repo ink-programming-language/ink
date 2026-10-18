@@ -54,6 +54,9 @@ namespace ink::semantic
 
       // Ordinary bindings are exclusive, including ordinary function bindings.
       BindResult bind(core::Name Name, ir::Value &Target);
+      // Variable bindings are exclusive and borrow both storage and declared type; validation belongs to the analyzer.
+      // Repeating the same storage, declared type and mutability returns AlreadyBound without changing metadata.
+      BindResult bindVariable(core::Name Name, ir::Value &Storage, const ir::Type &DeclaredType, bool Mutable);
       // Only explicit overload bindings can accumulate distinct functions; signature checks are separate.
       BindResult bindOverload(core::Name Name, ir::Function &Target);
 

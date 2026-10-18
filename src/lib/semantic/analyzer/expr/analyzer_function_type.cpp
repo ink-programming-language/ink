@@ -11,25 +11,25 @@
 
 namespace ink::semantic
 {
-  const ir::Value *Analyzer::analyzeFunctionTypeExpr(AnalyzerState &State, const frontend::parser::FunctionTypeExpr &Node)
+  ExprResult Analyzer::analyzeFunctionTypeExpr(AnalyzerState &State, const frontend::parser::FunctionTypeExpr &Node)
   {
     auto &Context = State.semanticContext();
-    RETURN_REPORT_IF_FALSE(Context, Node.returnType(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "FunctionTypeExpr requires a return type annotation");
+    RETURN_REPORT_IF_FALSE(Context, Node.returnType(), core::DiagnosticKind::SemanticInvalidAST, ExprResult{}, Node.getSourceRange(), "FunctionTypeExpr requires a return type annotation");
     const ir::Type *Return = analyzeType(State, *Node.returnType());
-    RETURN_IF_NULL(Return, nullptr);
-    CHECK_HAS_LAYOUT(Context, Node.returnType()->getSourceRange(), Return, "a return type with runtime layout", nullptr);
+    RETURN_IF_NULL(Return, ExprResult{});
+    CHECK_HAS_LAYOUT(Context, Node.returnType()->getSourceRange(), Return, "a return type with runtime layout", ExprResult{});
     std::vector<ir::FunctionTypeParameter> Parameters;
     Parameters.reserve(Node.parameters().size());
     for (const auto &Parameter : Node.parameters())
     {
-      RETURN_REPORT_IF_FALSE(Context, Parameter.type(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "FunctionTypeExpr parameter requires a type annotation");
+      RETURN_REPORT_IF_FALSE(Context, Parameter.type(), core::DiagnosticKind::SemanticInvalidAST, ExprResult{}, Node.getSourceRange(), "FunctionTypeExpr parameter requires a type annotation");
       const ir::Type *Type = analyzeType(State, *Parameter.type());
-      RETURN_IF_NULL(Type, nullptr);
-      CHECK_HAS_LAYOUT(Context, Parameter.type()->getSourceRange(), Type, "a parameter type with runtime layout", nullptr);
+      RETURN_IF_NULL(Type, ExprResult{});
+      CHECK_HAS_LAYOUT(Context, Parameter.type()->getSourceRange(), Type, "a parameter type with runtime layout", ExprResult{});
       Parameters.emplace_back(Type, Parameter.variadic());
     }
     const ir::Type *Result = Context.typePool().getFunctionType(Return, Parameters);
-    RETURN_REPORT_IF_FALSE(Context, Result, core::DiagnosticKind::SemanticConstructionFailed, nullptr, Node.getSourceRange());
-    return Result;
+    RETURN_REPORT_IF_FALSE(Context, Result, core::DiagnosticKind::SemanticConstructionFailed, ExprResult{}, Node.getSourceRange());
+    return ExprResult::fromValue(Result);
   }
 } // namespace ink::semantic

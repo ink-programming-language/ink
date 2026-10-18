@@ -336,7 +336,9 @@ namespace ink::frontend::parser::test
   {
     const auto Result = read("var a; var b: T; const c = 1; var (x,) = v; var [head, tail...] = xs;");
     ASSERT_TRUE(Result.succeeded());
-    EXPECT_EQ(cast<VarDecl>(declaration(Result))->form(), VarDeclForm::Uninitialized);
+    EXPECT_EQ(cast<VarDecl>(declaration(Result))->initializer(), nullptr);
+    EXPECT_EQ(cast<VarDecl>(declaration(Result, 1))->initializer(), nullptr);
+    EXPECT_TRUE(isa<LiteralExpr>(cast<VarDecl>(declaration(Result, 2))->initializer()));
     EXPECT_TRUE(cast<VarDecl>(declaration(Result, 2))->constant());
     EXPECT_TRUE(isa<TupleBindingPattern>(cast<VarDecl>(declaration(Result, 3))->binding()));
     const auto *Array = cast<ArrayBindingPattern>(cast<VarDecl>(declaration(Result, 4))->binding());

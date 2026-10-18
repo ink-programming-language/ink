@@ -86,18 +86,6 @@ namespace ink::frontend::parser
         return;
       }
     }
-    void printValue(std::ostringstream &Output, VarDeclForm Value)
-    {
-      switch (Value)
-      {
-      case VarDeclForm::Uninitialized:
-        Output << "Uninitialized";
-        return;
-      case VarDeclForm::Initialized:
-        Output << "Initialized";
-        return;
-      }
-    }
     void printValue(std::ostringstream &Output, FieldTailKind Value)
     {
       switch (Value)
@@ -624,8 +612,6 @@ namespace ink::frontend::parser
           printValue(Output, Node->attributes());
           Output << " Constant=";
           printValue(Output, Node->constant());
-          Output << " Form=";
-          printValue(Output, Node->form());
         }
         void visitFieldDecl(const FieldDecl *Node)
         {

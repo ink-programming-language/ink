@@ -16,6 +16,8 @@ namespace ink::semantic::test
   using core::Name;
 
   static_assert(std::is_same_v<decltype(std::declval<const Binding &>().targets()), std::span<Value *const>>);
+  static_assert(std::is_same_v<decltype(std::declval<const Binding &>().variableInfo()), const VariableBindingInfo *>);
+  static_assert(noexcept(std::declval<const Binding &>().variableInfo()));
   static_assert(!std::is_copy_constructible_v<NameResolver>);
   static_assert(!std::is_move_constructible_v<NameResolver>);
   static_assert(!std::is_copy_constructible_v<Scope>);
@@ -419,5 +421,135 @@ namespace ink::semantic::test
       EXPECT_EQ(&Resolver.currentScope(), ValueGuard.scope());
     }
     EXPECT_EQ(&Resolver.currentScope(), &Root);
+  }
+  // Variable registration retains one storage target and immutable declared type and mutability across repeated and conflicting registrations.
+  TEST(SemanticNameResolverTest, PreservesVariableMetadataAndExclusiveRegistration)
+  {
+    IRContext Context(target::TargetContext::native());
+    Module ModuleValue(Context);
+    const auto *Integer = Context.typePool().getInt32Type();
+    const auto *Boolean = Context.typePool().getBoolType();
+    auto *Storage = ModuleValue.createGlobalVariable(*Integer);
+    auto *OtherStorage = ModuleValue.createGlobalVariable(*Integer);
+    auto *FunctionValue = ModuleValue.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    ASSERT_NE(Storage, nullptr);
+    ASSERT_NE(OtherStorage, nullptr);
+    ASSERT_NE(FunctionValue, nullptr);
+    ScopeStore Store;
+    NameResolver Resolver(Store);
+    const Name Variable = core::NamePool::instance().intern("VariableMetadata");
+    EXPECT_EQ(Resolver.bindVariable(core::NAME_None, *Storage, *Integer, true), BindResult::InvalidName);
+    EXPECT_EQ(Resolver.lookupLocal(core::NAME_None), nullptr);
+    ASSERT_EQ(Resolver.bindVariable(Variable, *Storage, *Integer, true), BindResult::Inserted);
+    const Binding *Saved = Resolver.lookupLocal(Variable);
+    ASSERT_NE(Saved, nullptr);
+    const VariableBindingInfo *Metadata = Saved->variableInfo();
+    ASSERT_NE(Metadata, nullptr);
+    EXPECT_EQ(Saved->name(), Variable);
+    EXPECT_FALSE(Saved->isOverloadSet());
+    EXPECT_EQ(Metadata->DeclaredType, Integer);
+    EXPECT_TRUE(Metadata->Mutable);
+    EXPECT_EQ(Resolver.bindVariable(Variable, *Storage, *Integer, true), BindResult::AlreadyBound);
+    EXPECT_EQ(Resolver.bindVariable(Variable, *Storage, *Integer, false), BindResult::Conflict);
+    EXPECT_EQ(Resolver.bindVariable(Variable, *Storage, *Boolean, true), BindResult::Conflict);
+    EXPECT_EQ(Resolver.bindVariable(Variable, *OtherStorage, *Integer, true), BindResult::Conflict);
+    EXPECT_EQ(Resolver.bind(Variable, *Storage), BindResult::Conflict);
+    EXPECT_EQ(Resolver.bindOverload(Variable, *FunctionValue), BindResult::Conflict);
+    EXPECT_EQ(Resolver.lookupLocal(Variable), Saved);
+    EXPECT_EQ(Saved->variableInfo(), Metadata);
+    EXPECT_EQ(Metadata->DeclaredType, Integer);
+    EXPECT_TRUE(Metadata->Mutable);
+    ASSERT_EQ(Saved->targets().size(), 1U);
+    EXPECT_EQ(Saved->targets()[0], static_cast<Value *>(Storage));
+    const Name Plain = core::NamePool::instance().intern("PlainVariableConflict");
+    ASSERT_EQ(Resolver.bind(Plain, *Storage), BindResult::Inserted);
+    const Binding *PlainBinding = Resolver.lookupLocal(Plain);
+    ASSERT_NE(PlainBinding, nullptr);
+    EXPECT_EQ(PlainBinding->variableInfo(), nullptr);
+    EXPECT_EQ(Resolver.bindVariable(Plain, *Storage, *Integer, true), BindResult::Conflict);
+    EXPECT_EQ(Resolver.lookupLocal(Plain), PlainBinding);
+    EXPECT_EQ(PlainBinding->variableInfo(), nullptr);
+    const Name Overloaded = core::NamePool::instance().intern("OverloadVariableConflict");
+    ASSERT_EQ(Resolver.bindOverload(Overloaded, *FunctionValue), BindResult::Inserted);
+    const Binding *OverloadBinding = Resolver.lookupLocal(Overloaded);
+    ASSERT_NE(OverloadBinding, nullptr);
+    EXPECT_EQ(OverloadBinding->variableInfo(), nullptr);
+    EXPECT_EQ(Resolver.bindVariable(Overloaded, *FunctionValue, *Integer, false), BindResult::Conflict);
+    EXPECT_EQ(Resolver.lookupLocal(Overloaded), OverloadBinding);
+    EXPECT_EQ(OverloadBinding->variableInfo(), nullptr);
+    EXPECT_TRUE(OverloadBinding->isOverloadSet());
+  }
+
+  // Nearest variable bindings keep independent type and mutability metadata when shadowed and when persisted scopes are resumed.
+  TEST(SemanticNameResolverTest, ShadowsAndResumesVariableBindingsWithTheirMetadata)
+  {
+    IRContext Context(target::TargetContext::native());
+    Module ModuleValue(Context);
+    const auto *Integer = Context.typePool().getInt32Type();
+    const auto *Boolean = Context.typePool().getBoolType();
+    auto *OuterStorage = ModuleValue.createGlobalVariable(*Integer);
+    auto *InnerStorage = ModuleValue.createGlobalVariable(*Boolean);
+    ASSERT_NE(OuterStorage, nullptr);
+    ASSERT_NE(InnerStorage, nullptr);
+    ScopeStore Store;
+    NameResolver Resolver(Store);
+    const Name Variable = core::NamePool::instance().intern("ShadowedVariableMetadata");
+    ASSERT_EQ(Resolver.bindVariable(Variable, *OuterStorage, *Integer, true), BindResult::Inserted);
+    const Binding *OuterBinding = Resolver.lookup(Variable);
+    ASSERT_NE(OuterBinding, nullptr);
+    const auto *OuterInfo = OuterBinding->variableInfo();
+    ASSERT_NE(OuterInfo, nullptr);
+    Scope *Members = Resolver.enterScope(ModuleValue);
+    ASSERT_NE(Members, nullptr);
+    ASSERT_EQ(Resolver.bindVariable(Variable, *InnerStorage, *Boolean, false), BindResult::Inserted);
+    const Binding *InnerBinding = Resolver.lookup(Variable);
+    ASSERT_NE(InnerBinding, nullptr);
+    const auto *InnerInfo = InnerBinding->variableInfo();
+    ASSERT_NE(InnerInfo, nullptr);
+    EXPECT_NE(InnerInfo, OuterInfo);
+    EXPECT_EQ(InnerInfo->DeclaredType, Boolean);
+    EXPECT_FALSE(InnerInfo->Mutable);
+    EXPECT_EQ(Resolver.lookupMember(ModuleValue, Variable), InnerBinding);
+    Scope &Nested = Resolver.enterScope();
+    EXPECT_EQ(Resolver.lookup(Variable), InnerBinding);
+    EXPECT_EQ(Resolver.lookupLocal(Variable), nullptr);
+    ASSERT_TRUE(Resolver.exitScope());
+    ASSERT_TRUE(Resolver.exitScope());
+    EXPECT_EQ(Resolver.lookup(Variable), OuterBinding);
+    EXPECT_EQ(OuterInfo->DeclaredType, Integer);
+    EXPECT_TRUE(OuterInfo->Mutable);
+    Scope &Sibling = Resolver.enterScope();
+    EXPECT_EQ(Resolver.lookup(Variable), OuterBinding);
+    EXPECT_EQ(Sibling.lookupLocal(Variable), nullptr);
+    NameResolver Resumed(Nested);
+    EXPECT_EQ(Resumed.lookup(Variable), InnerBinding);
+    ASSERT_TRUE(Resumed.enterScope(*Members));
+    ASSERT_NE(Resumed.lookupLocal(Variable), nullptr);
+    EXPECT_EQ(Resumed.lookupLocal(Variable)->variableInfo(), InnerInfo);
+    EXPECT_EQ(Resumed.bindVariable(Variable, *InnerStorage, *Boolean, false), BindResult::AlreadyBound);
+    EXPECT_EQ(Resumed.bindVariable(Variable, *InnerStorage, *Boolean, true), BindResult::Conflict);
+    EXPECT_EQ(InnerBinding->variableInfo(), InnerInfo);
+    EXPECT_FALSE(InnerInfo->Mutable);
+  }
+
+  // Generic variable registration records borrowed metadata without imposing analyzer-level storage type or context validation.
+  TEST(SemanticNameResolverTest, LeavesVariableTypeAndStorageValidationToAnalyzer)
+  {
+    IRContext Context(target::TargetContext::native());
+    IRContext Foreign(target::TargetContext::native());
+    Module Storage(Context);
+    ScopeStore Store;
+    NameResolver Resolver(Store);
+    const Name Variable = core::NamePool::instance().intern("UnvalidatedVariableMetadata");
+    const auto *DeclaredType = Foreign.typePool().getBoolType();
+    ASSERT_EQ(Resolver.bindVariable(Variable, Storage, *DeclaredType, false), BindResult::Inserted);
+    const Binding *BindingValue = Resolver.lookupLocal(Variable);
+    ASSERT_NE(BindingValue, nullptr);
+    ASSERT_NE(BindingValue->variableInfo(), nullptr);
+    EXPECT_EQ(BindingValue->variableInfo()->DeclaredType, DeclaredType);
+    EXPECT_FALSE(BindingValue->variableInfo()->Mutable);
+    ASSERT_EQ(BindingValue->targets().size(), 1U);
+    EXPECT_EQ(BindingValue->targets()[0], static_cast<Value *>(&Storage));
+    EXPECT_EQ(Resolver.bindVariable(Variable, Storage, *DeclaredType, false), BindResult::AlreadyBound);
   }
 } // namespace ink::semantic::test
