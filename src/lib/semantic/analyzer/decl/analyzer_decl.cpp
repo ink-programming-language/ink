@@ -1,6 +1,7 @@
 #include "ink/semantic/analyzer/analyzer.h"
 
 #include "ink/semantic/analyzer/analyzer_state.h"
+#include "ink/semantic/analyzer/analyzer_utils.h"
 #include "ink/frontend/parser/ast.h"
 #include "ink/semantic/context.h"
 
@@ -8,10 +9,7 @@ namespace ink::semantic
 {
   bool Analyzer::analyzeDecl(AnalyzerState &State, const frontend::parser::Decl &Declaration)
   {
-    if (Declaration.isComptime())
-    {
-      return reportUnsupported(State, Declaration);
-    }
+    UNSUPPORT_IF(State, Declaration.isComptime(), false, Declaration.getSourceRange(), frontend::parser::astKindName(Declaration.getKind()));
     switch (Declaration.getKind())
     {
 #define INK_ANALYZE_Root(Name)

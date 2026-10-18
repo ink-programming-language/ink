@@ -1,4 +1,5 @@
 #pragma once
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/frontend/parser/ast.h"
 #include "ink/frontend/tokenizer/tokenizer.h"
 #include <memory>
@@ -9,7 +10,10 @@ namespace ink::frontend::parser
     public:
       explicit TokenBuffer(tokenizer::TokenizedBuffer Input);
       const tokenizer::Token &token(TokenId Id) const noexcept;
+      // Requires a real token index, including a stored EOF; invalid references report an ICE at Range.
+      const tokenizer::Token &requireToken(TokenId Id, const core::DiagnosticEngine &Diagnostics, SourceRange Range) const;
       std::string_view spelling(TokenId Id) const noexcept;
+      std::string_view spelling(const tokenizer::Token &Token) const noexcept;
       const tokenizer::TokenizedBuffer &lexedFile() const noexcept
       {
         return Input;

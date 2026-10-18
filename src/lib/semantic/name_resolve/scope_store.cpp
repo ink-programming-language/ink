@@ -1,5 +1,7 @@
 #include "ink/semantic/name_resolve/scope_store.h"
 
+#include "ink/semantic/analyzer/analyzer_utils.h"
+
 #include <algorithm>
 #include <utility>
 
@@ -28,10 +30,7 @@ namespace ink::semantic
 
   Scope *ScopeStore::createScope(Scope &Parent, ir::Value &Owner)
   {
-    if (&Parent.Store != this || MemberScopes.contains(&Owner))
-    {
-      return nullptr;
-    }
+    RETURN_IF(&Parent.Store != this || MemberScopes.contains(&Owner), nullptr);
     Scope &Result = appendScope(Parent, &Owner);
     MemberScopes.emplace(&Owner, &Result);
     return &Result;
@@ -39,10 +38,7 @@ namespace ink::semantic
 
   BindResult ScopeStore::bind(Scope &Destination, core::Name Name, ir::Value *Target, bool Overload)
   {
-    if (!Name.valid())
-    {
-      return BindResult::InvalidName;
-    }
+    RETURN_IF(!Name.valid(), BindResult::InvalidName);
     const auto Found = Destination.Bindings.find(Name);
     if (Found == Destination.Bindings.end())
     {
@@ -51,18 +47,9 @@ namespace ink::semantic
     }
 
     Binding &Existing = Found->second;
-    if (Existing.OverloadSet != Overload)
-    {
-      return BindResult::Conflict;
-    }
-    if (std::find(Existing.Targets.begin(), Existing.Targets.end(), Target) != Existing.Targets.end())
-    {
-      return BindResult::AlreadyBound;
-    }
-    if (!Overload)
-    {
-      return BindResult::Conflict;
-    }
+    RETURN_IF(Existing.OverloadSet != Overload, BindResult::Conflict);
+    RETURN_IF(std::find(Existing.Targets.begin(), Existing.Targets.end(), Target) != Existing.Targets.end(), BindResult::AlreadyBound);
+    RETURN_IF(!Overload, BindResult::Conflict);
     Existing.Targets.push_back(Target);
     return BindResult::Inserted;
   }

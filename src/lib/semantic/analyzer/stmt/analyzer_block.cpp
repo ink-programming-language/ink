@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/block_stmt.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
+#include "ink/semantic/analyzer/analyzer_utils.h"
 #include "ink/semantic/analyzer/block_depth_guard.h"
 #include "ink/semantic/context.h"
 #include "ink/semantic/name_resolve/scope_guard.h"
@@ -11,11 +12,7 @@ namespace ink::semantic
   bool Analyzer::analyzeBlockStmt(AnalyzerState &State, const frontend::parser::BlockStmt &Node)
   {
     auto &Context = State.semanticContext();
-    if (State.recursionDepth() >= State.recursionDepthLimit())
-    {
-      Context.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
-      return false;
-    }
+    CHECK_RECURSION_DEPTH(State, Node.getSourceRange(), false);
     BlockDepthGuard DepthGuard(State.recursionDepth());
     ScopeGuard Scope(State.nameResolver());
     bool Succeeded = true;

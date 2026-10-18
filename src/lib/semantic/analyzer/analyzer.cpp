@@ -1,6 +1,7 @@
 #include "ink/semantic/analyzer/analyzer.h"
 
 #include "ink/semantic/analyzer/analyzer_state.h"
+#include "ink/semantic/analyzer/analyzer_utils.h"
 #include "ink/frontend/parser/parser.h"
 #include "ink/ir/module/module.h"
 #include "ink/semantic/context.h"
@@ -10,21 +11,11 @@ namespace ink::semantic
 {
   bool Analyzer::analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input, ir::Module &Output)
   {
-    if (&Output.irContext() != &Context.irContext() || !Input.succeeded())
-    {
-      return false;
-    }
+    RETURN_IF(&Output.irContext() != &Context.irContext() || !Input.succeeded(), false);
     const auto &Lexed = Input.Unit->input().lexedFile();
-    if (!Lexed.isRegisteredWith(Context.sourceManager()))
-    {
-      return false;
-    }
+    RETURN_IF(!Lexed.isRegisteredWith(Context.sourceManager()), false);
     Context.setSource(Lexed.sourceId());
-    if (!Input.Unit->root())
-    {
-      Context.report<core::DiagnosticKind::SemanticInvalidAST>({}, "successful parse result requires a module AST root");
-      return false;
-    }
+    RETURN_REPORT_IF_FALSE(Context, Input.Unit->root(), core::DiagnosticKind::SemanticInvalidAST, false, {}, "successful parse result requires a module AST root");
 
     // Preserve caller-owned output and pooled IR, with fresh traversal state for this call.
     AnalyzerState State(Context, Input, Output);
@@ -33,11 +24,7 @@ namespace ink::semantic
     {
       ModuleScope = Context.scopeStore().createScope(State.Resolver.rootScope(), Output);
     }
-    if (!ModuleScope)
-    {
-      Context.report<core::DiagnosticKind::SemanticConstructionFailed>(Input.Unit->root()->getSourceRange());
-      return false;
-    }
+    RETURN_REPORT_IF_FALSE(Context, ModuleScope, core::DiagnosticKind::SemanticConstructionFailed, false, Input.Unit->root()->getSourceRange());
     ScopeGuard ModuleGuard(State.Resolver, *ModuleScope);
     // TODO: Restore declaration collection and forward references before analyzing function bodies.
     bool Succeeded = true;

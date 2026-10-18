@@ -6,6 +6,7 @@
 #include "ink/ir/module/global_variable.h"
 #include "ink/ir/module/module.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
+#include "ink/semantic/analyzer/analyzer_utils.h"
 #include "ink/semantic/context.h"
 
 #include <string_view>
@@ -17,31 +18,13 @@ namespace ink::semantic
     bool isValidBindingValue(AnalyzerState &State, const ir::Value &Value) noexcept
     {
       const auto &Context = State.semanticContext().irContext();
-      if (ir::Type::classof(&Value))
-      {
-        return Context.containsType(static_cast<const ir::Type *>(&Value));
-      }
-      if (ir::Module::classof(&Value))
-      {
-        return &static_cast<const ir::Module &>(Value).irContext() == &Context;
-      }
+      RETURN_IF(ir::Type::classof(&Value), Context.containsType(static_cast<const ir::Type *>(&Value)));
+      RETURN_IF(ir::Module::classof(&Value), &static_cast<const ir::Module &>(Value).irContext() == &Context);
       const ir::Type *Type = Value.type();
-      if (!Context.containsType(Type) || (!Type->hasLayout() && !ir::NullPointerConstant::classof(&Value)))
-      {
-        return false;
-      }
-      if (ir::Constant::classof(&Value))
-      {
-        return Context.constantPool().owns(static_cast<const ir::Constant *>(&Value));
-      }
-      if (ir::GlobalVariable::classof(&Value) || ir::Function::classof(&Value))
-      {
-        return true;
-      }
-      if (ir::Parameter::classof(&Value))
-      {
-        return static_cast<const ir::Parameter &>(Value).function() == State.irBuilder().insertFunction();
-      }
+      RETURN_IF(!Context.containsType(Type) || (!Type->hasLayout() && !ir::NullPointerConstant::classof(&Value)), false);
+      RETURN_IF(ir::Constant::classof(&Value), Context.constantPool().owns(static_cast<const ir::Constant *>(&Value)));
+      RETURN_IF(ir::GlobalVariable::classof(&Value) || ir::Function::classof(&Value), true);
+      RETURN_IF(ir::Parameter::classof(&Value), static_cast<const ir::Parameter &>(Value).function() == State.irBuilder().insertFunction());
       if (ir::Instruction::classof(&Value))
       {
         const auto &Instruction = static_cast<const ir::Instruction &>(Value);
@@ -91,10 +74,7 @@ namespace ink::semantic
       };
       for (const auto &Candidate : Entries)
       {
-        if (Candidate.Name == Name)
-        {
-          return Candidate.GetValue(Context);
-        }
+        RETURN_IF(Candidate.Name == Name, Candidate.GetValue(Context));
       }
       return nullptr;
     }
@@ -102,30 +82,15 @@ namespace ink::semantic
 
   const ir::Value *Analyzer::analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found, bool IsCallCallee)
   {
-    if (Found.targets().size() != 1)
-    {
-      // TODO: Select an overload using the call arguments or an expected function signature.
-      if (IsCallCallee)
-      {
-        reportUnsupported(State, Node.getSourceRange(), "function overload selection");
-        return nullptr;
-      }
-      State.semanticContext().report<core::DiagnosticKind::SemanticAmbiguousName>(Node.getSourceRange());
-      return nullptr;
-    }
+    const bool HasSingleTarget = Found.targets().size() == 1;
+    // TODO: Select an overload using the call arguments or an expected function signature.
+    UNSUPPORT_IF(State, !HasSingleTarget && IsCallCallee, nullptr, Node.getSourceRange(), "function overload selection");
+    RETURN_REPORT_IF_FALSE(State.semanticContext(), HasSingleTarget, core::DiagnosticKind::SemanticAmbiguousName, nullptr, Node.getSourceRange());
     const ir::Value *Value = Found.targets().front();
     // Bound objects are compiler-produced IR; invalid ownership or storage is an internal model violation.
-    if (!Value || !isValidBindingValue(State, *Value))
-    {
-      State.semanticContext().report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
-      return nullptr;
-    }
-    if (ir::Parameter::classof(Value) && static_cast<const ir::Parameter *>(Value)->isVariadic())
-    {
-      // TODO: Materialize variadic parameter packs before using them as expression values.
-      reportUnsupported(State, Node.getSourceRange(), "variadic parameter values");
-      return nullptr;
-    }
+    RETURN_REPORT_IF(State.semanticContext(), !Value || !isValidBindingValue(State, *Value), core::DiagnosticKind::SemanticConstructionFailed, nullptr, Node.getSourceRange());
+    // TODO: Materialize variadic parameter packs before using them as expression values.
+    UNSUPPORT_IF(State, ir::Parameter::classof(Value) && static_cast<const ir::Parameter *>(Value)->isVariadic(), nullptr, Node.getSourceRange(), "variadic parameter values");
     return Value;
   }
 
@@ -133,14 +98,8 @@ namespace ink::semantic
   {
     auto &Context = State.semanticContext();
     const auto Name = Node.name();
-    if (const Binding *Found = State.nameResolver().lookup(core::NamePool::instance().find(Name.Text)))
-    {
-      return analyzeBinding(State, Node, *Found, IsCallCallee);
-    }
-    if (const ir::Value *Builtin = lookupBuiltinValue(Context, Name.Text))
-    {
-      return Builtin;
-    }
+    RETURN_IF(const Binding *Found = State.nameResolver().lookup(core::NamePool::instance().find(Name.Text)), analyzeBinding(State, Node, *Found, IsCallCallee));
+    RETURN_IF(const ir::Value *Builtin = lookupBuiltinValue(Context, Name.Text), Builtin);
     Context.report<core::DiagnosticKind::SemanticUnknownName>(Name.Range, Name.Text);
     return nullptr;
   }

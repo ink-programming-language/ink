@@ -13,9 +13,21 @@ namespace ink::frontend::parser
   {
     return Id < Input.tokens().size() ? Input.tokens()[Id] : End;
   }
+  const tokenizer::Token &TokenBuffer::requireToken(TokenId Id, const core::DiagnosticEngine &Diagnostics, SourceRange Range) const
+  {
+    if (Id >= size())
+    {
+      Diagnostics.report<core::DiagnosticKind::ParserInvalidTokenReference>(Input.sourceId(), Range, Id, size());
+    }
+    return Input.tokens()[Id];
+  }
   std::string_view TokenBuffer::spelling(TokenId Id) const noexcept
   {
     return Input.raw(token(Id));
+  }
+  std::string_view TokenBuffer::spelling(const tokenizer::Token &Token) const noexcept
+  {
+    return Input.raw(Token);
   }
   const tokenizer::Token &TokenCursor::peek(std::size_t Ahead) const noexcept
   {

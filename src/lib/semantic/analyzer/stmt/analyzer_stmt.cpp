@@ -10,10 +10,7 @@ namespace ink::semantic
   bool Analyzer::analyzeStmt(AnalyzerState &State, const frontend::parser::Stmt &Stmt)
   {
     // TODO: Restore compile-time statement evaluation.
-    if (Stmt.isComptime())
-    {
-      return reportUnsupported(State, Stmt);
-    }
+    UNSUPPORT_IF(State, Stmt.isComptime(), false, Stmt.getSourceRange(), frontend::parser::astKindName(Stmt.getKind()));
     switch (Stmt.getKind())
     {
 #define INK_ANALYZE_Root(Name)
@@ -43,18 +40,12 @@ namespace ink::semantic
 
   bool Analyzer::analyzeSimpleStmt(AnalyzerState &State, const frontend::parser::SimpleStmt &Node)
   {
-    if (State.AnalysisMode == AnalyzerState::Mode::CollectDecls)
-    {
-      return true;
-    }
+    RETURN_IF(State.AnalysisMode == AnalyzerState::Mode::CollectDecls, true);
     bool Succeeded = true;
     for (const frontend::parser::SimpleItem *Item : Node.items())
     {
-      if (!frontend::parser::ExprItem::classof(Item))
-      {
-        // TODO: Restore assignments and the remaining simple items.
-        return reportUnsupported(State, Node);
-      }
+      // TODO: Restore assignments and the remaining simple items.
+      UNSUPPORT_IF(State, !frontend::parser::ExprItem::classof(Item), false, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
       const auto &Expression = *static_cast<const frontend::parser::ExprItem *>(Item)->expression();
       if (!requireRuntimeValue(State.Context, Expression.getSourceRange(), analyzeExpr(State, Expression)))
       {

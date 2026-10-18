@@ -54,6 +54,8 @@ namespace ink::semantic::test
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().sourceManager()), const core::SourceManager &>);
   static_assert(std::is_same_v<decltype(std::declval<SemanticContext &&>().irContext()), ir::IRContext &>);
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().irContext()), const ir::IRContext &>);
+  static_assert(std::is_same_v<decltype(std::declval<AnalyzerState &>().input()), const frontend::parser::TokenBuffer &>);
+  static_assert(std::is_same_v<decltype(std::declval<const AnalyzerState &>().input()), const frontend::parser::TokenBuffer &>);
 
   // A single analysis pass accepts the implemented literal and builtin boolean statement forms.
   TEST(SemanticAnalyzerEntryTest, AnalyzesLiteralAndBuiltinBooleanStatements)
@@ -125,7 +127,7 @@ namespace ink::semantic::test
     EXPECT_TRUE(Analysis.analyze(Context, Empty, Output));
   }
 
-  // Concurrent states keep separate insertion points while their generated instructions outlive both states.
+  // Concurrent states share the parsed token view, keep separate insertion points and retain generated instructions beyond both states.
   TEST(SemanticAnalyzerEntryTest, KeepsStateBuildersIndependentAndRetainsGeneratedIr)
   {
     core::SourceManager Sources;
@@ -133,7 +135,7 @@ namespace ink::semantic::test
     frontend::FrontendContext Frontend(Sources, Diagnostics);
     SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
     ir::Module Output(Context.irContext());
-    auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
+    auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "14;"));
     ASSERT_TRUE(Input.succeeded());
     auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
     ASSERT_NE(Function, nullptr);
@@ -146,6 +148,13 @@ namespace ink::semantic::test
     {
       AnalyzerState First(Context, Input, Output);
       AnalyzerState Second(Context, Input, Output);
+      const AnalyzerState &ReadOnlyFirst = First;
+      EXPECT_EQ(&First.input(), &Input.Unit->input());
+      EXPECT_EQ(&ReadOnlyFirst.input(), &Input.Unit->input());
+      EXPECT_EQ(&Second.input(), &First.input());
+      const auto &Token = First.input().requireToken(0, Diagnostics, core::SourceRange::fromByteOffsets(0, 2));
+      EXPECT_EQ(&Token, &Input.Unit->input().lexedFile().tokens().front());
+      EXPECT_EQ(First.input().spelling(Token), "14");
       ASSERT_TRUE(First.irBuilder().setInsertPoint(*FirstBlock));
       EXPECT_EQ(Second.irBuilder().insertBlock(), nullptr);
       ASSERT_TRUE(Second.irBuilder().setInsertPoint(*SecondBlock));
@@ -166,6 +175,19 @@ namespace ink::semantic::test
     EXPECT_EQ(SecondBlock->instruction(0), SecondReturn);
     EXPECT_EQ(FirstReturn->type(), Context.typePool().getVoidType());
     EXPECT_EQ(SecondReturn->type(), Context.typePool().getVoidType());
+  }
+
+  // A state without a parsed unit reports an explicit ICE without attributing the missing input to a stale semantic source.
+  TEST(SemanticAnalyzerEntryDeathTest, ReportsInvalidASTForStateWithoutParsedUnit)
+  {
+    core::SourceManager Sources;
+    core::DiagnosticEngine Diagnostics(Sources);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    Context.setSource(Sources.addSource("unrelated.ink", "old;"));
+    ir::Module Output(Context.irContext());
+    frontend::parser::ParseResult Input;
+    AnalyzerState State(Context, Input, Output);
+    EXPECT_DEATH(State.input(), "<unknown>: internal compiler error\\[INK-S0061\\]: invalid AST: analysis input requires a parsed unit");
   }
 
   // Caller-owned output retains its target layout, types and constants after the analyzer and parsed input expire.

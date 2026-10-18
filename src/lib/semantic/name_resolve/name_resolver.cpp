@@ -1,6 +1,7 @@
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include "ink/ir/function/function.h"
+#include "ink/semantic/analyzer/analyzer_utils.h"
 #include "ink/semantic/context.h"
 
 namespace ink::semantic
@@ -40,10 +41,7 @@ namespace ink::semantic
 
   bool NameResolver::enterScope(Scope &ExistingScope) noexcept
   {
-    if (&ExistingScope.scopeStore() != &Store)
-    {
-      return false;
-    }
+    RETURN_IF(&ExistingScope.scopeStore() != &Store, false);
     CurrentScope = &ExistingScope;
     return true;
   }
@@ -51,10 +49,7 @@ namespace ink::semantic
   bool NameResolver::exitScope() noexcept
   {
     Scope *Parent = CurrentScope->parent();
-    if (!Parent)
-    {
-      return false;
-    }
+    RETURN_IF(!Parent, false);
     CurrentScope = Parent;
     return true;
   }
@@ -73,10 +68,7 @@ namespace ink::semantic
   {
     for (const Scope *SearchScope = CurrentScope; SearchScope; SearchScope = SearchScope->parent())
     {
-      if (const Binding *Found = SearchScope->lookupLocal(Name))
-      {
-        return Found;
-      }
+      RETURN_IF(const Binding *Found = SearchScope->lookupLocal(Name), Found);
     }
     return nullptr;
   }

@@ -10,6 +10,7 @@
 namespace ink::frontend::parser
 {
   struct ParseResult;
+  class TokenBuffer;
 } // namespace ink::frontend::parser
 
 namespace ink::ir
@@ -60,10 +61,8 @@ namespace ink::semantic
         return std::forward_like<decltype(Self) &>(Self.Context);
       }
 
-      auto &input(this auto &&Self) noexcept
-      {
-        return Self.Input;
-      }
+      // Exposes the token input without exposing the parsed unit's storage.
+      const frontend::parser::TokenBuffer &input() const noexcept;
 
       auto &nameResolver(this auto &&Self) noexcept
       {

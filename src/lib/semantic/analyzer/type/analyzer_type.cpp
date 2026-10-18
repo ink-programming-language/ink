@@ -10,11 +10,7 @@ namespace ink::semantic
 {
   const ir::Type *Analyzer::analyzeType(AnalyzerState &State, const frontend::parser::TypeSyntax &Node)
   {
-    if (!Node.expression())
-    {
-      State.semanticContext().report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "TypeSyntax requires an expression");
-      return nullptr;
-    }
+    RETURN_REPORT_IF_FALSE(State.semanticContext(), Node.expression(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "TypeSyntax requires an expression");
     const auto &Expression = *Node.expression();
     return requireType(State.semanticContext(), Expression.getSourceRange(), analyzeExpr(State, Expression));
   }

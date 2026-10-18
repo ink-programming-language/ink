@@ -15,47 +15,21 @@ namespace ink::semantic
     auto &Context = State.semanticContext();
     auto &Builder = State.irBuilder();
     const ir::Function *Function = Builder.insertFunction();
-    if (!Function)
-    {
-      Context.report<core::DiagnosticKind::SemanticReturnOutsideFunction>(Node.getSourceRange());
-      return false;
-    }
+    RETURN_REPORT_IF_FALSE(Context, Function, core::DiagnosticKind::SemanticReturnOutsideFunction, false, Node.getSourceRange());
     const ir::Type *ReturnType = Function->functionType()->returnType();
     const bool ReturnsVoid = ReturnType == Context.typePool().getVoidType();
     if (!Node.value())
     {
-      if (!ReturnsVoid)
-      {
-        Context.report<core::DiagnosticKind::SemanticMissingReturn>(Node.getSourceRange(), core::NamePool::instance().text(Function->name()));
-        return false;
-      }
-      if (!Builder.createReturn())
-      {
-        Context.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
-        return false;
-      }
+      RETURN_REPORT_IF_FALSE(Context, ReturnsVoid, core::DiagnosticKind::SemanticMissingReturn, false, Node.getSourceRange(), core::NamePool::instance().text(Function->name()));
+      RETURN_REPORT_IF_FALSE(Context, Builder.createReturn(), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
       return true;
     }
-    if (ReturnsVoid)
-    {
-      Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.value()->getSourceRange(), "no return value", "a return value");
-      return false;
-    }
+    RETURN_REPORT_IF(Context, ReturnsVoid, core::DiagnosticKind::SemanticTypeMismatch, false, Node.value()->getSourceRange(), "no return value", "a return value");
     const ir::Value *Value = requireRuntimeValue(Context, Node.value()->getSourceRange(), analyzeExpr(State, *Node.value(), ExprHints{ReturnType}));
-    if (!Value)
-    {
-      return false;
-    }
-    if (ir::GlobalVariable::classof(Value))
-    {
-      // TODO: Materialize variable storage reads before returning their values.
-      return reportUnsupported(State, *Node.value());
-    }
-    if (!Builder.createReturn(*Value))
-    {
-      Context.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
-      return false;
-    }
+    RETURN_IF_NULL(Value, false);
+    // TODO: Materialize variable storage reads before returning their values.
+    UNSUPPORT_IF(State, ir::GlobalVariable::classof(Value), false, Node.value()->getSourceRange(), frontend::parser::astKindName(Node.value()->getKind()));
+    RETURN_REPORT_IF_FALSE(Context, Builder.createReturn(*Value), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
     return true;
   }
 } // namespace ink::semantic

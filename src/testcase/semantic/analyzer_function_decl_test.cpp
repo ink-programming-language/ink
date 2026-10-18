@@ -30,6 +30,7 @@ namespace ink::semantic::test
       NonLiteralNativeLinkage,
       NonStringNativeLinkage,
       OutOfBoundsNativeLinkageToken,
+      InputEndNativeLinkageToken,
       MismatchedNativeLinkageToken,
       UnexpectedLocalLinkage,
       MissingParameterType,
@@ -153,6 +154,9 @@ namespace ink::semantic::test
               break;
             case MalformedFunction::OutOfBoundsNativeLinkageToken:
               Linkage = AST.make<LiteralExpr>(FunctionName.Range, InvalidTokenId, TokenKind::StringLiteral);
+              break;
+            case MalformedFunction::InputEndNativeLinkageToken:
+              Linkage = AST.make<LiteralExpr>(FunctionName.Range, Input.Unit->input().size(), TokenKind::StringLiteral);
               break;
             case MalformedFunction::UnexpectedLocalLinkage:
               NativeKind = NativeSymbolKind::None;
@@ -548,7 +552,7 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Native import definitions and native export prototypes report declaration-specific user errors.
+  // Native imports reject bodies, while native exports use the shared missing-body diagnostic.
   TEST_F(SemanticFunctionDeclTest, RejectsInvalidNativeBodies)
   {
     struct Case
@@ -558,7 +562,7 @@ namespace ink::semantic::test
     };
     const Case Cases[] = {
         {"import \"C\" func f(): void {}", core::DiagnosticKind::SemanticNativeImportHasBody},
-        {"export \"C\" func f(): void;", core::DiagnosticKind::SemanticNativeExportRequiresBody},
+        {"export \"C\" func f(): void;", core::DiagnosticKind::SemanticFunctionRequiresBody},
     };
     for (const auto &Entry : Cases)
     {
@@ -572,7 +576,7 @@ namespace ink::semantic::test
     }
   }
 
-  // Contradictory fields in an otherwise successful parse report the precise AST invariant as INK-S0061.
+  // Malformed function fields report precise AST invariants, while invalid linkage indices use the shared token-reference ICE.
   TEST_F(SemanticFunctionDeclTest, ReportsMalformedFunctionASTWithConcreteReason)
   {
     struct Case
@@ -590,6 +594,7 @@ namespace ink::semantic::test
         {"import \"C\" func f(Value: i32): void;", MalformedFunction::NonLiteralNativeLinkage, "FunctionDecl linkage must be a string literal"},
         {"import \"C\" func f(Value: i32): void; 1;", MalformedFunction::NonStringNativeLinkage, "FunctionDecl linkage must be a string literal"},
         {"import \"C\" func f(Value: i32): void;", MalformedFunction::OutOfBoundsNativeLinkageToken, "FunctionDecl linkage literal must reference a token in its input"},
+        {"import \"C\" func f(Value: i32): void;", MalformedFunction::InputEndNativeLinkageToken, "FunctionDecl linkage literal must reference a token in its input"},
         {"import \"C\" func f(Value: i32): void;", MalformedFunction::MismatchedNativeLinkageToken, "FunctionDecl linkage literal must reference a string token with StringInfo metadata"},
         {"import \"C\" func f(Value: i32): void;", MalformedFunction::UnexpectedLocalLinkage, "FunctionDecl without native import/export must not have a linkage expression"},
         {"func f(Value: i32): void {}", MalformedFunction::MissingParameterType, "FunctionDecl parameter requires a type annotation"},
@@ -607,7 +612,9 @@ namespace ink::semantic::test
       ASSERT_TRUE(Input.succeeded());
       invalidateFunction(Input, Entry.Failure);
       ASSERT_TRUE(Input.succeeded());
-      EXPECT_DEATH(analyze(Input), std::string("internal compiler error\\[INK-S0061\\]: invalid AST: ") + Entry.Description);
+      const bool InvalidTokenReference = Entry.Failure == MalformedFunction::OutOfBoundsNativeLinkageToken || Entry.Failure == MalformedFunction::InputEndNativeLinkageToken;
+      const std::string Expected = InvalidTokenReference ? "internal compiler error\\[INK-P0048\\]: token index .* is out of bounds for input of .* tokens" : std::string("internal compiler error\\[INK-S0061\\]: invalid AST: ") + Entry.Description;
+      EXPECT_DEATH(analyze(Input), Expected);
       EXPECT_EQ(Output.globalFunctionCount(), 0U);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
     }

@@ -11,29 +11,12 @@ namespace ink::semantic
   const ir::Value *Analyzer::analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
   {
     auto &Context = State.semanticContext();
-    if (State.recursionDepth() >= State.recursionDepthLimit())
-    {
-      Context.report<core::DiagnosticKind::SemanticNestingLimit>(Node.getSourceRange());
-      return nullptr;
-    }
+    CHECK_RECURSION_DEPTH(State, Node.getSourceRange(), nullptr);
     BlockDepthGuard DepthGuard(State.recursionDepth());
-    if (Node.isComptime())
-    {
-      reportUnsupported(State, Node);
-      return nullptr;
-    }
+    UNSUPPORT_IF(State, Node.isComptime(), nullptr, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
     const ir::Type *ExpectedType = Hints.ExpectedType;
-    // Hints are supplied by the analyzer; foreign types violate its internal context contract.
-    if (ExpectedType && !Context.irContext().containsType(ExpectedType))
-    {
-      Context.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
-      return nullptr;
-    }
-    if (Hints.DefaultIntegerLiteralType && !Context.irContext().containsType(Hints.DefaultIntegerLiteralType))
-    {
-      Context.report<core::DiagnosticKind::SemanticConstructionFailed>(Node.getSourceRange());
-      return nullptr;
-    }
+    CHECK_VALID_TYPE(Context, Node.getSourceRange(), ExpectedType);
+    CHECK_VALID_TYPE(Context, Node.getSourceRange(), Hints.DefaultIntegerLiteralType);
 
     const ir::Value *Result = nullptr;
     using namespace frontend::parser;
@@ -64,33 +47,16 @@ namespace ink::semantic
         Result = analyzeFunctionTypeExpr(State, static_cast<const FunctionTypeExpr &>(Node));
         break;
       default:
-        if (categoryOf(Node.getKind()) != ASTCategory::Expr)
-        {
-          Context.report<core::DiagnosticKind::SemanticInvalidAST>(Node.getSourceRange(), "expression node kind must belong to the expression AST category");
-          return nullptr;
-        }
+        RETURN_REPORT_IF(Context, categoryOf(Node.getKind()) != ASTCategory::Expr, core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "expression node kind must belong to the expression AST category");
         // TODO: Restore generic applications, remaining operators and type-valued compile-time evaluation.
         reportUnsupported(State, Node);
         return nullptr;
     }
-    if (!Result || !ExpectedType)
-    {
-      return Result;
-    }
-    if (ir::MetaType::classof(ExpectedType))
-    {
-      return requireType(Context, Node.getSourceRange(), Result);
-    }
-    if (!requireRuntimeValue(Context, Node.getSourceRange(), Result))
-    {
-      return nullptr;
-    }
+    RETURN_IF(!Result || !ExpectedType, Result);
+    RETURN_IF(ir::MetaType::classof(ExpectedType), requireType(Context, Node.getSourceRange(), Result));
+    RETURN_IF(!requireRuntimeValue(Context, Node.getSourceRange(), Result), nullptr);
     const bool Compatible = ir::Constant::classof(Result) ? static_cast<const ir::Constant *>(Result)->canInitialize(ExpectedType) : Result->type() == ExpectedType;
-    if (!Compatible)
-    {
-      Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Node.getSourceRange(), ExpectedType->toString(), Result->type()->toString());
-      return nullptr;
-    }
+    RETURN_REPORT_IF_FALSE(Context, Compatible, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), ExpectedType->toString(), Result->type()->toString());
     return Result;
   }
 } // namespace ink::semantic

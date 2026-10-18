@@ -9,37 +9,18 @@ namespace ink::semantic
 {
   const ir::Type *requireType(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target)
   {
-    if (!Target)
-    {
-      return nullptr;
-    }
-    if (!ir::Type::classof(Target))
-    {
-      Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Range, "a type", ir::GlobalVariable::classof(Target) ? "variable storage" : ir::valueKindName(Target->kind()));
-      return nullptr;
-    }
+    RETURN_IF_NULL(Target, nullptr);
+    RETURN_REPORT_IF_FALSE(Context, ir::Type::classof(Target), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Range, "a type", ir::GlobalVariable::classof(Target) ? "variable storage" : ir::valueKindName(Target->kind()));
     const auto *Type = static_cast<const ir::Type *>(Target);
-    if (!Context.irContext().containsType(Type))
-    {
-      Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Range, "a type in the current IR context", "a foreign or unregistered type");
-      return nullptr;
-    }
+    RETURN_REPORT_IF_FALSE(Context, Context.irContext().containsType(Type), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Range, "a type in the current IR context", "a foreign or unregistered type");
     return Type;
   }
 
   const ir::Value *requireRuntimeValue(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target)
   {
-    if (!Target)
-    {
-      return nullptr;
-    }
+    RETURN_IF_NULL(Target, nullptr);
     const ir::Type *Type = Target->type();
-    if (!Context.irContext().containsType(Type) || (!Type->hasLayout() && !ir::NullPointerConstant::classof(Target)))
-    {
-      const auto Actual = ir::Type::classof(Target) ? static_cast<const ir::Type *>(Target)->toString() : std::string(ir::valueKindName(Target->kind()));
-      Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Range, "a runtime value or variable storage", Actual);
-      return nullptr;
-    }
+    RETURN_REPORT_IF(Context, !Context.irContext().containsType(Type) || (!Type->hasLayout() && !ir::NullPointerConstant::classof(Target)), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Range, "a runtime value or variable storage", ir::Type::classof(Target) ? static_cast<const ir::Type *>(Target)->toString() : std::string(ir::valueKindName(Target->kind())));
     return Target;
   }
 } // namespace ink::semantic

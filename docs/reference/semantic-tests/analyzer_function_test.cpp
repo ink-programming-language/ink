@@ -98,7 +98,7 @@ namespace ink::semantic::test
   {
     const std::pair<std::string_view, core::DiagnosticKind> Cases[] = {
         {"import \"C\" func f(): void {}", core::DiagnosticKind::SemanticNativeImportHasBody},
-        {"export \"C\" func f(): void;", core::DiagnosticKind::SemanticNativeExportRequiresBody},
+        {"export \"C\" func f(): void;", core::DiagnosticKind::SemanticFunctionRequiresBody},
         {"func outer(): void { export \"C\" func f(): void {} }", core::DiagnosticKind::SemanticNativeExportRequiresTopLevel},
         {"[abi(\"C\")] func f(): void;", core::DiagnosticKind::SemanticFunctionRequiresBody},
         {"[abi] func f(): void {}", core::DiagnosticKind::SemanticInvalidAbiAttribute},

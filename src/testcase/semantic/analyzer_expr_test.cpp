@@ -898,7 +898,7 @@ namespace ink::semantic::test
     {
       SCOPED_TRACE(Index);
       auto *Literal = Input.Unit->context().make<frontend::parser::LiteralExpr>(syntax(Input).getSourceRange(), Index, frontend::parser::TokenKind::IntegerLiteral);
-      EXPECT_DEATH(Analysis.analyzeExpr(State, *Literal), "INK-S0061.*invalid AST: LiteralExpr token index must reference a token in its input");
+      EXPECT_DEATH(Analysis.analyzeExpr(State, *Literal), "internal compiler error\\[INK-P0048\\]: token index " + std::to_string(Index) + " is out of bounds for input of " + std::to_string(Input.Unit->input().size()) + " tokens");
     }
   }
 
