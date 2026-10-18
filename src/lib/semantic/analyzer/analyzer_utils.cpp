@@ -49,7 +49,10 @@ namespace ink::semantic
     };
     for (const auto &Candidate : Entries)
     {
-      RETURN_IF(Candidate.Name == Name, Candidate.GetValue(Context));
+      if (Candidate.Name == Name)
+      {
+        return Candidate.GetValue(Context);
+      }
     }
     return nullptr;
   }

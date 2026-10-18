@@ -75,7 +75,7 @@ namespace ink::semantic
   } while (false)
 
 // Reports invalid hints against the supplied source range and returns nullptr from the handler.
-#define CHECK_VALID_TYPE(Context, Range, TypeValue) \
+#define CHECK_VALID_TYPE(Context, TypeValue, Range) \
   do \
   { \
     auto &InkCheckValidTypeContext = (Context); \

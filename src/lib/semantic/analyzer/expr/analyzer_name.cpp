@@ -52,8 +52,14 @@ namespace ink::semantic
   {
     auto &Context = State.semanticContext();
     const auto Name = Node.name();
-    RETURN_IF(const Binding *Found = State.nameResolver().lookup(core::NamePool::instance().find(Name.Text)), analyzeBinding(State, Node, *Found, IsCallCallee));
-    RETURN_IF(const ir::Value *Builtin = lookupBuiltinValue(Context, Name.Text), Builtin);
+    if (const Binding *Found = State.nameResolver().lookup(core::NamePool::instance().find(Name.Text)))
+    {
+      return analyzeBinding(State, Node, *Found, IsCallCallee);
+    }
+    if (const ir::Value *Builtin = lookupBuiltinValue(Context, Name.Text))
+    {
+      return Builtin;
+    }
     Context.report<core::DiagnosticKind::SemanticUnknownName>(Name.Range, Name.Text);
     return nullptr;
   }

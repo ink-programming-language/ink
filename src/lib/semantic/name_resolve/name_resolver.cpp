@@ -68,7 +68,10 @@ namespace ink::semantic
   {
     for (const Scope *SearchScope = CurrentScope; SearchScope; SearchScope = SearchScope->parent())
     {
-      RETURN_IF(const Binding *Found = SearchScope->lookupLocal(Name), Found);
+      if (const Binding *Found = SearchScope->lookupLocal(Name))
+      {
+        return Found;
+      }
     }
     return nullptr;
   }

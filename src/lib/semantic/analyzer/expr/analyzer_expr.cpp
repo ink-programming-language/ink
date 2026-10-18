@@ -15,8 +15,8 @@ namespace ink::semantic
     BlockDepthGuard DepthGuard(State.recursionDepth());
     UNSUPPORT_IF(State, Node.isComptime(), nullptr, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
     const ir::Type *ExpectedType = Hints.ExpectedType;
-    CHECK_VALID_TYPE(Context, Node.getSourceRange(), ExpectedType);
-    CHECK_VALID_TYPE(Context, Node.getSourceRange(), Hints.DefaultIntegerLiteralType);
+    CHECK_VALID_TYPE(Context, ExpectedType, Node.getSourceRange());
+    CHECK_VALID_TYPE(Context, Hints.DefaultIntegerLiteralType, Node.getSourceRange());
 
     const ir::Value *Result = nullptr;
     using namespace frontend::parser;

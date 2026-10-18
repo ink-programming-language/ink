@@ -147,6 +147,7 @@ namespace ink::semantic
     }
 
     const auto Visibility = Node.visibility() == frontend::parser::DeclarationVisibility::Private ? ir::FunctionVisibility::Private : ir::FunctionVisibility::Public;
+    // TODO: Support function definitions in nested scopes with appropriate ownership and lexical bindings.
     ir::Function *Function = State.Output.createGlobalFunction(*Signature, Name, SymbolLink, LanguageLink, Visibility);
     RETURN_REPORT_IF(Context, !Function || Resolver.bindOverload(Name, *Function) != BindResult::Inserted, core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
     ScopeGuard FunctionScope(Resolver, *Function);
