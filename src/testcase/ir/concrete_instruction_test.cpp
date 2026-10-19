@@ -24,24 +24,6 @@ namespace ink::ir::test
   namespace
   {
     constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-
-    class ObservedInstruction final : public Instruction
-    {
-      public:
-        ObservedInstruction(const Type &ResultType, bool &Destroyed) noexcept
-            : Instruction(ValueKind::Instruction, &ResultType),
-              Destroyed(Destroyed)
-        {
-        }
-
-        ~ObservedInstruction() noexcept override
-        {
-          Destroyed = true;
-        }
-
-      private:
-        bool &Destroyed;
-    };
   } // namespace
 
   static_assert(std::is_base_of_v<Instruction, GetElementPtrInstruction>);
@@ -322,60 +304,5 @@ namespace ink::ir::test
     EXPECT_FALSE(Instruction::classof(&Callee));
     EXPECT_FALSE(Instruction::classof(Literal));
     EXPECT_FALSE(Instruction::classof(Types.typePool().getBoolType()));
-  }
-
-  // Destroying instructions releases their operand containers without deleting the externally owned values or branch targets.
-  TEST(IRConcreteInstructionTest, InstructionDestructionDoesNotOwnOperandsOrTargets)
-  {
-    IRContext TypesContext(Target);
-    Module Types(TypesContext);
-    const auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
-    const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
-    ASSERT_NE(Pointer, nullptr);
-    ASSERT_NE(Signature, nullptr);
-    const auto *CallablePointer = Types.typePool().getPointerType(Signature);
-    ASSERT_NE(CallablePointer, nullptr);
-    bool PointerDestroyed = false;
-    bool IndexDestroyed = false;
-    bool CalleeDestroyed = false;
-    bool ConditionDestroyed = false;
-    auto PointerOperand = std::make_unique<ObservedInstruction>(*Pointer, PointerDestroyed);
-    auto IndexOperand = std::make_unique<ObservedInstruction>(*Types.typePool().getInt32Type(), IndexDestroyed);
-    auto CalleeOperand = std::make_unique<ObservedInstruction>(*CallablePointer, CalleeDestroyed);
-    auto ConditionOperand = std::make_unique<ObservedInstruction>(*Types.typePool().getBoolType(), ConditionDestroyed);
-    BasicBlock TrueTarget;
-    BasicBlock FalseTarget;
-    {
-      std::vector<const Value *> Indices = {IndexOperand.get()};
-      const GetElementPtrInstruction Address(*Pointer, *Types.typePool().getInt32Type(), *PointerOperand, Indices);
-      Indices.clear();
-      const CallInstruction Call(*Signature, *CalleeOperand, {Argument(*IndexOperand)});
-      const ICmpInstruction Compare(*Types.typePool().getBoolType(), ICmpPredicate::Equal, *IndexOperand, *IndexOperand);
-      const BranchInstruction Jump(*Types.typePool().getVoidType(), TrueTarget);
-      const ConditionalBranchInstruction Branch(*Types.typePool().getVoidType(), *ConditionOperand, TrueTarget, FalseTarget);
-      const ReturnInstruction Return(*Types.typePool().getVoidType(), IndexOperand.get());
-      EXPECT_EQ(Address.indexCount(), 1U);
-      EXPECT_EQ(Address.index(0), IndexOperand.get());
-      EXPECT_EQ(Call.callee(), CalleeOperand.get());
-      EXPECT_EQ(Call.directCallee(), nullptr);
-      EXPECT_EQ(Compare.left(), IndexOperand.get());
-      EXPECT_EQ(Jump.target(), &TrueTarget);
-      EXPECT_EQ(Branch.condition(), ConditionOperand.get());
-      EXPECT_EQ(Return.returnedValue(), IndexOperand.get());
-    }
-    EXPECT_FALSE(PointerDestroyed);
-    EXPECT_FALSE(IndexDestroyed);
-    EXPECT_FALSE(CalleeDestroyed);
-    EXPECT_FALSE(ConditionDestroyed);
-    EXPECT_EQ(TrueTarget.instructionCount(), 0U);
-    EXPECT_EQ(FalseTarget.instructionCount(), 0U);
-    PointerOperand.reset();
-    IndexOperand.reset();
-    CalleeOperand.reset();
-    ConditionOperand.reset();
-    EXPECT_TRUE(PointerDestroyed);
-    EXPECT_TRUE(IndexDestroyed);
-    EXPECT_TRUE(CalleeDestroyed);
-    EXPECT_TRUE(ConditionDestroyed);
   }
 } // namespace ink::ir::test

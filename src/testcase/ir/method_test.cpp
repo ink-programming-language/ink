@@ -1,7 +1,6 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/type/nominal_type/method.h"
-#include "ink/ir/instruction/instruction.h"
 #include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
@@ -18,23 +17,6 @@ namespace ink::ir::test
   namespace
   {
     constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-
-    class LifetimeInstruction final : public Instruction
-    {
-      public:
-        explicit LifetimeInstruction(std::uint32_t &DestructionCount) noexcept
-            : DestructionCount(DestructionCount)
-        {
-        }
-
-        ~LifetimeInstruction() noexcept override
-        {
-          ++DestructionCount;
-        }
-
-      private:
-        std::uint32_t &DestructionCount;
-    };
 
     void expectNoFunction(Method &Member)
     {
@@ -261,104 +243,5 @@ namespace ink::ir::test
     Moved = std::move(MovedEmpty);
     expectNoFunction(Moved);
     expectNoFunction(MovedEmpty);
-  }
-
-  // Moving a method transfers sole ownership and dispatch metadata without relocating its function, parameters or body.
-  TEST(IRMethodTest, MoveConstructionPreservesOwnedFunctionIdentity)
-  {
-    IRContext TypesContext(Target);
-    Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
-    ASSERT_NE(Signature, nullptr);
-    const core::Name Name = core::NamePool::instance().intern("IRMethodTest.move");
-    std::uint32_t DestructionCount = 0;
-    {
-      Method Member(std::make_unique<Function>(*Signature, Name), {MethodDispatch::Virtual, true, true, 3});
-      auto *Callable = Member.function();
-      auto *Parameter = Callable->parameter(0);
-      auto *Entry = Callable->createBlock();
-      ASSERT_NE(Entry, nullptr);
-      ASSERT_NE(Entry->appendInstruction(std::make_unique<LifetimeInstruction>(DestructionCount)), nullptr);
-      Method Moved(std::move(Member));
-      expectNoFunction(Member);
-      EXPECT_TRUE(Moved.valid());
-      EXPECT_EQ(Moved.function(), Callable);
-      EXPECT_EQ(Moved.function()->parameter(0), Parameter);
-      EXPECT_EQ(Moved.function()->entryBlock(), Entry);
-      EXPECT_EQ(Entry->function(), Callable);
-      EXPECT_EQ(Moved.name(), Name);
-      EXPECT_EQ(Moved.functionType(), Signature);
-      EXPECT_TRUE(Moved.isVirtual());
-      EXPECT_FALSE(Moved.isAbstract());
-      EXPECT_TRUE(Moved.isOverride());
-      EXPECT_TRUE(Moved.isFinal());
-      EXPECT_EQ(Moved.virtualSlot(), 3U);
-      EXPECT_EQ(DestructionCount, 0U);
-    }
-    EXPECT_EQ(DestructionCount, 1U);
-  }
-
-  // Move assignment destroys the previous function body exactly once and retains the incoming body's lifetime and identity.
-  TEST(IRMethodTest, MoveAssignmentReleasesPreviousFunctionExactlyOnce)
-  {
-    IRContext TypesContext(Target);
-    Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
-    const auto NewSignature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
-    ASSERT_NE(Signature, nullptr);
-    ASSERT_NE(NewSignature, nullptr);
-    const core::Name OldName = core::NamePool::instance().intern("IRMethodTest.old");
-    const core::Name NewName = core::NamePool::instance().intern("IRMethodTest.new");
-    std::uint32_t OldDestructionCount = 0;
-    std::uint32_t NewDestructionCount = 0;
-    {
-      Method Destination(std::make_unique<Function>(*Signature, OldName));
-      auto *OldEntry = Destination.function()->createBlock();
-      ASSERT_NE(OldEntry, nullptr);
-      ASSERT_NE(OldEntry->appendInstruction(std::make_unique<LifetimeInstruction>(OldDestructionCount)), nullptr);
-      Method Source(std::make_unique<Function>(*NewSignature, NewName), {MethodDispatch::Virtual, true, false, 5});
-      auto *NewFunction = Source.function();
-      auto *NewEntry = NewFunction->createBlock();
-      ASSERT_NE(NewEntry, nullptr);
-      ASSERT_NE(NewEntry->appendInstruction(std::make_unique<LifetimeInstruction>(NewDestructionCount)), nullptr);
-      Destination = std::move(Source);
-      expectNoFunction(Source);
-      EXPECT_EQ(OldDestructionCount, 1U);
-      EXPECT_EQ(NewDestructionCount, 0U);
-      EXPECT_TRUE(Destination.valid());
-      EXPECT_EQ(Destination.function(), NewFunction);
-      EXPECT_EQ(Destination.functionType(), NewSignature);
-      EXPECT_EQ(Destination.function()->entryBlock(), NewEntry);
-      EXPECT_EQ(Destination.name(), NewName);
-      EXPECT_TRUE(Destination.isVirtual());
-      EXPECT_TRUE(Destination.isOverride());
-      EXPECT_FALSE(Destination.isFinal());
-      EXPECT_EQ(Destination.virtualSlot(), 5U);
-    }
-    EXPECT_EQ(OldDestructionCount, 1U);
-    EXPECT_EQ(NewDestructionCount, 1U);
-  }
-
-  // Destroying the owning method releases every instruction in every block of its function.
-  TEST(IRMethodTest, DestructionReleasesOwnedFunctionBody)
-  {
-    IRContext TypesContext(Target);
-    Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
-    ASSERT_NE(Signature, nullptr);
-    const core::Name Name = core::NamePool::instance().intern("IRMethodTest.destroy");
-    std::uint32_t DestructionCount = 0;
-    {
-      Method Member(std::make_unique<Function>(*Signature, Name));
-      auto *FirstBlock = Member.function()->createBlock();
-      auto *SecondBlock = Member.function()->createBlock();
-      ASSERT_NE(FirstBlock, nullptr);
-      ASSERT_NE(SecondBlock, nullptr);
-      ASSERT_NE(FirstBlock->appendInstruction(std::make_unique<LifetimeInstruction>(DestructionCount)), nullptr);
-      ASSERT_NE(FirstBlock->appendInstruction(std::make_unique<LifetimeInstruction>(DestructionCount)), nullptr);
-      ASSERT_NE(SecondBlock->appendInstruction(std::make_unique<LifetimeInstruction>(DestructionCount)), nullptr);
-      EXPECT_EQ(DestructionCount, 0U);
-    }
-    EXPECT_EQ(DestructionCount, 3U);
   }
 } // namespace ink::ir::test

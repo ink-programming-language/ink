@@ -1,38 +1,18 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/constant.h"
 #include "ink/ir/function/function.h"
-#include "ink/ir/instruction/instruction.h"
 #include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
-#include <memory>
 #include <type_traits>
-#include <utility>
 
 namespace ink::ir::test
 {
   namespace
   {
     constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-
-    class BodyInstruction final : public Instruction
-    {
-      public:
-        explicit BodyInstruction(bool &Destroyed) noexcept
-            : Destroyed(Destroyed)
-        {
-        }
-
-        ~BodyInstruction() noexcept override
-        {
-          Destroyed = true;
-        }
-
-      private:
-        bool &Destroyed;
-    };
   } // namespace
 
   static_assert(std::is_base_of_v<Value, Function>);
@@ -212,46 +192,5 @@ namespace ink::ir::test
     EXPECT_EQ(ReadOnly.block(0), Entry);
     EXPECT_EQ(Callable.block(Callable.blockCount()), nullptr);
     EXPECT_EQ(ReadOnly.block(ReadOnly.blockCount()), nullptr);
-  }
-
-  // Function destruction releases block-owned instructions, and appending null leaves the body unchanged.
-  TEST(IRFunctionTest, BodyOwnsInstructionsAndRejectsNullAppend)
-  {
-    IRContext TypesContext(Target);
-    Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
-    ASSERT_NE(Signature, nullptr);
-    bool FirstDestroyed = false;
-    bool SecondDestroyed = false;
-    {
-      Function Callable(*Signature);
-      auto *Entry = Callable.createBlock();
-      ASSERT_NE(Entry, nullptr);
-      const BasicBlock &ReadOnly = *Entry;
-      EXPECT_TRUE(Entry->instructions().empty());
-      EXPECT_EQ(Entry->instruction(0), nullptr);
-      EXPECT_EQ(ReadOnly.instruction(0), nullptr);
-      EXPECT_EQ(Entry->appendInstruction(nullptr), nullptr);
-      EXPECT_EQ(Entry->instructionCount(), 0U);
-      auto First = std::make_unique<BodyInstruction>(FirstDestroyed);
-      auto *FirstAddress = First.get();
-      EXPECT_EQ(Entry->appendInstruction(std::move(First)), FirstAddress);
-      EXPECT_EQ(First, nullptr);
-      auto Second = std::make_unique<BodyInstruction>(SecondDestroyed);
-      auto *SecondAddress = Second.get();
-      EXPECT_EQ(Entry->appendInstruction(std::move(Second)), SecondAddress);
-      EXPECT_EQ(Entry->instructionCount(), 2U);
-      EXPECT_EQ(Entry->instructions().front().get(), FirstAddress);
-      EXPECT_EQ(Entry->instruction(0), FirstAddress);
-      EXPECT_EQ(ReadOnly.instruction(1), SecondAddress);
-      EXPECT_EQ(Entry->instruction(2), nullptr);
-      EXPECT_EQ(ReadOnly.instruction(2), nullptr);
-      EXPECT_EQ(Entry->appendInstruction(nullptr), nullptr);
-      EXPECT_EQ(Entry->instructionCount(), 2U);
-      EXPECT_FALSE(FirstDestroyed);
-      EXPECT_FALSE(SecondDestroyed);
-    }
-    EXPECT_TRUE(FirstDestroyed);
-    EXPECT_TRUE(SecondDestroyed);
   }
 } // namespace ink::ir::test

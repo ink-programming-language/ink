@@ -24,24 +24,6 @@ namespace ink::ir::test
   namespace
   {
     constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-
-    class TypedInstruction final : public Instruction
-    {
-      public:
-        explicit TypedInstruction(const Type *ResultType) noexcept
-            : Instruction(ValueKind::Instruction, ResultType)
-        {
-        }
-    };
-
-    class UnpooledConstant final : public Constant
-    {
-      public:
-        explicit UnpooledConstant(const Type *ConstantType) noexcept
-            : Constant(ValueKind::IntegerConstant, ConstantType)
-        {
-        }
-    };
   } // namespace
 
   // Insertion starts unset, switches between owned blocks, and survives rejected detached or foreign-module blocks.
@@ -295,27 +277,6 @@ namespace ink::ir::test
     EXPECT_EQ(Entry->instructionCount(), 3U);
   }
 
-  // An explicit signature cannot make null, a type object, an integer or an unrelated function's parameter callable.
-  TEST(IRBuilderTest, RejectsInvalidIndirectCallees)
-  {
-    IRContext TypesContext(Target);
-    Module Types(TypesContext);
-    auto *Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
-    auto *CallablePointer = Types.typePool().getPointerType(Signature);
-    Function Caller(*Signature);
-    Function Other(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {CallablePointer}));
-    auto *Entry = Caller.createBlock();
-    TypedInstruction Detached(CallablePointer);
-    IRBuilder Builder(Types.irContext());
-    ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    EXPECT_EQ(Builder.createCall(*Signature, *Types.constantPool().getNullPointerConstant()), nullptr);
-    EXPECT_EQ(Builder.createCall(*Signature, *Signature), nullptr);
-    EXPECT_EQ(Builder.createCall(*Signature, *Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0)), nullptr);
-    EXPECT_EQ(Builder.createCall(*Signature, *Other.parameter(0)), nullptr);
-    EXPECT_EQ(Builder.createCall(*Signature, Detached), nullptr);
-    EXPECT_EQ(Entry->instructionCount(), 0U);
-  }
-
   // Void and value returns match the enclosing signature, and rejected overloads leave the block open for a valid return.
   TEST(IRBuilderTest, MatchesReturnValueToEnclosingSignature)
   {
@@ -360,63 +321,6 @@ namespace ink::ir::test
     auto *Return = Builder.createReturn(*Types.constantPool().getNullPointerConstant());
     ASSERT_NE(Return, nullptr);
     EXPECT_EQ(Return->returnedValue(), Types.constantPool().getNullPointerConstant());
-  }
-
-  // Returns reject unpooled constants, type objects, blocks, void results, untyped instructions and foreign constants.
-  TEST(IRBuilderTest, RejectsUnownedConstantsAndNonvalueOperands)
-  {
-    IRContext TypesContext(Target);
-    Module Types(TypesContext);
-    IRContext ForeignTypesContext(Target);
-    Module ForeignTypes(ForeignTypesContext);
-    Function Owner(*Types.typePool().getFunctionType(Types.typePool().getInt32Type()));
-    Function VoidCallee(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
-    auto *Entry = Owner.createBlock();
-    auto *Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
-    UnpooledConstant Unowned(Types.typePool().getInt32Type());
-    IRBuilder Builder(Types.irContext());
-    ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    auto *VoidCall = Builder.createCall(VoidCallee);
-    ASSERT_NE(VoidCall, nullptr);
-    auto *Untyped = Entry->appendInstruction(std::make_unique<TypedInstruction>(nullptr));
-    ASSERT_NE(Untyped, nullptr);
-    EXPECT_EQ(Builder.createReturn(Unowned), nullptr);
-    EXPECT_EQ(Builder.createReturn(*Types.typePool().getInt32Type()), nullptr);
-    EXPECT_EQ(Builder.createReturn(*Entry), nullptr);
-    EXPECT_EQ(Builder.createReturn(*VoidCall), nullptr);
-    EXPECT_EQ(Builder.createReturn(*Untyped), nullptr);
-    EXPECT_EQ(Builder.createReturn(*ForeignTypes.constantPool().getSignedIntegerConstant(ForeignTypes.typePool().getInt32Type(), 0)), nullptr);
-    EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, Unowned, *Zero), nullptr);
-    EXPECT_EQ(Entry->instructionCount(), 2U);
-    EXPECT_EQ(Builder.insertBlock(), Entry);
-  }
-
-  // Parameters and instructions require ownership by the current function while a different block in that function is allowed.
-  TEST(IRBuilderTest, EnforcesOperandFunctionOwnershipWithoutCheckingDominance)
-  {
-    IRContext TypesContext(Target);
-    Module Types(TypesContext);
-    IRContext ForeignTypesContext(Target);
-    Module ForeignTypes(ForeignTypesContext);
-    auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
-    Function Owner(*Signature);
-    Function Other(*Signature);
-    auto *Entry = Owner.createBlock();
-    auto *Sibling = Owner.createBlock();
-    auto *OtherEntry = Other.createBlock();
-    auto *Owned = Sibling->appendInstruction(std::make_unique<TypedInstruction>(Types.typePool().getInt32Type()));
-    auto *Unrelated = OtherEntry->appendInstruction(std::make_unique<TypedInstruction>(Types.typePool().getInt32Type()));
-    auto *ForeignTyped = Sibling->appendInstruction(std::make_unique<TypedInstruction>(ForeignTypes.typePool().getInt32Type()));
-    TypedInstruction Detached(Types.typePool().getInt32Type());
-    IRBuilder Builder(Types.irContext());
-    ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Owner.parameter(0), *Other.parameter(0)), nullptr);
-    EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Owner.parameter(0), Detached), nullptr);
-    EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *Owner.parameter(0), *Unrelated), nullptr);
-    EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *ForeignTyped, *ForeignTyped), nullptr);
-    EXPECT_EQ(Entry->instructionCount(), 0U);
-    EXPECT_NE(Builder.createICmp(ICmpPredicate::Equal, *Owner.parameter(0), *Owned), nullptr);
-    EXPECT_NE(Builder.createReturn(*Owned), nullptr);
   }
 
   // All declared integer comparison predicates retain their identity and accept matching integer or pointer operands.

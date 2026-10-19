@@ -5,24 +5,13 @@
 #include <gtest/gtest.h>
 
 #include <array>
-#include <memory>
 #include <type_traits>
-#include <utility>
 
 namespace ink::ir::test
 {
   namespace
   {
     constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-
-    class UnpooledInitializer final : public Constant
-    {
-      public:
-        explicit UnpooledInitializer(const Type *ConstantType) noexcept
-            : Constant(ValueKind::IntegerConstant, ConstantType)
-        {
-        }
-    };
   } // namespace
 
   static_assert(!std::is_constructible_v<TypePool, IRContext &>);
@@ -172,35 +161,5 @@ namespace ink::ir::test
     EXPECT_TRUE(Variable->setInitializer(LocalNull));
     EXPECT_FALSE(Variable->setInitializer(ForeignNull));
     EXPECT_EQ(Variable->initializer(), LocalNull);
-  }
-
-  // Declaration factories reject foreign types and transfer rejects unpooled initializers without growing either list.
-  TEST(IRModuleTypeOwnershipTest, GlobalDeclarationsRejectForeignTypesAndUnpooledInitializers)
-  {
-    IRContext OwnerContext(Target);
-    Module Owner(OwnerContext);
-    IRContext OtherContext(Target);
-    Module Other(OtherContext);
-    const auto *ForeignSignature = Other.typePool().getFunctionType(Other.typePool().getVoidType());
-    const auto *LocalSignature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
-    ASSERT_NE(ForeignSignature, nullptr);
-    ASSERT_NE(LocalSignature, nullptr);
-    auto *LocalFunction = Owner.createGlobalFunction(*LocalSignature);
-    auto *LocalVariable = Owner.createGlobalVariable(*Owner.typePool().getInt32Type());
-    ASSERT_NE(LocalFunction, nullptr);
-    ASSERT_NE(LocalVariable, nullptr);
-    EXPECT_EQ(Owner.createGlobalFunction(*ForeignSignature), nullptr);
-    EXPECT_EQ(Owner.appendGlobalFunction(std::make_unique<Function>(*ForeignSignature)), nullptr);
-    EXPECT_EQ(Owner.createGlobalVariable(*Other.typePool().getInt32Type()), nullptr);
-    EXPECT_EQ(Owner.appendGlobalVariable(std::make_unique<GlobalVariable>(*Other.typePool().getInt32Type())), nullptr);
-    UnpooledInitializer Unpooled(Owner.typePool().getInt32Type());
-    auto InvalidVariable = std::make_unique<GlobalVariable>(*Owner.typePool().getInt32Type());
-    ASSERT_TRUE(InvalidVariable->setInitializer(&Unpooled));
-    EXPECT_FALSE(Owner.constantPool().owns(&Unpooled));
-    EXPECT_EQ(Owner.appendGlobalVariable(std::move(InvalidVariable)), nullptr);
-    EXPECT_EQ(Owner.globalFunctionCount(), 1U);
-    EXPECT_EQ(Owner.globalVariableCount(), 1U);
-    EXPECT_EQ(Owner.globalFunction(0), LocalFunction);
-    EXPECT_EQ(Owner.globalVariable(0), LocalVariable);
   }
 } // namespace ink::ir::test

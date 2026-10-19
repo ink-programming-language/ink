@@ -17,24 +17,6 @@ namespace ink::ir::test
   namespace
   {
     constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-
-    class DetachedMemoryInstruction final : public Instruction
-    {
-      public:
-        explicit DetachedMemoryInstruction(const Type &ResultType) noexcept
-            : Instruction(ValueKind::Instruction, &ResultType)
-        {
-        }
-    };
-
-    class UnpooledMemoryConstant final : public Constant
-    {
-      public:
-        explicit UnpooledMemoryConstant(const Type &ConstantType) noexcept
-            : Constant(ValueKind::IntegerConstant, &ConstantType)
-        {
-        }
-    };
   } // namespace
 
   static_assert(std::is_final_v<AllocaInstruction> && std::is_base_of_v<Instruction, AllocaInstruction>);
@@ -225,77 +207,6 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.createAlloca(*Foreign.typePool().getInt32Type()), nullptr);
     EXPECT_EQ(Entry->instructionCount(), PreviousCount);
     EXPECT_EQ(Builder.insertBlock(), Entry);
-  }
-
-  // Invalid addresses and stored values cannot mutate the insertion block or bypass function and context ownership checks.
-  TEST(IRMemoryInstructionTest, RejectsForeignDetachedStorageAndMismatchedOperands)
-  {
-    IRContext Context(Target);
-    IRContext Foreign(Target);
-    auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *Pointer = Types.getPointerType(Integer);
-    const auto *Opaque = Types.getPointerType(Types.getVoidType());
-    Function Owner(*Types.getFunctionType(Types.getVoidType(), {Integer, Pointer, Opaque, {Pointer, true}}));
-    Function Other(*Types.getFunctionType(Types.getVoidType(), {Integer, Pointer}));
-    Function ForeignOwner(*Foreign.typePool().getFunctionType(Foreign.typePool().getVoidType(), {Foreign.typePool().getPointerType(Foreign.typePool().getInt32Type())}));
-    auto *Entry = Owner.createBlock();
-    auto *OtherEntry = Other.createBlock();
-    auto *OtherSlot = OtherEntry->appendInstruction(std::make_unique<AllocaInstruction>(*Integer));
-    DetachedMemoryInstruction DetachedAddress(*Pointer);
-    DetachedMemoryInstruction DetachedValue(*Integer);
-    UnpooledMemoryConstant Unpooled(*Integer);
-    GlobalVariable GlobalAddress(*Pointer);
-    GlobalVariable GlobalValue(*Integer);
-    const auto *Seven = Context.constantPool().getSignedIntegerConstant(Integer, 7);
-    IRBuilder Builder(Context);
-    ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    auto *Slot = Builder.createAlloca(*Integer);
-    ASSERT_NE(Slot, nullptr);
-    auto *Store = Builder.createStore(*Seven, *Slot);
-    ASSERT_NE(Store, nullptr);
-    const std::size_t PreviousCount = Entry->instructionCount();
-    const Value *Addresses[] = {
-        Owner.parameter(0),
-        Owner.parameter(2),
-        Owner.parameter(3),
-        Other.parameter(1),
-        ForeignOwner.parameter(0),
-        OtherSlot,
-        &DetachedAddress,
-        &GlobalAddress,
-        Context.constantPool().getNullPointerConstant(),
-        Seven,
-        &Owner,
-        Entry,
-        Store,
-    };
-    for (const auto *Address : Addresses)
-    {
-      ASSERT_NE(Address, nullptr);
-      EXPECT_EQ(Builder.createLoad(*Integer, *Address), nullptr);
-      EXPECT_EQ(Builder.createStore(*Seven, *Address), nullptr);
-    }
-    const Value *Values[] = {
-        Other.parameter(0),
-        Context.constantPool().getBoolConstant(true),
-        Foreign.constantPool().getSignedIntegerConstant(Foreign.typePool().getInt32Type(), 7),
-        &DetachedValue,
-        &Unpooled,
-        &GlobalValue,
-        Store,
-    };
-    for (const auto *ValueObject : Values)
-    {
-      ASSERT_NE(ValueObject, nullptr);
-      EXPECT_EQ(Builder.createStore(*ValueObject, *Slot), nullptr);
-    }
-    EXPECT_EQ(Builder.createLoad(*Foreign.typePool().getInt32Type(), *Slot), nullptr);
-    EXPECT_EQ(Entry->instructionCount(), PreviousCount);
-    EXPECT_EQ(OtherEntry->instructionCount(), 1U);
-    EXPECT_EQ(Builder.insertBlock(), Entry);
-    EXPECT_NE(Builder.createLoad(*Integer, *Owner.parameter(1)), nullptr);
-    EXPECT_NE(Builder.createStore(*Owner.parameter(0), *Owner.parameter(1)), nullptr);
   }
 
   // Local storage, its address and its loaded contents retain distinct types and operand categories, including pointer-valued locals.

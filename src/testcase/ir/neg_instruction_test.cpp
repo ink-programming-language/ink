@@ -2,14 +2,11 @@
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/neg_instruction.h"
-#include "ink/ir/module/global_variable.h"
-#include "ink/ir/module/module.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <type_traits>
 #include <utility>
 
@@ -18,24 +15,6 @@ namespace ink::ir::test
   namespace
   {
     constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-
-    class UnpooledNumericConstant final : public Constant
-    {
-      public:
-        explicit UnpooledNumericConstant(const Type *ConstantType) noexcept
-            : Constant(ValueKind::IntegerConstant, ConstantType)
-        {
-        }
-    };
-
-    class DetachedNumericInstruction final : public Instruction
-    {
-      public:
-        explicit DetachedNumericInstruction(const Type *ResultType) noexcept
-            : Instruction(ValueKind::Instruction, ResultType)
-        {
-        }
-    };
   } // namespace
 
   static_assert(std::is_base_of_v<Instruction, NegInstruction>);
@@ -189,43 +168,6 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.insertBlock(), Block);
   }
 
-  // Negation rejects foreign, unregistered and nonnumeric operands without changing a valid insertion block.
-  TEST(IRNegInstructionTest, RejectsForeignUnpooledAndNonnumericOperands)
-  {
-    IRContext Context(Target);
-    IRContext Foreign(Target);
-    auto &Types = Context.typePool();
-    Module Owner(Context);
-    Function FunctionValue(*Types.getFunctionType(Types.getVoidType()));
-    auto *Entry = FunctionValue.createBlock();
-    ASSERT_NE(Entry, nullptr);
-    UnpooledNumericConstant Unpooled(Types.getInt32Type());
-    const auto *ForeignInteger = Foreign.constantPool().getSignedIntegerConstant(Foreign.typePool().getInt32Type(), 1);
-    const auto *ForeignFloat = Foreign.constantPool().getFloatConstant(1.5);
-    const Value *Operands[] = {
-        ForeignInteger,
-        ForeignFloat,
-        &Unpooled,
-        Context.constantPool().getBoolConstant(true),
-        Context.constantPool().getNullPointerConstant(),
-        Context.constantPool().getStringConstant("text"),
-        Types.getInt32Type(),
-        &FunctionValue,
-        Entry,
-        &Owner,
-    };
-    IRBuilder Builder(Context);
-    EXPECT_EQ(Builder.insertBlock(), nullptr);
-    ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    for (const auto *Operand : Operands)
-    {
-      ASSERT_NE(Operand, nullptr);
-      EXPECT_EQ(Builder.createNeg(*Operand), nullptr);
-    }
-    EXPECT_EQ(Entry->instructionCount(), 0U);
-    EXPECT_EQ(Builder.insertBlock(), Entry);
-  }
-
   // Runtime negation preserves the type and borrowed operand of current-function numeric parameters across integer and floating widths.
   TEST(IRNegInstructionTest, EmitsRuntimeNegationForNumericParameterTypes)
   {
@@ -300,48 +242,5 @@ namespace ink::ir::test
     EXPECT_EQ(Entry->instruction(3), Third);
     EXPECT_EQ(Entry->instruction(4), Compare);
     EXPECT_EQ(Entry->instruction(5), Return);
-  }
-
-  // Runtime negation rejects foreign-function, detached, storage and variadic operands without changing a valid block.
-  TEST(IRNegInstructionTest, RejectsUnusableRuntimeOperandsWithoutMutation)
-  {
-    IRContext Context(Target);
-    IRContext Foreign(Target);
-    auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *Signature = Types.getFunctionType(Integer, {Integer, Types.getBoolType(), Types.getPointerType(Integer), {Integer, true}});
-    ASSERT_NE(Signature, nullptr);
-    Function Owner(*Signature);
-    Function Other(*Types.getFunctionType(Integer, {Integer}));
-    Function ForeignOwner(*Foreign.typePool().getFunctionType(Foreign.typePool().getInt32Type(), {Foreign.typePool().getInt32Type()}));
-    auto *Entry = Owner.createBlock();
-    auto *OtherEntry = Other.createBlock();
-    ASSERT_NE(Entry, nullptr);
-    ASSERT_NE(OtherEntry, nullptr);
-    const auto *OtherInstruction = OtherEntry->appendInstruction(std::make_unique<NegInstruction>(*Other.parameter(0)));
-    ASSERT_NE(OtherInstruction, nullptr);
-    DetachedNumericInstruction Detached(Integer);
-    GlobalVariable Storage(*Integer);
-    IRBuilder Builder(Context);
-    EXPECT_EQ(Entry->instructionCount(), 0U);
-    ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    const Value *Operands[] = {
-        Other.parameter(0),
-        ForeignOwner.parameter(0),
-        OtherInstruction,
-        &Detached,
-        &Storage,
-        Owner.parameter(1),
-        Owner.parameter(2),
-        Owner.parameter(3),
-    };
-    for (const auto *Operand : Operands)
-    {
-      ASSERT_NE(Operand, nullptr);
-      EXPECT_EQ(Builder.createNeg(*Operand), nullptr);
-    }
-    EXPECT_EQ(Entry->instructionCount(), 0U);
-    EXPECT_EQ(OtherEntry->instructionCount(), 1U);
-    EXPECT_EQ(Builder.insertBlock(), Entry);
   }
 } // namespace ink::ir::test

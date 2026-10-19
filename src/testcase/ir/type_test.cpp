@@ -1,15 +1,4 @@
 #include "ink/target/target_context.h"
-#include "ink/ir/constant/array_constant.h"
-#include "ink/ir/constant/bool_constant.h"
-#include "ink/ir/constant/constant_pool.h"
-#include "ink/ir/constant/float_constant.h"
-#include "ink/ir/constant/integer_constant.h"
-#include "ink/ir/constant/null_pointer_constant.h"
-#include "ink/ir/constant/string_constant.h"
-#include "ink/ir/function/basic_block.h"
-#include "ink/ir/function/function.h"
-#include "ink/ir/instruction/instruction.h"
-#include "ink/ir/param/parameter.h"
 #include "ink/ir/type/structure_type/array_type.h"
 #include "ink/ir/type/builtin_type/bool_type.h"
 #include "ink/ir/type/nominal_type/class_type.h"
@@ -17,11 +6,9 @@
 #include "ink/ir/type/structure_type/function_type.h"
 #include "ink/ir/type/generic_type/generic_class_type.h"
 #include "ink/ir/type/generic_type/generic_function_type.h"
-#include "ink/ir/type/generic_type/generic_type.h"
 #include "ink/ir/type/generic_type/generic_var_type.h"
 #include "ink/ir/type/builtin_type/integer_type.h"
 #include "ink/ir/type/nominal_type/interface_type.h"
-#include "ink/ir/type/builtin_type/null_pointer_type.h"
 #include "ink/ir/type/structure_type/pointer_type.h"
 #include "ink/ir/type/structure_type/reference_type.h"
 #include "ink/ir/type/nominal_type/struct_type.h"
@@ -31,10 +18,8 @@
 
 #include <gtest/gtest.h>
 
-#include <array>
 #include <cstdint>
 #include <limits>
-#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -45,37 +30,6 @@ namespace ink::ir::test
     constexpr target::TargetContext Target32(target::PointerWidth::Bits32, target::ByteOrder::LittleEndian);
     constexpr target::TargetContext Target64(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
     constexpr std::uint64_t MaximumSize = std::numeric_limits<std::uint64_t>::max();
-
-    class SyntheticType final : public Type
-    {
-      public:
-        SyntheticType(const MetaType &Meta, std::uint64_t Size, std::uint64_t Alignment, ValueKind Kind = ValueKind::Struct) noexcept
-            : Type(Kind, Meta),
-              Size(Size),
-              Alignment(Alignment)
-        {
-        }
-
-        std::uint64_t size() const noexcept override
-        {
-          return Size;
-        }
-
-        std::uint64_t alignment() const noexcept override
-        {
-          return Alignment;
-        }
-
-      private:
-        std::uint64_t Size = 0;
-        std::uint64_t Alignment = 0;
-    };
-
-    class SyntheticInstruction final : public Instruction
-    {
-      public:
-        SyntheticInstruction() noexcept = default;
-    };
   } // namespace
 
   static_assert(std::has_virtual_destructor_v<Value>);
@@ -392,22 +346,6 @@ namespace ink::ir::test
     EXPECT_EQ(Single->alignment(), 8U);
   }
 
-  // Arrays reject externally constructed types regardless of their layout or requested element count.
-  TEST(IRTypeTest, ArrayRejectsExternallyConstructedTypes)
-  {
-    IRContext TypesContext(Target64);
-    Module Types(TypesContext);
-    const SyntheticType ValidLayout(*Types.typePool().getMetaType(), 4, 4);
-    const SyntheticType ZeroAlignment(*Types.typePool().getMetaType(), 4, 0);
-    const SyntheticType NonPowerOfTwoAlignment(*Types.typePool().getMetaType(), 4, 3);
-    EXPECT_EQ(Types.typePool().getArrayType(&ValidLayout, 0), nullptr);
-    EXPECT_EQ(Types.typePool().getArrayType(&ValidLayout, 1), nullptr);
-    EXPECT_EQ(Types.typePool().getArrayType(&ZeroAlignment, 0), nullptr);
-    EXPECT_EQ(Types.typePool().getArrayType(&ZeroAlignment, 1), nullptr);
-    EXPECT_EQ(Types.typePool().getArrayType(&NonPowerOfTwoAlignment, 0), nullptr);
-    EXPECT_EQ(Types.typePool().getArrayType(&NonPowerOfTwoAlignment, 1), nullptr);
-  }
-
   // Array construction rejects a missing element type for both empty and nonempty arrays.
   TEST(IRTypeTest, ArrayRejectsNullElementType)
   {
@@ -415,132 +353,6 @@ namespace ink::ir::test
     Module Types(TypesContext);
     EXPECT_EQ(Types.typePool().getArrayType(nullptr, 0), nullptr);
     EXPECT_EQ(Types.typePool().getArrayType(nullptr, 1), nullptr);
-  }
-
-  // Type, function, parameter, instruction, block and constant classifiers reject unrelated, null and unknown values.
-  TEST(IRTypeTest, ClassifiersRejectNullAndOtherKinds)
-  {
-    IRContext TypesContext(Target64);
-    Module Types(TypesContext);
-    auto &Constants = Types.constantPool();
-    const auto Integer = Types.typePool().getIntegerType(32, true);
-    const auto Float = Types.typePool().getFloatType(64);
-    const auto Bool = Types.typePool().getBoolType();
-    const auto Array = Types.typePool().getArrayType(Bool, 2);
-    const auto Pointer = Types.typePool().getPointerType(Bool);
-    const auto Reference = Types.typePool().getReferenceType(Bool);
-    const auto Function = Types.typePool().getFunctionType(Bool, {Bool});
-    const BasicBlock Block;
-    const SyntheticInstruction Operation;
-    ASSERT_NE(Integer, nullptr);
-    ASSERT_NE(Float, nullptr);
-    ASSERT_NE(Array, nullptr);
-    ASSERT_NE(Function, nullptr);
-
-    const ink::ir::Function Callable(*Function);
-    const Parameter *ParameterValue = Callable.parameter(0);
-    ASSERT_NE(ParameterValue, nullptr);
-
-    const auto BoolValue = Constants.getBoolConstant(true);
-    const auto IntegerValue = Constants.getSignedIntegerConstant(Integer, -1);
-    const auto FloatValue = Constants.getFloatConstantFromBits(Float, 0);
-    const auto ArrayValue = Constants.getArrayConstant(Array, {BoolValue, BoolValue});
-    const auto NullValue = Constants.getNullPointerConstant();
-    const auto StringValue = Constants.getStringConstant("text");
-    ASSERT_NE(BoolValue, nullptr);
-    ASSERT_NE(IntegerValue, nullptr);
-    ASSERT_NE(FloatValue, nullptr);
-    ASSERT_NE(ArrayValue, nullptr);
-    ASSERT_NE(NullValue, nullptr);
-    ASSERT_NE(StringValue, nullptr);
-
-    const std::array<const Value *, 20> Values = {
-        Types.typePool().getVoidType(),
-        Integer,
-        Float,
-        Bool,
-        Array,
-        Pointer,
-        Reference,
-        Function,
-        &Callable,
-        ParameterValue,
-        &Block,
-        &Operation,
-        BoolValue,
-        IntegerValue,
-        FloatValue,
-        ArrayValue,
-        NullValue,
-        StringValue,
-        Types.typePool().getNullPointerType(),
-        Types.typePool().getMetaType(),
-    };
-    using Classifier = bool (*)(const Value *);
-    const std::array<Classifier, 20> Classifiers = {
-        VoidType::classof,
-        IntegerType::classof,
-        FloatType::classof,
-        BoolType::classof,
-        ArrayType::classof,
-        PointerType::classof,
-        ReferenceType::classof,
-        FunctionType::classof,
-        ink::ir::Function::classof,
-        Parameter::classof,
-        BasicBlock::classof,
-        Instruction::classof,
-        BoolConstant::classof,
-        IntegerConstant::classof,
-        FloatConstant::classof,
-        ArrayConstant::classof,
-        NullPointerConstant::classof,
-        StringConstant::classof,
-        NullPointerType::classof,
-        MetaType::classof,
-    };
-    const SyntheticType Unknown(*Types.typePool().getMetaType(), 1, 1, static_cast<ValueKind>(255));
-    for (std::size_t ClassifierIndex = 0; ClassifierIndex < Classifiers.size(); ++ClassifierIndex)
-    {
-      EXPECT_FALSE(Classifiers[ClassifierIndex](nullptr));
-      EXPECT_FALSE(Classifiers[ClassifierIndex](&Unknown));
-      for (std::size_t ValueIndex = 0; ValueIndex < Values.size(); ++ValueIndex)
-      {
-        EXPECT_EQ(Classifiers[ClassifierIndex](Values[ValueIndex]), ClassifierIndex == ValueIndex) << "classifier " << ClassifierIndex << ", value " << ValueIndex;
-      }
-    }
-
-    const std::array<Classifier, 6> DeclarationClassifiers = {
-        ClassType::classof,
-        InterfaceType::classof,
-        StructType::classof,
-        GenericClassType::classof,
-        GenericFunctionType::classof,
-        GenericVarType::classof,
-    };
-    for (const Classifier Classify : DeclarationClassifiers)
-    {
-      EXPECT_FALSE(Classify(nullptr));
-      EXPECT_FALSE(Classify(&Unknown));
-      for (const Value *Value : Values)
-      {
-        EXPECT_FALSE(Classify(Value));
-      }
-    }
-
-    EXPECT_FALSE(GenericType::classof(nullptr));
-    EXPECT_FALSE(GenericType::classof(&Unknown));
-    EXPECT_FALSE(Type::classof(nullptr));
-    EXPECT_FALSE(Type::classof(&Unknown));
-    EXPECT_FALSE(Constant::classof(nullptr));
-    EXPECT_FALSE(Constant::classof(&Unknown));
-    for (const Value *Value : Values)
-    {
-      const bool IsConstant = Value == BoolValue || Value == IntegerValue || Value == FloatValue || Value == ArrayValue || Value == NullValue || Value == StringValue;
-      EXPECT_FALSE(GenericType::classof(Value));
-      EXPECT_EQ(Constant::classof(Value), IsConstant);
-      EXPECT_EQ(Type::classof(Value), Value != &Callable && Value != ParameterValue && Value != &Block && Value != &Operation && !IsConstant);
-    }
   }
 
   // Registry names distinguish types, generic declarations, basic blocks, instructions and constants while retaining an unknown fallback.

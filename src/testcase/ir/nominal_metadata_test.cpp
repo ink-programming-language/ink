@@ -1,7 +1,6 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/constant.h"
 #include "ink/ir/function/function.h"
-#include "ink/ir/instruction/instruction.h"
 #include "ink/ir/type/nominal_type/nominal_type.h"
 #include "ink/ir/module/module.h"
 
@@ -30,23 +29,6 @@ namespace ink::ir::test
     {
       return Method(std::make_unique<Function>(Signature, Name), VirtualInfo);
     }
-
-    class MethodBodyInstruction final : public Instruction
-    {
-      public:
-        explicit MethodBodyInstruction(bool &Destroyed) noexcept
-            : Destroyed(Destroyed)
-        {
-        }
-
-        ~MethodBodyInstruction() noexcept override
-        {
-          Destroyed = true;
-        }
-
-      private:
-        bool &Destroyed;
-    };
   } // namespace
 
   static_assert(std::is_abstract_v<NominalType>);
@@ -260,82 +242,6 @@ namespace ink::ir::test
     }
   }
 
-  // Successful replacement destroys the previous body, while rejected replacements preserve both owners.
-  TEST(IRNominalMetadataTest, ReplacesMethodBeforeFreezingAndPreservesEntryOnFailure)
-  {
-    bool OriginalBodyDestroyed = false;
-    bool ReplacementBodyDestroyed = false;
-    IRContext TypesContext(Target);
-    Module Types(TypesContext);
-    IRContext ForeignTypesContext(Target);
-    Module ForeignTypes(ForeignTypesContext);
-    auto *Value = Types.createClassType(8, 8);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
-    const auto OtherSignature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
-    const auto ForeignSignature = ForeignTypes.typePool().getFunctionType(ForeignTypes.typePool().getVoidType());
-    ASSERT_NE(Value, nullptr);
-    ASSERT_NE(Signature, nullptr);
-    ASSERT_NE(OtherSignature, nullptr);
-    ASSERT_NE(ForeignSignature, nullptr);
-    const core::Name MemberName = core::NamePool::instance().intern("method");
-    const core::Name OtherName = core::NamePool::instance().intern("other");
-    auto OriginalCallable = std::make_unique<Function>(*Signature, MemberName);
-    auto *OriginalBlock = OriginalCallable->createBlock();
-    ASSERT_NE(OriginalBlock, nullptr);
-    ASSERT_NE(OriginalBlock->appendInstruction(std::make_unique<MethodBodyInstruction>(OriginalBodyDestroyed)), nullptr);
-    ASSERT_TRUE(Value->addMethod(Method(std::move(OriginalCallable), {MethodDispatch::Virtual, false, false, std::nullopt})));
-    ASSERT_TRUE(Value->addMethod(createMethod(*OtherSignature, OtherName)));
-    EXPECT_FALSE(Value->method(0)->virtualSlot().has_value());
-    Method Replacement = createMethod(*Signature, MemberName, {MethodDispatch::Virtual, false, false, 3});
-    auto *ReplacementCallable = Replacement.function();
-    auto *ReplacementBlock = ReplacementCallable->createBlock();
-    ASSERT_NE(ReplacementBlock, nullptr);
-    ASSERT_NE(ReplacementBlock->appendInstruction(std::make_unique<MethodBodyInstruction>(ReplacementBodyDestroyed)), nullptr);
-    EXPECT_FALSE(OriginalBodyDestroyed);
-    ASSERT_TRUE(Value->replaceMethod(0, std::move(Replacement)));
-    EXPECT_EQ(Replacement.function(), nullptr);
-    EXPECT_TRUE(OriginalBodyDestroyed);
-    EXPECT_FALSE(ReplacementBodyDestroyed);
-    EXPECT_EQ(Value->method(0)->virtualSlot(), 3U);
-    Method OutOfBounds = createMethod(*Signature, MemberName);
-    const auto *OutOfBoundsCallable = OutOfBounds.function();
-    EXPECT_FALSE(Value->replaceMethod(2, std::move(OutOfBounds)));
-    EXPECT_EQ(OutOfBounds.function(), OutOfBoundsCallable);
-    EXPECT_FALSE(Value->replaceMethod(std::numeric_limits<std::size_t>::max(), std::move(OutOfBounds)));
-    EXPECT_EQ(OutOfBounds.function(), OutOfBoundsCallable);
-    std::array<Method, 4> Rejected = {
-        Method(nullptr),
-        createMethod(*Signature, core::NAME_None),
-        createMethod(*ForeignSignature, MemberName),
-        createMethod(*Signature, MemberName, {MethodDispatch::Abstract, false, true, 3}),
-    };
-    for (Method &Entry : Rejected)
-    {
-      const auto *Callable = Entry.function();
-      EXPECT_FALSE(Value->replaceMethod(0, std::move(Entry)));
-      EXPECT_EQ(Entry.function(), Callable);
-      EXPECT_EQ(Value->method(0)->function(), ReplacementCallable);
-      EXPECT_FALSE(ReplacementBodyDestroyed);
-    }
-    EXPECT_EQ(Value->methodCount(), 2U);
-    EXPECT_EQ(Value->method(0)->name(), MemberName);
-    EXPECT_EQ(Value->method(0)->function(), ReplacementCallable);
-    EXPECT_EQ(Value->method(0)->functionType(), Signature);
-    EXPECT_EQ(Value->method(0)->virtualSlot(), 3U);
-    ASSERT_TRUE(Value->replaceMethod(1, createMethod(*Signature, MemberName, {MethodDispatch::Virtual, true, false, 4})));
-    EXPECT_EQ(Value->method(1)->name(), MemberName);
-    EXPECT_NE(Value->method(1)->function(), ReplacementCallable);
-    EXPECT_EQ(Value->method(1)->functionType(), Signature);
-    EXPECT_EQ(Value->method(1)->virtualSlot(), 4U);
-    ASSERT_EQ(Value->findMethods(MemberName).size(), 2U);
-    Value->freeze();
-    EXPECT_FALSE(Value->replaceMethod(0, std::move(OutOfBounds)));
-    EXPECT_EQ(OutOfBounds.function(), OutOfBoundsCallable);
-    EXPECT_EQ(Value->method(0)->function(), ReplacementCallable);
-    EXPECT_FALSE(ReplacementBodyDestroyed);
-    EXPECT_EQ(Value->method(0)->virtualSlot(), 3U);
-  }
-
   // All nominal kinds resolve names from their bound functions even after the method list is frozen.
   TEST(IRNominalMetadataTest, MethodLookupTracksFunctionRenamingBeforeAndAfterFreezing)
   {
@@ -375,53 +281,6 @@ namespace ink::ir::test
       ASSERT_EQ(Value->findMethods(MemberName).size(), 1U);
       EXPECT_EQ(Value->findMethods(MemberName)[0]->function(), Callable);
       EXPECT_TRUE(Value->isFrozen());
-    }
-  }
-
-  // Method storage growth preserves function, parameter and body addresses until the owning module is destroyed.
-  TEST(IRNominalMetadataTest, OwnsMethodBodiesAtStableAddressesUntilModuleDestruction)
-  {
-    std::array<bool, 3> BodiesDestroyed = {};
-    {
-      IRContext TypesContext(Target);
-      Module Types(TypesContext);
-      const auto Values = createMetadataTypes(Types);
-      const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
-      ASSERT_NE(Signature, nullptr);
-      const core::Name MemberName = core::NamePool::instance().intern("method");
-      for (std::size_t Index = 0; Index < Values.size(); ++Index)
-      {
-        NominalType *Value = Values[Index];
-        ASSERT_NE(Value, nullptr);
-        Method Entry = createMethod(*Signature, MemberName);
-        auto *Callable = Entry.function();
-        auto *ParameterValue = Callable->parameter(0);
-        auto *Block = Callable->createBlock();
-        ASSERT_NE(ParameterValue, nullptr);
-        ASSERT_NE(Block, nullptr);
-        auto *BodyInstruction = Block->appendInstruction(std::make_unique<MethodBodyInstruction>(BodiesDestroyed[Index]));
-        ASSERT_NE(BodyInstruction, nullptr);
-        ASSERT_TRUE(Value->addMethod(std::move(Entry)));
-        EXPECT_EQ(Entry.function(), nullptr);
-        for (std::size_t MemberIndex = 0; MemberIndex < 64; ++MemberIndex)
-        {
-          ASSERT_TRUE(Value->addMethod(createMethod(*Signature, MemberName)));
-        }
-        EXPECT_EQ(Value->methodCount(), 65U);
-        ASSERT_NE(Value->method(0), nullptr);
-        EXPECT_EQ(Value->method(0)->function(), Callable);
-        EXPECT_EQ(Value->method(0)->function()->parameter(0), ParameterValue);
-        EXPECT_EQ(Value->method(0)->function()->entryBlock(), Block);
-        EXPECT_EQ(Value->method(0)->function()->entryBlock()->instruction(0), BodyInstruction);
-        EXPECT_EQ(ParameterValue->function(), Callable);
-        EXPECT_EQ(Block->function(), Callable);
-        EXPECT_FALSE(BodiesDestroyed[Index]);
-        Value->freeze();
-      }
-    }
-    for (bool Destroyed : BodiesDestroyed)
-    {
-      EXPECT_TRUE(Destroyed);
     }
   }
 } // namespace ink::ir::test

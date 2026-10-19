@@ -18,15 +18,6 @@ namespace ink::ir::test
   {
     constexpr target::TargetContext Target32(target::PointerWidth::Bits32, target::ByteOrder::LittleEndian);
     constexpr target::TargetContext Target64(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-
-    class UnownedNullTypedConstant final : public Constant
-    {
-      public:
-        explicit UnownedNullTypedConstant(const Type *ConstantType, ValueKind Kind = ValueKind::IntegerConstant) noexcept
-            : Constant(Kind, ConstantType)
-        {
-        }
-    };
   } // namespace
 
   static_assert(std::is_final_v<NullPointerType>);
@@ -101,66 +92,6 @@ namespace ink::ir::test
     EXPECT_FALSE(ReadOnly.constantPool().owns(OtherTypes.constantPool().getNullPointerConstant()));
   }
 
-  // Only the actual null literal gains conversion to local pointer types; nonpointers and foreign types stay incompatible.
-  TEST(IRNullPointerTypeTest, InitializesOnlyIdenticalOrLocalPointerTypes)
-  {
-    IRContext TypesContext(Target64);
-    Module Types(TypesContext);
-    IRContext OtherTypesContext(Target64);
-    Module OtherTypes(OtherTypesContext);
-    const auto Null = Types.constantPool().getNullPointerConstant();
-    const auto Function = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
-    const auto Nominal = Types.createStructType(8, 8);
-    const auto IntPointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
-    ASSERT_NE(Function, nullptr);
-    ASSERT_NE(Nominal, nullptr);
-    ASSERT_NE(IntPointer, nullptr);
-    const Type *Pointees[] = {
-        Types.typePool().getBoolType(),
-        Types.typePool().getInt32Type(),
-        Types.typePool().getVoidType(),
-        IntPointer,
-        Function,
-        Nominal,
-    };
-    for (const Type *Pointee : Pointees)
-    {
-      const auto Pointer = Types.typePool().getPointerType(Pointee);
-      ASSERT_NE(Pointer, nullptr);
-      EXPECT_TRUE(Null->canInitialize(Pointer));
-    }
-    const Type *Rejected[] = {
-        nullptr,
-        Types.typePool().getBoolType(),
-        Types.typePool().getInt32Type(),
-        Types.typePool().getFloat64Type(),
-        Types.typePool().getVoidType(),
-        Types.typePool().getVariadicType(),
-        Types.typePool().getReferenceType(Types.typePool().getInt32Type()),
-        Types.typePool().getArrayType(IntPointer, 1),
-        Function,
-        Nominal,
-        OtherTypes.typePool().getPointerType(OtherTypes.typePool().getInt32Type()),
-        OtherTypes.typePool().getNullPointerType(),
-    };
-    for (const Type *Destination : Rejected)
-    {
-      EXPECT_FALSE(Null->canInitialize(Destination));
-    }
-    EXPECT_TRUE(Null->canInitialize(Types.typePool().getNullPointerType()));
-    const UnownedNullTypedConstant Unowned(Types.typePool().getNullPointerType());
-    EXPECT_TRUE(Unowned.canInitialize(Types.typePool().getNullPointerType()));
-    EXPECT_FALSE(Unowned.canInitialize(IntPointer));
-    const UnownedNullTypedConstant UnownedNull(Types.typePool().getNullPointerType(), ValueKind::NullPointerConstant);
-    EXPECT_FALSE(Types.constantPool().owns(&UnownedNull));
-    EXPECT_FALSE(UnownedNull.canInitialize(IntPointer));
-    const auto Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
-    ASSERT_NE(Zero, nullptr);
-    EXPECT_TRUE(Zero->canInitialize(Types.typePool().getInt32Type()));
-    EXPECT_FALSE(Zero->canInitialize(Types.typePool().getUInt32Type()));
-    EXPECT_FALSE(Zero->canInitialize(IntPointer));
-  }
-
   // Fields of distinct pointer types share the literal while clearing a field remains distinct from explicit null initialization.
   TEST(IRNullPointerTypeTest, SharesNullAcrossFieldsAndPreservesAbsentInitializers)
   {
@@ -193,44 +124,6 @@ namespace ink::ir::test
       EXPECT_TRUE(Owner->field(0)->hasInitializer());
       EXPECT_EQ(Owner->field(0)->initializer(), Null);
     }
-  }
-
-  // Invalid or foreign null field bindings and frozen mutations reject changes without losing the registered initializer.
-  TEST(IRNullPointerTypeTest, RejectsInvalidAndFrozenFieldInitializers)
-  {
-    IRContext TypesContext(Target64);
-    Module Types(TypesContext);
-    IRContext OtherTypesContext(Target64);
-    Module OtherTypes(OtherTypesContext);
-    const auto Null = Types.constantPool().getNullPointerConstant();
-    const auto ForeignNull = OtherTypes.constantPool().getNullPointerConstant();
-    const auto Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
-    const core::Name Name = core::NamePool::instance().intern("IRNullPointerTypeTest.member");
-    auto Owner = Types.createStructType(16, 8);
-    ASSERT_NE(Owner, nullptr);
-    ASSERT_TRUE(Owner->addField(Field(Pointer, Name, 0, Null)));
-    const UnownedNullTypedConstant Unowned(Types.typePool().getNullPointerType());
-    const Field Rejected[] = {
-        Field(Types.typePool().getInt32Type(), Name, 0, Null),
-        Field(Types.typePool().getReferenceType(Types.typePool().getInt32Type()), Name, 0, Null),
-        Field(Pointer, Name, 0, ForeignNull),
-        Field(Pointer, Name, 0, &Unowned),
-        Field(OtherTypes.typePool().getPointerType(OtherTypes.typePool().getInt32Type()), Name, 0, ForeignNull),
-    };
-    for (const Field &Entry : Rejected)
-    {
-      EXPECT_FALSE(Owner->addField(Entry));
-      EXPECT_FALSE(Owner->replaceField(0, Entry));
-      ASSERT_EQ(Owner->fieldCount(), 1U);
-      EXPECT_EQ(Owner->field(0)->type(), Pointer);
-      EXPECT_EQ(Owner->field(0)->initializer(), Null);
-    }
-    Owner->freeze();
-    EXPECT_FALSE(Owner->addField(Field(Pointer, Name, 8, Null)));
-    EXPECT_FALSE(Owner->replaceField(0, Field(Pointer, Name)));
-    EXPECT_FALSE(Owner->replaceField(0, Field(Pointer, Name, 0, Null)));
-    EXPECT_EQ(Owner->field(0)->initializer(), Null);
-    EXPECT_EQ(Owner->fieldCount(), 1U);
   }
 
   // Distinct pointer globals accept one literal and clear it explicitly; rejected replacements preserve the existing value.

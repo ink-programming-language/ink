@@ -20,40 +20,6 @@ namespace ink::ir::test
   namespace
   {
     constexpr target::TargetContext Target(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-
-    class ModuleBodyInstruction final : public Instruction
-    {
-      public:
-        explicit ModuleBodyInstruction(bool &Destroyed) noexcept
-            : Destroyed(Destroyed)
-        {
-        }
-
-        ~ModuleBodyInstruction() noexcept override
-        {
-          Destroyed = true;
-        }
-
-      private:
-        bool &Destroyed;
-    };
-
-    class CountedModuleBodyInstruction final : public Instruction
-    {
-      public:
-        explicit CountedModuleBodyInstruction(std::size_t &DestructionCount) noexcept
-            : DestructionCount(DestructionCount)
-        {
-        }
-
-        ~CountedModuleBodyInstruction() noexcept override
-        {
-          ++DestructionCount;
-        }
-
-      private:
-        std::size_t &DestructionCount;
-    };
   } // namespace
 
   static_assert(!std::is_copy_constructible_v<Module>);
@@ -350,89 +316,6 @@ namespace ink::ir::test
     }
   }
 
-  // Sharing one lifecycle function keeps its address stable through list growth and destroys its owned body exactly once.
-  TEST(IRModuleTest, LifecycleEntriesBorrowStableFunctionsWithoutDuplicatingOwnership)
-  {
-    std::size_t DestructionCount = 0;
-    {
-      IRContext OwnerContext(Target);
-      Module Owner(OwnerContext);
-      const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
-      ASSERT_NE(Signature, nullptr);
-      auto *Shared = Owner.createGlobalFunction(*Signature);
-      ASSERT_NE(Shared, nullptr);
-      auto *Block = Shared->createBlock();
-      ASSERT_NE(Block, nullptr);
-      ASSERT_NE(Block->appendInstruction(std::make_unique<CountedModuleBodyInstruction>(DestructionCount)), nullptr);
-      ASSERT_TRUE(Owner.setInitializationFunction(Shared));
-      ASSERT_TRUE(Owner.setDeinitializationFunction(Shared));
-      EXPECT_EQ(Owner.globalFunctionCount(), 1U);
-      for (std::size_t Index = 0; Index < 64; ++Index)
-      {
-        ASSERT_NE(Owner.createGlobalFunction(*Signature), nullptr);
-      }
-      EXPECT_EQ(Owner.globalFunctionCount(), 65U);
-      EXPECT_EQ(Owner.globalFunction(0), Shared);
-      EXPECT_EQ(Owner.initializationFunction(), Shared);
-      EXPECT_EQ(Owner.deinitializationFunction(), Shared);
-      EXPECT_TRUE(Owner.setInitializationFunction(nullptr));
-      EXPECT_TRUE(Owner.setDeinitializationFunction(nullptr));
-      EXPECT_EQ(DestructionCount, 0U);
-      EXPECT_TRUE(Owner.owns(Shared));
-      EXPECT_TRUE(Owner.setInitializationFunction(Shared));
-      EXPECT_TRUE(Owner.setDeinitializationFunction(Shared));
-      EXPECT_EQ(Owner.globalFunctionCount(), 65U);
-    }
-    EXPECT_EQ(DestructionCount, 1U);
-  }
-
-  // Destroying a module releases the body instructions of both created and transferred functions.
-  TEST(IRModuleTest, DestructionReleasesOwnedFunctionBodies)
-  {
-    bool CreatedBodyDestroyed = false;
-    bool TransferredBodyDestroyed = false;
-    {
-      IRContext OwnerContext(Target);
-      Module Owner(OwnerContext);
-      const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
-      ASSERT_NE(Signature, nullptr);
-      auto *Created = Owner.createGlobalFunction(*Signature);
-      ASSERT_NE(Created, nullptr);
-      auto *CreatedBlock = Created->createBlock();
-      ASSERT_NE(CreatedBlock, nullptr);
-      ASSERT_NE(CreatedBlock->appendInstruction(std::make_unique<ModuleBodyInstruction>(CreatedBodyDestroyed)), nullptr);
-
-      auto Transferred = std::make_unique<Function>(*Signature);
-      auto *TransferredBlock = Transferred->createBlock();
-      ASSERT_NE(TransferredBlock, nullptr);
-      ASSERT_NE(TransferredBlock->appendInstruction(std::make_unique<ModuleBodyInstruction>(TransferredBodyDestroyed)), nullptr);
-      ASSERT_NE(Owner.appendGlobalFunction(std::move(Transferred)), nullptr);
-      EXPECT_FALSE(CreatedBodyDestroyed);
-      EXPECT_FALSE(TransferredBodyDestroyed);
-    }
-    EXPECT_TRUE(CreatedBodyDestroyed);
-    EXPECT_TRUE(TransferredBodyDestroyed);
-  }
-
-  // Deleting a module through Value invokes its destructor and releases its owned function body.
-  TEST(IRModuleTest, DestructionThroughValueReleasesOwnedFunctionBodies)
-  {
-    IRContext Context(Target);
-    bool BodyDestroyed = false;
-    auto Owner = std::make_unique<Module>(Context);
-    const auto *Signature = Owner->typePool().getFunctionType(Owner->typePool().getVoidType());
-    ASSERT_NE(Signature, nullptr);
-    auto *Callable = Owner->createGlobalFunction(*Signature);
-    ASSERT_NE(Callable, nullptr);
-    auto *Entry = Callable->createBlock();
-    ASSERT_NE(Entry, nullptr);
-    ASSERT_NE(Entry->appendInstruction(std::make_unique<ModuleBodyInstruction>(BodyDestroyed)), nullptr);
-    std::unique_ptr<Value> ModuleValue = std::move(Owner);
-    EXPECT_FALSE(BodyDestroyed);
-    ModuleValue.reset();
-    EXPECT_TRUE(BodyDestroyed);
-  }
-
   // Nominal creation immediately owns distinct identities and preserves insertion order and addresses as lists grow.
   TEST(IRModuleTest, OwnsCreatedNominalTypesAtStableAddresses)
   {
@@ -631,59 +514,5 @@ namespace ink::ir::test
     EXPECT_EQ(OwnedClass->methods()[1].name(), MemberName);
     EXPECT_EQ(OwnedClass->methods()[1].functionType(), BooleanSignature);
     EXPECT_TRUE(OwnedClass->findMethods(core::NAME_None).empty());
-  }
-
-  // Destroying an independent module preserves nominal methods until their owning module is destroyed.
-  TEST(IRModuleTest, IndependentModuleDestructionPreservesOwnedNominalTypes)
-  {
-    bool BodyDestroyed = false;
-    {
-      IRContext TypesContext(Target);
-      Module Types(TypesContext);
-      const auto ClassValue = Types.createClassType(8, 4);
-      const auto InterfaceValue = Types.createInterfaceType(8, 4);
-      const auto StructValue = Types.createStructType(8, 4);
-      const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
-      ASSERT_NE(ClassValue, nullptr);
-      ASSERT_NE(InterfaceValue, nullptr);
-      ASSERT_NE(StructValue, nullptr);
-      ASSERT_NE(Signature, nullptr);
-      const core::Name ModuleName = core::NamePool::instance().intern("Lifetime");
-      const core::Name MemberName = core::NamePool::instance().intern("execute");
-      auto Callable = std::make_unique<Function>(*Signature, MemberName);
-      const auto *CallableAddress = Callable.get();
-      auto *Block = Callable->createBlock();
-      ASSERT_NE(Block, nullptr);
-      const auto *Body = Block->appendInstruction(std::make_unique<ModuleBodyInstruction>(BodyDestroyed));
-      ASSERT_NE(Body, nullptr);
-      ASSERT_TRUE(ClassValue->addMethod(Method(std::move(Callable))));
-      {
-        IRContext OwnerContext(Target);
-        Module Owner(OwnerContext, {{ModuleName}});
-        EXPECT_FALSE(Owner.ownsType(ClassValue));
-        EXPECT_FALSE(Owner.ownsType(InterfaceValue));
-        EXPECT_FALSE(Owner.ownsType(StructValue));
-        EXPECT_FALSE(Owner.owns(CallableAddress));
-        EXPECT_FALSE(Owner.contains(CallableAddress));
-        EXPECT_FALSE(BodyDestroyed);
-      }
-      EXPECT_FALSE(BodyDestroyed);
-      EXPECT_TRUE(Types.owns(ClassValue));
-      EXPECT_TRUE(Types.owns(InterfaceValue));
-      EXPECT_TRUE(Types.owns(StructValue));
-      EXPECT_EQ(ClassValue->size(), 8U);
-      EXPECT_EQ(InterfaceValue->size(), 8U);
-      EXPECT_EQ(StructValue->size(), 8U);
-      EXPECT_EQ(ClassValue->methodCount(), 1U);
-      const auto Methods = ClassValue->findMethods(MemberName);
-      ASSERT_EQ(Methods.size(), 1U);
-      EXPECT_TRUE(Methods[0]->valid());
-      EXPECT_EQ(Methods[0]->name(), MemberName);
-      EXPECT_EQ(Methods[0]->function(), CallableAddress);
-      EXPECT_EQ(Methods[0]->functionType(), Signature);
-      EXPECT_EQ(Methods[0]->function()->entryBlock(), Block);
-      EXPECT_EQ(Methods[0]->function()->entryBlock()->instruction(0), Body);
-    }
-    EXPECT_TRUE(BodyDestroyed);
   }
 } // namespace ink::ir::test

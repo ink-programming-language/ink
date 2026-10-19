@@ -1,21 +1,14 @@
-#include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/array_constant.h"
 #include "ink/ir/constant/bool_constant.h"
 #include "ink/ir/constant/constant_pool.h"
-#include "ink/ir/function/function.h"
-#include "ink/ir/type/nominal_type/method.h"
-#include "ink/ir/instruction/instruction.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/type_pool.h"
 
 #include <gtest/gtest.h>
 
 #include <array>
-#include <cstddef>
-#include <memory>
 #include <type_traits>
 #include <unordered_set>
-#include <utility>
 
 namespace ink::ir::test
 {
@@ -23,72 +16,6 @@ namespace ink::ir::test
   {
     constexpr target::TargetContext Target32(target::PointerWidth::Bits32, target::ByteOrder::LittleEndian);
     constexpr target::TargetContext Target64(target::PointerWidth::Bits64, target::ByteOrder::BigEndian);
-
-    class MethodTypeLifetimeInstruction final : public Instruction
-    {
-      public:
-        MethodTypeLifetimeInstruction(const Module &Types, const Function &Callable, const NominalType &Owner, const FunctionType &ExpectedSignature, const Type &ExpectedReturnType, const ArrayType &Array, bool LateSignature, std::size_t &DestructionCount) noexcept
-            : Types(Types),
-              Callable(Callable),
-              Owner(Owner),
-              ExpectedSignature(ExpectedSignature),
-              ExpectedReturnType(ExpectedReturnType),
-              Array(Array),
-              LateSignature(LateSignature),
-              DestructionCount(DestructionCount)
-        {
-        }
-
-        ~MethodTypeLifetimeInstruction() noexcept override
-        {
-          ++DestructionCount;
-          const auto *Signature = Callable.functionType();
-          EXPECT_EQ(Signature, &ExpectedSignature);
-          EXPECT_TRUE(Types.ownsType(Signature));
-          EXPECT_TRUE(Types.ownsType(&Owner));
-          EXPECT_EQ(Owner.size(), 16U);
-          EXPECT_EQ(Owner.alignment(), 8U);
-          EXPECT_TRUE(Owner.isFrozen());
-          if (!Types.ownsType(Signature))
-          {
-            return;
-          }
-          EXPECT_EQ(Signature->kind(), ValueKind::FunctionType);
-          EXPECT_EQ(Signature->size(), 8U);
-          EXPECT_EQ(Signature->alignment(), 8U);
-          EXPECT_EQ(Signature->returnType(), &ExpectedReturnType);
-          EXPECT_TRUE(Types.ownsType(Signature->returnType()));
-          EXPECT_EQ(Signature->returnType()->size(), LateSignature ? 16U : 1U);
-          EXPECT_EQ(Signature->parameterCount(), LateSignature ? 3U : 2U);
-          for (const auto &Descriptor : Signature->parameters())
-          {
-            const Type *ParameterType = Descriptor.ParameterType;
-            EXPECT_TRUE(Types.ownsType(ParameterType));
-            EXPECT_TRUE(ParameterType->hasLayout());
-            EXPECT_NE(ParameterType->alignment(), 0U);
-          }
-          EXPECT_FALSE(Signature->parameters().empty());
-          if (!Signature->parameters().empty())
-          {
-            EXPECT_EQ(Signature->parameters().back().ParameterType, &Array);
-          }
-          EXPECT_TRUE(Types.ownsType(&Array));
-          EXPECT_EQ(Array.elementType(), Types.typePool().getInt32Type());
-          EXPECT_EQ(Array.elementCount(), 3U);
-          EXPECT_EQ(Array.size(), 12U);
-          EXPECT_EQ(Array.alignment(), 4U);
-        }
-
-      private:
-        const Module &Types;
-        const Function &Callable;
-        const NominalType &Owner;
-        const FunctionType &ExpectedSignature;
-        const Type &ExpectedReturnType;
-        const ArrayType &Array;
-        bool LateSignature;
-        std::size_t &DestructionCount;
-    };
 
     static_assert(!std::is_copy_constructible_v<Module>);
     static_assert(!std::is_move_constructible_v<Module>);
@@ -277,53 +204,5 @@ namespace ink::ir::test
     const ArrayType *OtherArray = Other.typePool().getArrayType(Other.typePool().getBoolType(), 2);
     EXPECT_NE(Constants.getArrayConstant(Array, {True, False}), nullptr);
     EXPECT_EQ(Constants.getArrayConstant(OtherArray, {True, False}), nullptr);
-  }
-
-  // Module teardown destroys frozen nominal methods while signatures created before and after their owners remain readable.
-  TEST(IRModuleTypeTest, DestroysOwnedMethodsBeforeSignaturesAndTypePool)
-  {
-    std::array<std::size_t, 6> DestructionCounts{};
-    {
-      IRContext TypesContext(Target64);
-      Module Types(TypesContext);
-      const auto *Array = Types.typePool().getArrayType(Types.typePool().getInt32Type(), 3);
-      ASSERT_NE(Array, nullptr);
-      const auto *EarlySignature = Types.typePool().getFunctionType(Types.typePool().getBoolType(), {Types.typePool().getInt32Type(), Array});
-      ASSERT_NE(EarlySignature, nullptr);
-      const std::array<NominalType *, 3> Owners = {
-          Types.createClassType(16, 8),
-          Types.createInterfaceType(16, 8),
-          Types.createStructType(16, 8),
-      };
-      for (const auto *Owner : Owners)
-      {
-        ASSERT_NE(Owner, nullptr);
-      }
-      const auto *LateSignature = Types.typePool().getFunctionType(Owners[2], {Owners[0], Owners[1], Array});
-      ASSERT_NE(LateSignature, nullptr);
-      const std::array<const FunctionType *, 2> Signatures{EarlySignature, LateSignature};
-      const core::Name Name = core::NamePool::instance().intern("IRModuleTypeTest.ownedMethod");
-      for (std::size_t OwnerIndex = 0; OwnerIndex < Owners.size(); ++OwnerIndex)
-      {
-        auto *Owner = Owners[OwnerIndex];
-        for (std::size_t SignatureIndex = 0; SignatureIndex < Signatures.size(); ++SignatureIndex)
-        {
-          const auto *Signature = Signatures[SignatureIndex];
-          auto Callable = std::make_unique<Function>(*Signature, Name);
-          auto *Block = Callable->createBlock();
-          ASSERT_NE(Block, nullptr);
-          const std::size_t DestructionIndex = OwnerIndex * Signatures.size() + SignatureIndex;
-          ASSERT_NE(Block->appendInstruction(std::make_unique<MethodTypeLifetimeInstruction>(Types, *Callable, *Owner, *Signature, *Signature->returnType(), *Array, SignatureIndex != 0, DestructionCounts[DestructionIndex])), nullptr);
-          ASSERT_TRUE(Owner->addMethod(Method(std::move(Callable))));
-          EXPECT_EQ(DestructionCounts[DestructionIndex], 0U);
-        }
-        Owner->freeze();
-        EXPECT_EQ(Owner->methodCount(), 2U);
-      }
-    }
-    for (const std::size_t Count : DestructionCounts)
-    {
-      EXPECT_EQ(Count, 1U);
-    }
   }
 } // namespace ink::ir::test

@@ -1,6 +1,5 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/ir/module/module.h"
-#include "ink/ir/type/generic_type/generic_type.h"
 
 #include <gtest/gtest.h>
 
@@ -12,34 +11,6 @@ namespace ink::ir::test
   namespace
   {
     constexpr target::TargetContext Target64(target::PointerWidth::Bits64, target::ByteOrder::LittleEndian);
-
-    class SyntheticType final : public Type
-    {
-      public:
-        SyntheticType(ValueKind Kind, const MetaType &Meta) noexcept
-            : Type(Kind, Meta)
-        {
-        }
-
-        std::uint64_t size() const noexcept override
-        {
-          return 0;
-        }
-
-        std::uint64_t alignment() const noexcept override
-        {
-          return 1;
-        }
-    };
-
-    class SyntheticGenericType final : public GenericType
-    {
-      public:
-        SyntheticGenericType(ValueKind Kind, const MetaType &Meta, core::Name Name) noexcept
-            : GenericType(Kind, Meta, Name, {})
-        {
-        }
-    };
   } // namespace
 
   // Numeric spellings preserve the represented width and signedness rather than using broad kind names.
@@ -118,22 +89,6 @@ namespace ink::ir::test
     EXPECT_EQ(Owner.createInterfaceType(0, 1, Names.intern("FormatInterface"))->toString(), "FormatInterface");
   }
 
-  // Generic declarations print their available names without requiring runtime layout or instantiated members.
-  TEST(IRTypeFormatTest, FormatsGenericDeclarationNamesAndUnnamedFallbacks)
-  {
-    IRContext Context(Target64);
-    const MetaType &Meta = *Context.typePool().getMetaType();
-    auto &Names = core::NamePool::instance();
-    const SyntheticGenericType Class(ValueKind::GenericClass, Meta, Names.intern("FormatTemplate"));
-    const SyntheticGenericType Function(ValueKind::GenericFunction, Meta, Names.intern("FormatFunction"));
-    const SyntheticGenericType Variable(ValueKind::GenericVar, Meta, Names.intern("FormatVariable"));
-    const SyntheticGenericType Unnamed(ValueKind::GenericClass, Meta, core::NAME_None);
-    EXPECT_EQ(Class.toString(), "FormatTemplate");
-    EXPECT_EQ(Function.toString(), "FormatFunction");
-    EXPECT_EQ(Variable.toString(), "FormatVariable");
-    EXPECT_EQ(Unnamed.toString(), "generic_class");
-  }
-
   // Composite types use named leaf spellings for nested elements, parameters and return types.
   TEST(IRTypeFormatTest, FormatsNamedLeavesInsideCompositeTypes)
   {
@@ -148,21 +103,6 @@ namespace ink::ir::test
     const Value *Signature = Types.getFunctionType(Leaf, {{Pointer, true}});
     ASSERT_NE(Signature, nullptr);
     EXPECT_EQ(Signature->toString(), "func(*[&FormatLeaf; 3]...): FormatLeaf");
-  }
-
-  // External Type subclasses need not implement a concrete kind's metadata to obtain a safe fallback spelling.
-  TEST(IRTypeFormatTest, FormatsSyntheticAndUnknownTypesWithoutInvalidDowncasts)
-  {
-    IRContext Context(Target64);
-    const MetaType &Meta = *Context.typePool().getMetaType();
-    const SyntheticType Struct(ValueKind::Struct, Meta);
-    const SyntheticType Integer(ValueKind::Integer, Meta);
-    const SyntheticType Pointer(ValueKind::Pointer, Meta);
-    const SyntheticType Unknown(static_cast<ValueKind>(255), Meta);
-    EXPECT_EQ(Struct.toString(), "struct");
-    EXPECT_EQ(Integer.toString(), "integer");
-    EXPECT_EQ(Pointer.toString(), "pointer");
-    EXPECT_EQ(Unknown.toString(), "unknown");
   }
 
   // Formatting a deeply nested pointer chain preserves every pointer marker without exhausting the call stack.

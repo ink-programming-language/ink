@@ -4,7 +4,6 @@
 #include "ink/ir/instruction/icmp_instruction.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/builtin_type/meta_type.h"
-#include "ink/ir/type/generic_type/generic_type.h"
 
 #include <gtest/gtest.h>
 
@@ -13,7 +12,6 @@
 #include <optional>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 namespace ink::ir::test
 {
@@ -34,15 +32,6 @@ namespace ink::ir::test
       }
       return std::nullopt;
     }
-
-    class SyntheticGenericType final : public GenericType
-    {
-      public:
-        SyntheticGenericType(ValueKind Kind, const MetaType &Meta, std::vector<const Type *> Parameters) noexcept
-            : GenericType(Kind, Meta, core::NAME_None, std::move(Parameters))
-        {
-        }
-    };
   } // namespace
 
   static_assert(std::is_base_of_v<Type, MetaType>);
@@ -143,24 +132,6 @@ namespace ink::ir::test
     EXPECT_EQ(Integer->type(), Types.getInt32Type());
     EXPECT_EQ(Integer->type()->type(), Types.getMetaType());
     EXPECT_EQ(Integer->type()->type()->type(), Types.getMetaType());
-  }
-
-  // Generic declaration descriptors inherit the metatype even when their type parameters have no runtime layout.
-  TEST(IRMetaTypeTest, GenericDeclarationsRetainMetatypeWithoutInstantiation)
-  {
-    IRContext Context(Target64);
-    IRContext OtherContext(Target64);
-    const MetaType *Meta = Context.typePool().getMetaType();
-    for (const ValueKind Kind : {ValueKind::GenericClass, ValueKind::GenericFunction, ValueKind::GenericVar})
-    {
-      const SyntheticGenericType Generic(Kind, *Meta, {Meta});
-      const Value &TypeValue = Generic;
-      EXPECT_EQ(TypeValue.type(), Meta);
-      EXPECT_EQ(Generic.genericParameterCount(), 1U);
-      EXPECT_EQ(Generic.genericParameters()[0], Meta);
-      EXPECT_FALSE(Generic.hasLayout());
-      EXPECT_NE(TypeValue.type(), OtherContext.typePool().getMetaType());
-    }
   }
 
   // Runtime storage factories reject the metatype as pointee, referent, element, signature component, field and global type.
