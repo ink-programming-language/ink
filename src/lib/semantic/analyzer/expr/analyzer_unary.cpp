@@ -1,7 +1,6 @@
 #include "ink/semantic/analyzer/analyzer.h"
 
 #include "ink/frontend/parser/ast/unary_expr.h"
-#include "ink/ir/module/global_variable.h"
 #include "ink/ir/module/module.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/semantic/analyzer/analyzer_utils.h"
@@ -18,11 +17,11 @@ namespace ink::semantic
     {
       // TODO: Preserve untyped integer values through negation before materialization; signed-minimum literals such as -128 for i8 currently fail while typing their positive operand.
       Hints.IsCallCallee = false;
-      const ir::Value *Operand = analyzeExpr(State, *Node.operand(), Hints);
+      const ir::Value *Operand = emitValue(State, *Node.operand(), Hints);
       RETURN_IF(!Operand, nullptr);
       const ir::Type *OperandType = Operand->type();
-      UNSUPPORT_IF(State, ir::GlobalVariable::classof(Operand) || ir::Type::classof(Operand) || ir::Module::classof(Operand) || (!ir::IntegerType::classof(OperandType) && !ir::FloatType::classof(OperandType)), nullptr, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
-      Operand = Operand->isStorage() ? loadStorage(State, Node.operand()->getSourceRange(), *Operand) : requireRuntimeValue(Context, Node.operand()->getSourceRange(), Operand);
+      UNSUPPORT_IF(State, ir::Type::classof(Operand) || ir::Module::classof(Operand) || (!ir::IntegerType::classof(OperandType) && !ir::FloatType::classof(OperandType)), nullptr, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
+      Operand = requireRuntimeValue(Context, Node.operand()->getSourceRange(), Operand);
       RETURN_IF(!Operand, nullptr);
       const auto *Result = State.irBuilder().createNeg(*Operand);
       RETURN_REPORT_IF_FALSE(Context, Result, core::DiagnosticKind::SemanticConstructionFailed, nullptr, Node.getSourceRange());

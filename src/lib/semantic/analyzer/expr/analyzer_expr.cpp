@@ -15,14 +15,6 @@ namespace ink::semantic
     return Value->isStorage() ? loadStorage(State, Node.getSourceRange(), *Value) : Value;
   }
 
-  const ir::Value *Analyzer::emitPlace(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
-  {
-    const ir::Value *Value = analyzeExpr(State, Node, Hints);
-    RETURN_IF(!Value, nullptr);
-    RETURN_REPORT_IF_FALSE(State.semanticContext(), Value->isStorage(), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), "an addressable expression", ir::valueKindName(Value->kind()));
-    return Value;
-  }
-
   const ir::Value *Analyzer::analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
   {
     auto &Context = State.semanticContext();
@@ -75,7 +67,7 @@ namespace ink::semantic
       return requireType(Context, Node.getSourceRange(), Result);
     }
     RETURN_IF(!Storage && !requireRuntimeValue(Context, Node.getSourceRange(), Result), nullptr);
-    // Check the stored object's type before either emitter chooses whether to read it.
+    // Check the stored object's type before the consumer chooses whether to read it.
     const ir::Type *Type = Result->type();
     const bool Compatible = !Storage && ir::Constant::classof(Result) ? static_cast<const ir::Constant *>(Result)->canInitialize(ExpectedType) : Type == ExpectedType;
     RETURN_REPORT_IF_FALSE(Context, Compatible, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), ExpectedType->toString(), Type->toString());

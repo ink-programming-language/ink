@@ -475,8 +475,8 @@ namespace ink::semantic::test
     }
   }
 
-  // Calling storage or passing storage as an argument stays unsupported until explicit loads are available.
-  TEST_F(SemanticCallTest, ReportsUnsupportedStorageReads)
+  // Reading global storage as a callee or argument uses the shared unsupported-storage diagnostic.
+  TEST_F(SemanticCallTest, ReportsUnsupportedGlobalStorageReads)
   {
     auto &Types = Context.typePool();
     auto *CallableStorage = Output.createGlobalVariable(*Types.getFunctionType(Types.getVoidType()), name("CallableStorage"));
@@ -485,16 +485,16 @@ namespace ink::semantic::test
     ASSERT_NE(Stored, nullptr);
     ASSERT_EQ(NameResolver(Context).bind(name("CallableStorage"), *CallableStorage), BindResult::Inserted);
     ASSERT_EQ(NameResolver(Context).bind(name("Stored"), *Stored), BindResult::Inserted);
-    const std::pair<const char *, const char *> Cases[] = {
-        {"func main(): void { CallableStorage(); }", "loading a callable from variable storage"},
-        {"func consume(Value: i32): void {} func main(): void { consume(Stored); }", "loading call arguments from variable storage"},
+    const char *Cases[] = {
+        "func main(): void { CallableStorage(); }",
+        "func consume(Value: i32): void {} func main(): void { consume(Stored); }",
     };
-    for (const auto &[Source, Description] : Cases)
+    for (const char *Source : Cases)
     {
       SCOPED_TRACE(Source);
       auto Input = read(Source);
       ASSERT_TRUE(Input.succeeded());
-      EXPECT_DEATH(analyze(Input), std::string("internal compiler error\\[INK-S0012\\]: initial semantic analyzer does not support ") + Description);
+      EXPECT_DEATH(analyze(Input), "internal compiler error\\[INK-S0012\\]: initial semantic analyzer does not support variable storage reads");
     }
   }
 

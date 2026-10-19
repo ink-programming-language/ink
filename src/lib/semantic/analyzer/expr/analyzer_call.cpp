@@ -2,7 +2,6 @@
 
 #include "ink/frontend/parser/ast/call_expr.h"
 #include "ink/frontend/parser/ast/expr.h"
-#include "ink/ir/module/global_variable.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/structure_type/pointer_type.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
@@ -48,14 +47,12 @@ namespace ink::semantic
     // TODO: Lower module-level runtime calls into the module initialization function.
     UNSUPPORT_IF(State, !Block, nullptr, Node.getSourceRange(), "module-level calls");
     RETURN_REPORT_IF(Context, !Builder.insertFunction() || Block->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed, nullptr, Node.getSourceRange());
-    const ir::Value *Callee = analyzeExpr(State, *Node.callee(), {.IsCallCallee = true});
+    const ir::Value *Callee = emitValue(State, *Node.callee(), {.IsCallCallee = true});
     RETURN_IF(!Callee, nullptr);
     // TODO: Analyze type construction and explicit conversion calls separately from runtime function calls.
     UNSUPPORT_IF(State, ir::Type::classof(Callee), nullptr, Node.callee()->getSourceRange(), "type construction and conversion calls");
-    // TODO: Materialize a function value or function pointer from global storage before calling it.
-    UNSUPPORT_IF(State, ir::GlobalVariable::classof(Callee), nullptr, Node.callee()->getSourceRange(), "loading a callable from variable storage");
     RETURN_REPORT_IF(Context, ir::Module::classof(Callee), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.callee()->getSourceRange(), "a callable function or function pointer", ir::valueKindName(Callee->kind()));
-    Callee = Callee->isStorage() ? loadStorage(State, Node.callee()->getSourceRange(), *Callee) : requireRuntimeValue(Context, Node.callee()->getSourceRange(), Callee);
+    Callee = requireRuntimeValue(Context, Node.callee()->getSourceRange(), Callee);
     RETURN_IF(!Callee, nullptr);
     const ir::Type *CalleeType = Callee->type();
     const ir::Type *SignatureType = ir::PointerType::classof(CalleeType) ? static_cast<const ir::PointerType *>(CalleeType)->pointeeType() : CalleeType;
@@ -75,11 +72,7 @@ namespace ink::semantic
     {
       const auto &Argument = Node.arguments()[Index];
       const ir::Type *ExpectedType = Signature.parameters()[Index].ParameterType;
-      const ir::Value *Value = analyzeExpr(State, *Argument.value(), {.ExpectedType = ExpectedType});
-      RETURN_IF(!Value, nullptr);
-      // TODO: Materialize global argument storage reads before constructing the call operands.
-      UNSUPPORT_IF(State, ir::GlobalVariable::classof(Value), nullptr, Argument.range(), "loading call arguments from variable storage");
-      Value = Value->isStorage() ? loadStorage(State, Argument.range(), *Value) : requireRuntimeValue(Context, Argument.range(), Value);
+      const ir::Value *Value = requireRuntimeValue(Context, Argument.range(), emitValue(State, *Argument.value(), {.ExpectedType = ExpectedType}));
       RETURN_IF(!Value, nullptr);
       Arguments.emplace_back(*Value);
     }

@@ -81,12 +81,6 @@ namespace ink::semantic
       // Failure returns nullptr after a diagnostic; unimplemented expressions, nesting and comptime use the existing ICE policy.
       const ir::Value *emitValue(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
 
-      // Resolves an addressable expression with the same preconditions and hints as emitValue().
-      // Returns the existing storage value without reading its contents or requiring initialization.
-      // Ordinary values and type/module descriptors report SemanticTypeMismatch; failure returns nullptr.
-      // Existing global storage descriptors are preserved, although runtime global reads remain unsupported.
-      const ir::Value *emitPlace(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
-
     private:
       bool analyzeStmt(AnalyzerState &State, const frontend::parser::Stmt &Stmt);
       bool analyzeDecl(AnalyzerState &State, const frontend::parser::Decl &Declaration);
