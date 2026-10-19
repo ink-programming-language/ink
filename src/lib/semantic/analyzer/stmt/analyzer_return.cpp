@@ -24,9 +24,9 @@ namespace ink::semantic
       return true;
     }
     RETURN_REPORT_IF(Context, ReturnsVoid, core::DiagnosticKind::SemanticTypeMismatch, false, Node.value()->getSourceRange(), "no return value", "a return value");
-    const ExprResult Value = toRValue(State, Node.value()->getSourceRange(), analyzeExpr(State, *Node.value(), ExprHints{ReturnType}));
+    const ir::Value *Value = requireRuntimeValue(Context, Node.value()->getSourceRange(), emitValue(State, *Node.value(), ExprHints{ReturnType}));
     RETURN_IF(!Value, false);
-    RETURN_REPORT_IF_FALSE(Context, Builder.createReturn(*Value.Value), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
+    RETURN_REPORT_IF_FALSE(Context, Builder.createReturn(*Value), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
     return true;
   }
 } // namespace ink::semantic

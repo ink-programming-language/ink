@@ -36,20 +36,18 @@ namespace ink::semantic
     return &Result;
   }
 
-  BindResult ScopeStore::bind(Scope &Destination, core::Name Name, ir::Value *Target, bool Overload, std::optional<VariableBindingInfo> VariableInfo)
+  BindResult ScopeStore::bind(Scope &Destination, core::Name Name, ir::Value *Target, bool Overload)
   {
     RETURN_IF(!Name.valid(), BindResult::InvalidName);
-    RETURN_IF(Overload && VariableInfo, BindResult::Conflict);
     const auto Found = Destination.Bindings.find(Name);
     if (Found == Destination.Bindings.end())
     {
-      Destination.Bindings.emplace(Name, Binding(Name, Target, Overload, VariableInfo));
+      Destination.Bindings.emplace(Name, Binding(Name, Target, Overload));
       return BindResult::Inserted;
     }
 
     Binding &Existing = Found->second;
-    RETURN_IF(Existing.OverloadSet != Overload || Existing.VariableInfo.has_value() != VariableInfo.has_value(), BindResult::Conflict);
-    RETURN_IF(VariableInfo && (Existing.VariableInfo->DeclaredType != VariableInfo->DeclaredType || Existing.VariableInfo->Mutable != VariableInfo->Mutable), BindResult::Conflict);
+    RETURN_IF(Existing.OverloadSet != Overload, BindResult::Conflict);
     RETURN_IF(std::find(Existing.Targets.begin(), Existing.Targets.end(), Target) != Existing.Targets.end(), BindResult::AlreadyBound);
     RETURN_IF(!Overload, BindResult::Conflict);
     Existing.Targets.push_back(Target);

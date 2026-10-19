@@ -2,6 +2,7 @@
 #define INK_IR_BUILDER_IR_BUILDER_H
 
 #include "ink/ir/instruction/alloca_instruction.h"
+#include "ink/ir/instruction/address_of_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/conditional_branch_instruction.h"
@@ -23,7 +24,7 @@ namespace ink::ir
   // Creation requires an insertion block with no terminator; invalid insertion state is asserted with check().
   // Creation returns a block-owned instruction, or nullptr for invalid types or operands without changing the block or insertion point.
   // Checks local types and operand ownership, but not dominance or whole-function control flow.
-  // Operands may be local constants, current-function parameters/instructions or functions; globals require explicit storage operations.
+  // Ordinary operands may be local constants, current-function parameters/instructions or functions; storage requires explicit load/address operations.
   // Unit parameters and unit-producing calls are values; terminators and stores cannot be operands.
   class IRBuilder final
   {
@@ -62,12 +63,18 @@ namespace ink::ir
       // Requires an integer or float and a valid insertion point; constant operands also produce a NegInstruction.
       // Unsupported operands return nullptr without appending; invalid insertion state is asserted with check().
       [[nodiscard]] NegInstruction *createNeg(const Value &Operand);
-      // Allocates one non-void object with a runtime layout; zero-sized aggregates are supported.
-      [[nodiscard]] AllocaInstruction *createAlloca(const Type &AllocatedType);
-      // Memory addresses must be usable, non-opaque pointers with the exact loaded or stored type.
+      // Allocates one non-void object with a runtime layout; zero-sized aggregates are supported. The result is storage of AllocatedType.
+      [[nodiscard]] AllocaInstruction *createAlloca(const Type &AllocatedType, bool Mutable = true, bool Initialized = false);
+      // Requires storage; the resulting pointer is an ordinary value and preserves the stored object's type as its pointee.
+      [[nodiscard]] AddressOfInstruction *createAddressOf(const Value &Storage);
+      // Memory operands are storage of the exact object type, or usable non-opaque pointers with that pointee type.
       // Null literals can initialize pointer slots, but cannot be used as untyped memory addresses.
       [[nodiscard]] LoadInstruction *createLoad(const Type &LoadedType, const Value &Pointer);
+      // Ordinary stores reject immutable storage and do not change its declaration-initialization marker.
       [[nodiscard]] StoreInstruction *createStore(const Value &StoredValue, const Value &Pointer);
+      // Initializes a current-function local once, including immutable locals, and records declaration initialization.
+      // This marker does not prove initialization on any control-flow path.
+      [[nodiscard]] StoreInstruction *createInitialize(const Value &Initializer, AllocaInstruction &Storage);
       // Infers the result pointer type from the source type and index path. Empty indices preserve the source type.
       // The first index steps over source objects; later indices traverse arrays or nominal fields.
       // Field indices must be nonnegative integer constants in range. Array indices need not be constant or in range.
@@ -85,6 +92,7 @@ namespace ink::ir
     private:
       bool canAppend() const noexcept;
       bool validOperand(const Value &Operand) const noexcept;
+      bool validStorage(const Value &Storage) const noexcept;
       bool canUseAs(const Value &Operand, const Type &ExpectedType) const noexcept;
       const Type *memoryPointeeType(const Value &Pointer) const noexcept;
       bool validTarget(const BasicBlock &Target) const noexcept;

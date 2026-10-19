@@ -78,7 +78,7 @@ namespace ink::ir
   bool IRBuilder::validOperand(const Value &Operand) const noexcept
   {
     const Type *OperandType = Operand.type();
-    RETURN_IF(!insertFunction() || !Context.containsType(OperandType) || !OperandType->hasLayout(), false);
+    RETURN_IF(Operand.isStorage() || !insertFunction() || !Context.containsType(OperandType) || !OperandType->hasLayout(), false);
     RETURN_IF(Constant::classof(&Operand), Context.constantPool().owns(static_cast<const Constant *>(&Operand)));
     if (Parameter::classof(&Operand))
     {
@@ -96,6 +96,19 @@ namespace ink::ir
     return Function::classof(&Operand);
   }
 
+  bool IRBuilder::validStorage(const Value &Storage) const noexcept
+  {
+    const Type *ObjectType = Storage.type();
+    RETURN_IF(!Storage.isStorage() || !insertFunction() || !Context.containsType(ObjectType) || !ObjectType->hasLayout(), false);
+    if (AllocaInstruction::classof(&Storage))
+    {
+      const auto &Allocation = static_cast<const AllocaInstruction &>(Storage);
+      const BasicBlock *Parent = Allocation.parentBlock();
+      return Parent && Parent->function() == insertFunction() && !VoidType::classof(ObjectType);
+    }
+    return GlobalVariable::classof(&Storage);
+  }
+
   bool IRBuilder::canUseAs(const Value &Operand, const Type &ExpectedType) const noexcept
   {
     RETURN_IF(!Context.containsType(&ExpectedType) || !validOperand(Operand), false);
@@ -110,6 +123,7 @@ namespace ink::ir
 
   const Type *IRBuilder::memoryPointeeType(const Value &Pointer) const noexcept
   {
+    RETURN_IF(Pointer.isStorage(), validStorage(Pointer) ? Pointer.type() : nullptr);
     RETURN_IF(!validOperand(Pointer) || !PointerType::classof(Pointer.type()), nullptr);
     const auto &PointerValueType = static_cast<const PointerType &>(*Pointer.type());
     const Type *PointeeType = PointerValueType.pointeeType();
@@ -167,13 +181,20 @@ namespace ink::ir
     return append<NegInstruction>(Operand);
   }
 
-  AllocaInstruction *IRBuilder::createAlloca(const Type &AllocatedType)
+  AllocaInstruction *IRBuilder::createAlloca(const Type &AllocatedType, bool Mutable, bool Initialized)
   {
     check(canAppend());
     RETURN_IF(!Context.containsType(&AllocatedType) || !AllocatedType.hasLayout() || VoidType::classof(&AllocatedType), nullptr);
-    const PointerType *ResultType = typePool().getPointerType(&AllocatedType);
+    return append<AllocaInstruction>(AllocatedType, Mutable, Initialized);
+  }
+
+  AddressOfInstruction *IRBuilder::createAddressOf(const Value &Storage)
+  {
+    check(canAppend());
+    RETURN_IF(!validStorage(Storage), nullptr);
+    const PointerType *ResultType = typePool().getPointerType(Storage.type());
     RETURN_IF_NULL(ResultType, nullptr);
-    return append<AllocaInstruction>(*ResultType, AllocatedType);
+    return append<AddressOfInstruction>(*ResultType, Storage);
   }
 
   LoadInstruction *IRBuilder::createLoad(const Type &LoadedType, const Value &Pointer)
@@ -186,9 +207,19 @@ namespace ink::ir
   StoreInstruction *IRBuilder::createStore(const Value &StoredValue, const Value &Pointer)
   {
     check(canAppend());
+    RETURN_IF(Pointer.isStorage() && !Pointer.isMutable(), nullptr);
     const Type *StoredType = memoryPointeeType(Pointer);
     RETURN_IF(!StoredType || !canUseAs(StoredValue, *StoredType), nullptr);
     return append<StoreInstruction>(*Context.typePool().getVoidType(), StoredValue, Pointer);
+  }
+
+  StoreInstruction *IRBuilder::createInitialize(const Value &Initializer, AllocaInstruction &Storage)
+  {
+    check(canAppend());
+    RETURN_IF(!validStorage(Storage) || Storage.isInitialized() || !canUseAs(Initializer, *Storage.type()), nullptr);
+    StoreInstruction *Initialization = append<StoreInstruction>(*Context.typePool().getVoidType(), Initializer, Storage);
+    Storage.Initialized = true;
+    return Initialization;
   }
 
   GetElementPtrInstruction *IRBuilder::createGetElementPtr(const Type &SourceElementType, const Value &Pointer, std::vector<const Value *> Indices, bool InBounds)

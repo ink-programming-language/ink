@@ -4,7 +4,6 @@
 #include "ink/core/diagnostic/diagnostic.h"
 #include "ink/core/source/source_range.h"
 #include "ink/core/support/return_macros.h"
-#include "ink/semantic/analyzer/expr_result.h"
 
 #include <string_view>
 
@@ -23,12 +22,11 @@ namespace ink::semantic
 
   // Requires a type registered in Context's IRContext; reports against Range in the currently selected source.
   // Returns a borrowed type, or nullptr on failure; a null Target propagates without another diagnostic.
-  // Storage objects are non-type values and receive their own diagnostic.
-  const ir::Type *requireType(SemanticContext &Context, core::SourceRange Range, ExprResult Target);
+  const ir::Type *requireType(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target);
 
-  // Validates a runtime value or storage object without loading storage, preserving its identity.
-  // Type/module descriptors are semantic results but cannot be consumed as runtime operands.
-  const ir::Value *requireRuntimeValue(SemanticContext &Context, core::SourceRange Range, ExprResult Target);
+  // Validates an emitted runtime value, preserving its identity.
+  // Storage and type/module descriptors are semantic results but cannot be consumed as runtime operands.
+  const ir::Value *requireRuntimeValue(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target);
 } // namespace ink::semantic
 
 // Evaluates Value once; report arguments start with the source range and are evaluated only when Value is false.

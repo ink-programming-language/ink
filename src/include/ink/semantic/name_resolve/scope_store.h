@@ -21,7 +21,7 @@ namespace ink::semantic
   };
 
   // Owns every scope and binding; resolvers and saved scope references must die first.
-  // Borrowed targets and variable declared types must remain alive while registered; targets can be explicitly removed before destruction.
+  // Borrowed targets must remain alive while registered; targets can be explicitly removed before destruction.
   // Target context compatibility and declaration/signature validation belong to the analyzer.
   // Access requires external synchronization, including when resolvers have independent cursors.
   class ScopeStore final
@@ -58,7 +58,7 @@ namespace ink::semantic
       friend class NameResolver;
 
       Scope &appendScope(Scope &Parent, std::optional<ir::Value *> Owner);
-      BindResult bind(Scope &Destination, core::Name Name, ir::Value *Target, bool Overload, std::optional<VariableBindingInfo> VariableInfo = std::nullopt);
+      BindResult bind(Scope &Destination, core::Name Name, ir::Value *Target, bool Overload);
 
       Scope Root;
       std::vector<std::unique_ptr<Scope>> Scopes;

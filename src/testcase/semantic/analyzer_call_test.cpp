@@ -535,7 +535,7 @@ namespace ink::semantic::test
       AnalyzerState State(Context, Input, Output);
       ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
       Context.setSource(Input.Unit->input().lexedFile().sourceId());
-      EXPECT_DEATH(Analysis.analyzeExpr(State, *Node), std::string("internal compiler error\\[INK-S0061\\]: invalid AST: ") + Entry.Description);
+      EXPECT_DEATH(Analysis.emitValue(State, *Node), std::string("internal compiler error\\[INK-S0061\\]: invalid AST: ") + Entry.Description);
       EXPECT_EQ(Block->instructionCount(), 0U);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
     }
@@ -558,7 +558,7 @@ namespace ink::semantic::test
     ASSERT_NE(State.irBuilder().createReturn(), nullptr);
     ASSERT_EQ(State.nameResolver().bind(name("Target"), *Target), BindResult::Inserted);
     Context.setSource(Input.Unit->input().lexedFile().sourceId());
-    EXPECT_DEATH(Analysis.analyzeExpr(State, callSyntax(Input)), "internal compiler error\\[INK-S0013\\]");
+    EXPECT_DEATH(Analysis.emitValue(State, callSyntax(Input)), "internal compiler error\\[INK-S0013\\]");
     EXPECT_EQ(Block->instructionCount(), 1U);
   }
 } // namespace ink::semantic::test

@@ -86,7 +86,7 @@ namespace ink::ir
       }
 
       // Rejects types outside ownsType() or without runtime layout. Appending also rejects initializers outside the borrowed context's constant pool.
-      GlobalVariable *createGlobalVariable(const Type &VariableType, core::Name VariableName = core::NAME_None);
+      GlobalVariable *createGlobalVariable(const Type &VariableType, core::Name VariableName = core::NAME_None, bool Mutable = true);
       // Takes ownership by value; invalid input leaves module contents unchanged.
       GlobalVariable *appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable);
 

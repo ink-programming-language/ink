@@ -10,7 +10,7 @@ namespace ink::ir
   class GlobalVariable final : public Value
   {
     public:
-      explicit GlobalVariable(const Type &VariableType, core::Name Name = core::NAME_None) noexcept;
+      explicit GlobalVariable(const Type &VariableType, core::Name Name = core::NAME_None, bool Mutable = true) noexcept;
 
       GlobalVariable(const GlobalVariable &) = delete;
       GlobalVariable &operator=(const GlobalVariable &) = delete;
@@ -19,6 +19,9 @@ namespace ink::ir
 
       // Describes the declared storage type; querying it does not load the variable or produce its address.
       const Type *type() const noexcept override;
+      bool isStorage() const noexcept override;
+      bool isMutable() const noexcept override;
+      bool isInitialized() const noexcept override;
       core::Name name() const noexcept;
       bool hasName() const noexcept;
       void setName(core::Name NewName) noexcept;
@@ -35,6 +38,7 @@ namespace ink::ir
       const Type *VariableType = nullptr;
       core::Name Name = core::NAME_None;
       const Constant *Initializer = nullptr;
+      bool Mutable = true;
   };
 } // namespace ink::ir
 

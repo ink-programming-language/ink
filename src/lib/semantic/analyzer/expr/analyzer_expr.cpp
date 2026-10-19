@@ -8,17 +8,32 @@
 
 namespace ink::semantic
 {
-  ExprResult Analyzer::analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
+  const ir::Value *Analyzer::emitValue(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
+  {
+    const ir::Value *Value = analyzeExpr(State, Node, Hints);
+    RETURN_IF(!Value, nullptr);
+    return Value->isStorage() ? loadStorage(State, Node.getSourceRange(), *Value) : Value;
+  }
+
+  const ir::Value *Analyzer::emitPlace(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
+  {
+    const ir::Value *Value = analyzeExpr(State, Node, Hints);
+    RETURN_IF(!Value, nullptr);
+    RETURN_REPORT_IF_FALSE(State.semanticContext(), Value->isStorage(), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), "an addressable expression", ir::valueKindName(Value->kind()));
+    return Value;
+  }
+
+  const ir::Value *Analyzer::analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
   {
     auto &Context = State.semanticContext();
-    CHECK_RECURSION_DEPTH(State, Node.getSourceRange(), ExprResult{});
+    CHECK_RECURSION_DEPTH(State, Node.getSourceRange(), nullptr);
     BlockDepthGuard DepthGuard(State.recursionDepth());
-    UNSUPPORT_IF(State, Node.isComptime(), ExprResult{}, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
+    UNSUPPORT_IF(State, Node.isComptime(), nullptr, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
     const ir::Type *ExpectedType = Hints.ExpectedType;
     CHECK_VALID_TYPE(Context, ExpectedType, Node.getSourceRange());
     CHECK_VALID_TYPE(Context, Hints.DefaultIntegerLiteralType, Node.getSourceRange());
 
-    ExprResult Result;
+    const ir::Value *Result = nullptr;
     using namespace frontend::parser;
     switch (Node.getKind())
     {
@@ -47,17 +62,23 @@ namespace ink::semantic
         Result = analyzeFunctionTypeExpr(State, static_cast<const FunctionTypeExpr &>(Node));
         break;
       default:
-        RETURN_REPORT_IF(Context, categoryOf(Node.getKind()) != ASTCategory::Expr, core::DiagnosticKind::SemanticInvalidAST, ExprResult{}, Node.getSourceRange(), "expression node kind must belong to the expression AST category");
+        RETURN_REPORT_IF(Context, categoryOf(Node.getKind()) != ASTCategory::Expr, core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "expression node kind must belong to the expression AST category");
         // TODO: Restore generic applications, remaining operators and type-valued compile-time evaluation.
         reportUnsupported(State, Node);
-        return {};
+        return nullptr;
     }
     RETURN_IF(!Result || !ExpectedType, Result);
-    RETURN_IF(ir::MetaType::classof(ExpectedType), ExprResult::fromValue(requireType(Context, Node.getSourceRange(), Result)));
-    RETURN_IF(!requireRuntimeValue(Context, Node.getSourceRange(), Result), ExprResult{});
-    // Contextual typing uses the expression's value type without converting an lvalue to a runtime load.
-    const bool Compatible = Result.Kind == ExprResultKind::RValue && ir::Constant::classof(Result.Value) ? static_cast<const ir::Constant *>(Result.Value)->canInitialize(ExpectedType) : Result.Type == ExpectedType;
-    RETURN_REPORT_IF_FALSE(Context, Compatible, core::DiagnosticKind::SemanticTypeMismatch, ExprResult{}, Node.getSourceRange(), ExpectedType->toString(), Result.Type->toString());
+    const bool Storage = Result->isStorage();
+    if (ir::MetaType::classof(ExpectedType))
+    {
+      RETURN_REPORT_IF(Context, Storage, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), "a type", "variable storage");
+      return requireType(Context, Node.getSourceRange(), Result);
+    }
+    RETURN_IF(!Storage && !requireRuntimeValue(Context, Node.getSourceRange(), Result), nullptr);
+    // Check the stored object's type before either emitter chooses whether to read it.
+    const ir::Type *Type = Result->type();
+    const bool Compatible = !Storage && ir::Constant::classof(Result) ? static_cast<const ir::Constant *>(Result)->canInitialize(ExpectedType) : Type == ExpectedType;
+    RETURN_REPORT_IF_FALSE(Context, Compatible, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), ExpectedType->toString(), Type->toString());
     return Result;
   }
 } // namespace ink::semantic

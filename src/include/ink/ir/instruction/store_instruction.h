@@ -7,7 +7,7 @@ namespace ink::ir
 {
   class VoidType;
 
-  // Writes a value to an address with a known pointee type and produces no operand value.
+  // Writes a value to storage or an address with a known pointee type and produces no operand value.
   // The void result type and both operands are borrowed and must outlive this instruction.
   class StoreInstruction final : public Instruction
   {

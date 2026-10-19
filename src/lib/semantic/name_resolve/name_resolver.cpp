@@ -59,11 +59,6 @@ namespace ink::semantic
     return Store.bind(*CurrentScope, Name, &Target, false);
   }
 
-  NameResolver::BindResult NameResolver::bindVariable(core::Name Name, ir::Value &Storage, const ir::Type &DeclaredType, bool Mutable)
-  {
-    return Store.bind(*CurrentScope, Name, &Storage, false, VariableBindingInfo{&DeclaredType, Mutable});
-  }
-
   NameResolver::BindResult NameResolver::bindOverload(core::Name Name, ir::Function &Target)
   {
     return Store.bind(*CurrentScope, Name, &Target, true);

@@ -5,7 +5,6 @@
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include <cstddef>
-#include <unordered_map>
 #include <utility>
 
 namespace ink::frontend::parser
@@ -22,12 +21,6 @@ namespace ink::ir
 namespace ink::semantic
 {
   class SemanticContext;
-
-  enum class InitializationState
-  {
-    Uninitialized,
-    Initialized,
-  };
 
   // Owns traversal state and a builder for one analyze call; Context, Input and Output must outlive it.
   class AnalyzerState final
@@ -101,8 +94,6 @@ namespace ink::semantic
       NameResolver Resolver;
       // Borrows Context and any selected block in Output; owns no IR.
       ir::IRBuilder Builder;
-      // Only flow state belongs to this traversal; declaration type and mutability live in stable scope bindings.
-      std::unordered_map<const Binding *, InitializationState> InitializationStates;
       Mode AnalysisMode = Mode::FullAnalysis;
       std::size_t RecursionDepthLimit;
       std::size_t RecursionDepth = 0;

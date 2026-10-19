@@ -8,23 +8,19 @@
 
 namespace ink::semantic
 {
-  ExprResult Analyzer::toRValue(AnalyzerState &State, core::SourceRange Range, ExprResult Result)
+  const ir::Value *Analyzer::loadStorage(AnalyzerState &State, core::SourceRange Range, const ir::Value &Storage)
   {
     auto &Context = State.semanticContext();
-    RETURN_IF(!Result || !requireRuntimeValue(Context, Range, Result), ExprResult{});
-    RETURN_IF(Result.Kind == ExprResultKind::RValue, Result);
-    RETURN_REPORT_IF_FALSE(Context, Result.Kind == ExprResultKind::LValue, core::DiagnosticKind::SemanticConstructionFailed, ExprResult{}, Range);
     // TODO: Lower explicit global storage reads through the module's address representation.
-    UNSUPPORT_IF(State, ir::GlobalVariable::classof(Result.Value), ExprResult{}, Range, "variable storage reads");
-    if (Result.Variable)
-    {
-      const auto Initialized = State.InitializationStates.find(Result.Variable);
-      RETURN_REPORT_IF(Context, Initialized == State.InitializationStates.end() || Initialized->second != InitializationState::Initialized, core::DiagnosticKind::SemanticUninitializedRead, ExprResult{}, Range, core::NamePool::instance().text(Result.Variable->name()));
-    }
+    UNSUPPORT_IF(State, ir::GlobalVariable::classof(&Storage), nullptr, Range, "variable storage reads");
+    const ir::Type *Type = Storage.type();
+    RETURN_REPORT_IF(Context, !Storage.isStorage() || !Context.irContext().containsType(Type) || !Type->hasLayout(), core::DiagnosticKind::SemanticConstructionFailed, nullptr, Range);
+    const core::Name Name = ir::AllocaInstruction::classof(&Storage) ? static_cast<const ir::AllocaInstruction &>(Storage).name() : core::NAME_None;
+    RETURN_REPORT_IF_FALSE(Context, Storage.isInitialized(), core::DiagnosticKind::SemanticUninitializedRead, nullptr, Range, core::NamePool::instance().text(Name));
     auto &Builder = State.irBuilder();
-    RETURN_REPORT_IF(Context, !Context.irContext().containsType(Result.Type) || !Builder.insertBlock() || Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed, ExprResult{}, Range);
-    const ir::Value *Loaded = Builder.createLoad(*Result.Type, *Result.Value);
-    RETURN_REPORT_IF_FALSE(Context, Loaded, core::DiagnosticKind::SemanticConstructionFailed, ExprResult{}, Range);
-    return ExprResult::fromValue(Loaded);
+    RETURN_REPORT_IF(Context, !Builder.insertBlock() || Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed, nullptr, Range);
+    const ir::Value *Loaded = Builder.createLoad(*Type, Storage);
+    RETURN_REPORT_IF_FALSE(Context, Loaded, core::DiagnosticKind::SemanticConstructionFailed, nullptr, Range);
+    return Loaded;
   }
 } // namespace ink::semantic

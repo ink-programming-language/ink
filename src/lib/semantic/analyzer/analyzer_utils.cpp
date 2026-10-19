@@ -1,6 +1,6 @@
 #include "ink/semantic/analyzer/analyzer_utils.h"
 
-#include "ink/ir/module/global_variable.h"
+#include "ink/ir/module/module.h"
 #include "ink/semantic/context.h"
 
 #include <string>
@@ -63,21 +63,21 @@ namespace ink::semantic
     return nullptr;
   }
 
-  const ir::Type *requireType(SemanticContext &Context, core::SourceRange Range, ExprResult Target)
+  const ir::Type *requireType(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target)
   {
     RETURN_IF(!Target, nullptr);
-    RETURN_REPORT_IF(Context, Target.Kind != ExprResultKind::Type || !ir::Type::classof(Target.Value), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Range, "a type", Target.Kind == ExprResultKind::LValue ? "variable storage" : ir::valueKindName(Target.Value->kind()));
-    const auto *Type = static_cast<const ir::Type *>(Target.Value);
+    RETURN_REPORT_IF_FALSE(Context, ir::Type::classof(Target), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Range, "a type", ir::valueKindName(Target->kind()));
+    const auto *Type = static_cast<const ir::Type *>(Target);
     RETURN_REPORT_IF_FALSE(Context, Context.irContext().containsType(Type), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Range, "a type in the current IR context", "a foreign or unregistered type");
     return Type;
   }
 
-  const ir::Value *requireRuntimeValue(SemanticContext &Context, core::SourceRange Range, ExprResult Target)
+  const ir::Value *requireRuntimeValue(SemanticContext &Context, core::SourceRange Range, const ir::Value *Target)
   {
     RETURN_IF(!Target, nullptr);
-    const ir::Type *Type = Target.Type;
-    const bool RuntimeCategory = Target.Kind == ExprResultKind::RValue || Target.Kind == ExprResultKind::LValue;
-    RETURN_REPORT_IF(Context, !RuntimeCategory || !Context.irContext().containsType(Type) || (!Type->hasLayout() && !ir::NullPointerConstant::classof(Target.Value)), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Range, "a runtime value or variable storage", Target.Kind == ExprResultKind::Type ? static_cast<const ir::Type *>(Target.Value)->toString() : std::string(ir::valueKindName(Target.Value->kind())));
-    return Target.Value;
+    const ir::Type *Type = Target->type();
+    const bool IsDescriptor = ir::Type::classof(Target) || ir::Module::classof(Target);
+    RETURN_REPORT_IF(Context, IsDescriptor || Target->isStorage() || !Context.irContext().containsType(Type) || (!Type->hasLayout() && !ir::NullPointerConstant::classof(Target)), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Range, "a runtime value", ir::Type::classof(Target) ? static_cast<const ir::Type *>(Target)->toString() : std::string(ir::valueKindName(Target->kind())));
+    return Target;
   }
 } // namespace ink::semantic

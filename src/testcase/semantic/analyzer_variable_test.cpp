@@ -152,10 +152,16 @@ namespace ink::semantic::test
       ASSERT_EQ(Stores.size(), 1U);
       ASSERT_EQ(Loads.size(), 1U);
       EXPECT_EQ(Allocations[0]->allocatedType(), Entry.Type);
+      EXPECT_EQ(Allocations[0]->type(), Entry.Type);
+      EXPECT_TRUE(Allocations[0]->isStorage());
+      EXPECT_TRUE(Allocations[0]->isMutable());
+      EXPECT_TRUE(Allocations[0]->isInitialized());
       EXPECT_EQ(Stores[0]->pointer(), Allocations[0]);
       EXPECT_EQ(Stores[0]->storedValue()->type(), Entry.Type);
       EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
       EXPECT_EQ(Loads[0]->type(), Entry.Type);
+      EXPECT_FALSE(Loads[0]->isStorage());
+      EXPECT_FALSE(Loads[0]->isMutable());
       ASSERT_NE(returned(*Function), nullptr);
       EXPECT_EQ(returned(*Function)->returnedValue(), Loads[0]);
     }
@@ -295,7 +301,12 @@ namespace ink::semantic::test
     const auto Calls = instructions<ir::CallInstruction>(*Function);
     const auto Stores = instructions<ir::StoreInstruction>(*Function);
     const auto Loads = instructions<ir::LoadInstruction>(*Function);
-    ASSERT_EQ(instructions<ir::AllocaInstruction>(*Function).size(), 1U);
+    const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
+    ASSERT_EQ(Allocations.size(), 1U);
+    EXPECT_EQ(Allocations[0]->type(), Context.typePool().getInt32Type());
+    EXPECT_TRUE(Allocations[0]->isStorage());
+    EXPECT_FALSE(Allocations[0]->isMutable());
+    EXPECT_TRUE(Allocations[0]->isInitialized());
     ASSERT_EQ(Calls.size(), 2U);
     ASSERT_EQ(Stores.size(), 1U);
     ASSERT_EQ(Loads.size(), 2U);
@@ -329,8 +340,15 @@ namespace ink::semantic::test
     const auto *PointerType = Context.typePool().getPointerType(Context.typePool().getInt32Type());
     EXPECT_EQ(NullAllocations[0]->allocatedType(), PointerType);
     EXPECT_EQ(NullAllocations[1]->allocatedType(), PointerType);
+    EXPECT_EQ(NullAllocations[0]->type(), PointerType);
+    EXPECT_EQ(NullAllocations[1]->type(), PointerType);
+    EXPECT_TRUE(NullAllocations[0]->isStorage());
+    EXPECT_TRUE(NullAllocations[1]->isStorage());
+    EXPECT_FALSE(NullAllocations[0]->isMutable());
+    EXPECT_TRUE(NullAllocations[1]->isMutable());
     EXPECT_TRUE(ir::NullPointerConstant::classof(NullStores[0]->storedValue()));
     EXPECT_EQ(NullLoads[0]->type(), PointerType);
+    EXPECT_FALSE(NullLoads[0]->isStorage());
     EXPECT_EQ(NullStores[1]->storedValue(), NullLoads[0]);
     EXPECT_EQ(NullLoads[1]->type(), PointerType);
     const auto OpaqueStores = instructions<ir::StoreInstruction>(*OpaqueFunction);
@@ -377,7 +395,12 @@ namespace ink::semantic::test
     ASSERT_TRUE(analyze(Input));
     const auto *Function = function("unused");
     ASSERT_NE(Function, nullptr);
-    ASSERT_EQ(instructions<ir::AllocaInstruction>(*Function).size(), 1U);
+    const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
+    ASSERT_EQ(Allocations.size(), 1U);
+    EXPECT_EQ(Allocations[0]->type(), Context.typePool().getInt32Type());
+    EXPECT_TRUE(Allocations[0]->isStorage());
+    EXPECT_TRUE(Allocations[0]->isMutable());
+    EXPECT_FALSE(Allocations[0]->isInitialized());
     EXPECT_TRUE(instructions<ir::StoreInstruction>(*Function).empty());
     EXPECT_TRUE(instructions<ir::LoadInstruction>(*Function).empty());
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -470,6 +493,35 @@ namespace ink::semantic::test
     ASSERT_TRUE(ir::LoadInstruction::classof(returned(*Function)->returnedValue()));
     EXPECT_EQ(static_cast<const ir::LoadInstruction *>(returned(*Function)->returnedValue())->pointer(), Allocations[0]);
     EXPECT_EQ(NameResolver(Context).lookupMember(Output, name("Value")), nullptr);
+  }
+
+  // Shadowed variables retain independent initialization, and leaving the inner scope restores the outer variable's read checks.
+  TEST_F(SemanticVariableTest, KeepsInitializationWithEachShadowedStorage)
+  {
+    auto Input = read("func innerUninitialized(): void { var Value = 1; { var Value: i32; Value; } Value; } func outerUninitialized(): void { var Value: i32; { var Value = 1; Value; } Value; }");
+    ASSERT_TRUE(Input.succeeded());
+    EXPECT_FALSE(analyze(Input));
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 2U);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUninitializedRead);
+    EXPECT_EQ(Diagnostics.diagnostics()[1].Kind, core::DiagnosticKind::SemanticUninitializedRead);
+    const auto *InnerUninitialized = function("innerUninitialized");
+    const auto *OuterUninitialized = function("outerUninitialized");
+    ASSERT_NE(InnerUninitialized, nullptr);
+    ASSERT_NE(OuterUninitialized, nullptr);
+    const auto InnerAllocations = instructions<ir::AllocaInstruction>(*InnerUninitialized);
+    const auto OuterAllocations = instructions<ir::AllocaInstruction>(*OuterUninitialized);
+    const auto InnerLoads = instructions<ir::LoadInstruction>(*InnerUninitialized);
+    const auto OuterLoads = instructions<ir::LoadInstruction>(*OuterUninitialized);
+    ASSERT_EQ(InnerAllocations.size(), 2U);
+    ASSERT_EQ(OuterAllocations.size(), 2U);
+    ASSERT_EQ(InnerLoads.size(), 1U);
+    ASSERT_EQ(OuterLoads.size(), 1U);
+    EXPECT_TRUE(InnerAllocations[0]->isInitialized());
+    EXPECT_FALSE(InnerAllocations[1]->isInitialized());
+    EXPECT_FALSE(OuterAllocations[0]->isInitialized());
+    EXPECT_TRUE(OuterAllocations[1]->isInitialized());
+    EXPECT_EQ(InnerLoads[0]->pointer(), InnerAllocations[0]);
+    EXPECT_EQ(OuterLoads[0]->pointer(), OuterAllocations[1]);
   }
 
   // Failed declarations do not reserve their names, so later declarations in the same block can initialize and return them.

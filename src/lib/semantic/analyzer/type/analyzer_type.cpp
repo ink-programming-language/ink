@@ -12,6 +12,9 @@ namespace ink::semantic
   {
     RETURN_REPORT_IF_FALSE(State.semanticContext(), Node.expression(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "TypeSyntax requires an expression");
     const auto &Expression = *Node.expression();
-    return requireType(State.semanticContext(), Expression.getSourceRange(), analyzeExpr(State, Expression));
+    const ir::Value *Value = analyzeExpr(State, Expression);
+    RETURN_IF(!Value, nullptr);
+    RETURN_REPORT_IF(State.semanticContext(), Value->isStorage(), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Expression.getSourceRange(), "a type", "variable storage");
+    return requireType(State.semanticContext(), Expression.getSourceRange(), Value);
   }
 } // namespace ink::semantic

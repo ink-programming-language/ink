@@ -34,6 +34,7 @@ namespace ink::ir
     case ValueKind::ICmpInstruction:
     case ValueKind::NegInstruction:
     case ValueKind::AllocaInstruction:
+    case ValueKind::AddressOfInstruction:
     case ValueKind::LoadInstruction:
     case ValueKind::StoreInstruction:
     case ValueKind::BranchInstruction:

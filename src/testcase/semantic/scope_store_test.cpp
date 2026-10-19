@@ -240,69 +240,66 @@ namespace ink::semantic::test
     Store.removeTarget(*Member);
     EXPECT_EQ(Members->lookupLocal(Field), nullptr);
   }
-  // Growing scope and binding storage preserves both a variable binding address and the address of its immutable metadata.
-  TEST(SemanticScopeStoreTest, PreservesVariableMetadataAddressesAcrossStorageGrowth)
+
+  // Growing scopes and aliases preserves a saved binding and the storage identity to which every alias refers.
+  TEST(SemanticScopeStoreTest, PreservesStorageBindingsAcrossGrowth)
   {
     IRContext Context(target::TargetContext::native());
     Module ModuleValue(Context);
     const auto *Integer = Context.typePool().getInt32Type();
-    auto *Storage = ModuleValue.createGlobalVariable(*Integer);
+    auto *Storage = ModuleValue.createGlobalVariable(*Integer, core::NAME_None, false);
     ASSERT_NE(Storage, nullptr);
     ScopeStore Store;
     NameResolver Resolver(Store);
-    const Name SavedName = core::NamePool::instance().intern("SavedVariableMetadata");
-    ASSERT_EQ(Resolver.bindVariable(SavedName, *Storage, *Integer, false), BindResult::Inserted);
+    const Name SavedName = core::NamePool::instance().intern("SavedStorage");
+    ASSERT_EQ(Resolver.bind(SavedName, *Storage), BindResult::Inserted);
     const Binding *SavedBinding = Resolver.lookupLocal(SavedName);
     ASSERT_NE(SavedBinding, nullptr);
-    const auto *SavedInfo = SavedBinding->variableInfo();
-    ASSERT_NE(SavedInfo, nullptr);
     for (std::size_t Index = 0; Index < 1024; ++Index)
     {
       ASSERT_NE(Store.createScope(Store.rootScope()), nullptr);
-      const Name Added = core::NamePool::instance().intern("VariableMetadataGrowth" + std::to_string(Index));
-      ASSERT_EQ(Resolver.bindVariable(Added, *Storage, *Integer, true), BindResult::Inserted);
+      const Name Added = core::NamePool::instance().intern("StorageGrowth" + std::to_string(Index));
+      ASSERT_EQ(Resolver.bind(Added, *Storage), BindResult::Inserted);
+      EXPECT_EQ(Resolver.lookupLocal(Added)->targets()[0], Storage);
     }
     EXPECT_EQ(Resolver.lookupLocal(SavedName), SavedBinding);
-    EXPECT_EQ(SavedBinding->variableInfo(), SavedInfo);
-    EXPECT_EQ(SavedInfo->DeclaredType, Integer);
-    EXPECT_FALSE(SavedInfo->Mutable);
     ASSERT_EQ(SavedBinding->targets().size(), 1U);
-    EXPECT_EQ(SavedBinding->targets()[0], static_cast<Value *>(Storage));
-    EXPECT_EQ(Resolver.bindVariable(SavedName, *Storage, *Integer, false), BindResult::AlreadyBound);
-    EXPECT_EQ(Resolver.bindVariable(SavedName, *Storage, *Integer, true), BindResult::Conflict);
-    EXPECT_EQ(SavedBinding->variableInfo(), SavedInfo);
-    EXPECT_FALSE(SavedInfo->Mutable);
+    EXPECT_EQ(SavedBinding->targets()[0], Storage);
+    EXPECT_EQ(SavedBinding->targets()[0]->type(), Integer);
+    EXPECT_TRUE(SavedBinding->targets()[0]->isStorage());
+    EXPECT_FALSE(SavedBinding->targets()[0]->isMutable());
+    EXPECT_EQ(Resolver.bind(SavedName, *Storage), BindResult::AlreadyBound);
   }
 
-  // Removing storage erases every variable alias and its metadata while preserving other variable bindings and allowing a fresh declaration.
-  TEST(SemanticScopeStoreTest, RemovesVariableAliasesAndMetadataWithTheirStorage)
+  // Removing a target erases all its aliases without mutating storage properties or the bindings of surviving targets.
+  TEST(SemanticScopeStoreTest, RemovesStorageAliasesWithoutChangingValues)
   {
     IRContext Context(target::TargetContext::native());
     Module ModuleValue(Context);
     const auto *Integer = Context.typePool().getInt32Type();
     const auto *Boolean = Context.typePool().getBoolType();
     auto *Removed = ModuleValue.createGlobalVariable(*Integer);
-    auto *Survivor = ModuleValue.createGlobalVariable(*Boolean);
+    auto *Survivor = ModuleValue.createGlobalVariable(*Boolean, core::NAME_None, false);
     ASSERT_NE(Removed, nullptr);
     ASSERT_NE(Survivor, nullptr);
+    ASSERT_TRUE(Removed->setInitializer(Context.constantPool().getSignedIntegerConstant(Integer, 1)));
+    ASSERT_TRUE(Survivor->setInitializer(Context.constantPool().getBoolConstant(true)));
     ScopeStore Store;
     NameResolver Resolver(Store);
-    const Name Variable = core::NamePool::instance().intern("RemovedVariableMetadata");
-    const Name Alias = core::NamePool::instance().intern("RemovedVariableMetadataAlias");
-    const Name Other = core::NamePool::instance().intern("SurvivingVariableMetadata");
-    ASSERT_EQ(Resolver.bindVariable(Variable, *Removed, *Integer, true), BindResult::Inserted);
-    ASSERT_EQ(Resolver.bindVariable(Alias, *Removed, *Integer, false), BindResult::Inserted);
-    ASSERT_EQ(Resolver.bindVariable(Other, *Survivor, *Boolean, false), BindResult::Inserted);
+    const Name Variable = core::NamePool::instance().intern("RemovedStorage");
+    const Name Alias = core::NamePool::instance().intern("RemovedStorageAlias");
+    const Name Other = core::NamePool::instance().intern("SurvivingStorage");
+    ASSERT_EQ(Resolver.bind(Variable, *Removed), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(Alias, *Removed), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(Other, *Survivor), BindResult::Inserted);
     const Binding *SurvivingBinding = Resolver.lookupLocal(Other);
     ASSERT_NE(SurvivingBinding, nullptr);
-    const auto *SurvivingInfo = SurvivingBinding->variableInfo();
-    ASSERT_NE(SurvivingInfo, nullptr);
     Scope *Members = Resolver.enterScope(*Removed);
     ASSERT_NE(Members, nullptr);
-    ASSERT_EQ(Resolver.bindVariable(Variable, *Removed, *Integer, false), BindResult::Inserted);
-    ASSERT_EQ(Resolver.bindVariable(Alias, *Removed, *Integer, true), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(Variable, *Removed), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(Alias, *Removed), BindResult::Inserted);
     Scope &Nested = Resolver.enterScope();
-    ASSERT_EQ(Resolver.bindVariable(Alias, *Removed, *Integer, true), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(Alias, *Removed), BindResult::Inserted);
     Store.removeTarget(*Removed);
     EXPECT_EQ(&Resolver.currentScope(), &Nested);
     EXPECT_FALSE(Members->owner().has_value());
@@ -314,18 +311,19 @@ namespace ink::semantic::test
     EXPECT_EQ(Members->lookupLocal(Variable), nullptr);
     EXPECT_EQ(Members->lookupLocal(Alias), nullptr);
     EXPECT_EQ(Resolver.lookup(Other), SurvivingBinding);
-    EXPECT_EQ(SurvivingBinding->variableInfo(), SurvivingInfo);
-    EXPECT_EQ(SurvivingInfo->DeclaredType, Boolean);
-    EXPECT_FALSE(SurvivingInfo->Mutable);
+    EXPECT_EQ(SurvivingBinding->targets()[0], Survivor);
+    EXPECT_FALSE(Survivor->isMutable());
+    EXPECT_TRUE(Survivor->isInitialized());
+    EXPECT_TRUE(Removed->isInitialized());
     Store.removeTarget(*Removed);
     ASSERT_TRUE(Resolver.enterScope(Store.rootScope()));
-    ASSERT_EQ(Resolver.bindVariable(Variable, *Survivor, *Boolean, false), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(Variable, *Survivor), BindResult::Inserted);
     const Binding *Replacement = Resolver.lookupLocal(Variable);
     ASSERT_NE(Replacement, nullptr);
-    ASSERT_NE(Replacement->variableInfo(), nullptr);
-    EXPECT_EQ(Replacement->variableInfo()->DeclaredType, Boolean);
-    EXPECT_FALSE(Replacement->variableInfo()->Mutable);
     ASSERT_EQ(Replacement->targets().size(), 1U);
-    EXPECT_EQ(Replacement->targets()[0], static_cast<Value *>(Survivor));
+    EXPECT_EQ(Replacement->targets()[0], Survivor);
+    EXPECT_EQ(Replacement->targets()[0]->type(), Boolean);
+    EXPECT_FALSE(Replacement->targets()[0]->isMutable());
+    EXPECT_TRUE(Replacement->targets()[0]->isInitialized());
   }
 } // namespace ink::semantic::test

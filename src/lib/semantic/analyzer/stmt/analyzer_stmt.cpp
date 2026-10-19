@@ -47,7 +47,7 @@ namespace ink::semantic
       // TODO: Restore assignments and the remaining simple items.
       UNSUPPORT_IF(State, !frontend::parser::ExprItem::classof(Item), false, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
       const auto &Expression = *static_cast<const frontend::parser::ExprItem *>(Item)->expression();
-      if (!toRValue(State, Expression.getSourceRange(), analyzeExpr(State, Expression)))
+      if (!requireRuntimeValue(State.semanticContext(), Expression.getSourceRange(), emitValue(State, Expression)))
       {
         Succeeded = false;
       }

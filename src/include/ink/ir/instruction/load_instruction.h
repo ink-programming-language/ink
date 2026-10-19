@@ -5,7 +5,7 @@
 
 namespace ink::ir
 {
-  // Reads a value from an address with a known pointee type.
+  // Reads a value from storage or an address with a known pointee type.
   // The result type and pointer operand are borrowed and must outlive this instruction.
   class LoadInstruction final : public Instruction
   {

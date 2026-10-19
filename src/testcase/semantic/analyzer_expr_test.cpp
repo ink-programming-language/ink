@@ -1,6 +1,5 @@
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
-#include "ink/semantic/analyzer/expr_result.h"
 #include "ink/core/config/numeric_literal.h"
 #include "ink/core/diagnostic/diagnostic_consumer.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
@@ -9,6 +8,7 @@
 #include "ink/core/support/core_define.h"
 #include "ink/frontend/parser/parser.h"
 #include "ink/ir/instruction/alloca_instruction.h"
+#include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/neg_instruction.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/structure_type/function_type_parameter.h"
@@ -30,9 +30,9 @@ namespace ink::semantic::test
 {
   namespace
   {
-    static_assert(std::is_same_v<decltype(std::declval<Analyzer &>().analyzeExpr(std::declval<AnalyzerState &>(), std::declval<const frontend::parser::Expr &>())), ExprResult>);
-    static_assert(!std::is_convertible_v<ExprResult, const ir::Value *>);
-    static_assert(!std::is_convertible_v<ExprResult, bool>);
+    static_assert(std::is_same_v<decltype(std::declval<Analyzer &>().emitValue(std::declval<AnalyzerState &>(), std::declval<const frontend::parser::Expr &>())), const ir::Value *>);
+    static_assert(std::is_same_v<decltype(std::declval<Analyzer &>().emitPlace(std::declval<AnalyzerState &>(), std::declval<const frontend::parser::Expr &>())), const ir::Value *>);
+    static_assert(std::is_same_v<decltype(std::declval<Analyzer &>().analyzeExpr(std::declval<AnalyzerState &>(), std::declval<const frontend::parser::Expr &>())), const ir::Value *>);
 
     class InvalidExpression final : public frontend::parser::Expr
     {
@@ -95,13 +95,14 @@ namespace ink::semantic::test
 
         const ir::Value *analyze(AnalyzerState &State, const frontend::parser::ParseResult &Input, ExprHints Hints = {})
         {
-          return analyzeResult(State, Input, Hints).Value;
+          Context.setSource(Input.Unit->input().lexedFile().sourceId());
+          return Analysis.emitValue(State, syntax(Input), Hints);
         }
 
-        ExprResult analyzeResult(AnalyzerState &State, const frontend::parser::ParseResult &Input, ExprHints Hints = {})
+        const ir::Value *emitPlace(AnalyzerState &State, const frontend::parser::ParseResult &Input, ExprHints Hints = {})
         {
           Context.setSource(Input.Unit->input().lexedFile().sourceId());
-          return Analysis.analyzeExpr(State, syntax(Input), Hints);
+          return Analysis.emitPlace(State, syntax(Input), Hints);
         }
 
         void expectNegation(const ir::Value *Result, const ir::Value *Operand)
@@ -141,18 +142,35 @@ namespace ink::semantic::test
     };
   } // namespace
 
-  // An empty expression result is explicitly false and carries no borrowed value, semantic type or variable binding.
-  TEST_F(SemanticAnalyzerExprTest, RepresentsFailedExpressionWithoutAnIRValue)
+  // Shared expression analysis returns an uninitialized variable's original storage and object type without reading it.
+  TEST_F(SemanticAnalyzerExprTest, AnalyzesVariableStorageWithoutReading)
   {
-    const ExprResult Result;
-    EXPECT_FALSE(Result);
-    EXPECT_EQ(Result.Value, nullptr);
-    EXPECT_EQ(Result.Type, nullptr);
-    EXPECT_EQ(Result.Variable, nullptr);
+    auto Input = read("((Stored))");
+    ASSERT_TRUE(Input.succeeded());
+    AnalyzerState State(Context, Input, Output);
+    auto *Block = createInsertBlock(State);
+    ASSERT_NE(Block, nullptr);
+    const auto *DeclaredType = Context.typePool().getInt32Type();
+    auto *Storage = State.irBuilder().createAlloca(*DeclaredType);
+    ASSERT_NE(Storage, nullptr);
+    ASSERT_EQ(State.nameResolver().bind(name("Stored"), *Storage), BindResult::Inserted);
+    Context.setSource(Input.Unit->input().lexedFile().sourceId());
+    const auto *Result = Analysis.analyzeExpr(State, syntax(Input), {.ExpectedType = DeclaredType});
+    ASSERT_NE(Result, nullptr);
+    EXPECT_EQ(Result, Storage);
+    EXPECT_EQ(Result->type(), DeclaredType);
+    EXPECT_TRUE(Result->isStorage());
+    EXPECT_TRUE(Result->isMutable());
+    const auto *Variable = State.nameResolver().lookupLocal(name("Stored"));
+    ASSERT_NE(Variable, nullptr);
+    EXPECT_FALSE(Result->isInitialized());
+    EXPECT_EQ(Block->instructionCount(), 1U);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    Context.scopeStore().removeTarget(*Storage);
   }
 
-  // Values, type descriptors and module descriptors keep distinct expression categories through transparent parentheses.
-  TEST_F(SemanticAnalyzerExprTest, PreservesValueTypeAndModuleCategories)
+  // Values, type descriptors and module descriptors retain their borrowed IR identities through transparent parentheses.
+  TEST_F(SemanticAnalyzerExprTest, PreservesValueTypeAndModuleIdentities)
   {
     auto &Types = Context.typePool();
     ir::Module Package(Context.irContext());
@@ -163,17 +181,16 @@ namespace ink::semantic::test
     struct Case
     {
         const char *Text;
-        ExprResultKind Kind;
         const ir::Value *Value;
     };
     const Case Cases[] = {
-        {"14", ExprResultKind::RValue, Integer},
-        {"((14))", ExprResultKind::RValue, Integer},
-        {"i32", ExprResultKind::Type, Types.getInt32Type()},
-        {"((i32))", ExprResultKind::Type, Types.getInt32Type()},
-        {"*i32", ExprResultKind::Type, Types.getPointerType(Types.getInt32Type())},
-        {"Pkg", ExprResultKind::Module, &Package},
-        {"((Pkg))", ExprResultKind::Module, &Package},
+        {"14", Integer},
+        {"((14))", Integer},
+        {"i32", Types.getInt32Type()},
+        {"((i32))", Types.getInt32Type()},
+        {"*i32", Types.getPointerType(Types.getInt32Type())},
+        {"Pkg", &Package},
+        {"((Pkg))", &Package},
     };
     for (const auto &Entry : Cases)
     {
@@ -181,22 +198,16 @@ namespace ink::semantic::test
       auto Input = read(Entry.Text);
       ASSERT_TRUE(Input.succeeded());
       AnalyzerState State(Context, Input, Output);
-      const auto Result = analyzeResult(State, Input);
-      ASSERT_TRUE(Result);
-      EXPECT_EQ(Result.Kind, Entry.Kind);
-      EXPECT_EQ(Result.Value, Entry.Value);
-      EXPECT_EQ(Result.Variable, nullptr);
-      if (Entry.Kind == ExprResultKind::RValue)
-      {
-        EXPECT_EQ(Result.Type, Types.getInt32Type());
-      }
+      Context.setSource(Input.Unit->input().lexedFile().sourceId());
+      EXPECT_EQ(Analysis.analyzeExpr(State, syntax(Input)), Entry.Value);
+      EXPECT_EQ(analyze(State, Input), Entry.Value);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
     }
     Context.scopeStore().removeTarget(Package);
   }
 
-  // A pointer-valued function parameter is an rvalue whose pointer type never implies a variable lvalue category.
-  TEST_F(SemanticAnalyzerExprTest, ClassifiesPointerParametersAsRValues)
+  // Emitting a pointer-valued function parameter returns the pointer itself without inferring a load from its type.
+  TEST_F(SemanticAnalyzerExprTest, EmitsPointerParametersWithoutLoading)
   {
     auto Input = read("((Argument))");
     ASSERT_TRUE(Input.succeeded());
@@ -211,18 +222,92 @@ namespace ink::semantic::test
     AnalyzerState State(Context, Input, Output);
     ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
     ASSERT_EQ(State.nameResolver().bind(name("Argument"), *Function->parameter(0)), BindResult::Inserted);
-    const auto Result = analyzeResult(State, Input, {.ExpectedType = PointerType});
-    ASSERT_TRUE(Result);
-    EXPECT_EQ(Result.Kind, ExprResultKind::RValue);
-    EXPECT_EQ(Result.Value, Function->parameter(0));
-    EXPECT_EQ(Result.Type, PointerType);
-    EXPECT_EQ(Result.Variable, nullptr);
+    const auto *Result = analyze(State, Input, {.ExpectedType = PointerType});
+    ASSERT_NE(Result, nullptr);
+    EXPECT_EQ(Result, Function->parameter(0));
+    EXPECT_EQ(Result->type(), PointerType);
     EXPECT_EQ(Block->instructionCount(), 0U);
     Context.scopeStore().removeTarget(*Function->parameter(0));
   }
 
-  // One allocation may denote a variable lvalue or a pointer rvalue according to binding metadata, despite identical IR identity.
-  TEST_F(SemanticAnalyzerExprTest, DistinguishesVariableFromPointerAliasToSameAllocation)
+  // Literals, type descriptors, modules and ordinary pointer bindings do not denote variable storage.
+  TEST_F(SemanticAnalyzerExprTest, RejectsNonStoragePlaces)
+  {
+    auto SetupInput = read("0");
+    ASSERT_TRUE(SetupInput.succeeded());
+    AnalyzerState SetupState(Context, SetupInput, Output);
+    auto *Block = createInsertBlock(SetupState);
+    ASSERT_NE(Block, nullptr);
+    ir::Module Package(Context.irContext());
+    auto *Storage = SetupState.irBuilder().createAlloca(*Context.typePool().getInt32Type());
+    ASSERT_NE(Storage, nullptr);
+    auto *Pointer = SetupState.irBuilder().createAddressOf(*Storage);
+    ASSERT_NE(Pointer, nullptr);
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("Address"), *Pointer), BindResult::Inserted);
+    const char *Cases[] = {
+        "14",
+        "((14))",
+        "i32",
+        "((Pkg))",
+        "((Address))",
+    };
+    for (const auto *Text : Cases)
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+      EXPECT_FALSE(emitPlace(State, Input));
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
+      EXPECT_EQ(Block->instructionCount(), 2U);
+    }
+    Context.scopeStore().removeTarget(*Pointer);
+    Context.scopeStore().removeTarget(Package);
+  }
+
+  // Nested parentheses preserve a variable place without reading it and emit exactly one load when its value is requested.
+  TEST_F(SemanticAnalyzerExprTest, EmitsOneLoadThroughNestedParentheses)
+  {
+    auto Input = read("(((Stored)))");
+    ASSERT_TRUE(Input.succeeded());
+    AnalyzerState State(Context, Input, Output);
+    auto *Block = createInsertBlock(State);
+    ASSERT_NE(Block, nullptr);
+    const auto *DeclaredType = Context.typePool().getInt32Type();
+    auto *Storage = State.irBuilder().createAlloca(*DeclaredType);
+    const auto *InitialValue = Output.constantPool().getSignedIntegerConstant(DeclaredType, 14);
+    ASSERT_NE(Storage, nullptr);
+    ASSERT_NE(InitialValue, nullptr);
+    ASSERT_NE(State.irBuilder().createInitialize(*InitialValue, *Storage), nullptr);
+    ASSERT_EQ(State.nameResolver().bind(name("Stored"), *Storage), BindResult::Inserted);
+    const auto *Variable = State.nameResolver().lookupLocal(name("Stored"));
+    ASSERT_NE(Variable, nullptr);
+    const auto *Address = emitPlace(State, Input);
+    ASSERT_NE(Address, nullptr);
+    EXPECT_EQ(Address, Storage);
+    EXPECT_EQ(Address->type(), Storage->type());
+    EXPECT_EQ(State.nameResolver().lookupLocal(name("Stored")), Variable);
+    EXPECT_EQ(Address->type(), DeclaredType);
+    EXPECT_TRUE(Address->isStorage());
+    EXPECT_EQ(Block->instructionCount(), 2U);
+    const auto *Result = analyze(State, Input);
+    ASSERT_NE(Result, nullptr);
+    ASSERT_TRUE(ir::LoadInstruction::classof(Result));
+    EXPECT_EQ(Result->type(), DeclaredType);
+    EXPECT_FALSE(Result->isStorage());
+    EXPECT_FALSE(Result->isMutable());
+    EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Result)->pointer(), Storage);
+    EXPECT_EQ(Block->instructionCount(), 3U);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    Context.scopeStore().removeTarget(*Storage);
+  }
+
+  // Taking a storage address produces a separate pointer value that can be emitted without reading the uninitialized object.
+  TEST_F(SemanticAnalyzerExprTest, DistinguishesStorageFromItsAddressValue)
   {
     auto Input = read("((Stored)); var AddressResult = ((Address))");
     ASSERT_TRUE(Input.succeeded());
@@ -233,33 +318,33 @@ namespace ink::semantic::test
     const auto *DeclaredType = Context.typePool().getInt32Type();
     auto *Storage = State.irBuilder().createAlloca(*DeclaredType);
     ASSERT_NE(Storage, nullptr);
+    auto *Address = State.irBuilder().createAddressOf(*Storage);
+    ASSERT_NE(Address, nullptr);
     auto &Resolver = State.nameResolver();
-    ASSERT_EQ(Resolver.bindVariable(name("Stored"), *Storage, *DeclaredType, true), BindResult::Inserted);
-    ASSERT_EQ(Resolver.bind(name("Address"), *Storage), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("Stored"), *Storage), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("Address"), *Address), BindResult::Inserted);
     const auto *Variable = Resolver.lookupLocal(name("Stored"));
     ASSERT_NE(Variable, nullptr);
-    ASSERT_NE(Variable->variableInfo(), nullptr);
-    EXPECT_EQ(Variable->variableInfo()->DeclaredType, DeclaredType);
-    EXPECT_TRUE(Variable->variableInfo()->Mutable);
-    const auto VariableResult = analyzeResult(State, Input, {.ExpectedType = DeclaredType});
-    const auto PointerResult = Analysis.analyzeExpr(State, syntax(Input, 1), {.ExpectedType = Storage->type()});
+    EXPECT_EQ(Storage->type(), DeclaredType);
+    EXPECT_TRUE(Storage->isMutable());
+    const auto *VariableResult = emitPlace(State, Input, {.ExpectedType = DeclaredType});
+    const auto PointerResult = Analysis.emitValue(State, syntax(Input, 1), {.ExpectedType = Address->type()});
     ASSERT_TRUE(VariableResult);
     ASSERT_TRUE(PointerResult);
-    EXPECT_EQ(VariableResult.Kind, ExprResultKind::LValue);
-    EXPECT_EQ(VariableResult.Value, Storage);
-    EXPECT_EQ(VariableResult.Type, DeclaredType);
-    EXPECT_EQ(VariableResult.Variable, Variable);
-    EXPECT_EQ(VariableResult.Value->type(), Context.typePool().getPointerType(DeclaredType));
-    EXPECT_EQ(PointerResult.Kind, ExprResultKind::RValue);
-    EXPECT_EQ(PointerResult.Value, Storage);
-    EXPECT_EQ(PointerResult.Type, Storage->type());
-    EXPECT_EQ(PointerResult.Variable, nullptr);
-    EXPECT_EQ(Block->instructionCount(), 1U);
+    EXPECT_EQ(VariableResult, Storage);
+    EXPECT_EQ(Resolver.lookupLocal(name("Stored")), Variable);
+    EXPECT_EQ(VariableResult->type(), DeclaredType);
+    EXPECT_TRUE(VariableResult->isStorage());
+    EXPECT_EQ(PointerResult, Address);
+    EXPECT_EQ(PointerResult->type(), Context.typePool().getPointerType(DeclaredType));
+    EXPECT_FALSE(PointerResult->isStorage());
+    EXPECT_EQ(Block->instructionCount(), 2U);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
     Context.scopeStore().removeTarget(*Storage);
+    Context.scopeStore().removeTarget(*Address);
   }
 
-  // Re-entering a saved scope and starting a new traversal preserve variable classification independently of initialization flow.
+  // A saved scope preserves initialized variable identity across traversals and permits loading its stored value in a new analyzer state.
   TEST_F(SemanticAnalyzerExprTest, ReusesVariableBindingsAcrossAnalyzerStates)
   {
     auto Input = read("((Stored)); var ReadResult = -Stored");
@@ -269,40 +354,85 @@ namespace ink::semantic::test
     auto *Block = createInsertBlock(FirstState);
     ASSERT_NE(Block, nullptr);
     const auto *DeclaredType = Context.typePool().getInt32Type();
-    auto *Storage = FirstState.irBuilder().createAlloca(*DeclaredType);
+    auto *Storage = FirstState.irBuilder().createAlloca(*DeclaredType, false);
     ASSERT_NE(Storage, nullptr);
+    const auto *InitialValue = Output.constantPool().getSignedIntegerConstant(DeclaredType, 14);
+    ASSERT_NE(InitialValue, nullptr);
+    ASSERT_NE(FirstState.irBuilder().createInitialize(*InitialValue, *Storage), nullptr);
     Scope &SavedScope = FirstState.nameResolver().enterScope();
-    ASSERT_EQ(FirstState.nameResolver().bindVariable(name("Stored"), *Storage, *DeclaredType, false), BindResult::Inserted);
+    ASSERT_EQ(FirstState.nameResolver().bind(name("Stored"), *Storage), BindResult::Inserted);
     const auto *Variable = FirstState.nameResolver().lookupLocal(name("Stored"));
     ASSERT_NE(Variable, nullptr);
-    ASSERT_NE(Variable->variableInfo(), nullptr);
-    EXPECT_FALSE(Variable->variableInfo()->Mutable);
-    const auto InitialResult = analyzeResult(FirstState, Input);
-    ASSERT_TRUE(InitialResult);
-    EXPECT_EQ(InitialResult.Kind, ExprResultKind::LValue);
-    EXPECT_EQ(InitialResult.Type, DeclaredType);
-    EXPECT_EQ(InitialResult.Variable, Variable);
+    EXPECT_EQ(Storage->type(), DeclaredType);
+    EXPECT_FALSE(Storage->isMutable());
+    EXPECT_TRUE(Storage->isInitialized());
+    const auto *InitialResult = emitPlace(FirstState, Input);
+    ASSERT_NE(InitialResult, nullptr);
+    EXPECT_EQ(InitialResult, Storage);
+    EXPECT_EQ(InitialResult->type(), Storage->type());
+    EXPECT_EQ(FirstState.nameResolver().lookupLocal(name("Stored")), Variable);
     ASSERT_TRUE(FirstState.nameResolver().exitScope());
     EXPECT_EQ(FirstState.nameResolver().lookup(name("Stored")), nullptr);
     ASSERT_TRUE(FirstState.nameResolver().enterScope(SavedScope));
-    const auto ReenteredResult = analyzeResult(FirstState, Input);
-    ASSERT_TRUE(ReenteredResult);
-    EXPECT_EQ(ReenteredResult.Kind, ExprResultKind::LValue);
-    EXPECT_EQ(ReenteredResult.Value, Storage);
-    EXPECT_EQ(ReenteredResult.Type, DeclaredType);
-    EXPECT_EQ(ReenteredResult.Variable, Variable);
+    const auto *ReenteredResult = emitPlace(FirstState, Input);
+    ASSERT_NE(ReenteredResult, nullptr);
+    EXPECT_EQ(ReenteredResult, Storage);
+    EXPECT_EQ(ReenteredResult->type(), Storage->type());
+    EXPECT_EQ(FirstState.nameResolver().lookupLocal(name("Stored")), Variable);
     ASSERT_TRUE(FirstState.nameResolver().exitScope());
     AnalyzerState SecondState(Context, Input, Output);
     ASSERT_TRUE(SecondState.irBuilder().setInsertPoint(*Block));
     ASSERT_TRUE(SecondState.nameResolver().enterScope(SavedScope));
-    const auto ReusedResult = analyzeResult(SecondState, Input, {.ExpectedType = DeclaredType});
-    ASSERT_TRUE(ReusedResult);
-    EXPECT_EQ(ReusedResult.Kind, ExprResultKind::LValue);
-    EXPECT_EQ(ReusedResult.Value, Storage);
-    EXPECT_EQ(ReusedResult.Type, DeclaredType);
-    EXPECT_EQ(ReusedResult.Variable, Variable);
+    const auto *ReusedResult = emitPlace(SecondState, Input, {.ExpectedType = DeclaredType});
+    ASSERT_NE(ReusedResult, nullptr);
+    EXPECT_EQ(ReusedResult, Storage);
+    EXPECT_EQ(ReusedResult->type(), Storage->type());
+    EXPECT_EQ(SecondState.nameResolver().lookupLocal(name("Stored")), Variable);
+    const auto ReadResult = Analysis.emitValue(SecondState, syntax(Input, 1));
+    ASSERT_TRUE(ReadResult);
+    EXPECT_EQ(ReadResult->type(), DeclaredType);
+    ASSERT_TRUE(ir::NegInstruction::classof(ReadResult));
+    const auto *LoadedValue = static_cast<const ir::NegInstruction *>(ReadResult)->operand();
+    ASSERT_TRUE(ir::LoadInstruction::classof(LoadedValue));
+    EXPECT_EQ(LoadedValue->type(), DeclaredType);
+    EXPECT_EQ(static_cast<const ir::LoadInstruction *>(LoadedValue)->pointer(), Storage);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
-    EXPECT_FALSE(Analysis.analyzeExpr(SecondState, syntax(Input, 1)));
+    ASSERT_TRUE(SecondState.nameResolver().exitScope());
+    Context.scopeStore().removeTarget(*Storage);
+  }
+
+  // A saved scope preserves an uninitialized variable's place while emitting its value in a new analyzer state fails without a load.
+  TEST_F(SemanticAnalyzerExprTest, RejectsUninitializedVariableReadsAcrossAnalyzerStates)
+  {
+    auto Input = read("((Stored))");
+    ASSERT_TRUE(Input.succeeded());
+    AnalyzerState FirstState(Context, Input, Output);
+    auto *Block = createInsertBlock(FirstState);
+    ASSERT_NE(Block, nullptr);
+    const auto *DeclaredType = Context.typePool().getInt32Type();
+    auto *Storage = FirstState.irBuilder().createAlloca(*DeclaredType);
+    ASSERT_NE(Storage, nullptr);
+    Scope &SavedScope = FirstState.nameResolver().enterScope();
+    ASSERT_EQ(FirstState.nameResolver().bind(name("Stored"), *Storage), BindResult::Inserted);
+    const auto *Variable = FirstState.nameResolver().lookupLocal(name("Stored"));
+    ASSERT_NE(Variable, nullptr);
+    EXPECT_EQ(Storage->type(), DeclaredType);
+    EXPECT_FALSE(Storage->isInitialized());
+    const auto *InitialResult = emitPlace(FirstState, Input);
+    ASSERT_NE(InitialResult, nullptr);
+    EXPECT_EQ(InitialResult, Storage);
+    EXPECT_EQ(InitialResult->type(), Storage->type());
+    EXPECT_EQ(FirstState.nameResolver().lookupLocal(name("Stored")), Variable);
+    ASSERT_TRUE(FirstState.nameResolver().exitScope());
+    AnalyzerState SecondState(Context, Input, Output);
+    ASSERT_TRUE(SecondState.irBuilder().setInsertPoint(*Block));
+    ASSERT_TRUE(SecondState.nameResolver().enterScope(SavedScope));
+    const auto *ReusedResult = emitPlace(SecondState, Input);
+    ASSERT_NE(ReusedResult, nullptr);
+    EXPECT_EQ(ReusedResult, Storage);
+    EXPECT_EQ(ReusedResult->type(), Storage->type());
+    EXPECT_EQ(SecondState.nameResolver().lookupLocal(name("Stored")), Variable);
+    EXPECT_EQ(analyze(SecondState, Input), nullptr);
     ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
     EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUninitializedRead);
     EXPECT_EQ(Block->instructionCount(), 1U);
@@ -310,38 +440,45 @@ namespace ink::semantic::test
     Context.scopeStore().removeTarget(*Storage);
   }
 
-  // Invalid compiler-produced variable storage reports a construction ICE before initialization flow or loading is considered.
-  TEST_F(SemanticAnalyzerExprTest, RejectsInvalidVariableBindingStorage)
+  // Multiple names for one storage object share its type, mutability and declaration initialization without binding metadata.
+  TEST_F(SemanticAnalyzerExprTest, PreservesStoragePropertiesThroughAliases)
   {
-    auto Input = read("Stored");
+    auto Input = read("Stored; var AliasResult = Alias");
     ASSERT_TRUE(Input.succeeded());
     AnalyzerState State(Context, Input, Output);
     auto *Block = createInsertBlock(State);
     ASSERT_NE(Block, nullptr);
     auto &Types = Context.typePool();
-    auto *Storage = State.irBuilder().createAlloca(*Types.getInt32Type());
-    auto *Constant = const_cast<ir::IntegerConstant *>(Output.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 14));
+    auto *Storage = State.irBuilder().createAlloca(*Types.getInt32Type(), false);
+    const auto *Constant = Output.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 14);
     ASSERT_NE(Storage, nullptr);
     ASSERT_NE(Constant, nullptr);
-    struct Case
+    ASSERT_EQ(State.nameResolver().bind(name("Stored"), *Storage), BindResult::Inserted);
+    ASSERT_EQ(State.nameResolver().bind(name("Alias"), *Storage), BindResult::Inserted);
+    for (std::size_t Index = 0; Index != 2; ++Index)
     {
-        ir::Value *Storage;
-        const ir::Type *DeclaredType;
-    };
-    const Case Cases[] = {
-        {Constant, Types.getInt32Type()},
-        {Storage, Types.getUInt8Type()},
-    };
-    for (const auto &Entry : Cases)
-    {
-      SCOPED_TRACE(Entry.Storage->toString());
-      State.nameResolver().enterScope();
-      ASSERT_EQ(State.nameResolver().bindVariable(name("Stored"), *Entry.Storage, *Entry.DeclaredType, true), BindResult::Inserted);
-      EXPECT_DEATH(analyzeResult(State, Input), "internal compiler error\\[INK-S0013\\]");
-      EXPECT_EQ(Block->instructionCount(), 1U);
-      ASSERT_TRUE(State.nameResolver().exitScope());
+      const auto *Result = Analysis.emitPlace(State, syntax(Input, Index));
+      ASSERT_EQ(Result, Storage);
+      EXPECT_EQ(Result->type(), Types.getInt32Type());
+      EXPECT_TRUE(Result->isStorage());
+      EXPECT_FALSE(Result->isMutable());
+      EXPECT_FALSE(Result->isInitialized());
+      expectFailure(Analysis.emitValue(State, syntax(Input, Index)), core::DiagnosticKind::SemanticUninitializedRead);
+      Diagnostics.clear();
     }
-    Context.scopeStore().removeTarget(*Constant);
+    ASSERT_NE(State.irBuilder().createInitialize(*Constant, *Storage), nullptr);
+    for (std::size_t Index = 0; Index != 2; ++Index)
+    {
+      const auto *Place = Analysis.emitPlace(State, syntax(Input, Index));
+      ASSERT_EQ(Place, Storage);
+      EXPECT_TRUE(Place->isInitialized());
+      EXPECT_FALSE(Place->isMutable());
+      const auto *Read = Analysis.emitValue(State, syntax(Input, Index));
+      ASSERT_TRUE(ir::LoadInstruction::classof(Read));
+      EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Read)->pointer(), Storage);
+      EXPECT_FALSE(Read->isStorage());
+    }
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
     Context.scopeStore().removeTarget(*Storage);
   }
 
@@ -1093,7 +1230,7 @@ namespace ink::semantic::test
     auto *Expression = Input.Unit->context().make<InvalidExpression>(syntax(Input).getSourceRange());
     AnalyzerState State(Context, Input, Output);
     Context.setSource(Input.Unit->input().lexedFile().sourceId());
-    EXPECT_DEATH(Analysis.analyzeExpr(State, *Expression), "INK-S0061.*invalid AST: expression node kind must belong to the expression AST category");
+    EXPECT_DEATH(Analysis.emitValue(State, *Expression), "INK-S0061.*invalid AST: expression node kind must belong to the expression AST category");
   }
 
   // Literal references at the end of the token array and at the invalid-token sentinel violate the AST input contract.
@@ -1108,7 +1245,7 @@ namespace ink::semantic::test
     {
       SCOPED_TRACE(Index);
       auto *Literal = Input.Unit->context().make<frontend::parser::LiteralExpr>(syntax(Input).getSourceRange(), Index, frontend::parser::TokenKind::IntegerLiteral);
-      EXPECT_DEATH(Analysis.analyzeExpr(State, *Literal), "internal compiler error\\[INK-P0048\\]: token index " + std::to_string(Index) + " is out of bounds for input of " + std::to_string(Input.Unit->input().size()) + " tokens");
+      EXPECT_DEATH(Analysis.emitValue(State, *Literal), "internal compiler error\\[INK-P0048\\]: token index " + std::to_string(Index) + " is out of bounds for input of " + std::to_string(Input.Unit->input().size()) + " tokens");
     }
   }
 
@@ -1125,7 +1262,7 @@ namespace ink::semantic::test
     {
       SCOPED_TRACE(static_cast<unsigned>(Kind));
       auto *Literal = Input.Unit->context().make<frontend::parser::LiteralExpr>(Original.getSourceRange(), Original.token(), Kind);
-      EXPECT_DEATH(Analysis.analyzeExpr(State, *Literal), "INK-S0061.*invalid AST: LiteralExpr kind must match its referenced token kind");
+      EXPECT_DEATH(Analysis.emitValue(State, *Literal), "INK-S0061.*invalid AST: LiteralExpr kind must match its referenced token kind");
     }
   }
 
@@ -1196,7 +1333,7 @@ namespace ink::semantic::test
     auto *Expression = Input.Unit->context().make<frontend::parser::FunctionTypeExpr>(Original->getSourceRange(), Original->parameters(), nullptr);
     AnalyzerState State(Context, Input, Output);
     Context.setSource(Input.Unit->input().lexedFile().sourceId());
-    EXPECT_DEATH(Analysis.analyzeExpr(State, *Expression), "INK-S0061.*invalid AST: FunctionTypeExpr requires a return type annotation");
+    EXPECT_DEATH(Analysis.emitValue(State, *Expression), "INK-S0061.*invalid AST: FunctionTypeExpr requires a return type annotation");
   }
 
   // Every function type parameter needs a type annotation even when the enclosing return annotation is valid.
@@ -1211,7 +1348,7 @@ namespace ink::semantic::test
     auto *Expression = AST.make<frontend::parser::FunctionTypeExpr>(Original->getSourceRange(), AST.copyArray<frontend::parser::FunctionTypeParameter>(Parameters), Original->returnType());
     AnalyzerState State(Context, Input, Output);
     Context.setSource(Input.Unit->input().lexedFile().sourceId());
-    EXPECT_DEATH(Analysis.analyzeExpr(State, *Expression), "INK-S0061.*invalid AST: FunctionTypeExpr parameter requires a type annotation");
+    EXPECT_DEATH(Analysis.emitValue(State, *Expression), "INK-S0061.*invalid AST: FunctionTypeExpr parameter requires a type annotation");
   }
 
   // Integer literals cannot initialize bool, float or pointer destinations through implicit numeric conversions.
@@ -1429,7 +1566,7 @@ namespace ink::semantic::test
     auto *Shadow = Output.createGlobalVariable(*Context.typePool().getUInt32Type());
     ASSERT_NE(Shadow, nullptr);
     ASSERT_EQ(State.nameResolver().bind(name("true"), *Shadow), BindResult::Inserted);
-    EXPECT_EQ(analyze(State, TrueInput), Shadow);
+    EXPECT_EQ(emitPlace(State, TrueInput), Shadow);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
     expectFailure(analyze(FalseInput, {.ExpectedType = Context.typePool().getInt32Type()}), core::DiagnosticKind::SemanticTypeMismatch);
   }
@@ -1489,7 +1626,7 @@ namespace ink::semantic::test
     expectFailure(analyze(State, Input, {.ExpectedType = Context.typePool().getUInt64Type()}), core::DiagnosticKind::SemanticTypeMismatch);
   }
 
-  // Global names preserve addressable storage and its initializer without emitting a load or changing the selected block.
+  // Global names preserve their place and initializer without changing the block, while emitting a global value remains unsupported.
   TEST_F(SemanticAnalyzerExprTest, PreservesGlobalStorageAndBuilderState)
   {
     auto Input = read("Written");
@@ -1507,16 +1644,22 @@ namespace ink::semantic::test
     ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
     auto *Return = State.irBuilder().createReturn();
     ASSERT_NE(Return, nullptr);
-    const auto *Result = analyze(State, Input, {.ExpectedType = Variable->type()});
+    const auto *Result = emitPlace(State, Input, {.ExpectedType = Variable->type()});
     ASSERT_NE(Result, nullptr);
     EXPECT_EQ(Result, Variable);
     EXPECT_EQ(Result->type(), Variable->type());
+    const auto *Found = State.nameResolver().lookupLocal(name("Written"));
+    ASSERT_NE(Found, nullptr);
+    EXPECT_TRUE(Result->isStorage());
     EXPECT_EQ(Variable->initializer(), Initializer);
     EXPECT_EQ(State.irBuilder().insertBlock(), Block);
     ASSERT_EQ(Block->instructionCount(), 1U);
     EXPECT_EQ(Block->instruction(0), Return);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
-    expectFailure(analyze(State, Input, {.ExpectedType = Context.typePool().getUInt64Type()}), core::DiagnosticKind::SemanticTypeMismatch);
+    EXPECT_DEATH(analyze(State, Input), "INK-S0012");
+    EXPECT_FALSE(emitPlace(State, Input, {.ExpectedType = Context.typePool().getUInt64Type()}));
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
     EXPECT_EQ(Variable->initializer(), Initializer);
     EXPECT_EQ(Block->instructionCount(), 1U);
   }
@@ -1536,7 +1679,7 @@ namespace ink::semantic::test
     EXPECT_EQ(analyze(State, Input), Outer);
     Resolver.enterScope();
     ASSERT_EQ(Resolver.bind(name("Output"), *Inner), BindResult::Inserted);
-    EXPECT_EQ(analyze(State, Input), Inner);
+    EXPECT_EQ(emitPlace(State, Input), Inner);
     ASSERT_TRUE(Resolver.exitScope());
     EXPECT_EQ(analyze(State, Input), Outer);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -1633,7 +1776,7 @@ namespace ink::semantic::test
     ASSERT_NE(Shadow, nullptr);
     AnalyzerState State(Context, Input, Output);
     ASSERT_EQ(State.nameResolver().bind(name("i32"), *Shadow), BindResult::Inserted);
-    const auto *Shadowed = analyze(State, Input);
+    const auto *Shadowed = emitPlace(State, Input);
     ASSERT_NE(Shadowed, nullptr);
     EXPECT_EQ(Shadowed, Shadow);
     EXPECT_EQ(Shadowed->type(), Context.typePool().getUInt32Type());
@@ -1724,7 +1867,7 @@ namespace ink::semantic::test
     ASSERT_NE(Variable, nullptr);
     AnalyzerState State(Context, Input, Output);
     ASSERT_EQ(State.nameResolver().bind(name("type"), *Variable), BindResult::Inserted);
-    EXPECT_EQ(analyze(State, Input), Variable);
+    EXPECT_EQ(emitPlace(State, Input), Variable);
     expectFailure(analyze(State, Input, {.ExpectedType = Context.typePool().getMetaType()}), core::DiagnosticKind::SemanticTypeMismatch);
   }
 
@@ -1767,10 +1910,10 @@ namespace ink::semantic::test
       SecondContext.setSource(Input.Unit->input().lexedFile().sourceId());
       AnalyzerState FirstState(FirstContext, Input, FirstOutput);
       AnalyzerState SecondState(SecondContext, Input, SecondOutput);
-      EXPECT_EQ(Analysis.analyzeExpr(FirstState, syntax(Input)).Value, Entry.First);
-      EXPECT_EQ(Analysis.analyzeExpr(SecondState, syntax(Input)).Value, Entry.Second);
-      EXPECT_EQ(Analysis.analyzeExpr(FirstState, syntax(Input)).Value, Entry.First);
-      EXPECT_EQ(Analysis.analyzeExpr(SecondState, syntax(Input)).Value, Entry.Second);
+      EXPECT_EQ(Analysis.emitValue(FirstState, syntax(Input)), Entry.First);
+      EXPECT_EQ(Analysis.emitValue(SecondState, syntax(Input)), Entry.Second);
+      EXPECT_EQ(Analysis.emitValue(FirstState, syntax(Input)), Entry.First);
+      EXPECT_EQ(Analysis.emitValue(SecondState, syntax(Input)), Entry.Second);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
     }
   }
@@ -1787,7 +1930,7 @@ namespace ink::semantic::test
     ASSERT_NE(Variable, nullptr);
     AnalyzerState State(Context, Storage, Output);
     ASSERT_EQ(State.nameResolver().bind(name("Written"), *Variable), BindResult::Inserted);
-    const auto *Result = analyze(State, Storage, {.ExpectedType = Variable->type()});
+    const auto *Result = emitPlace(State, Storage, {.ExpectedType = Variable->type()});
     ASSERT_NE(Result, nullptr);
     EXPECT_EQ(Result, Variable);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -1824,7 +1967,6 @@ namespace ink::semantic::test
         {"((Pkg)).T", Type, Context.typePool().getMetaType()},
         {"(Pkg.Nested)", &Nested, nullptr},
         {"(Pkg.T).Count", Constant, Constant->type()},
-        {"Pkg.Written", Variable, Variable->type()},
     };
     for (const auto &Entry : Cases)
     {
@@ -1837,6 +1979,109 @@ namespace ink::semantic::test
       EXPECT_EQ(Result->type(), Entry.Type);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
     }
+    auto StorageInput = read("((Pkg).Written)");
+    ASSERT_TRUE(StorageInput.succeeded());
+    AnalyzerState StorageState(Context, StorageInput, Output);
+    const auto *Storage = emitPlace(StorageState, StorageInput);
+    ASSERT_NE(Storage, nullptr);
+    EXPECT_EQ(Storage, Variable);
+    EXPECT_EQ(Storage->type(), Variable->type());
+    const auto *Found = StorageState.nameResolver().lookupMember(Package, name("Written"));
+    ASSERT_NE(Found, nullptr);
+    EXPECT_TRUE(Storage->isStorage());
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Module and type variable members preserve place identity and check initialization only when emitting a value.
+  TEST_F(SemanticAnalyzerExprTest, EmitsVariableMembersAsPlacesOrValues)
+  {
+    auto SetupInput = read("0");
+    ASSERT_TRUE(SetupInput.succeeded());
+    AnalyzerState SetupState(Context, SetupInput, Output);
+    auto *Block = createInsertBlock(SetupState);
+    ASSERT_NE(Block, nullptr);
+    ir::Module Package(Context.irContext());
+    auto *Type = Package.createClassType(4, 4);
+    ASSERT_NE(Type, nullptr);
+    const auto *DeclaredType = Context.typePool().getInt32Type();
+    auto *Storage = SetupState.irBuilder().createAlloca(*DeclaredType);
+    auto *PendingStorage = SetupState.irBuilder().createAlloca(*DeclaredType);
+    const auto *InitialValue = Output.constantPool().getSignedIntegerConstant(DeclaredType, 14);
+    ASSERT_NE(Storage, nullptr);
+    ASSERT_NE(PendingStorage, nullptr);
+    ASSERT_NE(InitialValue, nullptr);
+    ASSERT_NE(SetupState.irBuilder().createInitialize(*InitialValue, *Storage), nullptr);
+    auto &Resolver = SetupState.nameResolver();
+    ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
+    ASSERT_NE(Resolver.enterScope(Package), nullptr);
+    ASSERT_EQ(Resolver.bind(name("T"), *Type), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("Stored"), *Storage), BindResult::Inserted);
+    const auto *ModuleVariable = Resolver.lookupLocal(name("Stored"));
+    ASSERT_EQ(Resolver.bind(name("Pending"), *PendingStorage), BindResult::Inserted);
+    const auto *PendingVariable = Resolver.lookupLocal(name("Pending"));
+    ASSERT_NE(Resolver.enterScope(*Type), nullptr);
+    ASSERT_EQ(Resolver.bind(name("Stored"), *Storage), BindResult::Inserted);
+    const auto *TypeVariable = Resolver.lookupLocal(name("Stored"));
+    ASSERT_NE(ModuleVariable, nullptr);
+    ASSERT_NE(PendingVariable, nullptr);
+    ASSERT_NE(TypeVariable, nullptr);
+    ASSERT_TRUE(Resolver.exitScope());
+    ASSERT_TRUE(Resolver.exitScope());
+    struct Case
+    {
+        const char *Text;
+        const ir::Value *Storage;
+        const ir::Value *Owner;
+        const Binding *Variable;
+        bool Initialized;
+    };
+    const Case Cases[] = {
+        {"Pkg.Stored", Storage, &Package, ModuleVariable, true},
+        {"((Pkg)).Stored", Storage, &Package, ModuleVariable, true},
+        {"((Pkg.T).Stored)", Storage, Type, TypeVariable, true},
+        {"((Pkg.Pending))", PendingStorage, &Package, PendingVariable, false},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+      const auto InstructionCount = Block->instructionCount();
+      Context.setSource(Input.Unit->input().lexedFile().sourceId());
+      EXPECT_EQ(Analysis.analyzeExpr(State, syntax(Input)), Entry.Storage);
+      const auto *Address = emitPlace(State, Input);
+      ASSERT_NE(Address, nullptr);
+      EXPECT_EQ(Address, Entry.Storage);
+      EXPECT_EQ(Address->type(), Entry.Storage->type());
+      const auto *Found = State.nameResolver().lookupMember(*Entry.Owner, Entry.Variable->name());
+      ASSERT_EQ(Found, Entry.Variable);
+      EXPECT_EQ(Address->type(), DeclaredType);
+      EXPECT_TRUE(Address->isStorage());
+      EXPECT_TRUE(Address->isMutable());
+      EXPECT_EQ(Address->isInitialized(), Entry.Initialized);
+      EXPECT_EQ(Block->instructionCount(), InstructionCount);
+      const auto *Result = analyze(State, Input);
+      if (Entry.Initialized)
+      {
+        ASSERT_NE(Result, nullptr);
+        ASSERT_TRUE(ir::LoadInstruction::classof(Result));
+        EXPECT_EQ(Result->type(), DeclaredType);
+        EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Result)->pointer(), Entry.Storage);
+        EXPECT_EQ(Block->instructionCount(), InstructionCount + 1);
+        EXPECT_TRUE(Diagnostics.diagnostics().empty());
+      }
+      else
+      {
+        expectFailure(Result, core::DiagnosticKind::SemanticUninitializedRead);
+        EXPECT_EQ(Block->instructionCount(), InstructionCount);
+      }
+    }
+    Context.scopeStore().removeTarget(*Storage);
+    Context.scopeStore().removeTarget(*PendingStorage);
+    Context.scopeStore().removeTarget(*Type);
+    Context.scopeStore().removeTarget(Package);
   }
 
   // Failed member lookup reports one unknown-name diagnostic and never falls back to an outer lexical binding.
@@ -1980,7 +2225,7 @@ namespace ink::semantic::test
     ASSERT_NE(Shared, nullptr);
     AnalyzerState State(Context, Input, Output);
     ASSERT_EQ(State.nameResolver().bind(name("Target"), *Shared), BindResult::Inserted);
-    EXPECT_EQ(analyze(State, Input), Shared);
+    EXPECT_EQ(emitPlace(State, Input), Shared);
     auto *ForeignStorage = Foreign.createGlobalVariable(*Foreign.typePool().getUInt32Type());
     auto *ForeignFunction = Foreign.createGlobalFunction(*Foreign.typePool().getFunctionType(Foreign.typePool().getVoidType()));
     auto *ForeignType = Foreign.createClassType(4, 4);

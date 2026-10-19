@@ -31,6 +31,13 @@ namespace ink::ir
       // Returns a borrowed recorded type, or nullptr for an untyped value. Does not convert or validate the value.
       // Modules and basic blocks use the default nullptr result; type descriptors report their metatype and functions their full signature.
       virtual const Type *type() const noexcept;
+      // Storage has the stored object's type; reading its contents or taking its address requires an explicit operation.
+      virtual bool isStorage() const noexcept;
+      // Describes whether assignment through this storage is permitted, not whether a pointer's pointee is writable.
+      virtual bool isMutable() const noexcept;
+      // Storage may record declaration initialization; ordinary values are already initialized.
+      // This query does not establish definite initialization along control-flow paths.
+      virtual bool isInitialized() const noexcept;
       // Returns a short diagnostic description of this object, not its type or a complete IR dump.
       // The default implementation returns the value kind name.
       virtual std::string toString() const;

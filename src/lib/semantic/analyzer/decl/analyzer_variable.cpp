@@ -37,24 +37,24 @@ namespace ink::semantic
       CHECK_HAS_LAYOUT(Context, Node.type()->getSourceRange(), Type, "a variable type with runtime layout", false);
     }
     RETURN_REPORT_IF(Context, !Type && !Node.initializer(), core::DiagnosticKind::SemanticMissingVariableType, false, Node.getSourceRange());
-    ExprResult Initializer;
+    const ir::Value *Initializer = nullptr;
     if (Node.initializer())
     {
       // The new name becomes visible only after its initializer succeeds; outer bindings remain visible here.
-      Initializer = toRValue(State, Node.initializer()->getSourceRange(), analyzeExpr(State, *Node.initializer(), {.ExpectedType = Type}));
+      Initializer = requireRuntimeValue(Context, Node.initializer()->getSourceRange(), emitValue(State, *Node.initializer(), {.ExpectedType = Type}));
       RETURN_IF(!Initializer, false);
       if (!Type)
       {
-        Type = Initializer.Type;
+        Type = Initializer->type();
       }
     }
-    // TODO: Represent zero-sized unit bindings without dereferencing an opaque *void address.
+    // TODO: Represent zero-sized unit bindings without allocating runtime storage.
     UNSUPPORT_IF(State, ir::VoidType::classof(Type), false, Node.getSourceRange(), "unit variable storage");
-    ir::AllocaInstruction *Storage = Builder.createAlloca(*Type);
+    ir::AllocaInstruction *Storage = Builder.createAlloca(*Type, !Node.constant());
     RETURN_REPORT_IF_FALSE(Context, Storage, core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
-    RETURN_REPORT_IF(Context, Initializer && !Builder.createStore(*Initializer.Value, *Storage), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
-    RETURN_REPORT_IF(Context, Resolver.bindVariable(Name, *Storage, *Type, !Node.constant()) != BindResult::Inserted, core::DiagnosticKind::SemanticConstructionFailed, false, NameToken.Range);
-    State.InitializationStates.emplace(Resolver.lookupLocal(Name), Initializer ? InitializationState::Initialized : InitializationState::Uninitialized);
+    Storage->setName(Name);
+    RETURN_REPORT_IF(Context, Initializer && !Builder.createInitialize(*Initializer, *Storage), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
+    RETURN_REPORT_IF(Context, Resolver.bind(Name, *Storage) != BindResult::Inserted, core::DiagnosticKind::SemanticConstructionFailed, false, NameToken.Range);
     return true;
   }
 } // namespace ink::semantic

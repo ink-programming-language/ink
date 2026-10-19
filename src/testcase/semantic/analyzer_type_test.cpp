@@ -288,15 +288,15 @@ namespace ink::semantic::test
       ASSERT_TRUE(Input.succeeded());
       AnalyzerState State(Context, Input, Output);
       Context.setSource(Input.Unit->input().lexedFile().sourceId());
-      const auto *Result = Analysis.analyzeExpr(State, *syntax(Input).expression()).Value;
+      const auto *Result = Analysis.emitValue(State, *syntax(Input).expression());
       ASSERT_NE(Result, nullptr);
       EXPECT_EQ(Result, Entry.Expected);
       EXPECT_EQ(Result->type(), Types.getMetaType());
-      EXPECT_EQ(Analysis.analyzeExpr(State, *syntax(Input).expression(), {.ExpectedType = Types.getMetaType()}).Value, Entry.Expected);
+      EXPECT_EQ(Analysis.emitValue(State, *syntax(Input).expression(), {.ExpectedType = Types.getMetaType()}), Entry.Expected);
       EXPECT_EQ(analyze(State, Input), Entry.Expected);
       EXPECT_EQ(State.recursionDepth(), 0U);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
-      EXPECT_FALSE(Analysis.analyzeExpr(State, *syntax(Input).expression(), {.ExpectedType = Types.getInt32Type()}));
+      EXPECT_FALSE(Analysis.emitValue(State, *syntax(Input).expression(), {.ExpectedType = Types.getInt32Type()}));
       ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
       EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
     }
@@ -320,7 +320,7 @@ namespace ink::semantic::test
       ASSERT_TRUE(Input.succeeded());
       AnalyzerState State(Context, Input, Output);
       Context.setSource(Input.Unit->input().lexedFile().sourceId());
-      ASSERT_TRUE(Analysis.analyzeExpr(State, *syntax(Input).expression()));
+      ASSERT_TRUE(Analysis.emitValue(State, *syntax(Input).expression()));
       EXPECT_EQ(analyze(State, Input), nullptr);
       ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
       EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
@@ -395,7 +395,7 @@ namespace ink::semantic::test
     Diagnostics.clear();
     AnalyzerState BuiltinState(Context, BuiltinInput, Output);
     ASSERT_EQ(BuiltinState.nameResolver().bindOverload(name("i32"), *Function), BindResult::Inserted);
-    EXPECT_EQ(Analysis.analyzeExpr(BuiltinState, *syntax(BuiltinInput).expression()).Value, Function);
+    EXPECT_EQ(Analysis.emitValue(BuiltinState, *syntax(BuiltinInput).expression()), Function);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
     EXPECT_EQ(analyze(BuiltinState, BuiltinInput), nullptr);
     ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
@@ -771,7 +771,7 @@ namespace ink::semantic::test
         EXPECT_EQ(analyze(State, Input), Types.getArrayType(Types.getUInt8Type(), Entry.Count));
         const auto *Array = frontend::parser::cast<frontend::parser::ArrayRepeatExpr>(syntax(Input).expression());
         ASSERT_NE(Array, nullptr);
-        EXPECT_EQ(Analysis.analyzeExpr(State, *Array->count(), {.DefaultIntegerLiteralType = Types.getUInt64Type()}).Value, Entry.Constant);
+        EXPECT_EQ(Analysis.emitValue(State, *Array->count(), {.DefaultIntegerLiteralType = Types.getUInt64Type()}), Entry.Constant);
         EXPECT_TRUE(Diagnostics.diagnostics().empty());
         EXPECT_EQ(State.recursionDepth(), 0U);
       }

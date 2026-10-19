@@ -1,8 +1,6 @@
 #ifndef INK_SEMANTIC_ANALYZER_ANALYZER_H
 #define INK_SEMANTIC_ANALYZER_ANALYZER_H
 
-#include "ink/semantic/analyzer/expr_result.h"
-
 #include <string_view>
 
 namespace ink::core
@@ -62,21 +60,32 @@ namespace ink::semantic
       // Unimplemented expressions and nesting limits use the existing ICE policy.
       const ir::Type *analyzeType(AnalyzerState &State, const frontend::parser::TypeSyntax &Node);
 
-      // Analyzes an expression in State's current scope, with the same input/source preconditions as analyzeType().
+      // Shared expression analysis returns the borrowed IR object without reading a final variable reference.
+      // A variable name yields its storage target; other expressions yield a value, type or module descriptor.
+      // Uses the same preconditions and contextual typing hints as emitValue(); failure returns nullptr.
+      const ir::Value *analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
+
+      // Emits an expression's value in State's current scope, with the same input/source preconditions as analyzeType().
       // Non-null hint types must belong to the current IR context; violations report SemanticConstructionFailed ICE.
       // Hints.ExpectedType is optional; integer literals default to i32,
       // floating literals to f64 and character literals to u32. Strings retain their decoded [u8; byteCount] type.
       // A non-null target materializes literals in that type and checks other values without implicit numeric conversions.
       // Call arguments, return values and variable initializers supply their declared target types.
-      // Returns an explicit rvalue, lvalue, type or module result without loading lvalue storage.
-      // Lvalue Type describes the stored object; consumers use toRValue() to read its contents.
+      // Variable references check initialization and emit a load; ordinary pointer values pass through unchanged.
+      // Type and module expressions return their IR descriptors; consumers validate their suitability for the position.
       // Hints.DefaultIntegerLiteralType changes only uncontextualized integer literals and must belong to the current IR context.
       // Parentheses and numeric negation preserve both type hints; other nested operands select their own hints.
       // Hints.IsCallCallee marks the final callee binding and propagates only through parentheses.
       // Consumers validate the returned value's suitability for their position; names report SemanticUnknownName uniformly.
       // Runtime layout is required by individual consumers, not by the presence of an expected-type hint.
-      // Failure returns an empty result after a diagnostic; unimplemented expressions, nesting and comptime use the existing ICE policy.
-      ExprResult analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
+      // Failure returns nullptr after a diagnostic; unimplemented expressions, nesting and comptime use the existing ICE policy.
+      const ir::Value *emitValue(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
+
+      // Resolves an addressable expression with the same preconditions and hints as emitValue().
+      // Returns the existing storage value without reading its contents or requiring initialization.
+      // Ordinary values and type/module descriptors report SemanticTypeMismatch; failure returns nullptr.
+      // Existing global storage descriptors are preserved, although runtime global reads remain unsupported.
+      const ir::Value *emitPlace(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
 
     private:
       bool analyzeStmt(AnalyzerState &State, const frontend::parser::Stmt &Stmt);
@@ -84,17 +93,16 @@ namespace ink::semantic
       bool reportUnsupported(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node);
       bool reportUnsupported(AnalyzerState &State, core::SourceRange Range, std::string_view Description);
 
-      // Converts an lvalue to an rvalue, checking initialization and emitting one load; rvalues pass through.
-      ExprResult toRValue(AnalyzerState &State, core::SourceRange Range, ExprResult Result);
-      ExprResult analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found, bool IsCallCallee = false);
-      ExprResult analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee = false);
-      ExprResult analyzeLiteralExpr(AnalyzerState &State, const frontend::parser::LiteralExpr &Node, ExprHints Hints);
-      ExprResult analyzeParenExpr(AnalyzerState &State, const frontend::parser::ParenExpr &Node, ExprHints Hints);
-      ExprResult analyzeMemberExpr(AnalyzerState &State, const frontend::parser::MemberExpr &Node, bool IsCallCallee = false);
-      ExprResult analyzeCallExpr(AnalyzerState &State, const frontend::parser::CallExpr &Node);
-      ExprResult analyzeUnaryExpr(AnalyzerState &State, const frontend::parser::UnaryExpr &Node, ExprHints Hints);
-      ExprResult analyzeArrayRepeatExpr(AnalyzerState &State, const frontend::parser::ArrayRepeatExpr &Node);
-      ExprResult analyzeFunctionTypeExpr(AnalyzerState &State, const frontend::parser::FunctionTypeExpr &Node);
+      const ir::Value *loadStorage(AnalyzerState &State, core::SourceRange Range, const ir::Value &Storage);
+      const ir::Value *analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found, bool IsCallCallee = false);
+      const ir::Value *analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee = false);
+      const ir::Value *analyzeLiteralExpr(AnalyzerState &State, const frontend::parser::LiteralExpr &Node, ExprHints Hints);
+      const ir::Value *analyzeParenExpr(AnalyzerState &State, const frontend::parser::ParenExpr &Node, ExprHints Hints);
+      const ir::Value *analyzeMemberExpr(AnalyzerState &State, const frontend::parser::MemberExpr &Node, bool IsCallCallee = false);
+      const ir::Value *analyzeCallExpr(AnalyzerState &State, const frontend::parser::CallExpr &Node);
+      const ir::Value *analyzeUnaryExpr(AnalyzerState &State, const frontend::parser::UnaryExpr &Node, ExprHints Hints);
+      const ir::Value *analyzeArrayRepeatExpr(AnalyzerState &State, const frontend::parser::ArrayRepeatExpr &Node);
+      const ir::Value *analyzeFunctionTypeExpr(AnalyzerState &State, const frontend::parser::FunctionTypeExpr &Node);
 
       // Keep handlers explicit so new AST statements and declarations require a deliberate implementation.
       bool analyzeMissingStmt(AnalyzerState &State, const frontend::parser::MissingStmt &Node);

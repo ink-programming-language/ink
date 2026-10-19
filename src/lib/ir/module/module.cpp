@@ -141,13 +141,13 @@ namespace ink::ir
     return GlobalVariables.size();
   }
 
-  GlobalVariable *Module::createGlobalVariable(const Type &VariableType, core::Name VariableName)
+  GlobalVariable *Module::createGlobalVariable(const Type &VariableType, core::Name VariableName, bool Mutable)
   {
     if (!ownsType(&VariableType) || !VariableType.hasLayout())
     {
       return nullptr;
     }
-    return appendGlobalVariable(std::make_unique<GlobalVariable>(VariableType, VariableName));
+    return appendGlobalVariable(std::make_unique<GlobalVariable>(VariableType, VariableName, Mutable));
   }
 
   GlobalVariable *Module::appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable)
