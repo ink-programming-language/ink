@@ -225,6 +225,22 @@ file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/functions.ink" CONTENT "func identi
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/functions.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_result("Function definitions" "0" "")
 
+# String constants convert to read-only byte pointers in calls, returns and local initializers without changing CLI output.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/string-pointer.ink" CONTENT "import \"C\" func consume(Message: *const u8): i32; func text(): *const u8 { return \"hello\"; } func main(): i32 { const Message: *const u8 = \"hello\"; consume(Message); consume(text()); return consume((\"hello\")); }" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/string-pointer.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Implicit string pointer conversion" "0" "")
+
+# String pointer conversion does not expose writable storage and retains the literal's source range in its diagnostic.
+set(MutableStringSource "import \"C\" func consume(Message: *u8): i32;\nfunc main(): i32 { return consume(\"hello\"); }")
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/mutable-string-pointer.ink" CONTENT "${MutableStringSource}" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/mutable-string-pointer.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "1" OR Error MATCHES "internal compiler error")
+  message(FATAL_ERROR "Writable string pointers must fail with a user diagnostic: ${Status}: ${Error}")
+endif()
+string(FIND "${MutableStringSource}" "\"hello\"" StringStart)
+math(EXPR StringEnd "${StringStart} + 7")
+expect_source_diagnostic("Writable string pointer" "mutable-string-pointer.ink:2:35:" "error[INK-S0004]" "[bytes ${StringStart}, ${StringEnd})" "func main(): i32 { return consume(\"hello\"); }")
+
 # Incorrect call arity is a recoverable user diagnostic with the call expression's source range.
 set(CallAritySource "func identity(Value: i32): i32 { return Value; }\nfunc main(): i32 { return identity(); }")
 file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/call-arity.ink" CONTENT "${CallAritySource}" NEWLINE_STYLE LF)

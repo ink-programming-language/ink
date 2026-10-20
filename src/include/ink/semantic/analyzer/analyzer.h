@@ -68,7 +68,9 @@ namespace ink::semantic
       // Emits an expression's value in State's current scope, with the same input/source preconditions as analyzeType().
       // Non-null hint types must belong to the current IR context; violations report SemanticConstructionFailed ICE.
       // Hints.ExpectedType is optional; integer literals default to i32,
-      // floating literals to f64 and character literals to u32. Strings retain their decoded [u8; byteCount] type.
+      // floating literals to f64 and character literals to u32. Uncontextualized strings retain their decoded [u8; byteCount] type.
+      // A *const u8 target materializes StringConstant content in module-owned read-only storage and emits its data address.
+      // This conversion requires a live insertion block, adds no NUL terminator and does not apply to ordinary array storage.
       // A non-null target materializes literals in that type and checks other values without implicit numeric conversions.
       // Call arguments, return values and variable initializers supply their declared target types.
       // Variable references check initialization and emit a load; ordinary pointer values pass through unchanged.
@@ -88,6 +90,7 @@ namespace ink::semantic
       bool reportUnsupported(AnalyzerState &State, core::SourceRange Range, std::string_view Description);
 
       const ir::Value *loadStorage(AnalyzerState &State, core::SourceRange Range, const ir::Value &Storage);
+      const ir::Value *convertToExpectedType(AnalyzerState &State, core::SourceRange Range, const ir::Value &Value, const ir::Type &ExpectedType);
       const ir::Value *analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found, bool IsCallCallee = false);
       const ir::Value *analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee = false);
       const ir::Value *analyzeLiteralExpr(AnalyzerState &State, const frontend::parser::LiteralExpr &Node, ExprHints Hints);

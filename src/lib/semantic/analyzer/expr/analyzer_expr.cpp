@@ -60,17 +60,6 @@ namespace ink::semantic
         return nullptr;
     }
     RETURN_IF(!Result || !ExpectedType, Result);
-    const bool Storage = Result->isStorage();
-    if (ir::MetaType::classof(ExpectedType))
-    {
-      RETURN_REPORT_IF(Context, Storage, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), "a type", "variable storage");
-      return requireType(Context, Node.getSourceRange(), Result);
-    }
-    RETURN_IF(!Storage && !requireRuntimeValue(Context, Node.getSourceRange(), Result), nullptr);
-    // Value compatibility drops only the object's top-level qualifier; pointee and element qualifiers remain part of the type.
-    const ir::Type *Type = Result->type();
-    const bool Compatible = !Storage && ir::Constant::classof(Result) ? static_cast<const ir::Constant *>(Result)->canInitialize(ExpectedType) : Type->unqualifiedType() == ExpectedType->unqualifiedType();
-    RETURN_REPORT_IF_FALSE(Context, Compatible, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), ExpectedType->toString(), Type->toString());
-    return Result;
+    return convertToExpectedType(State, Node.getSourceRange(), *Result, *ExpectedType);
   }
 } // namespace ink::semantic

@@ -4,7 +4,9 @@
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/name/name_pool.h"
 #include "ink/frontend/parser/parser.h"
+#include "ink/ir/instruction/address_of_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
+#include "ink/ir/instruction/getelementptr_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/module/module.h"
 #include "ink/semantic/context.h"
@@ -218,6 +220,56 @@ namespace ink::semantic::test
     EXPECT_EQ(Call->functionType(), External->functionType());
     ASSERT_NE(returned(*Main), nullptr);
     EXPECT_EQ(returned(*Main)->returnedValue(), Call);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Native call arguments and return expressions share read-only string storage while each function owns its address instructions.
+  TEST_F(SemanticCallTest, ConvertsStringArgumentsAndReturnsWithSharedStorage)
+  {
+    auto Input = read("import \"C\" func consume(Value: *const u8): i32; func first(): i32 { return consume(((\"abc\"))); } func second(): *const u8 { return \"abc\"; }");
+    ASSERT_TRUE(Input.succeeded());
+    ASSERT_TRUE(analyze(Input));
+    const auto *First = function("first");
+    const auto *Second = function("second");
+    ASSERT_NE(First, nullptr);
+    ASSERT_NE(Second, nullptr);
+    ASSERT_EQ(Output.globalVariableCount(), 1U);
+    const auto *Storage = Output.globalVariable(0);
+    ASSERT_NE(Storage, nullptr);
+    EXPECT_FALSE(Storage->isMutable());
+    EXPECT_EQ(Storage->initializer(), Output.constantPool().getStringConstant("abc"));
+    ASSERT_EQ(First->entryBlock()->instructionCount(), 4U);
+    ASSERT_EQ(Second->entryBlock()->instructionCount(), 3U);
+    const auto *Call = call(*First, 2);
+    ASSERT_NE(Call, nullptr);
+    EXPECT_EQ(Call->directCallee(), function("consume"));
+    ASSERT_EQ(Call->argumentCount(), 1U);
+    ASSERT_NE(returned(*First), nullptr);
+    EXPECT_EQ(returned(*First)->returnedValue(), Call);
+    ASSERT_NE(returned(*Second), nullptr);
+    struct Case
+    {
+        const ir::Function *Function;
+        const ir::Value *Value;
+    };
+    const Case Cases[] = {
+        {First, Call->argument(0)->value()},
+        {Second, returned(*Second)->returnedValue()},
+    };
+    for (const auto &Entry : Cases)
+    {
+      ASSERT_TRUE(ir::GetElementPtrInstruction::classof(Entry.Value));
+      const auto *ElementAddress = static_cast<const ir::GetElementPtrInstruction *>(Entry.Value);
+      EXPECT_EQ(ElementAddress->type(), Context.typePool().getPointerType(Context.typePool().getUInt8Type(false)));
+      EXPECT_EQ(ElementAddress->parentBlock(), Entry.Function->entryBlock());
+      ASSERT_TRUE(ir::AddressOfInstruction::classof(ElementAddress->pointer()));
+      const auto *ArrayAddress = static_cast<const ir::AddressOfInstruction *>(ElementAddress->pointer());
+      EXPECT_EQ(ArrayAddress->storage(), Storage);
+      EXPECT_EQ(ArrayAddress->parentBlock(), Entry.Function->entryBlock());
+      EXPECT_EQ(Entry.Function->entryBlock()->instruction(0), ArrayAddress);
+      EXPECT_EQ(Entry.Function->entryBlock()->instruction(1), ElementAddress);
+    }
+    EXPECT_NE(Call->argument(0)->value(), returned(*Second)->returnedValue());
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 

@@ -261,4 +261,114 @@ namespace ink::ir::test
     EXPECT_FALSE(Constants.owns(Foreign));
     EXPECT_FALSE(OtherTypes.constantPool().owns(Text));
   }
+
+  // Equal pooled contents reuse one initialized read-only global while different contents receive independent storage.
+  TEST(IRStringTest, ReusesReadOnlyStringStorage)
+  {
+    IRContext Context(Target64);
+    Module Owner(Context);
+    const auto First = Context.constantPool().getStringConstant("first");
+    const auto Repeated = Context.constantPool().getStringConstant(std::string("first"));
+    const auto Other = Context.constantPool().getStringConstant("other");
+    ASSERT_NE(First, nullptr);
+    ASSERT_NE(Repeated, nullptr);
+    ASSERT_NE(Other, nullptr);
+    ASSERT_EQ(First, Repeated);
+
+    const auto FirstStorage = Owner.getOrCreateStringStorage(*First);
+    ASSERT_NE(FirstStorage, nullptr);
+    EXPECT_EQ(Owner.getOrCreateStringStorage(*Repeated), FirstStorage);
+    EXPECT_EQ(Owner.globalVariableCount(), 1U);
+    EXPECT_TRUE(Owner.owns(FirstStorage));
+    EXPECT_TRUE(FirstStorage->isStorage());
+    EXPECT_TRUE(FirstStorage->isInitialized());
+    EXPECT_FALSE(FirstStorage->isMutable());
+    EXPECT_FALSE(FirstStorage->hasName());
+    EXPECT_EQ(FirstStorage->type(), Context.typePool().getQualifiedType(First->type(), false));
+    EXPECT_EQ(FirstStorage->initializer(), First);
+
+    const auto OtherStorage = Owner.getOrCreateStringStorage(*Other);
+    ASSERT_NE(OtherStorage, nullptr);
+    EXPECT_NE(OtherStorage, FirstStorage);
+    EXPECT_EQ(OtherStorage->initializer(), Other);
+    EXPECT_EQ(OtherStorage->type(), FirstStorage->type());
+    EXPECT_EQ(Owner.getOrCreateStringStorage(*First), FirstStorage);
+    EXPECT_EQ(Owner.globalVariableCount(), 2U);
+  }
+
+  // Modules borrowing one context share string contents but own separate globals for the same pooled constant.
+  TEST(IRStringTest, KeepsStringStorageLocalToEachModule)
+  {
+    IRContext Context(Target64);
+    Module FirstOwner(Context);
+    Module SecondOwner(Context);
+    const auto Text = Context.constantPool().getStringConstant("shared");
+    ASSERT_NE(Text, nullptr);
+    const auto FirstStorage = FirstOwner.getOrCreateStringStorage(*Text);
+    const auto SecondStorage = SecondOwner.getOrCreateStringStorage(*Text);
+    ASSERT_NE(FirstStorage, nullptr);
+    ASSERT_NE(SecondStorage, nullptr);
+    EXPECT_NE(FirstStorage, SecondStorage);
+    EXPECT_EQ(FirstStorage->initializer(), Text);
+    EXPECT_EQ(SecondStorage->initializer(), Text);
+    EXPECT_TRUE(FirstOwner.owns(FirstStorage));
+    EXPECT_FALSE(FirstOwner.owns(SecondStorage));
+    EXPECT_TRUE(SecondOwner.owns(SecondStorage));
+    EXPECT_FALSE(SecondOwner.owns(FirstStorage));
+    EXPECT_EQ(FirstOwner.getOrCreateStringStorage(*Text), FirstStorage);
+    EXPECT_EQ(SecondOwner.getOrCreateStringStorage(*Text), SecondStorage);
+    EXPECT_EQ(FirstOwner.globalVariableCount(), 1U);
+    EXPECT_EQ(SecondOwner.globalVariableCount(), 1U);
+  }
+
+  // Foreign-context strings are rejected even with equal bytes, preserving existing globals and the local cache.
+  TEST(IRStringTest, RejectsForeignStringStorageWithoutSideEffects)
+  {
+    IRContext Context(Target64);
+    IRContext OtherContext(Target64);
+    Module Owner(Context);
+    const auto LocalText = Context.constantPool().getStringConstant("same");
+    const auto ForeignText = OtherContext.constantPool().getStringConstant("same");
+    ASSERT_NE(LocalText, nullptr);
+    ASSERT_NE(ForeignText, nullptr);
+    EXPECT_EQ(Owner.getOrCreateStringStorage(*ForeignText), nullptr);
+    EXPECT_EQ(Owner.globalVariableCount(), 0U);
+
+    const auto LocalStorage = Owner.getOrCreateStringStorage(*LocalText);
+    ASSERT_NE(LocalStorage, nullptr);
+    EXPECT_EQ(Owner.getOrCreateStringStorage(*ForeignText), nullptr);
+    EXPECT_EQ(Owner.globalVariableCount(), 1U);
+    EXPECT_EQ(Owner.globalVariable(0), LocalStorage);
+    EXPECT_EQ(LocalStorage->initializer(), LocalText);
+    EXPECT_EQ(Owner.getOrCreateStringStorage(*LocalText), LocalStorage);
+  }
+
+  // Materialized string storage retains empty arrays, embedded NUL and multibyte UTF-8 without adding a terminator.
+  TEST(IRStringTest, StringStoragePreservesExactByteLength)
+  {
+    IRContext Context(Target64);
+    Module Owner(Context);
+    const std::string_view Contents[] = {
+        "",
+        std::string_view("a\0b", 3),
+        "\xE4\xB8\xAD",
+    };
+    for (const std::string_view Expected : Contents)
+    {
+      const auto Text = Context.constantPool().getStringConstant(std::string(Expected));
+      ASSERT_NE(Text, nullptr);
+      const auto Storage = Owner.getOrCreateStringStorage(*Text);
+      ASSERT_NE(Storage, nullptr);
+      EXPECT_EQ(Storage->initializer(), Text);
+      EXPECT_FALSE(Storage->isMutable());
+      ASSERT_TRUE(ArrayType::classof(Storage->type()));
+      const auto Array = static_cast<const ArrayType *>(Storage->type());
+      EXPECT_EQ(Array->elementCount(), Expected.size());
+      EXPECT_EQ(Array->size(), Expected.size());
+      EXPECT_EQ(Array->alignment(), 1U);
+      EXPECT_EQ(Text->value(), Expected);
+      EXPECT_EQ(Text->byteLength(), Expected.size());
+    }
+    EXPECT_EQ(Owner.globalVariableCount(), std::size(Contents));
+  }
 } // namespace ink::ir::test

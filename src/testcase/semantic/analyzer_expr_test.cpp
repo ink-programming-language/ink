@@ -7,7 +7,9 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/core/support/core_define.h"
 #include "ink/frontend/parser/parser.h"
+#include "ink/ir/instruction/address_of_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
+#include "ink/ir/instruction/getelementptr_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/neg_instruction.h"
 #include "ink/ir/module/module.h"
@@ -1491,6 +1493,7 @@ namespace ink::semantic::test
       EXPECT_EQ(String->byteLength(), Entry.ByteCount);
       EXPECT_EQ(Result->type(), Context.typePool().getArrayType(Context.typePool().getUInt8Type(), Entry.ByteCount));
       EXPECT_EQ(Result, Output.constantPool().getStringConstant(Entry.Bytes));
+      EXPECT_EQ(Output.globalVariableCount(), 0U);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
     }
   }
@@ -1514,7 +1517,7 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // String destinations must match the decoded byte array exactly; pointer decay and mismatched element counts are rejected.
+  // Array destinations must match the decoded bytes exactly, and strings cannot become writable or differently typed pointers.
   TEST_F(SemanticAnalyzerExprTest, ChecksExpectedStringArrayType)
   {
     auto Input = read("\"ab\"");
@@ -1530,6 +1533,8 @@ namespace ink::semantic::test
         {Types.getArrayType(Types.getUInt8Type(), 3), "expected [u8; 3], got [u8; 2]"},
         {Types.getArrayType(Types.getInt32Type(), 2), "expected [i32; 2], got [u8; 2]"},
         {Types.getPointerType(Types.getUInt8Type()), "expected *u8, got [u8; 2]"},
+        {Types.getPointerType(Types.getInt8Type(false)), "expected *const i8, got [u8; 2]"},
+        {Types.getPointerType(Types.getUInt32Type(false)), "expected *const u32, got [u8; 2]"},
     };
     for (const auto &Entry : Cases)
     {
@@ -1537,7 +1542,104 @@ namespace ink::semantic::test
       Diagnostics.clear();
       expectFailure(analyze(Input, {.ExpectedType = Entry.ExpectedType}), core::DiagnosticKind::SemanticTypeMismatch);
       expectMessage(Entry.Message);
+      EXPECT_EQ(Output.globalVariableCount(), 0U);
     }
+  }
+
+  // Read-only byte pointer contexts materialize exact string bytes once, including empty strings, embedded NUL and nested parentheses.
+  TEST_F(SemanticAnalyzerExprTest, ConvertsStringConstantsToReadOnlyBytePointers)
+  {
+    struct Case
+    {
+        const char *Text;
+        std::string Bytes;
+    };
+    const Case Cases[] = {
+        {"\"abc\"", "abc"},
+        {"(((\"a\\0b\")))", std::string("a\0b", 3)},
+        {"\"\"", ""},
+    };
+    auto &Types = Context.typePool();
+    const auto *PointerType = Types.getPointerType(Types.getUInt8Type(false));
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      AnalyzerState State(Context, Input, Output);
+      auto *Block = createInsertBlock(State);
+      ASSERT_NE(Block, nullptr);
+      const auto GlobalsBefore = Output.globalVariableCount();
+      const auto *Result = analyzeExpr(State, Input, {.ExpectedType = PointerType});
+      ASSERT_NE(Result, nullptr);
+      EXPECT_EQ(Result->type(), PointerType);
+      EXPECT_FALSE(Result->isStorage());
+      ASSERT_TRUE(ir::GetElementPtrInstruction::classof(Result));
+      const auto *ElementAddress = static_cast<const ir::GetElementPtrInstruction *>(Result);
+      ASSERT_TRUE(ir::AddressOfInstruction::classof(ElementAddress->pointer()));
+      const auto *ArrayAddress = static_cast<const ir::AddressOfInstruction *>(ElementAddress->pointer());
+      ASSERT_TRUE(ir::GlobalVariable::classof(ArrayAddress->storage()));
+      const auto *Storage = static_cast<const ir::GlobalVariable *>(ArrayAddress->storage());
+      EXPECT_EQ(Output.globalVariableCount(), GlobalsBefore + 1);
+      EXPECT_EQ(Output.globalVariable(GlobalsBefore), Storage);
+      EXPECT_FALSE(Storage->isMutable());
+      EXPECT_TRUE(Storage->isInitialized());
+      EXPECT_EQ(Storage->type(), Types.getArrayType(Types.getUInt8Type(), Entry.Bytes.size(), false));
+      EXPECT_EQ(Storage->initializer(), Output.constantPool().getStringConstant(Entry.Bytes));
+      EXPECT_EQ(ElementAddress->sourceElementType(), Storage->type());
+      ASSERT_EQ(ElementAddress->indexCount(), 2U);
+      for (const auto *Index : ElementAddress->indices())
+      {
+        ASSERT_TRUE(ir::IntegerConstant::classof(Index));
+        EXPECT_EQ(static_cast<const ir::IntegerConstant *>(Index)->bits(), 0U);
+      }
+      EXPECT_EQ(ArrayAddress->parentBlock(), Block);
+      EXPECT_EQ(ElementAddress->parentBlock(), Block);
+      ASSERT_EQ(Block->instructionCount(), 2U);
+      EXPECT_EQ(Block->instruction(0), ArrayAddress);
+      EXPECT_EQ(Block->instruction(1), ElementAddress);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+  }
+
+  // An initialized array variable remains storage and cannot acquire implicit string-constant pointer conversion.
+  TEST_F(SemanticAnalyzerExprTest, RejectsImplicitStringPointersFromArrayStorage)
+  {
+    auto Input = read("((Stored))");
+    ASSERT_TRUE(Input.succeeded());
+    auto &Types = Context.typePool();
+    const auto *InitialValue = Output.constantPool().getStringConstant("abc");
+    ASSERT_NE(InitialValue, nullptr);
+    for (bool Mutable : {true, false})
+    {
+      SCOPED_TRACE(Mutable);
+      Diagnostics.clear();
+      AnalyzerState State(Context, Input, Output);
+      auto *Block = createInsertBlock(State);
+      ASSERT_NE(Block, nullptr);
+      auto *Storage = State.irBuilder().createAlloca(*InitialValue->type(), Mutable);
+      ASSERT_NE(Storage, nullptr);
+      ASSERT_NE(State.irBuilder().createInitialize(*InitialValue, *Storage), nullptr);
+      ASSERT_EQ(State.nameResolver().bind(name("Stored"), *Storage), BindResult::Inserted);
+      expectFailure(analyze(State, Input, {.ExpectedType = Types.getPointerType(Types.getUInt8Type(false))}), core::DiagnosticKind::SemanticTypeMismatch);
+      EXPECT_EQ(Block->instructionCount(), 2U);
+      EXPECT_EQ(Output.globalVariableCount(), 0U);
+      Context.scopeStore().removeTarget(*Storage);
+    }
+  }
+
+  // Converting a string without a writable insertion point reports an internal construction error.
+  TEST_F(SemanticAnalyzerExprTest, ReportsICEForStringPointerConversionWithoutWritableBlock)
+  {
+    auto Input = read("\"abc\"");
+    ASSERT_TRUE(Input.succeeded());
+    AnalyzerState State(Context, Input, Output);
+    const ExprHints Hints{.ExpectedType = Context.typePool().getPointerType(Context.typePool().getUInt8Type(false))};
+    EXPECT_DEATH(analyzeExpr(State, Input, Hints), "INK-S0013");
+    auto *Block = createInsertBlock(State);
+    ASSERT_NE(Block, nullptr);
+    ASSERT_NE(State.irBuilder().createReturn(), nullptr);
+    EXPECT_DEATH(analyzeExpr(State, Input, Hints), "INK-S0013");
   }
 
   // Unbound true and false names produce pooled bool constants while a nearer binding still shadows the fallback.

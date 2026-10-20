@@ -5,8 +5,10 @@
 #include "ink/frontend/parser/parser.h"
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/constant/null_pointer_constant.h"
+#include "ink/ir/instruction/address_of_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
+#include "ink/ir/instruction/getelementptr_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/neg_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
@@ -250,6 +252,44 @@ namespace ink::semantic::test
     EXPECT_EQ(Stores[1]->pointer(), Allocations[1]);
     ASSERT_NE(returned(*Function), nullptr);
     EXPECT_EQ(returned(*Function)->returnedValue(), Loads[1]);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Explicit read-only byte pointer locals store converted string addresses and load the pointer value on return.
+  TEST_F(SemanticVariableTest, InitializesTypedPointerLocalsFromStringConstants)
+  {
+    auto Input = read("func mutablePointer(): *const u8 { var Message: *const u8 = \"abc\"; return Message; } func immutablePointer(): *const u8 { const Message: *const u8 = \"abc\"; return Message; }");
+    ASSERT_TRUE(Input.succeeded());
+    ASSERT_TRUE(analyze(Input));
+    ASSERT_EQ(Output.globalVariableCount(), 1U);
+    const auto *Storage = Output.globalVariable(0);
+    const auto *PointerType = Context.typePool().getPointerType(Context.typePool().getUInt8Type(false));
+    for (const char *Name : {"mutablePointer", "immutablePointer"})
+    {
+      SCOPED_TRACE(Name);
+      const auto *Function = function(Name);
+      ASSERT_NE(Function, nullptr);
+      const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
+      const auto Stores = instructions<ir::StoreInstruction>(*Function);
+      const auto Loads = instructions<ir::LoadInstruction>(*Function);
+      const auto ArrayAddresses = instructions<ir::AddressOfInstruction>(*Function);
+      const auto ElementAddresses = instructions<ir::GetElementPtrInstruction>(*Function);
+      ASSERT_EQ(Allocations.size(), 1U);
+      ASSERT_EQ(Stores.size(), 1U);
+      ASSERT_EQ(Loads.size(), 1U);
+      ASSERT_EQ(ArrayAddresses.size(), 1U);
+      ASSERT_EQ(ElementAddresses.size(), 1U);
+      EXPECT_EQ(Allocations[0]->allocatedType()->unqualifiedType(), PointerType);
+      EXPECT_EQ(ArrayAddresses[0]->storage(), Storage);
+      EXPECT_EQ(ElementAddresses[0]->pointer(), ArrayAddresses[0]);
+      EXPECT_EQ(ElementAddresses[0]->type(), PointerType);
+      EXPECT_EQ(Stores[0]->pointer(), Allocations[0]);
+      EXPECT_EQ(Stores[0]->storedValue(), ElementAddresses[0]);
+      EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
+      EXPECT_EQ(Loads[0]->type(), PointerType);
+      ASSERT_NE(returned(*Function), nullptr);
+      EXPECT_EQ(returned(*Function)->returnedValue(), Loads[0]);
+    }
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 

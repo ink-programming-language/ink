@@ -117,7 +117,6 @@ namespace ink::semantic
         RETURN_REPORT_IF_FALSE(Context, String, core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "string LiteralExpr must reference a token with StringInfo metadata");
         const auto *StringType = Context.typePool().getArrayType(Context.typePool().getUInt8Type(), String->Decoded.size());
         RETURN_REPORT_IF_FALSE(Context, StringType, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), "a string with representable byte length", "an invalid string layout");
-        CHECK_TYPE_MATCH(Context, Node.getSourceRange(), ExpectedType, StringType, nullptr);
         const auto *Constant = Context.irContext().constantPool().getStringConstant(String->Decoded);
         RETURN_REPORT_IF_FALSE(Context, Constant, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), "a valid UTF-8 string with representable byte length", "invalid string bytes or length");
         return Constant;

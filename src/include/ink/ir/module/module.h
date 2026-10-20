@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -89,6 +90,9 @@ namespace ink::ir
       GlobalVariable *createGlobalVariable(const Type &VariableType, core::Name VariableName = core::NAME_None, bool Mutable = true);
       // Takes ownership by value; invalid input leaves module contents unchanged.
       GlobalVariable *appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable);
+      // Reuses module-local read-only storage for a pooled string, preserving its exact bytes without adding a terminator.
+      // Rejects constants outside this context without modifying the module.
+      const GlobalVariable *getOrCreateStringStorage(const StringConstant &String);
 
       const std::vector<std::unique_ptr<Function>> &globalFunctions() const noexcept;
       std::size_t globalFunctionCount() const noexcept;
@@ -164,6 +168,7 @@ namespace ink::ir
       std::vector<SymbolImport> Imports;
       std::vector<SymbolExport> Exports;
       std::vector<std::unique_ptr<GlobalVariable>> GlobalVariables;
+      std::unordered_map<const StringConstant *, const GlobalVariable *> StringStorages;
       std::vector<std::unique_ptr<Function>> GlobalFunctions;
       Function *InitializationFunction = nullptr;
       Function *DeinitializationFunction = nullptr;

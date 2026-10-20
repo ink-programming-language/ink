@@ -36,6 +36,7 @@ namespace ink::ir
     {
       TypeValue->Methods.clear();
     }
+    StringStorages.clear();
     GlobalVariables.clear();
     for (const auto &TypeValue : Classes)
     {
@@ -167,6 +168,35 @@ namespace ink::ir
     }
     GlobalVariable *Result = Variable.get();
     GlobalVariables.push_back(std::move(Variable));
+    return Result;
+  }
+
+  const GlobalVariable *Module::getOrCreateStringStorage(const StringConstant &String)
+  {
+    if (!constantPool().owns(&String))
+    {
+      return nullptr;
+    }
+    if (const auto Existing = StringStorages.find(&String); Existing != StringStorages.end())
+    {
+      return Existing->second;
+    }
+    const Type *ObjectType = typePool().getQualifiedType(String.type(), false);
+    if (!ObjectType)
+    {
+      return nullptr;
+    }
+    auto Storage = std::make_unique<GlobalVariable>(*ObjectType);
+    if (!Storage->setInitializer(&String))
+    {
+      return nullptr;
+    }
+    const GlobalVariable *Result = appendGlobalVariable(std::move(Storage));
+    if (!Result)
+    {
+      return nullptr;
+    }
+    StringStorages.emplace(&String, Result);
     return Result;
   }
 
