@@ -6,6 +6,7 @@
 #include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/conditional_branch_instruction.h"
+#include "ink/ir/instruction/dereference_instruction.h"
 #include "ink/ir/instruction/getelementptr_instruction.h"
 #include "ink/ir/instruction/icmp_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
@@ -65,6 +66,10 @@ namespace ink::ir
       [[nodiscard]] NegInstruction *createNeg(const Value &Operand);
       // Allocates one non-void object with a runtime layout; zero-sized aggregates are supported. The result is storage of AllocatedType.
       [[nodiscard]] AllocaInstruction *createAlloca(const Type &AllocatedType, bool Mutable = true, bool Initialized = false);
+      // Refers to the object of an evaluated, non-opaque pointer without allocating or reading memory.
+      // The result is storage of the pointee type; pointer-valued storage must be explicitly loaded first.
+      // Target lifetime, initialization and access permissions remain the caller's responsibility.
+      [[nodiscard]] DereferenceInstruction *createDereference(const Value &Pointer);
       // Requires storage; the resulting pointer is an ordinary value and preserves the stored object's type as its pointee.
       [[nodiscard]] AddressOfInstruction *createAddressOf(const Value &Storage);
       // Memory operands are storage of the exact object type, or usable non-opaque pointers with that pointee type.

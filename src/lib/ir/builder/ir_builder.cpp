@@ -106,6 +106,12 @@ namespace ink::ir
       const BasicBlock *Parent = Allocation.parentBlock();
       return Parent && Parent->function() == insertFunction() && !VoidType::classof(ObjectType);
     }
+    if (DereferenceInstruction::classof(&Storage))
+    {
+      const auto &Dereference = static_cast<const DereferenceInstruction &>(Storage);
+      const BasicBlock *Parent = Dereference.parentBlock();
+      return Parent && Parent->function() == insertFunction() && validOperand(*Dereference.pointer()) && memoryPointeeType(*Dereference.pointer()) == ObjectType;
+    }
     return GlobalVariable::classof(&Storage);
   }
 
@@ -186,6 +192,15 @@ namespace ink::ir
     check(canAppend());
     RETURN_IF(!Context.containsType(&AllocatedType) || !AllocatedType.hasLayout() || VoidType::classof(&AllocatedType), nullptr);
     return append<AllocaInstruction>(AllocatedType, Mutable, Initialized);
+  }
+
+  DereferenceInstruction *IRBuilder::createDereference(const Value &Pointer)
+  {
+    check(canAppend());
+    RETURN_IF(!validOperand(Pointer), nullptr);
+    const Type *ObjectType = memoryPointeeType(Pointer);
+    RETURN_IF_NULL(ObjectType, nullptr);
+    return append<DereferenceInstruction>(*ObjectType, Pointer);
   }
 
   AddressOfInstruction *IRBuilder::createAddressOf(const Value &Storage)

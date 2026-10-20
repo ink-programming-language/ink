@@ -35,7 +35,8 @@ namespace ink::ir
       virtual bool isStorage() const noexcept;
       // Describes whether assignment through this storage is permitted, not whether a pointer's pointee is writable.
       virtual bool isMutable() const noexcept;
-      // Storage may record declaration initialization; ordinary values are already initialized.
+      // Storage may record declaration initialization; indirect storage has no such record and returns false.
+      // Ordinary values are already initialized.
       // This query does not establish definite initialization along control-flow paths.
       virtual bool isInitialized() const noexcept;
       // Returns a short diagnostic description of this object, not its type or a complete IR dump.
