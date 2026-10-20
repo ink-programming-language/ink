@@ -26,6 +26,23 @@ namespace ink::frontend::parser
     {
       Output << tokenizer::tokenKindName(Kind);
     }
+    void printValue(std::ostringstream &Output, TypeQualifierKind Kind)
+    {
+      switch (Kind)
+      {
+      case TypeQualifierKind::Const:
+        Output << "Const";
+        return;
+      }
+    }
+    void printValue(std::ostringstream &Output, const TypeQualifier &Qualifier)
+    {
+      Output << "{ Kind=";
+      printValue(Output, Qualifier.Kind);
+      Output << " Range=";
+      printValue(Output, Qualifier.Range);
+      Output << " }";
+    }
     template <typename T>
     void printValue(std::ostringstream &Output, T *Node)
     {
@@ -395,6 +412,8 @@ namespace ink::frontend::parser
           printValue(Output, Node->op());
           Output << " OperatorRange=";
           printValue(Output, Node->operatorRange());
+          Output << " Qualifier=";
+          printValue(Output, Node->qualifier());
         }
         void visitBinaryExpr(const BinaryExpr *Node)
         {

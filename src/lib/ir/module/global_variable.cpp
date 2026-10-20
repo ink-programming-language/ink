@@ -2,11 +2,10 @@
 
 namespace ink::ir
 {
-  GlobalVariable::GlobalVariable(const Type &VariableType, core::Name Name, bool Mutable) noexcept
+  GlobalVariable::GlobalVariable(const Type &VariableType, core::Name Name) noexcept
       : Value(ValueKind::GlobalVariable),
         VariableType(&VariableType),
-        Name(Name),
-        Mutable(Mutable)
+        Name(Name)
   {
   }
 
@@ -22,7 +21,7 @@ namespace ink::ir
 
   bool GlobalVariable::isMutable() const noexcept
   {
-    return Mutable;
+    return VariableType->isMutable();
   }
 
   bool GlobalVariable::isInitialized() const noexcept

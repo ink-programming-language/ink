@@ -15,7 +15,8 @@ namespace ink::ir
 
   // A distinct declared type with a fixed layout and editable metadata until freeze().
   // Owns field metadata and methods with their functions; field initializers and referenced types belong to its module.
-  // freeze() prevents changes to type metadata but does not freeze function names or bodies.
+  // freeze() prevents changes to declaration metadata but does not freeze function names or bodies.
+  // Qualified views share declaration metadata and reject metadata edits; their declarations must outlive all uses.
   class NominalType : public Type
   {
     public:
@@ -24,6 +25,8 @@ namespace ink::ir
       std::uint64_t size() const noexcept final;
       std::uint64_t alignment() const noexcept final;
       std::string toString() const override;
+      // Qualified views borrow this declaration and share its metadata and method bodies.
+      const NominalType *declarationType() const noexcept;
       core::Name name() const noexcept;
       bool hasName() const noexcept;
       bool setName(core::Name NewName) noexcept;
@@ -61,6 +64,7 @@ namespace ink::ir
 
     protected:
       NominalType(ValueKind Kind, const Module &Owner, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept;
+      NominalType(const NominalType &Declaration, bool Mutable) noexcept;
 
     private:
       friend class Module;
@@ -68,6 +72,7 @@ namespace ink::ir
       bool validField(const Field &Entry) const noexcept;
       bool validMethod(const Method &Entry) const noexcept;
 
+      const NominalType *Declaration;
       const Module &Owner;
       const std::uint64_t Size;
       const std::uint64_t Alignment;

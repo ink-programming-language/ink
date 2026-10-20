@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  ArrayType::ArrayType(const MetaType &Meta, const Type *ElementType, std::uint64_t ElementCount, std::uint64_t Size, std::uint64_t Alignment) noexcept
-      : Type(ValueKind::Array, Meta),
+  ArrayType::ArrayType(const MetaType &Meta, const Type *ElementType, std::uint64_t ElementCount, std::uint64_t Size, std::uint64_t Alignment, bool Mutable) noexcept
+      : Type(ValueKind::Array, Meta, Mutable),
         ElementType(ElementType),
         ElementCount(ElementCount),
         Size(Size),
@@ -40,6 +40,7 @@ namespace ink::ir
 
   void ArrayType::appendToString(ValueStringBuilder &Builder) const
   {
+    Builder.append(isMutable() ? "" : "const ");
     Builder.append("[");
     Builder.pushText("; " + std::to_string(ElementCount) + "]");
     Builder.pushValue(*ElementType);

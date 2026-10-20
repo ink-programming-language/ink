@@ -303,7 +303,7 @@ namespace ink::semantic::test
     const auto Loads = instructions<ir::LoadInstruction>(*Function);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 1U);
-    EXPECT_EQ(Allocations[0]->type(), Context.typePool().getInt32Type());
+    EXPECT_EQ(Allocations[0]->type(), Context.typePool().getQualifiedType(Context.typePool().getInt32Type(), false));
     EXPECT_TRUE(Allocations[0]->isStorage());
     EXPECT_FALSE(Allocations[0]->isMutable());
     EXPECT_TRUE(Allocations[0]->isInitialized());
@@ -338,9 +338,9 @@ namespace ink::semantic::test
     ASSERT_EQ(NullStores.size(), 2U);
     ASSERT_EQ(NullLoads.size(), 2U);
     const auto *PointerType = Context.typePool().getPointerType(Context.typePool().getInt32Type());
-    EXPECT_EQ(NullAllocations[0]->allocatedType(), PointerType);
+    EXPECT_EQ(NullAllocations[0]->allocatedType(), Context.typePool().getQualifiedType(PointerType, false));
     EXPECT_EQ(NullAllocations[1]->allocatedType(), PointerType);
-    EXPECT_EQ(NullAllocations[0]->type(), PointerType);
+    EXPECT_EQ(NullAllocations[0]->type(), Context.typePool().getQualifiedType(PointerType, false));
     EXPECT_EQ(NullAllocations[1]->type(), PointerType);
     EXPECT_TRUE(NullAllocations[0]->isStorage());
     EXPECT_TRUE(NullAllocations[1]->isStorage());
@@ -357,6 +357,50 @@ namespace ink::semantic::test
     ASSERT_EQ(OpaqueLoads.size(), 1U);
     EXPECT_EQ(OpaqueStores[0]->storedValue(), OpaqueFunction->parameter(0));
     EXPECT_EQ(OpaqueLoads[0]->type(), OpaqueFunction->parameter(0)->type());
+  }
+
+  // Copying a readonly pointer through var and const declarations removes only each source slot's outer const qualifier.
+  TEST_F(SemanticVariableTest, PreservesReadonlyPointeeAcrossConstLocalCopies)
+  {
+    auto Input = read("func readonly(Input: *const i32): *const i32 { var Open = Input; const Fixed = Open; var Copy = Fixed; return Copy; }");
+    ASSERT_TRUE(Input.succeeded());
+    ASSERT_TRUE(analyze(Input));
+    const auto *Function = function("readonly");
+    ASSERT_NE(Function, nullptr);
+    auto &Types = Context.typePool();
+    const auto *ConstInteger = Types.getQualifiedType(Types.getInt32Type(), false);
+    const auto *ReadonlyPointer = Types.getPointerType(ConstInteger);
+    const auto *ConstReadonlyPointer = Types.getQualifiedType(ReadonlyPointer, false);
+    const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
+    const auto Loads = instructions<ir::LoadInstruction>(*Function);
+    ASSERT_EQ(Allocations.size(), 3U);
+    ASSERT_EQ(Loads.size(), 3U);
+    EXPECT_EQ(Allocations[0]->type(), ReadonlyPointer);
+    EXPECT_EQ(Allocations[1]->type(), ConstReadonlyPointer);
+    EXPECT_EQ(Allocations[2]->type(), ReadonlyPointer);
+    EXPECT_TRUE(Allocations[0]->isMutable());
+    EXPECT_FALSE(Allocations[1]->isMutable());
+    EXPECT_TRUE(Allocations[2]->isMutable());
+    for (const auto *Load : Loads)
+    {
+      EXPECT_EQ(Load->type(), ReadonlyPointer);
+    }
+    ASSERT_NE(returned(*Function), nullptr);
+    EXPECT_EQ(returned(*Function)->returnedValue(), Loads[2]);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Matching by-value top-level const never erases a pointee qualifier or treats different nested pointer permissions as identical.
+  TEST_F(SemanticVariableTest, RejectsImplicitPointeeQualifierChanges)
+  {
+    for (const char *Source : {"func drop(Input: *const i32): void { var Copy: *i32 = Input; }", "func add(Input: *i32): void { var Copy: *const i32 = Input; }", "func nested(Input: **const i32): void { var Copy: *const *i32 = Input; }"})
+    {
+      SCOPED_TRACE(Source);
+      auto Input = read(Source);
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_FALSE(analyze(Input));
+      expectDiagnostic(core::DiagnosticKind::SemanticTypeMismatch);
+    }
   }
 
   // A parenthesized local callable is loaded before an indirect call, and a const argument is loaded independently.
@@ -542,6 +586,97 @@ namespace ink::semantic::test
     ASSERT_NE(returned(*Function), nullptr);
     ASSERT_TRUE(ir::LoadInstruction::classof(returned(*Function)->returnedValue()));
     EXPECT_EQ(static_cast<const ir::LoadInstruction *>(returned(*Function)->returnedValue())->pointer(), Allocations[0]);
+  }
+
+  // Inference copies const-typed parameters into mutable values while preserving nested qualifiers and explicit annotations.
+  TEST_F(SemanticVariableTest, InfersCopiesWithoutTopLevelConst)
+  {
+    auto &Types = Context.typePool();
+    const auto *Pointer = Types.getPointerType(Types.getUInt8Type(false));
+    const auto *ConstPointer = Types.getQualifiedType(Pointer, false);
+    ASSERT_NE(ConstPointer, nullptr);
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("ConstPointer"), const_cast<ir::Type &>(*ConstPointer)), BindResult::Inserted);
+    auto Input = read("func copy(Input: ConstPointer): *const u8 { var MutableCopy = Input; const ImmutableCopy = Input; var Explicit: ConstPointer = Input; return MutableCopy; }");
+    ASSERT_TRUE(Input.succeeded());
+    ASSERT_TRUE(analyze(Input));
+    const auto *Function = function("copy");
+    ASSERT_NE(Function, nullptr);
+    EXPECT_EQ(Function->parameter(0)->type(), ConstPointer);
+    const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
+    ASSERT_EQ(Allocations.size(), 3U);
+    EXPECT_EQ(Allocations[0]->type(), Pointer);
+    EXPECT_TRUE(Allocations[0]->isMutable());
+    EXPECT_EQ(Allocations[1]->type(), ConstPointer);
+    EXPECT_FALSE(Allocations[1]->isMutable());
+    EXPECT_EQ(Allocations[2]->type(), ConstPointer);
+    EXPECT_FALSE(Allocations[2]->isMutable());
+    ASSERT_NE(returned(*Function), nullptr);
+    EXPECT_EQ(returned(*Function)->returnedValue()->type(), Pointer);
+    EXPECT_FALSE(Pointer->pointeeType()->isMutable());
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // By-value call results drop only top-level const, leaving return signatures and pointee qualifications intact.
+  TEST_F(SemanticVariableTest, CopiesQualifiedCallResultsWithoutChangingSignatures)
+  {
+    auto &Types = Context.typePool();
+    const auto *ConstInteger = Types.getInt32Type(false);
+    const auto *Pointer = Types.getPointerType(Types.getUInt8Type(false));
+    const auto *ConstPointer = Types.getQualifiedType(Pointer, false);
+    ASSERT_NE(ConstPointer, nullptr);
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("ConstInteger"), const_cast<ir::IntegerType &>(*ConstInteger)), BindResult::Inserted);
+    ASSERT_EQ(Resolver.bind(name("ConstPointer"), const_cast<ir::Type &>(*ConstPointer)), BindResult::Inserted);
+    auto Input = read("func integerSource(): ConstInteger { return 1; } func pointerSource(Input: ConstPointer): ConstPointer { return Input; } func copy(Input: ConstPointer): *const u8 { var Integer = integerSource(); var Pointer = pointerSource(Input); return Pointer; }");
+    ASSERT_TRUE(Input.succeeded());
+    ASSERT_TRUE(analyze(Input));
+    const auto *IntegerSource = function("integerSource");
+    const auto *PointerSource = function("pointerSource");
+    const auto *Copy = function("copy");
+    ASSERT_NE(IntegerSource, nullptr);
+    ASSERT_NE(PointerSource, nullptr);
+    ASSERT_NE(Copy, nullptr);
+    EXPECT_EQ(IntegerSource->functionType()->returnType(), ConstInteger);
+    EXPECT_EQ(PointerSource->functionType()->returnType(), ConstPointer);
+    const auto Calls = instructions<ir::CallInstruction>(*Copy);
+    const auto Allocations = instructions<ir::AllocaInstruction>(*Copy);
+    ASSERT_EQ(Calls.size(), 2U);
+    ASSERT_EQ(Allocations.size(), 2U);
+    EXPECT_EQ(Calls[0]->type(), Types.getInt32Type());
+    EXPECT_EQ(Calls[0]->functionType()->returnType(), ConstInteger);
+    EXPECT_EQ(Calls[1]->type(), Pointer);
+    EXPECT_EQ(Calls[1]->functionType()->returnType(), ConstPointer);
+    EXPECT_EQ(Allocations[0]->type(), Types.getInt32Type());
+    EXPECT_EQ(Allocations[1]->type(), Pointer);
+    EXPECT_TRUE(Allocations[0]->isMutable());
+    EXPECT_TRUE(Allocations[1]->isMutable());
+    EXPECT_FALSE(Pointer->pointeeType()->isMutable());
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Const-qualified void signatures retain the same implicit and explicit unit-return rules as ordinary void.
+  TEST_F(SemanticVariableTest, TreatsQualifiedVoidAsUnitReturn)
+  {
+    const auto *ConstVoid = Context.typePool().getVoidType(false);
+    NameResolver Resolver(Context);
+    ASSERT_EQ(Resolver.bind(name("ConstVoid"), const_cast<ir::VoidType &>(*ConstVoid)), BindResult::Inserted);
+    auto Input = read("func implicitUnit(): ConstVoid {} func explicitUnit(): ConstVoid { return; }");
+    ASSERT_TRUE(Input.succeeded());
+    ASSERT_TRUE(analyze(Input));
+    for (const char *Name : {"implicitUnit", "explicitUnit"})
+    {
+      const auto *Function = function(Name);
+      ASSERT_NE(Function, nullptr);
+      EXPECT_EQ(Function->functionType()->returnType(), ConstVoid);
+      ASSERT_NE(returned(*Function), nullptr);
+      EXPECT_EQ(returned(*Function)->returnedValue(), nullptr);
+    }
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    auto InvalidInput = read("func invalidUnit(): ConstVoid { return 1; }");
+    ASSERT_TRUE(InvalidInput.succeeded());
+    EXPECT_FALSE(analyze(InvalidInput));
+    expectDiagnostic(core::DiagnosticKind::SemanticTypeMismatch);
   }
 
   // Attributes, destructuring, module storage and unit storage remain explicitly unsupported while their semantics are absent.

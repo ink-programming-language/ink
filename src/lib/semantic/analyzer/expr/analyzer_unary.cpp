@@ -11,8 +11,10 @@ namespace ink::semantic
   const ir::Value *Analyzer::analyzeUnaryExpr(AnalyzerState &State, const frontend::parser::UnaryExpr &Node, ExprHints Hints)
   {
     using namespace frontend::parser;
-    UNSUPPORT_IF(State, Node.op() != TokenKind::Star && Node.op() != TokenKind::Amp && Node.op() != TokenKind::Minus, nullptr, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
     auto &Context = State.semanticContext();
+    const auto Qualifier = Node.qualifier();
+    RETURN_REPORT_IF(Context, Qualifier && (Qualifier->Kind != TypeQualifierKind::Const || (Node.op() != TokenKind::Star && Node.op() != TokenKind::Amp)), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "a const qualifier requires a pointer or reference type constructor");
+    UNSUPPORT_IF(State, Node.op() != TokenKind::Star && Node.op() != TokenKind::Amp && Node.op() != TokenKind::Minus, nullptr, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
     if (Node.op() == TokenKind::Minus)
     {
       // TODO: Preserve untyped integer values through negation before materialization; signed-minimum literals such as -128 for i8 currently fail while typing their positive operand.
@@ -36,8 +38,15 @@ namespace ink::semantic
       const auto *Type = static_cast<const ir::Type *>(Operand);
       RETURN_REPORT_IF(Context, ir::MetaType::classof(Type), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.operand()->getSourceRange(), "a type with runtime storage", Type->toString());
       auto &Types = Context.typePool();
+      if (Qualifier)
+      {
+        const ir::Type *Qualified = Types.getQualifiedType(Type, false);
+        RETURN_REPORT_IF_FALSE(Context, Qualified, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Qualifier->Range, "a const-qualified object type", Type->toString());
+        Type = Qualified;
+      }
       return Node.op() == TokenKind::Star ? static_cast<const ir::Type *>(Types.getPointerType(Type)) : Types.getReferenceType(Type);
     }
+    RETURN_REPORT_IF(Context, Qualifier, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Qualifier->Range, "a type after a pointer or reference qualifier", Operand->toString());
     RETURN_REPORT_IF(Context, ir::Module::classof(Operand), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.operand()->getSourceRange(), "a type or runtime operand", ir::valueKindName(Operand->kind()));
     // TODO: Emit runtime dereference and address operations when their IR is supported.
     reportUnsupported(State, Node);

@@ -169,7 +169,7 @@ namespace ink::semantic
     RETURN_REPORT_IF(Context, !Exit || Exit->function() != Function, core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
     if (!Exit->hasTerminator())
     {
-      RETURN_REPORT_IF(Context, ReturnType != Context.typePool().getVoidType(), core::DiagnosticKind::SemanticMissingReturn, false, Node.body()->getSourceRange(), Node.name().Text);
+      RETURN_REPORT_IF(Context, !ir::VoidType::classof(ReturnType), core::DiagnosticKind::SemanticMissingReturn, false, Node.body()->getSourceRange(), Node.name().Text);
       RETURN_REPORT_IF_FALSE(Context, Builder.createReturn(), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
     }
     return true;

@@ -3,8 +3,8 @@
 
 namespace ink::ir
 {
-  NullPointerType::NullPointerType(const MetaType &Meta, const IRContext &Owner) noexcept
-      : Type(ValueKind::NullPointer, Meta),
+  NullPointerType::NullPointerType(const MetaType &Meta, const IRContext &Owner, bool Mutable) noexcept
+      : Type(ValueKind::NullPointer, Meta, Mutable),
         Owner(Owner),
         PointerByteWidth(Owner.targetContext().pointerByteWidth())
   {

@@ -11,7 +11,7 @@ namespace ink::ir
   class AllocaInstruction final : public Instruction
   {
     public:
-      explicit AllocaInstruction(const Type &AllocatedType, bool Mutable = true, bool Initialized = false) noexcept;
+      explicit AllocaInstruction(const Type &AllocatedType) noexcept;
 
       const Type *allocatedType() const noexcept;
       bool isStorage() const noexcept override;
@@ -26,7 +26,6 @@ namespace ink::ir
     private:
       friend class IRBuilder;
 
-      bool Mutable = true;
       bool Initialized = false;
       core::Name Name = core::NAME_None;
   };

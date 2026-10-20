@@ -102,8 +102,13 @@ namespace ink::frontend::parser
     if (Op == TokenKind::Plus || Op == TokenKind::Minus || Op == TokenKind::Bang || Op == TokenKind::Tilde || Op == TokenKind::PlusPlus || Op == TokenKind::MinusMinus || Op == TokenKind::Amp || Op == TokenKind::Star)
     {
       const SourceRange OperatorRange = Input.token(bump()).Span;
+      std::optional<TypeQualifier> Qualifier;
+      if ((Op == TokenKind::Star || Op == TokenKind::Amp) && at(TokenKind::KwConst))
+      {
+        Qualifier = TypeQualifier{TypeQualifierKind::Const, Input.token(bump()).Span};
+      }
       Expr *Operand = parseUnary(TypeOnly);
-      return make<UnaryExpr>(range(Start), Op, OperatorRange, Operand);
+      return make<UnaryExpr>(range(Start), Op, OperatorRange, Operand, Qualifier);
     }
     return parsePostfix(parsePrimary(TypeOnly));
   }

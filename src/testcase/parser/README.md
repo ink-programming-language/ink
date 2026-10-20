@@ -4,7 +4,8 @@
 
 | 文件 | 覆盖内容 |
 | --- | --- |
-| `grammar_corpus_test.cpp` / `corpus/grammar_cases.inc` | 当前 BNF 的全部 558 个逐分支样例和 2,400 个固定种子组合样例，共 2,958 个独立参数化测试 |
+| `grammar_corpus_test.cpp` / `corpus/grammar_cases.inc` | 当前 BNF 的全部 562 个逐分支样例和 2,400 个固定种子组合样例，共 2,962 个独立参数化测试 |
+| `const_pointer_test.cpp` | 声明级 const 与指针/引用限定符的区分、多级指针、类型表达式、源码范围、AST 遍历及非法限定符恢复 |
 | `recovery_test.cpp` | 原有设计示例、恢复边界、长链、固定种子随机 token 流 |
 | `recovery_contracts_test.cpp` | 精确的插入与删除位置、成对定界符同步、后续声明保留、表达式和模式的 missing/error 节点、参数列表、条件与 match 分支、else/switch 归属、for-in 推测回滚、声明族及 EOF、诊断风暴、嵌套/工作/分配预算、取消与复用 |
 | `unicode_security_test.cpp` | 非法 UTF-8、完整枚举非法连续字节、标量边界与截断、过长编码伪装 ASCII 语法、NUL/BOM、UTF-16/32 输入、双向控制与不可见字符、Unicode 空白和标点混淆、NFC 与组合字符、非法转义、原始字节偏移、字节变异与固定种子随机输入 |
@@ -35,7 +36,7 @@ ctest --test-dir cmake-build-debug -R "ParserTest.Recovery|ParserUnicodeTest|Par
 
 ## BNF 固定语料
 
-`corpus/grammar_cases.inc` 固定保存当前文法的全部 2,958 个样例，保留生成顺序和编号，包括不同推导得到的重复源码及合法的空模块。每个样例单独注册到 GoogleTest 和 CTest；失败信息包含规则名、分支节点与选择，或随机种子、样例编号和生成预算，以及完整输入。
+`corpus/grammar_cases.inc` 固定保存当前文法的全部 2,962 个样例，保留生成顺序和编号，包括不同推导得到的重复源码及合法的空模块。每个样例单独注册到 GoogleTest 和 CTest；失败信息包含规则名、分支节点与选择，或随机种子、样例编号和生成预算，以及完整输入。
 
 每例都断言解析成功、`ParseStatus::Completed`、诊断为空、恢复记录为空，并经过 `ParserTest::read` 的 AST 必需子节点、源码范围和元数据校验。固定语料不依赖构建目录中的审查 JSON 文件，运行测试时也不需要 Python 或重新生成随机输入。
 
@@ -49,7 +50,7 @@ python src/testcase/parser/generate_grammar_cases.py --check
 
 有意修改 BNF 或生成规则后，运行 `python src/testcase/parser/generate_grammar_cases.py` 更新语料，检查生成 diff，再重新构建和运行测试。正常 C++ 构建直接使用已保存的语料，不增加 Python 构建依赖。
 
-只运行这 2,958 个语法样例，或单独复现一个组合样例：
+只运行这 2,962 个语法样例，或单独复现一个组合样例：
 
 ```sh
 ctest --test-dir cmake-build-debug -R "^Grammar(Branches|Combinations)/ParserGrammarCorpusTest\." --output-on-failure --parallel 4
@@ -57,3 +58,5 @@ ctest --test-dir cmake-build-debug -R "^GrammarCombinations/ParserGrammarCorpusT
 ```
 
 这些样例验证语法接受性和 AST 结构契约；不代替针对运算符结合性、特定 AST 字段、非法语法和错误恢复的手写测试。
+
+`*const T` 与 `&const T` 在类型位置和表达式位置使用相同的前缀解析，AST 由 `UnaryExpr(Star/Amp)` 自身保存 `std::optional<TypeQualifier>`，不生成独立的 `UnaryExpr(KwConst)`。`TypeQualifier::Kind` 使用 `TypeQualifierKind::Const`，`Range` 单独记录 `const` token 的源码范围；`qualifier()` 返回该记录，`isConstQualified()` 根据限定符种类查询，`operatorRange()` 保留 `*` 或 `&` 的范围，嵌套时每一层独立记录。AST dump 输出 `Qualifier={ Kind=Const Range=[Start, End) }` 或 `Qualifier=none`，verifier 校验限定符种类、允许的操作符和源码范围顺序。`const` 只能紧随 `*` 或 `&`，不接受裸 `const T` 或重复限定符；声明级 `const P: *T = ...` 仍由 `VarDecl` 独立记录。语义分析已支持以类型为操作数的 `*const T` 和 `&const T`，将操作数类型的顶层限定为 const 后再构造指针或引用，嵌套限定分别保留；限定符后的操作数不是类型时报告类型错误。源码运行时取址与解引用仍未接入，当前也不提供 `*T` 到 `*const T` 的隐式转换。此处测试只负责解析和 AST 契约，类型身份与写权限由 IR 和 semantic 测试验证。

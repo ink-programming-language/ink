@@ -2,8 +2,8 @@
 
 namespace ink::ir
 {
-  VoidType::VoidType(const MetaType &Meta) noexcept
-      : Type(ValueKind::Void, Meta)
+  VoidType::VoidType(const MetaType &Meta, bool Mutable) noexcept
+      : Type(ValueKind::Void, Meta, Mutable)
   {
   }
 

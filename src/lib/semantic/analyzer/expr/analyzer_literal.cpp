@@ -77,7 +77,7 @@ namespace ink::semantic
   const ir::Value *Analyzer::analyzeLiteralExpr(AnalyzerState &State, const frontend::parser::LiteralExpr &Node, ExprHints Hints)
   {
     auto &Context = State.semanticContext();
-    const ir::Type *ExpectedType = Hints.ExpectedType;
+    const ir::Type *ExpectedType = Hints.ExpectedType ? Hints.ExpectedType->unqualifiedType() : nullptr;
     const auto &Input = State.input();
     const auto &Token = Input.requireToken(Node.token(), Context.diagnosticEngine(), Node.getSourceRange());
     RETURN_REPORT_IF(Context, Token.Kind != Node.literalKind(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "LiteralExpr kind must match its referenced token kind");

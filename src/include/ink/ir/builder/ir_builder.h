@@ -54,34 +54,38 @@ namespace ink::ir
       [[nodiscard]] bool setInsertPoint(BasicBlock &Block) noexcept;
       void clearInsertPoint() noexcept;
 
-      // Callees must have this exact signature, either directly or through a pointer to it. Arguments are already in parameter order.
+      // Callees must have this signature, either directly or through a pointer to it, ignoring the signature object's top-level qualifier.
+      // Arguments are already in parameter order; by-value comparisons ignore only each argument object's top-level qualifier.
       // Variadic calls and variadic parameter operands are rejected until parameter-pack lowering is available.
       [[nodiscard]] CallInstruction *createCall(const Function &Callee, std::vector<Argument> Arguments = {});
       [[nodiscard]] CallInstruction *createCall(const FunctionType &Signature, const Value &Callee, std::vector<Argument> Arguments = {});
 
-      // Requires identical integer or pointer operand types. A local null literal may also compare equal/not-equal to a typed pointer.
+      // Requires identical integer or pointer operand types ignoring top-level qualifiers. A local null literal may also compare equal/not-equal to a typed pointer.
       [[nodiscard]] ICmpInstruction *createICmp(ICmpPredicate Predicate, const Value &Left, const Value &Right);
       // Requires an integer or float and a valid insertion point; constant operands also produce a NegInstruction.
       // Unsupported operands return nullptr without appending; invalid insertion state is asserted with check().
       [[nodiscard]] NegInstruction *createNeg(const Value &Operand);
-      // Allocates one non-void object with a runtime layout; zero-sized aggregates are supported. The result is storage of AllocatedType.
+      // Allocates one non-void object with a runtime layout; zero-sized aggregates are supported.
+      // Mutable=false qualifies the object's type as const; an already-const type always remains const.
       [[nodiscard]] AllocaInstruction *createAlloca(const Type &AllocatedType, bool Mutable = true, bool Initialized = false);
       // Refers to the object of an evaluated, non-opaque pointer without allocating or reading memory.
       // The result is storage of the pointee type; pointer-valued storage must be explicitly loaded first.
-      // Target lifetime, initialization and access permissions remain the caller's responsibility.
+      // Target lifetime and initialization remain the caller's responsibility; its type determines write permission.
       [[nodiscard]] DereferenceInstruction *createDereference(const Value &Pointer);
       // Requires storage; the resulting pointer is an ordinary value and preserves the stored object's type as its pointee.
       [[nodiscard]] AddressOfInstruction *createAddressOf(const Value &Storage);
-      // Memory operands are storage of the exact object type, or usable non-opaque pointers with that pointee type.
+      // Memory operands are storage or usable non-opaque pointers with the requested object type, ignoring its top-level qualifier.
+      // The loaded value drops only the object's top-level const qualifier, preserving nested qualifiers.
       // Null literals can initialize pointer slots, but cannot be used as untyped memory addresses.
       [[nodiscard]] LoadInstruction *createLoad(const Type &LoadedType, const Value &Pointer);
-      // Ordinary stores reject immutable storage and do not change its declaration-initialization marker.
+      // Ordinary stores reject const object types through both storage and pointer operands, and preserve declaration-initialization markers.
       [[nodiscard]] StoreInstruction *createStore(const Value &StoredValue, const Value &Pointer);
       // Initializes a current-function local once, including immutable locals, and records declaration initialization.
       // This marker does not prove initialization on any control-flow path.
       [[nodiscard]] StoreInstruction *createInitialize(const Value &Initializer, AllocaInstruction &Storage);
       // Infers the result pointer type from the source type and index path. Empty indices preserve the source type.
       // The first index steps over source objects; later indices traverse arrays or nominal fields.
+      // Const aggregate access qualifies each selected field or element without changing that member's nested qualifiers.
       // Field indices must be nonnegative integer constants in range. Array indices need not be constant or in range.
       // InBounds records a caller guarantee; it does not prove runtime address bounds. Opaque pointers cannot be indexed.
       // Selecting a unit array element or field may produce an opaque pointer, but cannot traverse that unit further.

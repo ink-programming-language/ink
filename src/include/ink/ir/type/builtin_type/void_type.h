@@ -18,7 +18,7 @@ namespace ink::ir
     private:
       friend class TypePool;
 
-      explicit VoidType(const MetaType &Meta) noexcept;
+      explicit VoidType(const MetaType &Meta, bool Mutable = true) noexcept;
   };
 } // namespace ink::ir
 

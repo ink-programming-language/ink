@@ -323,7 +323,7 @@ namespace ink::semantic::test
     ASSERT_EQ(FirstState.nameResolver().bind(name("Stored"), *Storage), BindResult::Inserted);
     const auto *Variable = FirstState.nameResolver().lookupLocal(name("Stored"));
     ASSERT_NE(Variable, nullptr);
-    EXPECT_EQ(Storage->type(), DeclaredType);
+    EXPECT_EQ(Storage->type(), Context.typePool().getQualifiedType(DeclaredType, false));
     EXPECT_FALSE(Storage->isMutable());
     EXPECT_TRUE(Storage->isInitialized());
     const auto *InitialResult = analyzeExpr(FirstState, Input);
@@ -419,7 +419,7 @@ namespace ink::semantic::test
     {
       const auto *Result = Analysis.analyzeExpr(State, syntax(Input, Index));
       ASSERT_EQ(Result, Storage);
-      EXPECT_EQ(Result->type(), Types.getInt32Type());
+      EXPECT_EQ(Result->type(), Types.getQualifiedType(Types.getInt32Type(), false));
       EXPECT_TRUE(Result->isStorage());
       EXPECT_FALSE(Result->isMutable());
       EXPECT_FALSE(Result->isInitialized());

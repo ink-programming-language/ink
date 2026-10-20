@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  IntegerType::IntegerType(const MetaType &Meta, const target::TargetContext &Target, std::uint32_t Width, bool Signed) noexcept
-      : Type(ValueKind::Integer, Meta),
+  IntegerType::IntegerType(const MetaType &Meta, const target::TargetContext &Target, std::uint32_t Width, bool Signed, bool Mutable) noexcept
+      : Type(ValueKind::Integer, Meta, Mutable),
         Width(Width),
         Signed(Signed),
         Alignment(Target.integerAlignment(Width))
@@ -54,7 +54,7 @@ namespace ink::ir
 
   std::string IntegerType::toString() const
   {
-    return std::string(Signed ? "i" : "u") + std::to_string(Width);
+    return std::string(isMutable() ? "" : "const ") + (Signed ? "i" : "u") + std::to_string(Width);
   }
 
   bool IntegerType::classof(const Value *Value) noexcept

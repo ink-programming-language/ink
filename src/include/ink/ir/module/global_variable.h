@@ -10,7 +10,7 @@ namespace ink::ir
   class GlobalVariable final : public Value
   {
     public:
-      explicit GlobalVariable(const Type &VariableType, core::Name Name = core::NAME_None, bool Mutable = true) noexcept;
+      explicit GlobalVariable(const Type &VariableType, core::Name Name = core::NAME_None) noexcept;
 
       GlobalVariable(const GlobalVariable &) = delete;
       GlobalVariable &operator=(const GlobalVariable &) = delete;
@@ -28,7 +28,7 @@ namespace ink::ir
 
       const Constant *initializer() const noexcept;
       bool hasInitializer() const noexcept;
-      // nullptr clears the initializer. Values must have the same type, or be the local pool's nullptr for a pointer variable.
+      // nullptr clears the initializer. Values must match the object type ignoring its top-level qualifier, or be the local pool's nullptr for a pointer variable.
       // Rejection preserves the previous initializer; a nullptr constant remains distinct from clearing it.
       bool setInitializer(const Constant *NewInitializer) noexcept;
 
@@ -38,7 +38,6 @@ namespace ink::ir
       const Type *VariableType = nullptr;
       core::Name Name = core::NAME_None;
       const Constant *Initializer = nullptr;
-      bool Mutable = true;
   };
 } // namespace ink::ir
 

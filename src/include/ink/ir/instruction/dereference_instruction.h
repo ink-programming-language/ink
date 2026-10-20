@@ -15,7 +15,7 @@ namespace ink::ir
 
       const Value *pointer() const noexcept;
       bool isStorage() const noexcept override;
-      // Uses the raw pointer access contract; callers must ensure the target permits writes.
+      // The referenced object's top-level type qualifier controls write permission.
       bool isMutable() const noexcept override;
       // No declaration initialization is recorded; false does not prove the target is uninitialized.
       bool isInitialized() const noexcept override;

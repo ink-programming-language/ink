@@ -9,10 +9,20 @@ namespace ink::ir
 {
   NominalType::NominalType(ValueKind Kind, const Module &Owner, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept
       : Type(Kind, *Owner.typePool().getMetaType()),
+        Declaration(this),
         Owner(Owner),
         Size(Size),
         Alignment(Alignment),
         Name(Name)
+  {
+  }
+
+  NominalType::NominalType(const NominalType &Declaration, bool Mutable) noexcept
+      : Type(Declaration.kind(), *Declaration.Owner.typePool().getMetaType(), Mutable),
+        Declaration(Declaration.declarationType()),
+        Owner(Declaration.Owner),
+        Size(Declaration.size()),
+        Alignment(Declaration.alignment())
   {
   }
 
@@ -30,23 +40,28 @@ namespace ink::ir
 
   std::string NominalType::toString() const
   {
-    const auto NameText = core::NamePool::instance().text(Name);
-    return NameText.empty() ? Value::toString() : std::string(NameText);
+    const auto NameText = core::NamePool::instance().text(name());
+    return NameText.empty() ? Type::toString() : std::string(isMutable() ? "" : "const ") + std::string(NameText);
+  }
+
+  const NominalType *NominalType::declarationType() const noexcept
+  {
+    return Declaration;
   }
 
   core::Name NominalType::name() const noexcept
   {
-    return Name;
+    return Declaration->Name;
   }
 
   bool NominalType::hasName() const noexcept
   {
-    return Name.valid();
+    return name().valid();
   }
 
   bool NominalType::setName(core::Name NewName) noexcept
   {
-    if (Frozen)
+    if (Declaration != this || Frozen)
     {
       return false;
     }
@@ -56,17 +71,17 @@ namespace ink::ir
 
   const std::vector<Field> &NominalType::fields() const noexcept
   {
-    return Fields;
+    return Declaration->Fields;
   }
 
   std::size_t NominalType::fieldCount() const noexcept
   {
-    return Fields.size();
+    return fields().size();
   }
 
   const Field *NominalType::field(std::size_t Index) const noexcept
   {
-    return Index < Fields.size() ? &Fields[Index] : nullptr;
+    return Index < fields().size() ? &fields()[Index] : nullptr;
   }
 
   bool NominalType::addField(Field Entry)
@@ -91,7 +106,7 @@ namespace ink::ir
 
   bool NominalType::validField(const Field &Entry) const noexcept
   {
-    return !Frozen && Owner.ownsType(Entry.type()) && (!Entry.hasInitializer() || Owner.constantPool().owns(Entry.initializer())) && Entry.valid() && Entry.offset() <= Size && Entry.type()->size() <= Size - Entry.offset();
+    return Declaration == this && !Frozen && Owner.ownsType(Entry.type()) && (!Entry.hasInitializer() || Owner.constantPool().owns(Entry.initializer())) && Entry.valid() && Entry.offset() <= Size && Entry.type()->size() <= Size - Entry.offset();
   }
 
   std::vector<const Field *> NominalType::findFields(core::Name MemberName) const
@@ -101,7 +116,7 @@ namespace ink::ir
     {
       return Matches;
     }
-    for (const Field &Entry : Fields)
+    for (const Field &Entry : fields())
     {
       if (Entry.name() == MemberName)
       {
@@ -113,17 +128,17 @@ namespace ink::ir
 
   const std::vector<Method> &NominalType::methods() const noexcept
   {
-    return Methods;
+    return Declaration->Methods;
   }
 
   std::size_t NominalType::methodCount() const noexcept
   {
-    return Methods.size();
+    return methods().size();
   }
 
   const Method *NominalType::method(std::size_t Index) const noexcept
   {
-    return Index < Methods.size() ? &Methods[Index] : nullptr;
+    return Index < methods().size() ? &methods()[Index] : nullptr;
   }
 
   bool NominalType::addMethod(Method &&Entry)
@@ -148,7 +163,7 @@ namespace ink::ir
 
   bool NominalType::validMethod(const Method &Entry) const noexcept
   {
-    return !Frozen && Entry.valid() && Owner.ownsType(Entry.functionType());
+    return Declaration == this && !Frozen && Entry.valid() && Owner.ownsType(Entry.functionType());
   }
 
   std::vector<const Method *> NominalType::findMethods(core::Name MemberName) const
@@ -158,7 +173,7 @@ namespace ink::ir
     {
       return Matches;
     }
-    for (const Method &Entry : Methods)
+    for (const Method &Entry : methods())
     {
       if (Entry.name() == MemberName)
       {
@@ -170,12 +185,15 @@ namespace ink::ir
 
   bool NominalType::isFrozen() const noexcept
   {
-    return Frozen;
+    return Declaration->Frozen;
   }
 
   void NominalType::freeze() noexcept
   {
-    Frozen = true;
+    if (Declaration == this)
+    {
+      Frozen = true;
+    }
   }
 
   bool NominalType::classof(const Value *Value) noexcept

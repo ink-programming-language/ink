@@ -22,7 +22,7 @@ namespace ink::ir
 
       void appendToString(ValueStringBuilder &Builder) const override;
 
-      ArrayType(const MetaType &Meta, const Type *ElementType, std::uint64_t ElementCount, std::uint64_t Size, std::uint64_t Alignment) noexcept;
+      ArrayType(const MetaType &Meta, const Type *ElementType, std::uint64_t ElementCount, std::uint64_t Size, std::uint64_t Alignment, bool Mutable = true) noexcept;
 
       const Type *ElementType = nullptr;
       std::uint64_t ElementCount = 0;

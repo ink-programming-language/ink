@@ -7,6 +7,11 @@ namespace ink::ir
   {
   }
 
+  ClassType::ClassType(const ClassType &Declaration, bool Mutable) noexcept
+      : NominalType(Declaration, Mutable)
+  {
+  }
+
   bool ClassType::classof(const Value *Value) noexcept
   {
     return Value && Value->kind() == ValueKind::Class;

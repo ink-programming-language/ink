@@ -26,7 +26,7 @@ namespace ink::ir
     {
       return false;
     }
-    if (ConstantType == DestinationType)
+    if (ConstantType && ConstantType->unqualifiedType() == DestinationType->unqualifiedType())
     {
       return true;
     }

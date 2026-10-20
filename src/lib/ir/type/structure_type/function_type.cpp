@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  FunctionType::FunctionType(const MetaType &Meta, const target::TargetContext &Target, const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters)
-      : Type(ValueKind::FunctionType, Meta),
+  FunctionType::FunctionType(const MetaType &Meta, const target::TargetContext &Target, const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters, bool Mutable)
+      : Type(ValueKind::FunctionType, Meta, Mutable),
         ReturnType(ReturnType),
         Parameters(Parameters.begin(), Parameters.end()),
         PointerByteWidth(Target.pointerByteWidth())
@@ -44,6 +44,7 @@ namespace ink::ir
 
   void FunctionType::appendToString(ValueStringBuilder &Builder) const
   {
+    Builder.append(isMutable() ? "" : "const ");
     Builder.append("func(");
     Builder.pushValue(*ReturnType);
     Builder.pushText("): ");

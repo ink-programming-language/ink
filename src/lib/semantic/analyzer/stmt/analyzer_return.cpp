@@ -16,7 +16,7 @@ namespace ink::semantic
     const ir::Function *Function = Builder.insertFunction();
     RETURN_REPORT_IF_FALSE(Context, Function, core::DiagnosticKind::SemanticReturnOutsideFunction, false, Node.getSourceRange());
     const ir::Type *ReturnType = Function->functionType()->returnType();
-    const bool ReturnsVoid = ReturnType == Context.typePool().getVoidType();
+    const bool ReturnsVoid = ir::VoidType::classof(ReturnType);
     if (!Node.value())
     {
       RETURN_REPORT_IF_FALSE(Context, ReturnsVoid, core::DiagnosticKind::SemanticMissingReturn, false, Node.getSourceRange(), core::NamePool::instance().text(Function->name()));

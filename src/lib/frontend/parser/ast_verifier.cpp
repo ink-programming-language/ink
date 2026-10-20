@@ -152,7 +152,12 @@ namespace ink::frontend::parser
       case ASTKind::UnaryExpr:
       {
         const auto *Value = static_cast<const UnaryExpr *>(Node);
-        Valid = Valid && Value->operand() != nullptr;
+        Valid = Valid && Value->operand() != nullptr && Value->op() != TokenKind::KwConst;
+        if (const auto Qualifier = Value->qualifier())
+        {
+          const SourceRange QualifierRange = Qualifier->Range;
+          Valid = Valid && Qualifier->Kind == TypeQualifierKind::Const && (Value->op() == TokenKind::Star || Value->op() == TokenKind::Amp) && QualifierRange.isValid() && !QualifierRange.empty() && Node->getSourceRange().fullyContains(QualifierRange) && Value->operatorRange().isValid() && Value->operatorRange().getEnd() <= QualifierRange.getBegin() && QualifierRange.getEnd() <= Value->operand()->getSourceRange().getBegin();
+        }
         break;
       }
       case ASTKind::BinaryExpr:

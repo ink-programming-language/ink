@@ -63,7 +63,11 @@ namespace ink::ir
   {
     if (typePool().owns(TypeValue))
     {
-      return true;
+      if (!NominalType::classof(TypeValue))
+      {
+        return true;
+      }
+      TypeValue = static_cast<const NominalType *>(TypeValue)->declarationType();
     }
     for (const auto &DeclaredType : Classes)
     {
@@ -147,7 +151,12 @@ namespace ink::ir
     {
       return nullptr;
     }
-    return appendGlobalVariable(std::make_unique<GlobalVariable>(VariableType, VariableName, Mutable));
+    const Type *ObjectType = typePool().getQualifiedType(&VariableType, Mutable && VariableType.isMutable());
+    if (!ObjectType)
+    {
+      return nullptr;
+    }
+    return appendGlobalVariable(std::make_unique<GlobalVariable>(*ObjectType, VariableName));
   }
 
   GlobalVariable *Module::appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable)

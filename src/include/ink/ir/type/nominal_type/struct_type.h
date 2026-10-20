@@ -15,8 +15,10 @@ namespace ink::ir
 
     private:
       friend class Module;
+      friend class TypePool;
 
       StructType(const Module &Owner, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept;
+      StructType(const StructType &Declaration, bool Mutable) noexcept;
   };
 } // namespace ink::ir
 

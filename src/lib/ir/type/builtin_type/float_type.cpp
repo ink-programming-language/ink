@@ -2,8 +2,8 @@
 
 namespace ink::ir
 {
-  FloatType::FloatType(const MetaType &Meta, const target::TargetContext &Target, std::uint32_t Width) noexcept
-      : Type(ValueKind::Float, Meta),
+  FloatType::FloatType(const MetaType &Meta, const target::TargetContext &Target, std::uint32_t Width, bool Mutable) noexcept
+      : Type(ValueKind::Float, Meta, Mutable),
         Width(Width),
         Alignment(Target.floatAlignment(Width))
   {
@@ -26,7 +26,7 @@ namespace ink::ir
 
   std::string FloatType::toString() const
   {
-    return "f" + std::to_string(Width);
+    return std::string(isMutable() ? "f" : "const f") + std::to_string(Width);
   }
 
   bool FloatType::classof(const Value *Value) noexcept

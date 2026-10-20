@@ -45,7 +45,7 @@ namespace ink::semantic
       RETURN_IF(!Initializer, false);
       if (!Type)
       {
-        Type = Initializer->type();
+        Type = Initializer->type()->unqualifiedType();
       }
     }
     // TODO: Represent zero-sized unit bindings without allocating runtime storage.

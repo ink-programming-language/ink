@@ -3,9 +3,11 @@
 
 namespace ink::ir
 {
-  Type::Type(ValueKind Kind, const MetaType &Meta) noexcept
+  Type::Type(ValueKind Kind, const MetaType &Meta, bool Mutable) noexcept
       : Value(Kind),
-        Meta(Meta)
+        Meta(Meta),
+        Mutable(Mutable),
+        UnqualifiedType(this)
   {
   }
 
@@ -14,6 +16,21 @@ namespace ink::ir
   const Type *Type::type() const noexcept
   {
     return &Meta;
+  }
+
+  bool Type::isMutable() const noexcept
+  {
+    return Mutable;
+  }
+
+  const Type *Type::unqualifiedType() const noexcept
+  {
+    return UnqualifiedType;
+  }
+
+  std::string Type::toString() const
+  {
+    return (Mutable ? "" : "const ") + Value::toString();
   }
 
   bool Type::hasLayout() const noexcept

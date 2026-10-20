@@ -7,6 +7,11 @@ namespace ink::ir
   {
   }
 
+  StructType::StructType(const StructType &Declaration, bool Mutable) noexcept
+      : NominalType(Declaration, Mutable)
+  {
+  }
+
   bool StructType::classof(const Value *Value) noexcept
   {
     return Value && Value->kind() == ValueKind::Struct;

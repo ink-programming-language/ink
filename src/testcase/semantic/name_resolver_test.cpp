@@ -451,7 +451,7 @@ namespace ink::semantic::test
     ASSERT_EQ(AliasBinding->targets().size(), 1U);
     EXPECT_EQ(Saved->targets()[0], Storage);
     EXPECT_EQ(AliasBinding->targets()[0], Storage);
-    EXPECT_EQ(Saved->targets()[0]->type(), Integer);
+    EXPECT_EQ(Saved->targets()[0]->type(), Context.typePool().getQualifiedType(Integer, false));
     EXPECT_TRUE(Saved->targets()[0]->isStorage());
     EXPECT_FALSE(Saved->targets()[0]->isMutable());
     EXPECT_FALSE(Saved->targets()[0]->isInitialized());
@@ -494,7 +494,7 @@ namespace ink::semantic::test
     const Binding *InnerBinding = Resolver.lookup(Variable);
     ASSERT_NE(InnerBinding, nullptr);
     EXPECT_EQ(InnerBinding->targets()[0], InnerStorage);
-    EXPECT_EQ(InnerBinding->targets()[0]->type(), Boolean);
+    EXPECT_EQ(InnerBinding->targets()[0]->type(), Context.typePool().getQualifiedType(Boolean, false));
     EXPECT_FALSE(InnerBinding->targets()[0]->isMutable());
     EXPECT_TRUE(InnerBinding->targets()[0]->isInitialized());
     EXPECT_EQ(Resolver.lookupMember(ModuleValue, Variable), InnerBinding);

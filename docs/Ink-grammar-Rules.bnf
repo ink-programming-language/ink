@@ -290,10 +290,11 @@ unary ::= unary_op unary
 
 comptime_expr ::= "comptime" unary ;
 
+// const 仅限定紧邻的指针或引用前缀；声明级 const 保持独立，不引入裸 const T。
 unary_op ::= "+" | "-"
            | "!" | "~"
            | "++" | "--"
-           | "&" | "*" ;
+           | ("&" | "*") [ "const" ] ;
 
 
 postfix ::= primary { postfix_op } ;

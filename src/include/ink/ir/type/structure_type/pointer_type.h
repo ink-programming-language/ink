@@ -27,7 +27,7 @@ namespace ink::ir
       void appendToString(ValueStringBuilder &Builder) const override;
 
       // PointeeType is a non-null borrowed pointer and must outlive the pointer type.
-      PointerType(const MetaType &Meta, const target::TargetContext &Target, const Type *PointeeType) noexcept;
+      PointerType(const MetaType &Meta, const target::TargetContext &Target, const Type *PointeeType, bool Mutable = true) noexcept;
 
       const Type *PointeeType = nullptr;
       std::uint64_t PointerByteWidth = 0;

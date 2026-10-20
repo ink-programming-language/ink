@@ -7,6 +7,11 @@ namespace ink::ir
   {
   }
 
+  InterfaceType::InterfaceType(const InterfaceType &Declaration, bool Mutable) noexcept
+      : NominalType(Declaration, Mutable)
+  {
+  }
+
   bool InterfaceType::classof(const Value *Value) noexcept
   {
     return Value && Value->kind() == ValueKind::Interface;

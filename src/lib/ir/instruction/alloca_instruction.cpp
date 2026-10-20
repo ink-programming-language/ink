@@ -1,11 +1,11 @@
 #include "ink/ir/instruction/alloca_instruction.h"
 
+#include "ink/ir/type/type.h"
+
 namespace ink::ir
 {
-  AllocaInstruction::AllocaInstruction(const Type &AllocatedType, bool Mutable, bool Initialized) noexcept
-      : Instruction(ValueKind::AllocaInstruction, &AllocatedType),
-        Mutable(Mutable),
-        Initialized(Initialized)
+  AllocaInstruction::AllocaInstruction(const Type &AllocatedType) noexcept
+      : Instruction(ValueKind::AllocaInstruction, &AllocatedType)
   {
   }
 
@@ -21,7 +21,7 @@ namespace ink::ir
 
   bool AllocaInstruction::isMutable() const noexcept
   {
-    return Mutable;
+    return type()->isMutable();
   }
 
   bool AllocaInstruction::isInitialized() const noexcept

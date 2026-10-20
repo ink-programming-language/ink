@@ -95,3 +95,14 @@ execute_process(COMMAND "${INK_PARSER}" "${INK_TEST_DIRECTORY}/does-not-exist.in
 if(NOT Status EQUAL 2 OR NOT Error MATCHES "cannot open")
   message(FATAL_ERROR "Missing input should report invocation failure: ${Status}: ${Error}")
 endif()
+
+# The native WriteFile example retains its const buffer qualifier in both file and stdin AST output.
+configure_file("${CMAKE_CURRENT_LIST_DIR}/../../../examples/hello_world_windows.ink" "${Input}" COPYONLY)
+execute_process(COMMAND "${INK_PARSER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status EQUAL 0 OR NOT Error STREQUAL "" OR NOT Output MATCHES "Qualifier=\\{ Kind=Const Range=\\[[0-9]+, [0-9]+\\) \\}" OR Output MATCHES "Op=KW_CONST" OR NOT Output MATCHES "Name=WriteFile@")
+  message(FATAL_ERROR "Const pointer example failed: ${Status}: ${Output}: ${Error}")
+endif()
+execute_process(COMMAND "${INK_PARSER}" "-" INPUT_FILE "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE StdinOutput ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status EQUAL 0 OR NOT Error STREQUAL "" OR NOT StdinOutput STREQUAL Output)
+  message(FATAL_ERROR "Const pointer example differs between file and stdin: ${Status}: ${StdinOutput}: ${Error}")
+endif()

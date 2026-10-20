@@ -83,7 +83,8 @@ namespace ink::semantic
 
   const Binding *NameResolver::lookupMember(const ir::Value &Owner, core::Name Name) const noexcept
   {
-    const Scope *Members = scopeStore().memberScope(Owner);
+    const ir::Value &Declaration = ir::Type::classof(&Owner) ? *static_cast<const ir::Type &>(Owner).unqualifiedType() : Owner;
+    const Scope *Members = scopeStore().memberScope(Declaration);
     return Members ? Members->lookupLocal(Name) : nullptr;
   }
 } // namespace ink::semantic

@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  ReferenceType::ReferenceType(const MetaType &Meta, const target::TargetContext &Target, const Type *ReferencedType) noexcept
-      : Type(ValueKind::Reference, Meta),
+  ReferenceType::ReferenceType(const MetaType &Meta, const target::TargetContext &Target, const Type *ReferencedType, bool Mutable) noexcept
+      : Type(ValueKind::Reference, Meta, Mutable),
         ReferencedType(ReferencedType),
         PointerByteWidth(Target.pointerByteWidth())
   {
@@ -33,6 +33,7 @@ namespace ink::ir
 
   void ReferenceType::appendToString(ValueStringBuilder &Builder) const
   {
+    Builder.append(isMutable() ? "" : "const ");
     Builder.append("&");
     Builder.pushValue(*ReferencedType);
   }

@@ -1,4 +1,5 @@
 #include "ink/ir/context.h"
+#include "ink/ir/type/nominal_type/nominal_type.h"
 
 namespace ink::ir
 {
@@ -18,7 +19,11 @@ namespace ink::ir
 
   bool IRContext::containsType(const Type *TypeValue) const noexcept
   {
-    return Types.owns(TypeValue) || NominalTypes.contains(TypeValue);
+    if (Types.owns(TypeValue))
+    {
+      return !NominalType::classof(TypeValue) || NominalTypes.contains(static_cast<const NominalType *>(TypeValue)->declarationType());
+    }
+    return NominalTypes.contains(TypeValue);
   }
 
   void IRContext::registerNominalType(const Type *TypeValue)
@@ -28,6 +33,7 @@ namespace ink::ir
 
   void IRContext::unregisterNominalType(const Type *TypeValue) noexcept
   {
+    Types.unregisterNominalType(TypeValue);
     NominalTypes.erase(TypeValue);
   }
 } // namespace ink::ir

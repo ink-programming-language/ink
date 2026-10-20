@@ -4,6 +4,7 @@
 #include "ink/semantic/context.h"
 
 #include <string>
+#include <type_traits>
 
 namespace ink::semantic
 {
@@ -12,7 +13,14 @@ namespace ink::semantic
     template <auto Getter>
     const ir::Value *getBuiltinType(SemanticContext &Context) noexcept
     {
-      return (Context.typePool().*Getter)();
+      if constexpr (std::is_invocable_v<decltype(Getter), ir::TypePool &, bool>)
+      {
+        return (Context.typePool().*Getter)(true);
+      }
+      else
+      {
+        return (Context.typePool().*Getter)();
+      }
     }
 
     template <bool Value>

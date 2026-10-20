@@ -33,7 +33,8 @@ namespace ink::ir
       virtual const Type *type() const noexcept;
       // Storage has the stored object's type; reading its contents or taking its address requires an explicit operation.
       virtual bool isStorage() const noexcept;
-      // Describes whether assignment through this storage is permitted, not whether a pointer's pointee is writable.
+      // For storage, describes whether assignment is permitted. Type descriptors report their represented object's top-level mutability.
+      // An ordinary pointer value does not describe its pointee permission here; query its pointee type instead.
       virtual bool isMutable() const noexcept;
       // Storage may record declaration initialization; indirect storage has no such record and returns false.
       // Ordinary values are already initialized.

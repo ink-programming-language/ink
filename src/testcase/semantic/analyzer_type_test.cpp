@@ -197,6 +197,46 @@ namespace ink::semantic::test
     }
   }
 
+  // Each const keyword qualifies only its immediately referenced type, including nested pointers and callable signatures.
+  TEST_F(SemanticAnalyzerTypeTest, ResolvesConstPointerAndReferenceTypes)
+  {
+    auto &Types = Context.typePool();
+    const auto *Byte = Types.getUInt8Type();
+    const auto *Integer = Types.getInt32Type();
+    const auto *ConstByte = Types.getQualifiedType(Byte, false);
+    const auto *ConstInteger = Types.getQualifiedType(Integer, false);
+    const auto *Pointer = Types.getPointerType(Byte);
+    const auto *ReadonlyPointer = Types.getPointerType(ConstByte);
+    struct Case
+    {
+        const char *Text;
+        const ir::Type *Expected;
+    };
+    const Case Cases[] = {
+        {"*const u8", ReadonlyPointer},
+        {"&const i32", Types.getReferenceType(ConstInteger)},
+        {"**const u8", Types.getPointerType(ReadonlyPointer)},
+        {"*const *u8", Types.getPointerType(Types.getQualifiedType(Pointer, false))},
+        {"*const *const u8", Types.getPointerType(Types.getQualifiedType(ReadonlyPointer, false))},
+        {"&const *const u8", Types.getReferenceType(Types.getQualifiedType(ReadonlyPointer, false))},
+        {"*const [u8; 4]", Types.getPointerType(Types.getQualifiedType(Types.getArrayType(Byte, 4), false))},
+        {"[*const u8; 4]", Types.getArrayType(ReadonlyPointer, 4)},
+        {"func(Buffer: *const u8): i32", Types.getFunctionType(Integer, {ReadonlyPointer})},
+        {"func(): &const i32", Types.getFunctionType(Types.getReferenceType(ConstInteger))},
+        {"*const func(): i32", Types.getPointerType(Types.getQualifiedType(Types.getFunctionType(Integer), false))},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      ASSERT_NE(Entry.Expected, nullptr);
+      EXPECT_EQ(analyze(Input), Entry.Expected);
+      EXPECT_EQ(analyze(Input), Entry.Expected);
+      EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    }
+  }
+
   // Type descriptions accept a registered marker without layout, including pointer and reference constructors over it.
   TEST_F(SemanticAnalyzerTypeTest, ResolvesTypesWithoutRequiringRuntimeLayout)
   {

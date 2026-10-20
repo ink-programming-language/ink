@@ -119,7 +119,7 @@ namespace ink::ir
   {
     RETURN_IF(!Context.containsType(&ExpectedType) || !validOperand(Operand), false);
     RETURN_IF(Constant::classof(&Operand), static_cast<const Constant &>(Operand).canInitialize(&ExpectedType));
-    return Operand.type() == &ExpectedType;
+    return Operand.type()->unqualifiedType() == ExpectedType.unqualifiedType();
   }
 
   bool IRBuilder::validTarget(const BasicBlock &Target) const noexcept
@@ -153,8 +153,8 @@ namespace ink::ir
   {
     check(canAppend());
     RETURN_IF(!Context.containsType(&Signature) || !validOperand(Callee) || Arguments.size() != Signature.parameterCount(), nullptr);
-    const Type *CalleeType = Callee.type();
-    RETURN_IF(CalleeType != &Signature && (!PointerType::classof(CalleeType) || static_cast<const PointerType *>(CalleeType)->pointeeType() != &Signature), nullptr);
+    const Type *CalleeType = Callee.type()->unqualifiedType();
+    RETURN_IF(CalleeType != Signature.unqualifiedType() && (!PointerType::classof(CalleeType) || static_cast<const PointerType *>(CalleeType)->pointeeType()->unqualifiedType() != Signature.unqualifiedType()), nullptr);
     for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
     {
       const FunctionTypeParameter &Descriptor = Signature.parameters()[Index];
@@ -167,8 +167,8 @@ namespace ink::ir
   {
     check(canAppend());
     RETURN_IF(!validPredicate(Predicate) || !validOperand(Left) || !validOperand(Right), nullptr);
-    const Type *LeftType = Left.type();
-    const Type *RightType = Right.type();
+    const Type *LeftType = Left.type()->unqualifiedType();
+    const Type *RightType = Right.type()->unqualifiedType();
     bool Compatible = LeftType == RightType && (IntegerType::classof(LeftType) || PointerType::classof(LeftType));
     if (!Compatible && (Predicate == ICmpPredicate::Equal || Predicate == ICmpPredicate::NotEqual))
     {
@@ -191,7 +191,11 @@ namespace ink::ir
   {
     check(canAppend());
     RETURN_IF(!Context.containsType(&AllocatedType) || !AllocatedType.hasLayout() || VoidType::classof(&AllocatedType), nullptr);
-    return append<AllocaInstruction>(AllocatedType, Mutable, Initialized);
+    const Type *ObjectType = typePool().getQualifiedType(&AllocatedType, Mutable && AllocatedType.isMutable());
+    RETURN_IF_NULL(ObjectType, nullptr);
+    AllocaInstruction *Storage = append<AllocaInstruction>(*ObjectType);
+    Storage->Initialized = Initialized;
+    return Storage;
   }
 
   DereferenceInstruction *IRBuilder::createDereference(const Value &Pointer)
@@ -215,8 +219,11 @@ namespace ink::ir
   LoadInstruction *IRBuilder::createLoad(const Type &LoadedType, const Value &Pointer)
   {
     check(canAppend());
-    RETURN_IF(!Context.containsType(&LoadedType) || memoryPointeeType(Pointer) != &LoadedType, nullptr);
-    return append<LoadInstruction>(LoadedType, Pointer);
+    const Type *ObjectType = memoryPointeeType(Pointer);
+    RETURN_IF(!Context.containsType(&LoadedType) || !ObjectType, nullptr);
+    const Type *ResultType = ObjectType->unqualifiedType();
+    RETURN_IF(LoadedType.unqualifiedType() != ResultType, nullptr);
+    return append<LoadInstruction>(*ResultType, Pointer);
   }
 
   StoreInstruction *IRBuilder::createStore(const Value &StoredValue, const Value &Pointer)
@@ -224,7 +231,7 @@ namespace ink::ir
     check(canAppend());
     RETURN_IF(Pointer.isStorage() && !Pointer.isMutable(), nullptr);
     const Type *StoredType = memoryPointeeType(Pointer);
-    RETURN_IF(!StoredType || !canUseAs(StoredValue, *StoredType), nullptr);
+    RETURN_IF(!StoredType || !StoredType->isMutable() || !canUseAs(StoredValue, *StoredType), nullptr);
     return append<StoreInstruction>(*Context.typePool().getVoidType(), StoredValue, Pointer);
   }
 
@@ -252,6 +259,7 @@ namespace ink::ir
       {
         continue;
       }
+      const bool Mutable = SelectedType->isMutable();
       if (ArrayType::classof(SelectedType))
       {
         SelectedType = static_cast<const ArrayType *>(SelectedType)->elementType();
@@ -265,6 +273,11 @@ namespace ink::ir
         return nullptr;
       }
       RETURN_IF(!Context.containsType(SelectedType) || !SelectedType->hasLayout(), nullptr);
+      if (!Mutable)
+      {
+        SelectedType = typePool().getQualifiedType(SelectedType, false);
+        RETURN_IF_NULL(SelectedType, nullptr);
+      }
     }
     const PointerType *ResultType = typePool().getPointerType(SelectedType);
     RETURN_IF_NULL(ResultType, nullptr);
@@ -288,14 +301,14 @@ namespace ink::ir
   ReturnInstruction *IRBuilder::createReturn()
   {
     check(canAppend());
-    RETURN_IF(insertFunction()->functionType()->returnType() != Context.typePool().getVoidType(), nullptr);
+    RETURN_IF(!VoidType::classof(insertFunction()->functionType()->returnType()), nullptr);
     return append<ReturnInstruction>(*Context.typePool().getVoidType());
   }
 
   ReturnInstruction *IRBuilder::createReturn(const Value &ReturnedValue)
   {
     check(canAppend());
-    RETURN_IF(insertFunction()->functionType()->returnType() == Context.typePool().getVoidType() || !canUseAs(ReturnedValue, *insertFunction()->functionType()->returnType()), nullptr);
+    RETURN_IF(VoidType::classof(insertFunction()->functionType()->returnType()) || !canUseAs(ReturnedValue, *insertFunction()->functionType()->returnType()), nullptr);
     return append<ReturnInstruction>(*Context.typePool().getVoidType(), &ReturnedValue);
   }
 } // namespace ink::ir

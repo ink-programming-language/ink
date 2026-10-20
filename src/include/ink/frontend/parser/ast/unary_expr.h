@@ -2,6 +2,7 @@
 
 #include "ink/frontend/parser/ast/expr.h"
 #include "ink/frontend/parser/ast/fwd.h"
+#include <optional>
 #include <utility>
 
 namespace ink::frontend::parser
@@ -14,11 +15,12 @@ namespace ink::frontend::parser
       {
         return Node && Node->getKind() == Kind;
       }
-      UnaryExpr(SourceRange Range, TokenKind Op, SourceRange OperatorRange, Expr *Operand)
+      UnaryExpr(SourceRange Range, TokenKind Op, SourceRange OperatorRange, Expr *Operand, std::optional<TypeQualifier> Qualifier = std::nullopt)
           : Expr(Kind, Range),
             Op(Op),
             OperatorRange(OperatorRange),
-            Operand(Operand)
+            Operand(Operand),
+            Qualifier(Qualifier)
       {
       }
       TokenKind op() const noexcept
@@ -29,6 +31,15 @@ namespace ink::frontend::parser
       {
         return OperatorRange;
       }
+      // The qualifier belongs to this Star or Amp layer and restricts access to its pointee or referent.
+      bool isConstQualified() const noexcept
+      {
+        return Qualifier && Qualifier->Kind == TypeQualifierKind::Const;
+      }
+      std::optional<TypeQualifier> qualifier() const noexcept
+      {
+        return Qualifier;
+      }
       auto *operand(this auto &&Self) noexcept
       {
         return Self.Operand ? &std::forward_like<decltype(Self) &>(*Self.Operand) : nullptr;
@@ -38,5 +49,6 @@ namespace ink::frontend::parser
       TokenKind Op;
       SourceRange OperatorRange;
       Expr *Operand;
+      std::optional<TypeQualifier> Qualifier;
   };
 } // namespace ink::frontend::parser

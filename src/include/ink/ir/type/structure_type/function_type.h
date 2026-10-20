@@ -31,7 +31,7 @@ namespace ink::ir
       void appendToString(ValueStringBuilder &Builder) const override;
 
       // Owns immutable copies of parameter descriptors and borrows all referenced types.
-      FunctionType(const MetaType &Meta, const target::TargetContext &Target, const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters);
+      FunctionType(const MetaType &Meta, const target::TargetContext &Target, const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters, bool Mutable = true);
 
       const Type *ReturnType = nullptr;
       std::vector<FunctionTypeParameter> Parameters;

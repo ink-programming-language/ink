@@ -1,7 +1,7 @@
 // Windows x64: GetStdHandle and WriteFile are exported by Kernel32.dll.
 // Current main supports parsing this example; native execution is not implemented.
 import "C" func GetStdHandle(StandardHandle: u32): *void;
-import "C" func WriteFile(File: *void, Buffer: *u8, BytesToWrite: u32, BytesWritten: *u32, Overlapped: *void): i32;
+import "C" func WriteFile(File: *void, Buffer: *const u8, BytesToWrite: u32, BytesWritten: *u32, Overlapped: *void): i32;
 
 func main(): i32
 {

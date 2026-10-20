@@ -23,6 +23,15 @@ namespace ink::frontend::parser
       bool Wildcard;
       SourceRange EllipsisRange;
   };
+  enum class TypeQualifierKind
+  {
+    Const,
+  };
+  struct TypeQualifier
+  {
+      TypeQualifierKind Kind;
+      SourceRange Range;
+  };
   enum class ArgumentKind
   {
     Named,

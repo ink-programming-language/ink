@@ -67,9 +67,9 @@ namespace ink::semantic
       return requireType(Context, Node.getSourceRange(), Result);
     }
     RETURN_IF(!Storage && !requireRuntimeValue(Context, Node.getSourceRange(), Result), nullptr);
-    // Check the stored object's type before the consumer chooses whether to read it.
+    // Value compatibility drops only the object's top-level qualifier; pointee and element qualifiers remain part of the type.
     const ir::Type *Type = Result->type();
-    const bool Compatible = !Storage && ir::Constant::classof(Result) ? static_cast<const ir::Constant *>(Result)->canInitialize(ExpectedType) : Type == ExpectedType;
+    const bool Compatible = !Storage && ir::Constant::classof(Result) ? static_cast<const ir::Constant *>(Result)->canInitialize(ExpectedType) : Type->unqualifiedType() == ExpectedType->unqualifiedType();
     RETURN_REPORT_IF_FALSE(Context, Compatible, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.getSourceRange(), ExpectedType->toString(), Type->toString());
     return Result;
   }

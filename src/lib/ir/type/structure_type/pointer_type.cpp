@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  PointerType::PointerType(const MetaType &Meta, const target::TargetContext &Target, const Type *PointeeType) noexcept
-      : Type(ValueKind::Pointer, Meta),
+  PointerType::PointerType(const MetaType &Meta, const target::TargetContext &Target, const Type *PointeeType, bool Mutable) noexcept
+      : Type(ValueKind::Pointer, Meta, Mutable),
         PointeeType(PointeeType),
         PointerByteWidth(Target.pointerByteWidth())
   {
@@ -38,6 +38,7 @@ namespace ink::ir
 
   void PointerType::appendToString(ValueStringBuilder &Builder) const
   {
+    Builder.append(isMutable() ? "" : "const ");
     Builder.append("*");
     Builder.pushValue(*PointeeType);
   }

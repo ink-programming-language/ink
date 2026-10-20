@@ -1,5 +1,7 @@
 #include "ink/ir/instruction/dereference_instruction.h"
 
+#include "ink/ir/type/type.h"
+
 namespace ink::ir
 {
   DereferenceInstruction::DereferenceInstruction(const Type &ObjectType, const Value &Pointer) noexcept
@@ -20,7 +22,7 @@ namespace ink::ir
 
   bool DereferenceInstruction::isMutable() const noexcept
   {
-    return true;
+    return type()->isMutable();
   }
 
   bool DereferenceInstruction::isInitialized() const noexcept

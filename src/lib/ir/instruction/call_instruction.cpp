@@ -7,7 +7,7 @@
 namespace ink::ir
 {
   CallInstruction::CallInstruction(const FunctionType &Signature, const Value &Callee, std::vector<Argument> Arguments) noexcept
-      : Instruction(ValueKind::CallInstruction, Signature.returnType()),
+      : Instruction(ValueKind::CallInstruction, Signature.returnType()->unqualifiedType()),
         Signature(&Signature),
         Callee(&Callee),
         Arguments(std::move(Arguments))

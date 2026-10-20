@@ -15,8 +15,10 @@ namespace ink::ir
 
     private:
       friend class Module;
+      friend class TypePool;
 
       ClassType(const Module &Owner, std::uint64_t Size, std::uint64_t Alignment, core::Name Name) noexcept;
+      ClassType(const ClassType &Declaration, bool Mutable) noexcept;
   };
 } // namespace ink::ir
 

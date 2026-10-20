@@ -16,6 +16,12 @@ namespace ink::ir
       // Type descriptors are compile-time values whose type is their context's unique metatype.
       const Type *type() const noexcept override;
 
+      // Whether objects of this type may be modified at this layer; nested types retain their own qualifiers.
+      bool isMutable() const noexcept final;
+      // Removes only this layer's const qualifier; child type qualifiers remain unchanged.
+      const Type *unqualifiedType() const noexcept;
+      std::string toString() const override;
+
       // False for type markers or templates awaiting instantiation; size/alignment then carry no runtime layout.
       virtual bool hasLayout() const noexcept;
 
@@ -28,10 +34,14 @@ namespace ink::ir
 
     protected:
       // Borrows Meta, which must outlive this descriptor.
-      Type(ValueKind Kind, const MetaType &Meta) noexcept;
+      Type(ValueKind Kind, const MetaType &Meta, bool Mutable = true) noexcept;
 
     private:
+      friend class TypePool;
+
       const MetaType &Meta;
+      const bool Mutable;
+      const Type *UnqualifiedType;
   };
 } // namespace ink::ir
 

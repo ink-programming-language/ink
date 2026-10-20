@@ -1,9 +1,10 @@
 #include "ink/ir/instruction/neg_instruction.h"
+#include "ink/ir/type/type.h"
 
 namespace ink::ir
 {
   NegInstruction::NegInstruction(const Value &Operand) noexcept
-      : Instruction(ValueKind::NegInstruction, Operand.type()),
+      : Instruction(ValueKind::NegInstruction, Operand.type() ? Operand.type()->unqualifiedType() : nullptr),
         Operand(&Operand)
   {
   }
