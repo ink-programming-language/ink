@@ -611,7 +611,7 @@ namespace ink::semantic::test
     }
   }
 
-  // Type annotations retain the common unsupported-feature ICE for runtime operations, optional access and calls.
+  // Type annotations retain the common unsupported-feature ICE for global reads, array construction, optional access and calls.
   TEST_F(SemanticAnalyzerTypeTest, ReportsUnsupportedOperationsInTypePosition)
   {
     ir::Module Package(Context.irContext());
@@ -622,8 +622,6 @@ namespace ink::semantic::test
     ASSERT_EQ(Resolver.bind(name("Value"), *Variable), BindResult::Inserted);
     constexpr const char *Cases[] = {
         "*Value",
-        "&Value",
-        "&(Value)",
         "[Value; 3]",
         "Value.Missing",
         "Pkg?.Outer",
@@ -636,6 +634,37 @@ namespace ink::semantic::test
       ASSERT_TRUE(Input.succeeded());
       EXPECT_DEATH(analyze(Input), "INK-S0012");
     }
+  }
+
+  // Invalid runtime address operands in type annotations retain their user diagnostics and complete unary source ranges.
+  TEST_F(SemanticAnalyzerTypeTest, RejectsInvalidAddressOperationsInTypePosition)
+  {
+    auto *Variable = Output.createGlobalVariable(*Context.typePool().getInt32Type());
+    ASSERT_NE(Variable, nullptr);
+    ASSERT_EQ(NameResolver(Context).bind(name("Value"), *Variable), BindResult::Inserted);
+    struct Case
+    {
+        const char *Text;
+        core::DiagnosticKind Expected;
+    };
+    constexpr Case Cases[] = {
+        {"&Value", core::DiagnosticKind::SemanticInvalidAddressOperand},
+        {"&(Value)", core::DiagnosticKind::SemanticInvalidAddressOperand},
+        {"&14", core::DiagnosticKind::SemanticInvalidAddressOperand},
+        {"*14", core::DiagnosticKind::SemanticInvalidDereference},
+        {"*nullptr", core::DiagnosticKind::SemanticInvalidDereference},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Text);
+      auto Input = read(Entry.Text);
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_EQ(analyze(Input), nullptr);
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, Entry.Expected);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Span, syntax(Input).expression()->getSourceRange());
+    }
+    Context.scopeStore().removeTarget(*Variable);
   }
 
   // Integer literals retain the full uint64 range through parentheses, and character integer constants are valid lengths.

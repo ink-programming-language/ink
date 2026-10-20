@@ -471,7 +471,7 @@ namespace ink::semantic::test
     EXPECT_EQ(returned(*Function)->returnedValue(), Calls[0]);
   }
 
-  // A typed local may remain unused without a fabricated zero initializer or a spurious uninitialized-read error.
+  // A typed local may remain unused without a fabricated zero initializer or a spurious uninitialized-read warning.
   TEST_F(SemanticVariableTest, AllowsUnusedUninitializedTypedLocal)
   {
     auto Input = read("func unused(): void { var Value: i32; }");
@@ -490,16 +490,57 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Reading an uninitialized local reports the source variable rather than creating a load from its allocation.
-  TEST_F(SemanticVariableTest, RejectsUninitializedLocalRead)
+  // Reading an uninitialized local reports a warning while preserving its load, return value and uninitialized storage marker.
+  TEST_F(SemanticVariableTest, WarnsAndLoadsUninitializedLocal)
   {
     auto Input = read("func read(): i32 { var Value: i32; return Value; }");
     ASSERT_TRUE(Input.succeeded());
-    EXPECT_FALSE(analyze(Input));
-    expectDiagnostic(core::DiagnosticKind::SemanticUninitializedRead);
+    ASSERT_TRUE(analyze(Input));
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUninitializedRead);
+    EXPECT_EQ(core::diagnosticDefaultSeverity(Diagnostics.diagnostics()[0].Kind), core::DiagnosticSeverity::Warning);
     const auto *Function = function("read");
     ASSERT_NE(Function, nullptr);
-    EXPECT_TRUE(instructions<ir::LoadInstruction>(*Function).empty());
+    const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
+    const auto Loads = instructions<ir::LoadInstruction>(*Function);
+    ASSERT_EQ(Allocations.size(), 1U);
+    ASSERT_EQ(Loads.size(), 1U);
+    EXPECT_FALSE(Allocations[0]->isInitialized());
+    EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
+    ASSERT_NE(returned(*Function), nullptr);
+    EXPECT_EQ(returned(*Function)->returnedValue(), Loads[0]);
+    EXPECT_TRUE(instructions<ir::StoreInstruction>(*Function).empty());
+  }
+
+  // Uninitialized reads in initializers and call arguments warn independently while producing both the copied local and the call.
+  TEST_F(SemanticVariableTest, WarnsAndEmitsUninitializedInitializerAndArgument)
+  {
+    auto Input = read("func accepts(Value: i32): void {} func copy(): void { var Value: i32; var Copy = Value; accepts(Value); }");
+    ASSERT_TRUE(Input.succeeded());
+    ASSERT_TRUE(analyze(Input));
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 2U);
+    for (const auto &Diagnostic : Diagnostics.diagnostics())
+    {
+      EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticUninitializedRead);
+      EXPECT_EQ(core::diagnosticDefaultSeverity(Diagnostic.Kind), core::DiagnosticSeverity::Warning);
+    }
+    const auto *Function = function("copy");
+    ASSERT_NE(Function, nullptr);
+    const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
+    const auto Loads = instructions<ir::LoadInstruction>(*Function);
+    const auto Stores = instructions<ir::StoreInstruction>(*Function);
+    const auto Calls = instructions<ir::CallInstruction>(*Function);
+    ASSERT_EQ(Allocations.size(), 2U);
+    ASSERT_EQ(Loads.size(), 2U);
+    ASSERT_EQ(Stores.size(), 1U);
+    ASSERT_EQ(Calls.size(), 1U);
+    EXPECT_FALSE(Allocations[0]->isInitialized());
+    EXPECT_TRUE(Allocations[1]->isInitialized());
+    EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
+    EXPECT_EQ(Loads[1]->pointer(), Allocations[0]);
+    EXPECT_EQ(Stores[0]->storedValue(), Loads[0]);
+    ASSERT_NE(Calls[0]->argument(0), nullptr);
+    EXPECT_EQ(Calls[0]->argument(0)->value(), Loads[1]);
   }
 
   // Missing type information produces the dedicated diagnostic and does not allocate storage for an unknown type.
@@ -579,15 +620,17 @@ namespace ink::semantic::test
     EXPECT_EQ(NameResolver(Context).lookupMember(Output, name("Value")), nullptr);
   }
 
-  // Shadowed variables retain independent initialization, and leaving the inner scope restores the outer variable's read checks.
+  // Shadowed variables retain independent initialization warnings, and both initialized and uninitialized reads still produce loads.
   TEST_F(SemanticVariableTest, KeepsInitializationWithEachShadowedStorage)
   {
     auto Input = read("func innerUninitialized(): void { var Value = 1; { var Value: i32; Value; } Value; } func outerUninitialized(): void { var Value: i32; { var Value = 1; Value; } Value; }");
     ASSERT_TRUE(Input.succeeded());
-    EXPECT_FALSE(analyze(Input));
+    ASSERT_TRUE(analyze(Input));
     ASSERT_EQ(Diagnostics.diagnostics().size(), 2U);
     EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUninitializedRead);
     EXPECT_EQ(Diagnostics.diagnostics()[1].Kind, core::DiagnosticKind::SemanticUninitializedRead);
+    EXPECT_EQ(core::diagnosticDefaultSeverity(Diagnostics.diagnostics()[0].Kind), core::DiagnosticSeverity::Warning);
+    EXPECT_EQ(core::diagnosticDefaultSeverity(Diagnostics.diagnostics()[1].Kind), core::DiagnosticSeverity::Warning);
     const auto *InnerUninitialized = function("innerUninitialized");
     const auto *OuterUninitialized = function("outerUninitialized");
     ASSERT_NE(InnerUninitialized, nullptr);
@@ -598,14 +641,16 @@ namespace ink::semantic::test
     const auto OuterLoads = instructions<ir::LoadInstruction>(*OuterUninitialized);
     ASSERT_EQ(InnerAllocations.size(), 2U);
     ASSERT_EQ(OuterAllocations.size(), 2U);
-    ASSERT_EQ(InnerLoads.size(), 1U);
-    ASSERT_EQ(OuterLoads.size(), 1U);
+    ASSERT_EQ(InnerLoads.size(), 2U);
+    ASSERT_EQ(OuterLoads.size(), 2U);
     EXPECT_TRUE(InnerAllocations[0]->isInitialized());
     EXPECT_FALSE(InnerAllocations[1]->isInitialized());
     EXPECT_FALSE(OuterAllocations[0]->isInitialized());
     EXPECT_TRUE(OuterAllocations[1]->isInitialized());
-    EXPECT_EQ(InnerLoads[0]->pointer(), InnerAllocations[0]);
+    EXPECT_EQ(InnerLoads[0]->pointer(), InnerAllocations[1]);
+    EXPECT_EQ(InnerLoads[1]->pointer(), InnerAllocations[0]);
     EXPECT_EQ(OuterLoads[0]->pointer(), OuterAllocations[1]);
+    EXPECT_EQ(OuterLoads[1]->pointer(), OuterAllocations[0]);
   }
 
   // Failed declarations do not reserve their names, so later declarations in the same block can initialize and return them.

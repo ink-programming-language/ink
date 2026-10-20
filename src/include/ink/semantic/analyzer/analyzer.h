@@ -73,7 +73,8 @@ namespace ink::semantic
       // This conversion requires a live insertion block, adds no NUL terminator and does not apply to ordinary array storage.
       // A non-null target materializes literals in that type and checks other values without implicit numeric conversions.
       // Call arguments, return values and variable initializers supply their declared target types.
-      // Variable references check initialization and emit a load; ordinary pointer values pass through unchanged.
+      // Variable reads emit a load and warn separately when declaration initialization is absent; ordinary pointer values pass through unchanged.
+      // Taking an uninitialized local's address emits an address and a separate warning without reading or initializing its contents.
       // Type and module expressions return their IR descriptors; consumers validate their suitability for the position.
       // Hints.DefaultIntegerLiteralType changes only uncontextualized integer literals and must belong to the current IR context.
       // Parentheses and numeric negation preserve both type hints; other nested operands select their own hints.

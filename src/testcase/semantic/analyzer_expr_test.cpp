@@ -9,6 +9,7 @@
 #include "ink/frontend/parser/parser.h"
 #include "ink/ir/instruction/address_of_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
+#include "ink/ir/instruction/dereference_instruction.h"
 #include "ink/ir/instruction/getelementptr_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/neg_instruction.h"
@@ -120,6 +121,16 @@ namespace ink::semantic::test
           EXPECT_EQ(Result, nullptr);
           ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
           EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, Kind);
+        }
+
+        void expectUninitializedWarning(const frontend::parser::ParseResult &Input, core::SourceRange Range)
+        {
+          ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+          const auto &Diagnostic = Diagnostics.diagnostics()[0];
+          EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticUninitializedRead);
+          EXPECT_EQ(core::DiagnosticFormatter{}.format(Diagnostic).Severity, core::DiagnosticSeverity::Warning);
+          EXPECT_EQ(Diagnostic.Source, Input.Unit->input().lexedFile().sourceId());
+          EXPECT_EQ(Diagnostic.Span, Range);
         }
 
         void expectMessage(std::string_view Message)
@@ -363,8 +374,8 @@ namespace ink::semantic::test
     Context.scopeStore().removeTarget(*Storage);
   }
 
-  // A saved scope preserves an uninitialized variable's storage while emitting its value in a new analyzer state fails without a load.
-  TEST_F(SemanticAnalyzerExprTest, RejectsUninitializedVariableReadsAcrossAnalyzerStates)
+  // A saved scope preserves an uninitialized variable's storage while emitting its value in a new analyzer state warns and creates a load.
+  TEST_F(SemanticAnalyzerExprTest, WarnsAndLoadsUninitializedVariablesAcrossAnalyzerStates)
   {
     auto Input = read("((Stored))");
     ASSERT_TRUE(Input.succeeded());
@@ -394,10 +405,14 @@ namespace ink::semantic::test
     EXPECT_EQ(ReusedResult, Storage);
     EXPECT_EQ(ReusedResult->type(), Storage->type());
     EXPECT_EQ(SecondState.nameResolver().lookupLocal(name("Stored")), Variable);
-    EXPECT_EQ(analyze(SecondState, Input), nullptr);
-    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
-    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUninitializedRead);
-    EXPECT_EQ(Block->instructionCount(), 1U);
+    const auto *Read = analyze(SecondState, Input);
+    ASSERT_TRUE(ir::LoadInstruction::classof(Read));
+    EXPECT_EQ(Read->type(), DeclaredType);
+    EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Read)->pointer(), Storage);
+    expectUninitializedWarning(Input, syntax(Input).getSourceRange());
+    EXPECT_FALSE(Storage->isInitialized());
+    ASSERT_EQ(Block->instructionCount(), 2U);
+    EXPECT_EQ(Block->instruction(1), Read);
     ASSERT_TRUE(SecondState.nameResolver().exitScope());
     Context.scopeStore().removeTarget(*Storage);
   }
@@ -417,6 +432,7 @@ namespace ink::semantic::test
     ASSERT_NE(Constant, nullptr);
     ASSERT_EQ(State.nameResolver().bind(name("Stored"), *Storage), BindResult::Inserted);
     ASSERT_EQ(State.nameResolver().bind(name("Alias"), *Storage), BindResult::Inserted);
+    Context.setSource(Input.Unit->input().lexedFile().sourceId());
     for (std::size_t Index = 0; Index != 2; ++Index)
     {
       const auto *Result = Analysis.analyzeExpr(State, syntax(Input, Index));
@@ -425,7 +441,13 @@ namespace ink::semantic::test
       EXPECT_TRUE(Result->isStorage());
       EXPECT_FALSE(Result->isMutable());
       EXPECT_FALSE(Result->isInitialized());
-      expectFailure(Analysis.emitValue(State, syntax(Input, Index)), core::DiagnosticKind::SemanticUninitializedRead);
+      const auto *Read = Analysis.emitValue(State, syntax(Input, Index));
+      ASSERT_TRUE(ir::LoadInstruction::classof(Read));
+      EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Read)->pointer(), Storage);
+      EXPECT_FALSE(Read->isStorage());
+      EXPECT_FALSE(Storage->isInitialized());
+      expectUninitializedWarning(Input, syntax(Input, Index).getSourceRange());
+      EXPECT_EQ(Block->instructionCount(), Index + 2);
       Diagnostics.clear();
     }
     ASSERT_NE(State.irBuilder().createInitialize(*Constant, *Storage), nullptr);
@@ -545,11 +567,18 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Unary operands, member receivers and repeated-array elements use independent defaults before reporting their unimplemented runtime operation.
+  // Unary operands, member receivers and repeated-array elements use independent defaults before reporting an invalid or unsupported operation.
   TEST_F(SemanticAnalyzerExprTest, ResetsLiteralHintsForDistinctOperandPositions)
   {
+    for (const char *Text : {"*(256)", "&(256)"})
+    {
+      SCOPED_TRACE(Text);
+      auto Input = read(Text);
+      ASSERT_TRUE(Input.succeeded());
+      expectFailure(analyze(Input, {.DefaultIntegerLiteralType = Context.typePool().getUInt8Type()}), Text[0] == '*' ? core::DiagnosticKind::SemanticInvalidDereference : core::DiagnosticKind::SemanticInvalidAddressOperand);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Span, syntax(Input).getSourceRange());
+    }
     constexpr const char *Cases[] = {
-        "*(256)",
         "((256)).Missing",
         "[256; 1]",
     };
@@ -1015,12 +1044,12 @@ namespace ink::semantic::test
     }
   }
 
-  // Negating uninitialized numeric or boolean storage reports the read failure without emitting a load or negation.
-  TEST_F(SemanticAnalyzerExprTest, RejectsUninitializedStorageBeforeNegationTypeCheck)
+  // Negating uninitialized numeric storage reports a read warning and emits both a load and a same-typed negation.
+  TEST_F(SemanticAnalyzerExprTest, WarnsAndLowersUninitializedNumericStorageNegation)
   {
     const ir::Type *Types[] = {
         Context.typePool().getInt32Type(),
-        Context.typePool().getBoolType(),
+        Context.typePool().getFloat64Type(),
     };
     for (const auto *Type : Types)
     {
@@ -1034,12 +1063,37 @@ namespace ink::semantic::test
       ASSERT_NE(Storage, nullptr);
       Storage->setName(name("Stored"));
       ASSERT_EQ(State.nameResolver().bind(name("Stored"), *Storage), BindResult::Inserted);
-      expectFailure(analyze(State, Input), core::DiagnosticKind::SemanticUninitializedRead);
+      const auto *Result = analyze(State, Input);
+      ASSERT_TRUE(ir::NegInstruction::classof(Result));
+      const auto *Read = static_cast<const ir::NegInstruction *>(Result)->operand();
+      ASSERT_TRUE(ir::LoadInstruction::classof(Read));
+      EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Read)->pointer(), Storage);
+      expectNegation(Result, Read);
+      EXPECT_EQ(Result->type(), Type);
+      const auto *Unary = frontend::parser::cast<frontend::parser::UnaryExpr>(&syntax(Input));
+      expectUninitializedWarning(Input, Unary->operand()->getSourceRange());
       EXPECT_FALSE(Storage->isInitialized());
-      ASSERT_EQ(Block->instructionCount(), 1U);
+      ASSERT_EQ(Block->instructionCount(), 3U);
       EXPECT_EQ(Block->instruction(0), Storage);
+      EXPECT_EQ(Block->instruction(1), Read);
+      EXPECT_EQ(Block->instruction(2), Result);
       Context.scopeStore().removeTarget(*Storage);
     }
+  }
+
+  // Reading uninitialized boolean storage still reaches the unsupported-operation diagnostic for nonnumeric negation.
+  TEST_F(SemanticAnalyzerExprTest, ReportsUnsupportedForUninitializedBooleanStorageNegation)
+  {
+    auto Input = read("-((Stored))");
+    ASSERT_TRUE(Input.succeeded());
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_NE(createInsertBlock(State), nullptr);
+    auto *Storage = State.irBuilder().createAlloca(*Context.typePool().getBoolType());
+    ASSERT_NE(Storage, nullptr);
+    Storage->setName(name("Stored"));
+    ASSERT_EQ(State.nameResolver().bind(name("Stored"), *Storage), BindResult::Inserted);
+    EXPECT_DEATH(analyze(State, Input), "internal compiler error\\[INK-S0012\\]: initial semantic analyzer does not support UnaryExpr");
+    Context.scopeStore().removeTarget(*Storage);
   }
 
   // Global reads use the shared storage diagnostic, while nonnumeric negation remains an unsupported operation.
@@ -2081,7 +2135,7 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Module and type variable members preserve storage identity and check initialization only when emitting a value.
+  // Module and type variable members preserve storage identity and emit loads, warning only for uninitialized member storage.
   TEST_F(SemanticAnalyzerExprTest, AnalyzesVariableMembersAndEmitsValues)
   {
     auto SetupInput = read("0");
@@ -2150,19 +2204,19 @@ namespace ink::semantic::test
       EXPECT_EQ(Address->isInitialized(), Entry.Initialized);
       EXPECT_EQ(Block->instructionCount(), InstructionCount);
       const auto *Result = analyze(State, Input);
+      ASSERT_NE(Result, nullptr);
+      ASSERT_TRUE(ir::LoadInstruction::classof(Result));
+      EXPECT_EQ(Result->type(), DeclaredType);
+      EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Result)->pointer(), Entry.Storage);
+      EXPECT_EQ(Block->instructionCount(), InstructionCount + 1);
+      EXPECT_EQ(Entry.Storage->isInitialized(), Entry.Initialized);
       if (Entry.Initialized)
       {
-        ASSERT_NE(Result, nullptr);
-        ASSERT_TRUE(ir::LoadInstruction::classof(Result));
-        EXPECT_EQ(Result->type(), DeclaredType);
-        EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Result)->pointer(), Entry.Storage);
-        EXPECT_EQ(Block->instructionCount(), InstructionCount + 1);
         EXPECT_TRUE(Diagnostics.diagnostics().empty());
       }
       else
       {
-        expectFailure(Result, core::DiagnosticKind::SemanticUninitializedRead);
-        EXPECT_EQ(Block->instructionCount(), InstructionCount);
+        expectUninitializedWarning(Input, syntax(Input).getSourceRange());
       }
     }
     Context.scopeStore().removeTarget(*Storage);
@@ -2484,8 +2538,8 @@ namespace ink::semantic::test
     EXPECT_DEATH(analyze(Valid, Hints), "INK-S0014");
   }
 
-  // Runtime operands select ordinary address, dereference and repeat operations instead of becoming type constructors.
-  TEST_F(SemanticAnalyzerExprTest, KeepsRuntimeOperandOperationsUnsupported)
+  // Global pointer reads and runtime array repetition retain their unsupported-operation diagnostics.
+  TEST_F(SemanticAnalyzerExprTest, KeepsGlobalPointerReadsAndArrayRepetitionUnsupported)
   {
     auto *Variable = Output.createGlobalVariable(*Context.typePool().getUInt32Type());
     auto *Pointer = Output.createGlobalVariable(*Context.typePool().getPointerType(Context.typePool().getUInt32Type()));
@@ -2495,7 +2549,6 @@ namespace ink::semantic::test
     ASSERT_EQ(Resolver.bind(name("Written"), *Variable), BindResult::Inserted);
     ASSERT_EQ(Resolver.bind(name("Pointer"), *Pointer), BindResult::Inserted);
     constexpr const char *Cases[] = {
-        "&Written",
         "*Pointer",
         "[Written; 3]",
         "[14; 3]",
@@ -2510,7 +2563,7 @@ namespace ink::semantic::test
   }
 
   // Dereferencing a current-function pointer parameter selects the runtime operation instead of requiring a type expression.
-  TEST_F(SemanticAnalyzerExprTest, KeepsPointerParameterDereferenceUnsupported)
+  TEST_F(SemanticAnalyzerExprTest, LoadsPointerParameterPointee)
   {
     auto Input = read("*Argument");
     ASSERT_TRUE(Input.succeeded());
@@ -2523,8 +2576,17 @@ namespace ink::semantic::test
     AnalyzerState State(Context, Input, Output);
     ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
     ASSERT_EQ(State.nameResolver().bind(name("Argument"), *Function->parameter(0)), BindResult::Inserted);
-    EXPECT_DEATH(analyze(State, Input), "INK-S0012");
-    EXPECT_EQ(Block->instructionCount(), 0U);
+    const auto *Result = analyze(State, Input);
+    ASSERT_TRUE(ir::LoadInstruction::classof(Result));
+    const auto *Storage = static_cast<const ir::LoadInstruction *>(Result)->pointer();
+    ASSERT_TRUE(ir::DereferenceInstruction::classof(Storage));
+    EXPECT_EQ(static_cast<const ir::DereferenceInstruction *>(Storage)->pointer(), Function->parameter(0));
+    EXPECT_EQ(Result->type(), Types.getUInt32Type());
+    EXPECT_EQ(Block->instructionCount(), 2U);
+    EXPECT_EQ(Block->instruction(0), Storage);
+    EXPECT_EQ(Block->instruction(1), Result);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+    Context.scopeStore().removeTarget(*Function->parameter(0));
   }
 
   // Explicit comptime expressions follow the common unsupported-feature policy regardless of their operand category.

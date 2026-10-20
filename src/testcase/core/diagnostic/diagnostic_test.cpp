@@ -85,7 +85,14 @@ namespace ink::core::test
       {
         SCOPED_TRACE(diagnosticKindName(Kind));
         EXPECT_EQ(diagnosticClass(Kind), Class);
-        EXPECT_EQ(diagnosticDefaultSeverity(Kind), DiagnosticSeverity::Error);
+        if (Class == DiagnosticClass::InternalCompilerError)
+        {
+          EXPECT_EQ(diagnosticDefaultSeverity(Kind), DiagnosticSeverity::Error);
+        }
+        else
+        {
+          EXPECT_NE(diagnosticDefaultSeverity(Kind), DiagnosticSeverity::Unknown);
+        }
         EXPECT_TRUE(Numbers.insert(diagnosticNumber(Kind)).second);
         EXPECT_TRUE(Codes.insert(diagnosticCode(Kind)).second);
         EXPECT_NE(diagnosticNumber(Kind), 0U);
@@ -134,6 +141,44 @@ namespace ink::core::test
     EXPECT_EQ(std::get<std::uint64_t>(InvalidReference.Arguments[0].Value), 300U);
     EXPECT_EQ(InvalidReference.Arguments[1].Name, DiagnosticArgumentName::Size);
     EXPECT_EQ(std::get<std::uint64_t>(InvalidReference.Arguments[1].Value), 256U);
+  }
+
+  // Initialization warnings preserve their identities and messages while allowing subsequent errors to reach consumers.
+  TEST(DiagnosticTest, InitializationWarningsDoNotStopDiagnosticDispatch)
+  {
+    DiagnosticEngine Engine;
+    CollectingDiagnosticConsumer Consumer;
+    Engine.addConsumer(Consumer);
+    const SourceRange ReadSpan = SourceRange::fromByteOffsets(2, 7);
+    const SourceRange AddressSpan = SourceRange::fromByteOffsets(11, 17);
+    Engine.report<DiagnosticKind::SemanticUninitializedRead>(ReadSpan, "Value");
+    Engine.report<DiagnosticKind::SemanticUninitializedAddress>(AddressSpan, "Output");
+    Engine.report<DiagnosticKind::SemanticInvalidAddressOperand>({});
+    Engine.report<DiagnosticKind::SemanticInvalidDereference>({});
+    ASSERT_EQ(Consumer.diagnostics().size(), 4U);
+    const auto &Read = Consumer.diagnostics()[0];
+    EXPECT_EQ(Read.Kind, DiagnosticKind::SemanticUninitializedRead);
+    EXPECT_EQ(Read.number(), 0x03000006U);
+    EXPECT_STREQ(Read.code(), "INK-S0006");
+    EXPECT_EQ(Read.classification(), DiagnosticClass::User);
+    EXPECT_EQ(Read.Span, ReadSpan);
+    EXPECT_EQ(DiagnosticFormatter{}.format(Read).Severity, DiagnosticSeverity::Warning);
+    EXPECT_EQ(DiagnosticFormatter{}.format(Read).Message, "'Value' is read before initialization");
+    const auto &Address = Consumer.diagnostics()[1];
+    EXPECT_EQ(Address.Kind, DiagnosticKind::SemanticUninitializedAddress);
+    EXPECT_EQ(Address.number(), 0x0300003EU);
+    EXPECT_STREQ(Address.code(), "INK-S0062");
+    EXPECT_EQ(Address.classification(), DiagnosticClass::User);
+    EXPECT_EQ(Address.Span, AddressSpan);
+    EXPECT_EQ(DiagnosticFormatter{}.format(Address).Severity, DiagnosticSeverity::Warning);
+    EXPECT_EQ(DiagnosticFormatter{}.format(Address).Message, "address of 'Output' is taken before initialization");
+    const auto &InvalidAddress = Consumer.diagnostics()[2];
+    EXPECT_EQ(InvalidAddress.Kind, DiagnosticKind::SemanticInvalidAddressOperand);
+    EXPECT_EQ(DiagnosticFormatter{}.format(InvalidAddress).Severity, DiagnosticSeverity::Error);
+    EXPECT_EQ(DiagnosticFormatter{}.format(InvalidAddress).Message, "address-of requires a local variable or a dereference expression");
+    const auto &InvalidDereference = Consumer.diagnostics()[3];
+    EXPECT_EQ(InvalidDereference.Kind, DiagnosticKind::SemanticInvalidDereference);
+    EXPECT_EQ(DiagnosticFormatter{}.format(InvalidDereference).Severity, DiagnosticSeverity::Error);
   }
 
   // Source-aware reporting preserves each source and span for both argument-free and parameterized diagnostics.

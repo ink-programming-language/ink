@@ -225,6 +225,60 @@ file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/functions.ink" CONTENT "func identi
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/functions.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_result("Function definitions" "0" "")
 
+# Local addresses and nested dereferences support argument and return values, including the Windows WriteFile pointer signature.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/pointer-operations.ink" CONTENT "import \"C\" func WriteFile(File: *void, Buffer: *const u8, BytesToWrite: u32, BytesWritten: *u32, Overlapped: *void): i32; func pass(Value: u32): u32 { return Value; } func count(): u32 { var Value: u32 = 14; var Pointer = &Value; var Indirect = &Pointer; return pass(**Indirect); } func main(): i32 { var Written: u32 = 0; return WriteFile(nullptr, \"hello, world\\r\\n\", count(), &Written, nullptr); }" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/pointer-operations.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Address and dereference expressions" "0" "")
+
+# Dereferencing an integer reports the complete unary expression instead of an unsupported-node panic.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/dereference-integer.ink" CONTENT "func main(): i32 { return *42; }" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/dereference-integer.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "1" OR Error MATCHES "internal compiler error")
+  message(FATAL_ERROR "Dereferencing an integer must fail with a user diagnostic: ${Status}: ${Error}")
+endif()
+expect_source_diagnostic("Dereferencing an integer" "dereference-integer.ink:1:27:" "error[INK-S0027]" "[bytes 26, 29)" "func main(): i32 { return *42; }")
+
+# An integer temporary has no addressable local storage, and the diagnostic includes the address-of operator.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/address-temporary.ink" CONTENT "func main(): *i32 { return &42; }" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/address-temporary.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "1" OR Error MATCHES "internal compiler error")
+  message(FATAL_ERROR "Taking a temporary's address must fail with a user diagnostic: ${Status}: ${Error}")
+endif()
+expect_source_diagnostic("Address of a temporary" "address-temporary.ink:1:28:" "error[INK-S0026]" "[bytes 27, 30)" "func main(): *i32 { return &42; }")
+
+# Dereferencing an uninitialized pointer warns on stderr and still completes semantic analysis successfully.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/uninitialized-pointer.ink" CONTENT "func main(): i32 { var Pointer: *i32; return *Pointer; }" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/uninitialized-pointer.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "0" OR Error MATCHES "error\\[")
+  message(FATAL_ERROR "Dereferencing an uninitialized pointer must succeed with a warning: ${Status}: ${Error}")
+endif()
+expect_source_diagnostic("Uninitialized pointer read" "uninitialized-pointer.ink:1:47:" "warning[INK-S0006]" "[bytes 46, 53)" "func main(): i32 { var Pointer: *i32; return *Pointer; }")
+
+# Taking an uninitialized local's address emits a distinct warning without failing compilation or treating the address as a read.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/uninitialized-address.ink" CONTENT "func main(): *i32 { var Value: i32; return &Value; }" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/uninitialized-address.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "0" OR Error MATCHES "error\\[" OR Error MATCHES "INK-S0006")
+  message(FATAL_ERROR "Taking an uninitialized local's address must succeed with only an address warning: ${Status}: ${Error}")
+endif()
+expect_source_diagnostic("Uninitialized local address" "uninitialized-address.ink:1:44:" "warning[INK-S0062]" "[bytes 43, 49)" "func main(): *i32 { var Value: i32; return &Value; }")
+
+# Passing an uninitialized local still generates its value and completes the call after reporting a read warning.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/uninitialized-argument.ink" CONTENT "func pass(Value: i32): i32 { return Value; } func main(): i32 { var Value: i32; return pass(Value); }" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/uninitialized-argument.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "0" OR Error MATCHES "error\\[")
+  message(FATAL_ERROR "Passing an uninitialized local must succeed with a read warning: ${Status}: ${Error}")
+endif()
+expect_source_diagnostic("Uninitialized argument read" "uninitialized-argument.ink:1:93:" "warning[INK-S0006]" "[bytes 92, 97)" "func pass(Value: i32): i32 { return Value; } func main(): i32 { var Value: i32; return pass(Value); }")
+
+# An initialization warning does not suppress the invalid-dereference error or change its failing exit status.
+file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/uninitialized-invalid-dereference.ink" CONTENT "func main(): i32 { var Value: i32; return *Value; }" NEWLINE_STYLE LF)
+execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/uninitialized-invalid-dereference.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "1" OR Error MATCHES "internal compiler error")
+  message(FATAL_ERROR "Dereferencing an uninitialized integer must fail with both a warning and a user error: ${Status}: ${Error}")
+endif()
+expect_source_diagnostic("Uninitialized invalid operand read" "uninitialized-invalid-dereference.ink:1:44:" "warning[INK-S0006]" "[bytes 43, 48)" "func main(): i32 { var Value: i32; return *Value; }")
+expect_source_diagnostic("Invalid dereference after initialization warning" "uninitialized-invalid-dereference.ink:1:43:" "error[INK-S0027]" "[bytes 42, 48)" "func main(): i32 { var Value: i32; return *Value; }")
+
 # String constants convert to read-only byte pointers in calls, returns and local initializers without changing CLI output.
 file(CONFIGURE OUTPUT "${INK_TEST_DIRECTORY}/string-pointer.ink" CONTENT "import \"C\" func consume(Message: *const u8): i32; func text(): *const u8 { return \"hello\"; } func main(): i32 { const Message: *const u8 = \"hello\"; consume(Message); consume(text()); return consume((\"hello\")); }" NEWLINE_STYLE LF)
 execute_process(COMMAND "${INK_COMPILER}" -i "${INK_TEST_DIRECTORY}/string-pointer.ink" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)

@@ -20,8 +20,8 @@ target_link_libraries(ink_tokenizer_test_objects PRIVATE ink::core GTest::gtest)
 ink_disable_exceptions(ink_tokenizer_test_objects)
 
 # Historical semantic sources live under docs/reference/semantic-tests/ and are not compiled or counted as active tests.
-# Keep the rebuilt entry, type, expression, function, variable, call and name-resolution test sources explicit.
-add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_IR_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} semantic/analyzer_entry_test.cpp semantic/analyzer_type_test.cpp semantic/analyzer_expr_test.cpp semantic/analyzer_function_decl_test.cpp semantic/analyzer_variable_test.cpp semantic/analyzer_call_test.cpp semantic/name_resolver_test.cpp semantic/scope_store_test.cpp)
+# Keep the rebuilt entry, type, expression, address, function, variable, call and name-resolution test sources explicit.
+add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_IR_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} semantic/analyzer_entry_test.cpp semantic/analyzer_type_test.cpp semantic/analyzer_expr_test.cpp semantic/analyzer_address_test.cpp semantic/analyzer_function_decl_test.cpp semantic/analyzer_variable_test.cpp semantic/analyzer_call_test.cpp semantic/name_resolver_test.cpp semantic/scope_store_test.cpp)
 add_dependencies(ink_tests ink_tokenize ink_parse inkc)
 target_compile_features(ink_tests PRIVATE cxx_std_23)
 target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::ir ink::frontend ink::semantic ink::llvm GTest::gtest_main GTest::gmock spdlog::spdlog)

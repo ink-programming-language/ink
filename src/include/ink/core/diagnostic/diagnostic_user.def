@@ -2,7 +2,7 @@
 #error "Define INK_DIAGNOSTIC before including diagnostic_user.def"
 #endif
 
-// Errors caused by incorrect user source code.
+// Errors and warnings reported for user source code.
 
 INK_DIAGNOSTIC(InvalidUtf8, 0x01000001U, Tokenizer, "INK-T0001", User, Error, "source is not valid UTF-8", "source is not valid UTF-8", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(UnexpectedBom, 0x01000002U, Tokenizer, "INK-T0002", User, Error, "a UTF-8 BOM is not permitted at the start of a source file", "a UTF-8 BOM is not permitted at the start of a source file", INK_DIAGNOSTIC_ARGUMENTS())
@@ -33,7 +33,7 @@ INK_DIAGNOSTIC(SemanticUnknownType, 0x03000002U, Semantic, "INK-S0002", User, Er
 INK_DIAGNOSTIC(SemanticDuplicateName, 0x03000003U, Semantic, "INK-S0003", User, Error, "duplicate or reserved name", "duplicate or reserved name '{SymbolName}'", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(SymbolName, String)))
 INK_DIAGNOSTIC(SemanticTypeMismatch, 0x03000004U, Semantic, "INK-S0004", User, Error, "type mismatch", "expected {Expected}, got {Actual}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Expected, String), INK_DIAGNOSTIC_ARGUMENT(Actual, String)))
 INK_DIAGNOSTIC(SemanticIntegerOutOfRange, 0x03000005U, Semantic, "INK-S0005", User, Error, "integer literal out of range", "integer literal is out of range for {TypeName}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(TypeName, String)))
-INK_DIAGNOSTIC(SemanticUninitializedRead, 0x03000006U, Semantic, "INK-S0006", User, Error, "read before initialization", "'{SymbolName}' is read before initialization", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(SymbolName, String)))
+INK_DIAGNOSTIC(SemanticUninitializedRead, 0x03000006U, Semantic, "INK-S0006", User, Warning, "read before initialization", "'{SymbolName}' is read before initialization", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(SymbolName, String)))
 INK_DIAGNOSTIC(SemanticInvalidAssignment, 0x03000007U, Semantic, "INK-S0007", User, Error, "assignment requires a mutable local", "assignment requires a mutable local variable", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticArgumentCount, 0x03000008U, Semantic, "INK-S0008", User, Error, "incorrect argument count", "expected {ExpectedCount} arguments, got {ActualCount}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(ExpectedCount, UnsignedInteger), INK_DIAGNOSTIC_ARGUMENT(ActualCount, UnsignedInteger)))
 INK_DIAGNOSTIC(SemanticMissingReturn, 0x03000009U, Semantic, "INK-S0009", User, Error, "missing return value", "function '{FunctionName}' must return a value", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(FunctionName, String)))
@@ -50,7 +50,7 @@ INK_DIAGNOSTIC(SemanticComptimeFunctionAtRuntime, 0x03000016U, Semantic, "INK-S0
 INK_DIAGNOSTIC(SemanticComptimeFunctionRequiresBody, 0x03000017U, Semantic, "INK-S0023", User, Error, "compile-time function requires a body", "compile-time function requires a body", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticComptimeFunctionLinkage, 0x03000018U, Semantic, "INK-S0024", User, Error, "compile-time function requires Ink language linkage", "compile-time function requires Ink language linkage", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticComptimeReturnAcrossRuntimeBoundary, 0x03000019U, Semantic, "INK-S0025", User, Error, "compile-time return crosses a runtime function boundary", "compile-time return cannot exit an enclosing runtime function", INK_DIAGNOSTIC_ARGUMENTS())
-INK_DIAGNOSTIC(SemanticInvalidAddressOperand, 0x0300001AU, Semantic, "INK-S0026", User, Error, "invalid address-of operand", "address-of requires an initialized mutable local variable or a dereference expression", INK_DIAGNOSTIC_ARGUMENTS())
+INK_DIAGNOSTIC(SemanticInvalidAddressOperand, 0x0300001AU, Semantic, "INK-S0026", User, Error, "invalid address-of operand", "address-of requires a local variable or a dereference expression", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticInvalidDereference, 0x0300001BU, Semantic, "INK-S0027", User, Error, "invalid dereference operand", "dereference requires a pointer to a runtime value", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(SemanticFunctionRequiresBody, 0x0300001CU, Semantic, "INK-S0028", User, Error, "function requires a body", "function '{FunctionName}' requires a body; only imported functions may omit a body", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(FunctionName, String)))
 INK_DIAGNOSTIC(SemanticInvalidModulePath, 0x0300001DU, Semantic, "INK-S0029", User, Error, "invalid module path", "invalid or out-of-root module path '{ModuleName}'", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(ModuleName, String)))
@@ -85,3 +85,4 @@ INK_DIAGNOSTIC(SemanticInvalidMember, 0x03000039U, Semantic, "INK-S0057", User, 
 INK_DIAGNOSTIC(SemanticInvalidConstruction, 0x0300003AU, Semantic, "INK-S0058", User, Error, "invalid class construction", "invalid class construction: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 INK_DIAGNOSTIC(SemanticInvalidLoopControl, 0x0300003BU, Semantic, "INK-S0059", User, Error, "invalid loop control", "'{Context}' requires an enclosing loop in the same execution stage", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
 INK_DIAGNOSTIC(SemanticInvalidIterationBinding, 0x0300003CU, Semantic, "INK-S0060", User, Error, "invalid iteration binding", "iteration binding does not match the element type: {Context}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String)))
+INK_DIAGNOSTIC(SemanticUninitializedAddress, 0x0300003EU, Semantic, "INK-S0062", User, Warning, "address taken before initialization", "address of '{SymbolName}' is taken before initialization", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(SymbolName, String)))
