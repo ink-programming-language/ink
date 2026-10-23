@@ -5,10 +5,13 @@
 
 namespace ink::ir
 {
-  // Records the qualified target of an imported symbol.
+  class Type;
+
+  // Records the qualified target and borrowed type of an imported symbol; the type must outlive this record.
   struct SymbolImport
   {
       SymbolRef Target;
+      const Type *SymbolType = nullptr;
   };
 } // namespace ink::ir
 

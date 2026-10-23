@@ -5,10 +5,13 @@
 
 namespace ink::ir
 {
-  // Records a symbol exported by the module that owns this entry.
+  class Type;
+
+  // Records an exported symbol and its borrowed type; the type must outlive this record.
   struct SymbolExport
   {
       SymbolId Symbol;
+      const Type *SymbolType = nullptr;
   };
 } // namespace ink::ir
 
