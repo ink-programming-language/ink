@@ -11,6 +11,7 @@
 
 #include <gtest/gtest.h>
 
+#include <initializer_list>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -96,6 +97,21 @@ namespace ink::semantic::test
         static core::Name name(std::string_view Text)
         {
           return core::NamePool::instance().intern(Text);
+        }
+
+        static void expectExport(const ir::Module &Module, std::string_view Text, std::initializer_list<const ir::Value *> Declarations)
+        {
+          const auto *Export = Module.findExport(ir::SymbolId{name(Text)});
+          ASSERT_NE(Export, nullptr);
+          EXPECT_EQ(Export->Symbol.SymbolName, name(Text));
+          ASSERT_EQ(Export->Entries.size(), Declarations.size());
+          std::size_t Index = 0;
+          for (const auto *Declaration : Declarations)
+          {
+            EXPECT_EQ(Export->Entries[Index].Declaration, Declaration);
+            EXPECT_EQ(Export->Entries[Index].SymbolType, Declaration->type());
+            ++Index;
+          }
         }
 
         static const ir::ReturnInstruction *returnInstruction(const ir::Function &Function)
@@ -239,6 +255,31 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
+  // Default and explicit public Ink functions publish exports after their bodies succeed, while private functions remain local.
+  TEST_F(SemanticFunctionDeclTest, PublishesDefaultAndExplicitPublicFunctions)
+  {
+    auto Input = read("func defaultExport(): void {} public func explicitExport(): void {} private func hidden(): void {}");
+    ASSERT_TRUE(Input.succeeded());
+    ASSERT_TRUE(analyze(Input));
+    auto *Default = function("defaultExport");
+    auto *Explicit = function("explicitExport");
+    auto *Hidden = function("hidden");
+    ASSERT_NE(Default, nullptr);
+    ASSERT_NE(Explicit, nullptr);
+    ASSERT_NE(Hidden, nullptr);
+    expectExport(Output, "defaultExport", {Default});
+    expectExport(Output, "explicitExport", {Explicit});
+    EXPECT_EQ(Output.findExport(ir::SymbolId{name("hidden")}), nullptr);
+    EXPECT_EQ(Output.exports().size(), 2U);
+    EXPECT_EQ(Default->visibility(), ir::FunctionVisibility::Public);
+    EXPECT_EQ(Explicit->visibility(), ir::FunctionVisibility::Public);
+    EXPECT_EQ(Hidden->visibility(), ir::FunctionVisibility::Private);
+    EXPECT_EQ(Default->symbolLinkage(), ir::SymbolLinkage::Local);
+    EXPECT_EQ(Explicit->symbolLinkage(), ir::SymbolLinkage::Local);
+    EXPECT_EQ(Hidden->symbolLinkage(), ir::SymbolLinkage::Local);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
   // Fixed parameters retain their names and canonical types and remain visible through nested blocks.
   TEST_F(SemanticFunctionDeclTest, BindsParametersAndReturnsThroughNestedBlocks)
   {
@@ -338,7 +379,25 @@ namespace ink::semantic::test
     ASSERT_NE(Renamed, nullptr);
     EXPECT_EQ(Overloads->targets()[0]->type(), Renamed->type());
     EXPECT_NE(Overloads->targets()[0]->type(), Overloads->targets()[1]->type());
+    expectExport(Output, "choose", {Overloads->targets()[0], Overloads->targets()[1]});
+    expectExport(Output, "renamed", {Renamed});
+    EXPECT_EQ(Output.exports().size(), 2U);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // A later overload with an invalid body leaves the previously successful overload as the group's only exported candidate.
+  TEST_F(SemanticFunctionDeclTest, FailedOverloadDoesNotEnterExistingExportGroup)
+  {
+    auto Input = read("func choose(Value: i32): i32 { return Value; } func choose(Value: u8): u8 { return Missing; }");
+    ASSERT_TRUE(Input.succeeded());
+    EXPECT_FALSE(analyze(Input));
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownName);
+    const auto *Overloads = lookup("choose");
+    ASSERT_NE(Overloads, nullptr);
+    ASSERT_EQ(Overloads->targets().size(), 2U);
+    expectExport(Output, "choose", {Overloads->targets()[0]});
+    EXPECT_EQ(Output.exports().size(), 1U);
   }
 
   // Function parameters never become bindings in a sibling function or the enclosing module.
@@ -393,6 +452,8 @@ namespace ink::semantic::test
     ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
     EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticDuplicateName);
     EXPECT_EQ(Output.globalFunctionCount(), 1U);
+    expectExport(Output, "same", {Output.globalFunction(0)});
+    EXPECT_EQ(Output.exports().size(), 1U);
   }
 
   // Invalid signatures diagnose user errors before publishing a callable in the module.
@@ -425,6 +486,7 @@ namespace ink::semantic::test
       EXPECT_TRUE(Diagnostic.Span.isValid());
       EXPECT_EQ(Output.globalFunctionCount(), 0U);
       EXPECT_EQ(lookup("f"), nullptr);
+      EXPECT_TRUE(Output.exports().empty());
     }
   }
 
@@ -478,6 +540,7 @@ namespace ink::semantic::test
       EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, Entry.Kind);
       ASSERT_EQ(Destination.globalFunctionCount(), 1U);
       EXPECT_FALSE(Destination.globalFunction(0)->entryBlock()->hasTerminator());
+      EXPECT_TRUE(Destination.exports().empty());
       unregister(Destination);
     }
   }
@@ -514,6 +577,9 @@ namespace ink::semantic::test
     EXPECT_EQ(Return->returnedValue(), Valid->parameter(0));
     EXPECT_EQ(lookup("Value"), nullptr);
     EXPECT_EQ(lookup("Other"), nullptr);
+    EXPECT_EQ(Output.findExport(ir::SymbolId{name("broken")}), nullptr);
+    expectExport(Output, "valid", {Valid});
+    EXPECT_EQ(Output.exports().size(), 1U);
   }
 
   // The single source pass does not predeclare later functions, but still analyzes them after an earlier body fails.
@@ -549,6 +615,48 @@ namespace ink::semantic::test
     EXPECT_EQ(Exported->visibility(), ir::FunctionVisibility::Public);
     EXPECT_FALSE(Exported->isDeclaration());
     EXPECT_NE(returnInstruction(*Exported), nullptr);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Ink visibility controls native declarations' module exports independently of their C import/export direction.
+  TEST_F(SemanticFunctionDeclTest, PublishesPublicNativeDeclarationsWithoutChangingNativeLinkage)
+  {
+    auto Input = read("import \"C\" func defaultImport(): void; public import \"C\" func publicImport(): void; private import \"C\" func privateImport(): void; export \"C\" func defaultExport(): void {} public export \"C\" func publicExport(): void {} private export \"C\" func privateExport(): void {}");
+    ASSERT_TRUE(Input.succeeded());
+    ASSERT_TRUE(analyze(Input));
+    struct Case
+    {
+        const char *Name;
+        ir::SymbolLinkage Linkage;
+        ir::FunctionVisibility Visibility;
+    };
+    const Case Cases[] = {
+        {"defaultImport", ir::SymbolLinkage::Import, ir::FunctionVisibility::Public},
+        {"publicImport", ir::SymbolLinkage::Import, ir::FunctionVisibility::Public},
+        {"privateImport", ir::SymbolLinkage::Import, ir::FunctionVisibility::Private},
+        {"defaultExport", ir::SymbolLinkage::Export, ir::FunctionVisibility::Public},
+        {"publicExport", ir::SymbolLinkage::Export, ir::FunctionVisibility::Public},
+        {"privateExport", ir::SymbolLinkage::Export, ir::FunctionVisibility::Private},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Name);
+      const auto *Function = function(Entry.Name);
+      ASSERT_NE(Function, nullptr);
+      EXPECT_EQ(Function->symbolLinkage(), Entry.Linkage);
+      EXPECT_EQ(Function->visibility(), Entry.Visibility);
+      EXPECT_EQ(Function->languageLinkage(), ir::LanguageLinkage::C);
+      EXPECT_EQ(Function->isDeclaration(), Entry.Linkage == ir::SymbolLinkage::Import);
+      if (Entry.Visibility == ir::FunctionVisibility::Public)
+      {
+        expectExport(Output, Entry.Name, {Function});
+      }
+      else
+      {
+        EXPECT_EQ(Output.findExport(ir::SymbolId{name(Entry.Name)}), nullptr);
+      }
+    }
+    EXPECT_EQ(Output.exports().size(), 4U);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 

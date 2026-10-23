@@ -4,21 +4,24 @@
 #include "ink/frontend/context.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/ir/context.h"
+#include "ink/ir/module/module_manager.h"
 #include "ink/semantic/name_resolve/scope_store.h"
 
 #include <utility>
 
 namespace ink::semantic
 {
-  // Owns the IRContext, persistent scopes and source selection; source and diagnostic services are borrowed.
-  // Caller-owned modules and all other users of its IRContext must die before this context.
+  // Owns the IRContext, module manager, persistent scopes and source selection; source and diagnostic services are borrowed.
+  // Managed modules outlive scopes and die before the IR pools; external users must finish before this context is destroyed.
+  // Standalone outputs remain supported and must die before this context after their scope bindings are removed.
   // Successive analysis calls preserve pooled IR while selecting a new source; access is not thread-safe.
   class SemanticContext final
   {
     public:
       explicit SemanticContext(core::SourceManager &Sources, core::DiagnosticEngine &Diagnostics, target::TargetContext Target)
           : Frontend(Sources, Diagnostics),
-            IR(Target)
+            IR(Target),
+            Modules(IR)
       {
       }
 
@@ -47,6 +50,11 @@ namespace ink::semantic
         return Self.IR;
       }
 
+      auto &moduleManager(this auto &&Self) noexcept
+      {
+        return std::forward_like<decltype(Self) &>(Self.Modules);
+      }
+
       auto &scopeStore(this auto &&Self) noexcept
       {
         return Self.Scopes;
@@ -68,6 +76,7 @@ namespace ink::semantic
     private:
       frontend::FrontendContext Frontend;
       ir::IRContext IR;
+      ir::ModuleManager Modules;
       ScopeStore Scopes;
       core::SourceId Source;
   };

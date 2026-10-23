@@ -57,6 +57,14 @@ namespace ink::semantic
       }
       return true;
     }
+
+    bool registerFunctionExport(SemanticContext &Context, ir::Module &Output, const frontend::parser::FunctionDecl &Node, const ir::Function &Function)
+    {
+      RETURN_IF(Function.visibility() != ir::FunctionVisibility::Public, true);
+      const auto Export = Output.addExport(ir::SymbolId{Function.name()}, Function);
+      RETURN_REPORT_IF_FALSE(Context, Export, core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
+      return true;
+    }
   } // namespace
 
   bool Analyzer::analyzeFunctionDecl(AnalyzerState &State, const frontend::parser::FunctionDecl &Node)
@@ -158,7 +166,7 @@ namespace ink::semantic
       Parameter->setName(ParameterNames[Index]);
       RETURN_REPORT_IF(Context, Resolver.bind(ParameterNames[Index], *Parameter) != BindResult::Inserted, core::DiagnosticKind::SemanticConstructionFailed, false, Node.parameters()[Index].range());
     }
-    RETURN_IF(!HasBody, true);
+    RETURN_IF(!HasBody, registerFunctionExport(Context, State.Output, Node, *Function));
 
     auto &Builder = State.irBuilder();
     InsertPointGuard InsertPoint(Builder);
@@ -172,6 +180,6 @@ namespace ink::semantic
       RETURN_REPORT_IF(Context, !ir::VoidType::classof(ReturnType), core::DiagnosticKind::SemanticMissingReturn, false, Node.body()->getSourceRange(), Node.name().Text);
       RETURN_REPORT_IF_FALSE(Context, Builder.createReturn(), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
     }
-    return true;
+    return registerFunctionExport(Context, State.Output, Node, *Function);
   }
 } // namespace ink::semantic

@@ -2,6 +2,7 @@
 
 #include "ink/core/diagnostic/diagnostic_consumer.h"
 #include "ink/core/diagnostic/diagnostic_formatter.h"
+#include "ink/core/name/name_pool.h"
 #include "ink/frontend/context.h"
 #include "ink/frontend/parser/parser.h"
 #include "ink/frontend/tokenizer/tokenizer.h"
@@ -140,10 +141,15 @@ int main(int ArgumentCount, char **ArgumentValues)
     return OutputFailed || !std::cerr ? 2 : 1;
   }
 
-  // Module borrows the semantic context's IR pools and must be destroyed before that context.
+  // The single-input driver uses a logical entry name until source module resolution is implemented.
   ink::semantic::SemanticContext Semantic(Compilation.sourceManager(), Compilation.diagnosticEngine(), Compilation.targetContext());
-  ink::ir::Module Module(Semantic.irContext());
-  const bool Succeeded = ink::semantic::Analyzer{}.analyze(Semantic, Result, Module);
+  const auto Module = Semantic.moduleManager().createModule({{ink::core::NamePool::instance().intern("main")}});
+  if (!Module)
+  {
+    ErrorOutput.error("inkc: error: cannot create entry IR module\n");
+    return 2;
+  }
+  const bool Succeeded = ink::semantic::Analyzer{}.analyze(Semantic, Result, **Module);
   const bool SemanticErrors = ReportDiagnostics();
   if (!Succeeded && !SemanticErrors)
   {

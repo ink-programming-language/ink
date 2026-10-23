@@ -3,15 +3,25 @@
 
 #include "ink/ir/module/symbol_id.h"
 
+#include <vector>
+
 namespace ink::ir
 {
   class Type;
+  class Value;
 
-  // Records an exported symbol and its borrowed type; the type must outlive this record.
+  // Keeps one exported declaration paired with its type; both are borrowed and must outlive this entry.
+  struct SymbolExportEntry
+  {
+      const Type *SymbolType = nullptr;
+      const Value *Declaration = nullptr;
+  };
+
+  // Groups explicitly exported declarations under one name, including overload candidates in registration order.
   struct SymbolExport
   {
       SymbolId Symbol;
-      const Type *SymbolType = nullptr;
+      std::vector<SymbolExportEntry> Entries;
   };
 } // namespace ink::ir
 

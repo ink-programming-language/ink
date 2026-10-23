@@ -5,6 +5,7 @@
 #include "ink/ir/context.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/module/global_variable.h"
+#include "ink/ir/module/module_error.h"
 #include "ink/ir/module/module_id.h"
 #include "ink/ir/module/symbol_import.h"
 #include "ink/ir/module/symbol_export.h"
@@ -17,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <unordered_map>
 #include <utility>
@@ -59,20 +61,25 @@ namespace ink::ir
       // Recognizes shared pooled types and this module's own nominal types.
       bool ownsType(const Type *TypeValue) const noexcept;
 
-      // Owns an independent absolute identifier, including the module name; the default empty ID denotes an unnamed module.
+      // Owns an independent absolute identifier fixed at construction, including the module name; the default empty ID denotes an unnamed module.
       const ModuleID &moduleID() const noexcept;
-      void setModuleID(ModuleID NewID) noexcept;
 
-      // Symbol records are owned by value; name resolution and validation are handled by the producer.
+      // Import records are owned by value; name resolution and validation are handled by the producer.
       auto &imports(this auto &&Self) noexcept
       {
         return Self.Imports;
       }
 
-      auto &exports(this auto &&Self) noexcept
-      {
-        return Self.Exports;
-      }
+      // Export registration is explicit and does not infer or change function linkage or visibility.
+      // Accepts declarations recognized by owns(), including this context's shared pooled types.
+      // Distinct declarations with the same symbol name append candidate entries in registration order.
+      // Repeating the same declaration under that name fails; signature conflicts and overload selection belong to the producer.
+      // Rejection leaves existing exports unchanged; records remain read-only to callers.
+      std::expected<void, ModuleError> addExport(SymbolId Symbol, const Value &Declaration);
+      // Returns the entire candidate group. Registering a new export name may invalidate record pointers.
+      // Adding candidates may invalidate views into a group's entries; declaration addresses remain stable.
+      const SymbolExport *findExport(const SymbolId &Symbol) const noexcept;
+      const std::vector<SymbolExport> &exports() const noexcept;
 
       // Both queries include shared pooled types, local nominal types, global functions and global variables.
       bool owns(const Value *Declaration) const noexcept;

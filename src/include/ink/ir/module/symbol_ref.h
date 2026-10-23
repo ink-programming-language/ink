@@ -6,7 +6,7 @@
 
 namespace ink::ir
 {
-  // Qualifies a symbol identifier with the identifier of its defining module.
+  // Qualifies a symbol name with its defining module; selecting a specific overload is a separate operation.
   struct SymbolRef
   {
       ModuleID Module;

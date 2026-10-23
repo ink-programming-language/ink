@@ -100,7 +100,7 @@ namespace ink::ir::test
     EXPECT_EQ(Named.moduleID(), ID);
   }
 
-  // Construction and replacement copy the full identifier; source changes, other modules and source destruction cannot change the owned value.
+  // Construction copies the full identifier; source changes, other modules and source destruction cannot change the owned value.
   TEST(IRModuleTest, OwnsIndependentModuleIDs)
   {
     auto &Names = core::NamePool::instance();
@@ -109,33 +109,27 @@ namespace ink::ir::test
     const core::Name PackageName = Names.intern("render");
     const core::Name ChildName = Names.intern("detail");
     const ModuleID Expected{{RootName, PackageName, ModuleName}};
-    const ModuleID Replacement{{RootName, PackageName, ChildName, ModuleName}};
+    const ModuleID ChildID{{RootName, PackageName, ChildName, ModuleName}};
     IRContext OwnerContext(Target);
-    Module Owner(OwnerContext);
+    std::unique_ptr<Module> Owner;
     {
       ModuleID Source = Expected;
+      Owner = std::make_unique<Module>(OwnerContext, Source);
       IRContext OtherContext(Target);
       Module Other(OtherContext, Source);
-      Owner.setModuleID(Source);
-      EXPECT_EQ(Owner.moduleID(), Other.moduleID());
+      EXPECT_EQ(Owner->moduleID(), Other.moduleID());
       Source.Components.clear();
       EXPECT_EQ(Other.moduleID(), Expected);
-      Other.setModuleID(Replacement);
-      EXPECT_EQ(Other.moduleID(), Replacement);
-      EXPECT_NE(Owner.moduleID(), Other.moduleID());
-      EXPECT_EQ(Owner.moduleID(), Expected);
+      EXPECT_EQ(Owner->moduleID(), Expected);
     }
-    const Module &ReadOnly = Owner;
+    const Module &ReadOnly = *Owner;
     EXPECT_EQ(ReadOnly.moduleID(), Expected);
-    ModuleID Source = Replacement;
+    ModuleID Source = ChildID;
     IRContext MovedContext(Target);
     Module Moved(MovedContext, std::move(Source));
-    EXPECT_EQ(Moved.moduleID(), Replacement);
-    ModuleID NewID = Replacement;
-    Owner.setModuleID(std::move(NewID));
-    EXPECT_EQ(ReadOnly.moduleID(), Replacement);
-    Owner.setModuleID({});
-    EXPECT_EQ(ReadOnly.moduleID(), ModuleID{});
+    EXPECT_EQ(Moved.moduleID(), ChildID);
+    EXPECT_NE(Moved.moduleID(), ReadOnly.moduleID());
+    EXPECT_EQ(ReadOnly.moduleID(), Expected);
   }
 
   // Creation and ownership transfer preserve insertion order and entity addresses as both lists grow.

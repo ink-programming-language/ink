@@ -44,13 +44,14 @@ namespace ink::semantic
       bool IsCallCallee = false;
   };
 
-  // Analysis uses call-local traversal state and caller-owned output; unsupported nodes report SemanticUnsupported.
+  // Analysis uses call-local traversal state and an explicitly selected output; unsupported nodes report SemanticUnsupported.
   class Analyzer
   {
     public:
       // Input must belong to Context's compilation and remain alive for the call.
       // Output must borrow Context.irContext(); failure does not roll back existing output.
-      // Scope bindings borrow Output's declarations; remove those targets from Context.scopeStore() before destroying them.
+      // Output may belong to Context.moduleManager() or an independent owner.
+      // Scope bindings borrow Output's declarations; standalone owners must remove their targets from Context.scopeStore() before destruction.
       // Unusable input returns false; unimplemented nodes report the existing SemanticUnsupported ICE.
       bool analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input, ir::Module &Output);
 

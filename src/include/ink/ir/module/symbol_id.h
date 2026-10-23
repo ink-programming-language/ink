@@ -5,7 +5,7 @@
 
 namespace ink::ir
 {
-  // Identifies a symbol within one module by its canonical name.
+  // Identifies a symbol name within one module; the name may denote multiple overload candidates.
   struct SymbolId
   {
       core::Name SymbolName;

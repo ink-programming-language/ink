@@ -2,6 +2,7 @@
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/name/name_pool.h"
 #include "ink/ir/builder/ir_builder.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/type_pool.h"
@@ -54,6 +55,10 @@ namespace ink::semantic::test
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().sourceManager()), const core::SourceManager &>);
   static_assert(std::is_same_v<decltype(std::declval<SemanticContext &&>().irContext()), ir::IRContext &>);
   static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().irContext()), const ir::IRContext &>);
+  static_assert(std::is_same_v<decltype(std::declval<SemanticContext &>().moduleManager()), ir::ModuleManager &>);
+  static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &>().moduleManager()), const ir::ModuleManager &>);
+  static_assert(std::is_same_v<decltype(std::declval<SemanticContext &&>().moduleManager()), ir::ModuleManager &>);
+  static_assert(std::is_same_v<decltype(std::declval<const SemanticContext &&>().moduleManager()), const ir::ModuleManager &>);
   static_assert(std::is_same_v<decltype(std::declval<AnalyzerState &>().input()), const frontend::parser::TokenBuffer &>);
   static_assert(std::is_same_v<decltype(std::declval<const AnalyzerState &>().input()), const frontend::parser::TokenBuffer &>);
 
@@ -385,6 +390,99 @@ namespace ink::semantic::test
     EXPECT_EQ(First.globalVariable(0), Variable);
     EXPECT_EQ(Second.globalVariableCount(), 0U);
     EXPECT_EQ(&First.constantPool(), &Second.constantPool());
+  }
+
+  // Context-owned modules share its pools while the manager keeps separate named outputs and const access preserves their identity.
+  TEST(SemanticAnalyzerEntryTest, OwnsNamedModulesInItsIrContext)
+  {
+    core::SourceManager Sources;
+    core::DiagnosticEngine Diagnostics;
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    auto &Names = core::NamePool::instance();
+    const ir::ModuleID FirstID{{Names.intern("first")}};
+    const ir::ModuleID SecondID{{Names.intern("second")}};
+    const auto First = Context.moduleManager().createModule(FirstID);
+    const auto Second = Context.moduleManager().createModule(SecondID);
+    ASSERT_TRUE(First);
+    ASSERT_TRUE(Second);
+    EXPECT_NE(*First, *Second);
+    EXPECT_EQ(&(*First)->irContext(), &Context.irContext());
+    EXPECT_EQ(&(*Second)->irContext(), &Context.irContext());
+    EXPECT_EQ(&(*First)->typePool(), &(*Second)->typePool());
+    EXPECT_EQ(&(*First)->constantPool(), &(*Second)->constantPool());
+
+    const SemanticContext &ReadOnly = Context;
+    EXPECT_EQ(&ReadOnly.moduleManager().irContext(), &ReadOnly.irContext());
+    EXPECT_EQ(ReadOnly.moduleManager().moduleCount(), 2U);
+    EXPECT_EQ(ReadOnly.moduleManager().findModule(FirstID), *First);
+    EXPECT_EQ(ReadOnly.moduleManager().findModule(SecondID), *Second);
+    EXPECT_EQ(&std::move(Context).moduleManager(), &Context.moduleManager());
+    EXPECT_EQ(&std::move(ReadOnly).moduleManager(), &ReadOnly.moduleManager());
+  }
+
+  // Independently parsed modules keep same-named function scopes and exports isolated after their parsed units are destroyed.
+  TEST(SemanticAnalyzerEntryTest, AnalyzesManagedModulesWithIsolatedScopesAndExports)
+  {
+    core::SourceManager Sources;
+    core::CollectingDiagnosticConsumer Consumer;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Consumer);
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    auto &Names = core::NamePool::instance();
+    const ir::ModuleID FirstID{{Names.intern("first")}};
+    const ir::ModuleID SecondID{{Names.intern("second")}};
+    const auto First = Context.moduleManager().createModule(FirstID);
+    const auto Second = Context.moduleManager().createModule(SecondID);
+    ASSERT_TRUE(First);
+    ASSERT_TRUE(Second);
+    {
+      auto FirstInput = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "public func Shared(): i32 { return 1; } public func OnlyFirst(): void {}"));
+      auto SecondInput = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "public func Shared(): i32 { return 2; }"));
+      ASSERT_TRUE(FirstInput.succeeded());
+      ASSERT_TRUE(SecondInput.succeeded());
+      ASSERT_TRUE(Analyzer{}.analyze(Context, FirstInput, **First));
+      ASSERT_TRUE(Analyzer{}.analyze(Context, SecondInput, **Second));
+    }
+    EXPECT_TRUE(Consumer.diagnostics().empty());
+    ASSERT_EQ((*First)->globalFunctionCount(), 2U);
+    ASSERT_EQ((*Second)->globalFunctionCount(), 1U);
+    const auto *FirstFunction = (*First)->globalFunction(0);
+    const auto *SecondFunction = (*Second)->globalFunction(0);
+    EXPECT_NE(FirstFunction, SecondFunction);
+    EXPECT_EQ(FirstFunction->functionType(), SecondFunction->functionType());
+    EXPECT_FALSE(FirstFunction->isDeclaration());
+    EXPECT_FALSE(SecondFunction->isDeclaration());
+
+    const auto *FirstScope = Context.scopeStore().memberScope(**First);
+    const auto *SecondScope = Context.scopeStore().memberScope(**Second);
+    ASSERT_NE(FirstScope, nullptr);
+    ASSERT_NE(SecondScope, nullptr);
+    EXPECT_NE(FirstScope, SecondScope);
+    const core::Name Shared = Names.intern("Shared");
+    const core::Name OnlyFirst = Names.intern("OnlyFirst");
+    const auto *FirstBinding = FirstScope->lookupLocal(Shared);
+    const auto *SecondBinding = SecondScope->lookupLocal(Shared);
+    ASSERT_NE(FirstBinding, nullptr);
+    ASSERT_NE(SecondBinding, nullptr);
+    ASSERT_EQ(FirstBinding->targets().size(), 1U);
+    ASSERT_EQ(SecondBinding->targets().size(), 1U);
+    EXPECT_EQ(FirstBinding->targets()[0], FirstFunction);
+    EXPECT_EQ(SecondBinding->targets()[0], SecondFunction);
+    EXPECT_NE(FirstScope->lookupLocal(OnlyFirst), nullptr);
+    EXPECT_EQ(SecondScope->lookupLocal(OnlyFirst), nullptr);
+    EXPECT_EQ(Context.scopeStore().rootScope().lookupLocal(Shared), nullptr);
+
+    const auto FirstExport = Context.moduleManager().resolveSymbol({FirstID, {Shared}});
+    const auto SecondExport = Context.moduleManager().resolveSymbol({SecondID, {Shared}});
+    ASSERT_TRUE(FirstExport);
+    ASSERT_TRUE(SecondExport);
+    ASSERT_EQ((*FirstExport)->Entries.size(), 1U);
+    ASSERT_EQ((*SecondExport)->Entries.size(), 1U);
+    EXPECT_EQ((*FirstExport)->Entries[0].Declaration, FirstFunction);
+    EXPECT_EQ((*SecondExport)->Entries[0].Declaration, SecondFunction);
+    EXPECT_EQ((*FirstExport)->Entries[0].SymbolType, FirstFunction->functionType());
+    EXPECT_EQ((*SecondExport)->Entries[0].SymbolType, SecondFunction->functionType());
   }
 
   // A foreign output context is rejected before analysis and leaves both output modules unchanged.

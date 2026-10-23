@@ -99,9 +99,51 @@ namespace ink::ir
     return ID;
   }
 
-  void Module::setModuleID(ModuleID NewID) noexcept
+  std::expected<void, ModuleError> Module::addExport(SymbolId Symbol, const Value &Declaration)
   {
-    ID = std::move(NewID);
+    if (!Symbol.SymbolName.valid())
+    {
+      return std::unexpected(ModuleError::InvalidSymbolID);
+    }
+    if (!owns(&Declaration))
+    {
+      return std::unexpected(ModuleError::InvalidExport);
+    }
+    for (auto &Export : Exports)
+    {
+      if (Export.Symbol.SymbolName != Symbol.SymbolName)
+      {
+        continue;
+      }
+      for (const SymbolExportEntry &Existing : Export.Entries)
+      {
+        if (Existing.Declaration == &Declaration)
+        {
+          return std::unexpected(ModuleError::DuplicateExport);
+        }
+      }
+      Export.Entries.push_back({Declaration.type(), &Declaration});
+      return {};
+    }
+    Exports.push_back({Symbol, {{Declaration.type(), &Declaration}}});
+    return {};
+  }
+
+  const SymbolExport *Module::findExport(const SymbolId &Symbol) const noexcept
+  {
+    for (const auto &Export : Exports)
+    {
+      if (Export.Symbol.SymbolName == Symbol.SymbolName)
+      {
+        return &Export;
+      }
+    }
+    return nullptr;
+  }
+
+  const std::vector<SymbolExport> &Module::exports() const noexcept
+  {
+    return Exports;
   }
 
   bool Module::owns(const Value *Declaration) const noexcept
