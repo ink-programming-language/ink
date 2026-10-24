@@ -21,7 +21,6 @@ namespace ink::ir::test
   } // namespace
 
   static_assert(std::is_final_v<AllocaInstruction> && std::is_base_of_v<Instruction, AllocaInstruction>);
-  static_assert(std::is_final_v<AddressOfInstruction> && std::is_base_of_v<Instruction, AddressOfInstruction>);
   static_assert(std::is_final_v<LoadInstruction> && std::is_base_of_v<Instruction, LoadInstruction>);
   static_assert(std::is_final_v<StoreInstruction> && std::is_base_of_v<Instruction, StoreInstruction>);
 
@@ -31,17 +30,14 @@ namespace ink::ir::test
     IRContext Context(Target);
     const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
     const auto *Seven = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(7));
-    AllocaInstruction Allocation(*Integer);
+    AllocaInstruction Allocation(*Context.typePool().get<ink::ir::PointerType>(Integer));
     LoadInstruction Load(*Integer, Allocation);
     StoreInstruction Store(*Context.typePool().get<ink::ir::VoidType>(), *Seven, Allocation);
     EXPECT_EQ(Allocation.allocatedType(), Integer);
-    EXPECT_EQ(Allocation.type(), Integer);
-    EXPECT_TRUE(Allocation.isStorage());
-    EXPECT_TRUE(Allocation.isMutable());
+    EXPECT_EQ(Allocation.type(), Context.typePool().get<ink::ir::PointerType>(Integer));
+    EXPECT_TRUE(Allocation.allocatedType()->isMutable());
     EXPECT_FALSE(Allocation.isInitialized());
-    EXPECT_FALSE(Load.isStorage());
     EXPECT_FALSE(Load.isMutable());
-    EXPECT_TRUE(Load.isInitialized());
     EXPECT_EQ(Load.pointer(), &Allocation);
     EXPECT_EQ(Load.type(), Integer);
     EXPECT_EQ(Store.storedValue(), Seven);
@@ -98,7 +94,7 @@ namespace ink::ir::test
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     auto *Slot = Builder.createAlloca(*Integer);
     ASSERT_NE(Slot, nullptr);
-    EXPECT_EQ(Slot->type(), Integer);
+    EXPECT_EQ(Slot->allocatedType(), Integer);
     auto *Store = Builder.createStore(*Owner.parameter(0), *Slot);
     ASSERT_NE(Store, nullptr);
     auto *Load = Builder.createLoad(*Integer, *Slot);
@@ -147,7 +143,8 @@ namespace ink::ir::test
     {
       auto *Slot = Builder.createAlloca(*StoredType);
       ASSERT_NE(Slot, nullptr);
-      EXPECT_EQ(Slot->type(), StoredType);
+      EXPECT_EQ(Slot->allocatedType(), StoredType);
+      EXPECT_EQ(Slot->type(), Types.get<ink::ir::PointerType>(StoredType));
       auto *Store = Builder.createStore(*Null, *Slot);
       ASSERT_NE(Store, nullptr);
       EXPECT_EQ(Store->storedValue(), Null);
@@ -194,7 +191,7 @@ namespace ink::ir::test
     auto *UnitSlot = Builder.createAlloca(*UnitArray);
     ASSERT_NE(UnitSlot, nullptr);
     const auto *Zero = Context.constantPool().get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(0));
-    auto *ArrayAddress = Builder.createAddressOf(*UnitSlot);
+    auto *ArrayAddress = UnitSlot;
     ASSERT_NE(ArrayAddress, nullptr);
     auto *UnitAddress = Builder.createGetElementPtr(*UnitArray, *ArrayAddress, {Zero, Zero});
     ASSERT_NE(UnitAddress, nullptr);
@@ -210,14 +207,16 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.insertBlock(), Entry);
   }
 
-  // Local storage, its address and its loaded contents retain distinct types and operand categories, including pointer-valued locals.
-  TEST(IRMemoryInstructionTest, SeparatesStorageFromAddressAndLoadedValue)
+  // Allocation results are directly usable addresses, while loading pointer-valued slots removes exactly one pointer level.
+  TEST(IRMemoryInstructionTest, UsesAllocationPointersWithoutAddressConversions)
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
     const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
     const auto *Pointer = Types.get<ink::ir::PointerType>(Integer);
+    const auto *PointerPointer = Types.get<ink::ir::PointerType>(Pointer);
     Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Pointer}));
+    Function Consumer(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Pointer}));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
@@ -225,46 +224,35 @@ namespace ink::ir::test
     auto *PointerSlot = Builder.createAlloca(*Pointer);
     ASSERT_NE(Slot, nullptr);
     ASSERT_NE(PointerSlot, nullptr);
+    EXPECT_EQ(Slot->type(), Pointer);
+    EXPECT_EQ(Slot->allocatedType(), Integer);
+    EXPECT_EQ(PointerSlot->type(), PointerPointer);
+    EXPECT_EQ(PointerSlot->allocatedType(), Pointer);
     const auto Name = core::NamePool::instance().intern("IRMemoryInstructionTest.Local");
     EXPECT_FALSE(Slot->hasName());
     Slot->setName(Name);
     EXPECT_TRUE(Slot->hasName());
     EXPECT_EQ(Slot->name(), Name);
-    auto *Address = Builder.createAddressOf(*Slot);
-    auto *PointerAddress = Builder.createAddressOf(*PointerSlot);
-    ASSERT_NE(Address, nullptr);
-    ASSERT_NE(PointerAddress, nullptr);
-    EXPECT_EQ(Address->storage(), Slot);
-    EXPECT_EQ(Address->type(), Pointer);
-    EXPECT_EQ(PointerAddress->type(), Types.get<ink::ir::PointerType>(Pointer));
-    EXPECT_FALSE(Address->isStorage());
-    EXPECT_FALSE(Address->isMutable());
-    EXPECT_TRUE(Address->isInitialized());
-    EXPECT_TRUE(Instruction::classof(Address));
-    EXPECT_TRUE(AddressOfInstruction::classof(Address));
-    EXPECT_FALSE(AddressOfInstruction::classof(Slot));
-    EXPECT_FALSE(AddressOfInstruction::classof(nullptr));
-    EXPECT_FALSE(Address->isTerminator());
-    EXPECT_EQ(valueKindName(Address->kind()), "address_of");
-    EXPECT_EQ(Address->parentBlock(), Entry);
-    auto *Load = Builder.createLoad(*Integer, *Slot);
+    auto *StoreAddress = Builder.createStore(*Slot, *PointerSlot);
+    ASSERT_NE(StoreAddress, nullptr);
+    EXPECT_EQ(StoreAddress->storedValue(), Slot);
     auto *PointerLoad = Builder.createLoad(*Pointer, *PointerSlot);
-    ASSERT_NE(Load, nullptr);
     ASSERT_NE(PointerLoad, nullptr);
-    EXPECT_EQ(Load->type(), Integer);
-    EXPECT_FALSE(Load->isStorage());
     EXPECT_EQ(PointerLoad->type(), Pointer);
-    EXPECT_FALSE(PointerLoad->isStorage());
-    EXPECT_NE(Builder.createLoad(*Integer, *PointerLoad), nullptr);
-    EXPECT_NE(Builder.createLoad(*Pointer, *PointerAddress), nullptr);
-    EXPECT_NE(Builder.createStore(*Owner.parameter(0), *PointerSlot), nullptr);
-    EXPECT_EQ(Builder.createLoad(*Integer, *PointerSlot), nullptr);
-    EXPECT_EQ(Builder.createAddressOf(*Address), nullptr);
-    EXPECT_EQ(Builder.createAddressOf(*Load), nullptr);
-    EXPECT_EQ(Builder.createAddressOf(*Owner.parameter(0)), nullptr);
+    auto *Load = Builder.createLoad(*Integer, *PointerLoad);
+    ASSERT_NE(Load, nullptr);
+    EXPECT_EQ(Load->type(), Integer);
+    EXPECT_EQ(Load->pointer(), PointerLoad);
+    auto *Call = Builder.createCall(Consumer, {Argument(*Slot)});
+    ASSERT_NE(Call, nullptr);
+    EXPECT_EQ(Call->argument(0)->value(), Slot);
+    EXPECT_NE(Builder.createICmp(ICmpPredicate::Equal, *Slot, *Owner.parameter(0)), nullptr);
     const auto *Zero = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(0));
-    EXPECT_EQ(Builder.createGetElementPtr(*Integer, *Slot, {Zero}), nullptr);
-    EXPECT_NE(Builder.createGetElementPtr(*Integer, *Address, {Zero}), nullptr);
+    auto *ElementAddress = Builder.createGetElementPtr(*Integer, *Slot, {Zero});
+    ASSERT_NE(ElementAddress, nullptr);
+    EXPECT_EQ(ElementAddress->type(), Pointer);
+    EXPECT_EQ(Builder.createLoad(*Integer, *PointerSlot), nullptr);
+    EXPECT_EQ(Builder.createLoad(*Pointer, *Slot), nullptr);
   }
 
   // Declaration initialization permits one write to immutable local storage while ordinary stores preserve the declaration marker.
@@ -279,8 +267,8 @@ namespace ink::ir::test
     auto *Entry = Owner.createBlock();
     auto *OtherEntry = Other.createBlock();
     const auto *ConstInteger = Types.get(Integer, false);
-    auto *OtherSlot = static_cast<AllocaInstruction *>(OtherEntry->appendInstruction(std::make_unique<AllocaInstruction>(*ConstInteger)));
-    AllocaInstruction Detached(*ConstInteger);
+    auto *OtherSlot = static_cast<AllocaInstruction *>(OtherEntry->appendInstruction(std::make_unique<AllocaInstruction>(*Types.get<ink::ir::PointerType>(ConstInteger))));
+    AllocaInstruction Detached(*Types.get<ink::ir::PointerType>(ConstInteger));
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     auto *Immutable = Builder.createAlloca(*Integer, false);
@@ -290,10 +278,10 @@ namespace ink::ir::test
     ASSERT_NE(Mutable, nullptr);
     ASSERT_NE(Recorded, nullptr);
     const Value &StorageValue = *Immutable;
-    EXPECT_EQ(StorageValue.type(), ConstInteger);
-    EXPECT_TRUE(StorageValue.isStorage());
+    EXPECT_EQ(StorageValue.type(), Types.get<ink::ir::PointerType>(ConstInteger));
+    EXPECT_EQ(Immutable->allocatedType(), ConstInteger);
     EXPECT_FALSE(StorageValue.isMutable());
-    EXPECT_FALSE(StorageValue.isInitialized());
+    EXPECT_FALSE(Immutable->isInitialized());
     EXPECT_TRUE(Recorded->isInitialized());
     const std::size_t PreviousCount = Entry->instructionCount();
     EXPECT_EQ(Builder.createInitialize(*Context.constantPool().get<ink::ir::BoolConstant>(true), *Immutable), nullptr);
@@ -301,8 +289,8 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.createInitialize(*Seven, Detached), nullptr);
     EXPECT_EQ(Builder.createInitialize(*Seven, *Recorded), nullptr);
     EXPECT_EQ(Builder.createStore(*Seven, *Immutable), nullptr);
-    EXPECT_EQ(Builder.createAddressOf(*OtherSlot), nullptr);
-    EXPECT_EQ(Builder.createAddressOf(Detached), nullptr);
+    EXPECT_EQ(Builder.createLoad(*Integer, *OtherSlot), nullptr);
+    EXPECT_EQ(Builder.createLoad(*Integer, Detached), nullptr);
     EXPECT_FALSE(Immutable->isInitialized());
     EXPECT_FALSE(OtherSlot->isInitialized());
     EXPECT_FALSE(Detached.isInitialized());
@@ -311,7 +299,7 @@ namespace ink::ir::test
     ASSERT_NE(Initialization, nullptr);
     EXPECT_EQ(Initialization->storedValue(), Seven);
     EXPECT_EQ(Initialization->pointer(), Immutable);
-    EXPECT_TRUE(StorageValue.isInitialized());
+    EXPECT_TRUE(Immutable->isInitialized());
     EXPECT_FALSE(StorageValue.isMutable());
     const std::size_t InitializedCount = Entry->instructionCount();
     EXPECT_EQ(Builder.createInitialize(*Seven, *Immutable), nullptr);
@@ -325,7 +313,7 @@ namespace ink::ir::test
     EXPECT_NE(Builder.createStore(*Seven, *Mutable), nullptr);
   }
 
-  // Storage cannot masquerade as a numeric operand, condition, callee, argument, returned value or GEP index merely because its type matches.
+  // Address values cannot masquerade as numeric contents, booleans, function values or GEP indices without a correctly typed load.
   TEST(IRMemoryInstructionTest, RequiresExplicitLoadBeforeValueOperations)
   {
     IRContext Context(Target);
@@ -344,7 +332,7 @@ namespace ink::ir::test
     ASSERT_NE(IntegerSlot, nullptr);
     ASSERT_NE(BoolSlot, nullptr);
     ASSERT_NE(CalleeSlot, nullptr);
-    auto *Address = Builder.createAddressOf(*IntegerSlot);
+    auto *Address = IntegerSlot;
     ASSERT_NE(Address, nullptr);
     const auto *Zero = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(0));
     const std::size_t PreviousCount = Entry->instructionCount();
@@ -365,61 +353,58 @@ namespace ink::ir::test
     EXPECT_NE(Builder.createReturn(*Loaded), nullptr);
   }
 
-  // Global variables expose storage properties and explicit load/address operations without being usable as their contents.
-  TEST(IRMemoryInstructionTest, AccessesGlobalStorageExplicitly)
+  // Globals are ordinary address operands while const pointees and initializer state remain independent of the pointer value.
+  TEST(IRMemoryInstructionTest, UsesGlobalPointersForLoadsStoresCallsAndGEP)
   {
     IRContext Context(Target);
     IRContext Foreign(Target);
     auto &Types = Context.typePool();
     const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
     const auto *Pointer = Types.get<ink::ir::PointerType>(Integer);
-    const auto *Seven = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(7));
-    GlobalVariable Mutable(*Integer);
     const auto *ConstInteger = Types.get(Integer, false);
-    GlobalVariable Immutable(*ConstInteger);
-    GlobalVariable PointerSlot(*Pointer);
-    GlobalVariable ForeignStorage(*Foreign.typePool().get<ink::ir::IntegerType>(32, true));
+    const auto *Seven = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(7));
+    const auto *Zero = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(0));
+    GlobalVariable Mutable(*Pointer);
+    GlobalVariable Immutable(*Types.get<ink::ir::PointerType>(ConstInteger));
+    GlobalVariable PointerSlot(*Types.get<ink::ir::PointerType>(Pointer));
+    GlobalVariable ForeignStorage(*Foreign.typePool().get<ink::ir::PointerType>(Foreign.typePool().get<ink::ir::IntegerType>(32, true)));
     Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()));
+    Function Consumer(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Pointer}));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    const Value &ImmutableValue = Immutable;
-    EXPECT_TRUE(ImmutableValue.isStorage());
-    EXPECT_FALSE(ImmutableValue.isMutable());
-    EXPECT_FALSE(ImmutableValue.isInitialized());
+    EXPECT_EQ(Immutable.type()->pointeeType(), ConstInteger);
+    EXPECT_FALSE(Immutable.variableType()->isMutable());
+    EXPECT_FALSE(Immutable.isInitialized());
     ASSERT_TRUE(Immutable.setInitializer(Seven));
-    EXPECT_TRUE(ImmutableValue.isInitialized());
-    EXPECT_TRUE(Mutable.isMutable());
+    EXPECT_TRUE(Immutable.isInitialized());
+    EXPECT_TRUE(Mutable.variableType()->isMutable());
     EXPECT_NE(Builder.createLoad(*Integer, Immutable), nullptr);
     EXPECT_NE(Builder.createStore(*Seven, Mutable), nullptr);
     EXPECT_FALSE(Mutable.isInitialized());
-    auto *Address = Builder.createAddressOf(Immutable);
-    ASSERT_NE(Address, nullptr);
-    EXPECT_EQ(Address->storage(), &Immutable);
-    EXPECT_EQ(Address->type(), Types.get<ink::ir::PointerType>(ConstInteger));
-    EXPECT_FALSE(Address->isStorage());
-    auto *PointerAddress = Builder.createAddressOf(PointerSlot);
-    ASSERT_NE(PointerAddress, nullptr);
-    EXPECT_EQ(PointerAddress->type(), Types.get<ink::ir::PointerType>(Pointer));
+    EXPECT_NE(Builder.createStore(Mutable, PointerSlot), nullptr);
     EXPECT_NE(Builder.createLoad(*Pointer, PointerSlot), nullptr);
+    EXPECT_NE(Builder.createCall(Consumer, {Argument(Mutable)}), nullptr);
+    EXPECT_NE(Builder.createICmp(ICmpPredicate::Equal, Mutable, Mutable), nullptr);
+    EXPECT_NE(Builder.createGetElementPtr(*Integer, Mutable, {Zero}), nullptr);
     const std::size_t PreviousCount = Entry->instructionCount();
     EXPECT_EQ(Builder.createStore(*Seven, Immutable), nullptr);
-    EXPECT_EQ(Builder.createStore(*Seven, *Address), nullptr);
     EXPECT_EQ(Builder.createNeg(Immutable), nullptr);
     EXPECT_EQ(Builder.createLoad(*Integer, PointerSlot), nullptr);
     EXPECT_EQ(Builder.createLoad(*Integer, ForeignStorage), nullptr);
-    EXPECT_EQ(Builder.createAddressOf(ForeignStorage), nullptr);
+    EXPECT_EQ(Builder.createCall(Consumer, {Argument(ForeignStorage)}), nullptr);
     EXPECT_EQ(Entry->instructionCount(), PreviousCount);
   }
 
-  // Neither direct const types nor the immutable allocation convenience can regain write access through address and dereference instructions.
-  TEST(IRMemoryInstructionTest, PreservesConstStorageThroughAddressAndDereference)
+  // Direct const types and immutable allocation requests both preserve write restrictions through derived pointers.
+  TEST(IRMemoryInstructionTest, PreservesConstPointeesThroughDerivedPointers)
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
     const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
     const auto *ConstInteger = Types.get(Integer, false);
     const auto *Seven = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(7));
+    const auto *Zero = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(0));
     Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
@@ -427,29 +412,25 @@ namespace ink::ir::test
     for (auto *Slot : {Builder.createAlloca(*Integer, false), Builder.createAlloca(*ConstInteger)})
     {
       ASSERT_NE(Slot, nullptr);
-      EXPECT_EQ(Slot->type(), ConstInteger);
-      EXPECT_FALSE(Slot->isMutable());
+      EXPECT_EQ(Slot->allocatedType(), ConstInteger);
+      EXPECT_EQ(Slot->type(), Types.get<ink::ir::PointerType>(ConstInteger));
+      EXPECT_FALSE(Slot->allocatedType()->isMutable());
       ASSERT_NE(Builder.createInitialize(*Seven, *Slot), nullptr);
-      auto *Address = Builder.createAddressOf(*Slot);
-      ASSERT_NE(Address, nullptr);
-      EXPECT_EQ(Address->type(), Types.get<ink::ir::PointerType>(ConstInteger));
-      auto *Selected = Builder.createDereference(*Address);
+      auto *Selected = Builder.createGetElementPtr(*ConstInteger, *Slot, {Zero});
       ASSERT_NE(Selected, nullptr);
-      EXPECT_EQ(Selected->type(), ConstInteger);
-      EXPECT_FALSE(Selected->isMutable());
+      EXPECT_EQ(Selected->type(), Slot->type());
       auto *Load = Builder.createLoad(*ConstInteger, *Selected);
       ASSERT_NE(Load, nullptr);
       EXPECT_EQ(Load->type(), Integer);
       const auto Count = Entry->instructionCount();
       EXPECT_EQ(Builder.createStore(*Seven, *Slot), nullptr);
-      EXPECT_EQ(Builder.createStore(*Seven, *Address), nullptr);
       EXPECT_EQ(Builder.createStore(*Seven, *Selected), nullptr);
       EXPECT_EQ(Builder.createInitialize(*Seven, *Slot), nullptr);
       EXPECT_EQ(Entry->instructionCount(), Count);
     }
   }
 
-  // Loading a const pointer slot removes that slot's qualifier while preserving the separate pointee permissions at deeper levels.
+  // Loading a const pointer slot removes that slot qualifier while preserving separate pointee permissions at deeper levels.
   TEST(IRMemoryInstructionTest, KeepsPointerAndPointeePermissionsIndependentAcrossLoads)
   {
     IRContext Context(Target);
@@ -467,42 +448,26 @@ namespace ink::ir::test
     auto *FixedPointer = Builder.createAlloca(*Pointer, false);
     ASSERT_NE(FixedPointer, nullptr);
     ASSERT_NE(Builder.createInitialize(*Owner.parameter(0), *FixedPointer), nullptr);
-    EXPECT_EQ(FixedPointer->type(), ConstPointer);
-    EXPECT_FALSE(FixedPointer->isMutable());
+    EXPECT_EQ(FixedPointer->allocatedType(), ConstPointer);
+    EXPECT_EQ(FixedPointer->type(), Types.get<ink::ir::PointerType>(ConstPointer));
     auto *LoadedFixedPointer = Builder.createLoad(*ConstPointer, *FixedPointer);
     ASSERT_NE(LoadedFixedPointer, nullptr);
     EXPECT_EQ(LoadedFixedPointer->type(), Pointer);
-    auto *WritableTarget = Builder.createDereference(*LoadedFixedPointer);
-    ASSERT_NE(WritableTarget, nullptr);
-    EXPECT_TRUE(WritableTarget->isMutable());
-    EXPECT_NE(Builder.createStore(*Seven, *WritableTarget), nullptr);
+    EXPECT_NE(Builder.createStore(*Seven, *LoadedFixedPointer), nullptr);
+    EXPECT_EQ(Builder.createStore(*Owner.parameter(0), *FixedPointer), nullptr);
 
-    auto *ReadonlyPointerSlot = Builder.createDereference(*Owner.parameter(1));
-    ASSERT_NE(ReadonlyPointerSlot, nullptr);
-    EXPECT_EQ(ReadonlyPointerSlot->type(), ConstPointer);
-    EXPECT_FALSE(ReadonlyPointerSlot->isMutable());
-    EXPECT_EQ(Builder.createStore(*Owner.parameter(0), *ReadonlyPointerSlot), nullptr);
     EXPECT_EQ(Builder.createStore(*Owner.parameter(0), *Owner.parameter(1)), nullptr);
-    auto *LoadedPointer = Builder.createLoad(*ConstPointer, *ReadonlyPointerSlot);
+    auto *LoadedPointer = Builder.createLoad(*ConstPointer, *Owner.parameter(1));
     ASSERT_NE(LoadedPointer, nullptr);
     EXPECT_EQ(LoadedPointer->type(), Pointer);
     EXPECT_NE(Builder.createStore(*Seven, *LoadedPointer), nullptr);
 
-    auto *WritableReadonlyPointerSlot = Builder.createDereference(*Owner.parameter(2));
-    ASSERT_NE(WritableReadonlyPointerSlot, nullptr);
-    EXPECT_EQ(WritableReadonlyPointerSlot->type(), ReadonlyPointer);
-    EXPECT_TRUE(WritableReadonlyPointerSlot->isMutable());
-    auto *LoadedReadonlyPointer = Builder.createLoad(*ReadonlyPointer, *WritableReadonlyPointerSlot);
+    auto *LoadedReadonlyPointer = Builder.createLoad(*ReadonlyPointer, *Owner.parameter(2));
     ASSERT_NE(LoadedReadonlyPointer, nullptr);
     EXPECT_EQ(LoadedReadonlyPointer->type(), ReadonlyPointer);
-    EXPECT_NE(Builder.createStore(*LoadedReadonlyPointer, *WritableReadonlyPointerSlot), nullptr);
-    auto *ReadonlyTarget = Builder.createDereference(*LoadedReadonlyPointer);
-    ASSERT_NE(ReadonlyTarget, nullptr);
-    EXPECT_EQ(ReadonlyTarget->type(), ConstInteger);
-    EXPECT_FALSE(ReadonlyTarget->isMutable());
+    EXPECT_NE(Builder.createStore(*LoadedReadonlyPointer, *Owner.parameter(2)), nullptr);
     EXPECT_EQ(Builder.createStore(*Seven, *LoadedReadonlyPointer), nullptr);
-    EXPECT_EQ(Builder.createStore(*Seven, *ReadonlyTarget), nullptr);
-    EXPECT_EQ(Builder.createStore(*Owner.parameter(0), *WritableReadonlyPointerSlot), nullptr);
+    EXPECT_EQ(Builder.createStore(*Owner.parameter(0), *Owner.parameter(2)), nullptr);
   }
 
   // Selecting members through a const aggregate yields const member storage without making the members' pointer targets const.
@@ -534,16 +499,12 @@ namespace ink::ir::test
     {
       auto *Address = Builder.createGetElementPtr(*Aggregates[Index], *Owner.parameter(Index), {Zero, Zero});
       ASSERT_NE(Address, nullptr);
-      EXPECT_EQ(Address->type(), Types.get<ink::ir::PointerType>(ConstPointer));
-      auto *Storage = Builder.createDereference(*Address);
-      ASSERT_NE(Storage, nullptr);
-      EXPECT_EQ(Storage->type(), ConstPointer);
-      EXPECT_FALSE(Storage->isMutable());
-      auto *Loaded = Builder.createLoad(*ConstPointer, *Storage);
+      ASSERT_EQ(Address->type(), Types.get<ink::ir::PointerType>(ConstPointer));
+      EXPECT_FALSE(static_cast<const PointerType *>(Address->type())->pointeeType()->isMutable());
+      auto *Loaded = Builder.createLoad(*ConstPointer, *Address);
       ASSERT_NE(Loaded, nullptr);
       EXPECT_EQ(Loaded->type(), Pointer);
       EXPECT_NE(Builder.createStore(*Seven, *Loaded), nullptr);
-      EXPECT_EQ(Builder.createStore(*Loaded, *Storage), nullptr);
       EXPECT_EQ(Builder.createStore(*Loaded, *Address), nullptr);
     }
   }
@@ -559,10 +520,9 @@ namespace ink::ir::test
     const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
     const auto *Pointer = Types.get<ink::ir::PointerType>(Integer);
     Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Integer, Pointer}));
-    AllocaInstruction Detached(*Integer);
+    AllocaInstruction Detached(*Pointer);
     IRBuilder Builder(Context);
     EXPECT_DEATH(static_cast<void>(Builder.createAlloca(*Integer)), "check failed:");
-    EXPECT_DEATH(static_cast<void>(Builder.createAddressOf(Detached)), "check failed:");
     EXPECT_DEATH(static_cast<void>(Builder.createInitialize(*Owner.parameter(0), Detached)), "check failed:");
     EXPECT_DEATH(static_cast<void>(Builder.createLoad(*Integer, *Owner.parameter(1))), "check failed:");
     EXPECT_DEATH(static_cast<void>(Builder.createStore(*Owner.parameter(0), *Owner.parameter(1))), "check failed:");
@@ -570,7 +530,6 @@ namespace ink::ir::test
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     ASSERT_NE(Builder.createReturn(), nullptr);
     EXPECT_DEATH(static_cast<void>(Builder.createAlloca(*Integer)), "check failed:");
-    EXPECT_DEATH(static_cast<void>(Builder.createAddressOf(Detached)), "check failed:");
     EXPECT_DEATH(static_cast<void>(Builder.createInitialize(*Owner.parameter(0), Detached)), "check failed:");
     EXPECT_DEATH(static_cast<void>(Builder.createLoad(*Integer, *Owner.parameter(1))), "check failed:");
     EXPECT_DEATH(static_cast<void>(Builder.createStore(*Owner.parameter(0), *Owner.parameter(1))), "check failed:");

@@ -7,7 +7,7 @@
 
 namespace ink::semantic
 {
-  const ir::Value *Analyzer::analyzeParenExpr(AnalyzerState &State, const frontend::parser::ParenExpr &Node, ExprHints Hints)
+  ExprResult Analyzer::analyzeParenExpr(AnalyzerState &State, const frontend::parser::ParenExpr &Node, ExprHints Hints)
   {
     CHECK_ICE(State.at(Node), Node.expression(), core::DiagnosticKind::SemanticInvalidAST, "ParenExpr requires an expression");
     return analyzeExpr(State, *Node.expression(), Hints);

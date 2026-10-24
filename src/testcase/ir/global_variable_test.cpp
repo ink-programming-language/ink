@@ -29,8 +29,9 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    GlobalVariable Variable(*Types.typePool().get<ink::ir::IntegerType>(32, true));
-    EXPECT_EQ(Variable.type(), Types.typePool().get<ink::ir::IntegerType>(32, true));
+    GlobalVariable Variable(*Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::IntegerType>(32, true)));
+    EXPECT_EQ(Variable.type(), Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::IntegerType>(32, true)));
+    EXPECT_EQ(Variable.variableType(), Types.typePool().get<ink::ir::IntegerType>(32, true));
     EXPECT_EQ(Variable.name(), core::NAME_None);
     EXPECT_FALSE(Variable.hasName());
     EXPECT_EQ(Variable.initializer(), nullptr);
@@ -43,7 +44,7 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    GlobalVariable Variable(*Types.typePool().get<ink::ir::BoolType>());
+    GlobalVariable Variable(*Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::BoolType>()));
     const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
@@ -70,7 +71,7 @@ namespace ink::ir::test
     const core::Name NewName = core::NamePool::instance().intern("IRGlobalVariableTest.Renamed");
     ASSERT_TRUE(OriginalName.valid());
     ASSERT_TRUE(NewName.valid());
-    GlobalVariable Variable(*Types.typePool().get<ink::ir::BoolType>(), OriginalName);
+    GlobalVariable Variable(*Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::BoolType>()), OriginalName);
     const Constant *Initializer = Constants.get<ink::ir::BoolConstant>(true);
     ASSERT_TRUE(Variable.setInitializer(Initializer));
     EXPECT_TRUE(Variable.hasName());
@@ -81,7 +82,7 @@ namespace ink::ir::test
     Variable.setName(core::NAME_None);
     EXPECT_FALSE(Variable.hasName());
     EXPECT_EQ(Variable.name(), core::NAME_None);
-    EXPECT_EQ(Variable.type(), Types.typePool().get<ink::ir::BoolType>());
+    EXPECT_EQ(Variable.variableType(), Types.typePool().get<ink::ir::BoolType>());
     EXPECT_EQ(Variable.initializer(), Initializer);
   }
 
@@ -94,7 +95,7 @@ namespace ink::ir::test
     const Constant *First = Constants.get<ink::ir::BoolConstant>(false);
     const Constant *Second = Constants.get<ink::ir::BoolConstant>(true);
     {
-      GlobalVariable Variable(*Types.typePool().get<ink::ir::BoolType>());
+      GlobalVariable Variable(*Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::BoolType>()));
       ASSERT_TRUE(Variable.setInitializer(First));
       EXPECT_TRUE(Variable.hasInitializer());
       EXPECT_EQ(Variable.initializer(), First);
@@ -120,7 +121,7 @@ namespace ink::ir::test
     Module ForeignTypes(ForeignTypesContext);
     auto &Constants = Types.constantPool();
     auto &ForeignConstants = ForeignTypes.constantPool();
-    GlobalVariable Variable(*Types.typePool().get<ink::ir::BoolType>());
+    GlobalVariable Variable(*Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::BoolType>()));
     const Constant *Initializer = Constants.get<ink::ir::BoolConstant>(true);
     const Constant *WrongType = Constants.get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(1));
     const Constant *ForeignInitializer = ForeignConstants.get<ink::ir::BoolConstant>(true);
@@ -133,6 +134,6 @@ namespace ink::ir::test
     EXPECT_EQ(Variable.initializer(), Initializer);
     EXPECT_FALSE(Variable.setInitializer(ForeignInitializer));
     EXPECT_EQ(Variable.initializer(), Initializer);
-    EXPECT_EQ(Variable.type(), Types.typePool().get<ink::ir::BoolType>());
+    EXPECT_EQ(Variable.variableType(), Types.typePool().get<ink::ir::BoolType>());
   }
 } // namespace ink::ir::test

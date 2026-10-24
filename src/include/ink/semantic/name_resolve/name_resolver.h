@@ -53,7 +53,7 @@ namespace ink::semantic
       bool exitScope() noexcept;
 
       // Ordinary bindings are exclusive, including ordinary function bindings.
-      // Targets carry their own type and storage properties; aliases preserve the same value identity.
+      // Aliases preserve the same IR entity identity; the analyzer classifies named object declarations as locations.
       // Repeating the same target returns AlreadyBound without changing the binding.
       BindResult bind(core::Name Name, ir::Value &Target);
       // Only explicit overload bindings can accumulate distinct functions; signature checks are separate.

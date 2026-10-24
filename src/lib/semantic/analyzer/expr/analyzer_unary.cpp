@@ -9,7 +9,7 @@
 
 namespace ink::semantic
 {
-  const ir::Value *Analyzer::analyzeUnaryExpr(AnalyzerState &State, const frontend::parser::UnaryExpr &Node, ExprHints Hints)
+  ExprResult Analyzer::analyzeUnaryExpr(AnalyzerState &State, const frontend::parser::UnaryExpr &Node, ExprHints Hints)
   {
     using namespace frontend::parser;
     auto &Context = State.semanticContext();
@@ -33,7 +33,8 @@ namespace ink::semantic
       return Result;
     }
 
-    const ir::Value *Operand = analyzeExpr(State, *Node.operand());
+    const ExprResult Expression = analyzeExpr(State, *Node.operand());
+    const ir::Value *Operand = Expression.value();
     RETURN_IF_NOT(Operand, nullptr);
     if (ir::Type::classof(Operand))
     {
@@ -51,30 +52,23 @@ namespace ink::semantic
     }
     RETURN_ERROR_IF(State.at(Qualifier->Range), Qualifier, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type after a pointer or reference qualifier", Operand->toString());
     RETURN_ERROR_IF(OperandSite, ir::Module::classof(Operand), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type or runtime operand", ir::valueKindName(Operand->kind()));
-    auto &Builder = State.irBuilder();
     if (Node.op() == TokenKind::Amp)
     {
-      const bool Local = ir::AllocaInstruction::classof(Operand);
-      RETURN_ERROR_IF(Site, !Local && !ir::DereferenceInstruction::classof(Operand), core::DiagnosticKind::SemanticInvalidAddressOperand, nullptr);
-      CHECK_ICE(Site, Builder.insertFunction() && Builder.insertBlock() && !Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed);
+      RETURN_ERROR_IF_NOT(Site, Expression.isLocation(), core::DiagnosticKind::SemanticInvalidAddressOperand, nullptr);
       // Taking an address preserves the object's qualifiers and does not read its contents.
-      const auto *Result = Builder.createAddressOf(*Operand);
-      CHECK_ICE(Site, Result, core::DiagnosticKind::SemanticConstructionFailed);
-      WARNING_IF(Site, Local && !Operand->isInitialized(), core::DiagnosticKind::SemanticUninitializedAddress, core::NamePool::instance().text(static_cast<const ir::AllocaInstruction *>(Operand)->name()));
-      return Result;
+      const auto *Local = ir::AllocaInstruction::classof(Expression.declaration()) ? static_cast<const ir::AllocaInstruction *>(Expression.declaration()) : nullptr;
+      WARNING_IF(Site, Local && !Local->isInitialized(), core::DiagnosticKind::SemanticUninitializedAddress, core::NamePool::instance().text(Local->name()));
+      return Operand;
     }
 
     // The operand was already analyzed to distinguish type construction; load a stored pointer without evaluating its expression again.
-    Operand = Operand->isStorage() ? loadStorage(State, OperandSite, *Operand) : Operand;
+    Operand = Expression.isLocation() ? loadLocation(State, OperandSite, Expression) : Operand;
     Operand = requireRuntimeValue(OperandSite, Operand);
     RETURN_IF_NOT(Operand, nullptr);
     RETURN_ERROR_IF_NOT(Site, ir::PointerType::classof(Operand->type()), core::DiagnosticKind::SemanticInvalidDereference, nullptr);
     const auto *PointerType = static_cast<const ir::PointerType *>(Operand->type());
     RETURN_ERROR_IF(Site, PointerType->isOpaque() || !PointerType->pointeeType()->hasLayout(), core::DiagnosticKind::SemanticInvalidDereference, nullptr);
-    CHECK_ICE(Site, Builder.insertFunction() && Builder.insertBlock() && !Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed);
-    // Selecting the pointed-to storage defers its load until a runtime value is requested.
-    const auto *Result = Builder.createDereference(*Operand);
-    CHECK_ICE(Site, Result, core::DiagnosticKind::SemanticConstructionFailed);
-    return Result;
+    // Dereferencing changes the expression category, not the pointer IR value; reading remains explicit.
+    return ExprResult::location(*Operand);
   }
 } // namespace ink::semantic

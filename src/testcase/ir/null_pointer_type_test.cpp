@@ -136,8 +136,8 @@ namespace ink::ir::test
     const auto Null = Types.constantPool().get<ink::ir::NullPointerConstant>();
     const auto BoolPointer = Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::BoolType>());
     const auto IntPointer = Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::IntegerType>(32, true));
-    GlobalVariable BoolVariable(*BoolPointer);
-    GlobalVariable IntVariable(*IntPointer);
+    GlobalVariable BoolVariable(*Types.typePool().get<ink::ir::PointerType>(BoolPointer));
+    GlobalVariable IntVariable(*Types.typePool().get<ink::ir::PointerType>(IntPointer));
     ASSERT_TRUE(BoolVariable.setInitializer(Null));
     ASSERT_TRUE(IntVariable.setInitializer(Null));
     EXPECT_EQ(BoolVariable.initializer(), IntVariable.initializer());
@@ -150,12 +150,12 @@ namespace ink::ir::test
     EXPECT_FALSE(BoolVariable.hasInitializer());
     EXPECT_EQ(BoolVariable.initializer(), nullptr);
     EXPECT_EQ(IntVariable.initializer(), Null);
-    GlobalVariable NonPointer(*Types.typePool().get<ink::ir::BoolType>());
+    GlobalVariable NonPointer(*Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::BoolType>()));
     const auto False = Types.constantPool().get<ink::ir::BoolConstant>(false);
     ASSERT_TRUE(NonPointer.setInitializer(False));
     EXPECT_FALSE(NonPointer.setInitializer(Null));
     EXPECT_EQ(NonPointer.initializer(), False);
-    GlobalVariable ForeignVariable(*OtherTypes.typePool().get<ink::ir::PointerType>(OtherTypes.typePool().get<ink::ir::BoolType>()));
+    GlobalVariable ForeignVariable(*OtherTypes.typePool().get<ink::ir::PointerType>(OtherTypes.typePool().get<ink::ir::PointerType>(OtherTypes.typePool().get<ink::ir::BoolType>())));
     EXPECT_FALSE(ForeignVariable.setInitializer(Null));
     EXPECT_FALSE(ForeignVariable.hasInitializer());
   }
@@ -194,7 +194,7 @@ namespace ink::ir::test
     EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::BoolType>(), 2), {Null, Null}), nullptr);
     const auto ForeignArrayType = OtherTypes.typePool().get<ink::ir::ArrayType>(OtherTypes.typePool().get<ink::ir::PointerType>(OtherTypes.typePool().get<ink::ir::BoolType>()), 2);
     EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(ForeignArrayType, {Null, Null}), nullptr);
-    GlobalVariable Variable(*IntArrayType);
+    GlobalVariable Variable(*Types.typePool().get<ink::ir::PointerType>(IntArrayType));
     ASSERT_TRUE(Variable.setInitializer(IntArray));
     EXPECT_FALSE(Variable.setInitializer(BoolArray));
     EXPECT_EQ(Variable.initializer(), IntArray);

@@ -6,6 +6,7 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/core/support/core_define.h"
 #include "ink/frontend/parser/parser.h"
+#include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/structure_type/function_type_parameter.h"
 #include "ink/semantic/context.h"
@@ -615,7 +616,7 @@ namespace ink::semantic::test
     }
   }
 
-  // Type annotations retain the common unsupported-feature ICE for global reads, array construction, optional access and calls.
+  // Type annotations retain the common unsupported-feature ICE for array construction, optional access and calls.
   TEST_F(SemanticAnalyzerTypeTest, ReportsUnsupportedOperationsInTypePosition)
   {
     ir::Module Package(Context.irContext());
@@ -625,7 +626,6 @@ namespace ink::semantic::test
     ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
     ASSERT_EQ(Resolver.bind(name("Value"), *Variable), BindResult::Inserted);
     constexpr const char *Cases[] = {
-        "*Value",
         "[Value; 3]",
         "Value.Missing",
         "Pkg?.Outer",
@@ -640,6 +640,28 @@ namespace ink::semantic::test
     }
   }
 
+  // A global integer used as a dereference operand is loaded before the nonpointer diagnostic in a type position.
+  TEST_F(SemanticAnalyzerTypeTest, RejectsDereferencedGlobalIntegerInTypePosition)
+  {
+    auto Input = read("*Value");
+    ASSERT_TRUE(Input.succeeded());
+    auto *Variable = Output.createGlobalVariable(*Context.typePool().get<ink::ir::IntegerType>(32, true));
+    auto *Function = Output.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>()));
+    ASSERT_NE(Variable, nullptr);
+    ASSERT_NE(Function, nullptr);
+    auto *Block = Function->createBlock();
+    AnalyzerState State(Context, Input, Output);
+    ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
+    ASSERT_EQ(State.nameResolver().bind(name("Value"), *Variable), BindResult::Inserted);
+    EXPECT_EQ(analyze(State, Input), nullptr);
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticInvalidDereference);
+    ASSERT_EQ(Block->instructionCount(), 1U);
+    ASSERT_TRUE(ir::LoadInstruction::classof(Block->instruction(0)));
+    EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Block->instruction(0))->pointer(), Variable);
+    Context.scopeStore().removeTarget(*Variable);
+  }
+
   // Invalid runtime address operands in type annotations retain their user diagnostics and complete unary source ranges.
   TEST_F(SemanticAnalyzerTypeTest, RejectsInvalidAddressOperationsInTypePosition)
   {
@@ -652,8 +674,8 @@ namespace ink::semantic::test
         core::DiagnosticKind Expected;
     };
     constexpr Case Cases[] = {
-        {"&Value", core::DiagnosticKind::SemanticInvalidAddressOperand},
-        {"&(Value)", core::DiagnosticKind::SemanticInvalidAddressOperand},
+        {"&Value", core::DiagnosticKind::SemanticTypeMismatch},
+        {"&(Value)", core::DiagnosticKind::SemanticTypeMismatch},
         {"&14", core::DiagnosticKind::SemanticInvalidAddressOperand},
         {"*14", core::DiagnosticKind::SemanticInvalidDereference},
         {"*nullptr", core::DiagnosticKind::SemanticInvalidDereference},

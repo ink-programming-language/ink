@@ -161,7 +161,6 @@ namespace ink::ir::test
     auto *Global = Owner.createGlobalVariable(*Types.get<ink::ir::IntegerType>(32, true), Name);
     ASSERT_NE(Global, nullptr);
     EXPECT_EQ(Owner.createGlobalVariable(*Meta, Name), nullptr);
-    EXPECT_EQ(Owner.appendGlobalVariable(std::make_unique<GlobalVariable>(*Meta, Name)), nullptr);
     ASSERT_EQ(Owner.globalVariableCount(), 1U);
     EXPECT_EQ(Owner.globalVariable(0), Global);
   }

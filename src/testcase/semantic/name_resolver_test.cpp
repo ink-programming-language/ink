@@ -452,13 +452,12 @@ namespace ink::semantic::test
     ASSERT_EQ(AliasBinding->targets().size(), 1U);
     EXPECT_EQ(Saved->targets()[0], Storage);
     EXPECT_EQ(AliasBinding->targets()[0], Storage);
-    EXPECT_EQ(Saved->targets()[0]->type(), Context.typePool().get(Integer, false));
-    EXPECT_TRUE(Saved->targets()[0]->isStorage());
-    EXPECT_FALSE(Saved->targets()[0]->isMutable());
-    EXPECT_FALSE(Saved->targets()[0]->isInitialized());
+    EXPECT_EQ(static_cast<const ir::GlobalVariable *>(Saved->targets()[0])->variableType(), Context.typePool().get(Integer, false));
+    EXPECT_FALSE(static_cast<const ir::GlobalVariable *>(Saved->targets()[0])->variableType()->isMutable());
+    EXPECT_FALSE(static_cast<const ir::GlobalVariable *>(Saved->targets()[0])->isInitialized());
     ASSERT_TRUE(Storage->setInitializer(Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(1))));
-    EXPECT_TRUE(Saved->targets()[0]->isInitialized());
-    EXPECT_TRUE(AliasBinding->targets()[0]->isInitialized());
+    EXPECT_TRUE(static_cast<const ir::GlobalVariable *>(Saved->targets()[0])->isInitialized());
+    EXPECT_TRUE(static_cast<const ir::GlobalVariable *>(AliasBinding->targets()[0])->isInitialized());
     EXPECT_EQ(Resolver.bind(Variable, *Storage), BindResult::AlreadyBound);
     EXPECT_EQ(Resolver.bind(Variable, *OtherStorage), BindResult::Conflict);
     EXPECT_EQ(Resolver.bindOverload(Variable, *FunctionValue), BindResult::Conflict);
@@ -495,9 +494,9 @@ namespace ink::semantic::test
     const Binding *InnerBinding = Resolver.lookup(Variable);
     ASSERT_NE(InnerBinding, nullptr);
     EXPECT_EQ(InnerBinding->targets()[0], InnerStorage);
-    EXPECT_EQ(InnerBinding->targets()[0]->type(), Context.typePool().get(Boolean, false));
-    EXPECT_FALSE(InnerBinding->targets()[0]->isMutable());
-    EXPECT_TRUE(InnerBinding->targets()[0]->isInitialized());
+    EXPECT_EQ(static_cast<const ir::GlobalVariable *>(InnerBinding->targets()[0])->variableType(), Context.typePool().get(Boolean, false));
+    EXPECT_FALSE(static_cast<const ir::GlobalVariable *>(InnerBinding->targets()[0])->variableType()->isMutable());
+    EXPECT_TRUE(static_cast<const ir::GlobalVariable *>(InnerBinding->targets()[0])->isInitialized());
     EXPECT_EQ(Resolver.lookupMember(ModuleValue, Variable), InnerBinding);
     Scope &Nested = Resolver.enterScope();
     EXPECT_EQ(Resolver.lookup(Variable), InnerBinding);
@@ -506,9 +505,9 @@ namespace ink::semantic::test
     ASSERT_TRUE(Resolver.exitScope());
     EXPECT_EQ(Resolver.lookup(Variable), OuterBinding);
     EXPECT_EQ(OuterBinding->targets()[0], OuterStorage);
-    EXPECT_EQ(OuterBinding->targets()[0]->type(), Integer);
-    EXPECT_TRUE(OuterBinding->targets()[0]->isMutable());
-    EXPECT_FALSE(OuterBinding->targets()[0]->isInitialized());
+    EXPECT_EQ(static_cast<const ir::GlobalVariable *>(OuterBinding->targets()[0])->variableType(), Integer);
+    EXPECT_TRUE(static_cast<const ir::GlobalVariable *>(OuterBinding->targets()[0])->variableType()->isMutable());
+    EXPECT_FALSE(static_cast<const ir::GlobalVariable *>(OuterBinding->targets()[0])->isInitialized());
     Scope &Sibling = Resolver.enterScope();
     EXPECT_EQ(Resolver.lookup(Variable), OuterBinding);
     EXPECT_EQ(Sibling.lookupLocal(Variable), nullptr);
@@ -519,7 +518,7 @@ namespace ink::semantic::test
     EXPECT_EQ(Resumed.lookupLocal(Variable)->targets()[0], InnerStorage);
     EXPECT_EQ(Resumed.bind(Variable, *InnerStorage), BindResult::AlreadyBound);
     EXPECT_EQ(Resumed.bind(Variable, *OuterStorage), BindResult::Conflict);
-    EXPECT_FALSE(InnerStorage->isMutable());
+    EXPECT_FALSE(InnerStorage->variableType()->isMutable());
     EXPECT_TRUE(InnerStorage->isInitialized());
   }
 

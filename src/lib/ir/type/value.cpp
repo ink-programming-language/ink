@@ -34,19 +34,9 @@ namespace ink::ir
     return nullptr;
   }
 
-  bool Value::isStorage() const noexcept
-  {
-    return false;
-  }
-
   bool Value::isMutable() const noexcept
   {
     return false;
-  }
-
-  bool Value::isInitialized() const noexcept
-  {
-    return true;
   }
 
   std::string Value::toString() const

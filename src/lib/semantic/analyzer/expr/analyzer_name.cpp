@@ -34,7 +34,7 @@ namespace ink::semantic
     }
   } // namespace
 
-  const ir::Value *Analyzer::analyzeBinding(AnalyzerState &State, const AnalysisSite &Site, const Binding &Found, bool IsCallCallee)
+  ExprResult Analyzer::analyzeBinding(AnalyzerState &State, const AnalysisSite &Site, const Binding &Found, bool IsCallCallee)
   {
     const bool HasSingleTarget = Found.targets().size() == 1;
     // TODO: Select an overload using the call arguments or an expected function signature.
@@ -45,10 +45,10 @@ namespace ink::semantic
     CHECK_ICE(Site, Value && isValidBindingValue(State, *Value), core::DiagnosticKind::SemanticConstructionFailed);
     // TODO: Materialize variadic parameter packs before using them as expression values.
     CHECK_ICE(Site, !ir::Parameter::classof(Value) || !static_cast<const ir::Parameter *>(Value)->isVariadic(), core::DiagnosticKind::SemanticUnsupported, "variadic parameter values");
-    return Value;
+    return ir::AllocaInstruction::classof(Value) || ir::GlobalVariable::classof(Value) ? ExprResult::location(*Value, Value) : ExprResult(Value);
   }
 
-  const ir::Value *Analyzer::analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee)
+  ExprResult Analyzer::analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee)
   {
     auto &Context = State.semanticContext();
     const auto Name = Node.name();

@@ -1,6 +1,8 @@
 #ifndef INK_SEMANTIC_ANALYZER_ANALYZER_H
 #define INK_SEMANTIC_ANALYZER_ANALYZER_H
 
+#include "ink/semantic/analyzer/expr_result.h"
+
 #include <string_view>
 
 namespace ink::core
@@ -63,10 +65,10 @@ namespace ink::semantic
       // Unimplemented expressions and nesting limits use the existing ICE policy.
       const ir::Type *analyzeType(AnalyzerState &State, const frontend::parser::TypeSyntax &Node);
 
-      // Shared expression analysis returns the borrowed IR object without reading a final variable reference.
-      // A variable name yields its storage target; other expressions yield a value, type or module descriptor.
-      // Uses the same preconditions and contextual typing hints as emitValue(); failure returns nullptr.
-      const ir::Value *analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
+      // Shared expression analysis preserves whether this expression denotes a location or an ordinary value.
+      // A location borrows its address and exposes its object type; taking its address returns an ordinary pointer value.
+      // Uses the same preconditions and contextual typing hints as emitValue(); failure returns an empty result.
+      ExprResult analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
 
       // Emits an expression's value in State's current scope, with the same input/context preconditions as analyzeType().
       // Non-null hint types must belong to the current IR context; violations report SemanticConstructionFailed ICE.
@@ -77,7 +79,7 @@ namespace ink::semantic
       // A non-null target materializes literals in that type and checks other values without implicit numeric conversions.
       // Call arguments, return values and variable initializers supply their declared target types.
       // Variable reads emit a load and warn separately when declaration initialization is absent; ordinary pointer values pass through unchanged.
-      // Taking an uninitialized local's address emits an address and a separate warning without reading or initializing its contents.
+      // Taking an uninitialized local's address reuses its pointer and emits a separate warning without reading or initializing its contents.
       // Type and module expressions return their IR descriptors; consumers validate their suitability for the position.
       // Hints.DefaultIntegerLiteralType changes only uncontextualized integer literals and must belong to the current IR context.
       // Parentheses and numeric negation preserve both type hints; other nested operands select their own hints.
@@ -98,15 +100,15 @@ namespace ink::semantic
       // Composes value emission with runtime validation; an explicit site preserves a consumer's distinct diagnostic range.
       const ir::Value *emitRuntimeValue(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
       const ir::Value *emitRuntimeValue(AnalyzerState &State, const AnalysisSite &Site, const frontend::parser::Expr &Node, ExprHints Hints = {});
-      const ir::Value *loadStorage(AnalyzerState &State, const AnalysisSite &Site, const ir::Value &Storage);
-      const ir::Value *convertToExpectedType(AnalyzerState &State, const AnalysisSite &Site, const ir::Value &Value, const ir::Type &ExpectedType);
-      const ir::Value *analyzeBinding(AnalyzerState &State, const AnalysisSite &Site, const Binding &Found, bool IsCallCallee = false);
-      const ir::Value *analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee = false);
+      const ir::Value *loadLocation(AnalyzerState &State, const AnalysisSite &Site, ExprResult Location);
+      ExprResult convertToExpectedType(AnalyzerState &State, const AnalysisSite &Site, ExprResult Result, const ir::Type &ExpectedType);
+      ExprResult analyzeBinding(AnalyzerState &State, const AnalysisSite &Site, const Binding &Found, bool IsCallCallee = false);
+      ExprResult analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee = false);
       const ir::Value *analyzeLiteralExpr(AnalyzerState &State, const frontend::parser::LiteralExpr &Node, ExprHints Hints);
-      const ir::Value *analyzeParenExpr(AnalyzerState &State, const frontend::parser::ParenExpr &Node, ExprHints Hints);
-      const ir::Value *analyzeMemberExpr(AnalyzerState &State, const frontend::parser::MemberExpr &Node, bool IsCallCallee = false);
+      ExprResult analyzeParenExpr(AnalyzerState &State, const frontend::parser::ParenExpr &Node, ExprHints Hints);
+      ExprResult analyzeMemberExpr(AnalyzerState &State, const frontend::parser::MemberExpr &Node, bool IsCallCallee = false);
       const ir::Value *analyzeCallExpr(AnalyzerState &State, const frontend::parser::CallExpr &Node);
-      const ir::Value *analyzeUnaryExpr(AnalyzerState &State, const frontend::parser::UnaryExpr &Node, ExprHints Hints);
+      ExprResult analyzeUnaryExpr(AnalyzerState &State, const frontend::parser::UnaryExpr &Node, ExprHints Hints);
       const ir::Value *analyzeArrayRepeatExpr(AnalyzerState &State, const frontend::parser::ArrayRepeatExpr &Node);
       const ir::Value *analyzeFunctionTypeExpr(AnalyzerState &State, const frontend::parser::FunctionTypeExpr &Node);
 

@@ -199,12 +199,17 @@ namespace ink::ir
     {
       return nullptr;
     }
-    return appendGlobalVariable(std::make_unique<GlobalVariable>(*ObjectType, VariableName));
+    const PointerType *AddressType = typePool().get<PointerType>(ObjectType);
+    if (!AddressType)
+    {
+      return nullptr;
+    }
+    return appendGlobalVariable(std::make_unique<GlobalVariable>(*AddressType, VariableName));
   }
 
   GlobalVariable *Module::appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable)
   {
-    if (!Variable || !ownsType(Variable->type()) || !Variable->type()->hasLayout() || (Variable->hasInitializer() && !constantPool().owns(Variable->initializer())))
+    if (!Variable || !ownsType(Variable->type()) || !ownsType(Variable->variableType()) || !Variable->variableType()->hasLayout() || (Variable->hasInitializer() && !constantPool().owns(Variable->initializer())))
     {
       return nullptr;
     }
@@ -228,7 +233,12 @@ namespace ink::ir
     {
       return nullptr;
     }
-    auto Storage = std::make_unique<GlobalVariable>(*ObjectType);
+    const PointerType *AddressType = typePool().get<PointerType>(ObjectType);
+    if (!AddressType)
+    {
+      return nullptr;
+    }
+    auto Storage = std::make_unique<GlobalVariable>(*AddressType);
     if (!Storage->setInitializer(&String))
     {
       return nullptr;

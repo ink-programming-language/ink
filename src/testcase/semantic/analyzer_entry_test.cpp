@@ -629,10 +629,10 @@ namespace ink::semantic::test
     ASSERT_EQ(ReadOnlyOutput.globalFunctionCount(), 1U);
     const auto *Global = ReadOnlyOutput.globalVariable(0);
     const auto *Function = ReadOnlyOutput.globalFunction(0);
-    EXPECT_EQ(Global->type()->size(), 4U);
-    EXPECT_EQ(Global->type()->alignment(), 4U);
-    EXPECT_EQ(Function->functionType()->returnType(), Global->type());
-    EXPECT_TRUE(ReadOnlyOutput.ownsType(Global->type()));
+    EXPECT_EQ(Global->variableType()->size(), 4U);
+    EXPECT_EQ(Global->variableType()->alignment(), 4U);
+    EXPECT_EQ(Function->functionType()->returnType(), Global->variableType());
+    EXPECT_TRUE(ReadOnlyOutput.ownsType(Global->variableType()));
     EXPECT_TRUE(ReadOnlyOutput.constantPool().owns(Global->initializer()));
     EXPECT_EQ(Function->entryBlock()->instruction(0), Return);
     EXPECT_EQ(Return->returnedValue(), Global->initializer());

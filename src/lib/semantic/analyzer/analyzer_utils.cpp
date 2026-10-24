@@ -44,7 +44,7 @@ namespace ink::semantic
     {
       const ir::Type *Type = Value.type();
       const bool IsDescriptor = ir::Type::classof(&Value) || ir::Module::classof(&Value);
-      return !IsDescriptor && !Value.isStorage() && Context.irContext().containsType(Type) && (Type->hasLayout() || ir::NullPointerConstant::classof(&Value));
+      return !IsDescriptor && Context.irContext().containsType(Type) && (Type->hasLayout() || ir::NullPointerConstant::classof(&Value));
     }
 
     std::string runtimeValueDescription(const ir::Value &Value)

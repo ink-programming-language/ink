@@ -3,21 +3,21 @@
 
 #include "ink/core/name/name.h"
 #include "ink/ir/instruction/instruction.h"
+#include "ink/ir/type/structure_type/pointer_type.h"
 
 namespace ink::ir
 {
-  // Allocates one function-local object and represents that storage with its object type.
-  // The allocated type is borrowed and must outlive this instruction.
+  // Allocates one function-local object and produces its address as an ordinary pointer value.
+  // The result pointer type and its pointee are borrowed and must outlive this instruction.
   class AllocaInstruction final : public Instruction
   {
     public:
-      explicit AllocaInstruction(const Type &AllocatedType) noexcept;
+      explicit AllocaInstruction(const PointerType &ResultType) noexcept;
 
+      const PointerType *type() const noexcept override;
       const Type *allocatedType() const noexcept;
-      bool isStorage() const noexcept override;
-      bool isMutable() const noexcept override;
-      // Records declaration initialization only; this is not a control-flow definite-initialization result.
-      bool isInitialized() const noexcept override;
+      // Records the allocated object's declaration initialization, not the pointer value's state or control-flow definite initialization.
+      bool isInitialized() const noexcept;
       core::Name name() const noexcept;
       bool hasName() const noexcept;
       void setName(core::Name NewName) noexcept;

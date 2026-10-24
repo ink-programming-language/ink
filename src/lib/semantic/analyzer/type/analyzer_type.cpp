@@ -13,10 +13,10 @@ namespace ink::semantic
     CHECK_ICE(State.at(Node), Node.expression(), core::DiagnosticKind::SemanticInvalidAST, "TypeSyntax requires an expression");
     const auto &Expression = *Node.expression();
     const auto ExpressionSite = State.at(Expression);
-    const ir::Value *Value = analyzeExpr(State, Expression);
-    RETURN_IF_NOT(Value, nullptr);
-    RETURN_ERROR_IF(ExpressionSite, Value->isStorage(), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type", "variable storage");
-    return requireType(ExpressionSite, Value);
+    const ExprResult Result = analyzeExpr(State, Expression);
+    RETURN_IF_NOT(Result, nullptr);
+    RETURN_ERROR_IF(ExpressionSite, Result.isLocation(), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type", "variable storage");
+    return requireType(ExpressionSite, Result.value());
   }
 
   const ir::Type *Analyzer::analyzeTypeWithLayout(AnalyzerState &State, const frontend::parser::TypeSyntax &Node, std::string_view Description)

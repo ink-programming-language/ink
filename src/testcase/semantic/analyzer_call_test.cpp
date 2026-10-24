@@ -4,7 +4,6 @@
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/name/name_pool.h"
 #include "ink/frontend/parser/parser.h"
-#include "ink/ir/instruction/address_of_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/getelementptr_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
@@ -102,39 +101,39 @@ namespace ink::semantic::test
           const auto CalleeName = cast<NameExpr>(Callee)->name();
           switch (Failure)
           {
-            case MalformedCall::MissingCallee:
-              Callee = nullptr;
-              break;
-            case MalformedCall::MissingArgumentValue:
-              Value = nullptr;
-              break;
-            case MalformedCall::InvalidArgumentKind:
-              Form = static_cast<ArgumentKind>(255);
-              break;
-            case MalformedCall::MissingArgumentName:
-              Form = ArgumentKind::Named;
-              break;
-            case MalformedCall::EmptyArgumentName:
-            {
-              Form = ArgumentKind::Named;
-              auto EmptyName = CalleeName;
-              EmptyName.Text = {};
-              ArgumentName = EmptyName;
-              break;
-            }
-            case MalformedCall::UnexpectedPositionalName:
-              ArgumentName = CalleeName;
-              break;
-            case MalformedCall::UnexpectedSpreadName:
-              Form = ArgumentKind::SpreadPositional;
-              ArgumentName = CalleeName;
-              break;
-            case MalformedCall::MissingParenthesizedCallee:
-              Callee = AST.make<ParenExpr>(Original.getSourceRange(), nullptr);
-              break;
-            case MalformedCall::MissingMemberObject:
-              Callee = AST.make<MemberExpr>(Original.getSourceRange(), nullptr, TokenKind::Dot, CalleeName);
-              break;
+          case MalformedCall::MissingCallee:
+            Callee = nullptr;
+            break;
+          case MalformedCall::MissingArgumentValue:
+            Value = nullptr;
+            break;
+          case MalformedCall::InvalidArgumentKind:
+            Form = static_cast<ArgumentKind>(255);
+            break;
+          case MalformedCall::MissingArgumentName:
+            Form = ArgumentKind::Named;
+            break;
+          case MalformedCall::EmptyArgumentName:
+          {
+            Form = ArgumentKind::Named;
+            auto EmptyName = CalleeName;
+            EmptyName.Text = {};
+            ArgumentName = EmptyName;
+            break;
+          }
+          case MalformedCall::UnexpectedPositionalName:
+            ArgumentName = CalleeName;
+            break;
+          case MalformedCall::UnexpectedSpreadName:
+            Form = ArgumentKind::SpreadPositional;
+            ArgumentName = CalleeName;
+            break;
+          case MalformedCall::MissingParenthesizedCallee:
+            Callee = AST.make<ParenExpr>(Original.getSourceRange(), nullptr);
+            break;
+          case MalformedCall::MissingMemberObject:
+            Callee = AST.make<MemberExpr>(Original.getSourceRange(), nullptr, TokenKind::Dot, CalleeName);
+            break;
           }
           const auto Arguments = AST.copyArray<Argument>(std::vector<Argument>{Argument(Form, ArgumentName, Value, OriginalArgument.range())});
           return AST.make<CallExpr>(Original.getSourceRange(), Callee, Arguments, false);
@@ -238,9 +237,9 @@ namespace ink::semantic::test
     ASSERT_NE(Storage, nullptr);
     EXPECT_FALSE(Storage->isMutable());
     EXPECT_EQ(Storage->initializer(), Output.constantPool().get<ink::ir::StringConstant>("abc"));
-    ASSERT_EQ(First->entryBlock()->instructionCount(), 4U);
-    ASSERT_EQ(Second->entryBlock()->instructionCount(), 3U);
-    const auto *Call = call(*First, 2);
+    ASSERT_EQ(First->entryBlock()->instructionCount(), 3U);
+    ASSERT_EQ(Second->entryBlock()->instructionCount(), 2U);
+    const auto *Call = call(*First, 1);
     ASSERT_NE(Call, nullptr);
     EXPECT_EQ(Call->directCallee(), function("consume"));
     ASSERT_EQ(Call->argumentCount(), 1U);
@@ -262,12 +261,8 @@ namespace ink::semantic::test
       const auto *ElementAddress = static_cast<const ir::GetElementPtrInstruction *>(Entry.Value);
       EXPECT_EQ(ElementAddress->type(), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(8, false, false)));
       EXPECT_EQ(ElementAddress->parentBlock(), Entry.Function->entryBlock());
-      ASSERT_TRUE(ir::AddressOfInstruction::classof(ElementAddress->pointer()));
-      const auto *ArrayAddress = static_cast<const ir::AddressOfInstruction *>(ElementAddress->pointer());
-      EXPECT_EQ(ArrayAddress->storage(), Storage);
-      EXPECT_EQ(ArrayAddress->parentBlock(), Entry.Function->entryBlock());
-      EXPECT_EQ(Entry.Function->entryBlock()->instruction(0), ArrayAddress);
-      EXPECT_EQ(Entry.Function->entryBlock()->instruction(1), ElementAddress);
+      EXPECT_EQ(ElementAddress->pointer(), Storage);
+      EXPECT_EQ(Entry.Function->entryBlock()->instruction(0), ElementAddress);
     }
     EXPECT_NE(Call->argument(0)->value(), returned(*Second)->returnedValue());
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -477,8 +472,7 @@ namespace ink::semantic::test
       EXPECT_EQ(Diagnostic.Span, core::SourceRange::fromByteOffsets(Offset, Offset + 4));
       const auto *Main = Destination.globalFunction(1);
       ASSERT_NE(Main, nullptr);
-      ASSERT_EQ(Main->entryBlock()->instructionCount(), 3U);
-      EXPECT_TRUE(ir::AddressOfInstruction::classof(Main->entryBlock()->instruction(2)));
+      ASSERT_EQ(Main->entryBlock()->instructionCount(), 2U);
       EXPECT_FALSE(Main->entryBlock()->hasTerminator());
       unregister(Destination);
     }
@@ -564,8 +558,8 @@ namespace ink::semantic::test
     }
   }
 
-  // Reading global storage as a callee or argument uses the shared unsupported-storage diagnostic.
-  TEST_F(SemanticCallTest, ReportsUnsupportedGlobalStorageReads)
+  // Global callable values and scalar arguments are loaded from their pointers before call construction.
+  TEST_F(SemanticCallTest, LoadsGlobalCalleesAndArguments)
   {
     auto &Types = Context.typePool();
     auto *CallableStorage = Output.createGlobalVariable(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()), name("CallableStorage"));
@@ -574,17 +568,23 @@ namespace ink::semantic::test
     ASSERT_NE(Stored, nullptr);
     ASSERT_EQ(NameResolver(Context).bind(name("CallableStorage"), *CallableStorage), BindResult::Inserted);
     ASSERT_EQ(NameResolver(Context).bind(name("Stored"), *Stored), BindResult::Inserted);
-    const char *Cases[] = {
-        "func main(): void { CallableStorage(); }",
-        "func consume(Value: i32): void {} func main(): void { consume(Stored); }",
-    };
-    for (const char *Source : Cases)
-    {
-      SCOPED_TRACE(Source);
-      auto Input = read(Source);
-      ASSERT_TRUE(Input.succeeded());
-      EXPECT_DEATH(analyze(Input), "internal compiler error\\[INK-S0012\\]: initial semantic analyzer does not support variable storage reads");
-    }
+    auto Input = read("func invoke(): void { CallableStorage(); } func consume(Value: i32): void {} func pass(): void { consume(Stored); }");
+    ASSERT_TRUE(Input.succeeded());
+    ASSERT_TRUE(analyze(Input));
+    const auto *Invoke = function("invoke");
+    const auto *Pass = function("pass");
+    ASSERT_NE(Invoke, nullptr);
+    ASSERT_NE(Pass, nullptr);
+    const auto *Indirect = call(*Invoke, 1);
+    const auto *Direct = call(*Pass, 1);
+    ASSERT_NE(Indirect, nullptr);
+    ASSERT_NE(Direct, nullptr);
+    ASSERT_TRUE(ir::LoadInstruction::classof(Indirect->callee()));
+    EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Indirect->callee())->pointer(), CallableStorage);
+    ASSERT_NE(Direct->argument(0), nullptr);
+    ASSERT_TRUE(ir::LoadInstruction::classof(Direct->argument(0)->value()));
+    EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Direct->argument(0)->value())->pointer(), Stored);
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
   // Malformed calls and malformed callee wrappers retain their specific AST invariant instead of reaching call construction.

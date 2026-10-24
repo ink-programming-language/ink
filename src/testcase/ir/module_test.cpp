@@ -147,11 +147,12 @@ namespace ink::ir::test
     ASSERT_NE(CreatedVariable, nullptr);
     ASSERT_NE(CreatedFunction, nullptr);
     EXPECT_EQ(CreatedVariable->name(), VariableName);
-    EXPECT_EQ(CreatedVariable->type(), Owner.typePool().get<ink::ir::BoolType>());
+    EXPECT_EQ(CreatedVariable->variableType(), Owner.typePool().get<ink::ir::BoolType>());
+    EXPECT_EQ(CreatedVariable->type(), Owner.typePool().get<ink::ir::PointerType>(Owner.typePool().get<ink::ir::BoolType>()));
     EXPECT_EQ(CreatedFunction->name(), FunctionName);
     EXPECT_EQ(CreatedFunction->functionType(), Signature);
 
-    auto AppendedVariable = std::make_unique<GlobalVariable>(*Owner.typePool().get<ink::ir::IntegerType>(32, true));
+    auto AppendedVariable = std::make_unique<GlobalVariable>(*Owner.typePool().get<ink::ir::PointerType>(Owner.typePool().get<ink::ir::IntegerType>(32, true)));
     auto AppendedFunction = std::make_unique<Function>(*Signature);
     auto *VariableAddress = AppendedVariable.get();
     auto *FunctionAddress = AppendedFunction.get();

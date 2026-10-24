@@ -5,7 +5,6 @@
 #include "ink/frontend/parser/parser.h"
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/constant/null_pointer_constant.h"
-#include "ink/ir/instruction/address_of_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/getelementptr_instruction.h"
@@ -154,15 +153,13 @@ namespace ink::semantic::test
       ASSERT_EQ(Stores.size(), 1U);
       ASSERT_EQ(Loads.size(), 1U);
       EXPECT_EQ(Allocations[0]->allocatedType(), Entry.Type);
-      EXPECT_EQ(Allocations[0]->type(), Entry.Type);
-      EXPECT_TRUE(Allocations[0]->isStorage());
-      EXPECT_TRUE(Allocations[0]->isMutable());
+      EXPECT_EQ(Allocations[0]->type(), Context.typePool().get<ink::ir::PointerType>(Entry.Type));
+      EXPECT_TRUE(Allocations[0]->allocatedType()->isMutable());
       EXPECT_TRUE(Allocations[0]->isInitialized());
       EXPECT_EQ(Stores[0]->pointer(), Allocations[0]);
       EXPECT_EQ(Stores[0]->storedValue()->type(), Entry.Type);
       EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
       EXPECT_EQ(Loads[0]->type(), Entry.Type);
-      EXPECT_FALSE(Loads[0]->isStorage());
       EXPECT_FALSE(Loads[0]->isMutable());
       ASSERT_NE(returned(*Function), nullptr);
       EXPECT_EQ(returned(*Function)->returnedValue(), Loads[0]);
@@ -272,16 +269,13 @@ namespace ink::semantic::test
       const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
       const auto Stores = instructions<ir::StoreInstruction>(*Function);
       const auto Loads = instructions<ir::LoadInstruction>(*Function);
-      const auto ArrayAddresses = instructions<ir::AddressOfInstruction>(*Function);
       const auto ElementAddresses = instructions<ir::GetElementPtrInstruction>(*Function);
       ASSERT_EQ(Allocations.size(), 1U);
       ASSERT_EQ(Stores.size(), 1U);
       ASSERT_EQ(Loads.size(), 1U);
-      ASSERT_EQ(ArrayAddresses.size(), 1U);
       ASSERT_EQ(ElementAddresses.size(), 1U);
       EXPECT_EQ(Allocations[0]->allocatedType()->unqualifiedType(), PointerType);
-      EXPECT_EQ(ArrayAddresses[0]->storage(), Storage);
-      EXPECT_EQ(ElementAddresses[0]->pointer(), ArrayAddresses[0]);
+      EXPECT_EQ(ElementAddresses[0]->pointer(), Storage);
       EXPECT_EQ(ElementAddresses[0]->type(), PointerType);
       EXPECT_EQ(Stores[0]->pointer(), Allocations[0]);
       EXPECT_EQ(Stores[0]->storedValue(), ElementAddresses[0]);
@@ -343,9 +337,8 @@ namespace ink::semantic::test
     const auto Loads = instructions<ir::LoadInstruction>(*Function);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 1U);
-    EXPECT_EQ(Allocations[0]->type(), Context.typePool().get(Context.typePool().get<ink::ir::IntegerType>(32, true), false));
-    EXPECT_TRUE(Allocations[0]->isStorage());
-    EXPECT_FALSE(Allocations[0]->isMutable());
+    EXPECT_EQ(Allocations[0]->allocatedType(), Context.typePool().get(Context.typePool().get<ink::ir::IntegerType>(32, true), false));
+    EXPECT_FALSE(Allocations[0]->allocatedType()->isMutable());
     EXPECT_TRUE(Allocations[0]->isInitialized());
     ASSERT_EQ(Calls.size(), 2U);
     ASSERT_EQ(Stores.size(), 1U);
@@ -380,15 +373,12 @@ namespace ink::semantic::test
     const auto *PointerType = Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(32, true));
     EXPECT_EQ(NullAllocations[0]->allocatedType(), Context.typePool().get(PointerType, false));
     EXPECT_EQ(NullAllocations[1]->allocatedType(), PointerType);
-    EXPECT_EQ(NullAllocations[0]->type(), Context.typePool().get(PointerType, false));
-    EXPECT_EQ(NullAllocations[1]->type(), PointerType);
-    EXPECT_TRUE(NullAllocations[0]->isStorage());
-    EXPECT_TRUE(NullAllocations[1]->isStorage());
-    EXPECT_FALSE(NullAllocations[0]->isMutable());
-    EXPECT_TRUE(NullAllocations[1]->isMutable());
+    EXPECT_EQ(NullAllocations[0]->type(), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get(PointerType, false)));
+    EXPECT_EQ(NullAllocations[1]->type(), Context.typePool().get<ink::ir::PointerType>(PointerType));
+    EXPECT_FALSE(NullAllocations[0]->allocatedType()->isMutable());
+    EXPECT_TRUE(NullAllocations[1]->allocatedType()->isMutable());
     EXPECT_TRUE(ir::NullPointerConstant::classof(NullStores[0]->storedValue()));
     EXPECT_EQ(NullLoads[0]->type(), PointerType);
-    EXPECT_FALSE(NullLoads[0]->isStorage());
     EXPECT_EQ(NullStores[1]->storedValue(), NullLoads[0]);
     EXPECT_EQ(NullLoads[1]->type(), PointerType);
     const auto OpaqueStores = instructions<ir::StoreInstruction>(*OpaqueFunction);
@@ -415,12 +405,12 @@ namespace ink::semantic::test
     const auto Loads = instructions<ir::LoadInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 3U);
     ASSERT_EQ(Loads.size(), 3U);
-    EXPECT_EQ(Allocations[0]->type(), ReadonlyPointer);
-    EXPECT_EQ(Allocations[1]->type(), ConstReadonlyPointer);
-    EXPECT_EQ(Allocations[2]->type(), ReadonlyPointer);
-    EXPECT_TRUE(Allocations[0]->isMutable());
-    EXPECT_FALSE(Allocations[1]->isMutable());
-    EXPECT_TRUE(Allocations[2]->isMutable());
+    EXPECT_EQ(Allocations[0]->allocatedType(), ReadonlyPointer);
+    EXPECT_EQ(Allocations[1]->allocatedType(), ConstReadonlyPointer);
+    EXPECT_EQ(Allocations[2]->allocatedType(), ReadonlyPointer);
+    EXPECT_TRUE(Allocations[0]->allocatedType()->isMutable());
+    EXPECT_FALSE(Allocations[1]->allocatedType()->isMutable());
+    EXPECT_TRUE(Allocations[2]->allocatedType()->isMutable());
     for (const auto *Load : Loads)
     {
       EXPECT_EQ(Load->type(), ReadonlyPointer);
@@ -481,9 +471,8 @@ namespace ink::semantic::test
     ASSERT_NE(Function, nullptr);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 1U);
-    EXPECT_EQ(Allocations[0]->type(), Context.typePool().get<ink::ir::IntegerType>(32, true));
-    EXPECT_TRUE(Allocations[0]->isStorage());
-    EXPECT_TRUE(Allocations[0]->isMutable());
+    EXPECT_EQ(Allocations[0]->allocatedType(), Context.typePool().get<ink::ir::IntegerType>(32, true));
+    EXPECT_TRUE(Allocations[0]->allocatedType()->isMutable());
     EXPECT_FALSE(Allocations[0]->isInitialized());
     EXPECT_TRUE(instructions<ir::StoreInstruction>(*Function).empty());
     EXPECT_TRUE(instructions<ir::LoadInstruction>(*Function).empty());
@@ -709,12 +698,12 @@ namespace ink::semantic::test
     EXPECT_EQ(Function->parameter(0)->type(), ConstPointer);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 3U);
-    EXPECT_EQ(Allocations[0]->type(), Pointer);
-    EXPECT_TRUE(Allocations[0]->isMutable());
-    EXPECT_EQ(Allocations[1]->type(), ConstPointer);
-    EXPECT_FALSE(Allocations[1]->isMutable());
-    EXPECT_EQ(Allocations[2]->type(), ConstPointer);
-    EXPECT_FALSE(Allocations[2]->isMutable());
+    EXPECT_EQ(Allocations[0]->allocatedType(), Pointer);
+    EXPECT_TRUE(Allocations[0]->allocatedType()->isMutable());
+    EXPECT_EQ(Allocations[1]->allocatedType(), ConstPointer);
+    EXPECT_FALSE(Allocations[1]->allocatedType()->isMutable());
+    EXPECT_EQ(Allocations[2]->allocatedType(), ConstPointer);
+    EXPECT_FALSE(Allocations[2]->allocatedType()->isMutable());
     ASSERT_NE(returned(*Function), nullptr);
     EXPECT_EQ(returned(*Function)->returnedValue()->type(), Pointer);
     EXPECT_FALSE(Pointer->pointeeType()->isMutable());
@@ -751,10 +740,10 @@ namespace ink::semantic::test
     EXPECT_EQ(Calls[0]->functionType()->returnType(), ConstInteger);
     EXPECT_EQ(Calls[1]->type(), Pointer);
     EXPECT_EQ(Calls[1]->functionType()->returnType(), ConstPointer);
-    EXPECT_EQ(Allocations[0]->type(), Types.get<ink::ir::IntegerType>(32, true));
-    EXPECT_EQ(Allocations[1]->type(), Pointer);
-    EXPECT_TRUE(Allocations[0]->isMutable());
-    EXPECT_TRUE(Allocations[1]->isMutable());
+    EXPECT_EQ(Allocations[0]->allocatedType(), Types.get<ink::ir::IntegerType>(32, true));
+    EXPECT_EQ(Allocations[1]->allocatedType(), Pointer);
+    EXPECT_TRUE(Allocations[0]->allocatedType()->isMutable());
+    EXPECT_TRUE(Allocations[1]->allocatedType()->isMutable());
     EXPECT_FALSE(Pointer->pointeeType()->isMutable());
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }

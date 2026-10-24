@@ -266,9 +266,8 @@ namespace ink::semantic::test
     EXPECT_EQ(Resolver.lookupLocal(SavedName), SavedBinding);
     ASSERT_EQ(SavedBinding->targets().size(), 1U);
     EXPECT_EQ(SavedBinding->targets()[0], Storage);
-    EXPECT_EQ(SavedBinding->targets()[0]->type(), Context.typePool().get(Integer, false));
-    EXPECT_TRUE(SavedBinding->targets()[0]->isStorage());
-    EXPECT_FALSE(SavedBinding->targets()[0]->isMutable());
+    EXPECT_EQ(static_cast<const ir::GlobalVariable *>(SavedBinding->targets()[0])->variableType(), Context.typePool().get(Integer, false));
+    EXPECT_FALSE(static_cast<const ir::GlobalVariable *>(SavedBinding->targets()[0])->variableType()->isMutable());
     EXPECT_EQ(Resolver.bind(SavedName, *Storage), BindResult::AlreadyBound);
   }
 
@@ -313,7 +312,7 @@ namespace ink::semantic::test
     EXPECT_EQ(Members->lookupLocal(Alias), nullptr);
     EXPECT_EQ(Resolver.lookup(Other), SurvivingBinding);
     EXPECT_EQ(SurvivingBinding->targets()[0], Survivor);
-    EXPECT_FALSE(Survivor->isMutable());
+    EXPECT_FALSE(Survivor->variableType()->isMutable());
     EXPECT_TRUE(Survivor->isInitialized());
     EXPECT_TRUE(Removed->isInitialized());
     Store.removeTarget(*Removed);
@@ -323,8 +322,8 @@ namespace ink::semantic::test
     ASSERT_NE(Replacement, nullptr);
     ASSERT_EQ(Replacement->targets().size(), 1U);
     EXPECT_EQ(Replacement->targets()[0], Survivor);
-    EXPECT_EQ(Replacement->targets()[0]->type(), Context.typePool().get(Boolean, false));
-    EXPECT_FALSE(Replacement->targets()[0]->isMutable());
-    EXPECT_TRUE(Replacement->targets()[0]->isInitialized());
+    EXPECT_EQ(static_cast<const ir::GlobalVariable *>(Replacement->targets()[0])->variableType(), Context.typePool().get(Boolean, false));
+    EXPECT_FALSE(static_cast<const ir::GlobalVariable *>(Replacement->targets()[0])->variableType()->isMutable());
+    EXPECT_TRUE(static_cast<const ir::GlobalVariable *>(Replacement->targets()[0])->isInitialized());
   }
 } // namespace ink::semantic::test

@@ -2,26 +2,21 @@
 
 namespace ink::ir
 {
-  GlobalVariable::GlobalVariable(const Type &VariableType, core::Name Name) noexcept
+  GlobalVariable::GlobalVariable(const PointerType &AddressType, core::Name Name) noexcept
       : Value(ValueKind::GlobalVariable),
-        VariableType(&VariableType),
+        AddressType(&AddressType),
         Name(Name)
   {
   }
 
-  const Type *GlobalVariable::type() const noexcept
+  const PointerType *GlobalVariable::type() const noexcept
   {
-    return VariableType;
+    return AddressType;
   }
 
-  bool GlobalVariable::isStorage() const noexcept
+  const Type *GlobalVariable::variableType() const noexcept
   {
-    return true;
-  }
-
-  bool GlobalVariable::isMutable() const noexcept
-  {
-    return VariableType->isMutable();
+    return AddressType->pointeeType();
   }
 
   bool GlobalVariable::isInitialized() const noexcept
@@ -56,7 +51,7 @@ namespace ink::ir
 
   bool GlobalVariable::setInitializer(const Constant *NewInitializer) noexcept
   {
-    if (NewInitializer && !NewInitializer->canInitialize(VariableType))
+    if (NewInitializer && !NewInitializer->canInitialize(variableType()))
     {
       return false;
     }

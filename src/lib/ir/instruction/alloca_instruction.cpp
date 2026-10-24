@@ -4,24 +4,19 @@
 
 namespace ink::ir
 {
-  AllocaInstruction::AllocaInstruction(const Type &AllocatedType) noexcept
-      : Instruction(ValueKind::AllocaInstruction, &AllocatedType)
+  AllocaInstruction::AllocaInstruction(const PointerType &ResultType) noexcept
+      : Instruction(ValueKind::AllocaInstruction, &ResultType)
   {
+  }
+
+  const PointerType *AllocaInstruction::type() const noexcept
+  {
+    return static_cast<const PointerType *>(Instruction::type());
   }
 
   const Type *AllocaInstruction::allocatedType() const noexcept
   {
-    return type();
-  }
-
-  bool AllocaInstruction::isStorage() const noexcept
-  {
-    return true;
-  }
-
-  bool AllocaInstruction::isMutable() const noexcept
-  {
-    return type()->isMutable();
+    return type()->pointeeType();
   }
 
   bool AllocaInstruction::isInitialized() const noexcept

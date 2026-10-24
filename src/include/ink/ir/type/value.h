@@ -31,15 +31,9 @@ namespace ink::ir
       // Returns a borrowed recorded type, or nullptr for an untyped value. Does not convert or validate the value.
       // Modules and basic blocks use the default nullptr result; type descriptors report their metatype and functions their full signature.
       virtual const Type *type() const noexcept;
-      // Storage has the stored object's type; reading its contents or taking its address requires an explicit operation.
-      virtual bool isStorage() const noexcept;
-      // For storage, describes whether assignment is permitted. Type descriptors report their represented object's top-level mutability.
-      // An ordinary pointer value does not describe its pointee permission here; query its pointee type instead.
+      // Type descriptors report their represented object's top-level mutability; ordinary SSA values return false.
+      // Write permission through a pointer is described by its pointee type, not by the pointer value.
       virtual bool isMutable() const noexcept;
-      // Storage may record declaration initialization; indirect storage has no such record and returns false.
-      // Ordinary values are already initialized.
-      // This query does not establish definite initialization along control-flow paths.
-      virtual bool isInitialized() const noexcept;
       // Returns a short diagnostic description of this object, not its type or a complete IR dump.
       // The default implementation returns the value kind name.
       virtual std::string toString() const;

@@ -269,7 +269,7 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.createCall(*Signature, *Caller.parameter(1), {Argument(*Caller.parameter(2))}), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 0U);
     auto *FunctionCall = Builder.createCall(*Signature, *Caller.parameter(0), {Argument(*Caller.parameter(2))});
-    auto *CalleeStorage = Builder.createDereference(*Caller.parameter(1));
+    auto *CalleeStorage = Caller.parameter(1);
     ASSERT_NE(CalleeStorage, nullptr);
     EXPECT_EQ(Builder.createCall(*Signature, *CalleeStorage, {Argument(*Caller.parameter(2))}), nullptr);
     auto *LoadedCallee = Builder.createLoad(*Signature, *CalleeStorage);
@@ -283,11 +283,11 @@ namespace ink::ir::test
     EXPECT_EQ(LoadedCall->callee(), LoadedCallee);
     EXPECT_EQ(LoadedCall->directCallee(), nullptr);
     EXPECT_EQ(DirectCall->directCallee(), &Direct);
-    EXPECT_EQ(Entry->instructionCount(), 5U);
+    EXPECT_EQ(Entry->instructionCount(), 4U);
   }
 
-  // Function declarations have no addressable storage, while function-valued locals can be addressed and explicitly loaded before calling.
-  TEST(IRBuilderTest, AddressesFunctionStorageWithoutMakingItsPointerCallable)
+  // A function-valued local directly produces its address, and its contents must be loaded before an indirect call.
+  TEST(IRBuilderTest, LoadsFunctionAllocationPointerBeforeCalling)
   {
     IRContext Context(Target);
     const auto *Signature = Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::IntegerType>(32, true));
@@ -296,24 +296,19 @@ namespace ink::ir::test
     auto *Entry = Caller.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    EXPECT_EQ(Builder.createAddressOf(Callee), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 0U);
     auto *Storage = Builder.createAlloca(*Signature);
     ASSERT_NE(Storage, nullptr);
     ASSERT_NE(Builder.createInitialize(Callee, *Storage), nullptr);
-    auto *Address = Builder.createAddressOf(*Storage);
-    ASSERT_NE(Address, nullptr);
-    EXPECT_EQ(Address->storage(), Storage);
-    EXPECT_EQ(Builder.createCall(*Signature, *Address), nullptr);
-    EXPECT_EQ(Entry->instructionCount(), 3U);
-    auto *IndirectStorage = Builder.createDereference(*Address);
-    ASSERT_NE(IndirectStorage, nullptr);
-    auto *Loaded = Builder.createLoad(*Signature, *IndirectStorage);
+    EXPECT_EQ(Storage->type(), Context.typePool().get<ink::ir::PointerType>(Signature));
+    EXPECT_EQ(Builder.createCall(*Signature, *Storage), nullptr);
+    EXPECT_EQ(Entry->instructionCount(), 2U);
+    auto *Loaded = Builder.createLoad(*Signature, *Storage);
     ASSERT_NE(Loaded, nullptr);
     auto *Call = Builder.createCall(*Signature, *Loaded);
     ASSERT_NE(Call, nullptr);
     EXPECT_EQ(Call->callee(), Loaded);
-    EXPECT_EQ(Entry->instructionCount(), 6U);
+    EXPECT_EQ(Entry->instructionCount(), 4U);
   }
 
   // Void and value returns match the enclosing signature, and rejected overloads leave the block open for a valid return.
@@ -657,8 +652,8 @@ namespace ink::ir::test
     EXPECT_NE(Builder.createReturn(), nullptr);
   }
 
-  // Global storage declarations cannot be implicitly loaded or converted to addresses when used as operands.
-  TEST(IRBuilderTest, RejectsGlobalsAsDirectValueOperands)
+  // Global address values cannot substitute for integer contents or a callable value, and GEP checks their pointee type.
+  TEST(IRBuilderTest, RejectsGlobalPointersInIncompatibleValuePositions)
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
@@ -666,8 +661,8 @@ namespace ink::ir::test
     auto *Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::IntegerType>(32, true), {Types.typePool().get<ink::ir::IntegerType>(32, true)});
     Function Owner(*Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::IntegerType>(32, true)));
     Function Callee(*Signature);
-    GlobalVariable IntegerGlobal(*Types.typePool().get<ink::ir::IntegerType>(32, true));
-    GlobalVariable PointerGlobal(*Pointer);
+    GlobalVariable IntegerGlobal(*Pointer);
+    GlobalVariable PointerGlobal(*Types.typePool().get<ink::ir::PointerType>(Pointer));
     GlobalVariable CallableGlobal(*Types.typePool().get<ink::ir::PointerType>(Signature));
     auto *Entry = Owner.createBlock();
     auto *Zero = Types.constantPool().get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(0));

@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <array>
+#include <memory>
 #include <type_traits>
 
 namespace ink::ir::test
@@ -162,5 +163,30 @@ namespace ink::ir::test
     EXPECT_TRUE(Variable->setInitializer(LocalNull));
     EXPECT_FALSE(Variable->setInitializer(ForeignNull));
     EXPECT_EQ(Variable->initializer(), LocalNull);
+  }
+  // A pooled address type cannot conceal a global object's nominal declaration owned by another module in the same context.
+  TEST(IRModuleTypeOwnershipTest, ChecksGlobalObjectOwnershipBehindAddressType)
+  {
+    IRContext Context(Target);
+    Module Owner(Context);
+    Module Other(Context);
+    auto *LocalObject = Owner.createStructType(8, 8);
+    auto *OtherObject = Other.createStructType(8, 8);
+    ASSERT_NE(LocalObject, nullptr);
+    ASSERT_NE(OtherObject, nullptr);
+    const auto *LocalAddress = Context.typePool().get<ink::ir::PointerType>(LocalObject);
+    const auto *OtherAddress = Context.typePool().get<ink::ir::PointerType>(OtherObject);
+    ASSERT_NE(LocalAddress, nullptr);
+    ASSERT_NE(OtherAddress, nullptr);
+    EXPECT_TRUE(Owner.ownsType(OtherAddress));
+    EXPECT_FALSE(Owner.ownsType(OtherObject));
+    EXPECT_EQ(Owner.createGlobalVariable(*OtherObject), nullptr);
+    EXPECT_EQ(Owner.appendGlobalVariable(std::make_unique<GlobalVariable>(*OtherAddress)), nullptr);
+    EXPECT_EQ(Owner.globalVariableCount(), 0U);
+    auto *Local = Owner.appendGlobalVariable(std::make_unique<GlobalVariable>(*LocalAddress));
+    ASSERT_NE(Local, nullptr);
+    EXPECT_EQ(Local->type(), LocalAddress);
+    EXPECT_EQ(Local->variableType(), LocalObject);
+    EXPECT_EQ(Owner.globalVariableCount(), 1U);
   }
 } // namespace ink::ir::test

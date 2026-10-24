@@ -55,7 +55,7 @@ namespace ink::ir::test
     }
   }
 
-  // Base Value references return function signatures, parameter types and global storage types without changing object state.
+  // Base Value references return function signatures, parameter types and global address types without changing object state.
   TEST(IRValueTest, QueriesFunctionParameterAndGlobalWithoutMutation)
   {
     IRContext TypesContext(Target);
@@ -68,7 +68,7 @@ namespace ink::ir::test
     auto *ParameterValue = Callable.parameter(0);
     ASSERT_NE(ParameterValue, nullptr);
     ParameterValue->setName(Name);
-    GlobalVariable Global(*Types.typePool().get<ink::ir::BoolType>(), Name);
+    GlobalVariable Global(*Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::BoolType>()), Name);
     const auto *Initializer = Types.constantPool().get<ink::ir::BoolConstant>(true);
     ASSERT_TRUE(Global.setInitializer(Initializer));
     const Value &CallableValue = Callable;
@@ -78,7 +78,7 @@ namespace ink::ir::test
     EXPECT_EQ(Callable.type(), Signature);
     EXPECT_EQ(Callable.type(), Callable.functionType());
     EXPECT_EQ(FormalValue.type(), Types.typePool().get<ink::ir::BoolType>());
-    EXPECT_EQ(GlobalValue.type(), Types.typePool().get<ink::ir::BoolType>());
+    EXPECT_EQ(GlobalValue.type(), Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::BoolType>()));
     EXPECT_EQ(Callable.name(), Name);
     EXPECT_EQ(Callable.parameterCount(), 1U);
     EXPECT_EQ(Callable.blockCount(), 0U);

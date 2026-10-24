@@ -2,11 +2,9 @@
 #define INK_IR_BUILDER_IR_BUILDER_H
 
 #include "ink/ir/instruction/alloca_instruction.h"
-#include "ink/ir/instruction/address_of_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/conditional_branch_instruction.h"
-#include "ink/ir/instruction/dereference_instruction.h"
 #include "ink/ir/instruction/getelementptr_instruction.h"
 #include "ink/ir/instruction/icmp_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
@@ -25,7 +23,8 @@ namespace ink::ir
   // Creation requires an insertion block with no terminator; invalid insertion state is asserted with check().
   // Creation returns a block-owned instruction, or nullptr for invalid types or operands without changing the block or insertion point.
   // Checks local types and operand ownership, but not dominance or whole-function control flow.
-  // Ordinary operands may be local constants, current-function parameters/instructions or functions; storage requires explicit load/address operations.
+  // Ordinary operands may be local constants, current-function parameters/instructions, functions or global addresses.
+  // All memory operations use ordinary pointer values; object contents require an explicit load.
   // Unit parameters and unit-producing calls are values; terminators and stores cannot be operands.
   class IRBuilder final
   {
@@ -55,7 +54,7 @@ namespace ink::ir
       void clearInsertPoint() noexcept;
 
       // Callees must be function values with this signature, ignoring the signature object's top-level qualifier.
-      // Pointers to function-value storage must be explicitly dereferenced and loaded before calling.
+      // Pointers to function-value storage must be explicitly loaded before calling.
       // Arguments are already in parameter order; by-value comparisons ignore only each argument object's top-level qualifier.
       // Variadic calls and variadic parameter operands are rejected until parameter-pack lowering is available.
       [[nodiscard]] CallInstruction *createCall(const Function &Callee, std::vector<Argument> Arguments = {});
@@ -68,18 +67,13 @@ namespace ink::ir
       [[nodiscard]] NegInstruction *createNeg(const Value &Operand);
       // Allocates one non-void object with a runtime layout; zero-sized aggregates are supported.
       // Mutable=false qualifies the object's type as const; an already-const type always remains const.
+      // The result is an ordinary pointer whose pointee is the qualified object type.
       [[nodiscard]] AllocaInstruction *createAlloca(const Type &AllocatedType, bool Mutable = true, bool Initialized = false);
-      // Refers to the object of an evaluated, non-opaque pointer without allocating or reading memory.
-      // The result is storage of the pointee type; pointer-valued storage must be explicitly loaded first.
-      // Target lifetime and initialization remain the caller's responsibility; its type determines write permission.
-      [[nodiscard]] DereferenceInstruction *createDereference(const Value &Pointer);
-      // Requires storage; the resulting pointer is an ordinary value and preserves the stored object's type as its pointee.
-      [[nodiscard]] AddressOfInstruction *createAddressOf(const Value &Storage);
-      // Memory operands are storage or usable non-opaque pointers with the requested object type, ignoring its top-level qualifier.
+      // Memory operands are usable non-opaque pointers with the requested object type, ignoring its top-level qualifier.
       // The loaded value drops only the object's top-level const qualifier, preserving nested qualifiers.
       // Null literals can initialize pointer slots, but cannot be used as untyped memory addresses.
       [[nodiscard]] LoadInstruction *createLoad(const Type &LoadedType, const Value &Pointer);
-      // Ordinary stores reject const object types through both storage and pointer operands, and preserve declaration-initialization markers.
+      // Ordinary stores reject const pointee types and preserve declaration-initialization markers.
       [[nodiscard]] StoreInstruction *createStore(const Value &StoredValue, const Value &Pointer);
       // Initializes a current-function local once, including immutable locals, and records declaration initialization.
       // This marker does not prove initialization on any control-flow path.
@@ -102,7 +96,6 @@ namespace ink::ir
     private:
       bool canAppend() const noexcept;
       bool validOperand(const Value &Operand) const noexcept;
-      bool validStorage(const Value &Storage) const noexcept;
       bool canUseAs(const Value &Operand, const Type &ExpectedType) const noexcept;
       const Type *memoryPointeeType(const Value &Pointer) const noexcept;
       bool validTarget(const BasicBlock &Target) const noexcept;

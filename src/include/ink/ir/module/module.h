@@ -93,7 +93,8 @@ namespace ink::ir
         return Result ? &std::forward_like<decltype(Self) &>(*Result) : nullptr;
       }
 
-      // Rejects types outside ownsType() or without runtime layout. Appending also rejects initializers outside the borrowed context's constant pool.
+      // Produces an ordinary pointer to an object of VariableType; Mutable=false makes the pointee const.
+      // Rejects object types outside ownsType() or without runtime layout. Appending also rejects foreign pointer types and initializers.
       GlobalVariable *createGlobalVariable(const Type &VariableType, core::Name VariableName = core::NAME_None, bool Mutable = true);
       // Takes ownership by value; invalid input leaves module contents unchanged.
       GlobalVariable *appendGlobalVariable(std::unique_ptr<GlobalVariable> Variable);

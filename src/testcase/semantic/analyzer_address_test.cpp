@@ -4,10 +4,8 @@
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/name/name_pool.h"
 #include "ink/frontend/parser/parser.h"
-#include "ink/ir/instruction/address_of_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/call_instruction.h"
-#include "ink/ir/instruction/dereference_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/instruction/store_instruction.h"
@@ -134,14 +132,11 @@ namespace ink::semantic::test
     const auto *Function = function("main");
     ASSERT_NE(Function, nullptr);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
-    const auto Addresses = instructions<ir::AddressOfInstruction>(*Function);
     const auto Calls = instructions<ir::CallInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 1U);
-    ASSERT_EQ(Addresses.size(), 1U);
     ASSERT_EQ(Calls.size(), 1U);
-    EXPECT_EQ(Addresses[0]->storage(), Allocations[0]);
-    EXPECT_EQ(Addresses[0]->type(), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(32, false)));
-    EXPECT_EQ(Calls[0]->argument(0)->value(), Addresses[0]);
+    EXPECT_EQ(Allocations[0]->type(), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(32, false)));
+    EXPECT_EQ(Calls[0]->argument(0)->value(), Allocations[0]);
     EXPECT_TRUE(instructions<ir::LoadInstruction>(*Function).empty());
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
@@ -167,16 +162,13 @@ namespace ink::semantic::test
     const auto *Function = function("main");
     ASSERT_NE(Function, nullptr);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
-    const auto Addresses = instructions<ir::AddressOfInstruction>(*Function);
     const auto Calls = instructions<ir::CallInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 1U);
-    ASSERT_EQ(Addresses.size(), 1U);
     ASSERT_EQ(Calls.size(), 1U);
     EXPECT_FALSE(Allocations[0]->isInitialized());
-    EXPECT_EQ(Addresses[0]->storage(), Allocations[0]);
-    EXPECT_EQ(Addresses[0]->type(), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(32, false)));
+    EXPECT_EQ(Allocations[0]->type(), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(32, false)));
     ASSERT_NE(Calls[0]->argument(0), nullptr);
-    EXPECT_EQ(Calls[0]->argument(0)->value(), Addresses[0]);
+    EXPECT_EQ(Calls[0]->argument(0)->value(), Allocations[0]);
     ASSERT_NE(returned(*Function), nullptr);
     EXPECT_EQ(returned(*Function)->returnedValue(), Calls[0]);
     EXPECT_TRUE(instructions<ir::LoadInstruction>(*Function).empty());
@@ -192,30 +184,22 @@ namespace ink::semantic::test
     const auto *Function = function("main");
     ASSERT_NE(Function, nullptr);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
-    const auto Addresses = instructions<ir::AddressOfInstruction>(*Function);
-    const auto Dereferences = instructions<ir::DereferenceInstruction>(*Function);
     const auto Loads = instructions<ir::LoadInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 1U);
-    ASSERT_EQ(Addresses.size(), 2U);
-    ASSERT_EQ(Dereferences.size(), 1U);
     ASSERT_EQ(Loads.size(), 1U);
     const auto *ConstInteger = Context.typePool().get<ink::ir::IntegerType>(32, true, false);
-    EXPECT_EQ(Allocations[0]->type(), ConstInteger);
-    EXPECT_FALSE(Allocations[0]->isMutable());
-    for (const auto *Address : Addresses)
-    {
-      EXPECT_EQ(Address->storage(), Allocations[0]);
-      EXPECT_EQ(Address->type(), Context.typePool().get<ink::ir::PointerType>(ConstInteger));
-    }
-    EXPECT_EQ(Dereferences[0]->pointer(), Addresses[1]);
-    EXPECT_EQ(Dereferences[0]->type(), ConstInteger);
-    EXPECT_FALSE(Dereferences[0]->isMutable());
-    EXPECT_EQ(Loads[0]->pointer(), Dereferences[0]);
+    EXPECT_EQ(Allocations[0]->allocatedType(), ConstInteger);
+    EXPECT_EQ(Allocations[0]->type(), Context.typePool().get<ink::ir::PointerType>(ConstInteger));
+    EXPECT_FALSE(Allocations[0]->allocatedType()->isMutable());
+    const auto Calls = instructions<ir::CallInstruction>(*Function);
+    ASSERT_EQ(Calls.size(), 1U);
+    EXPECT_EQ(Calls[0]->argument(0)->value(), Allocations[0]);
+    EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
     EXPECT_EQ(Loads[0]->type(), Context.typePool().get<ink::ir::IntegerType>(32, true));
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Dereferencing an address of a local reads the object exactly once after preserving the separate address and storage identities.
+  // Dereferencing an address of a local reads the object exactly once without introducing address-conversion instructions.
   TEST_F(SemanticAddressTest, LoadsLocalThroughAddressAndDereference)
   {
     auto Input = read("func main(): i32 { var Value = 42; return *((&Value)); }");
@@ -224,16 +208,10 @@ namespace ink::semantic::test
     const auto *Function = function("main");
     ASSERT_NE(Function, nullptr);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
-    const auto Addresses = instructions<ir::AddressOfInstruction>(*Function);
-    const auto Dereferences = instructions<ir::DereferenceInstruction>(*Function);
     const auto Loads = instructions<ir::LoadInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 1U);
-    ASSERT_EQ(Addresses.size(), 1U);
-    ASSERT_EQ(Dereferences.size(), 1U);
     ASSERT_EQ(Loads.size(), 1U);
-    EXPECT_EQ(Addresses[0]->storage(), Allocations[0]);
-    EXPECT_EQ(Dereferences[0]->pointer(), Addresses[0]);
-    EXPECT_EQ(Loads[0]->pointer(), Dereferences[0]);
+    EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
     ASSERT_NE(returned(*Function), nullptr);
     EXPECT_EQ(returned(*Function)->returnedValue(), Loads[0]);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -248,17 +226,10 @@ namespace ink::semantic::test
     const auto *Function = function("main");
     ASSERT_NE(Function, nullptr);
     const auto Calls = instructions<ir::CallInstruction>(*Function);
-    const auto Dereferences = instructions<ir::DereferenceInstruction>(*Function);
-    const auto Addresses = instructions<ir::AddressOfInstruction>(*Function);
     ASSERT_EQ(Calls.size(), 1U);
-    ASSERT_EQ(Dereferences.size(), 1U);
-    ASSERT_EQ(Addresses.size(), 1U);
-    EXPECT_EQ(Dereferences[0]->pointer(), Calls[0]);
-    EXPECT_EQ(Addresses[0]->storage(), Dereferences[0]);
-    EXPECT_EQ(Addresses[0]->type(), Calls[0]->type());
     EXPECT_TRUE(instructions<ir::LoadInstruction>(*Function).empty());
     ASSERT_NE(returned(*Function), nullptr);
-    EXPECT_EQ(returned(*Function)->returnedValue(), Addresses[0]);
+    EXPECT_EQ(returned(*Function)->returnedValue(), Calls[0]);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
@@ -271,15 +242,11 @@ namespace ink::semantic::test
     const auto *Function = function("main");
     ASSERT_NE(Function, nullptr);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
-    const auto Dereferences = instructions<ir::DereferenceInstruction>(*Function);
     const auto Loads = instructions<ir::LoadInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 1U);
-    ASSERT_EQ(Dereferences.size(), 1U);
     ASSERT_EQ(Loads.size(), 2U);
     EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
-    EXPECT_EQ(Dereferences[0]->pointer(), Loads[0]);
-    EXPECT_TRUE(Dereferences[0]->isMutable());
-    EXPECT_EQ(Loads[1]->pointer(), Dereferences[0]);
+    EXPECT_EQ(Loads[1]->pointer(), Loads[0]);
     ASSERT_NE(returned(*Function), nullptr);
     EXPECT_EQ(returned(*Function)->returnedValue(), Loads[1]);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -293,16 +260,10 @@ namespace ink::semantic::test
     ASSERT_TRUE(analyze(Input));
     const auto *Function = function("main");
     ASSERT_NE(Function, nullptr);
-    const auto Dereferences = instructions<ir::DereferenceInstruction>(*Function);
     const auto Loads = instructions<ir::LoadInstruction>(*Function);
-    ASSERT_EQ(Dereferences.size(), 2U);
     ASSERT_EQ(Loads.size(), 2U);
-    EXPECT_EQ(Dereferences[0]->pointer(), Function->parameter(0));
-    EXPECT_EQ(Loads[0]->pointer(), Dereferences[0]);
-    EXPECT_EQ(Dereferences[1]->pointer(), Loads[0]);
-    EXPECT_EQ(Dereferences[1]->type(), Context.typePool().get<ink::ir::IntegerType>(32, true, false));
-    EXPECT_FALSE(Dereferences[1]->isMutable());
-    EXPECT_EQ(Loads[1]->pointer(), Dereferences[1]);
+    EXPECT_EQ(Loads[0]->pointer(), Function->parameter(0));
+    EXPECT_EQ(Loads[1]->pointer(), Loads[0]);
     EXPECT_EQ(Loads[1]->type(), Context.typePool().get<ink::ir::IntegerType>(32, true));
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
@@ -317,14 +278,11 @@ namespace ink::semantic::test
     {
       const auto *Function = function(Name);
       ASSERT_NE(Function, nullptr);
-      const auto Dereferences = instructions<ir::DereferenceInstruction>(*Function);
       const auto Loads = instructions<ir::LoadInstruction>(*Function);
       const auto Calls = instructions<ir::CallInstruction>(*Function);
-      ASSERT_EQ(Dereferences.size(), 1U);
       ASSERT_EQ(Loads.size(), 1U);
       ASSERT_EQ(Calls.size(), 1U);
-      EXPECT_EQ(Dereferences[0]->pointer(), Function->parameter(0));
-      EXPECT_EQ(Loads[0]->pointer(), Dereferences[0]);
+      EXPECT_EQ(Loads[0]->pointer(), Function->parameter(0));
       EXPECT_EQ(Calls[0]->callee(), Loads[0]);
       EXPECT_EQ(Calls[0]->directCallee(), nullptr);
       EXPECT_EQ(Loads[0]->type(), Calls[0]->functionType());
@@ -345,20 +303,13 @@ namespace ink::semantic::test
       const auto *Function = function(Name);
       ASSERT_NE(Function, nullptr);
       const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
-      const auto Addresses = instructions<ir::AddressOfInstruction>(*Function);
-      const auto Dereferences = instructions<ir::DereferenceInstruction>(*Function);
       const auto Loads = instructions<ir::LoadInstruction>(*Function);
       const auto Calls = instructions<ir::CallInstruction>(*Function);
       ASSERT_EQ(Allocations.size(), 1U);
-      ASSERT_EQ(Addresses.size(), 1U);
-      ASSERT_EQ(Dereferences.size(), 1U);
       ASSERT_EQ(Loads.size(), 1U);
       ASSERT_EQ(Calls.size(), 1U);
-      EXPECT_EQ(Allocations[0]->isMutable(), std::string_view(Name) == "mutableLocal");
-      EXPECT_EQ(Addresses[0]->storage(), Allocations[0]);
-      EXPECT_EQ(Dereferences[0]->pointer(), Addresses[0]);
-      EXPECT_EQ(Dereferences[0]->type(), Allocations[0]->type());
-      EXPECT_EQ(Loads[0]->pointer(), Dereferences[0]);
+      EXPECT_EQ(Allocations[0]->allocatedType()->isMutable(), std::string_view(Name) == "mutableLocal");
+      EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
       EXPECT_EQ(Loads[0]->type(), function("foo")->functionType());
       EXPECT_EQ(Calls[0]->callee(), Loads[0]);
       EXPECT_EQ(Calls[0]->directCallee(), nullptr);
@@ -376,16 +327,13 @@ namespace ink::semantic::test
     const auto *Address = function("address");
     ASSERT_NE(Copy, nullptr);
     ASSERT_NE(Address, nullptr);
-    const auto CopyDereferences = instructions<ir::DereferenceInstruction>(*Copy);
     const auto CopyLoads = instructions<ir::LoadInstruction>(*Copy);
-    const auto Addresses = instructions<ir::AddressOfInstruction>(*Address);
-    ASSERT_EQ(CopyDereferences.size(), 1U);
     ASSERT_EQ(CopyLoads.size(), 1U);
-    ASSERT_EQ(Addresses.size(), 1U);
     const auto *ArrayType = Context.typePool().get<ink::ir::ArrayType>(Context.typePool().get<ink::ir::IntegerType>(32, true), 4);
-    EXPECT_EQ(CopyDereferences[0]->type(), ArrayType);
+    EXPECT_EQ(CopyLoads[0]->pointer(), Copy->parameter(0));
     EXPECT_EQ(CopyLoads[0]->type(), ArrayType);
-    EXPECT_EQ(Addresses[0]->type(), Context.typePool().get<ink::ir::PointerType>(ArrayType));
+    ASSERT_NE(returned(*Address), nullptr);
+    EXPECT_EQ(returned(*Address)->returnedValue(), Address->parameter(0));
     EXPECT_TRUE(instructions<ir::LoadInstruction>(*Address).empty());
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
@@ -404,20 +352,20 @@ namespace ink::semantic::test
     ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
     ASSERT_EQ(State.nameResolver().bind(name("Pointer"), *Function->parameter(0)), BindResult::Inserted);
     Context.setSource(Input.Unit->input().lexedFile().sourceId());
-    const auto *Storage = Analysis.analyzeExpr(State, syntax(Input), {.ExpectedType = Types.get<ink::ir::IntegerType>(32, true)});
-    ASSERT_NE(Storage, nullptr);
-    ASSERT_TRUE(ir::DereferenceInstruction::classof(Storage));
-    EXPECT_TRUE(Storage->isStorage());
-    EXPECT_FALSE(Storage->isMutable());
-    EXPECT_FALSE(Storage->isInitialized());
-    EXPECT_EQ(Storage->type(), Types.get<ink::ir::IntegerType>(32, true, false));
-    EXPECT_EQ(Block->instructionCount(), 1U);
+    const auto Storage = Analysis.analyzeExpr(State, syntax(Input), {.ExpectedType = Types.get<ink::ir::IntegerType>(32, true)});
+    ASSERT_TRUE(Storage);
+    EXPECT_TRUE(Storage.isLocation());
+    EXPECT_EQ(Storage.value(), Function->parameter(0));
+    EXPECT_EQ(Storage.declaration(), nullptr);
+    EXPECT_FALSE(Storage.type()->isMutable());
+    EXPECT_EQ(Storage.type(), Types.get<ink::ir::IntegerType>(32, true, false));
+    EXPECT_EQ(Block->instructionCount(), 0U);
     const auto *Value = Analysis.emitValue(State, syntax(Input), {.ExpectedType = Types.get<ink::ir::IntegerType>(32, true)});
     ASSERT_NE(Value, nullptr);
     ASSERT_TRUE(ir::LoadInstruction::classof(Value));
     EXPECT_EQ(Value->type(), Types.get<ink::ir::IntegerType>(32, true));
-    EXPECT_FALSE(Value->isStorage());
-    EXPECT_EQ(Block->instructionCount(), 3U);
+    EXPECT_EQ(static_cast<const ir::LoadInstruction *>(Value)->pointer(), Function->parameter(0));
+    EXPECT_EQ(Block->instructionCount(), 1U);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
@@ -442,7 +390,7 @@ namespace ink::semantic::test
       ASSERT_TRUE(Input.succeeded());
       AnalyzerState State(Context, Input, Output);
       Context.setSource(Input.Unit->input().lexedFile().sourceId());
-      EXPECT_EQ(Analysis.analyzeExpr(State, syntax(Input)), Entry.Expected);
+      EXPECT_EQ(Analysis.analyzeExpr(State, syntax(Input)).value(), Entry.Expected);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
     }
   }
@@ -499,7 +447,6 @@ namespace ink::semantic::test
       EXPECT_EQ(Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::User);
       EXPECT_EQ(core::diagnosticDefaultSeverity(Diagnostics.diagnostics()[0].Kind), core::DiagnosticSeverity::Error);
       ASSERT_EQ(Destination.globalFunctionCount(), 1U);
-      EXPECT_TRUE(instructions<ir::DereferenceInstruction>(*Destination.globalFunction(0)).empty());
       unregister(Destination);
     }
   }
@@ -530,25 +477,18 @@ namespace ink::semantic::test
       const auto &Function = *Destination.globalFunction(0);
       const auto Allocations = instructions<ir::AllocaInstruction>(Function);
       const auto Loads = instructions<ir::LoadInstruction>(Function);
-      const auto Dereferences = instructions<ir::DereferenceInstruction>(Function);
-      const auto Addresses = instructions<ir::AddressOfInstruction>(Function);
       ASSERT_EQ(Allocations.size(), 1U);
       ASSERT_EQ(Loads.size(), Entry.AddressResult ? 1U : 2U);
-      ASSERT_EQ(Dereferences.size(), 1U);
       EXPECT_FALSE(Allocations[0]->isInitialized());
       EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
-      EXPECT_EQ(Dereferences[0]->pointer(), Loads[0]);
       ASSERT_NE(returned(Function), nullptr);
       if (Entry.AddressResult)
       {
-        ASSERT_EQ(Addresses.size(), 1U);
-        EXPECT_EQ(Addresses[0]->storage(), Dereferences[0]);
-        EXPECT_EQ(returned(Function)->returnedValue(), Addresses[0]);
+        EXPECT_EQ(returned(Function)->returnedValue(), Loads[0]);
       }
       else
       {
-        EXPECT_TRUE(Addresses.empty());
-        EXPECT_EQ(Loads[1]->pointer(), Dereferences[0]);
+        EXPECT_EQ(Loads[1]->pointer(), Loads[0]);
         EXPECT_EQ(returned(Function)->returnedValue(), Loads[1]);
       }
       unregister(Destination);
@@ -574,7 +514,6 @@ namespace ink::semantic::test
     ASSERT_EQ(Loads.size(), 1U);
     EXPECT_FALSE(Allocations[0]->isInitialized());
     EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
-    EXPECT_TRUE(instructions<ir::DereferenceInstruction>(*Function).empty());
   }
 
   // Result expectations reject pointee qualifier changes and mismatched dereferenced values without changing how either operand is typed.

@@ -10,9 +10,9 @@ namespace ink::semantic
 {
   const ir::Value *Analyzer::emitValue(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
   {
-    const ir::Value *Value = analyzeExpr(State, Node, Hints);
-    RETURN_IF_NOT(Value, nullptr);
-    return Value->isStorage() ? loadStorage(State, State.at(Node), *Value) : Value;
+    const ExprResult Result = analyzeExpr(State, Node, Hints);
+    RETURN_IF_NOT(Result, nullptr);
+    return Result.isLocation() ? loadLocation(State, State.at(Node), Result) : Result.value();
   }
 
   const ir::Value *Analyzer::emitRuntimeValue(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
@@ -26,7 +26,7 @@ namespace ink::semantic
     return requireRuntimeValue(Site, Value);
   }
 
-  const ir::Value *Analyzer::analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
+  ExprResult Analyzer::analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
   {
     auto &Context = State.semanticContext();
     const auto Site = State.at(Node);
@@ -38,40 +38,40 @@ namespace ink::semantic
     const ir::Type *DefaultIntegerLiteralType = Hints.DefaultIntegerLiteralType;
     CHECK_ICE(Site, !DefaultIntegerLiteralType || Context.irContext().containsType(DefaultIntegerLiteralType), core::DiagnosticKind::SemanticConstructionFailed);
 
-    const ir::Value *Result = nullptr;
+    ExprResult Result;
     using namespace frontend::parser;
     switch (Node.getKind())
     {
-      case ASTKind::NameExpr:
-        Result = analyzeNameExpr(State, static_cast<const NameExpr &>(Node), Hints.IsCallCallee);
-        break;
-      case ASTKind::LiteralExpr:
-        Result = analyzeLiteralExpr(State, static_cast<const LiteralExpr &>(Node), Hints);
-        break;
-      case ASTKind::ParenExpr:
-        Result = analyzeParenExpr(State, static_cast<const ParenExpr &>(Node), Hints);
-        break;
-      case ASTKind::MemberExpr:
-        Result = analyzeMemberExpr(State, static_cast<const MemberExpr &>(Node), Hints.IsCallCallee);
-        break;
-      case ASTKind::CallExpr:
-        Result = analyzeCallExpr(State, static_cast<const CallExpr &>(Node));
-        break;
-      case ASTKind::UnaryExpr:
-        Result = analyzeUnaryExpr(State, static_cast<const UnaryExpr &>(Node), Hints);
-        break;
-      case ASTKind::ArrayRepeatExpr:
-        Result = analyzeArrayRepeatExpr(State, static_cast<const ArrayRepeatExpr &>(Node));
-        break;
-      case ASTKind::FunctionTypeExpr:
-        Result = analyzeFunctionTypeExpr(State, static_cast<const FunctionTypeExpr &>(Node));
-        break;
-      default:
-        CHECK_ICE(Site, categoryOf(Node.getKind()) == ASTCategory::Expr, core::DiagnosticKind::SemanticInvalidAST, "expression node kind must belong to the expression AST category");
-        // TODO: Restore generic applications, remaining operators and type-valued compile-time evaluation.
-        Site.reportICE<core::DiagnosticKind::SemanticUnsupported>(astKindName(Node.getKind()));
+    case ASTKind::NameExpr:
+      Result = analyzeNameExpr(State, static_cast<const NameExpr &>(Node), Hints.IsCallCallee);
+      break;
+    case ASTKind::LiteralExpr:
+      Result = analyzeLiteralExpr(State, static_cast<const LiteralExpr &>(Node), Hints);
+      break;
+    case ASTKind::ParenExpr:
+      Result = analyzeParenExpr(State, static_cast<const ParenExpr &>(Node), Hints);
+      break;
+    case ASTKind::MemberExpr:
+      Result = analyzeMemberExpr(State, static_cast<const MemberExpr &>(Node), Hints.IsCallCallee);
+      break;
+    case ASTKind::CallExpr:
+      Result = analyzeCallExpr(State, static_cast<const CallExpr &>(Node));
+      break;
+    case ASTKind::UnaryExpr:
+      Result = analyzeUnaryExpr(State, static_cast<const UnaryExpr &>(Node), Hints);
+      break;
+    case ASTKind::ArrayRepeatExpr:
+      Result = analyzeArrayRepeatExpr(State, static_cast<const ArrayRepeatExpr &>(Node));
+      break;
+    case ASTKind::FunctionTypeExpr:
+      Result = analyzeFunctionTypeExpr(State, static_cast<const FunctionTypeExpr &>(Node));
+      break;
+    default:
+      CHECK_ICE(Site, categoryOf(Node.getKind()) == ASTCategory::Expr, core::DiagnosticKind::SemanticInvalidAST, "expression node kind must belong to the expression AST category");
+      // TODO: Restore generic applications, remaining operators and type-valued compile-time evaluation.
+      Site.reportICE<core::DiagnosticKind::SemanticUnsupported>(astKindName(Node.getKind()));
     }
     RETURN_IF(!Result || !ExpectedType, Result);
-    return convertToExpectedType(State, Site, *Result, *ExpectedType);
+    return convertToExpectedType(State, Site, Result, *ExpectedType);
   }
 } // namespace ink::semantic

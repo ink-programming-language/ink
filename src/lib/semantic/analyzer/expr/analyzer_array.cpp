@@ -12,7 +12,7 @@ namespace ink::semantic
   const ir::Value *Analyzer::analyzeArrayRepeatExpr(AnalyzerState &State, const frontend::parser::ArrayRepeatExpr &Node)
   {
     const auto Site = State.at(Node);
-    const ir::Value *Value = analyzeExpr(State, *Node.value());
+    const ir::Value *Value = analyzeExpr(State, *Node.value()).value();
     RETURN_IF_NOT(Value, nullptr);
     auto &Context = State.semanticContext();
     const auto ElementSite = State.at(*Node.value());
@@ -21,10 +21,11 @@ namespace ink::semantic
     CHECK_ICE(Site, ir::Type::classof(Value), core::DiagnosticKind::SemanticUnsupported, frontend::parser::astKindName(Node.getKind()));
     const auto *Element = static_cast<const ir::Type *>(Value);
     CHECK_HAS_LAYOUT(ElementSite, Element, "an array element with runtime layout", nullptr);
-    const ir::Value *CountValue = analyzeExpr(State, *Node.count(), {.DefaultIntegerLiteralType = Context.typePool().get<ir::IntegerType>(64, false)});
+    const ExprResult CountResult = analyzeExpr(State, *Node.count(), {.DefaultIntegerLiteralType = Context.typePool().get<ir::IntegerType>(64, false)});
+    const ir::Value *CountValue = CountResult.value();
     RETURN_IF_NOT(CountValue, nullptr);
     const auto CountSite = State.at(*Node.count());
-    RETURN_ERROR_IF_NOT(CountSite, !CountValue->isStorage() && ir::IntegerConstant::classof(CountValue), core::DiagnosticKind::SemanticInvalidArrayLength, nullptr);
+    RETURN_ERROR_IF_NOT(CountSite, !CountResult.isLocation() && ir::IntegerConstant::classof(CountValue), core::DiagnosticKind::SemanticInvalidArrayLength, nullptr);
     const auto Count = static_cast<const ir::IntegerConstant &>(*CountValue).tryGetNonNegativeUInt64();
     RETURN_ERROR_IF_NOT(CountSite, Count, core::DiagnosticKind::SemanticInvalidArrayLength, nullptr);
     const ir::Type *Result = Context.typePool().get<ir::ArrayType>(Element, *Count);

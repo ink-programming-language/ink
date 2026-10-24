@@ -8,19 +8,18 @@
 
 namespace ink::semantic
 {
-  const ir::Value *Analyzer::loadStorage(AnalyzerState &State, const AnalysisSite &Site, const ir::Value &Storage)
+  const ir::Value *Analyzer::loadLocation(AnalyzerState &State, const AnalysisSite &Site, ExprResult Location)
   {
     auto &Context = State.semanticContext();
-    // TODO: Lower explicit global storage reads through the module's address representation.
-    CHECK_ICE(Site, !ir::GlobalVariable::classof(&Storage), core::DiagnosticKind::SemanticUnsupported, "variable storage reads");
-    const ir::Type *Type = Storage.type();
-    CHECK_ICE(Site, Storage.isStorage() && Context.irContext().containsType(Type) && Type->hasLayout(), core::DiagnosticKind::SemanticConstructionFailed);
+    const ir::Type *Type = Location.type();
+    CHECK_ICE(Site, Location.isLocation() && Context.irContext().containsType(Type) && Type->hasLayout(), core::DiagnosticKind::SemanticConstructionFailed);
     auto &Builder = State.irBuilder();
     CHECK_ICE(Site, Builder.insertBlock() && !Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed);
-    const ir::Value *Loaded = Builder.createLoad(*Type, Storage);
+    const ir::Value *Loaded = Builder.createLoad(*Type, *Location.value());
     CHECK_ICE(Site, Loaded, core::DiagnosticKind::SemanticConstructionFailed);
-    // Declaration initialization is advisory; indirect storage has no declaration flag to check.
-    WARNING_IF(Site, ir::AllocaInstruction::classof(&Storage) && !Storage.isInitialized(), core::DiagnosticKind::SemanticUninitializedRead, core::NamePool::instance().text(static_cast<const ir::AllocaInstruction &>(Storage).name()));
+    // Only direct local declarations carry this advisory state; an indirect location does not prove initialization.
+    const auto *Local = ir::AllocaInstruction::classof(Location.declaration()) ? static_cast<const ir::AllocaInstruction *>(Location.declaration()) : nullptr;
+    WARNING_IF(Site, Local && !Local->isInitialized(), core::DiagnosticKind::SemanticUninitializedRead, core::NamePool::instance().text(Local->name()));
     return Loaded;
   }
 } // namespace ink::semantic

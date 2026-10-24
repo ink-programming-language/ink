@@ -211,7 +211,7 @@ namespace ink::ir::test
       ASSERT_NE(Text, nullptr);
       ASSERT_NE(Bytes, nullptr);
       EXPECT_TRUE(Text->canInitialize(Bytes));
-      GlobalVariable Variable(*Bytes, Name);
+      GlobalVariable Variable(*Types.typePool().get<ink::ir::PointerType>(Bytes), Name);
       ASSERT_TRUE(Variable.setInitializer(Text));
       EXPECT_EQ(Variable.initializer(), Text);
       const Field Member(Bytes, Name, 0, Text);
@@ -246,7 +246,7 @@ namespace ink::ir::test
     EXPECT_FALSE(Text->canInitialize(OtherBytes));
     EXPECT_FALSE(Foreign->canInitialize(Bytes));
     EXPECT_FALSE(Short->canInitialize(Bytes));
-    GlobalVariable Variable(*Bytes, Name);
+    GlobalVariable Variable(*Types.typePool().get<ink::ir::PointerType>(Bytes), Name);
     ASSERT_TRUE(Variable.setInitializer(Text));
     EXPECT_FALSE(Variable.setInitializer(Short));
     EXPECT_FALSE(Variable.setInitializer(Foreign));
@@ -280,11 +280,11 @@ namespace ink::ir::test
     EXPECT_EQ(Owner.getOrCreateStringStorage(*Repeated), FirstStorage);
     EXPECT_EQ(Owner.globalVariableCount(), 1U);
     EXPECT_TRUE(Owner.owns(FirstStorage));
-    EXPECT_TRUE(FirstStorage->isStorage());
     EXPECT_TRUE(FirstStorage->isInitialized());
-    EXPECT_FALSE(FirstStorage->isMutable());
+    EXPECT_FALSE(FirstStorage->variableType()->isMutable());
     EXPECT_FALSE(FirstStorage->hasName());
-    EXPECT_EQ(FirstStorage->type(), Context.typePool().get(First->type(), false));
+    EXPECT_EQ(FirstStorage->variableType(), Context.typePool().get(First->type(), false));
+    EXPECT_EQ(FirstStorage->type()->pointeeType(), FirstStorage->variableType());
     EXPECT_EQ(FirstStorage->initializer(), First);
 
     const auto OtherStorage = Owner.getOrCreateStringStorage(*Other);
@@ -360,9 +360,9 @@ namespace ink::ir::test
       const auto Storage = Owner.getOrCreateStringStorage(*Text);
       ASSERT_NE(Storage, nullptr);
       EXPECT_EQ(Storage->initializer(), Text);
-      EXPECT_FALSE(Storage->isMutable());
-      ASSERT_TRUE(ArrayType::classof(Storage->type()));
-      const auto Array = static_cast<const ArrayType *>(Storage->type());
+      EXPECT_FALSE(Storage->variableType()->isMutable());
+      ASSERT_TRUE(ArrayType::classof(Storage->variableType()));
+      const auto Array = static_cast<const ArrayType *>(Storage->variableType());
       EXPECT_EQ(Array->elementCount(), Expected.size());
       EXPECT_EQ(Array->size(), Expected.size());
       EXPECT_EQ(Array->alignment(), 1U);
