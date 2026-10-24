@@ -27,7 +27,7 @@ namespace ink::semantic
       RETURN_IF_NOT(Type, nullptr);
       Parameters.emplace_back(Type, Parameter.variadic());
     }
-    const ir::Type *Result = Context.typePool().getFunctionType(Return, Parameters);
+    const ir::Type *Result = Context.typePool().get<ir::FunctionType>(Return, Parameters);
     CHECK_ICE(Site, Result, core::DiagnosticKind::SemanticConstructionFailed);
     return Result;
   }

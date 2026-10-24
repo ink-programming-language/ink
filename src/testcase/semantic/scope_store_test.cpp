@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -38,7 +39,7 @@ namespace ink::semantic::test
     Module Other(Context);
     Value &OwnerValue = Owner;
     Value &OtherValue = Other;
-    auto *ValueOwner = Owner.createGlobalVariable(*Context.typePool().getBoolType());
+    auto *ValueOwner = Owner.createGlobalVariable(*Context.typePool().get<ink::ir::BoolType>());
     ASSERT_NE(ValueOwner, nullptr);
     ScopeStore Store;
     ScopeStore Foreign;
@@ -83,7 +84,7 @@ namespace ink::semantic::test
   {
     IRContext Context(target::TargetContext::native());
     Module ModuleValue(Context);
-    auto *Target = ModuleValue.createGlobalVariable(*Context.typePool().getBoolType());
+    auto *Target = ModuleValue.createGlobalVariable(*Context.typePool().get<ink::ir::BoolType>());
     ASSERT_NE(Target, nullptr);
     ScopeStore Store;
     NameResolver Resolver(Store);
@@ -116,8 +117,8 @@ namespace ink::semantic::test
   {
     IRContext Context(target::TargetContext::native());
     Module ModuleValue(Context);
-    auto *Removed = ModuleValue.createGlobalVariable(*Context.typePool().getBoolType());
-    auto *Survivor = ModuleValue.createGlobalVariable(*Context.typePool().getBoolType());
+    auto *Removed = ModuleValue.createGlobalVariable(*Context.typePool().get<ink::ir::BoolType>());
+    auto *Survivor = ModuleValue.createGlobalVariable(*Context.typePool().get<ink::ir::BoolType>());
     ASSERT_NE(Removed, nullptr);
     ASSERT_NE(Survivor, nullptr);
     ScopeStore Store;
@@ -160,7 +161,7 @@ namespace ink::semantic::test
   {
     IRContext Context(target::TargetContext::native());
     Module ModuleValue(Context);
-    const auto *Signature = Context.typePool().getFunctionType(Context.typePool().getVoidType());
+    const auto *Signature = Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     auto *First = ModuleValue.createGlobalFunction(*Signature);
     auto *Second = ModuleValue.createGlobalFunction(*Signature);
@@ -201,7 +202,7 @@ namespace ink::semantic::test
     Module Removed(Context);
     Module Other(Context);
     Value &RemovedValue = Removed;
-    auto *Member = Removed.createGlobalVariable(*Context.typePool().getBoolType());
+    auto *Member = Removed.createGlobalVariable(*Context.typePool().get<ink::ir::BoolType>());
     ASSERT_NE(Member, nullptr);
     ScopeStore Store;
     NameResolver Resolver(Store);
@@ -246,7 +247,7 @@ namespace ink::semantic::test
   {
     IRContext Context(target::TargetContext::native());
     Module ModuleValue(Context);
-    const auto *Integer = Context.typePool().getInt32Type();
+    const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
     auto *Storage = ModuleValue.createGlobalVariable(*Integer, core::NAME_None, false);
     ASSERT_NE(Storage, nullptr);
     ScopeStore Store;
@@ -265,7 +266,7 @@ namespace ink::semantic::test
     EXPECT_EQ(Resolver.lookupLocal(SavedName), SavedBinding);
     ASSERT_EQ(SavedBinding->targets().size(), 1U);
     EXPECT_EQ(SavedBinding->targets()[0], Storage);
-    EXPECT_EQ(SavedBinding->targets()[0]->type(), Context.typePool().getQualifiedType(Integer, false));
+    EXPECT_EQ(SavedBinding->targets()[0]->type(), Context.typePool().get(Integer, false));
     EXPECT_TRUE(SavedBinding->targets()[0]->isStorage());
     EXPECT_FALSE(SavedBinding->targets()[0]->isMutable());
     EXPECT_EQ(Resolver.bind(SavedName, *Storage), BindResult::AlreadyBound);
@@ -276,14 +277,14 @@ namespace ink::semantic::test
   {
     IRContext Context(target::TargetContext::native());
     Module ModuleValue(Context);
-    const auto *Integer = Context.typePool().getInt32Type();
-    const auto *Boolean = Context.typePool().getBoolType();
+    const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto *Boolean = Context.typePool().get<ink::ir::BoolType>();
     auto *Removed = ModuleValue.createGlobalVariable(*Integer);
     auto *Survivor = ModuleValue.createGlobalVariable(*Boolean, core::NAME_None, false);
     ASSERT_NE(Removed, nullptr);
     ASSERT_NE(Survivor, nullptr);
-    ASSERT_TRUE(Removed->setInitializer(Context.constantPool().getSignedIntegerConstant(Integer, 1)));
-    ASSERT_TRUE(Survivor->setInitializer(Context.constantPool().getBoolConstant(true)));
+    ASSERT_TRUE(Removed->setInitializer(Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(1))));
+    ASSERT_TRUE(Survivor->setInitializer(Context.constantPool().get<ink::ir::BoolConstant>(true)));
     ScopeStore Store;
     NameResolver Resolver(Store);
     const Name Variable = core::NamePool::instance().intern("RemovedStorage");
@@ -322,7 +323,7 @@ namespace ink::semantic::test
     ASSERT_NE(Replacement, nullptr);
     ASSERT_EQ(Replacement->targets().size(), 1U);
     EXPECT_EQ(Replacement->targets()[0], Survivor);
-    EXPECT_EQ(Replacement->targets()[0]->type(), Context.typePool().getQualifiedType(Boolean, false));
+    EXPECT_EQ(Replacement->targets()[0]->type(), Context.typePool().get(Boolean, false));
     EXPECT_FALSE(Replacement->targets()[0]->isMutable());
     EXPECT_TRUE(Replacement->targets()[0]->isInitialized());
   }

@@ -4,35 +4,40 @@
 #include "ink/semantic/analyzer/analysis_site.h"
 #include "ink/semantic/context.h"
 
+#include <concepts>
+#include <cstdint>
 #include <string>
-#include <type_traits>
 
 namespace ink::semantic
 {
   namespace
   {
-    template <auto Getter>
-    const ir::Value *getBuiltinType(SemanticContext &Context) noexcept
+    template <typename TypeT>
+    const ir::Value *getBuiltinType(SemanticContext &Context, std::uint32_t Width, bool Signed)
     {
-      if constexpr (std::is_invocable_v<decltype(Getter), ir::TypePool &, bool>)
+      if constexpr (std::same_as<TypeT, ir::IntegerType>)
       {
-        return (Context.typePool().*Getter)(true);
+        return Context.typePool().get<TypeT>(Width, Signed);
+      }
+      else if constexpr (std::same_as<TypeT, ir::FloatType>)
+      {
+        return Context.typePool().get<TypeT>(Width);
       }
       else
       {
-        return (Context.typePool().*Getter)();
+        return Context.typePool().get<TypeT>();
       }
     }
 
     template <bool Value>
-    const ir::Value *getBuiltinBool(SemanticContext &Context) noexcept
+    const ir::Value *getBuiltinBool(SemanticContext &Context, std::uint32_t, bool) noexcept
     {
-      return Context.irContext().constantPool().getBoolConstant(Value);
+      return Context.irContext().constantPool().get<ir::BoolConstant>(Value);
     }
 
-    const ir::Value *getBuiltinNullPointer(SemanticContext &Context) noexcept
+    const ir::Value *getBuiltinNullPointer(SemanticContext &Context, std::uint32_t, bool) noexcept
     {
-      return Context.irContext().constantPool().getNullPointerConstant();
+      return Context.irContext().constantPool().get<ir::NullPointerConstant>();
     }
 
     bool isRuntimeValue(SemanticContext &Context, const ir::Value &Value)
@@ -53,23 +58,25 @@ namespace ink::semantic
     struct Entry
     {
         std::string_view Name;
-        const ir::Value *(*GetValue)(SemanticContext &) noexcept;
+        const ir::Value *(*GetValue)(SemanticContext &, std::uint32_t, bool);
+        std::uint32_t Width = 0;
+        bool Signed = false;
     };
-    // TODO: Extend numeric builtins with i128/u128/f16 once TypePool supports them.
+    // Numeric source names remain fixed; resolve descriptors through the current context's pool.
     static constexpr Entry Entries[] = {
-        {"type", getBuiltinType<&ir::TypePool::getMetaType>},
-        {"void", getBuiltinType<&ir::TypePool::getVoidType>},
-        {"bool", getBuiltinType<&ir::TypePool::getBoolType>},
-        {"i8", getBuiltinType<&ir::TypePool::getInt8Type>},
-        {"u8", getBuiltinType<&ir::TypePool::getUInt8Type>},
-        {"i16", getBuiltinType<&ir::TypePool::getInt16Type>},
-        {"u16", getBuiltinType<&ir::TypePool::getUInt16Type>},
-        {"i32", getBuiltinType<&ir::TypePool::getInt32Type>},
-        {"u32", getBuiltinType<&ir::TypePool::getUInt32Type>},
-        {"i64", getBuiltinType<&ir::TypePool::getInt64Type>},
-        {"u64", getBuiltinType<&ir::TypePool::getUInt64Type>},
-        {"f32", getBuiltinType<&ir::TypePool::getFloat32Type>},
-        {"f64", getBuiltinType<&ir::TypePool::getFloat64Type>},
+        {"type", getBuiltinType<ir::MetaType>},
+        {"void", getBuiltinType<ir::VoidType>},
+        {"bool", getBuiltinType<ir::BoolType>},
+        {"i8", getBuiltinType<ir::IntegerType>, 8, true},
+        {"u8", getBuiltinType<ir::IntegerType>, 8, false},
+        {"i16", getBuiltinType<ir::IntegerType>, 16, true},
+        {"u16", getBuiltinType<ir::IntegerType>, 16, false},
+        {"i32", getBuiltinType<ir::IntegerType>, 32, true},
+        {"u32", getBuiltinType<ir::IntegerType>, 32, false},
+        {"i64", getBuiltinType<ir::IntegerType>, 64, true},
+        {"u64", getBuiltinType<ir::IntegerType>, 64, false},
+        {"f32", getBuiltinType<ir::FloatType>, 32},
+        {"f64", getBuiltinType<ir::FloatType>, 64},
         {"true", getBuiltinBool<true>},
         {"false", getBuiltinBool<false>},
         {"nullptr", getBuiltinNullPointer},
@@ -78,7 +85,7 @@ namespace ink::semantic
     {
       if (Candidate.Name == Name)
       {
-        return Candidate.GetValue(Context);
+        return Candidate.GetValue(Context, Candidate.Width, Candidate.Signed);
       }
     }
     return nullptr;

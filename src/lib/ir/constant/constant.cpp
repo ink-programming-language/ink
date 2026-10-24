@@ -35,7 +35,7 @@ namespace ink::ir
       return false;
     }
     const IRContext &Owner = static_cast<const NullPointerType *>(ConstantType)->irContext();
-    return Owner.constantPool().getNullPointerConstant() == this && Owner.containsType(DestinationType) && PointerType::classof(DestinationType);
+    return Owner.constantPool().get<NullPointerConstant>() == this && Owner.containsType(DestinationType) && PointerType::classof(DestinationType);
   }
 
   bool Constant::classof(const Value *Value) noexcept

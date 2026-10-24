@@ -194,7 +194,7 @@ namespace ink::ir
     {
       return nullptr;
     }
-    const Type *ObjectType = typePool().getQualifiedType(&VariableType, Mutable && VariableType.isMutable());
+    const Type *ObjectType = typePool().get(&VariableType, Mutable && VariableType.isMutable());
     if (!ObjectType)
     {
       return nullptr;
@@ -223,7 +223,7 @@ namespace ink::ir
     {
       return Existing->second;
     }
-    const Type *ObjectType = typePool().getQualifiedType(String.type(), false);
+    const Type *ObjectType = typePool().get(String.type(), false);
     if (!ObjectType)
     {
       return nullptr;

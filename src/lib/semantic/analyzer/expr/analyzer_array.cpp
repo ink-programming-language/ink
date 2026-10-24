@@ -21,13 +21,13 @@ namespace ink::semantic
     CHECK_ICE(Site, ir::Type::classof(Value), core::DiagnosticKind::SemanticUnsupported, frontend::parser::astKindName(Node.getKind()));
     const auto *Element = static_cast<const ir::Type *>(Value);
     CHECK_HAS_LAYOUT(ElementSite, Element, "an array element with runtime layout", nullptr);
-    const ir::Value *CountValue = analyzeExpr(State, *Node.count(), {.DefaultIntegerLiteralType = Context.typePool().getUInt64Type()});
+    const ir::Value *CountValue = analyzeExpr(State, *Node.count(), {.DefaultIntegerLiteralType = Context.typePool().get<ir::IntegerType>(64, false)});
     RETURN_IF_NOT(CountValue, nullptr);
     const auto CountSite = State.at(*Node.count());
     RETURN_ERROR_IF_NOT(CountSite, !CountValue->isStorage() && ir::IntegerConstant::classof(CountValue), core::DiagnosticKind::SemanticInvalidArrayLength, nullptr);
     const auto Count = static_cast<const ir::IntegerConstant &>(*CountValue).tryGetNonNegativeUInt64();
     RETURN_ERROR_IF_NOT(CountSite, Count, core::DiagnosticKind::SemanticInvalidArrayLength, nullptr);
-    const ir::Type *Result = Context.typePool().getArrayType(Element, *Count);
+    const ir::Type *Result = Context.typePool().get<ir::ArrayType>(Element, *Count);
     RETURN_ERROR_IF_NOT(Site, Result, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "an array with representable size and valid alignment", "an invalid array layout");
     return Result;
   }

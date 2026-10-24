@@ -140,7 +140,7 @@ namespace ink::semantic::test
     ASSERT_EQ(Addresses.size(), 1U);
     ASSERT_EQ(Calls.size(), 1U);
     EXPECT_EQ(Addresses[0]->storage(), Allocations[0]);
-    EXPECT_EQ(Addresses[0]->type(), Context.typePool().getPointerType(Context.typePool().getUInt32Type()));
+    EXPECT_EQ(Addresses[0]->type(), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(32, false)));
     EXPECT_EQ(Calls[0]->argument(0)->value(), Addresses[0]);
     EXPECT_TRUE(instructions<ir::LoadInstruction>(*Function).empty());
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -174,7 +174,7 @@ namespace ink::semantic::test
     ASSERT_EQ(Calls.size(), 1U);
     EXPECT_FALSE(Allocations[0]->isInitialized());
     EXPECT_EQ(Addresses[0]->storage(), Allocations[0]);
-    EXPECT_EQ(Addresses[0]->type(), Context.typePool().getPointerType(Context.typePool().getUInt32Type()));
+    EXPECT_EQ(Addresses[0]->type(), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(32, false)));
     ASSERT_NE(Calls[0]->argument(0), nullptr);
     EXPECT_EQ(Calls[0]->argument(0)->value(), Addresses[0]);
     ASSERT_NE(returned(*Function), nullptr);
@@ -199,19 +199,19 @@ namespace ink::semantic::test
     ASSERT_EQ(Addresses.size(), 2U);
     ASSERT_EQ(Dereferences.size(), 1U);
     ASSERT_EQ(Loads.size(), 1U);
-    const auto *ConstInteger = Context.typePool().getInt32Type(false);
+    const auto *ConstInteger = Context.typePool().get<ink::ir::IntegerType>(32, true, false);
     EXPECT_EQ(Allocations[0]->type(), ConstInteger);
     EXPECT_FALSE(Allocations[0]->isMutable());
     for (const auto *Address : Addresses)
     {
       EXPECT_EQ(Address->storage(), Allocations[0]);
-      EXPECT_EQ(Address->type(), Context.typePool().getPointerType(ConstInteger));
+      EXPECT_EQ(Address->type(), Context.typePool().get<ink::ir::PointerType>(ConstInteger));
     }
     EXPECT_EQ(Dereferences[0]->pointer(), Addresses[1]);
     EXPECT_EQ(Dereferences[0]->type(), ConstInteger);
     EXPECT_FALSE(Dereferences[0]->isMutable());
     EXPECT_EQ(Loads[0]->pointer(), Dereferences[0]);
-    EXPECT_EQ(Loads[0]->type(), Context.typePool().getInt32Type());
+    EXPECT_EQ(Loads[0]->type(), Context.typePool().get<ink::ir::IntegerType>(32, true));
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
@@ -300,31 +300,69 @@ namespace ink::semantic::test
     EXPECT_EQ(Dereferences[0]->pointer(), Function->parameter(0));
     EXPECT_EQ(Loads[0]->pointer(), Dereferences[0]);
     EXPECT_EQ(Dereferences[1]->pointer(), Loads[0]);
-    EXPECT_EQ(Dereferences[1]->type(), Context.typePool().getInt32Type(false));
+    EXPECT_EQ(Dereferences[1]->type(), Context.typePool().get<ink::ir::IntegerType>(32, true, false));
     EXPECT_FALSE(Dereferences[1]->isMutable());
     EXPECT_EQ(Loads[1]->pointer(), Dereferences[1]);
-    EXPECT_EQ(Loads[1]->type(), Context.typePool().getInt32Type());
+    EXPECT_EQ(Loads[1]->type(), Context.typePool().get<ink::ir::IntegerType>(32, true));
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Dereferencing a function pointer produces its callable value, which can be used as an indirect call target.
+  // Explicitly dereferencing mutable or const function storage pointers loads the callable value before the indirect call.
   TEST_F(SemanticAddressTest, CallsDereferencedFunctionPointer)
   {
-    auto Input = read("func invoke(Callback: *func(i32): i32): i32 { return (*Callback)(7); }");
+    auto Input = read("func invoke(Callback: *func(i32): i32): i32 { return (*Callback)(7); } func invokeConst(Callback: *const func(i32): i32): i32 { return (*Callback)(7); }");
     ASSERT_TRUE(Input.succeeded());
     ASSERT_TRUE(analyze(Input));
-    const auto *Function = function("invoke");
-    ASSERT_NE(Function, nullptr);
-    const auto Dereferences = instructions<ir::DereferenceInstruction>(*Function);
-    const auto Loads = instructions<ir::LoadInstruction>(*Function);
-    const auto Calls = instructions<ir::CallInstruction>(*Function);
-    ASSERT_EQ(Dereferences.size(), 1U);
-    ASSERT_EQ(Loads.size(), 1U);
-    ASSERT_EQ(Calls.size(), 1U);
-    EXPECT_EQ(Dereferences[0]->pointer(), Function->parameter(0));
-    EXPECT_EQ(Loads[0]->pointer(), Dereferences[0]);
-    EXPECT_EQ(Calls[0]->callee(), Loads[0]);
-    EXPECT_EQ(Calls[0]->directCallee(), nullptr);
+    for (const char *Name : {"invoke", "invokeConst"})
+    {
+      const auto *Function = function(Name);
+      ASSERT_NE(Function, nullptr);
+      const auto Dereferences = instructions<ir::DereferenceInstruction>(*Function);
+      const auto Loads = instructions<ir::LoadInstruction>(*Function);
+      const auto Calls = instructions<ir::CallInstruction>(*Function);
+      ASSERT_EQ(Dereferences.size(), 1U);
+      ASSERT_EQ(Loads.size(), 1U);
+      ASSERT_EQ(Calls.size(), 1U);
+      EXPECT_EQ(Dereferences[0]->pointer(), Function->parameter(0));
+      EXPECT_EQ(Loads[0]->pointer(), Dereferences[0]);
+      EXPECT_EQ(Calls[0]->callee(), Loads[0]);
+      EXPECT_EQ(Calls[0]->directCallee(), nullptr);
+      EXPECT_EQ(Loads[0]->type(), Calls[0]->functionType());
+      EXPECT_TRUE(Loads[0]->type()->isMutable());
+    }
+    EXPECT_TRUE(Diagnostics.diagnostics().empty());
+  }
+
+  // Mutable and const callable locals retain addressable storage, and dereferencing their addresses loads exactly once before calling.
+  TEST_F(SemanticAddressTest, CallsFunctionValueThroughLocalStorageAddress)
+  {
+    auto Input = read("func foo(): i32 { return 1; } func mutableLocal(): i32 { var F = foo; return (*(&F))(); } func constLocal(): i32 { const F = foo; return (*(&F))(); }");
+    ASSERT_TRUE(Input.succeeded());
+    ASSERT_TRUE(analyze(Input));
+    ASSERT_NE(function("foo"), nullptr);
+    for (const char *Name : {"mutableLocal", "constLocal"})
+    {
+      const auto *Function = function(Name);
+      ASSERT_NE(Function, nullptr);
+      const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
+      const auto Addresses = instructions<ir::AddressOfInstruction>(*Function);
+      const auto Dereferences = instructions<ir::DereferenceInstruction>(*Function);
+      const auto Loads = instructions<ir::LoadInstruction>(*Function);
+      const auto Calls = instructions<ir::CallInstruction>(*Function);
+      ASSERT_EQ(Allocations.size(), 1U);
+      ASSERT_EQ(Addresses.size(), 1U);
+      ASSERT_EQ(Dereferences.size(), 1U);
+      ASSERT_EQ(Loads.size(), 1U);
+      ASSERT_EQ(Calls.size(), 1U);
+      EXPECT_EQ(Allocations[0]->isMutable(), std::string_view(Name) == "mutableLocal");
+      EXPECT_EQ(Addresses[0]->storage(), Allocations[0]);
+      EXPECT_EQ(Dereferences[0]->pointer(), Addresses[0]);
+      EXPECT_EQ(Dereferences[0]->type(), Allocations[0]->type());
+      EXPECT_EQ(Loads[0]->pointer(), Dereferences[0]);
+      EXPECT_EQ(Loads[0]->type(), function("foo")->functionType());
+      EXPECT_EQ(Calls[0]->callee(), Loads[0]);
+      EXPECT_EQ(Calls[0]->directCallee(), nullptr);
+    }
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
@@ -344,10 +382,10 @@ namespace ink::semantic::test
     ASSERT_EQ(CopyDereferences.size(), 1U);
     ASSERT_EQ(CopyLoads.size(), 1U);
     ASSERT_EQ(Addresses.size(), 1U);
-    const auto *ArrayType = Context.typePool().getArrayType(Context.typePool().getInt32Type(), 4);
+    const auto *ArrayType = Context.typePool().get<ink::ir::ArrayType>(Context.typePool().get<ink::ir::IntegerType>(32, true), 4);
     EXPECT_EQ(CopyDereferences[0]->type(), ArrayType);
     EXPECT_EQ(CopyLoads[0]->type(), ArrayType);
-    EXPECT_EQ(Addresses[0]->type(), Context.typePool().getPointerType(ArrayType));
+    EXPECT_EQ(Addresses[0]->type(), Context.typePool().get<ink::ir::PointerType>(ArrayType));
     EXPECT_TRUE(instructions<ir::LoadInstruction>(*Address).empty());
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
@@ -358,7 +396,7 @@ namespace ink::semantic::test
     auto Input = read("var Result = *Pointer;");
     ASSERT_TRUE(Input.succeeded());
     auto &Types = Context.typePool();
-    auto *Function = Output.createGlobalFunction(*Types.getFunctionType(Types.getVoidType(), {Types.getPointerType(Types.getInt32Type(false))}));
+    auto *Function = Output.createGlobalFunction(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(32, true, false))}));
     ASSERT_NE(Function, nullptr);
     auto *Block = Function->createBlock();
     ASSERT_NE(Block, nullptr);
@@ -366,18 +404,18 @@ namespace ink::semantic::test
     ASSERT_TRUE(State.irBuilder().setInsertPoint(*Block));
     ASSERT_EQ(State.nameResolver().bind(name("Pointer"), *Function->parameter(0)), BindResult::Inserted);
     Context.setSource(Input.Unit->input().lexedFile().sourceId());
-    const auto *Storage = Analysis.analyzeExpr(State, syntax(Input), {.ExpectedType = Types.getInt32Type()});
+    const auto *Storage = Analysis.analyzeExpr(State, syntax(Input), {.ExpectedType = Types.get<ink::ir::IntegerType>(32, true)});
     ASSERT_NE(Storage, nullptr);
     ASSERT_TRUE(ir::DereferenceInstruction::classof(Storage));
     EXPECT_TRUE(Storage->isStorage());
     EXPECT_FALSE(Storage->isMutable());
     EXPECT_FALSE(Storage->isInitialized());
-    EXPECT_EQ(Storage->type(), Types.getInt32Type(false));
+    EXPECT_EQ(Storage->type(), Types.get<ink::ir::IntegerType>(32, true, false));
     EXPECT_EQ(Block->instructionCount(), 1U);
-    const auto *Value = Analysis.emitValue(State, syntax(Input), {.ExpectedType = Types.getInt32Type()});
+    const auto *Value = Analysis.emitValue(State, syntax(Input), {.ExpectedType = Types.get<ink::ir::IntegerType>(32, true)});
     ASSERT_NE(Value, nullptr);
     ASSERT_TRUE(ir::LoadInstruction::classof(Value));
-    EXPECT_EQ(Value->type(), Types.getInt32Type());
+    EXPECT_EQ(Value->type(), Types.get<ink::ir::IntegerType>(32, true));
     EXPECT_FALSE(Value->isStorage());
     EXPECT_EQ(Block->instructionCount(), 3U);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -393,9 +431,9 @@ namespace ink::semantic::test
         const ir::Type *Expected;
     };
     const Case Cases[] = {
-        {"var Result = *const i32;", Types.getPointerType(Types.getInt32Type(false))},
-        {"var Result = &i32;", Types.getReferenceType(Types.getInt32Type())},
-        {"var Result = **i32;", Types.getPointerType(Types.getPointerType(Types.getInt32Type()))},
+        {"var Result = *const i32;", Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(32, true, false))},
+        {"var Result = &i32;", Types.get<ink::ir::ReferenceType>(Types.get<ink::ir::IntegerType>(32, true))},
+        {"var Result = **i32;", Types.get<ink::ir::PointerType>(Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(32, true)))},
     };
     for (const auto &Entry : Cases)
     {

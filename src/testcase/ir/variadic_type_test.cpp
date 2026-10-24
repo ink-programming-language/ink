@@ -31,8 +31,8 @@ namespace ink::ir::test
     static_assert(std::is_final_v<VariadicType>);
     static_assert(!std::is_default_constructible_v<VariadicType>);
     static_assert(!std::is_copy_constructible_v<VariadicType> && !std::is_move_constructible_v<VariadicType>);
-    static_assert(std::is_same_v<decltype(std::declval<const Module &>().typePool().getVariadicType()), const VariadicType *>);
-    static_assert(noexcept(std::declval<const Module &>().typePool().getVariadicType()));
+    static_assert(std::is_same_v<decltype(std::declval<const Module &>().typePool().get<ink::ir::VariadicType>()), const VariadicType *>);
+    static_assert(noexcept(std::declval<const Module &>().typePool().get<ink::ir::VariadicType>()));
     static_assert(!fixedValueSize(ValueKind::Variadic).has_value());
   } // namespace
 
@@ -45,10 +45,10 @@ namespace ink::ir::test
       const Module Types(TypesContext);
       IRContext OtherContext(Target);
       const Module Other(OtherContext);
-      const VariadicType *Variadic = Types.typePool().getVariadicType();
+      const VariadicType *Variadic = Types.typePool().get<ink::ir::VariadicType>();
       ASSERT_NE(Variadic, nullptr);
-      EXPECT_EQ(Variadic, Types.typePool().getVariadicType());
-      EXPECT_NE(Variadic, Other.typePool().getVariadicType());
+      EXPECT_EQ(Variadic, Types.typePool().get<ink::ir::VariadicType>());
+      EXPECT_NE(Variadic, Other.typePool().get<ink::ir::VariadicType>());
       EXPECT_TRUE(Types.ownsType(Variadic));
       EXPECT_FALSE(Other.ownsType(Variadic));
     }
@@ -59,19 +59,19 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     const Module Types(TypesContext);
-    const Type *TypeValue = Types.typePool().getVariadicType();
+    const Type *TypeValue = Types.typePool().get<ink::ir::VariadicType>();
     const Value *ValueValue = TypeValue;
     EXPECT_EQ(ValueValue->kind(), ValueKind::Variadic);
     EXPECT_EQ(valueKindName(ValueValue->kind()), "variadic");
     EXPECT_TRUE(Type::classof(ValueValue));
     EXPECT_TRUE(VariadicType::classof(ValueValue));
-    EXPECT_FALSE(VariadicType::classof(Types.typePool().getBoolType()));
-    EXPECT_FALSE(VariadicType::classof(Types.typePool().getVoidType()));
+    EXPECT_FALSE(VariadicType::classof(Types.typePool().get<ink::ir::BoolType>()));
+    EXPECT_FALSE(VariadicType::classof(Types.typePool().get<ink::ir::VoidType>()));
     EXPECT_FALSE(VariadicType::classof(nullptr));
     EXPECT_FALSE(TypeValue->hasLayout());
     EXPECT_EQ(TypeValue->size(), 0U);
     EXPECT_EQ(TypeValue->alignment(), 1U);
-    EXPECT_TRUE(Types.typePool().getVoidType()->hasLayout());
+    EXPECT_TRUE(Types.typePool().get<ink::ir::VoidType>()->hasLayout());
     EXPECT_FALSE(fixedValueSize(ValueKind::Variadic).has_value());
   }
 
@@ -80,11 +80,11 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const VariadicType *Variadic = Types.typePool().getVariadicType();
-    const VoidType *Void = Types.typePool().getVoidType();
-    EXPECT_EQ(Types.typePool().getArrayType(Variadic, 0), nullptr);
-    EXPECT_EQ(Types.typePool().getArrayType(Variadic, 1), nullptr);
-    EXPECT_EQ(Types.typePool().getFunctionType(Variadic), nullptr);
-    EXPECT_EQ(Types.typePool().getFunctionType(Void, {Variadic}), nullptr);
+    const VariadicType *Variadic = Types.typePool().get<ink::ir::VariadicType>();
+    const VoidType *Void = Types.typePool().get<ink::ir::VoidType>();
+    EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(Variadic, 0), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(Variadic, 1), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Variadic), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Void, {Variadic}), nullptr);
   }
 } // namespace ink::ir::test

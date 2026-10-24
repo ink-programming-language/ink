@@ -1,4 +1,5 @@
 #include "ink/target/target_context.h"
+#include "ink/core/numeric/integer_bits.h"
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/module/module.h"
 
@@ -6,6 +7,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <vector>
 
 namespace ink::ir::test
 {
@@ -20,10 +22,10 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    const auto Signed8 = Types.typePool().getInt8Type();
-    const auto Signed16 = Types.typePool().getInt16Type();
-    const auto Signed32 = Types.typePool().getIntegerType(32, true);
-    const auto Signed64 = Types.typePool().getIntegerType(64, true);
+    const auto Signed8 = Types.typePool().get<ink::ir::IntegerType>(8, true);
+    const auto Signed16 = Types.typePool().get<ink::ir::IntegerType>(16, true);
+    const auto Signed32 = Types.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto Signed64 = Types.typePool().get<ink::ir::IntegerType>(64, true);
     ASSERT_NE(Signed32, nullptr);
     ASSERT_NE(Signed64, nullptr);
 
@@ -53,11 +55,13 @@ namespace ink::ir::test
     };
     for (const SignedCase &Case : Cases)
     {
-      const auto Constant = Constants.getSignedIntegerConstant(Case.Type, Case.Value);
+      const auto Constant = Constants.get<ink::ir::IntegerConstant>(Case.Type, static_cast<std::int64_t>(Case.Value));
       ASSERT_NE(Constant, nullptr);
       EXPECT_EQ(Constant->type(), Case.Type);
-      EXPECT_EQ(Constant->bits(), Case.ExpectedBits);
-      EXPECT_EQ(Constant, Constants.getIntegerConstantFromBits(Case.Type, Case.ExpectedBits));
+      EXPECT_EQ(Constant->bits().tryGetUInt64(), Case.ExpectedBits);
+      const auto Bits = core::IntegerBits::fromUnsigned(Case.Type->width(), Case.ExpectedBits);
+      ASSERT_TRUE(Bits.has_value());
+      EXPECT_EQ(Constant, Constants.get<ink::ir::IntegerConstant>(Case.Type, *Bits));
       EXPECT_EQ(Constant->isNegative(), Case.Value < 0);
       const auto NonNegativeValue = Constant->tryGetNonNegativeUInt64();
       if (Case.Value < 0)
@@ -70,12 +74,12 @@ namespace ink::ir::test
         EXPECT_EQ(*NonNegativeValue, static_cast<std::uint64_t>(Case.Value));
       }
     }
-    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed8, -129), nullptr);
-    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed8, 128), nullptr);
-    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed16, -32769), nullptr);
-    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed16, 32768), nullptr);
-    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed32, static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::min()) - 1), nullptr);
-    EXPECT_EQ(Constants.getSignedIntegerConstant(Signed32, static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max()) + 1), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Signed8, static_cast<std::int64_t>(-129)), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Signed8, static_cast<std::int64_t>(128)), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Signed16, static_cast<std::int64_t>(-32769)), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Signed16, static_cast<std::int64_t>(32768)), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Signed32, static_cast<std::int64_t>(static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::min()) - 1)), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Signed32, static_cast<std::int64_t>(static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max()) + 1)), nullptr);
   }
 
   // Unsigned factories and numeric queries preserve zero, the high-bit boundary and the full maximum without signed reinterpretation.
@@ -86,15 +90,15 @@ namespace ink::ir::test
     auto &Constants = Types.constantPool();
     for (const std::uint32_t Width : {8U, 16U, 32U, 64U})
     {
-      const auto UnsignedType = Types.typePool().getIntegerType(Width, false);
+      const auto UnsignedType = Types.typePool().get<ink::ir::IntegerType>(Width, false);
       ASSERT_NE(UnsignedType, nullptr);
       const std::uint64_t Maximum = Width == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << Width) - 1;
       const std::uint64_t HighBit = std::uint64_t{1} << (Width - 1U);
       for (const std::uint64_t Value : {std::uint64_t{0}, HighBit - 1, HighBit, HighBit + 1, Maximum})
       {
-        const auto Constant = Constants.getUnsignedIntegerConstant(UnsignedType, Value);
+        const auto Constant = Constants.get<ink::ir::IntegerConstant>(UnsignedType, static_cast<std::uint64_t>(Value));
         ASSERT_NE(Constant, nullptr);
-        EXPECT_EQ(Constant->bits(), Value);
+        EXPECT_EQ(Constant->bits().tryGetUInt64(), Value);
         EXPECT_EQ(Constant->type(), UnsignedType);
         EXPECT_FALSE(Constant->isNegative());
         const auto NonNegativeValue = Constant->tryGetNonNegativeUInt64();
@@ -103,8 +107,8 @@ namespace ink::ir::test
       }
       if (Width < 64)
       {
-        EXPECT_EQ(Constants.getUnsignedIntegerConstant(UnsignedType, Maximum + 1), nullptr);
-        EXPECT_EQ(Constants.getUnsignedIntegerConstant(UnsignedType, std::numeric_limits<std::uint64_t>::max()), nullptr);
+        EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(UnsignedType, static_cast<std::uint64_t>(Maximum + 1)), nullptr);
+        EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(UnsignedType, static_cast<std::uint64_t>(std::numeric_limits<std::uint64_t>::max())), nullptr);
       }
     }
   }
@@ -120,28 +124,34 @@ namespace ink::ir::test
       IRContext OtherContext(ByteTarget);
       Module Other(OtherContext);
       auto &Constants = Types.constantPool();
-      const auto Byte = Types.typePool().getUInt8Type();
+      const auto Byte = Types.typePool().get<ink::ir::IntegerType>(8, false);
       ASSERT_NE(Byte, nullptr);
       for (const std::uint64_t Value : {std::uint64_t{0}, std::uint64_t{255}})
       {
-        const auto Unsigned = Constants.getUnsignedIntegerConstant(Byte, Value);
-        const auto Bits = Constants.getIntegerConstantFromBits(Byte, Value);
+        const auto Unsigned = Constants.get<ink::ir::IntegerConstant>(Byte, static_cast<std::uint64_t>(Value));
+        const auto RawBits = core::IntegerBits::fromUnsigned(8, Value);
+        ASSERT_TRUE(RawBits.has_value());
+        const auto Bits = Constants.get<ink::ir::IntegerConstant>(Byte, *RawBits);
         ASSERT_NE(Unsigned, nullptr);
         ASSERT_NE(Bits, nullptr);
         EXPECT_EQ(Unsigned, Bits);
         EXPECT_EQ(Unsigned->type(), Byte);
-        EXPECT_EQ(Unsigned->bits(), Value);
+        EXPECT_EQ(Unsigned->bits().tryGetUInt64(), Value);
       }
       for (const std::uint64_t Overflow : {std::uint64_t{256}, std::numeric_limits<std::uint64_t>::max()})
       {
-        EXPECT_EQ(Constants.getUnsignedIntegerConstant(Byte, Overflow), nullptr);
-        EXPECT_EQ(Constants.getIntegerConstantFromBits(Byte, Overflow), nullptr);
+        EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Byte, static_cast<std::uint64_t>(Overflow)), nullptr);
+        const auto WideBits = core::IntegerBits::fromUnsigned(64, Overflow);
+        ASSERT_TRUE(WideBits.has_value());
+        EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Byte, *WideBits), nullptr);
       }
-      EXPECT_EQ(Constants.getSignedIntegerConstant(Byte, 0), nullptr);
-      EXPECT_EQ(Constants.getSignedIntegerConstant(Byte, -1), nullptr);
-      EXPECT_EQ(Constants.getSignedIntegerConstant(Byte, 255), nullptr);
-      EXPECT_EQ(Constants.getUnsignedIntegerConstant(Other.typePool().getUInt8Type(), 0), nullptr);
-      EXPECT_EQ(Constants.getIntegerConstantFromBits(Other.typePool().getUInt8Type(), 0), nullptr);
+      EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Byte, static_cast<std::int64_t>(0)), nullptr);
+      EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Byte, static_cast<std::int64_t>(-1)), nullptr);
+      EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Byte, static_cast<std::int64_t>(255)), nullptr);
+      EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Other.typePool().get<ink::ir::IntegerType>(8, false), static_cast<std::uint64_t>(0)), nullptr);
+      const auto ZeroBits = core::IntegerBits::fromUnsigned(8, 0);
+      ASSERT_TRUE(ZeroBits.has_value());
+      EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Other.typePool().get<ink::ir::IntegerType>(8, false), *ZeroBits), nullptr);
     }
   }
 
@@ -151,23 +161,25 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    EXPECT_EQ(Constants.getIntegerConstantFromBits(nullptr, 0), nullptr);
-    EXPECT_EQ(Constants.getSignedIntegerConstant(nullptr, 0), nullptr);
-    EXPECT_EQ(Constants.getUnsignedIntegerConstant(nullptr, 0), nullptr);
+    const auto ZeroBits = core::IntegerBits::fromUnsigned(32, 0);
+    ASSERT_TRUE(ZeroBits.has_value());
+    EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(nullptr, *ZeroBits), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(nullptr, static_cast<std::int64_t>(0)), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(nullptr, static_cast<std::uint64_t>(0)), nullptr);
     for (const std::uint32_t Width : {8U, 16U, 32U, 64U})
     {
-      const auto SignedType = Types.typePool().getIntegerType(Width, true);
-      const auto UnsignedType = Types.typePool().getIntegerType(Width, false);
+      const auto SignedType = Types.typePool().get<ink::ir::IntegerType>(Width, true);
+      const auto UnsignedType = Types.typePool().get<ink::ir::IntegerType>(Width, false);
       ASSERT_NE(SignedType, nullptr);
       ASSERT_NE(UnsignedType, nullptr);
-      EXPECT_EQ(Constants.getUnsignedIntegerConstant(SignedType, 0), nullptr);
-      EXPECT_EQ(Constants.getSignedIntegerConstant(UnsignedType, 0), nullptr);
-      EXPECT_EQ(Constants.getSignedIntegerConstant(UnsignedType, -1), nullptr);
+      EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(SignedType, static_cast<std::uint64_t>(0)), nullptr);
+      EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(UnsignedType, static_cast<std::int64_t>(0)), nullptr);
+      EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(UnsignedType, static_cast<std::int64_t>(-1)), nullptr);
     }
   }
 
-  // Raw integer bits accept every in-width pattern for either signedness and reject nonzero upper bits.
-  TEST(IRNumericConstantTest, IntegerRawBitsHaveNoImplicitTruncation)
+  // Raw integer patterns accept either signedness only at the exact width, including rejection of wider or narrower zero values.
+  TEST(IRNumericConstantTest, IntegerRawBitsRequireExactWidth)
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
@@ -176,16 +188,28 @@ namespace ink::ir::test
     {
       for (const std::uint32_t Width : {8U, 16U, 32U, 64U})
       {
-        const auto Integer = Types.typePool().getIntegerType(Width, Signed);
+        const auto Integer = Types.typePool().get<ink::ir::IntegerType>(Width, Signed);
         ASSERT_NE(Integer, nullptr);
         const std::uint64_t Maximum = Width == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << Width) - 1;
-        const auto Constant = Constants.getIntegerConstantFromBits(Integer, Maximum);
+        const auto Bits = core::IntegerBits::fromUnsigned(Width, Maximum);
+        const auto WiderZero = core::IntegerBits::fromUnsigned(Width + 1, 0);
+        const auto NarrowerZero = core::IntegerBits::fromUnsigned(Width - 1, 0);
+        ASSERT_TRUE(Bits.has_value());
+        ASSERT_TRUE(WiderZero.has_value());
+        ASSERT_TRUE(NarrowerZero.has_value());
+        const auto Constant = Constants.get<ink::ir::IntegerConstant>(Integer, *Bits);
         ASSERT_NE(Constant, nullptr);
-        EXPECT_EQ(Constant->bits(), Maximum);
+        EXPECT_EQ(Constant->bits().tryGetUInt64(), Maximum);
+        EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Integer, *WiderZero), nullptr);
+        EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Integer, *NarrowerZero), nullptr);
         if (Width < 64)
         {
-          EXPECT_EQ(Constants.getIntegerConstantFromBits(Integer, Maximum + 1), nullptr);
-          EXPECT_EQ(Constants.getIntegerConstantFromBits(Integer, std::numeric_limits<std::uint64_t>::max()), nullptr);
+          const auto OverflowBits = core::IntegerBits::fromUnsigned(64, Maximum + 1);
+          const auto AllBits = core::IntegerBits::fromUnsigned(64, std::numeric_limits<std::uint64_t>::max());
+          ASSERT_TRUE(OverflowBits.has_value());
+          ASSERT_TRUE(AllBits.has_value());
+          EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Integer, *OverflowBits), nullptr);
+          EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Integer, *AllBits), nullptr);
         }
       }
     }
@@ -222,9 +246,11 @@ namespace ink::ir::test
       auto &Constants = FloatTypes.constantPool();
       for (const FloatCase &Case : Cases)
       {
-        const auto Float = FloatTypes.typePool().getFloatType(Case.Width);
+        const auto Float = FloatTypes.typePool().get<ink::ir::FloatType>(Case.Width);
         ASSERT_NE(Float, nullptr);
-        const auto Constant = Constants.getFloatConstantFromBits(Float, Case.Bits);
+        const auto Bits = core::IntegerBits::fromUnsigned(Case.Width, Case.Bits);
+        ASSERT_TRUE(Bits.has_value());
+        const auto Constant = Constants.get<ink::ir::FloatConstant>(Float, *Bits);
         ASSERT_NE(Constant, nullptr);
         EXPECT_EQ(Constant->type(), Float);
         EXPECT_EQ(Constant->bits(), Case.Bits);
@@ -265,25 +291,29 @@ namespace ink::ir::test
       IRContext FloatTypesContext(FloatTarget);
       Module FloatTypes(FloatTypesContext);
       auto &Constants = FloatTypes.constantPool();
-      const auto Float32 = FloatTypes.typePool().getFloatType(32);
-      const auto Float64 = FloatTypes.typePool().getFloatType(64);
+      const auto Float32 = FloatTypes.typePool().get<ink::ir::FloatType>(32);
+      const auto Float64 = FloatTypes.typePool().get<ink::ir::FloatType>(64);
       ASSERT_NE(Float32, nullptr);
       ASSERT_NE(Float64, nullptr);
       for (const Float32Case &Case : Float32Cases)
       {
-        const auto Constant = Constants.getFloatConstant(Case.Value);
+        const auto Constant = Constants.get<ink::ir::FloatConstant>(Case.Value);
         ASSERT_NE(Constant, nullptr);
         EXPECT_EQ(Constant->type(), Float32);
         EXPECT_EQ(Constant->bits(), Case.ExpectedBits);
-        EXPECT_EQ(Constant, Constants.getFloatConstantFromBits(Float32, Case.ExpectedBits));
+        const auto Bits = core::IntegerBits::fromUnsigned(32, Case.ExpectedBits);
+        ASSERT_TRUE(Bits.has_value());
+        EXPECT_EQ(Constant, Constants.get<ink::ir::FloatConstant>(Float32, *Bits));
       }
       for (const Float64Case &Case : Float64Cases)
       {
-        const auto Constant = Constants.getFloatConstant(Case.Value);
+        const auto Constant = Constants.get<ink::ir::FloatConstant>(Case.Value);
         ASSERT_NE(Constant, nullptr);
         EXPECT_EQ(Constant->type(), Float64);
         EXPECT_EQ(Constant->bits(), Case.ExpectedBits);
-        EXPECT_EQ(Constant, Constants.getFloatConstantFromBits(Float64, Case.ExpectedBits));
+        const auto Bits = core::IntegerBits::fromUnsigned(64, Case.ExpectedBits);
+        ASSERT_TRUE(Bits.has_value());
+        EXPECT_EQ(Constant, Constants.get<ink::ir::FloatConstant>(Float64, *Bits));
       }
     }
   }
@@ -294,8 +324,8 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    const auto Float32 = Types.typePool().getFloatType(32);
-    const auto Float64 = Types.typePool().getFloatType(64);
+    const auto Float32 = Types.typePool().get<ink::ir::FloatType>(32);
+    const auto Float64 = Types.typePool().get<ink::ir::FloatType>(64);
     ASSERT_NE(Float32, nullptr);
     ASSERT_NE(Float64, nullptr);
     struct SpecialCase
@@ -313,8 +343,8 @@ namespace ink::ir::test
     };
     for (const SpecialCase &Case : Cases)
     {
-      const auto Constant32 = Constants.getFloatConstant(Case.Value32);
-      const auto Constant64 = Constants.getFloatConstant(Case.Value64);
+      const auto Constant32 = Constants.get<ink::ir::FloatConstant>(Case.Value32);
+      const auto Constant64 = Constants.get<ink::ir::FloatConstant>(Case.Value64);
       ASSERT_NE(Constant32, nullptr);
       ASSERT_NE(Constant64, nullptr);
       EXPECT_EQ(Constant32->type(), Float32);
@@ -322,8 +352,8 @@ namespace ink::ir::test
       EXPECT_EQ(Constant32->bits(), Case.ExpectedBits32);
       EXPECT_EQ(Constant64->bits(), Case.ExpectedBits64);
     }
-    const auto NaN32 = Constants.getFloatConstant(std::numeric_limits<float>::quiet_NaN());
-    const auto NaN64 = Constants.getFloatConstant(std::numeric_limits<double>::quiet_NaN());
+    const auto NaN32 = Constants.get<ink::ir::FloatConstant>(std::numeric_limits<float>::quiet_NaN());
+    const auto NaN64 = Constants.get<ink::ir::FloatConstant>(std::numeric_limits<double>::quiet_NaN());
     ASSERT_NE(NaN32, nullptr);
     ASSERT_NE(NaN64, nullptr);
     EXPECT_EQ(NaN32->bits() & 0x7f800000ULL, 0x7f800000ULL);
@@ -332,20 +362,49 @@ namespace ink::ir::test
     EXPECT_NE(NaN64->bits() & 0x000fffffffffffffULL, 0ULL);
   }
 
-  // Raw floating-point factories reject missing types and nonzero high bits instead of narrowing them.
-  TEST(IRNumericConstantTest, FloatRejectsMissingTypeAndHighBits)
+  // Raw floating-point input requires a local type and exact width, rejecting zero padding and nonzero high words without resizing.
+  TEST(IRNumericConstantTest, FloatRawBitsRequireExactWidthAndLocalTypes)
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
+    IRContext OtherContext(Target);
     auto &Constants = Types.constantPool();
-    EXPECT_EQ(Constants.getFloatConstantFromBits(nullptr, 0), nullptr);
-    const auto Float32 = Types.typePool().getFloatType(32);
-    ASSERT_NE(Float32, nullptr);
-    EXPECT_EQ(Constants.getFloatConstantFromBits(Float32, 0x100000000ULL), nullptr);
-    EXPECT_EQ(Constants.getFloatConstantFromBits(Float32, 0xffffffff80000000ULL), nullptr);
-    EXPECT_EQ(Constants.getFloatConstantFromBits(Float32, std::numeric_limits<std::uint64_t>::max()), nullptr);
-    const auto AllBits = Constants.getFloatConstantFromBits(Float32, 0xffffffffULL);
-    ASSERT_NE(AllBits, nullptr);
-    EXPECT_EQ(AllBits->bits(), 0xffffffffULL);
+    for (const std::uint32_t Width : {32U, 64U})
+    {
+      SCOPED_TRACE(Width);
+      const auto *Float = Types.typePool().get<ink::ir::FloatType>(Width);
+      const auto *ForeignFloat = OtherContext.typePool().get<ink::ir::FloatType>(Width);
+      ASSERT_NE(Float, nullptr);
+      ASSERT_NE(ForeignFloat, nullptr);
+      const std::uint64_t Maximum = Width == 32 ? std::numeric_limits<std::uint32_t>::max() : std::numeric_limits<std::uint64_t>::max();
+      const auto ZeroBits = core::IntegerBits::fromUnsigned(Width, 0);
+      const auto MaximumBits = core::IntegerBits::fromUnsigned(Width, Maximum);
+      ASSERT_TRUE(ZeroBits.has_value());
+      ASSERT_TRUE(MaximumBits.has_value());
+      const auto *Zero = Constants.get<ink::ir::FloatConstant>(Float, *ZeroBits);
+      const auto *AllBits = Constants.get<ink::ir::FloatConstant>(Float, *MaximumBits);
+      ASSERT_NE(Zero, nullptr);
+      ASSERT_NE(AllBits, nullptr);
+      EXPECT_EQ(Zero->bits(), 0U);
+      EXPECT_EQ(AllBits->bits(), Maximum);
+      EXPECT_EQ(Constants.get<ink::ir::FloatConstant>(nullptr, *ZeroBits), nullptr);
+      EXPECT_EQ(Constants.get<ink::ir::FloatConstant>(ForeignFloat, *ZeroBits), nullptr);
+      for (const std::uint32_t InputWidth : {1U, 31U, 32U, 33U, 63U, 64U, 65U, 128U})
+      {
+        if (InputWidth == Width)
+        {
+          continue;
+        }
+        const auto WrongWidthZero = core::IntegerBits::fromUnsigned(InputWidth, 0);
+        ASSERT_TRUE(WrongWidthZero.has_value());
+        EXPECT_EQ(Constants.get<ink::ir::FloatConstant>(Float, *WrongWidthZero), nullptr);
+      }
+      std::vector<std::uint64_t> WideWords((Width + 64U) / 64U, 0);
+      WideWords.front() = Maximum;
+      WideWords.back() |= std::uint64_t{1} << (Width % 64U);
+      const auto WideBits = core::IntegerBits::fromWords(Width + 1, WideWords);
+      ASSERT_TRUE(WideBits.has_value());
+      EXPECT_EQ(Constants.get<ink::ir::FloatConstant>(Float, *WideBits), nullptr);
+    }
   }
 } // namespace ink::ir::test

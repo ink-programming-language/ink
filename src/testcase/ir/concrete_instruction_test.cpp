@@ -11,6 +11,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <cstddef>
 #include <limits>
 #include <memory>
@@ -48,15 +49,15 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    const auto *Array = Types.typePool().getArrayType(Types.typePool().getInt32Type(), 8);
+    const auto *Array = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(32, true), 8);
     ASSERT_NE(Array, nullptr);
-    const auto *ArrayPointer = Types.typePool().getPointerType(Array);
-    const auto *ElementPointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
+    const auto *ArrayPointer = Types.typePool().get<ink::ir::PointerType>(Array);
+    const auto *ElementPointer = Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::IntegerType>(32, true));
     ASSERT_NE(ArrayPointer, nullptr);
     ASSERT_NE(ElementPointer, nullptr);
-    const auto *CalleeSignature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {ElementPointer});
-    const auto *CallerSignature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {ArrayPointer, Types.typePool().getInt32Type()});
-    const auto *Zero = Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
+    const auto *CalleeSignature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::IntegerType>(32, true), {ElementPointer});
+    const auto *CallerSignature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::IntegerType>(32, true), {ArrayPointer, Types.typePool().get<ink::ir::IntegerType>(32, true)});
+    const auto *Zero = Constants.get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(0));
     ASSERT_NE(CalleeSignature, nullptr);
     ASSERT_NE(CallerSignature, nullptr);
     ASSERT_NE(Zero, nullptr);
@@ -79,19 +80,19 @@ namespace ink::ir::test
     auto CallOwner = std::make_unique<CallInstruction>(Callee, std::vector<Argument>{Argument(*Address)});
     const auto *Call = CallOwner.get();
     EXPECT_EQ(Entry->appendInstruction(std::move(CallOwner)), Call);
-    auto CompareOwner = std::make_unique<ICmpInstruction>(*Types.typePool().getBoolType(), ICmpPredicate::SignedGreaterThan, *Call, *Zero);
+    auto CompareOwner = std::make_unique<ICmpInstruction>(*Types.typePool().get<ink::ir::BoolType>(), ICmpPredicate::SignedGreaterThan, *Call, *Zero);
     const auto *Compare = CompareOwner.get();
     EXPECT_EQ(Entry->appendInstruction(std::move(CompareOwner)), Compare);
-    auto BranchOwner = std::make_unique<ConditionalBranchInstruction>(*Types.typePool().getVoidType(), *Compare, *Accepted, *Rejected);
+    auto BranchOwner = std::make_unique<ConditionalBranchInstruction>(*Types.typePool().get<ink::ir::VoidType>(), *Compare, *Accepted, *Rejected);
     const auto *Branch = BranchOwner.get();
     EXPECT_EQ(Entry->appendInstruction(std::move(BranchOwner)), Branch);
-    auto ReturnOwner = std::make_unique<ReturnInstruction>(*Types.typePool().getVoidType(), Call);
+    auto ReturnOwner = std::make_unique<ReturnInstruction>(*Types.typePool().get<ink::ir::VoidType>(), Call);
     const auto *Return = ReturnOwner.get();
     EXPECT_EQ(Accepted->appendInstruction(std::move(ReturnOwner)), Return);
-    auto JumpOwner = std::make_unique<BranchInstruction>(*Types.typePool().getVoidType(), *Exit);
+    auto JumpOwner = std::make_unique<BranchInstruction>(*Types.typePool().get<ink::ir::VoidType>(), *Exit);
     const auto *Jump = JumpOwner.get();
     EXPECT_EQ(Rejected->appendInstruction(std::move(JumpOwner)), Jump);
-    EXPECT_NE(Exit->appendInstruction(std::make_unique<ReturnInstruction>(*Types.typePool().getVoidType(), Zero)), nullptr);
+    EXPECT_NE(Exit->appendInstruction(std::make_unique<ReturnInstruction>(*Types.typePool().get<ink::ir::VoidType>(), Zero)), nullptr);
 
     EXPECT_EQ(Entry->instructionCount(), 4U);
     EXPECT_EQ(Address->type(), ElementPointer);
@@ -103,17 +104,17 @@ namespace ink::ir::test
     EXPECT_EQ(Address->index(0), Zero);
     EXPECT_EQ(Address->index(1), Caller.parameter(1));
     EXPECT_EQ(Address->index(2), nullptr);
-    EXPECT_EQ(Call->type(), Types.typePool().getInt32Type());
+    EXPECT_EQ(Call->type(), Types.typePool().get<ink::ir::IntegerType>(32, true));
     EXPECT_EQ(Call->functionType(), CalleeSignature);
     EXPECT_EQ(Call->callee(), &Callee);
     EXPECT_EQ(Call->directCallee(), &Callee);
     ASSERT_NE(Call->argument(0), nullptr);
     EXPECT_EQ(Call->argument(0)->value(), Address);
-    EXPECT_EQ(Compare->type(), Types.typePool().getBoolType());
+    EXPECT_EQ(Compare->type(), Types.typePool().get<ink::ir::BoolType>());
     EXPECT_EQ(Compare->left(), Call);
     EXPECT_EQ(Compare->right(), Zero);
     EXPECT_EQ(Compare->predicate(), ICmpPredicate::SignedGreaterThan);
-    EXPECT_EQ(Branch->type(), Types.typePool().getVoidType());
+    EXPECT_EQ(Branch->type(), Types.typePool().get<ink::ir::VoidType>());
     EXPECT_EQ(Branch->condition(), Compare);
     EXPECT_EQ(Branch->trueTarget(), Accepted);
     EXPECT_EQ(Branch->falseTarget(), Rejected);
@@ -122,10 +123,10 @@ namespace ink::ir::test
     EXPECT_EQ(Branch->successor(1), Rejected);
     EXPECT_EQ(Branch->successor(2), nullptr);
     EXPECT_EQ(Branch->successor(std::numeric_limits<std::size_t>::max()), nullptr);
-    EXPECT_EQ(Return->type(), Types.typePool().getVoidType());
+    EXPECT_EQ(Return->type(), Types.typePool().get<ink::ir::VoidType>());
     EXPECT_TRUE(Return->hasReturnedValue());
     EXPECT_EQ(Return->returnedValue(), Call);
-    EXPECT_EQ(Jump->type(), Types.typePool().getVoidType());
+    EXPECT_EQ(Jump->type(), Types.typePool().get<ink::ir::VoidType>());
     EXPECT_EQ(Jump->target(), Exit);
     EXPECT_EQ(Jump->successorCount(), 1U);
     EXPECT_EQ(Jump->successor(0), Exit);
@@ -145,14 +146,12 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type(), Types.typePool().getBoolType()});
+    const auto *Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::IntegerType>(32, true), {Types.typePool().get<ink::ir::IntegerType>(32, true), Types.typePool().get<ink::ir::BoolType>()});
     ASSERT_NE(Signature, nullptr);
-    const auto *CallablePointer = Types.typePool().getPointerType(Signature);
-    ASSERT_NE(CallablePointer, nullptr);
-    const auto *OwnerSignature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {CallablePointer, Types.typePool().getInt32Type()});
+    const auto *OwnerSignature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>(), {Signature, Types.typePool().get<ink::ir::IntegerType>(32, true)});
     ASSERT_NE(OwnerSignature, nullptr);
     Function Owner(*OwnerSignature);
-    const auto *True = Types.constantPool().getBoolConstant(true);
+    const auto *True = Types.constantPool().get<ink::ir::BoolConstant>(true);
     const core::Name ActualName = core::NamePool::instance().intern("IRConcreteInstructionTest.Actual");
     ASSERT_TRUE(ActualName.valid());
     ASSERT_NE(Owner.parameter(0), nullptr);
@@ -164,7 +163,7 @@ namespace ink::ir::test
     EXPECT_EQ(Call.callee(), Owner.parameter(0));
     EXPECT_EQ(Call.directCallee(), nullptr);
     EXPECT_EQ(Call.functionType(), Signature);
-    EXPECT_EQ(Call.type(), Types.typePool().getInt32Type());
+    EXPECT_EQ(Call.type(), Types.typePool().get<ink::ir::IntegerType>(32, true));
     EXPECT_EQ(Call.argumentCount(), 2U);
     ASSERT_EQ(Call.arguments().size(), 2U);
     ASSERT_NE(Call.argument(0), nullptr);
@@ -182,27 +181,27 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
-    const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto *Pointer = Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::IntegerType>(32, true));
+    const auto *Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Pointer, nullptr);
     ASSERT_NE(Signature, nullptr);
     Function Callee(*Signature);
-    const GetElementPtrInstruction Address(*Pointer, *Types.typePool().getInt32Type(), *Types.constantPool().getNullPointerConstant(), {});
+    const GetElementPtrInstruction Address(*Pointer, *Types.typePool().get<ink::ir::IntegerType>(32, true), *Types.constantPool().get<ink::ir::NullPointerConstant>(), {});
     const CallInstruction Call(Callee);
-    const ReturnInstruction Return(*Types.typePool().getVoidType());
+    const ReturnInstruction Return(*Types.typePool().get<ink::ir::VoidType>());
     EXPECT_EQ(Address.type(), Pointer);
     EXPECT_FALSE(Address.isInBounds());
     EXPECT_TRUE(Address.indices().empty());
     EXPECT_EQ(Address.indexCount(), 0U);
     EXPECT_EQ(Address.index(0), nullptr);
     EXPECT_EQ(Address.index(std::numeric_limits<std::size_t>::max()), nullptr);
-    EXPECT_EQ(Call.type(), Types.typePool().getVoidType());
+    EXPECT_EQ(Call.type(), Types.typePool().get<ink::ir::VoidType>());
     EXPECT_EQ(Call.directCallee(), &Callee);
     EXPECT_TRUE(Call.arguments().empty());
     EXPECT_EQ(Call.argumentCount(), 0U);
     EXPECT_EQ(Call.argument(0), nullptr);
     EXPECT_FALSE(Call.isTerminator());
-    EXPECT_EQ(Return.type(), Types.typePool().getVoidType());
+    EXPECT_EQ(Return.type(), Types.typePool().get<ink::ir::VoidType>());
     EXPECT_FALSE(Return.hasReturnedValue());
     EXPECT_EQ(Return.returnedValue(), nullptr);
     EXPECT_TRUE(Return.isTerminator());
@@ -213,8 +212,8 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto *Left = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), -1);
-    const auto *Right = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 1);
+    const auto *Left = Types.constantPool().get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(-1));
+    const auto *Right = Types.constantPool().get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(1));
     ASSERT_NE(Left, nullptr);
     ASSERT_NE(Right, nullptr);
     constexpr ICmpPredicate Predicates[] = {
@@ -231,11 +230,11 @@ namespace ink::ir::test
     };
     for (const auto Predicate : Predicates)
     {
-      const ICmpInstruction Compare(*Types.typePool().getBoolType(), Predicate, *Left, *Right);
+      const ICmpInstruction Compare(*Types.typePool().get<ink::ir::BoolType>(), Predicate, *Left, *Right);
       EXPECT_EQ(Compare.predicate(), Predicate);
       EXPECT_EQ(Compare.left(), Left);
       EXPECT_EQ(Compare.right(), Right);
-      EXPECT_EQ(Compare.type(), Types.typePool().getBoolType());
+      EXPECT_EQ(Compare.type(), Types.typePool().get<ink::ir::BoolType>());
       EXPECT_FALSE(Compare.isTerminator());
     }
   }
@@ -245,19 +244,19 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto *Pointer = Types.typePool().getPointerType(Types.typePool().getInt32Type());
-    const auto *Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto *Pointer = Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::IntegerType>(32, true));
+    const auto *Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Pointer, nullptr);
     ASSERT_NE(Signature, nullptr);
     Function Callee(*Signature);
     BasicBlock Block;
-    const auto *Literal = Types.constantPool().getBoolConstant(true);
-    const GetElementPtrInstruction Address(*Pointer, *Types.typePool().getInt32Type(), *Types.constantPool().getNullPointerConstant(), {});
+    const auto *Literal = Types.constantPool().get<ink::ir::BoolConstant>(true);
+    const GetElementPtrInstruction Address(*Pointer, *Types.typePool().get<ink::ir::IntegerType>(32, true), *Types.constantPool().get<ink::ir::NullPointerConstant>(), {});
     const CallInstruction Call(Callee);
-    const ICmpInstruction Compare(*Types.typePool().getBoolType(), ICmpPredicate::Equal, *Literal, *Literal);
-    const BranchInstruction Branch(*Types.typePool().getVoidType(), Block);
-    const ConditionalBranchInstruction ConditionalBranch(*Types.typePool().getVoidType(), Compare, Block, Block);
-    const ReturnInstruction Return(*Types.typePool().getVoidType());
+    const ICmpInstruction Compare(*Types.typePool().get<ink::ir::BoolType>(), ICmpPredicate::Equal, *Literal, *Literal);
+    const BranchInstruction Branch(*Types.typePool().get<ink::ir::VoidType>(), Block);
+    const ConditionalBranchInstruction ConditionalBranch(*Types.typePool().get<ink::ir::VoidType>(), Compare, Block, Block);
+    const ReturnInstruction Return(*Types.typePool().get<ink::ir::VoidType>());
     EXPECT_EQ(ConditionalBranch.condition(), &Compare);
     EXPECT_EQ(ConditionalBranch.trueTarget(), &Block);
     EXPECT_EQ(ConditionalBranch.falseTarget(), &Block);
@@ -290,7 +289,7 @@ namespace ink::ir::test
       EXPECT_FALSE(Type::classof(Case.Operation));
       EXPECT_FALSE(Constant::classof(Case.Operation));
       EXPECT_FALSE(Case.ClassOf(nullptr));
-      EXPECT_FALSE(Case.ClassOf(Types.typePool().getBoolType()));
+      EXPECT_FALSE(Case.ClassOf(Types.typePool().get<ink::ir::BoolType>()));
       EXPECT_FALSE(Case.ClassOf(Literal));
       EXPECT_FALSE(Case.ClassOf(&Block));
       EXPECT_FALSE(Case.ClassOf(&Callee));
@@ -303,6 +302,6 @@ namespace ink::ir::test
     EXPECT_FALSE(Instruction::classof(&Block));
     EXPECT_FALSE(Instruction::classof(&Callee));
     EXPECT_FALSE(Instruction::classof(Literal));
-    EXPECT_FALSE(Instruction::classof(Types.typePool().getBoolType()));
+    EXPECT_FALSE(Instruction::classof(Types.typePool().get<ink::ir::BoolType>()));
   }
 } // namespace ink::ir::test

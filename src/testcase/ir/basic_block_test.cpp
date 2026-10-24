@@ -111,7 +111,7 @@ namespace ink::ir::test
     EXPECT_EQ(Block.instructionCount(), 0U);
     EXPECT_FALSE(Block.hasTerminator());
 
-    auto *Terminator = Block.appendInstruction(std::make_unique<ReturnInstruction>(*Context.typePool().getVoidType()));
+    auto *Terminator = Block.appendInstruction(std::make_unique<ReturnInstruction>(*Context.typePool().get<ink::ir::VoidType>()));
     ASSERT_NE(Terminator, nullptr);
     EXPECT_TRUE(Block.hasTerminator());
     EXPECT_EQ(Block.appendInstruction(nullptr), nullptr);

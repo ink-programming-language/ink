@@ -27,7 +27,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
     const Function &ReadOnly = Callable;
@@ -55,7 +55,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getBoolType(), {Types.typePool().getBoolType()});
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::BoolType>(), {Types.typePool().get<ink::ir::BoolType>()});
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
     const Value *Entity = &Callable;
@@ -80,7 +80,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name OriginalName = core::NamePool::instance().intern("IRFunctionTest.Original");
     const core::Name NewName = core::NamePool::instance().intern("IRFunctionTest.Renamed");
@@ -129,7 +129,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::IntegerType>(32, true), {Types.typePool().get<ink::ir::IntegerType>(32, true)});
     ASSERT_NE(Signature, nullptr);
     const core::Name ProviderName = core::NamePool::instance().intern("IRFunctionTest.Provider");
     const core::Name AliasName = core::NamePool::instance().intern("IRFunctionTest.ImportAlias");
@@ -159,7 +159,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
     const Function &ReadOnly = Callable;

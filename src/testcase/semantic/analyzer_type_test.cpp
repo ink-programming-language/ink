@@ -83,20 +83,20 @@ namespace ink::semantic::test
         const ir::Type *Expected;
     };
     const Case Cases[] = {
-        {"type", Types.getMetaType()},
-        {"void", Types.getVoidType()},
-        {"bool", Types.getBoolType()},
-        {"i8", Types.getInt8Type()},
-        {"u8", Types.getUInt8Type()},
-        {"i16", Types.getInt16Type()},
-        {"u16", Types.getUInt16Type()},
-        {"i32", Types.getInt32Type()},
-        {"u32", Types.getUInt32Type()},
-        {"i64", Types.getInt64Type()},
-        {"u64", Types.getUInt64Type()},
-        {"f32", Types.getFloat32Type()},
-        {"f64", Types.getFloat64Type()},
-        {"(((i32)))", Types.getInt32Type()},
+        {"type", Types.get<ink::ir::MetaType>()},
+        {"void", Types.get<ink::ir::VoidType>()},
+        {"bool", Types.get<ink::ir::BoolType>()},
+        {"i8", Types.get<ink::ir::IntegerType>(8, true)},
+        {"u8", Types.get<ink::ir::IntegerType>(8, false)},
+        {"i16", Types.get<ink::ir::IntegerType>(16, true)},
+        {"u16", Types.get<ink::ir::IntegerType>(16, false)},
+        {"i32", Types.get<ink::ir::IntegerType>(32, true)},
+        {"u32", Types.get<ink::ir::IntegerType>(32, false)},
+        {"i64", Types.get<ink::ir::IntegerType>(64, true)},
+        {"u64", Types.get<ink::ir::IntegerType>(64, false)},
+        {"f32", Types.get<ink::ir::FloatType>(32)},
+        {"f64", Types.get<ink::ir::FloatType>(64)},
+        {"(((i32)))", Types.get<ink::ir::IntegerType>(32, true)},
     };
     for (const auto &Entry : Cases)
     {
@@ -131,8 +131,8 @@ namespace ink::semantic::test
     ir::Module OtherOutput(OtherContext.irContext());
     OtherContext.setSource(Input.Unit->input().lexedFile().sourceId());
     AnalyzerState OtherState(OtherContext, Input, OtherOutput);
-    const auto *First = Context.typePool().getInt32Type();
-    const auto *Second = OtherContext.typePool().getInt32Type();
+    const auto *First = Context.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto *Second = OtherContext.typePool().get<ink::ir::IntegerType>(32, true);
     ASSERT_NE(First, Second);
     EXPECT_EQ(analyze(Input), First);
     EXPECT_EQ(Analysis.analyzeType(OtherState, syntax(Input)), Second);
@@ -145,7 +145,7 @@ namespace ink::semantic::test
   {
     auto Input = read("*Missing");
     ASSERT_TRUE(Input.succeeded());
-    auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    auto *Function = Output.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>()));
     ASSERT_NE(Function, nullptr);
     auto *Block = Function->createBlock();
     ASSERT_NE(Block, nullptr);
@@ -163,7 +163,7 @@ namespace ink::semantic::test
     auto *Type = Output.createClassType(4, 4);
     ASSERT_NE(Type, nullptr);
     ASSERT_EQ(State.nameResolver().bind(name("Missing"), *Type), BindResult::Inserted);
-    EXPECT_EQ(analyze(State, Input), Context.typePool().getPointerType(Type));
+    EXPECT_EQ(analyze(State, Input), Context.typePool().get<ink::ir::PointerType>(Type));
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
     EXPECT_EQ(State.irBuilder().insertBlock(), Block);
     ASSERT_EQ(Block->instructionCount(), 1U);
@@ -180,11 +180,11 @@ namespace ink::semantic::test
         const ir::Type *Expected;
     };
     const Case Cases[] = {
-        {"*i32", Types.getPointerType(Types.getInt32Type())},
-        {"&i32", Types.getReferenceType(Types.getInt32Type())},
-        {"*(&(*i32))", Types.getPointerType(Types.getReferenceType(Types.getPointerType(Types.getInt32Type())))},
-        {"*void", Types.getPointerType(Types.getVoidType())},
-        {"&void", Types.getReferenceType(Types.getVoidType())},
+        {"*i32", Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(32, true))},
+        {"&i32", Types.get<ink::ir::ReferenceType>(Types.get<ink::ir::IntegerType>(32, true))},
+        {"*(&(*i32))", Types.get<ink::ir::PointerType>(Types.get<ink::ir::ReferenceType>(Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(32, true))))},
+        {"*void", Types.get<ink::ir::PointerType>(Types.get<ink::ir::VoidType>())},
+        {"&void", Types.get<ink::ir::ReferenceType>(Types.get<ink::ir::VoidType>())},
     };
     for (const auto &Entry : Cases)
     {
@@ -201,12 +201,12 @@ namespace ink::semantic::test
   TEST_F(SemanticAnalyzerTypeTest, ResolvesConstPointerAndReferenceTypes)
   {
     auto &Types = Context.typePool();
-    const auto *Byte = Types.getUInt8Type();
-    const auto *Integer = Types.getInt32Type();
-    const auto *ConstByte = Types.getQualifiedType(Byte, false);
-    const auto *ConstInteger = Types.getQualifiedType(Integer, false);
-    const auto *Pointer = Types.getPointerType(Byte);
-    const auto *ReadonlyPointer = Types.getPointerType(ConstByte);
+    const auto *Byte = Types.get<ink::ir::IntegerType>(8, false);
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *ConstByte = Types.get(Byte, false);
+    const auto *ConstInteger = Types.get(Integer, false);
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Byte);
+    const auto *ReadonlyPointer = Types.get<ink::ir::PointerType>(ConstByte);
     struct Case
     {
         const char *Text;
@@ -214,16 +214,16 @@ namespace ink::semantic::test
     };
     const Case Cases[] = {
         {"*const u8", ReadonlyPointer},
-        {"&const i32", Types.getReferenceType(ConstInteger)},
-        {"**const u8", Types.getPointerType(ReadonlyPointer)},
-        {"*const *u8", Types.getPointerType(Types.getQualifiedType(Pointer, false))},
-        {"*const *const u8", Types.getPointerType(Types.getQualifiedType(ReadonlyPointer, false))},
-        {"&const *const u8", Types.getReferenceType(Types.getQualifiedType(ReadonlyPointer, false))},
-        {"*const [u8; 4]", Types.getPointerType(Types.getQualifiedType(Types.getArrayType(Byte, 4), false))},
-        {"[*const u8; 4]", Types.getArrayType(ReadonlyPointer, 4)},
-        {"func(Buffer: *const u8): i32", Types.getFunctionType(Integer, {ReadonlyPointer})},
-        {"func(): &const i32", Types.getFunctionType(Types.getReferenceType(ConstInteger))},
-        {"*const func(): i32", Types.getPointerType(Types.getQualifiedType(Types.getFunctionType(Integer), false))},
+        {"&const i32", Types.get<ink::ir::ReferenceType>(ConstInteger)},
+        {"**const u8", Types.get<ink::ir::PointerType>(ReadonlyPointer)},
+        {"*const *u8", Types.get<ink::ir::PointerType>(Types.get(Pointer, false))},
+        {"*const *const u8", Types.get<ink::ir::PointerType>(Types.get(ReadonlyPointer, false))},
+        {"&const *const u8", Types.get<ink::ir::ReferenceType>(Types.get(ReadonlyPointer, false))},
+        {"*const [u8; 4]", Types.get<ink::ir::PointerType>(Types.get(Types.get<ink::ir::ArrayType>(Byte, 4), false))},
+        {"[*const u8; 4]", Types.get<ink::ir::ArrayType>(ReadonlyPointer, 4)},
+        {"func(Buffer: *const u8): i32", Types.get<ink::ir::FunctionType>(Integer, {ReadonlyPointer})},
+        {"func(): &const i32", Types.get<ink::ir::FunctionType>(Types.get<ink::ir::ReferenceType>(ConstInteger))},
+        {"*const func(): i32", Types.get<ink::ir::PointerType>(Types.get(Types.get<ink::ir::FunctionType>(Integer), false))},
     };
     for (const auto &Entry : Cases)
     {
@@ -241,7 +241,7 @@ namespace ink::semantic::test
   TEST_F(SemanticAnalyzerTypeTest, ResolvesTypesWithoutRequiringRuntimeLayout)
   {
     auto &Types = Context.typePool();
-    const auto *Marker = Types.getVariadicType();
+    const auto *Marker = Types.get<ink::ir::VariadicType>();
     ASSERT_FALSE(Marker->hasLayout());
     NameResolver Resolver(Context);
     ASSERT_EQ(Resolver.bind(name("Pack"), const_cast<ir::VariadicType &>(*Marker)), BindResult::Inserted);
@@ -253,8 +253,8 @@ namespace ink::semantic::test
     const Case Cases[] = {
         {"Pack", Marker},
         {"((Pack))", Marker},
-        {"*Pack", Types.getPointerType(Marker)},
-        {"&Pack", Types.getReferenceType(Marker)},
+        {"*Pack", Types.get<ink::ir::PointerType>(Marker)},
+        {"&Pack", Types.get<ink::ir::ReferenceType>(Marker)},
     };
     for (const auto &Entry : Cases)
     {
@@ -270,7 +270,7 @@ namespace ink::semantic::test
   // Layout requirements preserve the consumed type span and reject return types before parameters, including parenthesized types and empty arrays.
   TEST_F(SemanticAnalyzerTypeTest, RequiresRuntimeLayoutAtTypeConsumptionSites)
   {
-    const auto *Marker = Context.typePool().getVariadicType();
+    const auto *Marker = Context.typePool().get<ink::ir::VariadicType>();
     ASSERT_FALSE(Marker->hasLayout());
     NameResolver Resolver(Context);
     ASSERT_EQ(Resolver.bind(name("Pack"), const_cast<ir::VariadicType &>(*Marker)), BindResult::Inserted);
@@ -317,13 +317,13 @@ namespace ink::semantic::test
         const ir::Type *Expected;
     };
     const Case Cases[] = {
-        {"((type))", Types.getMetaType()},
-        {"((i32))", Types.getInt32Type()},
-        {"*(&(*i32))", Types.getPointerType(Types.getReferenceType(Types.getPointerType(Types.getInt32Type())))},
-        {"[*u8; 14]", Types.getArrayType(Types.getPointerType(Types.getUInt8Type()), 14)},
-        {"[u8; 2147483648]", Types.getArrayType(Types.getUInt8Type(), 2147483648ULL)},
-        {"[u8; 18446744073709551615]", Types.getArrayType(Types.getUInt8Type(), std::numeric_limits<std::uint64_t>::max())},
-        {"func(i32, *u8...): &void", Types.getFunctionType(Types.getReferenceType(Types.getVoidType()), {ir::FunctionTypeParameter(Types.getInt32Type()), ir::FunctionTypeParameter(Types.getPointerType(Types.getUInt8Type()), true)})},
+        {"((type))", Types.get<ink::ir::MetaType>()},
+        {"((i32))", Types.get<ink::ir::IntegerType>(32, true)},
+        {"*(&(*i32))", Types.get<ink::ir::PointerType>(Types.get<ink::ir::ReferenceType>(Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(32, true))))},
+        {"[*u8; 14]", Types.get<ink::ir::ArrayType>(Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(8, false)), 14)},
+        {"[u8; 2147483648]", Types.get<ink::ir::ArrayType>(Types.get<ink::ir::IntegerType>(8, false), 2147483648ULL)},
+        {"[u8; 18446744073709551615]", Types.get<ink::ir::ArrayType>(Types.get<ink::ir::IntegerType>(8, false), std::numeric_limits<std::uint64_t>::max())},
+        {"func(i32, *u8...): &void", Types.get<ink::ir::FunctionType>(Types.get<ink::ir::ReferenceType>(Types.get<ink::ir::VoidType>()), {ir::FunctionTypeParameter(Types.get<ink::ir::IntegerType>(32, true)), ir::FunctionTypeParameter(Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(8, false)), true)})},
     };
     for (const auto &Entry : Cases)
     {
@@ -335,12 +335,12 @@ namespace ink::semantic::test
       const auto *Result = Analysis.emitValue(State, *syntax(Input).expression());
       ASSERT_NE(Result, nullptr);
       EXPECT_EQ(Result, Entry.Expected);
-      EXPECT_EQ(Result->type(), Types.getMetaType());
-      EXPECT_EQ(Analysis.emitValue(State, *syntax(Input).expression(), {.ExpectedType = Types.getMetaType()}), Entry.Expected);
+      EXPECT_EQ(Result->type(), Types.get<ink::ir::MetaType>());
+      EXPECT_EQ(Analysis.emitValue(State, *syntax(Input).expression(), {.ExpectedType = Types.get<ink::ir::MetaType>()}), Entry.Expected);
       EXPECT_EQ(analyze(State, Input), Entry.Expected);
       EXPECT_EQ(State.recursionDepth(), 0U);
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
-      EXPECT_FALSE(Analysis.emitValue(State, *syntax(Input).expression(), {.ExpectedType = Types.getInt32Type()}));
+      EXPECT_FALSE(Analysis.emitValue(State, *syntax(Input).expression(), {.ExpectedType = Types.get<ink::ir::IntegerType>(32, true)}));
       ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
       EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
     }
@@ -422,8 +422,8 @@ namespace ink::semantic::test
     ASSERT_TRUE(Input.succeeded());
     ASSERT_TRUE(BuiltinInput.succeeded());
     auto *Type = Output.createClassType(4, 4, name("Foo"));
-    auto *Variable = Output.createGlobalVariable(*Context.typePool().getInt32Type());
-    auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    auto *Variable = Output.createGlobalVariable(*Context.typePool().get<ink::ir::IntegerType>(32, true));
+    auto *Function = Output.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>()));
     ASSERT_NE(Type, nullptr);
     ASSERT_NE(Variable, nullptr);
     ASSERT_NE(Function, nullptr);
@@ -444,7 +444,7 @@ namespace ink::semantic::test
     EXPECT_EQ(analyze(BuiltinState, BuiltinInput), nullptr);
     ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
     EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
-    auto *OtherFunction = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getUInt32Type()));
+    auto *OtherFunction = Output.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::IntegerType>(32, false)));
     ASSERT_NE(OtherFunction, nullptr);
     ASSERT_EQ(BuiltinState.nameResolver().bindOverload(name("i32"), *OtherFunction), BindResult::Inserted);
     Diagnostics.clear();
@@ -540,7 +540,7 @@ namespace ink::semantic::test
   TEST_F(SemanticAnalyzerTypeTest, RejectsNonTypesAtEachTypeRequirement)
   {
     ir::Module Package(Context.irContext());
-    auto *Variable = Output.createGlobalVariable(*Context.typePool().getInt32Type());
+    auto *Variable = Output.createGlobalVariable(*Context.typePool().get<ink::ir::IntegerType>(32, true));
     ASSERT_NE(Variable, nullptr);
     NameResolver Resolver(Context);
     ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
@@ -580,7 +580,7 @@ namespace ink::semantic::test
     ir::Module Package(Context.irContext());
     auto *Outer = Package.createClassType(8, 8);
     auto *RootType = Output.createClassType(4, 4);
-    auto *Variable = Output.createGlobalVariable(*Context.typePool().getInt32Type());
+    auto *Variable = Output.createGlobalVariable(*Context.typePool().get<ink::ir::IntegerType>(32, true));
     ASSERT_NE(Outer, nullptr);
     ASSERT_NE(RootType, nullptr);
     ASSERT_NE(Variable, nullptr);
@@ -619,7 +619,7 @@ namespace ink::semantic::test
   TEST_F(SemanticAnalyzerTypeTest, ReportsUnsupportedOperationsInTypePosition)
   {
     ir::Module Package(Context.irContext());
-    auto *Variable = Output.createGlobalVariable(*Context.typePool().getInt32Type());
+    auto *Variable = Output.createGlobalVariable(*Context.typePool().get<ink::ir::IntegerType>(32, true));
     ASSERT_NE(Variable, nullptr);
     NameResolver Resolver(Context);
     ASSERT_EQ(Resolver.bind(name("Pkg"), Package), BindResult::Inserted);
@@ -643,7 +643,7 @@ namespace ink::semantic::test
   // Invalid runtime address operands in type annotations retain their user diagnostics and complete unary source ranges.
   TEST_F(SemanticAnalyzerTypeTest, RejectsInvalidAddressOperationsInTypePosition)
   {
-    auto *Variable = Output.createGlobalVariable(*Context.typePool().getInt32Type());
+    auto *Variable = Output.createGlobalVariable(*Context.typePool().get<ink::ir::IntegerType>(32, true));
     ASSERT_NE(Variable, nullptr);
     ASSERT_EQ(NameResolver(Context).bind(name("Value"), *Variable), BindResult::Inserted);
     struct Case
@@ -698,7 +698,7 @@ namespace ink::semantic::test
       SCOPED_TRACE(Entry.Text);
       auto Input = read(Entry.Text);
       ASSERT_TRUE(Input.succeeded());
-      EXPECT_EQ(analyze(Input), Context.typePool().getArrayType(Context.typePool().getUInt8Type(), Entry.Count));
+      EXPECT_EQ(analyze(Input), Context.typePool().get<ink::ir::ArrayType>(Context.typePool().get<ink::ir::IntegerType>(8, false), Entry.Count));
       EXPECT_TRUE(Diagnostics.diagnostics().empty());
     }
   }
@@ -711,8 +711,8 @@ namespace ink::semantic::test
     ASSERT_TRUE(Nested.succeeded());
     ASSERT_TRUE(Unit.succeeded());
     auto &Types = Context.typePool();
-    EXPECT_EQ(analyze(Nested), Types.getArrayType(Types.getPointerType(Types.getInt32Type()), 4));
-    EXPECT_EQ(analyze(Unit), Types.getArrayType(Types.getVoidType(), std::numeric_limits<std::uint64_t>::max()));
+    EXPECT_EQ(analyze(Nested), Types.get<ink::ir::ArrayType>(Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(32, true)), 4));
+    EXPECT_EQ(analyze(Unit), Types.get<ink::ir::ArrayType>(Types.get<ink::ir::VoidType>(), std::numeric_limits<std::uint64_t>::max()));
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
@@ -805,15 +805,15 @@ namespace ink::semantic::test
         std::uint64_t Count;
     };
     const Case Cases[] = {
-        {"Signed8", Constants.getSignedIntegerConstant(Types.getInt8Type(), std::numeric_limits<std::int8_t>::max()), static_cast<std::uint64_t>(std::numeric_limits<std::int8_t>::max())},
-        {"Signed16", Constants.getSignedIntegerConstant(Types.getInt16Type(), std::numeric_limits<std::int16_t>::max()), static_cast<std::uint64_t>(std::numeric_limits<std::int16_t>::max())},
-        {"Unsigned16", Constants.getUnsignedIntegerConstant(Types.getUInt16Type(), std::numeric_limits<std::uint16_t>::max()), std::numeric_limits<std::uint16_t>::max()},
-        {"SignedZero", Constants.getSignedIntegerConstant(Types.getInt32Type(), 0), 0},
-        {"Signed32", Constants.getSignedIntegerConstant(Types.getInt32Type(), std::numeric_limits<std::int32_t>::max()), static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max())},
-        {"Unsigned32", Constants.getUnsignedIntegerConstant(Types.getUInt32Type(), std::numeric_limits<std::uint32_t>::max()), std::numeric_limits<std::uint32_t>::max()},
-        {"Signed64", Constants.getSignedIntegerConstant(Types.getInt64Type(), std::numeric_limits<std::int64_t>::max()), static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())},
-        {"Unsigned64", Constants.getUnsignedIntegerConstant(Types.getUInt64Type(), std::numeric_limits<std::uint64_t>::max()), std::numeric_limits<std::uint64_t>::max()},
-        {"Unsigned8", Constants.getUnsignedIntegerConstant(Types.getUInt8Type(), 255), 255},
+        {"Signed8", Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(8, true), static_cast<std::int64_t>(std::numeric_limits<std::int8_t>::max())), static_cast<std::uint64_t>(std::numeric_limits<std::int8_t>::max())},
+        {"Signed16", Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(16, true), static_cast<std::int64_t>(std::numeric_limits<std::int16_t>::max())), static_cast<std::uint64_t>(std::numeric_limits<std::int16_t>::max())},
+        {"Unsigned16", Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(16, false), static_cast<std::uint64_t>(std::numeric_limits<std::uint16_t>::max())), std::numeric_limits<std::uint16_t>::max()},
+        {"SignedZero", Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(0)), 0},
+        {"Signed32", Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max())), static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max())},
+        {"Unsigned32", Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(32, false), static_cast<std::uint64_t>(std::numeric_limits<std::uint32_t>::max())), std::numeric_limits<std::uint32_t>::max()},
+        {"Signed64", Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(64, true), static_cast<std::int64_t>(std::numeric_limits<std::int64_t>::max())), static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())},
+        {"Unsigned64", Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(64, false), static_cast<std::uint64_t>(std::numeric_limits<std::uint64_t>::max())), std::numeric_limits<std::uint64_t>::max()},
+        {"Unsigned8", Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(8, false), static_cast<std::uint64_t>(255)), 255},
     };
     ir::Module Package(Context.irContext());
     NameResolver Resolver(Context);
@@ -841,10 +841,10 @@ namespace ink::semantic::test
         auto Input = read("[u8; " + Expression + "]");
         ASSERT_TRUE(Input.succeeded());
         AnalyzerState State(Context, Input, Output);
-        EXPECT_EQ(analyze(State, Input), Types.getArrayType(Types.getUInt8Type(), Entry.Count));
+        EXPECT_EQ(analyze(State, Input), Types.get<ink::ir::ArrayType>(Types.get<ink::ir::IntegerType>(8, false), Entry.Count));
         const auto *Array = frontend::parser::cast<frontend::parser::ArrayRepeatExpr>(syntax(Input).expression());
         ASSERT_NE(Array, nullptr);
-        EXPECT_EQ(Analysis.emitValue(State, *Array->count(), {.DefaultIntegerLiteralType = Types.getUInt64Type()}), Entry.Constant);
+        EXPECT_EQ(Analysis.emitValue(State, *Array->count(), {.DefaultIntegerLiteralType = Types.get<ink::ir::IntegerType>(64, false)}), Entry.Constant);
         EXPECT_TRUE(Diagnostics.diagnostics().empty());
         EXPECT_EQ(State.recursionDepth(), 0U);
       }
@@ -857,14 +857,14 @@ namespace ink::semantic::test
     auto &Types = Context.typePool();
     auto &Constants = Output.constantPool();
     const ir::IntegerConstant *Cases[] = {
-        Constants.getSignedIntegerConstant(Types.getInt8Type(), -1),
-        Constants.getSignedIntegerConstant(Types.getInt8Type(), std::numeric_limits<std::int8_t>::min()),
-        Constants.getSignedIntegerConstant(Types.getInt16Type(), -1),
-        Constants.getSignedIntegerConstant(Types.getInt16Type(), std::numeric_limits<std::int16_t>::min()),
-        Constants.getSignedIntegerConstant(Types.getInt32Type(), -1),
-        Constants.getSignedIntegerConstant(Types.getInt32Type(), std::numeric_limits<std::int32_t>::min()),
-        Constants.getSignedIntegerConstant(Types.getInt64Type(), -1),
-        Constants.getSignedIntegerConstant(Types.getInt64Type(), std::numeric_limits<std::int64_t>::min()),
+        Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(8, true), static_cast<std::int64_t>(-1)),
+        Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(8, true), static_cast<std::int64_t>(std::numeric_limits<std::int8_t>::min())),
+        Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(16, true), static_cast<std::int64_t>(-1)),
+        Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(16, true), static_cast<std::int64_t>(std::numeric_limits<std::int16_t>::min())),
+        Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(-1)),
+        Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::min())),
+        Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(64, true), static_cast<std::int64_t>(-1)),
+        Constants.get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(64, true), static_cast<std::int64_t>(std::numeric_limits<std::int64_t>::min())),
     };
     for (const auto *Constant : Cases)
     {
@@ -917,9 +917,9 @@ namespace ink::semantic::test
   {
     auto Input = read("[u8; Count]");
     ASSERT_TRUE(Input.succeeded());
-    auto *Count = Output.createGlobalVariable(*Context.typePool().getInt32Type());
+    auto *Count = Output.createGlobalVariable(*Context.typePool().get<ink::ir::IntegerType>(32, true));
     ASSERT_NE(Count, nullptr);
-    ASSERT_TRUE(Count->setInitializer(Output.constantPool().getSignedIntegerConstant(Context.typePool().getInt32Type(), 4)));
+    ASSERT_TRUE(Count->setInitializer(Output.constantPool().get<ink::ir::IntegerConstant>(Context.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(4))));
     AnalyzerState State(Context, Input, Output);
     ASSERT_EQ(State.nameResolver().bind(name("Count"), *Count), BindResult::Inserted);
     EXPECT_EQ(analyze(State, Input), nullptr);
@@ -932,7 +932,7 @@ namespace ink::semantic::test
   {
     auto Input = read("[u8; Count]");
     ASSERT_TRUE(Input.succeeded());
-    const auto *Signature = Context.typePool().getFunctionType(Context.typePool().getVoidType(), {ir::FunctionTypeParameter(Context.typePool().getUInt32Type())});
+    const auto *Signature = Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>(), {ir::FunctionTypeParameter(Context.typePool().get<ink::ir::IntegerType>(32, false))});
     auto *Function = Output.createGlobalFunction(*Signature);
     ASSERT_NE(Function, nullptr);
     auto *Block = Function->createBlock();
@@ -963,21 +963,21 @@ namespace ink::semantic::test
     ASSERT_TRUE(Unit.succeeded());
     ASSERT_TRUE(Empty.succeeded());
     auto &Types = Context.typePool();
-    const auto *Result = Types.getReferenceType(Types.getVoidType());
-    const auto *Pointer = Types.getPointerType(Types.getUInt8Type());
-    const auto *FixedType = Types.getFunctionType(Result, {ir::FunctionTypeParameter(Types.getInt32Type()), ir::FunctionTypeParameter(Pointer)});
-    const auto *VariadicType = Types.getFunctionType(Result, {ir::FunctionTypeParameter(Types.getInt32Type()), ir::FunctionTypeParameter(Pointer, true)});
+    const auto *Result = Types.get<ink::ir::ReferenceType>(Types.get<ink::ir::VoidType>());
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(8, false));
+    const auto *FixedType = Types.get<ink::ir::FunctionType>(Result, {ir::FunctionTypeParameter(Types.get<ink::ir::IntegerType>(32, true)), ir::FunctionTypeParameter(Pointer)});
+    const auto *VariadicType = Types.get<ink::ir::FunctionType>(Result, {ir::FunctionTypeParameter(Types.get<ink::ir::IntegerType>(32, true)), ir::FunctionTypeParameter(Pointer, true)});
     ASSERT_NE(FixedType, nullptr);
     ASSERT_NE(VariadicType, nullptr);
     EXPECT_NE(FixedType, VariadicType);
     EXPECT_EQ(analyze(Fixed), FixedType);
     EXPECT_EQ(analyze(Variadic), VariadicType);
     EXPECT_EQ(analyze(Renamed), VariadicType);
-    EXPECT_EQ(analyze(NonFinalVariadic), Types.getFunctionType(Result, {ir::FunctionTypeParameter(Types.getInt32Type(), true), ir::FunctionTypeParameter(Pointer)}));
-    EXPECT_EQ(analyze(Unit), Types.getFunctionType(Types.getVoidType(), {ir::FunctionTypeParameter(Types.getVoidType())}));
-    EXPECT_EQ(analyze(Empty), Types.getFunctionType(Types.getVoidType()));
+    EXPECT_EQ(analyze(NonFinalVariadic), Types.get<ink::ir::FunctionType>(Result, {ir::FunctionTypeParameter(Types.get<ink::ir::IntegerType>(32, true), true), ir::FunctionTypeParameter(Pointer)}));
+    EXPECT_EQ(analyze(Unit), Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {ir::FunctionTypeParameter(Types.get<ink::ir::VoidType>())}));
+    EXPECT_EQ(analyze(Empty), Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()));
     ASSERT_EQ(VariadicType->parameters().size(), 2U);
-    EXPECT_EQ(VariadicType->parameters()[0].ParameterType, Types.getInt32Type());
+    EXPECT_EQ(VariadicType->parameters()[0].ParameterType, Types.get<ink::ir::IntegerType>(32, true));
     EXPECT_EQ(VariadicType->parameters()[1].ParameterType, Pointer);
     EXPECT_FALSE(VariadicType->parameters()[0].Variadic);
     EXPECT_TRUE(VariadicType->parameters()[1].Variadic);
@@ -1023,7 +1023,7 @@ namespace ink::semantic::test
     auto *Type = Output.createClassType(4, 4);
     ASSERT_NE(Type, nullptr);
     ASSERT_EQ(FailureState.nameResolver().bind(name("Missing"), *Type), BindResult::Inserted);
-    EXPECT_EQ(analyze(FailureState, Failure), Context.typePool().getPointerType(Type));
+    EXPECT_EQ(analyze(FailureState, Failure), Context.typePool().get<ink::ir::PointerType>(Type));
   }
 
   // Recursive type syntax terminates with the configured semantic limit diagnostic instead of exhausting the stack.
@@ -1035,7 +1035,7 @@ namespace ink::semantic::test
     auto Input = read("*(*i32)");
     ASSERT_TRUE(Valid.succeeded());
     ASSERT_TRUE(Input.succeeded());
-    EXPECT_EQ(analyze(Valid), Context.typePool().getPointerType(Context.typePool().getInt32Type()));
+    EXPECT_EQ(analyze(Valid), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(32, true)));
     EXPECT_DEATH(analyze(Input), "INK-S0014");
     ASSERT_TRUE(Limit.set("0"));
     auto Builtin = read("i32");
@@ -1093,7 +1093,7 @@ namespace ink::semantic::test
     ASSERT_TRUE(Nested.succeeded());
     ASSERT_TRUE(Parenthesized.succeeded());
     AnalyzerState State(Context, Valid, Output);
-    const auto *Expected = Context.typePool().getArrayType(Context.typePool().getUInt8Type(), 3);
+    const auto *Expected = Context.typePool().get<ink::ir::ArrayType>(Context.typePool().get<ink::ir::IntegerType>(8, false), 3);
     EXPECT_EQ(analyze(State, Valid), Expected);
     EXPECT_EQ(analyze(State, Valid), Expected);
     EXPECT_DEATH(analyze(Nested), "INK-S0014");

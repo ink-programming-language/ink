@@ -1,3 +1,4 @@
+#include "ink/core/numeric/integer_bits.h"
 #include "ink/ir/builder/ir_builder.h"
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/function.h"
@@ -25,8 +26,8 @@ namespace ink::ir::test
   TEST(IRNegInstructionTest, RecordsBorrowedOperandAndInstructionIdentity)
   {
     IRContext Context(Target);
-    const auto *Integer = Context.typePool().getInt16Type();
-    Function Owner(*Context.typePool().getFunctionType(Integer, {Integer}));
+    const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(16, true);
+    Function Owner(*Context.typePool().get<ink::ir::FunctionType>(Integer, {Integer}));
     NegInstruction Negation(*Owner.parameter(0));
     const Value *ValueView = &Negation;
     EXPECT_EQ(Negation.operand(), Owner.parameter(0));
@@ -44,13 +45,13 @@ namespace ink::ir::test
     EXPECT_FALSE(NegInstruction::classof(&Owner));
   }
 
-  // Signed constants of every width, including each minimum, remain borrowed operands of distinct instructions without being evaluated or folded.
+  // Signed constants of each builtin width, including each minimum, remain borrowed operands of distinct instructions without being evaluated or folded.
   TEST(IRNegInstructionTest, EmitsForSignedIntegerConstantsWithoutEvaluation)
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
     auto &Constants = Context.constantPool();
-    Function Owner(*Types.getFunctionType(Types.getVoidType()));
+    Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()));
     auto *Entry = Owner.createBlock();
     ASSERT_NE(Entry, nullptr);
     IRBuilder Builder(Context);
@@ -58,16 +59,19 @@ namespace ink::ir::test
     for (const std::uint32_t Width : {8U, 16U, 32U, 64U})
     {
       SCOPED_TRACE(Width);
-      const auto *Integer = Types.getIntegerType(Width, true);
+      const auto *Integer = Types.get<ink::ir::IntegerType>(Width, true);
       ASSERT_NE(Integer, nullptr);
-      const auto Maximum = static_cast<std::int64_t>(Integer->maximumValue());
-      const std::int64_t Values[] = {0, 1, -1, Maximum, -Maximum, Integer->minimumValue()};
+      const auto Maximum = Integer->maximumValue().tryGetInt64();
+      const auto Minimum = Integer->minimumValue().tryGetInt64();
+      ASSERT_TRUE(Maximum.has_value());
+      ASSERT_TRUE(Minimum.has_value());
+      const std::int64_t Values[] = {0, 1, -1, *Maximum, -*Maximum, *Minimum};
       for (const auto Value : Values)
       {
         SCOPED_TRACE(Value);
-        const auto *Operand = Constants.getSignedIntegerConstant(Integer, Value);
+        const auto *Operand = Constants.get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(Value));
         ASSERT_NE(Operand, nullptr);
-        const std::uint64_t OriginalBits = Operand->bits();
+        const auto OriginalBits = Operand->bits();
         const std::size_t PreviousCount = Entry->instructionCount();
         const auto *Result = Builder.createNeg(*Operand);
         ASSERT_NE(Result, nullptr);
@@ -89,12 +93,12 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.insertFunction(), &Owner);
   }
 
-  // Unsigned zero and nonzero constants in every supported width produce instructions while preserving their original operand values.
+  // Unsigned zero and nonzero constants in each builtin width produce instructions while preserving their original operand values.
   TEST(IRNegInstructionTest, EmitsForUnsignedIntegerConstantsWithoutEvaluation)
   {
     IRContext Context(Target);
     auto &Constants = Context.constantPool();
-    Function Owner(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    Function Owner(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>()));
     auto *Entry = Owner.createBlock();
     ASSERT_NE(Entry, nullptr);
     IRBuilder Builder(Context);
@@ -102,17 +106,20 @@ namespace ink::ir::test
     for (const std::uint32_t Width : {8U, 16U, 32U, 64U})
     {
       SCOPED_TRACE(Width);
-      const auto *Integer = Context.typePool().getIntegerType(Width, false);
-      for (const std::uint64_t Value : {std::uint64_t{0}, std::uint64_t{1}, Integer->maximumValue()})
+      const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(Width, false);
+      ASSERT_NE(Integer, nullptr);
+      const auto Maximum = Integer->maximumValue().tryGetUInt64();
+      ASSERT_TRUE(Maximum.has_value());
+      for (const std::uint64_t Value : {std::uint64_t{0}, std::uint64_t{1}, *Maximum})
       {
-        const auto *Operand = Constants.getUnsignedIntegerConstant(Integer, Value);
+        const auto *Operand = Constants.get<ink::ir::IntegerConstant>(Integer, static_cast<std::uint64_t>(Value));
         ASSERT_NE(Operand, nullptr);
         const std::size_t PreviousCount = Entry->instructionCount();
         const auto *Result = Builder.createNeg(*Operand);
         ASSERT_NE(Result, nullptr);
         EXPECT_EQ(Result->operand(), Operand);
         EXPECT_EQ(Result->type(), Integer);
-        EXPECT_EQ(Operand->bits(), Value);
+        EXPECT_EQ(Operand->bits().tryGetUInt64(), Value);
         EXPECT_EQ(Entry->instruction(PreviousCount), Result);
         EXPECT_EQ(Entry->instructionCount(), PreviousCount + 1);
       }
@@ -125,7 +132,7 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     auto &Constants = Context.constantPool();
-    Function Owner(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    Function Owner(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>()));
     auto *Block = Owner.createBlock();
     ASSERT_NE(Block, nullptr);
     IRBuilder Builder(Context);
@@ -153,8 +160,10 @@ namespace ink::ir::test
     {
       SCOPED_TRACE(Entry.Width);
       SCOPED_TRACE(Entry.Bits);
-      const auto *Float = Context.typePool().getFloatType(Entry.Width);
-      const auto *Operand = Constants.getFloatConstantFromBits(Float, Entry.Bits);
+      const auto *Float = Context.typePool().get<ink::ir::FloatType>(Entry.Width);
+      const auto Bits = core::IntegerBits::fromUnsigned(Entry.Width, Entry.Bits);
+      ASSERT_TRUE(Bits.has_value());
+      const auto *Operand = Constants.get<ink::ir::FloatConstant>(Float, *Bits);
       ASSERT_NE(Operand, nullptr);
       const std::size_t PreviousCount = Block->instructionCount();
       const auto *Result = Builder.createNeg(*Operand);
@@ -174,22 +183,22 @@ namespace ink::ir::test
     IRContext Context(Target);
     auto &Types = Context.typePool();
     const Type *NumericTypes[] = {
-        Types.getInt8Type(),
-        Types.getUInt8Type(),
-        Types.getInt16Type(),
-        Types.getUInt16Type(),
-        Types.getInt32Type(),
-        Types.getUInt32Type(),
-        Types.getInt64Type(),
-        Types.getUInt64Type(),
-        Types.getFloat32Type(),
-        Types.getFloat64Type(),
+        Types.get<ink::ir::IntegerType>(8, true),
+        Types.get<ink::ir::IntegerType>(8, false),
+        Types.get<ink::ir::IntegerType>(16, true),
+        Types.get<ink::ir::IntegerType>(16, false),
+        Types.get<ink::ir::IntegerType>(32, true),
+        Types.get<ink::ir::IntegerType>(32, false),
+        Types.get<ink::ir::IntegerType>(64, true),
+        Types.get<ink::ir::IntegerType>(64, false),
+        Types.get<ink::ir::FloatType>(32),
+        Types.get<ink::ir::FloatType>(64),
     };
     IRBuilder Builder(Context);
     for (const auto *Numeric : NumericTypes)
     {
       SCOPED_TRACE(Numeric->toString());
-      Function Owner(*Types.getFunctionType(Numeric, {Numeric}));
+      Function Owner(*Types.get<ink::ir::FunctionType>(Numeric, {Numeric}));
       auto *Entry = Owner.createBlock();
       ASSERT_NE(Entry, nullptr);
       ASSERT_TRUE(Builder.setInsertPoint(*Entry));
@@ -209,8 +218,8 @@ namespace ink::ir::test
   TEST(IRNegInstructionTest, ConnectsRuntimeNegationWithOtherInstructions)
   {
     IRContext Context(Target);
-    const auto *Integer = Context.typePool().getInt32Type();
-    const auto *Signature = Context.typePool().getFunctionType(Integer, {Integer});
+    const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto *Signature = Context.typePool().get<ink::ir::FunctionType>(Integer, {Integer});
     Function Caller(*Signature);
     Function Callee(*Signature);
     auto *Entry = Caller.createBlock();

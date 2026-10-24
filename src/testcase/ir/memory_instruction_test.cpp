@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <cstddef>
 #include <memory>
 #include <type_traits>
@@ -28,11 +29,11 @@ namespace ink::ir::test
   TEST(IRMemoryInstructionTest, RecordsTypesOperandsAndInstructionIdentity)
   {
     IRContext Context(Target);
-    const auto *Integer = Context.typePool().getInt32Type();
-    const auto *Seven = Context.constantPool().getSignedIntegerConstant(Integer, 7);
+    const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto *Seven = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(7));
     AllocaInstruction Allocation(*Integer);
     LoadInstruction Load(*Integer, Allocation);
-    StoreInstruction Store(*Context.typePool().getVoidType(), *Seven, Allocation);
+    StoreInstruction Store(*Context.typePool().get<ink::ir::VoidType>(), *Seven, Allocation);
     EXPECT_EQ(Allocation.allocatedType(), Integer);
     EXPECT_EQ(Allocation.type(), Integer);
     EXPECT_TRUE(Allocation.isStorage());
@@ -45,7 +46,7 @@ namespace ink::ir::test
     EXPECT_EQ(Load.type(), Integer);
     EXPECT_EQ(Store.storedValue(), Seven);
     EXPECT_EQ(Store.pointer(), &Allocation);
-    EXPECT_EQ(Store.type(), Context.typePool().getVoidType());
+    EXPECT_EQ(Store.type(), Context.typePool().get<ink::ir::VoidType>());
     const Instruction *Instructions[] = {
         &Allocation,
         &Load,
@@ -88,10 +89,10 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    Function Owner(*Types.getFunctionType(Integer, {Integer}));
-    Function Callee(*Types.getFunctionType(Integer, {Integer}));
-    Function UnitConsumer(*Types.getFunctionType(Types.getVoidType(), {Types.getVoidType()}));
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    Function Owner(*Types.get<ink::ir::FunctionType>(Integer, {Integer}));
+    Function Callee(*Types.get<ink::ir::FunctionType>(Integer, {Integer}));
+    Function UnitConsumer(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Types.get<ink::ir::VoidType>()}));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
@@ -135,10 +136,10 @@ namespace ink::ir::test
     IRContext Context(Target);
     IRContext Foreign(Target);
     auto &Types = Context.typePool();
-    const auto *Pointer = Types.getPointerType(Types.getInt32Type());
-    const auto *Opaque = Types.getPointerType(Types.getVoidType());
-    const auto *Null = Context.constantPool().getNullPointerConstant();
-    Function Owner(*Types.getFunctionType(Types.getVoidType(), {Pointer, Opaque}));
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(32, true));
+    const auto *Opaque = Types.get<ink::ir::PointerType>(Types.get<ink::ir::VoidType>());
+    const auto *Null = Context.constantPool().get<ink::ir::NullPointerConstant>();
+    Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Pointer, Opaque}));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
@@ -154,16 +155,16 @@ namespace ink::ir::test
       ASSERT_NE(Load, nullptr);
       EXPECT_EQ(Load->type(), StoredType);
       const std::size_t PreviousCount = Entry->instructionCount();
-      EXPECT_EQ(Builder.createStore(*Foreign.constantPool().getNullPointerConstant(), *Slot), nullptr);
-      EXPECT_EQ(Builder.createLoad(*Types.getInt32Type(), *Slot), nullptr);
+      EXPECT_EQ(Builder.createStore(*Foreign.constantPool().get<ink::ir::NullPointerConstant>(), *Slot), nullptr);
+      EXPECT_EQ(Builder.createLoad(*Types.get<ink::ir::IntegerType>(32, true), *Slot), nullptr);
       EXPECT_EQ(Entry->instructionCount(), PreviousCount);
     }
-    auto *IntegerSlot = Builder.createAlloca(*Types.getInt32Type());
+    auto *IntegerSlot = Builder.createAlloca(*Types.get<ink::ir::IntegerType>(32, true));
     ASSERT_NE(IntegerSlot, nullptr);
     const std::size_t PreviousCount = Entry->instructionCount();
     EXPECT_EQ(Builder.createStore(*Null, *IntegerSlot), nullptr);
     EXPECT_EQ(Builder.createStore(*Owner.parameter(1), *IntegerSlot), nullptr);
-    EXPECT_EQ(Builder.createLoad(*Types.getInt32Type(), *Null), nullptr);
+    EXPECT_EQ(Builder.createLoad(*Types.get<ink::ir::IntegerType>(32, true), *Null), nullptr);
     EXPECT_EQ(Builder.createStore(*Owner.parameter(0), *Null), nullptr);
     EXPECT_EQ(Entry->instructionCount(), PreviousCount);
   }
@@ -174,15 +175,15 @@ namespace ink::ir::test
     IRContext Context(Target);
     IRContext Foreign(Target);
     auto &Types = Context.typePool();
-    const auto *EmptyArray = Types.getArrayType(Types.getInt32Type(), 0);
-    const auto *UnitArray = Types.getArrayType(Types.getVoidType(), 2);
-    const auto *Empty = Context.constantPool().getArrayConstant(EmptyArray);
+    const auto *EmptyArray = Types.get<ink::ir::ArrayType>(Types.get<ink::ir::IntegerType>(32, true), 0);
+    const auto *UnitArray = Types.get<ink::ir::ArrayType>(Types.get<ink::ir::VoidType>(), 2);
+    const auto *Empty = Context.constantPool().get<ink::ir::ArrayConstant>(EmptyArray);
     ASSERT_NE(EmptyArray, nullptr);
     ASSERT_NE(UnitArray, nullptr);
     ASSERT_NE(Empty, nullptr);
     EXPECT_EQ(EmptyArray->size(), 0U);
     EXPECT_EQ(UnitArray->size(), 0U);
-    Function Owner(*Types.getFunctionType(Types.getVoidType()));
+    Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
@@ -192,19 +193,19 @@ namespace ink::ir::test
     EXPECT_NE(Builder.createLoad(*EmptyArray, *EmptySlot), nullptr);
     auto *UnitSlot = Builder.createAlloca(*UnitArray);
     ASSERT_NE(UnitSlot, nullptr);
-    const auto *Zero = Context.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 0);
+    const auto *Zero = Context.constantPool().get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(0));
     auto *ArrayAddress = Builder.createAddressOf(*UnitSlot);
     ASSERT_NE(ArrayAddress, nullptr);
     auto *UnitAddress = Builder.createGetElementPtr(*UnitArray, *ArrayAddress, {Zero, Zero});
     ASSERT_NE(UnitAddress, nullptr);
-    EXPECT_EQ(UnitAddress->type(), Types.getPointerType(Types.getVoidType()));
+    EXPECT_EQ(UnitAddress->type(), Types.get<ink::ir::PointerType>(Types.get<ink::ir::VoidType>()));
     const std::size_t PreviousCount = Entry->instructionCount();
-    EXPECT_EQ(Builder.createLoad(*Types.getVoidType(), *UnitAddress), nullptr);
+    EXPECT_EQ(Builder.createLoad(*Types.get<ink::ir::VoidType>(), *UnitAddress), nullptr);
     EXPECT_EQ(Builder.createStore(*Zero, *UnitAddress), nullptr);
-    EXPECT_EQ(Builder.createAlloca(*Types.getVoidType()), nullptr);
-    EXPECT_EQ(Builder.createAlloca(*Types.getMetaType()), nullptr);
-    EXPECT_EQ(Builder.createAlloca(*Types.getVariadicType()), nullptr);
-    EXPECT_EQ(Builder.createAlloca(*Foreign.typePool().getInt32Type()), nullptr);
+    EXPECT_EQ(Builder.createAlloca(*Types.get<ink::ir::VoidType>()), nullptr);
+    EXPECT_EQ(Builder.createAlloca(*Types.get<ink::ir::MetaType>()), nullptr);
+    EXPECT_EQ(Builder.createAlloca(*Types.get<ink::ir::VariadicType>()), nullptr);
+    EXPECT_EQ(Builder.createAlloca(*Foreign.typePool().get<ink::ir::IntegerType>(32, true)), nullptr);
     EXPECT_EQ(Entry->instructionCount(), PreviousCount);
     EXPECT_EQ(Builder.insertBlock(), Entry);
   }
@@ -214,9 +215,9 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *Pointer = Types.getPointerType(Integer);
-    Function Owner(*Types.getFunctionType(Types.getVoidType(), {Pointer}));
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Integer);
+    Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Pointer}));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
@@ -235,7 +236,7 @@ namespace ink::ir::test
     ASSERT_NE(PointerAddress, nullptr);
     EXPECT_EQ(Address->storage(), Slot);
     EXPECT_EQ(Address->type(), Pointer);
-    EXPECT_EQ(PointerAddress->type(), Types.getPointerType(Pointer));
+    EXPECT_EQ(PointerAddress->type(), Types.get<ink::ir::PointerType>(Pointer));
     EXPECT_FALSE(Address->isStorage());
     EXPECT_FALSE(Address->isMutable());
     EXPECT_TRUE(Address->isInitialized());
@@ -261,7 +262,7 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.createAddressOf(*Address), nullptr);
     EXPECT_EQ(Builder.createAddressOf(*Load), nullptr);
     EXPECT_EQ(Builder.createAddressOf(*Owner.parameter(0)), nullptr);
-    const auto *Zero = Context.constantPool().getSignedIntegerConstant(Integer, 0);
+    const auto *Zero = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(0));
     EXPECT_EQ(Builder.createGetElementPtr(*Integer, *Slot, {Zero}), nullptr);
     EXPECT_NE(Builder.createGetElementPtr(*Integer, *Address, {Zero}), nullptr);
   }
@@ -271,13 +272,13 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *Seven = Context.constantPool().getSignedIntegerConstant(Integer, 7);
-    Function Owner(*Types.getFunctionType(Types.getVoidType()));
-    Function Other(*Types.getFunctionType(Types.getVoidType()));
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *Seven = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(7));
+    Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()));
+    Function Other(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()));
     auto *Entry = Owner.createBlock();
     auto *OtherEntry = Other.createBlock();
-    const auto *ConstInteger = Types.getQualifiedType(Integer, false);
+    const auto *ConstInteger = Types.get(Integer, false);
     auto *OtherSlot = static_cast<AllocaInstruction *>(OtherEntry->appendInstruction(std::make_unique<AllocaInstruction>(*ConstInteger)));
     AllocaInstruction Detached(*ConstInteger);
     IRBuilder Builder(Context);
@@ -295,7 +296,7 @@ namespace ink::ir::test
     EXPECT_FALSE(StorageValue.isInitialized());
     EXPECT_TRUE(Recorded->isInitialized());
     const std::size_t PreviousCount = Entry->instructionCount();
-    EXPECT_EQ(Builder.createInitialize(*Context.constantPool().getBoolConstant(true), *Immutable), nullptr);
+    EXPECT_EQ(Builder.createInitialize(*Context.constantPool().get<ink::ir::BoolConstant>(true), *Immutable), nullptr);
     EXPECT_EQ(Builder.createInitialize(*Seven, *OtherSlot), nullptr);
     EXPECT_EQ(Builder.createInitialize(*Seven, Detached), nullptr);
     EXPECT_EQ(Builder.createInitialize(*Seven, *Recorded), nullptr);
@@ -329,23 +330,23 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *Signature = Types.getFunctionType(Integer, {Integer});
-    Function Owner(*Types.getFunctionType(Integer));
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *Signature = Types.get<ink::ir::FunctionType>(Integer, {Integer});
+    Function Owner(*Types.get<ink::ir::FunctionType>(Integer));
     Function Callee(*Signature);
     auto *Entry = Owner.createBlock();
     auto *TargetBlock = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     auto *IntegerSlot = Builder.createAlloca(*Integer);
-    auto *BoolSlot = Builder.createAlloca(*Types.getBoolType());
-    auto *CalleeSlot = Builder.createAlloca(*Types.getPointerType(Signature));
+    auto *BoolSlot = Builder.createAlloca(*Types.get<ink::ir::BoolType>());
+    auto *CalleeSlot = Builder.createAlloca(*Types.get<ink::ir::PointerType>(Signature));
     ASSERT_NE(IntegerSlot, nullptr);
     ASSERT_NE(BoolSlot, nullptr);
     ASSERT_NE(CalleeSlot, nullptr);
     auto *Address = Builder.createAddressOf(*IntegerSlot);
     ASSERT_NE(Address, nullptr);
-    const auto *Zero = Context.constantPool().getSignedIntegerConstant(Integer, 0);
+    const auto *Zero = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(0));
     const std::size_t PreviousCount = Entry->instructionCount();
     EXPECT_EQ(Builder.createNeg(*IntegerSlot), nullptr);
     EXPECT_EQ(Builder.createICmp(ICmpPredicate::Equal, *IntegerSlot, *Zero), nullptr);
@@ -370,15 +371,15 @@ namespace ink::ir::test
     IRContext Context(Target);
     IRContext Foreign(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *Pointer = Types.getPointerType(Integer);
-    const auto *Seven = Context.constantPool().getSignedIntegerConstant(Integer, 7);
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Integer);
+    const auto *Seven = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(7));
     GlobalVariable Mutable(*Integer);
-    const auto *ConstInteger = Types.getQualifiedType(Integer, false);
+    const auto *ConstInteger = Types.get(Integer, false);
     GlobalVariable Immutable(*ConstInteger);
     GlobalVariable PointerSlot(*Pointer);
-    GlobalVariable ForeignStorage(*Foreign.typePool().getInt32Type());
-    Function Owner(*Types.getFunctionType(Types.getVoidType()));
+    GlobalVariable ForeignStorage(*Foreign.typePool().get<ink::ir::IntegerType>(32, true));
+    Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
@@ -395,11 +396,11 @@ namespace ink::ir::test
     auto *Address = Builder.createAddressOf(Immutable);
     ASSERT_NE(Address, nullptr);
     EXPECT_EQ(Address->storage(), &Immutable);
-    EXPECT_EQ(Address->type(), Types.getPointerType(ConstInteger));
+    EXPECT_EQ(Address->type(), Types.get<ink::ir::PointerType>(ConstInteger));
     EXPECT_FALSE(Address->isStorage());
     auto *PointerAddress = Builder.createAddressOf(PointerSlot);
     ASSERT_NE(PointerAddress, nullptr);
-    EXPECT_EQ(PointerAddress->type(), Types.getPointerType(Pointer));
+    EXPECT_EQ(PointerAddress->type(), Types.get<ink::ir::PointerType>(Pointer));
     EXPECT_NE(Builder.createLoad(*Pointer, PointerSlot), nullptr);
     const std::size_t PreviousCount = Entry->instructionCount();
     EXPECT_EQ(Builder.createStore(*Seven, Immutable), nullptr);
@@ -416,10 +417,10 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *ConstInteger = Types.getQualifiedType(Integer, false);
-    const auto *Seven = Context.constantPool().getSignedIntegerConstant(Integer, 7);
-    Function Owner(*Types.getFunctionType(Types.getVoidType()));
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *ConstInteger = Types.get(Integer, false);
+    const auto *Seven = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(7));
+    Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
@@ -431,7 +432,7 @@ namespace ink::ir::test
       ASSERT_NE(Builder.createInitialize(*Seven, *Slot), nullptr);
       auto *Address = Builder.createAddressOf(*Slot);
       ASSERT_NE(Address, nullptr);
-      EXPECT_EQ(Address->type(), Types.getPointerType(ConstInteger));
+      EXPECT_EQ(Address->type(), Types.get<ink::ir::PointerType>(ConstInteger));
       auto *Selected = Builder.createDereference(*Address);
       ASSERT_NE(Selected, nullptr);
       EXPECT_EQ(Selected->type(), ConstInteger);
@@ -453,13 +454,13 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *ConstInteger = Types.getQualifiedType(Integer, false);
-    const auto *Pointer = Types.getPointerType(Integer);
-    const auto *ConstPointer = Types.getQualifiedType(Pointer, false);
-    const auto *ReadonlyPointer = Types.getPointerType(ConstInteger);
-    const auto *Seven = Context.constantPool().getSignedIntegerConstant(Integer, 7);
-    Function Owner(*Types.getFunctionType(Types.getVoidType(), {Pointer, Types.getPointerType(ConstPointer), Types.getPointerType(ReadonlyPointer)}));
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *ConstInteger = Types.get(Integer, false);
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Integer);
+    const auto *ConstPointer = Types.get(Pointer, false);
+    const auto *ReadonlyPointer = Types.get<ink::ir::PointerType>(ConstInteger);
+    const auto *Seven = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(7));
+    Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Pointer, Types.get<ink::ir::PointerType>(ConstPointer), Types.get<ink::ir::PointerType>(ReadonlyPointer)}));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
@@ -510,21 +511,21 @@ namespace ink::ir::test
     IRContext Context(Target);
     Module ModuleValue(Context);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *Pointer = Types.getPointerType(Integer);
-    const auto *ConstPointer = Types.getQualifiedType(Pointer, false);
-    const auto *ConstArray = Types.getQualifiedType(Types.getArrayType(Pointer, 2), false);
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Integer);
+    const auto *ConstPointer = Types.get(Pointer, false);
+    const auto *ConstArray = Types.get(Types.get<ink::ir::ArrayType>(Pointer, 2), false);
     auto *Record = ModuleValue.createStructType(8, 8);
     ASSERT_NE(Record, nullptr);
     ASSERT_TRUE(Record->addField(Field(Pointer, core::NamePool::instance().intern("Pointer"), 0)));
-    const auto *ConstRecord = Types.getQualifiedType(Record, false);
+    const auto *ConstRecord = Types.get(Record, false);
     ASSERT_NE(ConstRecord, nullptr);
-    Function Owner(*Types.getFunctionType(Types.getVoidType(), {Types.getPointerType(ConstArray), Types.getPointerType(ConstRecord)}));
+    Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Types.get<ink::ir::PointerType>(ConstArray), Types.get<ink::ir::PointerType>(ConstRecord)}));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
-    const auto *Zero = Context.constantPool().getSignedIntegerConstant(Integer, 0);
-    const auto *Seven = Context.constantPool().getSignedIntegerConstant(Integer, 7);
+    const auto *Zero = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(0));
+    const auto *Seven = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(7));
     const Type *Aggregates[] = {
         ConstArray,
         ConstRecord,
@@ -533,7 +534,7 @@ namespace ink::ir::test
     {
       auto *Address = Builder.createGetElementPtr(*Aggregates[Index], *Owner.parameter(Index), {Zero, Zero});
       ASSERT_NE(Address, nullptr);
-      EXPECT_EQ(Address->type(), Types.getPointerType(ConstPointer));
+      EXPECT_EQ(Address->type(), Types.get<ink::ir::PointerType>(ConstPointer));
       auto *Storage = Builder.createDereference(*Address);
       ASSERT_NE(Storage, nullptr);
       EXPECT_EQ(Storage->type(), ConstPointer);
@@ -555,9 +556,9 @@ namespace ink::ir::test
 #else
     IRContext Context(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *Pointer = Types.getPointerType(Integer);
-    Function Owner(*Types.getFunctionType(Types.getVoidType(), {Integer, Pointer}));
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Integer);
+    Function Owner(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Integer, Pointer}));
     AllocaInstruction Detached(*Integer);
     IRBuilder Builder(Context);
     EXPECT_DEATH(static_cast<void>(Builder.createAlloca(*Integer)), "check failed:");

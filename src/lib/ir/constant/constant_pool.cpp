@@ -37,6 +37,11 @@ namespace ink::ir
     }
   } // namespace
 
+  std::size_t ConstantPool::IntegerBitsHash::operator()(const core::IntegerBits &Bits) const noexcept
+  {
+    return Bits.hash();
+  }
+
   bool ConstantPool::ArrayKey::operator==(const ArrayKey &Other) const noexcept
   {
     return ConstantType == Other.ConstantType && Elements == Other.Elements;
@@ -63,9 +68,9 @@ namespace ink::ir
 
   ConstantPool::ConstantPool(IRContext &Owner)
       : Owner(Owner),
-        False(Owner.typePool().getBoolType(), false),
-        True(Owner.typePool().getBoolType(), true),
-        NullPointer(Owner.typePool().getNullPointerType())
+        False(Owner.typePool().get<BoolType>(), false),
+        True(Owner.typePool().get<BoolType>(), true),
+        NullPointer(Owner.typePool().get<NullPointerType>())
   {
     OwnedConstants.insert({&False, &True, &NullPointer});
   }
@@ -82,14 +87,9 @@ namespace ink::ir
     return OwnedConstants.find(ConstantValue) != OwnedConstants.end();
   }
 
-  const BoolConstant *ConstantPool::getBoolConstant(bool Value) const noexcept
+  const IntegerConstant *ConstantPool::internIntegerFromBits(const IntegerType *IntegerTypeValue, const core::IntegerBits &Bits)
   {
-    return Value ? &True : &False;
-  }
-
-  const IntegerConstant *ConstantPool::getIntegerConstantFromBits(const IntegerType *IntegerTypeValue, std::uint64_t Bits)
-  {
-    if (!irContext().containsType(IntegerTypeValue) || (IntegerTypeValue->width() < 64 && (Bits >> IntegerTypeValue->width()) != 0))
+    if (!irContext().containsType(IntegerTypeValue) || IntegerTypeValue->width() != Bits.bitWidth())
     {
       return nullptr;
     }
@@ -104,34 +104,37 @@ namespace ink::ir
     return Result;
   }
 
-  const IntegerConstant *ConstantPool::getSignedIntegerConstant(const IntegerType *IntegerTypeValue, std::int64_t Value)
+  const IntegerConstant *ConstantPool::internSignedInteger(const IntegerType *IntegerTypeValue, std::int64_t Value)
   {
     if (!irContext().containsType(IntegerTypeValue) || !IntegerTypeValue->isSigned())
     {
       return nullptr;
     }
-    if (Value < IntegerTypeValue->minimumValue() || (Value >= 0 && static_cast<std::uint64_t>(Value) > IntegerTypeValue->maximumValue()))
-    {
-      return nullptr;
-    }
-    std::uint64_t Bits = static_cast<std::uint64_t>(Value);
-    if (IntegerTypeValue->width() < 64)
-    {
-      Bits &= (std::uint64_t{1} << IntegerTypeValue->width()) - 1;
-    }
-    return getIntegerConstantFromBits(IntegerTypeValue, Bits);
+    const auto Bits = core::IntegerBits::fromSigned(IntegerTypeValue->width(), Value);
+    return Bits ? internIntegerFromBits(IntegerTypeValue, *Bits) : nullptr;
   }
 
-  const IntegerConstant *ConstantPool::getUnsignedIntegerConstant(const IntegerType *IntegerTypeValue, std::uint64_t Value)
+  const IntegerConstant *ConstantPool::internUnsignedInteger(const IntegerType *IntegerTypeValue, std::uint64_t Value)
   {
-    if (!irContext().containsType(IntegerTypeValue) || !IntegerTypeValue->isUnsigned() || Value > IntegerTypeValue->maximumValue())
+    if (!irContext().containsType(IntegerTypeValue) || !IntegerTypeValue->isUnsigned())
     {
       return nullptr;
     }
-    return getIntegerConstantFromBits(IntegerTypeValue, Value);
+    const auto Bits = core::IntegerBits::fromUnsigned(IntegerTypeValue->width(), Value);
+    return Bits ? internIntegerFromBits(IntegerTypeValue, *Bits) : nullptr;
   }
 
-  const FloatConstant *ConstantPool::getFloatConstantFromBits(const FloatType *FloatTypeValue, std::uint64_t Bits)
+  const FloatConstant *ConstantPool::internFloatFromBits(const FloatType *FloatTypeValue, const core::IntegerBits &Bits)
+  {
+    if (!irContext().containsType(FloatTypeValue) || FloatTypeValue->width() != Bits.bitWidth())
+    {
+      return nullptr;
+    }
+    const auto Value = Bits.tryGetUInt64();
+    return Value ? internFloatFromBits(FloatTypeValue, *Value) : nullptr;
+  }
+
+  const FloatConstant *ConstantPool::internFloatFromBits(const FloatType *FloatTypeValue, std::uint64_t Bits)
   {
     if (!irContext().containsType(FloatTypeValue) || (FloatTypeValue->width() == 32 && Bits > std::numeric_limits<std::uint32_t>::max()))
     {
@@ -148,21 +151,21 @@ namespace ink::ir
     return Result;
   }
 
-  const FloatConstant *ConstantPool::getFloatConstant(float Value)
+  const FloatConstant *ConstantPool::internFloat(float Value)
   {
     std::uint32_t Bits = 0;
     std::memcpy(&Bits, &Value, sizeof(Bits));
-    return getFloatConstantFromBits(irContext().typePool().getFloat32Type(), Bits);
+    return internFloatFromBits(Owner.typePool().get<FloatType>(32), Bits);
   }
 
-  const FloatConstant *ConstantPool::getFloatConstant(double Value)
+  const FloatConstant *ConstantPool::internFloat(double Value)
   {
     std::uint64_t Bits = 0;
     std::memcpy(&Bits, &Value, sizeof(Bits));
-    return getFloatConstantFromBits(irContext().typePool().getFloat64Type(), Bits);
+    return internFloatFromBits(Owner.typePool().get<FloatType>(64), Bits);
   }
 
-  const ArrayConstant *ConstantPool::getArrayConstant(const ArrayType *ConstantType, std::vector<const Constant *> Elements)
+  const ArrayConstant *ConstantPool::internArray(const ArrayType *ConstantType, std::vector<const Constant *> Elements)
   {
     if (!irContext().containsType(ConstantType) || Elements.size() != ConstantType->elementCount())
     {
@@ -186,12 +189,7 @@ namespace ink::ir
     return Result;
   }
 
-  const NullPointerConstant *ConstantPool::getNullPointerConstant() const noexcept
-  {
-    return &NullPointer;
-  }
-
-  const StringConstant *ConstantPool::getStringConstant(std::string Value)
+  const StringConstant *ConstantPool::internString(std::string Value)
   {
     if (Value.size() > Owner.targetContext().maximumPointerSizeValue())
     {
@@ -207,7 +205,7 @@ namespace ink::ir
     {
       return nullptr;
     }
-    const ArrayType *ArrayTypeValue = Owner.typePool().getArrayType(Owner.typePool().getUInt8Type(), Value.size());
+    const ArrayType *ArrayTypeValue = Owner.typePool().get<ArrayType>(Owner.typePool().get<IntegerType>(8, false), Value.size());
     if (!ArrayTypeValue)
     {
       return nullptr;

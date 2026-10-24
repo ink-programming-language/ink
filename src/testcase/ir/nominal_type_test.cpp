@@ -74,10 +74,10 @@ namespace ink::ir::test
       EXPECT_FALSE(OtherTypes.ownsType(First[Index]));
       EXPECT_FALSE(Types.ownsType(Foreign[Index]));
       EXPECT_TRUE(OtherTypes.ownsType(Foreign[Index]));
-      EXPECT_NE(Types.typePool().getPointerType(First[Index]), Types.typePool().getPointerType(Second[Index]));
-      EXPECT_NE(Types.typePool().getReferenceType(First[Index]), Types.typePool().getReferenceType(Second[Index]));
-      EXPECT_NE(Types.typePool().getArrayType(First[Index], 2), Types.typePool().getArrayType(Second[Index], 2));
-      EXPECT_NE(Types.typePool().getFunctionType(First[Index], {First[Index]}), Types.typePool().getFunctionType(Second[Index], {Second[Index]}));
+      EXPECT_NE(Types.typePool().get<ink::ir::PointerType>(First[Index]), Types.typePool().get<ink::ir::PointerType>(Second[Index]));
+      EXPECT_NE(Types.typePool().get<ink::ir::ReferenceType>(First[Index]), Types.typePool().get<ink::ir::ReferenceType>(Second[Index]));
+      EXPECT_NE(Types.typePool().get<ink::ir::ArrayType>(First[Index], 2), Types.typePool().get<ink::ir::ArrayType>(Second[Index], 2));
+      EXPECT_NE(Types.typePool().get<ink::ir::FunctionType>(First[Index], {First[Index]}), Types.typePool().get<ink::ir::FunctionType>(Second[Index], {Second[Index]}));
     }
   }
 
@@ -104,10 +104,10 @@ namespace ink::ir::test
     for (const Type *Value : createNominalTypes(Types, 5, 8))
     {
       ASSERT_NE(Value, nullptr);
-      const auto Pointer = Types.typePool().getPointerType(Value);
-      const auto Reference = Types.typePool().getReferenceType(Value);
-      const auto Array = Types.typePool().getArrayType(Value, 3);
-      const auto Function = Types.typePool().getFunctionType(Value, {Value});
+      const auto Pointer = Types.typePool().get<ink::ir::PointerType>(Value);
+      const auto Reference = Types.typePool().get<ink::ir::ReferenceType>(Value);
+      const auto Array = Types.typePool().get<ink::ir::ArrayType>(Value, 3);
+      const auto Function = Types.typePool().get<ink::ir::FunctionType>(Value, {Value});
       ASSERT_NE(Pointer, nullptr);
       ASSERT_NE(Reference, nullptr);
       ASSERT_NE(Array, nullptr);
@@ -121,10 +121,10 @@ namespace ink::ir::test
       EXPECT_EQ(Function->returnType(), Value);
       ASSERT_EQ(Function->parameterCount(), 1U);
       EXPECT_EQ(Function->parameters()[0].ParameterType, Value);
-      EXPECT_EQ(Types.typePool().getPointerType(Value), Pointer);
-      EXPECT_EQ(Types.typePool().getReferenceType(Value), Reference);
-      EXPECT_EQ(Types.typePool().getArrayType(Value, 3), Array);
-      EXPECT_EQ(Types.typePool().getFunctionType(Value, {Value}), Function);
+      EXPECT_EQ(Types.typePool().get<ink::ir::PointerType>(Value), Pointer);
+      EXPECT_EQ(Types.typePool().get<ink::ir::ReferenceType>(Value), Reference);
+      EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(Value, 3), Array);
+      EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Value, {Value}), Function);
     }
   }
 
@@ -138,12 +138,12 @@ namespace ink::ir::test
     for (const Type *Value : createNominalTypes(OtherTypes, 8, 8))
     {
       ASSERT_NE(Value, nullptr);
-      EXPECT_EQ(Types.typePool().getPointerType(Value), nullptr);
-      EXPECT_EQ(Types.typePool().getReferenceType(Value), nullptr);
-      EXPECT_EQ(Types.typePool().getArrayType(Value, 0), nullptr);
-      EXPECT_EQ(Types.typePool().getArrayType(Value, 3), nullptr);
-      EXPECT_EQ(Types.typePool().getFunctionType(Value, {}), nullptr);
-      EXPECT_EQ(Types.typePool().getFunctionType(Types.typePool().getBoolType(), {Value}), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::PointerType>(Value), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::ReferenceType>(Value), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(Value, 0), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(Value, 3), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Value, {}), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::BoolType>(), {Value}), nullptr);
     }
   }
 
@@ -156,8 +156,8 @@ namespace ink::ir::test
     {
       ASSERT_NE(Value, nullptr);
       EXPECT_EQ(Value->size(), MaximumSize);
-      EXPECT_EQ(Types.typePool().getArrayType(Value, 1), nullptr);
-      const auto Empty = Types.typePool().getArrayType(Value, 0);
+      EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(Value, 1), nullptr);
+      const auto Empty = Types.typePool().get<ink::ir::ArrayType>(Value, 0);
       ASSERT_NE(Empty, nullptr);
       EXPECT_EQ(Empty->elementType(), Value);
       EXPECT_EQ(Empty->size(), 0U);

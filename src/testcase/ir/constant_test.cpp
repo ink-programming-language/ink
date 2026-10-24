@@ -24,12 +24,12 @@ namespace ink::ir::test
     const Type *SharedType = nullptr;
     for (const bool Expected : {false, true})
     {
-      const Value *Borrowed = Constants.getBoolConstant(Expected);
+      const Value *Borrowed = Constants.get<ink::ir::BoolConstant>(Expected);
       ASSERT_NE(Borrowed, nullptr);
       ASSERT_TRUE(BoolConstant::classof(Borrowed));
       const auto *Stored = static_cast<const BoolConstant *>(Borrowed);
       EXPECT_EQ(Stored->value(), Expected);
-      EXPECT_EQ(Stored->type(), Types.typePool().getBoolType());
+      EXPECT_EQ(Stored->type(), Types.typePool().get<ink::ir::BoolType>());
       if (SharedType)
       {
         EXPECT_EQ(Stored->type(), SharedType);

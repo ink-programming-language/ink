@@ -43,11 +43,11 @@ namespace ink::semantic
       auto &Types = Context.typePool();
       if (Qualifier)
       {
-        const ir::Type *Qualified = Types.getQualifiedType(Type, false);
+        const ir::Type *Qualified = Types.get(Type, false);
         RETURN_ERROR_IF_NOT(State.at(Qualifier->Range), Qualified, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a const-qualified object type", Type->toString());
         Type = Qualified;
       }
-      return Node.op() == TokenKind::Star ? static_cast<const ir::Type *>(Types.getPointerType(Type)) : Types.getReferenceType(Type);
+      return Node.op() == TokenKind::Star ? static_cast<const ir::Type *>(Types.get<ir::PointerType>(Type)) : Types.get<ir::ReferenceType>(Type);
     }
     RETURN_ERROR_IF(State.at(Qualifier->Range), Qualifier, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type after a pointer or reference qualifier", Operand->toString());
     RETURN_ERROR_IF(OperandSite, ir::Module::classof(Operand), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type or runtime operand", ir::valueKindName(Operand->kind()));

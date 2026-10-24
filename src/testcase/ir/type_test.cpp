@@ -52,7 +52,7 @@ namespace ink::ir::test
   static_assert(!std::is_copy_constructible_v<IntegerType> && !std::is_move_constructible_v<IntegerType>);
   static_assert(!std::is_copy_constructible_v<FunctionType> && !std::is_move_constructible_v<FunctionType>);
 
-  // Every supported integer width preserves signedness and uses the supplied target's scalar alignment.
+  // Each builtin integer width preserves signedness and uses the supplied target's scalar alignment.
   TEST(IRTypeTest, IntegerWidthsSignednessAndTargetAlignment)
   {
     IRContext TypesContext(Target64);
@@ -65,7 +65,7 @@ namespace ink::ir::test
       {
         for (const bool Signed : {false, true})
         {
-          const auto Integer = TargetTypes.typePool().getIntegerType(Width, Signed);
+          const auto Integer = TargetTypes.typePool().get<ink::ir::IntegerType>(Width, Signed);
           ASSERT_NE(Integer, nullptr);
           EXPECT_EQ(Integer->kind(), ValueKind::Integer);
           EXPECT_EQ(Integer->width(), Width);
@@ -79,8 +79,8 @@ namespace ink::ir::test
 
     IRContext Types32Context(Target32);
     Module Types32(Types32Context);
-    const auto Integer32Target = Types32.typePool().getInt64Type();
-    const auto Integer64Target = Types.typePool().getIntegerType(64, true);
+    const auto Integer32Target = Types32.typePool().get<ink::ir::IntegerType>(64, true);
+    const auto Integer64Target = Types.typePool().get<ink::ir::IntegerType>(64, true);
     ASSERT_NE(Integer32Target, nullptr);
     ASSERT_NE(Integer64Target, nullptr);
     EXPECT_EQ(Integer32Target->alignment(), 4U);
@@ -94,9 +94,9 @@ namespace ink::ir::test
     {
       IRContext TypesContext(Target);
       Module Types(TypesContext);
-      const auto Byte = Types.typePool().getUInt8Type();
+      const auto Byte = Types.typePool().get<ink::ir::IntegerType>(8, false);
       ASSERT_NE(Byte, nullptr);
-      EXPECT_EQ(Byte, Types.typePool().getIntegerType(8, false));
+      EXPECT_EQ(Byte, Types.typePool().get<ink::ir::IntegerType>(8, false));
       EXPECT_EQ(Byte->kind(), ValueKind::Integer);
       EXPECT_EQ(Byte->width(), 8U);
       EXPECT_TRUE(Byte->isUnsigned());
@@ -105,7 +105,7 @@ namespace ink::ir::test
       EXPECT_EQ(Byte->alignment(), 1U);
       EXPECT_TRUE(Type::classof(Byte));
       EXPECT_TRUE(IntegerType::classof(Byte));
-      EXPECT_EQ(Types.typePool().getIntegerType(8, true), Types.typePool().getInt8Type());
+      EXPECT_NE(Types.typePool().get<ink::ir::IntegerType>(8, true), Byte);
     }
   }
 
@@ -121,47 +121,38 @@ namespace ink::ir::test
         std::uint64_t Maximum;
     };
     const Case Cases[] = {
-        {Types.getInt8Type(), -128, 127},
-        {Types.getUInt8Type(), 0, 255},
-        {Types.getInt16Type(), -32768, 32767},
-        {Types.getUInt16Type(), 0, 65535},
-        {Types.getInt32Type(), std::numeric_limits<std::int32_t>::min(), std::numeric_limits<std::int32_t>::max()},
-        {Types.getUInt32Type(), 0, std::numeric_limits<std::uint32_t>::max()},
-        {Types.getInt64Type(), std::numeric_limits<std::int64_t>::min(), std::numeric_limits<std::int64_t>::max()},
-        {Types.getUInt64Type(), 0, std::numeric_limits<std::uint64_t>::max()},
+        {Types.get<ink::ir::IntegerType>(8, true), -128, 127},
+        {Types.get<ink::ir::IntegerType>(8, false), 0, 255},
+        {Types.get<ink::ir::IntegerType>(16, true), -32768, 32767},
+        {Types.get<ink::ir::IntegerType>(16, false), 0, 65535},
+        {Types.get<ink::ir::IntegerType>(32, true), std::numeric_limits<std::int32_t>::min(), std::numeric_limits<std::int32_t>::max()},
+        {Types.get<ink::ir::IntegerType>(32, false), 0, std::numeric_limits<std::uint32_t>::max()},
+        {Types.get<ink::ir::IntegerType>(64, true), std::numeric_limits<std::int64_t>::min(), std::numeric_limits<std::int64_t>::max()},
+        {Types.get<ink::ir::IntegerType>(64, false), 0, std::numeric_limits<std::uint64_t>::max()},
     };
     for (const auto &Entry : Cases)
     {
       ASSERT_NE(Entry.Type, nullptr);
       SCOPED_TRACE(Entry.Type->toString());
-      EXPECT_EQ(Entry.Type->minimumValue(), Entry.Minimum);
-      EXPECT_EQ(Entry.Type->maximumValue(), Entry.Maximum);
+      EXPECT_EQ(Entry.Type->minimumValue().tryGetInt64(), Entry.Minimum);
+      EXPECT_EQ(Entry.Type->maximumValue().tryGetUInt64(), Entry.Maximum);
     }
   }
 
-  // Unsupported integer widths return an explicit failure for either signedness.
+  // Zero and widths beyond the documented storage limit fail explicitly for either signedness.
   TEST(IRTypeTest, IntegerRejectsUnsupportedWidths)
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
     constexpr std::uint32_t UnsupportedWidths[] = {
         0,
-        1,
-        7,
-        9,
-        15,
-        17,
-        31,
-        33,
-        63,
-        65,
-        128,
+        core::IntegerBits::MaxBitWidth + 1U,
         std::numeric_limits<std::uint32_t>::max(),
     };
     for (const std::uint32_t Width : UnsupportedWidths)
     {
-      EXPECT_EQ(Types.typePool().getIntegerType(Width, false), nullptr);
-      EXPECT_EQ(Types.typePool().getIntegerType(Width, true), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::IntegerType>(Width, false), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::IntegerType>(Width, true), nullptr);
     }
   }
 
@@ -176,7 +167,7 @@ namespace ink::ir::test
       Module TargetTypes(TargetTypesContext);
       for (const std::uint32_t Width : {32U, 64U})
       {
-        const auto Float = TargetTypes.typePool().getFloatType(Width);
+        const auto Float = TargetTypes.typePool().get<ink::ir::FloatType>(Width);
         ASSERT_NE(Float, nullptr);
         EXPECT_EQ(Float->kind(), ValueKind::Float);
         EXPECT_EQ(Float->width(), Width);
@@ -187,8 +178,8 @@ namespace ink::ir::test
 
     IRContext Types32Context(Target32);
     Module Types32(Types32Context);
-    const auto Float32Target = Types32.typePool().getFloat64Type();
-    const auto Float64Target = Types.typePool().getFloatType(64);
+    const auto Float32Target = Types32.typePool().get<ink::ir::FloatType>(64);
+    const auto Float64Target = Types.typePool().get<ink::ir::FloatType>(64);
     ASSERT_NE(Float32Target, nullptr);
     ASSERT_NE(Float64Target, nullptr);
     EXPECT_EQ(Float32Target->alignment(), 4U);
@@ -214,7 +205,7 @@ namespace ink::ir::test
     };
     for (const std::uint32_t Width : UnsupportedWidths)
     {
-      EXPECT_EQ(Types.typePool().getFloatType(Width), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::FloatType>(Width), nullptr);
     }
   }
 
@@ -223,7 +214,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Bool = Types.typePool().getBoolType();
+    const auto Bool = Types.typePool().get<ink::ir::BoolType>();
     const Type *TypeValue = Bool;
     const Value *ValueValue = Bool;
     EXPECT_EQ(TypeValue->kind(), ValueKind::Bool);
@@ -241,9 +232,9 @@ namespace ink::ir::test
     {
       IRContext TypesContext(Target);
       Module Types(TypesContext);
-      const auto Element = Types.typePool().getBoolType();
-      const auto Pointer = Types.typePool().getPointerType(Element);
-      const auto Reference = Types.typePool().getReferenceType(Element);
+      const auto Element = Types.typePool().get<ink::ir::BoolType>();
+      const auto Pointer = Types.typePool().get<ink::ir::PointerType>(Element);
+      const auto Reference = Types.typePool().get<ink::ir::ReferenceType>(Element);
       ASSERT_NE(Pointer, nullptr);
       ASSERT_NE(Reference, nullptr);
       EXPECT_EQ(Pointer->kind(), ValueKind::Pointer);
@@ -262,11 +253,11 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Element = Types.typePool().getIntegerType(32, false);
+    const auto Element = Types.typePool().get<ink::ir::IntegerType>(32, false);
     ASSERT_NE(Element, nullptr);
-    const auto Inner = Types.typePool().getArrayType(Element, 3);
+    const auto Inner = Types.typePool().get<ink::ir::ArrayType>(Element, 3);
     ASSERT_NE(Inner, nullptr);
-    const auto Outer = Types.typePool().getArrayType(Inner, 2);
+    const auto Outer = Types.typePool().get<ink::ir::ArrayType>(Inner, 2);
     ASSERT_NE(Outer, nullptr);
     EXPECT_EQ(Inner->kind(), ValueKind::Array);
     EXPECT_EQ(Inner->elementType(), Element);
@@ -284,9 +275,9 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Element = Types.typePool().getArrayType(Types.typePool().getBoolType(), MaximumSize);
+    const auto Element = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::BoolType>(), MaximumSize);
     ASSERT_NE(Element, nullptr);
-    const auto Array = Types.typePool().getArrayType(Element, 0);
+    const auto Array = Types.typePool().get<ink::ir::ArrayType>(Element, 0);
     ASSERT_NE(Array, nullptr);
     EXPECT_EQ(Array->size(), 0U);
     EXPECT_EQ(Array->alignment(), 1U);
@@ -299,15 +290,15 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Element = Types.typePool().getArrayType(Types.typePool().getInt64Type(), 0);
+    const auto Element = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(64, true), 0);
     ASSERT_NE(Element, nullptr);
     EXPECT_TRUE(Element->hasLayout());
-    const auto Array = Types.typePool().getArrayType(Element, MaximumSize);
+    const auto Array = Types.typePool().get<ink::ir::ArrayType>(Element, MaximumSize);
     ASSERT_NE(Array, nullptr);
     EXPECT_EQ(Array->size(), 0U);
     EXPECT_EQ(Array->alignment(), 8U);
     EXPECT_EQ(Array->elementCount(), MaximumSize);
-    const auto Nested = Types.typePool().getArrayType(Array, MaximumSize);
+    const auto Nested = Types.typePool().get<ink::ir::ArrayType>(Array, MaximumSize);
     ASSERT_NE(Nested, nullptr);
     EXPECT_EQ(Nested->size(), 0U);
     EXPECT_EQ(Nested->alignment(), 8U);
@@ -318,19 +309,19 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Element = Types.typePool().getIntegerType(64, true);
+    const auto Element = Types.typePool().get<ink::ir::IntegerType>(64, true);
     ASSERT_NE(Element, nullptr);
-    const auto Largest = Types.typePool().getArrayType(Element, MaximumSize / 8);
+    const auto Largest = Types.typePool().get<ink::ir::ArrayType>(Element, MaximumSize / 8);
     ASSERT_NE(Largest, nullptr);
     EXPECT_EQ(Largest->size(), MaximumSize - 7);
-    EXPECT_EQ(Types.typePool().getArrayType(Element, MaximumSize / 8 + 1), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(Element, MaximumSize / 8 + 1), nullptr);
 
-    const auto HugeElement = Types.typePool().getArrayType(Types.typePool().getBoolType(), MaximumSize);
+    const auto HugeElement = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::BoolType>(), MaximumSize);
     ASSERT_NE(HugeElement, nullptr);
-    const auto Single = Types.typePool().getArrayType(HugeElement, 1);
+    const auto Single = Types.typePool().get<ink::ir::ArrayType>(HugeElement, 1);
     ASSERT_NE(Single, nullptr);
     EXPECT_EQ(Single->size(), MaximumSize);
-    EXPECT_EQ(Types.typePool().getArrayType(HugeElement, 2), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(HugeElement, 2), nullptr);
   }
 
   // Arrays accept the largest size aligned to eight bytes without overflowing their element stride.
@@ -338,9 +329,9 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto LargestAlignedElement = Types.typePool().getArrayType(Types.typePool().getInt64Type(), MaximumSize / 8);
+    const auto LargestAlignedElement = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(64, true), MaximumSize / 8);
     ASSERT_NE(LargestAlignedElement, nullptr);
-    const auto Single = Types.typePool().getArrayType(LargestAlignedElement, 1);
+    const auto Single = Types.typePool().get<ink::ir::ArrayType>(LargestAlignedElement, 1);
     ASSERT_NE(Single, nullptr);
     EXPECT_EQ(Single->size(), MaximumSize - 7);
     EXPECT_EQ(Single->alignment(), 8U);
@@ -351,8 +342,8 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    EXPECT_EQ(Types.typePool().getArrayType(nullptr, 0), nullptr);
-    EXPECT_EQ(Types.typePool().getArrayType(nullptr, 1), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(nullptr, 0), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(nullptr, 1), nullptr);
   }
 
   // Registry names distinguish types, generic declarations, basic blocks, instructions and constants while retaining an unknown fallback.
@@ -393,7 +384,7 @@ namespace ink::ir::test
     Module Types(TypesContext);
     IRContext Types32Context(Target32);
     Module Types32(Types32Context);
-    const Type *Integer = Types32.typePool().getInt64Type();
+    const Type *Integer = Types32.typePool().get<ink::ir::IntegerType>(64, true);
     ASSERT_NE(Integer, nullptr);
     const Value *IntegerValue = Integer;
     EXPECT_EQ(IntegerValue->kind(), ValueKind::Integer);
@@ -401,7 +392,7 @@ namespace ink::ir::test
     EXPECT_EQ(Integer->alignment(), 4U);
     EXPECT_TRUE(Type::classof(IntegerValue));
     EXPECT_TRUE(IntegerType::classof(IntegerValue));
-    const Type *Float = Types.typePool().getFloat64Type();
+    const Type *Float = Types.typePool().get<ink::ir::FloatType>(64);
     ASSERT_NE(Float, nullptr);
     const Value *FloatValue = Float;
     EXPECT_EQ(FloatValue->kind(), ValueKind::Float);

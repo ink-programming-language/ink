@@ -137,10 +137,10 @@ namespace ink::semantic::test
         const ir::Type *Type;
     };
     const Case Cases[] = {
-        {"integer", Context.typePool().getInt32Type()},
-        {"floating", Context.typePool().getFloat64Type()},
-        {"boolean", Context.typePool().getBoolType()},
-        {"character", Context.typePool().getUInt32Type()},
+        {"integer", Context.typePool().get<ink::ir::IntegerType>(32, true)},
+        {"floating", Context.typePool().get<ink::ir::FloatType>(64)},
+        {"boolean", Context.typePool().get<ink::ir::BoolType>()},
+        {"character", Context.typePool().get<ink::ir::IntegerType>(32, false)},
     };
     for (const auto &Entry : Cases)
     {
@@ -182,9 +182,9 @@ namespace ink::semantic::test
         const ir::Type *Type;
     };
     const Case Cases[] = {
-        {"byte", Context.typePool().getUInt8Type()},
-        {"negative", Context.typePool().getInt8Type()},
-        {"floating", Context.typePool().getFloat32Type()},
+        {"byte", Context.typePool().get<ink::ir::IntegerType>(8, false)},
+        {"negative", Context.typePool().get<ink::ir::IntegerType>(8, true)},
+        {"floating", Context.typePool().get<ink::ir::FloatType>(32)},
     };
     for (const auto &Entry : Cases)
     {
@@ -200,12 +200,12 @@ namespace ink::semantic::test
     }
     const auto ByteStores = instructions<ir::StoreInstruction>(*function("byte"));
     ASSERT_TRUE(ir::IntegerConstant::classof(ByteStores[0]->storedValue()));
-    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(ByteStores[0]->storedValue())->bits(), 255U);
+    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(ByteStores[0]->storedValue())->bits().tryGetUInt64(), 255U);
     const auto NegativeStores = instructions<ir::StoreInstruction>(*function("negative"));
     ASSERT_TRUE(ir::NegInstruction::classof(NegativeStores[0]->storedValue()));
     const auto *Negation = static_cast<const ir::NegInstruction *>(NegativeStores[0]->storedValue());
     ASSERT_TRUE(ir::IntegerConstant::classof(Negation->operand()));
-    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(Negation->operand())->bits(), 127U);
+    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(Negation->operand())->bits().tryGetUInt64(), 127U);
   }
 
   // A second local initialized from the first receives its loaded value rather than the first allocation address.
@@ -245,8 +245,8 @@ namespace ink::semantic::test
     ASSERT_EQ(Allocations.size(), 2U);
     ASSERT_EQ(Stores.size(), 2U);
     ASSERT_EQ(Loads.size(), 2U);
-    EXPECT_EQ(Allocations[0]->allocatedType(), Context.typePool().getUInt8Type());
-    EXPECT_EQ(Allocations[1]->allocatedType(), Context.typePool().getUInt8Type());
+    EXPECT_EQ(Allocations[0]->allocatedType(), Context.typePool().get<ink::ir::IntegerType>(8, false));
+    EXPECT_EQ(Allocations[1]->allocatedType(), Context.typePool().get<ink::ir::IntegerType>(8, false));
     EXPECT_EQ(Loads[0]->pointer(), Allocations[0]);
     EXPECT_EQ(Stores[1]->storedValue(), Loads[0]);
     EXPECT_EQ(Stores[1]->pointer(), Allocations[1]);
@@ -263,7 +263,7 @@ namespace ink::semantic::test
     ASSERT_TRUE(analyze(Input));
     ASSERT_EQ(Output.globalVariableCount(), 1U);
     const auto *Storage = Output.globalVariable(0);
-    const auto *PointerType = Context.typePool().getPointerType(Context.typePool().getUInt8Type(false));
+    const auto *PointerType = Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(8, false, false));
     for (const char *Name : {"mutablePointer", "immutablePointer"})
     {
       SCOPED_TRACE(Name);
@@ -304,7 +304,7 @@ namespace ink::semantic::test
     ASSERT_NE(Function, nullptr);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 1U);
-    EXPECT_EQ(Allocations[0]->allocatedType(), Context.typePool().getUInt8Type());
+    EXPECT_EQ(Allocations[0]->allocatedType(), Context.typePool().get<ink::ir::IntegerType>(8, false));
     EXPECT_EQ(instructions<ir::StoreInstruction>(*Function).size(), 1U);
     EXPECT_TRUE(instructions<ir::LoadInstruction>(*Function).empty());
   }
@@ -343,7 +343,7 @@ namespace ink::semantic::test
     const auto Loads = instructions<ir::LoadInstruction>(*Function);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 1U);
-    EXPECT_EQ(Allocations[0]->type(), Context.typePool().getQualifiedType(Context.typePool().getInt32Type(), false));
+    EXPECT_EQ(Allocations[0]->type(), Context.typePool().get(Context.typePool().get<ink::ir::IntegerType>(32, true), false));
     EXPECT_TRUE(Allocations[0]->isStorage());
     EXPECT_FALSE(Allocations[0]->isMutable());
     EXPECT_TRUE(Allocations[0]->isInitialized());
@@ -377,10 +377,10 @@ namespace ink::semantic::test
     ASSERT_EQ(NullAllocations.size(), 2U);
     ASSERT_EQ(NullStores.size(), 2U);
     ASSERT_EQ(NullLoads.size(), 2U);
-    const auto *PointerType = Context.typePool().getPointerType(Context.typePool().getInt32Type());
-    EXPECT_EQ(NullAllocations[0]->allocatedType(), Context.typePool().getQualifiedType(PointerType, false));
+    const auto *PointerType = Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(32, true));
+    EXPECT_EQ(NullAllocations[0]->allocatedType(), Context.typePool().get(PointerType, false));
     EXPECT_EQ(NullAllocations[1]->allocatedType(), PointerType);
-    EXPECT_EQ(NullAllocations[0]->type(), Context.typePool().getQualifiedType(PointerType, false));
+    EXPECT_EQ(NullAllocations[0]->type(), Context.typePool().get(PointerType, false));
     EXPECT_EQ(NullAllocations[1]->type(), PointerType);
     EXPECT_TRUE(NullAllocations[0]->isStorage());
     EXPECT_TRUE(NullAllocations[1]->isStorage());
@@ -408,9 +408,9 @@ namespace ink::semantic::test
     const auto *Function = function("readonly");
     ASSERT_NE(Function, nullptr);
     auto &Types = Context.typePool();
-    const auto *ConstInteger = Types.getQualifiedType(Types.getInt32Type(), false);
-    const auto *ReadonlyPointer = Types.getPointerType(ConstInteger);
-    const auto *ConstReadonlyPointer = Types.getQualifiedType(ReadonlyPointer, false);
+    const auto *ConstInteger = Types.get(Types.get<ink::ir::IntegerType>(32, true), false);
+    const auto *ReadonlyPointer = Types.get<ink::ir::PointerType>(ConstInteger);
+    const auto *ConstReadonlyPointer = Types.get(ReadonlyPointer, false);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
     const auto Loads = instructions<ir::LoadInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 3U);
@@ -481,7 +481,7 @@ namespace ink::semantic::test
     ASSERT_NE(Function, nullptr);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
     ASSERT_EQ(Allocations.size(), 1U);
-    EXPECT_EQ(Allocations[0]->type(), Context.typePool().getInt32Type());
+    EXPECT_EQ(Allocations[0]->type(), Context.typePool().get<ink::ir::IntegerType>(32, true));
     EXPECT_TRUE(Allocations[0]->isStorage());
     EXPECT_TRUE(Allocations[0]->isMutable());
     EXPECT_FALSE(Allocations[0]->isInitialized());
@@ -613,7 +613,7 @@ namespace ink::semantic::test
     ASSERT_EQ(instructions<ir::AllocaInstruction>(*Function).size(), 1U);
     ASSERT_EQ(Stores.size(), 1U);
     ASSERT_TRUE(ir::IntegerConstant::classof(Stores[0]->storedValue()));
-    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(Stores[0]->storedValue())->bits(), 1U);
+    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(Stores[0]->storedValue())->bits().tryGetUInt64(), 1U);
   }
 
   // A shadowing declaration reads the outer name in its initializer, then leaving its block restores that outer binding.
@@ -686,7 +686,7 @@ namespace ink::semantic::test
     ASSERT_EQ(Allocations.size(), 1U);
     ASSERT_EQ(Stores.size(), 1U);
     ASSERT_TRUE(ir::IntegerConstant::classof(Stores[0]->storedValue()));
-    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(Stores[0]->storedValue())->bits(), 7U);
+    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(Stores[0]->storedValue())->bits().tryGetUInt64(), 7U);
     ASSERT_NE(returned(*Function), nullptr);
     ASSERT_TRUE(ir::LoadInstruction::classof(returned(*Function)->returnedValue()));
     EXPECT_EQ(static_cast<const ir::LoadInstruction *>(returned(*Function)->returnedValue())->pointer(), Allocations[0]);
@@ -696,8 +696,8 @@ namespace ink::semantic::test
   TEST_F(SemanticVariableTest, InfersCopiesWithoutTopLevelConst)
   {
     auto &Types = Context.typePool();
-    const auto *Pointer = Types.getPointerType(Types.getUInt8Type(false));
-    const auto *ConstPointer = Types.getQualifiedType(Pointer, false);
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(8, false, false));
+    const auto *ConstPointer = Types.get(Pointer, false);
     ASSERT_NE(ConstPointer, nullptr);
     NameResolver Resolver(Context);
     ASSERT_EQ(Resolver.bind(name("ConstPointer"), const_cast<ir::Type &>(*ConstPointer)), BindResult::Inserted);
@@ -725,9 +725,9 @@ namespace ink::semantic::test
   TEST_F(SemanticVariableTest, CopiesQualifiedCallResultsWithoutChangingSignatures)
   {
     auto &Types = Context.typePool();
-    const auto *ConstInteger = Types.getInt32Type(false);
-    const auto *Pointer = Types.getPointerType(Types.getUInt8Type(false));
-    const auto *ConstPointer = Types.getQualifiedType(Pointer, false);
+    const auto *ConstInteger = Types.get<ink::ir::IntegerType>(32, true, false);
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(8, false, false));
+    const auto *ConstPointer = Types.get(Pointer, false);
     ASSERT_NE(ConstPointer, nullptr);
     NameResolver Resolver(Context);
     ASSERT_EQ(Resolver.bind(name("ConstInteger"), const_cast<ir::IntegerType &>(*ConstInteger)), BindResult::Inserted);
@@ -747,11 +747,11 @@ namespace ink::semantic::test
     const auto Allocations = instructions<ir::AllocaInstruction>(*Copy);
     ASSERT_EQ(Calls.size(), 2U);
     ASSERT_EQ(Allocations.size(), 2U);
-    EXPECT_EQ(Calls[0]->type(), Types.getInt32Type());
+    EXPECT_EQ(Calls[0]->type(), Types.get<ink::ir::IntegerType>(32, true));
     EXPECT_EQ(Calls[0]->functionType()->returnType(), ConstInteger);
     EXPECT_EQ(Calls[1]->type(), Pointer);
     EXPECT_EQ(Calls[1]->functionType()->returnType(), ConstPointer);
-    EXPECT_EQ(Allocations[0]->type(), Types.getInt32Type());
+    EXPECT_EQ(Allocations[0]->type(), Types.get<ink::ir::IntegerType>(32, true));
     EXPECT_EQ(Allocations[1]->type(), Pointer);
     EXPECT_TRUE(Allocations[0]->isMutable());
     EXPECT_TRUE(Allocations[1]->isMutable());
@@ -762,7 +762,7 @@ namespace ink::semantic::test
   // Const-qualified void signatures retain the same implicit and explicit unit-return rules as ordinary void.
   TEST_F(SemanticVariableTest, TreatsQualifiedVoidAsUnitReturn)
   {
-    const auto *ConstVoid = Context.typePool().getVoidType(false);
+    const auto *ConstVoid = Context.typePool().get<ink::ir::VoidType>(false);
     NameResolver Resolver(Context);
     ASSERT_EQ(Resolver.bind(name("ConstVoid"), const_cast<ir::VoidType &>(*ConstVoid)), BindResult::Inserted);
     auto Input = read("func implicitUnit(): ConstVoid {} func explicitUnit(): ConstVoid { return; }");

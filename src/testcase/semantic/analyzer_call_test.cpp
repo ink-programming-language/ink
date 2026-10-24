@@ -191,11 +191,11 @@ namespace ink::semantic::test
       EXPECT_EQ(Call->directCallee(), Identity);
       EXPECT_EQ(Call->callee(), Identity);
       EXPECT_EQ(Call->functionType(), Identity->functionType());
-      EXPECT_EQ(Call->type(), Context.typePool().getInt32Type());
+      EXPECT_EQ(Call->type(), Context.typePool().get<ink::ir::IntegerType>(32, true));
       ASSERT_EQ(Call->argumentCount(), 1U);
       EXPECT_FALSE(Call->argument(0)->hasName());
       ASSERT_TRUE(ir::IntegerConstant::classof(Call->argument(0)->value()));
-      EXPECT_EQ(static_cast<const ir::IntegerConstant *>(Call->argument(0)->value())->bits(), Index + 1U);
+      EXPECT_EQ(static_cast<const ir::IntegerConstant *>(Call->argument(0)->value())->bits().tryGetUInt64(), Index + 1U);
     }
     ASSERT_NE(returned(*Main), nullptr);
     EXPECT_EQ(returned(*Main)->returnedValue(), call(*Main, 1));
@@ -237,7 +237,7 @@ namespace ink::semantic::test
     const auto *Storage = Output.globalVariable(0);
     ASSERT_NE(Storage, nullptr);
     EXPECT_FALSE(Storage->isMutable());
-    EXPECT_EQ(Storage->initializer(), Output.constantPool().getStringConstant("abc"));
+    EXPECT_EQ(Storage->initializer(), Output.constantPool().get<ink::ir::StringConstant>("abc"));
     ASSERT_EQ(First->entryBlock()->instructionCount(), 4U);
     ASSERT_EQ(Second->entryBlock()->instructionCount(), 3U);
     const auto *Call = call(*First, 2);
@@ -260,7 +260,7 @@ namespace ink::semantic::test
     {
       ASSERT_TRUE(ir::GetElementPtrInstruction::classof(Entry.Value));
       const auto *ElementAddress = static_cast<const ir::GetElementPtrInstruction *>(Entry.Value);
-      EXPECT_EQ(ElementAddress->type(), Context.typePool().getPointerType(Context.typePool().getUInt8Type(false)));
+      EXPECT_EQ(ElementAddress->type(), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(8, false, false)));
       EXPECT_EQ(ElementAddress->parentBlock(), Entry.Function->entryBlock());
       ASSERT_TRUE(ir::AddressOfInstruction::classof(ElementAddress->pointer()));
       const auto *ArrayAddress = static_cast<const ir::AddressOfInstruction *>(ElementAddress->pointer());
@@ -273,27 +273,24 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Function values and pointers to function signatures retain their explicit indirect-call signature.
-  TEST_F(SemanticCallTest, CallsFunctionAndFunctionPointerParameters)
+  // Function-valued parameters retain their signature and are called directly without a storage load.
+  TEST_F(SemanticCallTest, CallsFunctionValueParameters)
   {
-    auto Input = read("func identity(Value: i32): i32 { return Value; } func invoke(Callback: func(i32): i32, Value: i32): i32 { return Callback(Value); } func invokePointer(Callback: *func(i32): i32, Value: i32): i32 { return Callback(Value); } func main(): i32 { return invoke(identity, 7); }");
+    auto Input = read("func identity(Value: i32): i32 { return Value; } func invoke(Callback: func(i32): i32, Value: i32): i32 { return Callback(Value); } func main(): i32 { return invoke(identity, 7); }");
     ASSERT_TRUE(Input.succeeded());
     ASSERT_TRUE(analyze(Input));
     ASSERT_NE(function("identity"), nullptr);
-    for (const char *Name : {"invoke", "invokePointer"})
-    {
-      auto *Invoker = function(Name);
-      ASSERT_NE(Invoker, nullptr);
-      const auto *Call = call(*Invoker, 0);
-      ASSERT_NE(Call, nullptr);
-      EXPECT_EQ(Call->directCallee(), nullptr);
-      EXPECT_EQ(Call->callee(), Invoker->parameter(0));
-      EXPECT_EQ(Call->functionType(), function("identity")->functionType());
-      ASSERT_EQ(Call->argumentCount(), 1U);
-      EXPECT_EQ(Call->argument(0)->value(), Invoker->parameter(1));
-      ASSERT_NE(returned(*Invoker), nullptr);
-      EXPECT_EQ(returned(*Invoker)->returnedValue(), Call);
-    }
+    auto *Invoker = function("invoke");
+    ASSERT_NE(Invoker, nullptr);
+    const auto *Call = call(*Invoker, 0);
+    ASSERT_NE(Call, nullptr);
+    EXPECT_EQ(Call->directCallee(), nullptr);
+    EXPECT_EQ(Call->callee(), Invoker->parameter(0));
+    EXPECT_EQ(Call->functionType(), function("identity")->functionType());
+    ASSERT_EQ(Call->argumentCount(), 1U);
+    EXPECT_EQ(Call->argument(0)->value(), Invoker->parameter(1));
+    ASSERT_NE(returned(*Invoker), nullptr);
+    EXPECT_EQ(returned(*Invoker)->returnedValue(), Call);
     ASSERT_NE(function("main"), nullptr);
     const auto *MainCall = call(*function("main"), 0);
     ASSERT_NE(MainCall, nullptr);
@@ -350,7 +347,7 @@ namespace ink::semantic::test
     EXPECT_EQ(call(*Main, 1)->directCallee(), function("unit"));
     EXPECT_EQ(Consume->directCallee(), function("consume"));
     EXPECT_EQ(Consume->argument(0)->value(), call(*Main, 1));
-    EXPECT_EQ(Consume->type(), Context.typePool().getVoidType());
+    EXPECT_EQ(Consume->type(), Context.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(returned(*Main), nullptr);
     EXPECT_FALSE(returned(*Main)->hasReturnedValue());
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
@@ -390,7 +387,7 @@ namespace ink::semantic::test
   // Parameter types guide integer literal materialization and accept pooled null pointer values for pointer arguments.
   TEST_F(SemanticCallTest, TypesLiteralAndNullPointerArguments)
   {
-    const auto *Null = Output.constantPool().getNullPointerConstant();
+    const auto *Null = Output.constantPool().get<ink::ir::NullPointerConstant>();
     ASSERT_EQ(NameResolver(Context).bind(name("Null"), const_cast<ir::NullPointerConstant &>(*Null)), BindResult::Inserted);
     auto Input = read("func byte(Value: u8): u8 { return Value; } func pointer(Value: *u8): void {} func main(): u8 { pointer(Null); return byte(255); }");
     ASSERT_TRUE(Input.succeeded());
@@ -402,9 +399,9 @@ namespace ink::semantic::test
     ASSERT_NE(Pointer, nullptr);
     ASSERT_NE(Byte, nullptr);
     EXPECT_EQ(Pointer->argument(0)->value(), Null);
-    EXPECT_EQ(Byte->argument(0)->value()->type(), Context.typePool().getUInt8Type());
+    EXPECT_EQ(Byte->argument(0)->value()->type(), Context.typePool().get<ink::ir::IntegerType>(8, false));
     ASSERT_TRUE(ir::IntegerConstant::classof(Byte->argument(0)->value()));
-    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(Byte->argument(0)->value())->bits(), 255U);
+    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(Byte->argument(0)->value())->bits().tryGetUInt64(), 255U);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
@@ -412,7 +409,7 @@ namespace ink::semantic::test
   TEST_F(SemanticCallTest, DiagnosesInvalidCallsWithoutAppendingInstructions)
   {
     ASSERT_EQ(NameResolver(Context).bind(name("Package"), Output), BindResult::Inserted);
-    const auto *Null = Output.constantPool().getNullPointerConstant();
+    const auto *Null = Output.constantPool().get<ink::ir::NullPointerConstant>();
     ASSERT_EQ(NameResolver(Context).bind(name("Null"), const_cast<ir::NullPointerConstant &>(*Null)), BindResult::Inserted);
     struct Case
     {
@@ -431,6 +428,8 @@ namespace ink::semantic::test
         {"func main(): void { true(); }", core::DiagnosticKind::SemanticTypeMismatch, "true"},
         {"func main(): void { 1(2); }", core::DiagnosticKind::SemanticTypeMismatch, "1"},
         {"func main(Value: *i32): void { Value(); }", core::DiagnosticKind::SemanticTypeMismatch, "Value"},
+        {"func main(P: *func(): void): void { P(); }", core::DiagnosticKind::SemanticTypeMismatch, "P"},
+        {"func main(P: *const func(): void): void { P(); }", core::DiagnosticKind::SemanticTypeMismatch, "P"},
         {"func main(): void { Null(); }", core::DiagnosticKind::SemanticTypeMismatch, "Null"},
         {"func main(): void { Package(); }", core::DiagnosticKind::SemanticTypeMismatch, "Package"},
     };
@@ -452,6 +451,35 @@ namespace ink::semantic::test
       auto *Main = Destination.globalFunction(Destination.globalFunctionCount() - 1);
       ASSERT_NE(Main, nullptr);
       EXPECT_EQ(Main->entryBlock()->instructionCount(), 0U);
+      unregister(Destination);
+    }
+  }
+
+  // Taking a callable local's address is valid, but calling that pointer requires an explicit dereference.
+  TEST_F(SemanticCallTest, RejectsCallingFunctionStorageAddress)
+  {
+    const char *Cases[] = {
+        "func foo(): i32 { return 1; } func main(): i32 { var F = foo; return (&F)(); }",
+        "func foo(): i32 { return 1; } func main(): i32 { const F = foo; return (&F)(); }",
+    };
+    for (const char *Source : Cases)
+    {
+      SCOPED_TRACE(Source);
+      ir::Module Destination(Context.irContext());
+      auto Input = read(Source);
+      ASSERT_TRUE(Input.succeeded());
+      EXPECT_FALSE(Analysis.analyze(Context, Input, Destination));
+      ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
+      const auto &Diagnostic = Diagnostics.diagnostics()[0];
+      EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticTypeMismatch);
+      const auto Offset = std::string_view(Source).find("(&F)");
+      EXPECT_EQ(Diagnostic.Source, Input.Unit->input().lexedFile().sourceId());
+      EXPECT_EQ(Diagnostic.Span, core::SourceRange::fromByteOffsets(Offset, Offset + 4));
+      const auto *Main = Destination.globalFunction(1);
+      ASSERT_NE(Main, nullptr);
+      ASSERT_EQ(Main->entryBlock()->instructionCount(), 3U);
+      EXPECT_TRUE(ir::AddressOfInstruction::classof(Main->entryBlock()->instruction(2)));
+      EXPECT_FALSE(Main->entryBlock()->hasTerminator());
       unregister(Destination);
     }
   }
@@ -540,8 +568,8 @@ namespace ink::semantic::test
   TEST_F(SemanticCallTest, ReportsUnsupportedGlobalStorageReads)
   {
     auto &Types = Context.typePool();
-    auto *CallableStorage = Output.createGlobalVariable(*Types.getFunctionType(Types.getVoidType()), name("CallableStorage"));
-    auto *Stored = Output.createGlobalVariable(*Types.getInt32Type(), name("Stored"));
+    auto *CallableStorage = Output.createGlobalVariable(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()), name("CallableStorage"));
+    auto *Stored = Output.createGlobalVariable(*Types.get<ink::ir::IntegerType>(32, true), name("Stored"));
     ASSERT_NE(CallableStorage, nullptr);
     ASSERT_NE(Stored, nullptr);
     ASSERT_EQ(NameResolver(Context).bind(name("CallableStorage"), *CallableStorage), BindResult::Inserted);
@@ -579,8 +607,8 @@ namespace ink::semantic::test
         {MalformedCall::MissingMemberObject, "MemberExpr requires an object expression"},
     };
     auto &Types = Context.typePool();
-    auto *Target = Output.createGlobalFunction(*Types.getFunctionType(Types.getInt32Type(), {ir::FunctionTypeParameter(Types.getInt32Type())}), name("Target"));
-    auto *Caller = Output.createGlobalFunction(*Types.getFunctionType(Types.getVoidType()));
+    auto *Target = Output.createGlobalFunction(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::IntegerType>(32, true), {ir::FunctionTypeParameter(Types.get<ink::ir::IntegerType>(32, true))}), name("Target"));
+    auto *Caller = Output.createGlobalFunction(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()));
     ASSERT_NE(Target, nullptr);
     ASSERT_NE(Caller, nullptr);
     auto *Block = Caller->createBlock();
@@ -608,8 +636,8 @@ namespace ink::semantic::test
     auto Input = read("var Result = Target(1);");
     ASSERT_TRUE(Input.succeeded());
     auto &Types = Context.typePool();
-    auto *Target = Output.createGlobalFunction(*Types.getFunctionType(Types.getInt32Type(), {ir::FunctionTypeParameter(Types.getInt32Type())}), name("Target"));
-    auto *Caller = Output.createGlobalFunction(*Types.getFunctionType(Types.getVoidType()));
+    auto *Target = Output.createGlobalFunction(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::IntegerType>(32, true), {ir::FunctionTypeParameter(Types.get<ink::ir::IntegerType>(32, true))}), name("Target"));
+    auto *Caller = Output.createGlobalFunction(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()));
     ASSERT_NE(Target, nullptr);
     ASSERT_NE(Caller, nullptr);
     auto *Block = Caller->createBlock();

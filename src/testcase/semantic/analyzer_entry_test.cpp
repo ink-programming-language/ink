@@ -11,6 +11,7 @@
 #include "ink/frontend/parser/parser.h"
 #include "../core/support/environment_test_support.h"
 
+#include <cstdint>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -174,7 +175,7 @@ namespace ink::semantic::test
     ir::Module Output(Context.irContext());
     auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "14;"));
     ASSERT_TRUE(Input.succeeded());
-    auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    auto *Function = Output.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>()));
     ASSERT_NE(Function, nullptr);
     auto *FirstBlock = Function->createBlock();
     auto *SecondBlock = Function->createBlock();
@@ -210,8 +211,8 @@ namespace ink::semantic::test
     ASSERT_EQ(SecondBlock->instructionCount(), 1U);
     EXPECT_EQ(FirstBlock->instruction(0), FirstReturn);
     EXPECT_EQ(SecondBlock->instruction(0), SecondReturn);
-    EXPECT_EQ(FirstReturn->type(), Context.typePool().getVoidType());
-    EXPECT_EQ(SecondReturn->type(), Context.typePool().getVoidType());
+    EXPECT_EQ(FirstReturn->type(), Context.typePool().get<ink::ir::VoidType>());
+    EXPECT_EQ(SecondReturn->type(), Context.typePool().get<ink::ir::VoidType>());
   }
 
   // Node, explicit-range and derived sites retain their input source across context changes without modifying the parent site.
@@ -286,7 +287,7 @@ namespace ink::semantic::test
     const auto Site = State.at(Range);
     Context.setSource(OtherSource);
     EXPECT_EQ(requireRuntimeValue(Site, &Output), nullptr);
-    EXPECT_EQ(requireRuntimeValue(Site, Context.typePool().getInt32Type()), nullptr);
+    EXPECT_EQ(requireRuntimeValue(Site, Context.typePool().get<ink::ir::IntegerType>(32, true)), nullptr);
     ASSERT_EQ(Consumer.diagnostics().size(), 2U);
     for (const auto &Diagnostic : Consumer.diagnostics())
     {
@@ -296,7 +297,7 @@ namespace ink::semantic::test
       EXPECT_EQ(Diagnostic.Span, Range);
     }
     EXPECT_EQ(requireRuntimeValue(Site, nullptr), nullptr);
-    const auto *Boolean = Context.irContext().constantPool().getBoolConstant(true);
+    const auto *Boolean = Context.irContext().constantPool().get<ink::ir::BoolConstant>(true);
     ASSERT_NE(Boolean, nullptr);
     EXPECT_EQ(requireRuntimeValue(Site, Boolean), Boolean);
     EXPECT_EQ(Consumer.diagnostics().size(), 2U);
@@ -321,10 +322,10 @@ namespace ink::semantic::test
     const auto Range = core::SourceRange::fromByteOffsets(0, 4);
     const auto Site = State.at(Range);
     Context.setSource(OtherSource);
-    const auto *Boolean = Context.irContext().constantPool().getBoolConstant(true);
+    const auto *Boolean = Context.irContext().constantPool().get<ink::ir::BoolConstant>(true);
     ASSERT_NE(Boolean, nullptr);
     EXPECT_EQ(requireType(Site, Boolean), nullptr);
-    EXPECT_EQ(requireType(Site, Foreign.typePool().getInt32Type()), nullptr);
+    EXPECT_EQ(requireType(Site, Foreign.typePool().get<ink::ir::IntegerType>(32, true)), nullptr);
     ASSERT_EQ(Consumer.diagnostics().size(), 2U);
     for (const auto &Diagnostic : Consumer.diagnostics())
     {
@@ -334,7 +335,7 @@ namespace ink::semantic::test
       EXPECT_EQ(Diagnostic.Span, Range);
     }
     EXPECT_EQ(requireType(Site, nullptr), nullptr);
-    const auto *Type = Context.typePool().getInt32Type();
+    const auto *Type = Context.typePool().get<ink::ir::IntegerType>(32, true);
     EXPECT_EQ(requireType(Site, Type), Type);
     EXPECT_EQ(Consumer.diagnostics().size(), 2U);
   }
@@ -396,7 +397,7 @@ namespace ink::semantic::test
       ++Continuations;
       return Candidate;
     };
-    const auto *Value = Context.irContext().constantPool().getBoolConstant(true);
+    const auto *Value = Context.irContext().constantPool().get<ink::ir::BoolConstant>(true);
     ASSERT_NE(Value, nullptr);
     EXPECT_EQ(Require(Value), Value);
     EXPECT_EQ(Reject(Value), Value);
@@ -602,13 +603,13 @@ namespace ink::semantic::test
       auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{}"));
       ASSERT_TRUE(Parsed.succeeded());
       ASSERT_TRUE(Analysis.analyze(Context, Parsed, Output));
-      auto *Pointer = Context.typePool().getPointerType(Context.typePool().getInt32Type());
+      auto *Pointer = Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(32, true));
       ASSERT_NE(Pointer, nullptr);
       auto *Global = Output.createGlobalVariable(*Pointer);
       ASSERT_NE(Global, nullptr);
-      const auto *Null = Output.constantPool().getNullPointerConstant();
+      const auto *Null = Output.constantPool().get<ink::ir::NullPointerConstant>();
       ASSERT_TRUE(Global->setInitializer(Null));
-      auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Pointer));
+      auto *Function = Output.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Pointer));
       ASSERT_NE(Function, nullptr);
       auto *Block = Function->createBlock();
       ASSERT_TRUE(Builder.setInsertPoint(*Block));
@@ -635,7 +636,7 @@ namespace ink::semantic::test
     EXPECT_TRUE(ReadOnlyOutput.constantPool().owns(Global->initializer()));
     EXPECT_EQ(Function->entryBlock()->instruction(0), Return);
     EXPECT_EQ(Return->returnedValue(), Global->initializer());
-    EXPECT_EQ(Return->type(), ReadOnly.typePool().getVoidType());
+    EXPECT_EQ(Return->type(), ReadOnly.typePool().get<ink::ir::VoidType>());
   }
 
   // Accepted analyses preserve caller-owned declarations, pooled constants and independent builder state.
@@ -653,12 +654,12 @@ namespace ink::semantic::test
     ASSERT_TRUE(Empty.succeeded());
     ASSERT_TRUE(Blocks.succeeded());
     auto &Types = Context.typePool();
-    const auto *Integer = Output.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 42);
+    const auto *Integer = Output.constantPool().get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(42));
     ASSERT_NE(Integer, nullptr);
-    auto *Global = Output.createGlobalVariable(*Types.getInt32Type());
+    auto *Global = Output.createGlobalVariable(*Types.get<ink::ir::IntegerType>(32, true));
     ASSERT_NE(Global, nullptr);
     ASSERT_TRUE(Global->setInitializer(Integer));
-    auto *Function = Output.createGlobalFunction(*Types.getFunctionType(Types.getInt32Type()));
+    auto *Function = Output.createGlobalFunction(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::IntegerType>(32, true)));
     ASSERT_NE(Function, nullptr);
     auto *Block = Function->createBlock();
     const frontend::parser::ParseResult *Inputs[] = {&Empty, &Blocks, &Empty};
@@ -673,7 +674,7 @@ namespace ink::semantic::test
       EXPECT_EQ(Output.globalVariable(0), Global);
       EXPECT_EQ(Output.globalFunction(0), Function);
       EXPECT_EQ(Global->initializer(), Integer);
-      EXPECT_EQ(Output.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 42), Integer);
+      EXPECT_EQ(Output.constantPool().get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(42)), Integer);
       EXPECT_EQ(Block->instructionCount(), 0U);
     }
     ASSERT_TRUE(Builder.setInsertPoint(*Block));
@@ -701,7 +702,7 @@ namespace ink::semantic::test
     ASSERT_TRUE(Limited.succeeded());
     Cancelled.Status = frontend::parser::ParseStatus::Cancelled;
     Limited.Status = frontend::parser::ParseStatus::LimitExceeded;
-    auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    auto *Function = Output.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>()));
     ASSERT_NE(Function, nullptr);
     auto *Block = Function->createBlock();
     ASSERT_TRUE(Builder.setInsertPoint(*Block));
@@ -747,7 +748,7 @@ namespace ink::semantic::test
     SemanticContext Context(OtherSources, OtherDiagnosticEngine, target::TargetContext::native());
     ir::Module Output(Context.irContext());
     ir::IRBuilder Builder(Context.irContext());
-    auto *Function = Output.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    auto *Function = Output.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>()));
     ASSERT_NE(Function, nullptr);
     auto *Block = Function->createBlock();
     ASSERT_TRUE(Builder.setInsertPoint(*Block));
@@ -773,7 +774,7 @@ namespace ink::semantic::test
     ir::Module Second(Context.irContext());
     auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "{}"));
     ASSERT_TRUE(Parsed.succeeded());
-    auto *Variable = First.createGlobalVariable(*Context.typePool().getInt32Type());
+    auto *Variable = First.createGlobalVariable(*Context.typePool().get<ink::ir::IntegerType>(32, true));
     ASSERT_NE(Variable, nullptr);
     Analyzer Analysis;
     EXPECT_TRUE(Analysis.analyze(Context, Parsed, First));
@@ -886,7 +887,7 @@ namespace ink::semantic::test
     SemanticContext Foreign(Sources, Diagnostics, target::TargetContext::native());
     ir::Module Output(Context.irContext());
     ir::Module ForeignOutput(Foreign.irContext());
-    auto *Variable = ForeignOutput.createGlobalVariable(*Foreign.typePool().getInt32Type());
+    auto *Variable = ForeignOutput.createGlobalVariable(*Foreign.typePool().get<ink::ir::IntegerType>(32, true));
     ASSERT_NE(Variable, nullptr);
     auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, ""));
     ASSERT_TRUE(Parsed.succeeded());

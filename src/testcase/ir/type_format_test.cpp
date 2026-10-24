@@ -18,21 +18,21 @@ namespace ink::ir::test
   {
     IRContext Context(Target64);
     auto &Types = Context.typePool();
-    EXPECT_EQ(Types.getMetaType()->toString(), "type");
-    EXPECT_EQ(Types.getBoolType()->toString(), "bool");
-    EXPECT_EQ(Types.getVoidType()->toString(), "void");
-    EXPECT_EQ(Types.getInt8Type()->toString(), "i8");
-    EXPECT_EQ(Types.getUInt8Type()->toString(), "u8");
-    EXPECT_EQ(Types.getInt16Type()->toString(), "i16");
-    EXPECT_EQ(Types.getUInt16Type()->toString(), "u16");
-    EXPECT_EQ(Types.getInt32Type()->toString(), "i32");
-    EXPECT_EQ(Types.getUInt32Type()->toString(), "u32");
-    EXPECT_EQ(Types.getInt64Type()->toString(), "i64");
-    EXPECT_EQ(Types.getUInt64Type()->toString(), "u64");
-    EXPECT_EQ(Types.getFloat32Type()->toString(), "f32");
-    EXPECT_EQ(Types.getFloat64Type()->toString(), "f64");
-    EXPECT_EQ(Types.getNullPointerType()->toString(), "null_pointer");
-    EXPECT_EQ(Types.getVariadicType()->toString(), "variadic");
+    EXPECT_EQ(Types.get<ink::ir::MetaType>()->toString(), "type");
+    EXPECT_EQ(Types.get<ink::ir::BoolType>()->toString(), "bool");
+    EXPECT_EQ(Types.get<ink::ir::VoidType>()->toString(), "void");
+    EXPECT_EQ(Types.get<ink::ir::IntegerType>(8, true)->toString(), "i8");
+    EXPECT_EQ(Types.get<ink::ir::IntegerType>(8, false)->toString(), "u8");
+    EXPECT_EQ(Types.get<ink::ir::IntegerType>(16, true)->toString(), "i16");
+    EXPECT_EQ(Types.get<ink::ir::IntegerType>(16, false)->toString(), "u16");
+    EXPECT_EQ(Types.get<ink::ir::IntegerType>(32, true)->toString(), "i32");
+    EXPECT_EQ(Types.get<ink::ir::IntegerType>(32, false)->toString(), "u32");
+    EXPECT_EQ(Types.get<ink::ir::IntegerType>(64, true)->toString(), "i64");
+    EXPECT_EQ(Types.get<ink::ir::IntegerType>(64, false)->toString(), "u64");
+    EXPECT_EQ(Types.get<ink::ir::FloatType>(32)->toString(), "f32");
+    EXPECT_EQ(Types.get<ink::ir::FloatType>(64)->toString(), "f64");
+    EXPECT_EQ(Types.get<ink::ir::NullPointerType>()->toString(), "null_pointer");
+    EXPECT_EQ(Types.get<ink::ir::VariadicType>()->toString(), "variadic");
   }
 
   // Structural spellings retain nested arrays, pointers and references in expression order.
@@ -40,13 +40,13 @@ namespace ink::ir::test
   {
     IRContext Context(Target64);
     auto &Types = Context.typePool();
-    const auto *Array = Types.getArrayType(Types.getUInt8Type(), 3);
-    const auto *Reference = Types.getReferenceType(Array);
-    const auto *Pointer = Types.getPointerType(Reference);
+    const auto *Array = Types.get<ink::ir::ArrayType>(Types.get<ink::ir::IntegerType>(8, false), 3);
+    const auto *Reference = Types.get<ink::ir::ReferenceType>(Array);
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Reference);
     ASSERT_NE(Pointer, nullptr);
     EXPECT_EQ(Pointer->toString(), "*&[u8; 3]");
-    EXPECT_EQ(Types.getArrayType(Pointer, 2)->toString(), "[*&[u8; 3]; 2]");
-    EXPECT_EQ(Types.getPointerType(Types.getVoidType())->toString(), "*void");
+    EXPECT_EQ(Types.get<ink::ir::ArrayType>(Pointer, 2)->toString(), "[*&[u8; 3]; 2]");
+    EXPECT_EQ(Types.get<ink::ir::PointerType>(Types.get<ink::ir::VoidType>())->toString(), "*void");
   }
 
   // Array counts use the complete unsigned 64-bit range even when their storage size is zero.
@@ -54,8 +54,8 @@ namespace ink::ir::test
   {
     IRContext Context(Target64);
     auto &Types = Context.typePool();
-    const auto *Empty = Types.getArrayType(Types.getUInt8Type(), 0);
-    const auto *Array = Types.getArrayType(Empty, std::numeric_limits<std::uint64_t>::max());
+    const auto *Empty = Types.get<ink::ir::ArrayType>(Types.get<ink::ir::IntegerType>(8, false), 0);
+    const auto *Array = Types.get<ink::ir::ArrayType>(Empty, std::numeric_limits<std::uint64_t>::max());
     ASSERT_NE(Array, nullptr);
     EXPECT_EQ(Array->toString(), "[[u8; 0]; 18446744073709551615]");
   }
@@ -65,11 +65,11 @@ namespace ink::ir::test
   {
     IRContext Context(Target64);
     auto &Types = Context.typePool();
-    const auto *Callback = Types.getFunctionType(Types.getBoolType(), {Types.getUInt8Type()});
-    const auto *Function = Types.getFunctionType(Callback, {{Types.getInt32Type(), true}, Types.getPointerType(Types.getFloat64Type()), {Types.getUInt64Type(), true}});
+    const auto *Callback = Types.get<ink::ir::FunctionType>(Types.get<ink::ir::BoolType>(), {Types.get<ink::ir::IntegerType>(8, false)});
+    const auto *Function = Types.get<ink::ir::FunctionType>(Callback, {{Types.get<ink::ir::IntegerType>(32, true), true}, Types.get<ink::ir::PointerType>(Types.get<ink::ir::FloatType>(64)), {Types.get<ink::ir::IntegerType>(64, false), true}});
     ASSERT_NE(Function, nullptr);
     EXPECT_EQ(Function->toString(), "func(i32..., *f64, u64...): func(u8): bool");
-    EXPECT_EQ(Types.getFunctionType(Types.getVoidType())->toString(), "func(): void");
+    EXPECT_EQ(Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>())->toString(), "func(): void");
   }
 
   // Nominal declarations use current names without expanding self-referential fields and fall back to their kinds when unnamed.
@@ -80,7 +80,7 @@ namespace ink::ir::test
     auto &Names = core::NamePool::instance();
     auto *Struct = Owner.createStructType(8, 8, Names.intern("FormatNode"));
     ASSERT_NE(Struct, nullptr);
-    ASSERT_TRUE(Struct->addField(Field(Context.typePool().getPointerType(Struct), Names.intern("Next"), 0)));
+    ASSERT_TRUE(Struct->addField(Field(Context.typePool().get<ink::ir::PointerType>(Struct), Names.intern("Next"), 0)));
     EXPECT_EQ(Struct->toString(), "FormatNode");
     ASSERT_TRUE(Struct->setName(Names.intern("RenamedFormatNode")));
     EXPECT_EQ(Struct->toString(), "RenamedFormatNode");
@@ -97,10 +97,10 @@ namespace ink::ir::test
     auto &Types = Context.typePool();
     auto *Leaf = Owner.createStructType(8, 8, core::NamePool::instance().intern("FormatLeaf"));
     ASSERT_NE(Leaf, nullptr);
-    const auto *Reference = Types.getReferenceType(Leaf);
-    const auto *Array = Types.getArrayType(Reference, 3);
-    const auto *Pointer = Types.getPointerType(Array);
-    const Value *Signature = Types.getFunctionType(Leaf, {{Pointer, true}});
+    const auto *Reference = Types.get<ink::ir::ReferenceType>(Leaf);
+    const auto *Array = Types.get<ink::ir::ArrayType>(Reference, 3);
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Array);
+    const Value *Signature = Types.get<ink::ir::FunctionType>(Leaf, {{Pointer, true}});
     ASSERT_NE(Signature, nullptr);
     EXPECT_EQ(Signature->toString(), "func(*[&FormatLeaf; 3]...): FormatLeaf");
   }
@@ -109,11 +109,11 @@ namespace ink::ir::test
   TEST(IRTypeFormatTest, FormatsDeepPointerChainsWithoutStackOverflow)
   {
     IRContext Context(Target64);
-    const Type *Current = Context.typePool().getInt32Type();
+    const Type *Current = Context.typePool().get<ink::ir::IntegerType>(32, true);
     constexpr std::size_t Depth = 16384;
     for (std::size_t Index = 0; Index < Depth; ++Index)
     {
-      Current = Context.typePool().getPointerType(Current);
+      Current = Context.typePool().get<ink::ir::PointerType>(Current);
       ASSERT_NE(Current, nullptr);
     }
     const Value &ValueObject = *Current;
@@ -125,15 +125,15 @@ namespace ink::ir::test
   {
     IRContext Context(Target64);
     auto &Types = Context.typePool();
-    const Type *Current = Types.getInt32Type();
+    const Type *Current = Types.get<ink::ir::IntegerType>(32, true);
     constexpr std::size_t Depth = 4096;
     std::string Expected;
     for (std::size_t Index = 0; Index < Depth; ++Index)
     {
-      Current = Types.getPointerType(Current);
-      Current = Types.getReferenceType(Current);
-      Current = Types.getArrayType(Current, 1);
-      Current = Types.getFunctionType(Current);
+      Current = Types.get<ink::ir::PointerType>(Current);
+      Current = Types.get<ink::ir::ReferenceType>(Current);
+      Current = Types.get<ink::ir::ArrayType>(Current, 1);
+      Current = Types.get<ink::ir::FunctionType>(Current);
       ASSERT_NE(Current, nullptr);
       Expected += "func(): [&*";
     }

@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <type_traits>
 #include <vector>
 
@@ -28,9 +29,9 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
-    const auto FirstLiteral = Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), 1);
-    const auto SecondLiteral = Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), 2);
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>(), {Types.typePool().get<ink::ir::IntegerType>(32, true)});
+    const auto FirstLiteral = Constants.get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(1));
+    const auto SecondLiteral = Constants.get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(2));
     ASSERT_NE(Signature, nullptr);
     ASSERT_NE(FirstLiteral, nullptr);
     ASSERT_NE(SecondLiteral, nullptr);
@@ -53,7 +54,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>(), {Types.typePool().get<ink::ir::IntegerType>(32, true)});
     ASSERT_NE(Signature, nullptr);
     const core::Name FunctionName = core::NamePool::instance().intern("IRArgumentTest.Callee");
     const core::Name FormalName = core::NamePool::instance().intern("IRArgumentTest.Formal");

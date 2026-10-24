@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <array>
 #include <memory>
 #include <unordered_set>
@@ -23,24 +24,24 @@ namespace ink::ir::test
     IRContext Context(Target);
     auto &Types = Context.typePool();
     const Type *Builtins[] = {
-        Types.getBoolType(),
-        Types.getInt8Type(),
-        Types.getUInt8Type(),
-        Types.getInt16Type(),
-        Types.getUInt16Type(),
-        Types.getInt32Type(),
-        Types.getUInt32Type(),
-        Types.getInt64Type(),
-        Types.getUInt64Type(),
-        Types.getFloat32Type(),
-        Types.getFloat64Type(),
-        Types.getVoidType(),
-        Types.getNullPointerType(),
+        Types.get<ink::ir::BoolType>(),
+        Types.get<ink::ir::IntegerType>(8, true),
+        Types.get<ink::ir::IntegerType>(8, false),
+        Types.get<ink::ir::IntegerType>(16, true),
+        Types.get<ink::ir::IntegerType>(16, false),
+        Types.get<ink::ir::IntegerType>(32, true),
+        Types.get<ink::ir::IntegerType>(32, false),
+        Types.get<ink::ir::IntegerType>(64, true),
+        Types.get<ink::ir::IntegerType>(64, false),
+        Types.get<ink::ir::FloatType>(32),
+        Types.get<ink::ir::FloatType>(64),
+        Types.get<ink::ir::VoidType>(),
+        Types.get<ink::ir::NullPointerType>(),
     };
     for (const auto *Mutable : Builtins)
     {
       SCOPED_TRACE(Mutable->toString());
-      const auto *Immutable = Types.getQualifiedType(Mutable, false);
+      const auto *Immutable = Types.get(Mutable, false);
       ASSERT_NE(Immutable, nullptr);
       EXPECT_NE(Immutable, Mutable);
       EXPECT_TRUE(Mutable->isMutable());
@@ -52,10 +53,10 @@ namespace ink::ir::test
       EXPECT_EQ(Immutable->alignment(), Mutable->alignment());
       EXPECT_TRUE(Types.owns(Immutable));
       EXPECT_TRUE(Context.containsType(Immutable));
-      EXPECT_EQ(Types.getQualifiedType(Mutable, true), Mutable);
-      EXPECT_EQ(Types.getQualifiedType(Mutable, false), Immutable);
-      EXPECT_EQ(Types.getQualifiedType(Immutable, false), Immutable);
-      EXPECT_EQ(Types.getQualifiedType(Immutable, true), Mutable);
+      EXPECT_EQ(Types.get(Mutable, true), Mutable);
+      EXPECT_EQ(Types.get(Mutable, false), Immutable);
+      EXPECT_EQ(Types.get(Immutable, false), Immutable);
+      EXPECT_EQ(Types.get(Immutable, true), Mutable);
       EXPECT_EQ(Immutable->unqualifiedType(), Mutable);
       EXPECT_EQ(Mutable->unqualifiedType(), Mutable);
     }
@@ -66,13 +67,13 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *ConstInteger = Types.getQualifiedType(Integer, false);
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *ConstInteger = Types.get(Integer, false);
     const std::array<const PointerType *, 4> Pointers = {
-        Types.getPointerType(Integer, true),
-        Types.getPointerType(Integer, false),
-        Types.getPointerType(ConstInteger, true),
-        Types.getPointerType(ConstInteger, false),
+        Types.get<ink::ir::PointerType>(Integer, true),
+        Types.get<ink::ir::PointerType>(Integer, false),
+        Types.get<ink::ir::PointerType>(ConstInteger, true),
+        Types.get<ink::ir::PointerType>(ConstInteger, false),
     };
     const std::unordered_set<const PointerType *> Unique(Pointers.begin(), Pointers.end());
     EXPECT_EQ(Unique.size(), Pointers.size());
@@ -84,21 +85,21 @@ namespace ink::ir::test
       const auto *Pointee = Index < 2 ? Integer : ConstInteger;
       EXPECT_EQ(Pointer->isMutable(), Mutable);
       EXPECT_EQ(Pointer->pointeeType(), Pointee);
-      EXPECT_EQ(Pointer, Types.getPointerType(Pointee, Mutable));
-      EXPECT_EQ(Types.getQualifiedType(Pointer, Mutable), Pointer);
-      EXPECT_EQ(Types.getQualifiedType(Pointer, !Mutable), Pointers[Index ^ 1]);
+      EXPECT_EQ(Pointer, Types.get<ink::ir::PointerType>(Pointee, Mutable));
+      EXPECT_EQ(Types.get(Pointer, Mutable), Pointer);
+      EXPECT_EQ(Types.get(Pointer, !Mutable), Pointers[Index ^ 1]);
       EXPECT_EQ(Pointer->size(), Target.pointerByteWidth());
     }
     for (std::uint64_t Count = 0; Count != 256; ++Count)
     {
-      const auto *Array = Types.getArrayType(Integer, Count);
-      ASSERT_NE(Types.getPointerType(Array, true), nullptr);
-      ASSERT_NE(Types.getPointerType(Array, false), nullptr);
+      const auto *Array = Types.get<ink::ir::ArrayType>(Integer, Count);
+      ASSERT_NE(Types.get<ink::ir::PointerType>(Array, true), nullptr);
+      ASSERT_NE(Types.get<ink::ir::PointerType>(Array, false), nullptr);
     }
-    EXPECT_EQ(Types.getPointerType(Integer), Pointers[0]);
-    EXPECT_EQ(Types.getPointerType(Integer, false), Pointers[1]);
-    EXPECT_EQ(Types.getPointerType(ConstInteger), Pointers[2]);
-    EXPECT_EQ(Types.getPointerType(ConstInteger, false), Pointers[3]);
+    EXPECT_EQ(Types.get<ink::ir::PointerType>(Integer), Pointers[0]);
+    EXPECT_EQ(Types.get<ink::ir::PointerType>(Integer, false), Pointers[1]);
+    EXPECT_EQ(Types.get<ink::ir::PointerType>(ConstInteger), Pointers[2]);
+    EXPECT_EQ(Types.get<ink::ir::PointerType>(ConstInteger, false), Pointers[3]);
     EXPECT_TRUE(Integer->isMutable());
     EXPECT_FALSE(ConstInteger->isMutable());
     EXPECT_EQ(ConstInteger->toString(), "const i32");
@@ -113,12 +114,12 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *ConstInteger = Types.getQualifiedType(Integer, false);
-    const auto *ReadonlyPointer = Types.getPointerType(ConstInteger);
-    const auto *Array = Types.getArrayType(ReadonlyPointer, 3);
-    const auto *Reference = Types.getReferenceType(ReadonlyPointer);
-    const auto *Signature = Types.getFunctionType(ReadonlyPointer, {Integer, {ReadonlyPointer, true}});
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *ConstInteger = Types.get(Integer, false);
+    const auto *ReadonlyPointer = Types.get<ink::ir::PointerType>(ConstInteger);
+    const auto *Array = Types.get<ink::ir::ArrayType>(ReadonlyPointer, 3);
+    const auto *Reference = Types.get<ink::ir::ReferenceType>(ReadonlyPointer);
+    const auto *Signature = Types.get<ink::ir::FunctionType>(ReadonlyPointer, {Integer, {ReadonlyPointer, true}});
     const Type *Structural[] = {
         Array,
         Reference,
@@ -126,25 +127,25 @@ namespace ink::ir::test
     };
     for (const auto *Mutable : Structural)
     {
-      const auto *Immutable = Types.getQualifiedType(Mutable, false);
+      const auto *Immutable = Types.get(Mutable, false);
       ASSERT_NE(Immutable, nullptr);
       EXPECT_NE(Immutable, Mutable);
       EXPECT_EQ(Immutable->kind(), Mutable->kind());
       EXPECT_FALSE(Immutable->isMutable());
       EXPECT_EQ(Immutable->size(), Mutable->size());
       EXPECT_EQ(Immutable->alignment(), Mutable->alignment());
-      EXPECT_EQ(Types.getQualifiedType(Immutable, true), Mutable);
-      EXPECT_EQ(Types.getQualifiedType(Mutable, false), Immutable);
+      EXPECT_EQ(Types.get(Immutable, true), Mutable);
+      EXPECT_EQ(Types.get(Mutable, false), Immutable);
     }
-    const auto *ConstArray = static_cast<const ArrayType *>(Types.getQualifiedType(Array, false));
+    const auto *ConstArray = static_cast<const ArrayType *>(Types.get(Array, false));
     EXPECT_EQ(ConstArray->elementType(), ReadonlyPointer);
     EXPECT_EQ(ConstArray->elementCount(), 3U);
-    EXPECT_NE(ConstArray, Types.getArrayType(Types.getQualifiedType(ReadonlyPointer, false), 3));
-    const auto *ConstReference = static_cast<const ReferenceType *>(Types.getQualifiedType(Reference, false));
+    EXPECT_NE(ConstArray, Types.get<ink::ir::ArrayType>(Types.get(ReadonlyPointer, false), 3));
+    const auto *ConstReference = static_cast<const ReferenceType *>(Types.get(Reference, false));
     EXPECT_EQ(ConstReference->referencedType(), ReadonlyPointer);
-    EXPECT_EQ(ConstReference, Types.getReferenceType(ReadonlyPointer, false));
-    EXPECT_NE(ConstReference, Types.getReferenceType(Types.getQualifiedType(ReadonlyPointer, false)));
-    const auto *ConstSignature = static_cast<const FunctionType *>(Types.getQualifiedType(Signature, false));
+    EXPECT_EQ(ConstReference, Types.get<ink::ir::ReferenceType>(ReadonlyPointer, false));
+    EXPECT_NE(ConstReference, Types.get<ink::ir::ReferenceType>(Types.get(ReadonlyPointer, false)));
+    const auto *ConstSignature = static_cast<const FunctionType *>(Types.get(Signature, false));
     EXPECT_EQ(ConstSignature->returnType(), ReadonlyPointer);
     ASSERT_EQ(ConstSignature->parameterCount(), 2U);
     EXPECT_EQ(ConstSignature->parameters()[0].ParameterType, Integer);
@@ -161,31 +162,31 @@ namespace ink::ir::test
     IRContext Foreign(Target);
     auto &Types = Context.typePool();
     auto &OtherTypes = Foreign.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *ConstInteger = Types.getQualifiedType(Integer, false);
-    const auto *MutableSignature = Types.getFunctionType(Integer, {Integer});
-    const auto *ConstParameterSignature = Types.getFunctionType(Integer, {ConstInteger});
-    const auto *ConstResultSignature = Types.getFunctionType(ConstInteger, {Integer});
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *ConstInteger = Types.get(Integer, false);
+    const auto *MutableSignature = Types.get<ink::ir::FunctionType>(Integer, {Integer});
+    const auto *ConstParameterSignature = Types.get<ink::ir::FunctionType>(Integer, {ConstInteger});
+    const auto *ConstResultSignature = Types.get<ink::ir::FunctionType>(ConstInteger, {Integer});
     EXPECT_NE(MutableSignature, ConstParameterSignature);
     EXPECT_NE(MutableSignature, ConstResultSignature);
-    EXPECT_EQ(ConstParameterSignature, Types.getFunctionType(Integer, {ConstInteger}));
-    EXPECT_EQ(ConstResultSignature, Types.getFunctionType(ConstInteger, {Integer}));
+    EXPECT_EQ(ConstParameterSignature, Types.get<ink::ir::FunctionType>(Integer, {ConstInteger}));
+    EXPECT_EQ(ConstResultSignature, Types.get<ink::ir::FunctionType>(ConstInteger, {Integer}));
     const Type *ForeignTypes[] = {
-        OtherTypes.getInt32Type(),
-        OtherTypes.getQualifiedType(OtherTypes.getInt32Type(), false),
-        OtherTypes.getPointerType(OtherTypes.getInt32Type(), false),
+        OtherTypes.get<ink::ir::IntegerType>(32, true),
+        OtherTypes.get(OtherTypes.get<ink::ir::IntegerType>(32, true), false),
+        OtherTypes.get<ink::ir::PointerType>(OtherTypes.get<ink::ir::IntegerType>(32, true), false),
     };
     for (const auto *ForeignType : ForeignTypes)
     {
       ASSERT_NE(ForeignType, nullptr);
-      EXPECT_EQ(Types.getQualifiedType(ForeignType, true), nullptr);
-      EXPECT_EQ(Types.getQualifiedType(ForeignType, false), nullptr);
-      EXPECT_EQ(Types.getPointerType(ForeignType, false), nullptr);
-      EXPECT_EQ(Types.getReferenceType(ForeignType, false), nullptr);
+      EXPECT_EQ(Types.get(ForeignType, true), nullptr);
+      EXPECT_EQ(Types.get(ForeignType, false), nullptr);
+      EXPECT_EQ(Types.get<ink::ir::PointerType>(ForeignType, false), nullptr);
+      EXPECT_EQ(Types.get<ink::ir::ReferenceType>(ForeignType, false), nullptr);
       EXPECT_FALSE(Types.owns(ForeignType));
     }
-    EXPECT_EQ(Types.getQualifiedType(nullptr, true), nullptr);
-    EXPECT_EQ(Types.getQualifiedType(nullptr, false), nullptr);
+    EXPECT_EQ(Types.get(nullptr, true), nullptr);
+    EXPECT_EQ(Types.get(nullptr, false), nullptr);
   }
 
   // A qualified nominal view keeps its declaration's evolving fields and method identities instead of copying member metadata.
@@ -199,26 +200,26 @@ namespace ink::ir::test
     auto *OtherDeclaration = Owner.createStructType(8, 8);
     ASSERT_NE(Declaration, nullptr);
     ASSERT_NE(OtherDeclaration, nullptr);
-    const auto *Qualified = Types.getQualifiedType(Declaration, false);
+    const auto *Qualified = Types.get(Declaration, false);
     ASSERT_TRUE(StructType::classof(Qualified));
     const auto *ConstDeclaration = static_cast<const StructType *>(Qualified);
     EXPECT_FALSE(ConstDeclaration->isMutable());
     EXPECT_EQ(ConstDeclaration->unqualifiedType(), Declaration);
     EXPECT_EQ(ConstDeclaration->declarationType(), Declaration);
-    EXPECT_EQ(Types.getQualifiedType(ConstDeclaration, true), Declaration);
-    EXPECT_NE(ConstDeclaration, Types.getQualifiedType(OtherDeclaration, false));
+    EXPECT_EQ(Types.get(ConstDeclaration, true), Declaration);
+    EXPECT_NE(ConstDeclaration, Types.get(OtherDeclaration, false));
     EXPECT_TRUE(Context.containsType(ConstDeclaration));
     EXPECT_TRUE(Owner.ownsType(ConstDeclaration));
     Module Peer(Context);
     EXPECT_FALSE(Peer.ownsType(ConstDeclaration));
-    EXPECT_EQ(Foreign.typePool().getQualifiedType(ConstDeclaration, true), nullptr);
-    EXPECT_EQ(Foreign.typePool().getQualifiedType(Declaration, false), nullptr);
+    EXPECT_EQ(Foreign.typePool().get(ConstDeclaration, true), nullptr);
+    EXPECT_EQ(Foreign.typePool().get(Declaration, false), nullptr);
     EXPECT_EQ(ConstDeclaration->fieldCount(), 0U);
     EXPECT_EQ(ConstDeclaration->methodCount(), 0U);
     const auto FieldName = core::NamePool::instance().intern("IRConstTypeTest.Value");
     const auto MethodName = core::NamePool::instance().intern("IRConstTypeTest.Method");
-    ASSERT_TRUE(Declaration->addField(Field(Types.getInt32Type(), FieldName, 0)));
-    ASSERT_TRUE(Declaration->addMethod(Method(std::make_unique<Function>(*Types.getFunctionType(Types.getVoidType()), MethodName))));
+    ASSERT_TRUE(Declaration->addField(Field(Types.get<ink::ir::IntegerType>(32, true), FieldName, 0)));
+    ASSERT_TRUE(Declaration->addMethod(Method(std::make_unique<Function>(*Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>()), MethodName))));
     EXPECT_EQ(ConstDeclaration->fieldCount(), 1U);
     EXPECT_EQ(ConstDeclaration->methodCount(), 1U);
     EXPECT_EQ(ConstDeclaration->field(0), Declaration->field(0));
@@ -241,20 +242,20 @@ namespace ink::ir::test
       Module Owner(Context);
       const auto *Declaration = Owner.createStructType(8, 8);
       ASSERT_NE(Declaration, nullptr);
-      View = Types.getQualifiedType(Declaration, false);
+      View = Types.get(Declaration, false);
       ASSERT_NE(View, nullptr);
       EXPECT_TRUE(Context.containsType(View));
-      EXPECT_EQ(Types.getQualifiedType(View, true), Declaration);
+      EXPECT_EQ(Types.get(View, true), Declaration);
     }
     EXPECT_FALSE(Context.containsType(View));
     EXPECT_FALSE(Types.owns(View));
-    EXPECT_EQ(Types.getQualifiedType(View, true), nullptr);
-    EXPECT_EQ(Types.getQualifiedType(View, false), nullptr);
-    EXPECT_EQ(Types.getPointerType(View), nullptr);
+    EXPECT_EQ(Types.get(View, true), nullptr);
+    EXPECT_EQ(Types.get(View, false), nullptr);
+    EXPECT_EQ(Types.get<ink::ir::PointerType>(View), nullptr);
     Module Next(Context);
     const auto *NextDeclaration = Next.createStructType(8, 8);
     ASSERT_NE(NextDeclaration, nullptr);
-    const auto *NextView = Types.getQualifiedType(NextDeclaration, false);
+    const auto *NextView = Types.get(NextDeclaration, false);
     ASSERT_NE(NextView, nullptr);
     EXPECT_NE(NextView, View);
     EXPECT_EQ(NextView->unqualifiedType(), NextDeclaration);
@@ -267,21 +268,21 @@ namespace ink::ir::test
     IRContext Context(Target);
     IRContext Foreign(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *ConstInteger = Types.getQualifiedType(Integer, false);
-    const auto *Seven = Context.constantPool().getSignedIntegerConstant(Integer, 7);
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *ConstInteger = Types.get(Integer, false);
+    const auto *Seven = Context.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(7));
     ASSERT_NE(Seven, nullptr);
     EXPECT_TRUE(Seven->canInitialize(ConstInteger));
-    EXPECT_FALSE(Seven->canInitialize(Foreign.typePool().getQualifiedType(Foreign.typePool().getInt32Type(), false)));
-    const auto *Pointer = Types.getPointerType(Integer);
-    const auto *ReadonlyPointer = Types.getPointerType(ConstInteger);
-    const auto *Array = Types.getArrayType(Pointer, 1);
-    const auto *ReadonlyArray = Types.getArrayType(ReadonlyPointer, 1);
-    const auto *Value = Context.constantPool().getArrayConstant(Array, {Context.constantPool().getNullPointerConstant()});
+    EXPECT_FALSE(Seven->canInitialize(Foreign.typePool().get(Foreign.typePool().get<ink::ir::IntegerType>(32, true), false)));
+    const auto *Pointer = Types.get<ink::ir::PointerType>(Integer);
+    const auto *ReadonlyPointer = Types.get<ink::ir::PointerType>(ConstInteger);
+    const auto *Array = Types.get<ink::ir::ArrayType>(Pointer, 1);
+    const auto *ReadonlyArray = Types.get<ink::ir::ArrayType>(ReadonlyPointer, 1);
+    const auto *Value = Context.constantPool().get<ink::ir::ArrayConstant>(Array, {Context.constantPool().get<ink::ir::NullPointerConstant>()});
     ASSERT_NE(Value, nullptr);
-    EXPECT_TRUE(Value->canInitialize(Types.getQualifiedType(Array, false)));
+    EXPECT_TRUE(Value->canInitialize(Types.get(Array, false)));
     EXPECT_FALSE(Value->canInitialize(ReadonlyArray));
-    EXPECT_FALSE(Value->canInitialize(Types.getQualifiedType(ReadonlyArray, false)));
+    EXPECT_FALSE(Value->canInitialize(Types.get(ReadonlyArray, false)));
   }
 
   // Negation consumes a const-qualified numeric parameter by value and gives the computed result its mutable canonical type.
@@ -289,9 +290,9 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     auto &Types = Context.typePool();
-    const auto *Integer = Types.getInt32Type();
-    const auto *ConstInteger = Types.getQualifiedType(Integer, false);
-    Function Owner(*Types.getFunctionType(Integer, {ConstInteger}));
+    const auto *Integer = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *ConstInteger = Types.get(Integer, false);
+    Function Owner(*Types.get<ink::ir::FunctionType>(Integer, {ConstInteger}));
     auto *Entry = Owner.createBlock();
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));

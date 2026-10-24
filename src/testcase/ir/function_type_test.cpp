@@ -44,8 +44,8 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Bool = Types.typePool().getBoolType();
-    const auto Function = Types.typePool().getFunctionType(Bool);
+    const auto Bool = Types.typePool().get<ink::ir::BoolType>();
+    const auto Function = Types.typePool().get<ink::ir::FunctionType>(Bool);
     ASSERT_NE(Function, nullptr);
     EXPECT_EQ(Function->kind(), ValueKind::FunctionType);
     EXPECT_EQ(Function->returnType(), Bool);
@@ -58,10 +58,10 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Bool = Types.typePool().getBoolType();
-    const auto Integer = Types.typePool().getIntegerType(32, true);
-    const auto Float = Types.typePool().getFloatType(64);
-    const auto Result = Types.typePool().getArrayType(Types.typePool().getInt64Type(), 3);
+    const auto Bool = Types.typePool().get<ink::ir::BoolType>();
+    const auto Integer = Types.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto Float = Types.typePool().get<ink::ir::FloatType>(64);
+    const auto Result = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(64, true), 3);
     ASSERT_NE(Integer, nullptr);
     ASSERT_NE(Float, nullptr);
     ASSERT_NE(Result, nullptr);
@@ -69,7 +69,7 @@ namespace ink::ir::test
     const FunctionTypeParameter Second(Bool, true);
     const FunctionTypeParameter Third(Float);
     const std::vector<FunctionTypeParameter> Parameters = {First, Second, Third, First};
-    const auto Function = Types.typePool().getFunctionType(Result, Parameters);
+    const auto Function = Types.typePool().get<ink::ir::FunctionType>(Result, Parameters);
     ASSERT_NE(Function, nullptr);
     EXPECT_EQ(Function->returnType(), Result);
     EXPECT_EQ(Function->parameterCount(), Parameters.size());
@@ -81,18 +81,18 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Bool = Types.typePool().getBoolType();
-    const auto Integer = Types.typePool().getIntegerType(32, false);
+    const auto Bool = Types.typePool().get<ink::ir::BoolType>();
+    const auto Integer = Types.typePool().get<ink::ir::IntegerType>(32, false);
     ASSERT_NE(Integer, nullptr);
     const FunctionType *Function = nullptr;
     {
       std::vector<FunctionTypeParameter> Parameters = {Bool, {Integer, true}, Bool};
-      Function = Types.typePool().getFunctionType(Integer, Parameters);
+      Function = Types.typePool().get<ink::ir::FunctionType>(Integer, Parameters);
       ASSERT_NE(Function, nullptr);
       Parameters[0].ParameterType = Integer;
       Parameters[1].Variadic = false;
       expectParametersEqual(*Function, {{Bool, false}, {Integer, true}, {Bool, false}});
-      const auto ModifiedSignature = Types.typePool().getFunctionType(Integer, Parameters);
+      const auto ModifiedSignature = Types.typePool().get<ink::ir::FunctionType>(Integer, Parameters);
       ASSERT_NE(ModifiedSignature, nullptr);
       EXPECT_NE(Function, ModifiedSignature);
       Parameters.clear();
@@ -101,7 +101,7 @@ namespace ink::ir::test
     expectParametersEqual(*Function, {{Bool, false}, {Integer, true}, {Bool, false}});
     EXPECT_EQ(Function->parameterCount(), 3U);
     EXPECT_EQ(Function->returnType(), Integer);
-    EXPECT_EQ(Function, Types.typePool().getFunctionType(Integer, {Bool, {Integer, true}, Bool}));
+    EXPECT_EQ(Function, Types.typePool().get<ink::ir::FunctionType>(Integer, {Bool, {Integer, true}, Bool}));
   }
 
   // Temporary initializer-list descriptors can expire while the signature retains their types and variadic flags.
@@ -109,10 +109,10 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Bool = Types.typePool().getBoolType();
-    const auto Pointer = Types.typePool().getPointerType(Bool);
+    const auto Bool = Types.typePool().get<ink::ir::BoolType>();
+    const auto Pointer = Types.typePool().get<ink::ir::PointerType>(Bool);
     ASSERT_NE(Pointer, nullptr);
-    const FunctionType *Function = Types.typePool().getFunctionType(Bool, {Pointer, {Bool, true}});
+    const FunctionType *Function = Types.typePool().get<ink::ir::FunctionType>(Bool, {Pointer, {Bool, true}});
     ASSERT_NE(Function, nullptr);
     expectParametersEqual(*Function, {{Pointer, false}, {Bool, true}});
     EXPECT_EQ(Function->parameterCount(), 2U);
@@ -124,11 +124,11 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Integer = Types.typePool().getInt32Type();
-    const auto Fixed = Types.typePool().getFunctionType(Integer, {Integer, Integer});
-    const auto FirstVariadic = Types.typePool().getFunctionType(Integer, {{Integer, true}, Integer});
-    const auto LastVariadic = Types.typePool().getFunctionType(Integer, {Integer, {Integer, true}});
-    const auto BothVariadic = Types.typePool().getFunctionType(Integer, {{Integer, true}, {Integer, true}});
+    const auto Integer = Types.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto Fixed = Types.typePool().get<ink::ir::FunctionType>(Integer, {Integer, Integer});
+    const auto FirstVariadic = Types.typePool().get<ink::ir::FunctionType>(Integer, {{Integer, true}, Integer});
+    const auto LastVariadic = Types.typePool().get<ink::ir::FunctionType>(Integer, {Integer, {Integer, true}});
+    const auto BothVariadic = Types.typePool().get<ink::ir::FunctionType>(Integer, {{Integer, true}, {Integer, true}});
     ASSERT_NE(Fixed, nullptr);
     ASSERT_NE(FirstVariadic, nullptr);
     ASSERT_NE(LastVariadic, nullptr);
@@ -141,8 +141,8 @@ namespace ink::ir::test
     EXPECT_NE(LastVariadic, BothVariadic);
     const FunctionTypeParameter Repeated(Integer, true);
     const std::vector<FunctionTypeParameter> Parameters = {Repeated, Repeated};
-    EXPECT_EQ(BothVariadic, Types.typePool().getFunctionType(Integer, Parameters));
-    EXPECT_EQ(FirstVariadic, Types.typePool().getFunctionType(Integer, {{Integer, true}, Integer}));
+    EXPECT_EQ(BothVariadic, Types.typePool().get<ink::ir::FunctionType>(Integer, Parameters));
+    EXPECT_EQ(FirstVariadic, Types.typePool().get<ink::ir::FunctionType>(Integer, {{Integer, true}, Integer}));
   }
 
   // Missing return types and null fixed or variadic parameter types fail at every parameter position.
@@ -150,11 +150,11 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Bool = Types.typePool().getBoolType();
-    EXPECT_EQ(Types.typePool().getFunctionType(nullptr), nullptr);
-    EXPECT_EQ(Types.typePool().getFunctionType(nullptr, {Bool}), nullptr);
-    EXPECT_EQ(Types.typePool().getFunctionType(Bool, {nullptr}), nullptr);
-    EXPECT_EQ(Types.typePool().getFunctionType(Bool, {{nullptr, true}}), nullptr);
+    const auto Bool = Types.typePool().get<ink::ir::BoolType>();
+    EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(nullptr), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(nullptr, {Bool}), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Bool, {nullptr}), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Bool, {{nullptr, true}}), nullptr);
     const FunctionTypeParameter Valid(Bool);
     const FunctionTypeParameter MissingType(nullptr);
     const FunctionTypeParameter MissingVariadicType(nullptr, true);
@@ -165,7 +165,7 @@ namespace ink::ir::test
       for (const FunctionTypeParameter &Invalid : {MissingType, MissingVariadicType})
       {
         Parameters[Index] = Invalid;
-        EXPECT_EQ(Types.typePool().getFunctionType(Bool, Parameters), nullptr);
+        EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Bool, Parameters), nullptr);
       }
     }
   }
@@ -177,9 +177,9 @@ namespace ink::ir::test
     {
       IRContext TypesContext(Target);
       Module Types(TypesContext);
-      const auto Aggregate = Types.typePool().getArrayType(Types.typePool().getInt64Type(), 3);
+      const auto Aggregate = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(64, true), 3);
       ASSERT_NE(Aggregate, nullptr);
-      const auto Function = Types.typePool().getFunctionType(Aggregate, {Aggregate, Aggregate});
+      const auto Function = Types.typePool().get<ink::ir::FunctionType>(Aggregate, {Aggregate, Aggregate});
       ASSERT_NE(Function, nullptr);
       const Type *TypeValue = Function;
       const Value *ValueValue = Function;
@@ -197,11 +197,11 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const auto Bool = Types.typePool().getBoolType();
-    const auto Callback = Types.typePool().getFunctionType(Bool, {Bool});
+    const auto Bool = Types.typePool().get<ink::ir::BoolType>();
+    const auto Callback = Types.typePool().get<ink::ir::FunctionType>(Bool, {Bool});
     ASSERT_NE(Callback, nullptr);
-    const auto CallbackPointer = Types.typePool().getPointerType(Callback);
-    const auto Factory = Types.typePool().getFunctionType(Callback, {Callback, CallbackPointer});
+    const auto CallbackPointer = Types.typePool().get<ink::ir::PointerType>(Callback);
+    const auto Factory = Types.typePool().get<ink::ir::FunctionType>(Callback, {Callback, CallbackPointer});
     ASSERT_NE(Factory, nullptr);
     EXPECT_EQ(Factory->returnType(), Callback);
     ASSERT_EQ(Factory->parameterCount(), 2U);
@@ -217,10 +217,10 @@ namespace ink::ir::test
     Module Types(TypesContext);
     IRContext OtherTypesContext(Target64);
     const Module OtherTypes(OtherTypesContext);
-    const auto Bool = Types.typePool().getBoolType();
-    const auto Foreign = OtherTypes.typePool().getBoolType();
-    EXPECT_EQ(Types.typePool().getFunctionType(Foreign), nullptr);
-    EXPECT_EQ(Types.typePool().getFunctionType(Foreign, {Bool}), nullptr);
+    const auto Bool = Types.typePool().get<ink::ir::BoolType>();
+    const auto Foreign = OtherTypes.typePool().get<ink::ir::BoolType>();
+    EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Foreign), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Foreign, {Bool}), nullptr);
     const FunctionTypeParameter LocalParameter(Bool);
     const FunctionTypeParameter ForeignParameter(Foreign);
     const FunctionTypeParameter ForeignVariadicParameter(Foreign, true);
@@ -231,7 +231,7 @@ namespace ink::ir::test
       for (const FunctionTypeParameter &Invalid : {ForeignParameter, ForeignVariadicParameter})
       {
         Parameters[Index] = Invalid;
-        EXPECT_EQ(Types.typePool().getFunctionType(Bool, Parameters), nullptr);
+        EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Bool, Parameters), nullptr);
       }
     }
   }

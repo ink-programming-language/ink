@@ -40,15 +40,16 @@ namespace ink::semantic
       const ir::IntegerConstant *Constant = nullptr;
       if (Type.isSigned())
       {
-        const auto Maximum = Type.maximumValue();
-        if (Value <= Maximum)
+        // Keep the existing literal typing policy; only adapt the target range query to arbitrary-width types.
+        if (Type.canRepresentUnsignedValue(Value))
         {
-          Constant = Context.irContext().constantPool().getSignedIntegerConstant(&Type, static_cast<std::int64_t>(Value));
+          const auto Bits = core::IntegerBits::fromUnsigned(Type.width(), Value);
+          Constant = Bits ? Context.irContext().constantPool().get<ir::IntegerConstant>(&Type, *Bits) : nullptr;
         }
       }
       else
       {
-        Constant = Context.irContext().constantPool().getUnsignedIntegerConstant(&Type, Value);
+        Constant = Context.irContext().constantPool().get<ir::IntegerConstant>(&Type, Value);
       }
       RETURN_ERROR_IF_NOT(Site, Constant, core::DiagnosticKind::SemanticIntegerOutOfRange, nullptr, Type.toString());
       return Constant;
@@ -60,7 +61,7 @@ namespace ink::semantic
       FloatT Value = 0;
       const auto Parsed = std::from_chars(Text.data(), Text.data() + Text.size(), Value, std::chars_format::general);
       RETURN_IF(Parsed.ec != std::errc{} || Parsed.ptr != Text.data() + Text.size(), nullptr);
-      return Constants.getFloatConstant(Value);
+      return Constants.get<ir::FloatConstant>(Value);
     }
 
     const ir::Value *materializeFloat(const AnalysisSite &Site, std::string_view Text, const ir::FloatType &Type)
@@ -87,7 +88,7 @@ namespace ink::semantic
       case TokenKind::IntegerLiteral:
       {
         EXPECTED_TYPE(Site, ExpectedType, ir::IntegerType, "an integer type");
-        const auto *DefaultType = Hints.DefaultIntegerLiteralType ? Hints.DefaultIntegerLiteralType : Context.typePool().getInt32Type();
+        const auto *DefaultType = Hints.DefaultIntegerLiteralType ? Hints.DefaultIntegerLiteralType : Context.typePool().get<ir::IntegerType>(32, true);
         const auto *Type = ExpectedType ? static_cast<const ir::IntegerType *>(ExpectedType) : DefaultType;
         const auto Value = parseIntegerLiteral(Site, Input, Token);
         RETURN_ERROR_IF_NOT(Site, Value, core::DiagnosticKind::SemanticIntegerOutOfRange, nullptr, Type->toString());
@@ -98,7 +99,7 @@ namespace ink::semantic
         EXPECTED_TYPE(Site, ExpectedType, ir::FloatType, "a floating-point type");
         const auto *Numeric = std::get_if<frontend::tokenizer::NumericInfo>(&Token.Payload);
         RETURN_ERROR_IF(Site, !Numeric || Numeric->Base != core::NumericBase::Decimal, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a decimal floating-point literal", "invalid numeric metadata");
-        const auto *Type = ExpectedType ? static_cast<const ir::FloatType *>(ExpectedType) : Context.typePool().getFloat64Type();
+        const auto *Type = ExpectedType ? static_cast<const ir::FloatType *>(ExpectedType) : Context.typePool().get<ir::FloatType>(64);
         const std::string_view Text = Input.spelling(Token);
         return materializeFloat(Site, Text, *Type);
       }
@@ -108,21 +109,21 @@ namespace ink::semantic
         const auto *Character = std::get_if<frontend::tokenizer::CharInfo>(&Token.Payload);
         CHECK_ICE(Site, Character, core::DiagnosticKind::SemanticInvalidAST, "character LiteralExpr must reference a token with CharInfo metadata");
         CHECK_ICE(Site, core::isUnicodeScalarValue(Character->Value), core::DiagnosticKind::SemanticInvalidAST, "character LiteralExpr metadata must contain a Unicode scalar value");
-        const auto *Type = ExpectedType ? static_cast<const ir::IntegerType *>(ExpectedType) : Context.typePool().getUInt32Type();
+        const auto *Type = ExpectedType ? static_cast<const ir::IntegerType *>(ExpectedType) : Context.typePool().get<ir::IntegerType>(32, false);
         return materializeInteger(Site, static_cast<std::uint64_t>(Character->Value), *Type);
       }
       case TokenKind::StringLiteral:
       {
         const auto *String = std::get_if<frontend::tokenizer::StringInfo>(&Token.Payload);
         CHECK_ICE(Site, String, core::DiagnosticKind::SemanticInvalidAST, "string LiteralExpr must reference a token with StringInfo metadata");
-        const auto *StringType = Context.typePool().getArrayType(Context.typePool().getUInt8Type(), String->Decoded.size());
+        const auto *StringType = Context.typePool().get<ir::ArrayType>(Context.typePool().get<ir::IntegerType>(8, false), String->Decoded.size());
         RETURN_ERROR_IF_NOT(Site, StringType, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a string with representable byte length", "an invalid string layout");
         if (!ir::PointerType::classof(ExpectedType))
         {
           CHECK_TYPE_MATCH(Site, ExpectedType, StringType, nullptr);
         }
         // Pointer targets are checked by the shared conversion path, which can materialize read-only byte storage.
-        const auto *Constant = Context.irContext().constantPool().getStringConstant(String->Decoded);
+        const auto *Constant = Context.irContext().constantPool().get<ir::StringConstant>(String->Decoded);
         RETURN_ERROR_IF_NOT(Site, Constant, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a valid UTF-8 string with representable byte length", "invalid string bytes or length");
         return Constant;
       }

@@ -1,6 +1,7 @@
 #include "ink/ir/type/builtin_type/integer_type.h"
 
 #include <limits>
+#include <vector>
 
 namespace ink::ir
 {
@@ -27,24 +28,48 @@ namespace ink::ir
     return !Signed;
   }
 
-  std::uint64_t IntegerType::maximumValue() const noexcept
+  core::IntegerBits IntegerType::maximumValue() const
   {
-    const std::uint32_t ValueWidth = Width - (Signed ? 1U : 0U);
-    return ValueWidth == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << ValueWidth) - 1;
+    std::vector<std::uint64_t> Words((Width + 63U) / 64U, std::numeric_limits<std::uint64_t>::max());
+    if (Width % 64U != 0)
+    {
+      Words.back() = (std::uint64_t{1} << (Width % 64U)) - 1;
+    }
+    if (Signed)
+    {
+      Words.back() &= ~(std::uint64_t{1} << ((Width - 1U) % 64U));
+    }
+    return *core::IntegerBits::fromWords(Width, Words);
   }
 
-  std::int64_t IntegerType::minimumValue() const noexcept
+  core::IntegerBits IntegerType::minimumValue() const
   {
-    if (!Signed)
+    std::vector<std::uint64_t> Words((Width + 63U) / 64U, 0);
+    if (Signed)
     {
-      return 0;
+      Words.back() = std::uint64_t{1} << ((Width - 1U) % 64U);
     }
-    return Width == 64 ? std::numeric_limits<std::int64_t>::min() : -(std::int64_t{1} << (Width - 1));
+    return *core::IntegerBits::fromWords(Width, Words);
+  }
+
+  bool IntegerType::canRepresentSignedValue(std::int64_t Value) const noexcept
+  {
+    if (Value >= 0)
+    {
+      return canRepresentUnsignedValue(static_cast<std::uint64_t>(Value));
+    }
+    return Signed && (Width >= 64U || Value >= -(std::int64_t{1} << (Width - 1U)));
+  }
+
+  bool IntegerType::canRepresentUnsignedValue(std::uint64_t Value) const noexcept
+  {
+    const std::uint32_t ValueWidth = Width - (Signed ? 1U : 0U);
+    return ValueWidth >= 64U || Value < (std::uint64_t{1} << ValueWidth);
   }
 
   std::uint64_t IntegerType::size() const noexcept
   {
-    return Width / 8;
+    return (static_cast<std::uint64_t>(Width) + 7U) / 8U;
   }
 
   std::uint64_t IntegerType::alignment() const noexcept

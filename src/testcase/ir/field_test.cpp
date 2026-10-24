@@ -48,16 +48,16 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRFieldTest.member");
-    const Field Original(Types.typePool().getInt32Type(), Name, MaximumSize);
+    const Field Original(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, MaximumSize);
     EXPECT_TRUE(Original.hasName());
-    expectField(&Original, Types.typePool().getInt32Type(), Name, MaximumSize);
+    expectField(&Original, Types.typePool().get<ink::ir::IntegerType>(32, true), Name, MaximumSize);
     const Field Copied = Original;
-    expectField(&Copied, Types.typePool().getInt32Type(), Name, MaximumSize);
-    Field Assigned(Types.typePool().getBoolType());
+    expectField(&Copied, Types.typePool().get<ink::ir::IntegerType>(32, true), Name, MaximumSize);
+    Field Assigned(Types.typePool().get<ink::ir::BoolType>());
     Assigned = Copied;
-    expectField(&Assigned, Types.typePool().getInt32Type(), Name, MaximumSize);
-    const Field DefaultOffset(Types.typePool().getBoolType(), Name);
-    expectField(&DefaultOffset, Types.typePool().getBoolType(), Name, 0);
+    expectField(&Assigned, Types.typePool().get<ink::ir::IntegerType>(32, true), Name, MaximumSize);
+    const Field DefaultOffset(Types.typePool().get<ink::ir::BoolType>(), Name);
+    expectField(&DefaultOffset, Types.typePool().get<ink::ir::BoolType>(), Name, 0);
   }
 
   // Missing types, absent names and types without layouts are invalid; zero-sized laid-out types remain valid.
@@ -70,15 +70,15 @@ namespace ink::ir::test
     EXPECT_EQ(MissingType.type(), nullptr);
     EXPECT_TRUE(MissingType.hasName());
     EXPECT_FALSE(MissingType.valid());
-    const Field Unnamed(Types.typePool().getInt32Type());
+    const Field Unnamed(Types.typePool().get<ink::ir::IntegerType>(32, true));
     EXPECT_EQ(Unnamed.name(), core::NAME_None);
     EXPECT_EQ(Unnamed.offset(), 0U);
     EXPECT_FALSE(Unnamed.hasName());
     EXPECT_FALSE(Unnamed.valid());
-    ASSERT_FALSE(Types.typePool().getVariadicType()->hasLayout());
-    EXPECT_FALSE(Field(Types.typePool().getVariadicType(), Name).valid());
-    ASSERT_TRUE(Types.typePool().getVoidType()->hasLayout());
-    EXPECT_TRUE(Field(Types.typePool().getVoidType(), Name).valid());
+    ASSERT_FALSE(Types.typePool().get<ink::ir::VariadicType>()->hasLayout());
+    EXPECT_FALSE(Field(Types.typePool().get<ink::ir::VariadicType>(), Name).valid());
+    ASSERT_TRUE(Types.typePool().get<ink::ir::VoidType>()->hasLayout());
+    EXPECT_TRUE(Field(Types.typePool().get<ink::ir::VoidType>(), Name).valid());
   }
 
   // Every nominal kind preserves registration order and finds all same-name fields without imposing identity rules.
@@ -95,14 +95,14 @@ namespace ink::ir::test
       EXPECT_TRUE(Owner->fields().empty());
       EXPECT_EQ(Owner->fieldCount(), 0U);
       EXPECT_EQ(Owner->field(0), nullptr);
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getInt32Type(), Name, 0)));
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getBoolType(), OtherName, 4)));
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getInt64Type(), Name, 8)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 0)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::BoolType>(), OtherName, 4)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::IntegerType>(64, true), Name, 8)));
       ASSERT_EQ(Owner->fieldCount(), 3U);
       ASSERT_EQ(Owner->fields().size(), 3U);
-      expectField(Owner->field(0), Types.typePool().getInt32Type(), Name, 0);
-      expectField(Owner->field(1), Types.typePool().getBoolType(), OtherName, 4);
-      expectField(Owner->field(2), Types.typePool().getInt64Type(), Name, 8);
+      expectField(Owner->field(0), Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 0);
+      expectField(Owner->field(1), Types.typePool().get<ink::ir::BoolType>(), OtherName, 4);
+      expectField(Owner->field(2), Types.typePool().get<ink::ir::IntegerType>(64, true), Name, 8);
       EXPECT_EQ(Owner->field(1), &Owner->fields()[1]);
       EXPECT_EQ(Owner->field(3), nullptr);
       EXPECT_EQ(Owner->field(std::numeric_limits<std::size_t>::max()), nullptr);
@@ -128,24 +128,24 @@ namespace ink::ir::test
     for (NominalType *Owner : createNominalTypes(Types, 8))
     {
       ASSERT_NE(Owner, nullptr);
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getInt32Type(), Name, 0)));
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getBoolType(), OtherName, 4)));
-      ASSERT_TRUE(Owner->replaceField(1, Field(Types.typePool().getInt32Type(), Name, 4)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 0)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::BoolType>(), OtherName, 4)));
+      ASSERT_TRUE(Owner->replaceField(1, Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 4)));
       EXPECT_EQ(Owner->fieldCount(), 2U);
-      expectField(Owner->field(0), Types.typePool().getInt32Type(), Name, 0);
-      expectField(Owner->field(1), Types.typePool().getInt32Type(), Name, 4);
+      expectField(Owner->field(0), Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 0);
+      expectField(Owner->field(1), Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 4);
       EXPECT_TRUE(Owner->findFields(OtherName).empty());
       const auto Matches = Owner->findFields(Name);
       ASSERT_EQ(Matches.size(), 2U);
       EXPECT_EQ(Matches[0], Owner->field(0));
       EXPECT_EQ(Matches[1], Owner->field(1));
-      const Field Replacement(Types.typePool().getBoolType(), OtherName, 7);
+      const Field Replacement(Types.typePool().get<ink::ir::BoolType>(), OtherName, 7);
       EXPECT_FALSE(Owner->replaceField(2, Replacement));
       EXPECT_FALSE(Owner->replaceField(std::numeric_limits<std::size_t>::max(), Replacement));
       EXPECT_EQ(Owner->fieldCount(), 2U);
-      expectField(Owner->field(0), Types.typePool().getInt32Type(), Name, 0);
-      expectField(Owner->field(1), Types.typePool().getInt32Type(), Name, 4);
-      expectField(&Replacement, Types.typePool().getBoolType(), OtherName, 7);
+      expectField(Owner->field(0), Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 0);
+      expectField(Owner->field(1), Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 4);
+      expectField(&Replacement, Types.typePool().get<ink::ir::BoolType>(), OtherName, 7);
     }
   }
 
@@ -159,34 +159,34 @@ namespace ink::ir::test
     const core::Name Name = core::NamePool::instance().intern("IRFieldTest.member");
     const Field Rejected[] = {
         Field(nullptr, Name),
-        Field(Types.typePool().getInt32Type()),
-        Field(Types.typePool().getVariadicType(), Name),
-        Field(OtherTypes.typePool().getInt32Type(), Name),
-        Field(Types.typePool().getInt32Type(), Name, 9),
-        Field(Types.typePool().getInt32Type(), Name, 5),
-        Field(Types.typePool().getInt32Type(), Name, MaximumSize - 1),
+        Field(Types.typePool().get<ink::ir::IntegerType>(32, true)),
+        Field(Types.typePool().get<ink::ir::VariadicType>(), Name),
+        Field(OtherTypes.typePool().get<ink::ir::IntegerType>(32, true), Name),
+        Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 9),
+        Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 5),
+        Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, MaximumSize - 1),
     };
     for (NominalType *Owner : createNominalTypes(Types, 8))
     {
       ASSERT_NE(Owner, nullptr);
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getInt32Type(), Name, 4)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 4)));
       for (const Field &Entry : Rejected)
       {
         EXPECT_FALSE(Owner->addField(Entry));
         EXPECT_FALSE(Owner->replaceField(0, Entry));
         ASSERT_EQ(Owner->fieldCount(), 1U);
-        expectField(Owner->field(0), Types.typePool().getInt32Type(), Name, 4);
+        expectField(Owner->field(0), Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 4);
       }
     }
     for (NominalType *Owner : createNominalTypes(Types, MaximumSize))
     {
       ASSERT_NE(Owner, nullptr);
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getInt32Type(), Name, MaximumSize - 4)));
-      const Field Overflow(Types.typePool().getInt32Type(), Name, MaximumSize - 1);
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, MaximumSize - 4)));
+      const Field Overflow(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, MaximumSize - 1);
       EXPECT_FALSE(Owner->addField(Overflow));
       EXPECT_FALSE(Owner->replaceField(0, Overflow));
       ASSERT_EQ(Owner->fieldCount(), 1U);
-      expectField(Owner->field(0), Types.typePool().getInt32Type(), Name, MaximumSize - 4);
+      expectField(Owner->field(0), Types.typePool().get<ink::ir::IntegerType>(32, true), Name, MaximumSize - 4);
     }
   }
 
@@ -201,18 +201,18 @@ namespace ink::ir::test
     for (NominalType *Owner : createNominalTypes(Types, 8))
     {
       ASSERT_NE(Owner, nullptr);
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getInt32Type(), Name, 4)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 4)));
       ASSERT_TRUE(Owner->addField(Field(Empty, Name, 8)));
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getVoidType(), Name, 8)));
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getInt32Type(), Name, 1)));
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getInt32Type(), Name, 2)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::VoidType>(), Name, 8)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 1)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 2)));
       EXPECT_FALSE(Owner->addField(Field(Empty, Name, 9)));
       EXPECT_EQ(Owner->fieldCount(), 5U);
-      expectField(Owner->field(0), Types.typePool().getInt32Type(), Name, 4);
+      expectField(Owner->field(0), Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 4);
       expectField(Owner->field(1), Empty, Name, 8);
-      expectField(Owner->field(2), Types.typePool().getVoidType(), Name, 8);
-      expectField(Owner->field(3), Types.typePool().getInt32Type(), Name, 1);
-      expectField(Owner->field(4), Types.typePool().getInt32Type(), Name, 2);
+      expectField(Owner->field(2), Types.typePool().get<ink::ir::VoidType>(), Name, 8);
+      expectField(Owner->field(3), Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 1);
+      expectField(Owner->field(4), Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 2);
     }
   }
 
@@ -226,19 +226,19 @@ namespace ink::ir::test
     for (NominalType *Owner : createNominalTypes(Types, 8))
     {
       ASSERT_NE(Owner, nullptr);
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getInt32Type(), Name, 0)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 0)));
       Owner->freeze();
       ASSERT_TRUE(Owner->isFrozen());
-      const Field Replacement(Types.typePool().getBoolType(), OtherName, 4);
+      const Field Replacement(Types.typePool().get<ink::ir::BoolType>(), OtherName, 4);
       EXPECT_FALSE(Owner->addField(Replacement));
       EXPECT_FALSE(Owner->replaceField(0, Replacement));
       ASSERT_EQ(Owner->fieldCount(), 1U);
-      expectField(Owner->field(0), Types.typePool().getInt32Type(), Name, 0);
+      expectField(Owner->field(0), Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 0);
       const auto Matches = Owner->findFields(Name);
       ASSERT_EQ(Matches.size(), 1U);
       EXPECT_EQ(Matches[0], Owner->field(0));
       EXPECT_TRUE(Owner->findFields(OtherName).empty());
-      expectField(&Replacement, Types.typePool().getBoolType(), OtherName, 4);
+      expectField(&Replacement, Types.typePool().get<ink::ir::BoolType>(), OtherName, 4);
     }
   }
 } // namespace ink::ir::test

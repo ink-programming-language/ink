@@ -18,15 +18,15 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    const auto ElementType = Types.typePool().getBoolType();
-    const auto First = Constants.getBoolConstant(true);
-    const auto Second = Constants.getBoolConstant(false);
-    const auto Array = Types.typePool().getArrayType(ElementType, 2);
+    const auto ElementType = Types.typePool().get<ink::ir::BoolType>();
+    const auto First = Constants.get<ink::ir::BoolConstant>(true);
+    const auto Second = Constants.get<ink::ir::BoolConstant>(false);
+    const auto Array = Types.typePool().get<ink::ir::ArrayType>(ElementType, 2);
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Second, nullptr);
     ASSERT_NE(Array, nullptr);
     std::vector<const Constant *> Elements = {First, Second};
-    const auto Value = Constants.getArrayConstant(Array, Elements);
+    const auto Value = Constants.get<ink::ir::ArrayConstant>(Array, Elements);
     ASSERT_NE(Value, nullptr);
     Elements.clear();
     EXPECT_EQ(Value->type(), Array);
@@ -49,19 +49,19 @@ namespace ink::ir::test
     auto &Constants = Types.constantPool();
     IRContext OtherTypesContext(Target);
     Module OtherTypes(OtherTypesContext);
-    const auto ElementType = Types.typePool().getBoolType();
-    const auto OtherType = OtherTypes.typePool().getBoolType();
-    const auto Element = Constants.getBoolConstant(true);
-    const auto Array = Types.typePool().getArrayType(ElementType, 1);
-    const auto OtherArray = OtherTypes.typePool().getArrayType(OtherType, 1);
+    const auto ElementType = Types.typePool().get<ink::ir::BoolType>();
+    const auto OtherType = OtherTypes.typePool().get<ink::ir::BoolType>();
+    const auto Element = Constants.get<ink::ir::BoolConstant>(true);
+    const auto Array = Types.typePool().get<ink::ir::ArrayType>(ElementType, 1);
+    const auto OtherArray = OtherTypes.typePool().get<ink::ir::ArrayType>(OtherType, 1);
     ASSERT_NE(Element, nullptr);
     ASSERT_NE(Array, nullptr);
     ASSERT_NE(OtherArray, nullptr);
-    EXPECT_EQ(Constants.getArrayConstant(nullptr), nullptr);
-    EXPECT_EQ(Constants.getArrayConstant(Array), nullptr);
-    EXPECT_EQ(Constants.getArrayConstant(Array, {Element, Element}), nullptr);
-    EXPECT_EQ(Constants.getArrayConstant(Array, {nullptr}), nullptr);
-    EXPECT_EQ(Constants.getArrayConstant(OtherArray, {Element}), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(nullptr), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(Array), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(Array, {Element, Element}), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(Array, {nullptr}), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(OtherArray, {Element}), nullptr);
   }
 
   // Empty arrays and nested array constants preserve each level's declared type and element count.
@@ -71,16 +71,16 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    const auto EmptyType = Types.typePool().getArrayType(Types.typePool().getBoolType(), 0);
+    const auto EmptyType = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::BoolType>(), 0);
     ASSERT_NE(EmptyType, nullptr);
-    const auto Empty = Constants.getArrayConstant(EmptyType);
+    const auto Empty = Constants.get<ink::ir::ArrayConstant>(EmptyType);
     ASSERT_NE(Empty, nullptr);
     EXPECT_TRUE(Empty->elements().empty());
     EXPECT_EQ(Empty->elementCount(), 0U);
     EXPECT_EQ(Empty->type(), EmptyType);
-    const auto OuterType = Types.typePool().getArrayType(EmptyType, 2);
+    const auto OuterType = Types.typePool().get<ink::ir::ArrayType>(EmptyType, 2);
     ASSERT_NE(OuterType, nullptr);
-    const auto Outer = Constants.getArrayConstant(OuterType, {Empty, Empty});
+    const auto Outer = Constants.get<ink::ir::ArrayConstant>(OuterType, {Empty, Empty});
     ASSERT_NE(Outer, nullptr);
     EXPECT_EQ(Outer->type(), OuterType);
     ASSERT_EQ(Outer->elementCount(), 2U);
@@ -99,13 +99,13 @@ namespace ink::ir::test
     Module Types64(Types64Context);
     auto &Constants32 = Types32.constantPool();
     auto &Constants64 = Types64.constantPool();
-    const auto Pointer32 = Types32.typePool().getPointerType(Types32.typePool().getBoolType());
-    const auto Null32 = Constants32.getNullPointerConstant();
-    const auto Null64 = Constants64.getNullPointerConstant();
+    const auto Pointer32 = Types32.typePool().get<ink::ir::PointerType>(Types32.typePool().get<ink::ir::BoolType>());
+    const auto Null32 = Constants32.get<ink::ir::NullPointerConstant>();
+    const auto Null64 = Constants64.get<ink::ir::NullPointerConstant>();
     ASSERT_NE(Null32, nullptr);
     ASSERT_NE(Null64, nullptr);
-    EXPECT_EQ(Null32->type(), Types32.typePool().getNullPointerType());
-    EXPECT_EQ(Null64->type(), Types64.typePool().getNullPointerType());
+    EXPECT_EQ(Null32->type(), Types32.typePool().get<ink::ir::NullPointerType>());
+    EXPECT_EQ(Null64->type(), Types64.typePool().get<ink::ir::NullPointerType>());
     EXPECT_EQ(Null32->type()->size(), 4U);
     EXPECT_EQ(Null64->type()->size(), 8U);
     EXPECT_TRUE(NullPointerConstant::classof(Null32));
@@ -123,10 +123,10 @@ namespace ink::ir::test
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
-    const auto Null = Constants.getNullPointerConstant();
+    const auto Null = Constants.get<ink::ir::NullPointerConstant>();
     ASSERT_NE(Null, nullptr);
     EXPECT_FALSE(Null->canInitialize(nullptr));
-    EXPECT_TRUE(Null->canInitialize(Types.typePool().getNullPointerType()));
-    EXPECT_EQ(Types.typePool().getPointerType(nullptr), nullptr);
+    EXPECT_TRUE(Null->canInitialize(Types.typePool().get<ink::ir::NullPointerType>()));
+    EXPECT_EQ(Types.typePool().get<ink::ir::PointerType>(nullptr), nullptr);
   }
 } // namespace ink::ir::test

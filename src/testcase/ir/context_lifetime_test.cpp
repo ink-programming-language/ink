@@ -39,24 +39,24 @@ namespace ink::ir::test
     {
       ConstantPool &Constants = Types.constantPool();
       Pool = &Constants;
-      Initializer = Constants.getSignedIntegerConstant(Types.typePool().getInt32Type(), 42);
+      Initializer = Constants.get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(42));
       ASSERT_NE(Initializer, nullptr);
       EXPECT_EQ(&Constants.irContext(), &Types.irContext());
     }
     for (std::uint64_t Index = 0; Index < 128; ++Index)
     {
-      ASSERT_NE(Types.constantPool().getUnsignedIntegerConstant(Types.typePool().getUInt64Type(), Index), nullptr);
-      ASSERT_NE(Types.typePool().getArrayType(Types.typePool().getInt32Type(), Index), nullptr);
+      ASSERT_NE(Types.constantPool().get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(64, false), static_cast<std::uint64_t>(Index)), nullptr);
+      ASSERT_NE(Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(32, true), Index), nullptr);
     }
     const Module &ReadOnly = Types;
     EXPECT_EQ(&Types.constantPool(), Pool);
     EXPECT_EQ(&ReadOnly.constantPool(), Pool);
     EXPECT_EQ(&ReadOnly.constantPool().irContext(), &Types.irContext());
     EXPECT_TRUE(ReadOnly.constantPool().owns(Initializer));
-    EXPECT_EQ(Initializer->type(), Types.typePool().getInt32Type());
-    EXPECT_EQ(Initializer->bits(), 42U);
-    EXPECT_EQ(Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 42), Initializer);
-    EXPECT_EQ(ReadOnly.constantPool().getBoolConstant(false), Types.constantPool().getBoolConstant(false));
+    EXPECT_EQ(Initializer->type(), Types.typePool().get<ink::ir::IntegerType>(32, true));
+    EXPECT_EQ(Initializer->bits().tryGetUInt64(), 42U);
+    EXPECT_EQ(Types.constantPool().get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(42)), Initializer);
+    EXPECT_EQ(ReadOnly.constantPool().get<ink::ir::BoolConstant>(false), Types.constantPool().get<ink::ir::BoolConstant>(false));
   }
 
   // All nominal kinds preserve explicit zero initializers separately from absent initializers, including copied metadata.
@@ -65,13 +65,13 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRContextLifetimeTest.member");
-    const auto Zero = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 0);
+    const auto Zero = Types.constantPool().get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(0));
     ASSERT_NE(Zero, nullptr);
-    const Field Default(Types.typePool().getInt32Type(), Name);
+    const Field Default(Types.typePool().get<ink::ir::IntegerType>(32, true), Name);
     EXPECT_FALSE(Default.hasInitializer());
     EXPECT_EQ(Default.initializer(), nullptr);
     EXPECT_TRUE(Default.valid());
-    const Field Initialized(Types.typePool().getInt32Type(), Name, 4, Zero);
+    const Field Initialized(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 4, Zero);
     const Field Copied = Initialized;
     EXPECT_TRUE(Copied.hasInitializer());
     EXPECT_EQ(Copied.initializer(), Zero);
@@ -87,7 +87,7 @@ namespace ink::ir::test
       EXPECT_TRUE(Owner->field(1)->hasInitializer());
       EXPECT_EQ(Owner->field(1)->initializer(), Zero);
       EXPECT_EQ(Owner->field(1)->initializer()->type(), Owner->field(1)->type());
-      EXPECT_EQ(static_cast<const IntegerConstant *>(Owner->field(1)->initializer())->bits(), 0U);
+      EXPECT_EQ(static_cast<const IntegerConstant *>(Owner->field(1)->initializer())->bits().tryGetUInt64(), 0U);
     }
   }
 
@@ -97,24 +97,24 @@ namespace ink::ir::test
     IRContext TypesContext(Target);
     Module Types(TypesContext);
     const core::Name Name = core::NamePool::instance().intern("IRContextLifetimeTest.member");
-    const auto First = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 7);
-    const auto Second = Types.constantPool().getSignedIntegerConstant(Types.typePool().getInt32Type(), 19);
+    const auto First = Types.constantPool().get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(7));
+    const auto Second = Types.constantPool().get<ink::ir::IntegerConstant>(Types.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(19));
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Second, nullptr);
     for (NominalType *Owner : createNominalTypes(Types))
     {
       ASSERT_NE(Owner, nullptr);
-      ASSERT_TRUE(Owner->addField(Field(Types.typePool().getInt32Type(), Name, 0, First)));
-      ASSERT_TRUE(Owner->replaceField(0, Field(Types.typePool().getInt32Type(), Name, 0, Second)));
+      ASSERT_TRUE(Owner->addField(Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 0, First)));
+      ASSERT_TRUE(Owner->replaceField(0, Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 0, Second)));
       EXPECT_EQ(Owner->field(0)->initializer(), Second);
-      ASSERT_TRUE(Owner->replaceField(0, Field(Types.typePool().getInt32Type(), Name)));
+      ASSERT_TRUE(Owner->replaceField(0, Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name)));
       EXPECT_FALSE(Owner->field(0)->hasInitializer());
       EXPECT_EQ(Owner->field(0)->initializer(), nullptr);
-      ASSERT_TRUE(Owner->replaceField(0, Field(Types.typePool().getInt32Type(), Name, 0, First)));
+      ASSERT_TRUE(Owner->replaceField(0, Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 0, First)));
       Owner->freeze();
-      EXPECT_FALSE(Owner->addField(Field(Types.typePool().getInt32Type(), Name, 4, Second)));
-      EXPECT_FALSE(Owner->replaceField(0, Field(Types.typePool().getInt32Type(), Name, 0, Second)));
-      EXPECT_FALSE(Owner->replaceField(0, Field(Types.typePool().getInt32Type(), Name)));
+      EXPECT_FALSE(Owner->addField(Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 4, Second)));
+      EXPECT_FALSE(Owner->replaceField(0, Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name, 0, Second)));
+      EXPECT_FALSE(Owner->replaceField(0, Field(Types.typePool().get<ink::ir::IntegerType>(32, true), Name)));
       ASSERT_EQ(Owner->fieldCount(), 1U);
       EXPECT_TRUE(Owner->field(0)->hasInitializer());
       EXPECT_EQ(Owner->field(0)->initializer(), First);

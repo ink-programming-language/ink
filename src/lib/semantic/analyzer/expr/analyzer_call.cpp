@@ -3,7 +3,6 @@
 #include "ink/frontend/parser/ast/call_expr.h"
 #include "ink/frontend/parser/ast/expr.h"
 #include "ink/ir/module/module.h"
-#include "ink/ir/type/structure_type/pointer_type.h"
 #include "ink/semantic/analyzer/analysis_site.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/semantic/analyzer/analyzer_utils.h"
@@ -62,12 +61,11 @@ namespace ink::semantic
     {
       // TODO: Analyze type construction and explicit conversion calls separately from runtime function calls.
       CHECK_ICE(Site, !ir::Type::classof(&Callee), core::DiagnosticKind::SemanticUnsupported, "type construction and conversion calls");
-      RETURN_ERROR_IF(Site, ir::Module::classof(&Callee), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a callable function or function pointer", ir::valueKindName(Callee.kind()));
+      RETURN_ERROR_IF(Site, ir::Module::classof(&Callee), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a callable function value", ir::valueKindName(Callee.kind()));
       RETURN_IF_NOT(requireRuntimeValue(Site, &Callee), nullptr);
       const ir::Type *CalleeType = Callee.type();
-      const ir::Type *SignatureType = ir::PointerType::classof(CalleeType) ? static_cast<const ir::PointerType *>(CalleeType)->pointeeType() : CalleeType;
-      RETURN_ERROR_IF_NOT(Site, ir::FunctionType::classof(SignatureType), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a callable function or function pointer", CalleeType->toString());
-      return static_cast<const ir::FunctionType *>(SignatureType);
+      RETURN_ERROR_IF_NOT(Site, ir::FunctionType::classof(CalleeType), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a callable function value", CalleeType->toString());
+      return static_cast<const ir::FunctionType *>(CalleeType);
     }
   } // namespace
 

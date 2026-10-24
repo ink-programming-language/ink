@@ -28,12 +28,12 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Bool = Types.typePool().getBoolType();
-    const auto Integer = Types.typePool().getInt32Type();
+    const auto Bool = Types.typePool().get<ink::ir::BoolType>();
+    const auto Integer = Types.typePool().get<ink::ir::IntegerType>(32, true);
     const FunctionTypeParameter First(Integer);
     const FunctionTypeParameter Second(Bool, true);
     const std::vector<FunctionTypeParameter> Parameters = {First, Second, First};
-    const auto Signature = Types.typePool().getFunctionType(Bool, Parameters);
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Bool, Parameters);
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
     const Function &ReadOnly = Callable;
@@ -65,7 +65,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {{Types.typePool().getInt32Type(), true}, Types.typePool().getBoolType()});
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>(), {{Types.typePool().get<ink::ir::IntegerType>(32, true), true}, Types.typePool().get<ink::ir::BoolType>()});
     ASSERT_NE(Signature, nullptr);
     Function First(*Signature);
     Function Second(*Signature);
@@ -100,10 +100,10 @@ namespace ink::ir::test
     First.parameter(0)->setName(core::NAME_None);
     EXPECT_FALSE(First.parameter(0)->hasName());
     EXPECT_EQ(Second.parameter(0)->name(), SecondName);
-    EXPECT_EQ(Signature->parameters()[0].ParameterType, Types.typePool().getInt32Type());
+    EXPECT_EQ(Signature->parameters()[0].ParameterType, Types.typePool().get<ink::ir::IntegerType>(32, true));
     EXPECT_TRUE(Signature->parameters()[0].Variadic);
     EXPECT_EQ(First.functionType(), Second.functionType());
-    EXPECT_EQ(Signature, Types.typePool().getFunctionType(Types.typePool().getVoidType(), {{Types.typePool().getInt32Type(), true}, Types.typePool().getBoolType()}));
+    EXPECT_EQ(Signature, Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>(), {{Types.typePool().get<ink::ir::IntegerType>(32, true), true}, Types.typePool().get<ink::ir::BoolType>()}));
   }
 
   // A signature built from a formal value's type metadata survives renaming and destruction of the source function.
@@ -111,9 +111,9 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Integer = Types.typePool().getInt32Type();
-    const auto Void = Types.typePool().getVoidType();
-    const auto SourceSignature = Types.typePool().getFunctionType(Void, {Integer, {Integer, true}});
+    const auto Integer = Types.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto Void = Types.typePool().get<ink::ir::VoidType>();
+    const auto SourceSignature = Types.typePool().get<ink::ir::FunctionType>(Void, {Integer, {Integer, true}});
     ASSERT_NE(SourceSignature, nullptr);
     const FunctionType *Signature = nullptr;
     {
@@ -123,15 +123,15 @@ namespace ink::ir::test
       Formal->setName(core::NamePool::instance().intern("IRParameterTest.Source"));
       ASSERT_TRUE(Formal->hasName());
       const std::vector<FunctionTypeParameter> Parameters = {{Formal->type(), Formal->isVariadic()}};
-      Signature = Types.typePool().getFunctionType(Integer, Parameters);
+      Signature = Types.typePool().get<ink::ir::FunctionType>(Integer, Parameters);
       ASSERT_NE(Signature, nullptr);
       ASSERT_EQ(Signature->parameterCount(), 1U);
       Formal->setName(core::NamePool::instance().intern("IRParameterTest.RenamedSource"));
-      EXPECT_EQ(Signature, Types.typePool().getFunctionType(Integer, Parameters));
+      EXPECT_EQ(Signature, Types.typePool().get<ink::ir::FunctionType>(Integer, Parameters));
     }
     EXPECT_EQ(Signature->parameters()[0].ParameterType, Integer);
     EXPECT_TRUE(Signature->parameters()[0].Variadic);
-    EXPECT_EQ(Signature, Types.typePool().getFunctionType(Integer, {{Integer, true}}));
+    EXPECT_EQ(Signature, Types.typePool().get<ink::ir::FunctionType>(Integer, {{Integer, true}}));
   }
 
   // Parameters classify as runtime values without being confused with functions, types or constants.
@@ -139,7 +139,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>(), {Types.typePool().get<ink::ir::IntegerType>(32, true)});
     ASSERT_NE(Signature, nullptr);
     Function Callable(*Signature);
     const Value *ParameterValue = Callable.parameter(0);
@@ -152,7 +152,7 @@ namespace ink::ir::test
     EXPECT_FALSE(FunctionType::classof(ParameterValue));
     EXPECT_FALSE(Parameter::classof(&Callable));
     EXPECT_FALSE(Parameter::classof(Signature));
-    EXPECT_FALSE(Parameter::classof(Types.typePool().getInt32Type()));
+    EXPECT_FALSE(Parameter::classof(Types.typePool().get<ink::ir::IntegerType>(32, true)));
     EXPECT_FALSE(Parameter::classof(nullptr));
   }
 } // namespace ink::ir::test

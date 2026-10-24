@@ -45,7 +45,7 @@ namespace ink::ir::test
     EXPECT_EQ(ModuleValue.type(), nullptr);
     EXPECT_TRUE(Module::classof(&ModuleValue));
     EXPECT_FALSE(Module::classof(nullptr));
-    EXPECT_FALSE(Module::classof(Owner.typePool().getInt32Type()));
+    EXPECT_FALSE(Module::classof(Owner.typePool().get<ink::ir::IntegerType>(32, true)));
     EXPECT_FALSE(Type::classof(&ModuleValue));
     EXPECT_FALSE(Constant::classof(&ModuleValue));
     EXPECT_FALSE(Instruction::classof(&ModuleValue));
@@ -56,7 +56,7 @@ namespace ink::ir::test
     EXPECT_FALSE(Owner.owns(&Other));
     EXPECT_FALSE(Owner.contains(&Other));
 
-    const auto *Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
+    const auto *Signature = Owner.typePool().get<ink::ir::FunctionType>(Owner.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     auto *Callable = Owner.createGlobalFunction(*Signature);
     ASSERT_NE(Callable, nullptr);
@@ -137,21 +137,21 @@ namespace ink::ir::test
   {
     IRContext OwnerContext(Target);
     Module Owner(OwnerContext);
-    const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
+    const auto Signature = Owner.typePool().get<ink::ir::FunctionType>(Owner.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name VariableName = core::NamePool::instance().intern("IRModuleTest.Variable");
     const core::Name FunctionName = core::NamePool::instance().intern("IRModuleTest.Function");
     const Module &ReadOnly = Owner;
-    auto *CreatedVariable = Owner.createGlobalVariable(*Owner.typePool().getBoolType(), VariableName);
+    auto *CreatedVariable = Owner.createGlobalVariable(*Owner.typePool().get<ink::ir::BoolType>(), VariableName);
     auto *CreatedFunction = Owner.createGlobalFunction(*Signature, FunctionName);
     ASSERT_NE(CreatedVariable, nullptr);
     ASSERT_NE(CreatedFunction, nullptr);
     EXPECT_EQ(CreatedVariable->name(), VariableName);
-    EXPECT_EQ(CreatedVariable->type(), Owner.typePool().getBoolType());
+    EXPECT_EQ(CreatedVariable->type(), Owner.typePool().get<ink::ir::BoolType>());
     EXPECT_EQ(CreatedFunction->name(), FunctionName);
     EXPECT_EQ(CreatedFunction->functionType(), Signature);
 
-    auto AppendedVariable = std::make_unique<GlobalVariable>(*Owner.typePool().getInt32Type());
+    auto AppendedVariable = std::make_unique<GlobalVariable>(*Owner.typePool().get<ink::ir::IntegerType>(32, true));
     auto AppendedFunction = std::make_unique<Function>(*Signature);
     auto *VariableAddress = AppendedVariable.get();
     auto *FunctionAddress = AppendedFunction.get();
@@ -166,7 +166,7 @@ namespace ink::ir::test
 
     for (std::size_t Index = 0; Index < 64; ++Index)
     {
-      ASSERT_NE(Owner.createGlobalVariable(*Owner.typePool().getBoolType()), nullptr);
+      ASSERT_NE(Owner.createGlobalVariable(*Owner.typePool().get<ink::ir::BoolType>()), nullptr);
       ASSERT_NE(Owner.createGlobalFunction(*Signature), nullptr);
     }
 
@@ -202,7 +202,7 @@ namespace ink::ir::test
   {
     IRContext OwnerContext(Target);
     Module Owner(OwnerContext);
-    const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getInt32Type(), {Owner.typePool().getBoolType()});
+    const auto Signature = Owner.typePool().get<ink::ir::FunctionType>(Owner.typePool().get<ink::ir::IntegerType>(32, true), {Owner.typePool().get<ink::ir::BoolType>()});
     ASSERT_NE(Signature, nullptr);
     const core::Name FunctionName = core::NamePool::instance().intern("IRModuleTest.ForeignFunction");
     auto *Callable = Owner.createGlobalFunction(*Signature, FunctionName, SymbolLinkage::Import, LanguageLinkage::C, FunctionVisibility::Private);
@@ -221,7 +221,7 @@ namespace ink::ir::test
   {
     IRContext OwnerContext(Target);
     Module Owner(OwnerContext);
-    const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
+    const auto Signature = Owner.typePool().get<ink::ir::FunctionType>(Owner.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const Module &ReadOnly = Owner;
     EXPECT_EQ(Owner.initializationFunction(), nullptr);
@@ -262,20 +262,20 @@ namespace ink::ir::test
   {
     IRContext OwnerContext(Target);
     Module Owner(OwnerContext);
-    const auto Signature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType());
-    const auto ReturningSignature = Owner.typePool().getFunctionType(Owner.typePool().getInt32Type());
-    const auto ParameterSignature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType(), {Owner.typePool().getBoolType()});
+    const auto Signature = Owner.typePool().get<ink::ir::FunctionType>(Owner.typePool().get<ink::ir::VoidType>());
+    const auto ReturningSignature = Owner.typePool().get<ink::ir::FunctionType>(Owner.typePool().get<ink::ir::IntegerType>(32, true));
+    const auto ParameterSignature = Owner.typePool().get<ink::ir::FunctionType>(Owner.typePool().get<ink::ir::VoidType>(), {Owner.typePool().get<ink::ir::BoolType>()});
     const auto EmptyStruct = Owner.createStructType(0, 1);
     ASSERT_NE(Signature, nullptr);
     ASSERT_NE(ReturningSignature, nullptr);
     ASSERT_NE(ParameterSignature, nullptr);
     ASSERT_NE(EmptyStruct, nullptr);
-    const auto EmptyStructSignature = Owner.typePool().getFunctionType(EmptyStruct);
+    const auto EmptyStructSignature = Owner.typePool().get<ink::ir::FunctionType>(EmptyStruct);
     ASSERT_NE(EmptyStructSignature, nullptr);
     IRContext OtherContext(Target);
     Module Other(OtherContext);
     auto *Selected = Owner.createGlobalFunction(*Signature);
-    auto *Foreign = Other.createGlobalFunction(*Other.typePool().getFunctionType(Other.typePool().getVoidType()));
+    auto *Foreign = Other.createGlobalFunction(*Other.typePool().get<ink::ir::FunctionType>(Other.typePool().get<ink::ir::VoidType>()));
     auto *Returning = Owner.createGlobalFunction(*ReturningSignature);
     auto *Parameterized = Owner.createGlobalFunction(*ParameterSignature);
     auto *ReturningEmptyStruct = Owner.createGlobalFunction(*EmptyStructSignature);
@@ -415,7 +415,7 @@ namespace ink::ir::test
     IRContext OtherContext(Target);
     Module Other(OtherContext);
     auto &Constants = Other.constantPool();
-    const auto Signature = Other.typePool().getFunctionType(Other.typePool().getVoidType(), {Other.typePool().getBoolType()});
+    const auto Signature = Other.typePool().get<ink::ir::FunctionType>(Other.typePool().get<ink::ir::VoidType>(), {Other.typePool().get<ink::ir::BoolType>()});
     const auto ClassLayout = Other.createClassType(16, 8);
     const auto InterfaceLayout = Other.createInterfaceType(16, 8);
     const auto StructLayout = Other.createStructType(8, 4);
@@ -425,11 +425,11 @@ namespace ink::ir::test
     ASSERT_NE(StructLayout, nullptr);
     IRContext OwnerContext(Target);
     Module Owner(OwnerContext);
-    const auto LocalSignature = Owner.typePool().getFunctionType(Owner.typePool().getVoidType(), {Owner.typePool().getBoolType()});
+    const auto LocalSignature = Owner.typePool().get<ink::ir::FunctionType>(Owner.typePool().get<ink::ir::VoidType>(), {Owner.typePool().get<ink::ir::BoolType>()});
     ASSERT_NE(LocalSignature, nullptr);
     auto *Callable = Owner.createGlobalFunction(*LocalSignature);
     auto *ForeignFunction = Other.createGlobalFunction(*Signature);
-    auto *ForeignVariable = Other.createGlobalVariable(*Other.typePool().getBoolType());
+    auto *ForeignVariable = Other.createGlobalVariable(*Other.typePool().get<ink::ir::BoolType>());
     ASSERT_NE(Callable, nullptr);
     ASSERT_NE(ForeignFunction, nullptr);
     ASSERT_NE(ForeignVariable, nullptr);
@@ -446,8 +446,8 @@ namespace ink::ir::test
         ClassLayout,
         InterfaceLayout,
         StructLayout,
-        Constants.getBoolConstant(true),
-        Owner.constantPool().getBoolConstant(true),
+        Constants.get<ink::ir::BoolConstant>(true),
+        Owner.constantPool().get<ink::ir::BoolConstant>(true),
         ParameterValue,
         Block,
     };
@@ -468,10 +468,10 @@ namespace ink::ir::test
     const core::Name ClassName = core::NamePool::instance().intern("Point");
     const auto ClassLayout = Owner.createClassType(8, 4, ClassName);
     ASSERT_NE(ClassLayout, nullptr);
-    const auto ReceiverType = Owner.typePool().getPointerType(ClassLayout);
+    const auto ReceiverType = Owner.typePool().get<ink::ir::PointerType>(ClassLayout);
     ASSERT_NE(ReceiverType, nullptr);
-    const auto IntegerSignature = Owner.typePool().getFunctionType(Owner.typePool().getInt32Type(), {ReceiverType, Owner.typePool().getInt32Type()});
-    const auto BooleanSignature = Owner.typePool().getFunctionType(Owner.typePool().getInt32Type(), {ReceiverType, Owner.typePool().getBoolType()});
+    const auto IntegerSignature = Owner.typePool().get<ink::ir::FunctionType>(Owner.typePool().get<ink::ir::IntegerType>(32, true), {ReceiverType, Owner.typePool().get<ink::ir::IntegerType>(32, true)});
+    const auto BooleanSignature = Owner.typePool().get<ink::ir::FunctionType>(Owner.typePool().get<ink::ir::IntegerType>(32, true), {ReceiverType, Owner.typePool().get<ink::ir::BoolType>()});
     ASSERT_NE(IntegerSignature, nullptr);
     ASSERT_NE(BooleanSignature, nullptr);
     const core::Name MemberName = core::NamePool::instance().intern("method");

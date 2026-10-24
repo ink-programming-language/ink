@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <array>
 #include <type_traits>
 
@@ -53,14 +54,14 @@ namespace ink::ir::test
       EXPECT_FALSE(Other.typePool().owns(Nominal));
     }
     const std::array<const Type *, 8> Pooled = {
-        Pool.getInt8Type(),
-        Pool.getInt16Type(),
-        Pool.getUInt16Type(),
-        Pool.getInt32Type(),
-        Pool.getPointerType(Class),
-        Pool.getReferenceType(Interface),
-        Pool.getArrayType(Struct, 2),
-        Pool.getFunctionType(Struct, {Class, Interface}),
+        Pool.get<ink::ir::IntegerType>(8, true),
+        Pool.get<ink::ir::IntegerType>(16, true),
+        Pool.get<ink::ir::IntegerType>(16, false),
+        Pool.get<ink::ir::IntegerType>(32, true),
+        Pool.get<ink::ir::PointerType>(Class),
+        Pool.get<ink::ir::ReferenceType>(Interface),
+        Pool.get<ink::ir::ArrayType>(Struct, 2),
+        Pool.get<ink::ir::FunctionType>(Struct, {Class, Interface}),
     };
     for (const auto *PooledType : Pooled)
     {
@@ -91,21 +92,21 @@ namespace ink::ir::test
     const auto *ForeignNominal = Other.createStructType(8, 8);
     ASSERT_NE(Nominal, nullptr);
     ASSERT_NE(ForeignNominal, nullptr);
-    const auto *LocalPointer = Pool.getPointerType(Nominal);
-    const auto *LocalReference = Pool.getReferenceType(Nominal);
-    const auto *LocalArray = Pool.getArrayType(Nominal, 2);
-    const auto *LocalSignature = Pool.getFunctionType(Nominal, {Pool.getBoolType()});
+    const auto *LocalPointer = Pool.get<ink::ir::PointerType>(Nominal);
+    const auto *LocalReference = Pool.get<ink::ir::ReferenceType>(Nominal);
+    const auto *LocalArray = Pool.get<ink::ir::ArrayType>(Nominal, 2);
+    const auto *LocalSignature = Pool.get<ink::ir::FunctionType>(Nominal, {Pool.get<ink::ir::BoolType>()});
     ASSERT_NE(LocalPointer, nullptr);
     ASSERT_NE(LocalReference, nullptr);
     ASSERT_NE(LocalArray, nullptr);
     ASSERT_NE(LocalSignature, nullptr);
     const std::array<const Type *, 6> ForeignTypes = {
-        OtherPool.getInt32Type(),
+        OtherPool.get<ink::ir::IntegerType>(32, true),
         ForeignNominal,
-        OtherPool.getPointerType(ForeignNominal),
-        OtherPool.getReferenceType(ForeignNominal),
-        OtherPool.getArrayType(ForeignNominal, 2),
-        OtherPool.getFunctionType(ForeignNominal),
+        OtherPool.get<ink::ir::PointerType>(ForeignNominal),
+        OtherPool.get<ink::ir::ReferenceType>(ForeignNominal),
+        OtherPool.get<ink::ir::ArrayType>(ForeignNominal, 2),
+        OtherPool.get<ink::ir::FunctionType>(ForeignNominal),
     };
     for (const auto *Foreign : ForeignTypes)
     {
@@ -114,20 +115,20 @@ namespace ink::ir::test
       EXPECT_FALSE(Owner.owns(Foreign));
       EXPECT_FALSE(Owner.ownsType(Foreign));
       EXPECT_FALSE(Pool.owns(Foreign));
-      EXPECT_EQ(Pool.getPointerType(Foreign), nullptr);
-      EXPECT_EQ(Pool.getReferenceType(Foreign), nullptr);
-      EXPECT_EQ(Pool.getArrayType(Foreign, 1), nullptr);
-      EXPECT_EQ(Pool.getFunctionType(Foreign), nullptr);
-      EXPECT_EQ(Pool.getFunctionType(Pool.getVoidType(), {Foreign}), nullptr);
+      EXPECT_EQ(Pool.get<ink::ir::PointerType>(Foreign), nullptr);
+      EXPECT_EQ(Pool.get<ink::ir::ReferenceType>(Foreign), nullptr);
+      EXPECT_EQ(Pool.get<ink::ir::ArrayType>(Foreign, 1), nullptr);
+      EXPECT_EQ(Pool.get<ink::ir::FunctionType>(Foreign), nullptr);
+      EXPECT_EQ(Pool.get<ink::ir::FunctionType>(Pool.get<ink::ir::VoidType>(), {Foreign}), nullptr);
     }
-    EXPECT_EQ(LocalPointer, Pool.getPointerType(Nominal));
-    EXPECT_EQ(LocalReference, Pool.getReferenceType(Nominal));
-    EXPECT_EQ(LocalArray, Pool.getArrayType(Nominal, 2));
-    EXPECT_EQ(LocalSignature, Pool.getFunctionType(Nominal, {Pool.getBoolType()}));
-    EXPECT_NE(LocalPointer, OtherPool.getPointerType(ForeignNominal));
-    EXPECT_NE(LocalReference, OtherPool.getReferenceType(ForeignNominal));
-    EXPECT_NE(LocalArray, OtherPool.getArrayType(ForeignNominal, 2));
-    EXPECT_NE(LocalSignature, OtherPool.getFunctionType(ForeignNominal, {OtherPool.getBoolType()}));
+    EXPECT_EQ(LocalPointer, Pool.get<ink::ir::PointerType>(Nominal));
+    EXPECT_EQ(LocalReference, Pool.get<ink::ir::ReferenceType>(Nominal));
+    EXPECT_EQ(LocalArray, Pool.get<ink::ir::ArrayType>(Nominal, 2));
+    EXPECT_EQ(LocalSignature, Pool.get<ink::ir::FunctionType>(Nominal, {Pool.get<ink::ir::BoolType>()}));
+    EXPECT_NE(LocalPointer, OtherPool.get<ink::ir::PointerType>(ForeignNominal));
+    EXPECT_NE(LocalReference, OtherPool.get<ink::ir::ReferenceType>(ForeignNominal));
+    EXPECT_NE(LocalArray, OtherPool.get<ink::ir::ArrayType>(ForeignNominal, 2));
+    EXPECT_NE(LocalSignature, OtherPool.get<ink::ir::FunctionType>(ForeignNominal, {OtherPool.get<ink::ir::BoolType>()}));
   }
 
   // Constants and the canonical null literal remain bound to their defining context even when target layouts match.
@@ -138,23 +139,23 @@ namespace ink::ir::test
     IRContext OtherContext(Target);
     Module Other(OtherContext);
     auto &Constants = Owner.constantPool();
-    const auto *LocalNull = Constants.getNullPointerConstant();
-    const auto *ForeignNull = Other.constantPool().getNullPointerConstant();
+    const auto *LocalNull = Constants.get<ink::ir::NullPointerConstant>();
+    const auto *ForeignNull = Other.constantPool().get<ink::ir::NullPointerConstant>();
     EXPECT_EQ(&Constants.irContext(), &Owner.irContext());
-    EXPECT_EQ(&Owner.typePool().getNullPointerType()->irContext(), &Owner.irContext());
-    EXPECT_EQ(LocalNull->type(), Owner.typePool().getNullPointerType());
+    EXPECT_EQ(&Owner.typePool().get<ink::ir::NullPointerType>()->irContext(), &Owner.irContext());
+    EXPECT_EQ(LocalNull->type(), Owner.typePool().get<ink::ir::NullPointerType>());
     EXPECT_NE(LocalNull, ForeignNull);
     EXPECT_TRUE(Constants.owns(LocalNull));
     EXPECT_FALSE(Constants.owns(ForeignNull));
     EXPECT_FALSE(Owner.ownsType(ForeignNull->type()));
-    EXPECT_EQ(Constants.getSignedIntegerConstant(Other.typePool().getInt32Type(), 7), nullptr);
-    const auto *LocalArray = Owner.typePool().getArrayType(Owner.typePool().getBoolType(), 1);
-    const auto *ForeignArray = Other.typePool().getArrayType(Other.typePool().getBoolType(), 1);
+    EXPECT_EQ(Constants.get<ink::ir::IntegerConstant>(Other.typePool().get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(7)), nullptr);
+    const auto *LocalArray = Owner.typePool().get<ink::ir::ArrayType>(Owner.typePool().get<ink::ir::BoolType>(), 1);
+    const auto *ForeignArray = Other.typePool().get<ink::ir::ArrayType>(Other.typePool().get<ink::ir::BoolType>(), 1);
     ASSERT_NE(LocalArray, nullptr);
     ASSERT_NE(ForeignArray, nullptr);
-    EXPECT_EQ(Constants.getArrayConstant(LocalArray, {Other.constantPool().getBoolConstant(true)}), nullptr);
-    EXPECT_EQ(Constants.getArrayConstant(ForeignArray, {Constants.getBoolConstant(true)}), nullptr);
-    const auto *Pointer = Owner.typePool().getPointerType(Owner.typePool().getInt32Type());
+    EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(LocalArray, {Other.constantPool().get<ink::ir::BoolConstant>(true)}), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(ForeignArray, {Constants.get<ink::ir::BoolConstant>(true)}), nullptr);
+    const auto *Pointer = Owner.typePool().get<ink::ir::PointerType>(Owner.typePool().get<ink::ir::IntegerType>(32, true));
     ASSERT_NE(Pointer, nullptr);
     auto *Variable = Owner.createGlobalVariable(*Pointer);
     ASSERT_NE(Variable, nullptr);

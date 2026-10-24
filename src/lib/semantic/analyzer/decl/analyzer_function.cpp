@@ -139,7 +139,7 @@ namespace ink::semantic
       Parameters.emplace_back(Type);
       ParameterNames.push_back(Name);
     }
-    const ir::FunctionType *Signature = Context.typePool().getFunctionType(ReturnType, Parameters);
+    const ir::FunctionType *Signature = Context.typePool().get<ir::FunctionType>(ReturnType, Parameters);
     const auto Name = core::NamePool::instance().intern(Node.name().Text);
     CHECK_ICE(Site, Signature, core::DiagnosticKind::SemanticConstructionFailed);
     CHECK_ICE(Site, Name.valid(), core::DiagnosticKind::SemanticConstructionFailed);

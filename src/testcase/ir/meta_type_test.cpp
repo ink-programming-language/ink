@@ -38,8 +38,8 @@ namespace ink::ir::test
   static_assert(std::is_final_v<MetaType>);
   static_assert(!std::is_default_constructible_v<MetaType>);
   static_assert(!std::is_copy_constructible_v<MetaType> && !std::is_move_constructible_v<MetaType>);
-  static_assert(std::is_same_v<decltype(std::declval<const TypePool &>().getMetaType()), const MetaType *>);
-  static_assert(noexcept(std::declval<const TypePool &>().getMetaType()));
+  static_assert(std::is_same_v<decltype(std::declval<const TypePool &>().get<ink::ir::MetaType>()), const MetaType *>);
+  static_assert(noexcept(std::declval<const TypePool &>().get<ink::ir::MetaType>()));
   static_assert(!fixedValueSize(ValueKind::MetaType).has_value());
 
   // Every context owns one self-typed metatype shared by its modules, with distinct identities across contexts and targets.
@@ -52,12 +52,12 @@ namespace ink::ir::test
       Module First(Context);
       Module Second(Context);
       Module Other(OtherContext);
-      const MetaType *Meta = Context.typePool().getMetaType();
+      const MetaType *Meta = Context.typePool().get<ink::ir::MetaType>();
       ASSERT_NE(Meta, nullptr);
-      EXPECT_EQ(Meta, Context.typePool().getMetaType());
-      EXPECT_EQ(Meta, First.typePool().getMetaType());
-      EXPECT_EQ(Meta, Second.typePool().getMetaType());
-      EXPECT_NE(Meta, Other.typePool().getMetaType());
+      EXPECT_EQ(Meta, Context.typePool().get<ink::ir::MetaType>());
+      EXPECT_EQ(Meta, First.typePool().get<ink::ir::MetaType>());
+      EXPECT_EQ(Meta, Second.typePool().get<ink::ir::MetaType>());
+      EXPECT_NE(Meta, Other.typePool().get<ink::ir::MetaType>());
       EXPECT_EQ(Meta->type(), Meta);
       EXPECT_EQ(Meta->type()->type(), Meta);
       EXPECT_TRUE(Context.typePool().owns(Meta));
@@ -73,7 +73,7 @@ namespace ink::ir::test
   TEST(IRMetaTypeTest, ClassifiesAndFormatsWithoutRuntimeLayout)
   {
     IRContext Context(Target64);
-    const MetaType *Meta = Context.typePool().getMetaType();
+    const MetaType *Meta = Context.typePool().get<ink::ir::MetaType>();
     const Type *TypeValue = Meta;
     const Value *ValueObject = Meta;
     EXPECT_EQ(ValueObject->kind(), ValueKind::MetaType);
@@ -82,7 +82,7 @@ namespace ink::ir::test
     EXPECT_EQ(ValueObject->type(), Meta);
     EXPECT_TRUE(Type::classof(ValueObject));
     EXPECT_TRUE(MetaType::classof(ValueObject));
-    EXPECT_FALSE(MetaType::classof(Context.typePool().getInt32Type()));
+    EXPECT_FALSE(MetaType::classof(Context.typePool().get<ink::ir::IntegerType>(32, true)));
     EXPECT_FALSE(MetaType::classof(nullptr));
     EXPECT_FALSE(TypeValue->hasLayout());
     EXPECT_EQ(TypeValue->size(), 0U);
@@ -96,25 +96,25 @@ namespace ink::ir::test
     Module Owner(Context);
     auto &Types = Context.typePool();
     const Type *Descriptors[] = {
-        Types.getMetaType(),
-        Types.getVoidType(),
-        Types.getVariadicType(),
-        Types.getBoolType(),
-        Types.getNullPointerType(),
-        Types.getInt8Type(),
-        Types.getUInt8Type(),
-        Types.getInt16Type(),
-        Types.getUInt16Type(),
-        Types.getInt32Type(),
-        Types.getUInt32Type(),
-        Types.getInt64Type(),
-        Types.getUInt64Type(),
-        Types.getFloat32Type(),
-        Types.getFloat64Type(),
-        Types.getPointerType(Types.getInt32Type()),
-        Types.getReferenceType(Types.getInt32Type()),
-        Types.getArrayType(Types.getInt32Type(), 2),
-        Types.getFunctionType(Types.getInt32Type(), {Types.getBoolType()}),
+        Types.get<ink::ir::MetaType>(),
+        Types.get<ink::ir::VoidType>(),
+        Types.get<ink::ir::VariadicType>(),
+        Types.get<ink::ir::BoolType>(),
+        Types.get<ink::ir::NullPointerType>(),
+        Types.get<ink::ir::IntegerType>(8, true),
+        Types.get<ink::ir::IntegerType>(8, false),
+        Types.get<ink::ir::IntegerType>(16, true),
+        Types.get<ink::ir::IntegerType>(16, false),
+        Types.get<ink::ir::IntegerType>(32, true),
+        Types.get<ink::ir::IntegerType>(32, false),
+        Types.get<ink::ir::IntegerType>(64, true),
+        Types.get<ink::ir::IntegerType>(64, false),
+        Types.get<ink::ir::FloatType>(32),
+        Types.get<ink::ir::FloatType>(64),
+        Types.get<ink::ir::PointerType>(Types.get<ink::ir::IntegerType>(32, true)),
+        Types.get<ink::ir::ReferenceType>(Types.get<ink::ir::IntegerType>(32, true)),
+        Types.get<ink::ir::ArrayType>(Types.get<ink::ir::IntegerType>(32, true), 2),
+        Types.get<ink::ir::FunctionType>(Types.get<ink::ir::IntegerType>(32, true), {Types.get<ink::ir::BoolType>()}),
         Owner.createClassType(8, 8),
         Owner.createInterfaceType(8, 8),
         Owner.createStructType(8, 8),
@@ -124,14 +124,14 @@ namespace ink::ir::test
       ASSERT_NE(Descriptor, nullptr);
       SCOPED_TRACE(Descriptor->toString());
       const Value &TypeValue = *Descriptor;
-      EXPECT_EQ(Descriptor->type(), Types.getMetaType());
-      EXPECT_EQ(TypeValue.type(), Types.getMetaType());
+      EXPECT_EQ(Descriptor->type(), Types.get<ink::ir::MetaType>());
+      EXPECT_EQ(TypeValue.type(), Types.get<ink::ir::MetaType>());
     }
-    const Value *Integer = Context.constantPool().getSignedIntegerConstant(Types.getInt32Type(), 42);
+    const Value *Integer = Context.constantPool().get<ink::ir::IntegerConstant>(Types.get<ink::ir::IntegerType>(32, true), static_cast<std::int64_t>(42));
     ASSERT_NE(Integer, nullptr);
-    EXPECT_EQ(Integer->type(), Types.getInt32Type());
-    EXPECT_EQ(Integer->type()->type(), Types.getMetaType());
-    EXPECT_EQ(Integer->type()->type()->type(), Types.getMetaType());
+    EXPECT_EQ(Integer->type(), Types.get<ink::ir::IntegerType>(32, true));
+    EXPECT_EQ(Integer->type()->type(), Types.get<ink::ir::MetaType>());
+    EXPECT_EQ(Integer->type()->type()->type(), Types.get<ink::ir::MetaType>());
   }
 
   // Runtime storage factories reject the metatype as pointee, referent, element, signature component, field and global type.
@@ -140,25 +140,25 @@ namespace ink::ir::test
     IRContext Context(Target64);
     Module Owner(Context);
     auto &Types = Context.typePool();
-    const MetaType *Meta = Types.getMetaType();
-    EXPECT_EQ(Types.getPointerType(Meta), nullptr);
-    EXPECT_EQ(Types.getReferenceType(Meta), nullptr);
-    EXPECT_EQ(Types.getArrayType(Meta, 0), nullptr);
-    EXPECT_EQ(Types.getArrayType(Meta, 1), nullptr);
-    EXPECT_EQ(Types.getFunctionType(Meta), nullptr);
-    EXPECT_EQ(Types.getFunctionType(Types.getVoidType(), {Meta}), nullptr);
-    EXPECT_EQ(Types.getFunctionType(Types.getVoidType(), {{Meta, true}}), nullptr);
+    const MetaType *Meta = Types.get<ink::ir::MetaType>();
+    EXPECT_EQ(Types.get<ink::ir::PointerType>(Meta), nullptr);
+    EXPECT_EQ(Types.get<ink::ir::ReferenceType>(Meta), nullptr);
+    EXPECT_EQ(Types.get<ink::ir::ArrayType>(Meta, 0), nullptr);
+    EXPECT_EQ(Types.get<ink::ir::ArrayType>(Meta, 1), nullptr);
+    EXPECT_EQ(Types.get<ink::ir::FunctionType>(Meta), nullptr);
+    EXPECT_EQ(Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {Meta}), nullptr);
+    EXPECT_EQ(Types.get<ink::ir::FunctionType>(Types.get<ink::ir::VoidType>(), {{Meta, true}}), nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMetaTypeTest.member");
     const Field TypeField(Meta, Name);
     EXPECT_FALSE(TypeField.valid());
     auto *Struct = Owner.createStructType(8, 8);
     ASSERT_NE(Struct, nullptr);
-    ASSERT_TRUE(Struct->addField(Field(Types.getInt32Type(), Name)));
+    ASSERT_TRUE(Struct->addField(Field(Types.get<ink::ir::IntegerType>(32, true), Name)));
     EXPECT_FALSE(Struct->addField(TypeField));
     EXPECT_FALSE(Struct->replaceField(0, TypeField));
     ASSERT_EQ(Struct->fieldCount(), 1U);
-    EXPECT_EQ(Struct->field(0)->type(), Types.getInt32Type());
-    auto *Global = Owner.createGlobalVariable(*Types.getInt32Type(), Name);
+    EXPECT_EQ(Struct->field(0)->type(), Types.get<ink::ir::IntegerType>(32, true));
+    auto *Global = Owner.createGlobalVariable(*Types.get<ink::ir::IntegerType>(32, true), Name);
     ASSERT_NE(Global, nullptr);
     EXPECT_EQ(Owner.createGlobalVariable(*Meta, Name), nullptr);
     EXPECT_EQ(Owner.appendGlobalVariable(std::make_unique<GlobalVariable>(*Meta, Name)), nullptr);
@@ -172,23 +172,23 @@ namespace ink::ir::test
     IRContext Context(Target64);
     Module Owner(Context);
     auto &Types = Context.typePool();
-    const auto *IntegerType = Types.getInt32Type();
-    const auto *Signature = Types.getFunctionType(IntegerType, {IntegerType});
+    const auto *IntegerType = Types.get<ink::ir::IntegerType>(32, true);
+    const auto *Signature = Types.get<ink::ir::FunctionType>(IntegerType, {IntegerType});
     ASSERT_NE(Signature, nullptr);
     Function Caller(*Signature);
     Function Callee(*Signature);
     auto *Entry = Caller.createBlock();
     auto *Accepted = Caller.createBlock();
     auto *Rejected = Caller.createBlock();
-    const auto *Zero = Context.constantPool().getSignedIntegerConstant(IntegerType, 0);
-    const auto *Null = Context.constantPool().getNullPointerConstant();
+    const auto *Zero = Context.constantPool().get<ink::ir::IntegerConstant>(IntegerType, static_cast<std::int64_t>(0));
+    const auto *Null = Context.constantPool().get<ink::ir::NullPointerConstant>();
     ASSERT_NE(Zero, nullptr);
     IRBuilder Builder(Context);
     ASSERT_TRUE(Builder.setInsertPoint(*Entry));
     const Type *Descriptors[] = {
-        Types.getMetaType(),
+        Types.get<ink::ir::MetaType>(),
         IntegerType,
-        Types.getBoolType(),
+        Types.get<ink::ir::BoolType>(),
         Signature,
         Owner.createStructType(8, 8),
     };
@@ -207,7 +207,7 @@ namespace ink::ir::test
       EXPECT_EQ(Entry->instructionCount(), 0U);
       EXPECT_EQ(Builder.insertBlock(), Entry);
     }
-    EXPECT_EQ(Builder.createGetElementPtr(*Types.getMetaType(), *Null, {}), nullptr);
+    EXPECT_EQ(Builder.createGetElementPtr(*Types.get<ink::ir::MetaType>(), *Null, {}), nullptr);
     EXPECT_EQ(Entry->instructionCount(), 0U);
   }
 } // namespace ink::ir::test

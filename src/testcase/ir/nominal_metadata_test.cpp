@@ -72,8 +72,8 @@ namespace ink::ir::test
       EXPECT_FALSE(Value->isFrozen());
     }
     EXPECT_FALSE(NominalType::classof(nullptr));
-    EXPECT_FALSE(NominalType::classof(Types.typePool().getInt32Type()));
-    EXPECT_FALSE(NominalType::classof(Types.typePool().getFunctionType(Types.typePool().getVoidType())));
+    EXPECT_FALSE(NominalType::classof(Types.typePool().get<ink::ir::IntegerType>(32, true)));
+    EXPECT_FALSE(NominalType::classof(Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>())));
   }
 
   // Names can be completed without changing any nominal layout or type identity.
@@ -86,8 +86,8 @@ namespace ink::ir::test
     for (NominalType *Value : createMetadataTypes(Types, OriginalName))
     {
       ASSERT_NE(Value, nullptr);
-      const auto Pointer = Types.typePool().getPointerType(Value);
-      const auto Array = Types.typePool().getArrayType(Value, 2);
+      const auto Pointer = Types.typePool().get<ink::ir::PointerType>(Value);
+      const auto Array = Types.typePool().get<ink::ir::ArrayType>(Value, 2);
       EXPECT_TRUE(Value->hasName());
       EXPECT_EQ(Value->name(), OriginalName);
       ASSERT_TRUE(Value->setName(NewName));
@@ -96,8 +96,8 @@ namespace ink::ir::test
       EXPECT_FALSE(Value->hasName());
       EXPECT_EQ(Value->size(), 8U);
       EXPECT_EQ(Value->alignment(), 8U);
-      EXPECT_EQ(Types.typePool().getPointerType(Value), Pointer);
-      EXPECT_EQ(Types.typePool().getArrayType(Value, 2), Array);
+      EXPECT_EQ(Types.typePool().get<ink::ir::PointerType>(Value), Pointer);
+      EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(Value, 2), Array);
       ASSERT_NE(Array, nullptr);
       EXPECT_EQ(Array->size(), 16U);
     }
@@ -108,7 +108,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRNominalMetadataTest.Equal");
     const core::Name MemberName = core::NamePool::instance().intern("method");
@@ -121,7 +121,7 @@ namespace ink::ir::test
       ASSERT_TRUE(First[Index]->addMethod(createMethod(*Signature, MemberName)));
       ASSERT_TRUE(Second[Index]->addMethod(createMethod(*Signature, MemberName)));
       EXPECT_NE(First[Index], Second[Index]);
-      EXPECT_NE(Types.typePool().getPointerType(First[Index]), Types.typePool().getPointerType(Second[Index]));
+      EXPECT_NE(Types.typePool().get<ink::ir::PointerType>(First[Index]), Types.typePool().get<ink::ir::PointerType>(Second[Index]));
       EXPECT_EQ(First[Index]->method(0)->functionType(), Second[Index]->method(0)->functionType());
       EXPECT_NE(First[Index]->method(0)->function(), Second[Index]->method(0)->function());
     }
@@ -132,8 +132,8 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto FirstSignature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
-    const auto SecondSignature = Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()});
+    const auto FirstSignature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
+    const auto SecondSignature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>(), {Types.typePool().get<ink::ir::IntegerType>(32, true)});
     ASSERT_NE(FirstSignature, nullptr);
     ASSERT_NE(SecondSignature, nullptr);
     const core::Name MemberName = core::NamePool::instance().intern("method");
@@ -181,8 +181,8 @@ namespace ink::ir::test
     Module Types(TypesContext);
     IRContext ForeignTypesContext(Target);
     Module ForeignTypes(ForeignTypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
-    const auto ForeignSignature = ForeignTypes.typePool().getFunctionType(ForeignTypes.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
+    const auto ForeignSignature = ForeignTypes.typePool().get<ink::ir::FunctionType>(ForeignTypes.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     ASSERT_NE(ForeignSignature, nullptr);
     const core::Name MemberName = core::NamePool::instance().intern("method");
@@ -213,7 +213,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRNominalMetadataTest.Frozen");
     const core::Name MemberName = core::NamePool::instance().intern("method");
@@ -247,7 +247,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name MemberName = core::NamePool::instance().intern("method");
     const core::Name RenamedName = core::NamePool::instance().intern("renamed");

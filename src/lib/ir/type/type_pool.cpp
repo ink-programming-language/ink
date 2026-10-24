@@ -20,42 +20,12 @@ namespace ink::ir
         Bool(Meta),
         ConstBool(Meta, false),
         NullPointer(Meta, Owner),
-        ConstNullPointer(Meta, Owner, false),
-        Int8(Meta, Owner.targetContext(), 8, true),
-        ConstInt8(Meta, Owner.targetContext(), 8, true, false),
-        UInt8(Meta, Owner.targetContext(), 8, false),
-        ConstUInt8(Meta, Owner.targetContext(), 8, false, false),
-        Int16(Meta, Owner.targetContext(), 16, true),
-        ConstInt16(Meta, Owner.targetContext(), 16, true, false),
-        UInt16(Meta, Owner.targetContext(), 16, false),
-        ConstUInt16(Meta, Owner.targetContext(), 16, false, false),
-        Int32(Meta, Owner.targetContext(), 32, true),
-        ConstInt32(Meta, Owner.targetContext(), 32, true, false),
-        UInt32(Meta, Owner.targetContext(), 32, false),
-        ConstUInt32(Meta, Owner.targetContext(), 32, false, false),
-        Int64(Meta, Owner.targetContext(), 64, true),
-        ConstInt64(Meta, Owner.targetContext(), 64, true, false),
-        UInt64(Meta, Owner.targetContext(), 64, false),
-        ConstUInt64(Meta, Owner.targetContext(), 64, false, false),
-        Float32(Meta, Owner.targetContext(), 32),
-        ConstFloat32(Meta, Owner.targetContext(), 32, false),
-        Float64(Meta, Owner.targetContext(), 64),
-        ConstFloat64(Meta, Owner.targetContext(), 64, false)
+        ConstNullPointer(Meta, Owner, false)
   {
-    OwnedTypes.insert({&Meta, &Void, &ConstVoid, &Variadic, &Bool, &ConstBool, &NullPointer, &ConstNullPointer, &Int8, &ConstInt8, &UInt8, &ConstUInt8, &Int16, &ConstInt16, &UInt16, &ConstUInt16, &Int32, &ConstInt32, &UInt32, &ConstUInt32, &Int64, &ConstInt64, &UInt64, &ConstUInt64, &Float32, &ConstFloat32, &Float64, &ConstFloat64});
+    OwnedTypes.insert({&Meta, &Void, &ConstVoid, &Variadic, &Bool, &ConstBool, &NullPointer, &ConstNullPointer});
     ConstVoid.UnqualifiedType = &Void;
     ConstBool.UnqualifiedType = &Bool;
     ConstNullPointer.UnqualifiedType = &NullPointer;
-    ConstInt8.UnqualifiedType = &Int8;
-    ConstUInt8.UnqualifiedType = &UInt8;
-    ConstInt16.UnqualifiedType = &Int16;
-    ConstUInt16.UnqualifiedType = &UInt16;
-    ConstInt32.UnqualifiedType = &Int32;
-    ConstUInt32.UnqualifiedType = &UInt32;
-    ConstInt64.UnqualifiedType = &Int64;
-    ConstUInt64.UnqualifiedType = &UInt64;
-    ConstFloat32.UnqualifiedType = &Float32;
-    ConstFloat64.UnqualifiedType = &Float64;
   }
 
   TypePool::~TypePool() noexcept = default;
@@ -68,6 +38,31 @@ namespace ink::ir
   bool TypePool::owns(const Type *TypeValue) const noexcept
   {
     return OwnedTypes.find(TypeValue) != OwnedTypes.end();
+  }
+
+  bool TypePool::IntegerKey::operator==(const IntegerKey &Other) const noexcept
+  {
+    return Width == Other.Width && Signed == Other.Signed && Mutable == Other.Mutable;
+  }
+
+  std::size_t TypePool::IntegerKeyHash::operator()(const IntegerKey &Key) const noexcept
+  {
+    std::size_t Hash = std::hash<std::uint32_t>{}(Key.Width);
+    Hash ^= std::hash<bool>{}(Key.Signed) + 0x9e3779b9U + (Hash << 6U) + (Hash >> 2U);
+    Hash ^= std::hash<bool>{}(Key.Mutable) + 0x9e3779b9U + (Hash << 6U) + (Hash >> 2U);
+    return Hash;
+  }
+
+  bool TypePool::FloatKey::operator==(const FloatKey &Other) const noexcept
+  {
+    return Width == Other.Width && Mutable == Other.Mutable;
+  }
+
+  std::size_t TypePool::FloatKeyHash::operator()(const FloatKey &Key) const noexcept
+  {
+    std::size_t Hash = std::hash<std::uint32_t>{}(Key.Width);
+    Hash ^= std::hash<bool>{}(Key.Mutable) + 0x9e3779b9U + (Hash << 6U) + (Hash >> 2U);
+    return Hash;
   }
 
   bool TypePool::PointerKey::operator==(const PointerKey &Other) const noexcept
@@ -159,108 +154,41 @@ namespace ink::ir
     }
   }
 
-  const MetaType *TypePool::getMetaType() const noexcept
+  const IntegerType *TypePool::internInteger(std::uint32_t Width, bool Signed, bool Mutable)
   {
-    return &Meta;
-  }
-
-  const VoidType *TypePool::getVoidType(bool Mutable) const noexcept
-  {
-    return Mutable ? &Void : &ConstVoid;
-  }
-
-  const VariadicType *TypePool::getVariadicType() const noexcept
-  {
-    return &Variadic;
-  }
-
-  const BoolType *TypePool::getBoolType(bool Mutable) const noexcept
-  {
-    return Mutable ? &Bool : &ConstBool;
-  }
-
-  const NullPointerType *TypePool::getNullPointerType(bool Mutable) const noexcept
-  {
-    return Mutable ? &NullPointer : &ConstNullPointer;
-  }
-
-  const IntegerType *TypePool::getInt8Type(bool Mutable) const noexcept
-  {
-    return Mutable ? &Int8 : &ConstInt8;
-  }
-
-  const IntegerType *TypePool::getUInt8Type(bool Mutable) const noexcept
-  {
-    return Mutable ? &UInt8 : &ConstUInt8;
-  }
-
-  const IntegerType *TypePool::getInt16Type(bool Mutable) const noexcept
-  {
-    return Mutable ? &Int16 : &ConstInt16;
-  }
-
-  const IntegerType *TypePool::getUInt16Type(bool Mutable) const noexcept
-  {
-    return Mutable ? &UInt16 : &ConstUInt16;
-  }
-
-  const IntegerType *TypePool::getInt32Type(bool Mutable) const noexcept
-  {
-    return Mutable ? &Int32 : &ConstInt32;
-  }
-
-  const IntegerType *TypePool::getUInt32Type(bool Mutable) const noexcept
-  {
-    return Mutable ? &UInt32 : &ConstUInt32;
-  }
-
-  const IntegerType *TypePool::getInt64Type(bool Mutable) const noexcept
-  {
-    return Mutable ? &Int64 : &ConstInt64;
-  }
-
-  const IntegerType *TypePool::getUInt64Type(bool Mutable) const noexcept
-  {
-    return Mutable ? &UInt64 : &ConstUInt64;
-  }
-
-  const FloatType *TypePool::getFloat32Type(bool Mutable) const noexcept
-  {
-    return Mutable ? &Float32 : &ConstFloat32;
-  }
-
-  const FloatType *TypePool::getFloat64Type(bool Mutable) const noexcept
-  {
-    return Mutable ? &Float64 : &ConstFloat64;
-  }
-
-  const IntegerType *TypePool::getIntegerType(std::uint32_t Width, bool Signed, bool Mutable) const noexcept
-  {
-    if (Width == 8)
+    if (!core::IntegerBits::isValidWidth(Width))
     {
-      return Signed ? getInt8Type(Mutable) : getUInt8Type(Mutable);
+      return nullptr;
     }
-    if (Width == 16)
+    const IntegerKey Key{Width, Signed, Mutable};
+    const auto Found = IntegerTypes.find(Key);
+    if (Found != IntegerTypes.end())
     {
-      return Signed ? getInt16Type(Mutable) : getUInt16Type(Mutable);
+      return Found->second;
     }
-    if (Width == 32)
-    {
-      return Signed ? getInt32Type(Mutable) : getUInt32Type(Mutable);
-    }
-    if (Width == 64)
-    {
-      return Signed ? getInt64Type(Mutable) : getUInt64Type(Mutable);
-    }
-    return nullptr;
+    const IntegerType *Result = own(std::unique_ptr<IntegerType>(new IntegerType(Meta, Owner.targetContext(), Width, Signed, Mutable)), Mutable ? nullptr : internInteger(Width, Signed, true));
+    IntegerTypes.emplace(Key, Result);
+    return Result;
   }
 
-  const FloatType *TypePool::getFloatType(std::uint32_t Width, bool Mutable) const noexcept
+  const FloatType *TypePool::internFloat(std::uint32_t Width, bool Mutable)
   {
-    return Width == 32 ? getFloat32Type(Mutable) : Width == 64 ? getFloat64Type(Mutable) : nullptr;
+    if (Width != 32 && Width != 64)
+    {
+      return nullptr;
+    }
+    const FloatKey Key{Width, Mutable};
+    const auto Found = FloatTypes.find(Key);
+    if (Found != FloatTypes.end())
+    {
+      return Found->second;
+    }
+    const FloatType *Result = own(std::unique_ptr<FloatType>(new FloatType(Meta, Owner.targetContext(), Width, Mutable)), Mutable ? nullptr : internFloat(Width, true));
+    FloatTypes.emplace(Key, Result);
+    return Result;
   }
 
-  const Type *TypePool::getQualifiedType(const Type *TypeValue, bool Mutable)
+  const Type *TypePool::get(const Type *TypeValue, bool Mutable)
   {
     if (!Owner.containsType(TypeValue))
     {
@@ -277,31 +205,31 @@ namespace ink::ir
     switch (TypeValue->kind())
     {
       case ValueKind::Void:
-        return getVoidType(false);
+        return get<VoidType>(false);
       case ValueKind::Bool:
-        return getBoolType(false);
+        return get<BoolType>(false);
       case ValueKind::NullPointer:
-        return getNullPointerType(false);
+        return get<NullPointerType>(false);
       case ValueKind::Integer:
       {
         const auto *Integer = static_cast<const IntegerType *>(TypeValue);
-        return getIntegerType(Integer->width(), Integer->isSigned(), false);
+        return internInteger(Integer->width(), Integer->isSigned(), false);
       }
       case ValueKind::Float:
-        return getFloatType(static_cast<const FloatType *>(TypeValue)->width(), false);
+        return internFloat(static_cast<const FloatType *>(TypeValue)->width(), false);
       case ValueKind::Pointer:
-        return getPointerType(static_cast<const PointerType *>(TypeValue)->pointeeType(), false);
+        return internPointer(static_cast<const PointerType *>(TypeValue)->pointeeType(), false);
       case ValueKind::Reference:
-        return getReferenceType(static_cast<const ReferenceType *>(TypeValue)->referencedType(), false);
+        return internReference(static_cast<const ReferenceType *>(TypeValue)->referencedType(), false);
       case ValueKind::Array:
       {
         const auto *Array = static_cast<const ArrayType *>(TypeValue);
-        return getArrayType(Array->elementType(), Array->elementCount(), false);
+        return internArray(Array->elementType(), Array->elementCount(), false);
       }
       case ValueKind::FunctionType:
       {
         const auto *Function = static_cast<const FunctionType *>(TypeValue);
-        return getFunctionType(Function->returnType(), Function->parameters(), false);
+        return internFunction(Function->returnType(), Function->parameters(), false);
       }
       case ValueKind::Class:
       case ValueKind::Struct:
@@ -334,7 +262,7 @@ namespace ink::ir
     }
   }
 
-  const PointerType *TypePool::getPointerType(const Type *PointeeType, bool Mutable)
+  const PointerType *TypePool::internPointer(const Type *PointeeType, bool Mutable)
   {
     if (!Owner.containsType(PointeeType) || MetaType::classof(PointeeType))
     {
@@ -346,12 +274,12 @@ namespace ink::ir
     {
       return Found->second;
     }
-    const PointerType *Result = own(std::unique_ptr<PointerType>(new PointerType(Meta, Owner.targetContext(), PointeeType, Mutable)), Mutable ? nullptr : getPointerType(PointeeType));
+    const PointerType *Result = own(std::unique_ptr<PointerType>(new PointerType(Meta, Owner.targetContext(), PointeeType, Mutable)), Mutable ? nullptr : internPointer(PointeeType, true));
     PointerTypes.emplace(Key, Result);
     return Result;
   }
 
-  const ReferenceType *TypePool::getReferenceType(const Type *ReferencedType, bool Mutable)
+  const ReferenceType *TypePool::internReference(const Type *ReferencedType, bool Mutable)
   {
     if (!Owner.containsType(ReferencedType) || MetaType::classof(ReferencedType))
     {
@@ -363,12 +291,12 @@ namespace ink::ir
     {
       return Found->second;
     }
-    const ReferenceType *Result = own(std::unique_ptr<ReferenceType>(new ReferenceType(Meta, Owner.targetContext(), ReferencedType, Mutable)), Mutable ? nullptr : getReferenceType(ReferencedType));
+    const ReferenceType *Result = own(std::unique_ptr<ReferenceType>(new ReferenceType(Meta, Owner.targetContext(), ReferencedType, Mutable)), Mutable ? nullptr : internReference(ReferencedType, true));
     ReferenceTypes.emplace(Key, Result);
     return Result;
   }
 
-  const ArrayType *TypePool::getArrayType(const Type *ElementType, std::uint64_t ElementCount, bool Mutable)
+  const ArrayType *TypePool::internArray(const Type *ElementType, std::uint64_t ElementCount, bool Mutable)
   {
     if (!Owner.containsType(ElementType) || !ElementType->hasLayout())
     {
@@ -402,17 +330,12 @@ namespace ink::ir
       }
       Size = Stride * ElementCount;
     }
-    const ArrayType *Result = own(std::unique_ptr<ArrayType>(new ArrayType(Meta, ElementType, ElementCount, Size, Alignment, Mutable)), Mutable ? nullptr : getArrayType(ElementType, ElementCount));
+    const ArrayType *Result = own(std::unique_ptr<ArrayType>(new ArrayType(Meta, ElementType, ElementCount, Size, Alignment, Mutable)), Mutable ? nullptr : internArray(ElementType, ElementCount, true));
     ArrayTypes.emplace(Key, Result);
     return Result;
   }
 
-  const FunctionType *TypePool::getFunctionType(const Type *ReturnType, std::initializer_list<FunctionTypeParameter> Parameters, bool Mutable)
-  {
-    return getFunctionType(ReturnType, std::span<const FunctionTypeParameter>(Parameters.begin(), Parameters.size()), Mutable);
-  }
-
-  const FunctionType *TypePool::getFunctionType(const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters, bool Mutable)
+  const FunctionType *TypePool::internFunction(const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters, bool Mutable)
   {
     if (!Owner.containsType(ReturnType) || !ReturnType->hasLayout() || !validParameters(Parameters))
     {
@@ -429,7 +352,7 @@ namespace ink::ir
     {
       return Found->second;
     }
-    const FunctionType *Result = own(std::unique_ptr<FunctionType>(new FunctionType(Meta, Owner.targetContext(), ReturnType, Parameters, Mutable)), Mutable ? nullptr : getFunctionType(ReturnType, Parameters));
+    const FunctionType *Result = own(std::unique_ptr<FunctionType>(new FunctionType(Meta, Owner.targetContext(), ReturnType, Parameters, Mutable)), Mutable ? nullptr : internFunction(ReturnType, Parameters, true));
     FunctionTypes.emplace(std::move(Key), Result);
     return Result;
   }

@@ -13,6 +13,7 @@
 #include "ink/ir/type/structure_type/pointer_type.h"
 #include "ink/ir/type/structure_type/reference_type.h"
 
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -42,47 +43,131 @@ namespace ink::ir
       // Includes builtin and structural types and borrowed nominal qualifier views, excluding module-owned declarations.
       bool owns(const Type *TypeValue) const noexcept;
 
-      const MetaType *getMetaType() const noexcept;
-      const VoidType *getVoidType(bool Mutable = true) const noexcept;
-      const VariadicType *getVariadicType() const noexcept;
-      const BoolType *getBoolType(bool Mutable = true) const noexcept;
-      const NullPointerType *getNullPointerType(bool Mutable = true) const noexcept;
-      const IntegerType *getInt8Type(bool Mutable = true) const noexcept;
-      const IntegerType *getUInt8Type(bool Mutable = true) const noexcept;
-      const IntegerType *getInt16Type(bool Mutable = true) const noexcept;
-      const IntegerType *getUInt16Type(bool Mutable = true) const noexcept;
-      const IntegerType *getInt32Type(bool Mutable = true) const noexcept;
-      const IntegerType *getUInt32Type(bool Mutable = true) const noexcept;
-      const IntegerType *getInt64Type(bool Mutable = true) const noexcept;
-      const IntegerType *getUInt64Type(bool Mutable = true) const noexcept;
-      const FloatType *getFloat32Type(bool Mutable = true) const noexcept;
-      const FloatType *getFloat64Type(bool Mutable = true) const noexcept;
+      // Compile-time-only markers are immutable, eagerly owned singletons.
+      template <typename TypeT> requires (std::same_as<TypeT, MetaType> || std::same_as<TypeT, VariadicType>)
+      const TypeT *get() const noexcept
+      {
+        if constexpr (std::same_as<TypeT, MetaType>)
+        {
+          return &Meta;
+        }
+        else
+        {
+          return &Variadic;
+        }
+      }
 
-      // Width is in bits; integers support signed/unsigned 8/16/32/64-bit types.
-      // Unsupported widths return nullptr.
-      const IntegerType *getIntegerType(std::uint32_t Width, bool Signed, bool Mutable = true) const noexcept;
-      const FloatType *getFloatType(std::uint32_t Width, bool Mutable = true) const noexcept;
+      // Fixed nonnumeric builtins have eagerly owned mutable and const variants.
+      template <typename TypeT> requires (std::same_as<TypeT, VoidType> || std::same_as<TypeT, BoolType> || std::same_as<TypeT, NullPointerType>)
+      const TypeT *get(bool Mutable = true) const noexcept
+      {
+        if constexpr (std::same_as<TypeT, VoidType>)
+        {
+          return Mutable ? &Void : &ConstVoid;
+        }
+        else if constexpr (std::same_as<TypeT, BoolType>)
+        {
+          return Mutable ? &Bool : &ConstBool;
+        }
+        else
+        {
+          return Mutable ? &NullPointer : &ConstNullPointer;
+        }
+      }
+
+      // Width and signedness are runtime attributes; every valid IntegerBits width is interned on demand.
+      template <typename TypeT> requires std::same_as<TypeT, IntegerType>
+      const TypeT *get(std::uint32_t Width, bool Signed, bool Mutable = true)
+      {
+        return internInteger(Width, Signed, Mutable);
+      }
+
+      // Floating-point support remains restricted to 32 and 64 bits.
+      template <typename TypeT> requires std::same_as<TypeT, FloatType>
+      const TypeT *get(std::uint32_t Width, bool Mutable = true)
+      {
+        return internFloat(Width, Mutable);
+      }
 
       // Changes only the top-level qualifier and preserves canonical identity.
       // Null, foreign-context types and readonly compile-time-only markers return nullptr.
-      const Type *getQualifiedType(const Type *TypeValue, bool Mutable);
+      const Type *get(const Type *TypeValue, bool Mutable);
 
       // Structural types are reused. Null or foreign-context operands return nullptr.
       // Pointer and reference operands cannot be the compile-time-only metatype.
-      const PointerType *getPointerType(const Type *PointeeType, bool Mutable = true);
-      const ReferenceType *getReferenceType(const Type *ReferencedType, bool Mutable = true);
+      template <typename TypeT> requires (std::same_as<TypeT, PointerType> || std::same_as<TypeT, ReferenceType>)
+      const TypeT *get(const Type *ElementType, bool Mutable = true)
+      {
+        if constexpr (std::same_as<TypeT, PointerType>)
+        {
+          return internPointer(ElementType, Mutable);
+        }
+        else
+        {
+          return internReference(ElementType, Mutable);
+        }
+      }
+
       // Missing/invalid element layout or size overflow also returns nullptr.
-      const ArrayType *getArrayType(const Type *ElementType, std::uint64_t ElementCount, bool Mutable = true);
+      template <typename TypeT> requires std::same_as<TypeT, ArrayType>
+      const TypeT *get(const Type *ElementType, std::uint64_t ElementCount, bool Mutable = true)
+      {
+        return internArray(ElementType, ElementCount, Mutable);
+      }
+
       // All types must have runtime layouts. Signature descriptors are copied by value.
       // Cache identity uses the return type and ordered parameter types and variadic flags.
-      const FunctionType *getFunctionType(const Type *ReturnType, std::initializer_list<FunctionTypeParameter> Parameters = {}, bool Mutable = true);
-      const FunctionType *getFunctionType(const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters, bool Mutable = true);
+      template <typename TypeT> requires std::same_as<TypeT, FunctionType>
+      const TypeT *get(const Type *ReturnType, std::initializer_list<FunctionTypeParameter> Parameters = {}, bool Mutable = true)
+      {
+        return internFunction(ReturnType, std::span<const FunctionTypeParameter>(Parameters.begin(), Parameters.size()), Mutable);
+      }
+
+      template <typename TypeT> requires std::same_as<TypeT, FunctionType>
+      const TypeT *get(const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters, bool Mutable = true)
+      {
+        return internFunction(ReturnType, Parameters, Mutable);
+      }
 
     private:
       friend class IRContext;
 
       explicit TypePool(IRContext &Owner);
       ~TypePool() noexcept;
+
+      const IntegerType *internInteger(std::uint32_t Width, bool Signed, bool Mutable);
+      const FloatType *internFloat(std::uint32_t Width, bool Mutable);
+      const PointerType *internPointer(const Type *PointeeType, bool Mutable);
+      const ReferenceType *internReference(const Type *ReferencedType, bool Mutable);
+      const ArrayType *internArray(const Type *ElementType, std::uint64_t ElementCount, bool Mutable);
+      const FunctionType *internFunction(const Type *ReturnType, std::span<const FunctionTypeParameter> Parameters, bool Mutable);
+
+      struct IntegerKey
+      {
+          std::uint32_t Width;
+          bool Signed;
+          bool Mutable;
+
+          bool operator==(const IntegerKey &Other) const noexcept;
+      };
+
+      struct IntegerKeyHash
+      {
+          std::size_t operator()(const IntegerKey &Key) const noexcept;
+      };
+
+      struct FloatKey
+      {
+          std::uint32_t Width;
+          bool Mutable;
+
+          bool operator==(const FloatKey &Other) const noexcept;
+      };
+
+      struct FloatKeyHash
+      {
+          std::size_t operator()(const FloatKey &Key) const noexcept;
+      };
 
       struct PointerKey
       {
@@ -153,28 +238,10 @@ namespace ink::ir
       BoolType ConstBool;
       NullPointerType NullPointer;
       NullPointerType ConstNullPointer;
-      IntegerType Int8;
-      IntegerType ConstInt8;
-      IntegerType UInt8;
-      IntegerType ConstUInt8;
-      IntegerType Int16;
-      IntegerType ConstInt16;
-      IntegerType UInt16;
-      IntegerType ConstUInt16;
-      IntegerType Int32;
-      IntegerType ConstInt32;
-      IntegerType UInt32;
-      IntegerType ConstUInt32;
-      IntegerType Int64;
-      IntegerType ConstInt64;
-      IntegerType UInt64;
-      IntegerType ConstUInt64;
-      FloatType Float32;
-      FloatType ConstFloat32;
-      FloatType Float64;
-      FloatType ConstFloat64;
       std::vector<std::unique_ptr<Type>> Storage;
       std::unordered_set<const Type *> OwnedTypes;
+      std::unordered_map<IntegerKey, const IntegerType *, IntegerKeyHash> IntegerTypes;
+      std::unordered_map<FloatKey, const FloatType *, FloatKeyHash> FloatTypes;
       std::unordered_map<PointerKey, const PointerType *, PointerKeyHash> PointerTypes;
       std::unordered_map<ReferenceKey, const ReferenceType *, ReferenceKeyHash> ReferenceTypes;
       std::unordered_map<ArrayKey, const ArrayType *, ArrayKeyHash> ArrayTypes;

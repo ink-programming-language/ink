@@ -45,10 +45,10 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     Module Owner(Context);
-    auto *Callable = Owner.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
-    auto *Variable = Owner.createGlobalVariable(*Context.typePool().getInt32Type());
+    auto *Callable = Owner.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>()));
+    auto *Variable = Owner.createGlobalVariable(*Context.typePool().get<ink::ir::IntegerType>(32, true));
     auto *Nominal = Owner.createStructType(8, 8);
-    const auto *Integer = Context.typePool().getInt32Type();
+    const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
     ASSERT_NE(Callable, nullptr);
     ASSERT_NE(Variable, nullptr);
     ASSERT_NE(Nominal, nullptr);
@@ -81,7 +81,7 @@ namespace ink::ir::test
     Module Owner(Context);
     const SymbolId SourceName = symbol("IRModuleExportTest.SourceName");
     const SymbolId ExportID = symbol("IRModuleExportTest.CanonicalID");
-    auto *Callable = Owner.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()), SourceName.SymbolName, SymbolLinkage::Export, LanguageLinkage::C, FunctionVisibility::Private);
+    auto *Callable = Owner.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>()), SourceName.SymbolName, SymbolLinkage::Export, LanguageLinkage::C, FunctionVisibility::Private);
     ASSERT_NE(Callable, nullptr);
     EXPECT_EQ(Owner.findExport(SourceName), nullptr);
     EXPECT_TRUE(Owner.exports().empty());
@@ -103,8 +103,8 @@ namespace ink::ir::test
   {
     IRContext Context(Target);
     Module Owner(Context);
-    const auto *Integer = Context.typePool().getInt32Type();
-    const auto *Boolean = Context.typePool().getBoolType();
+    const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto *Boolean = Context.typePool().get<ink::ir::BoolType>();
     const SymbolId ValidID = symbol("IRModuleExportTest.Valid");
     ASSERT_TRUE(Owner.addExport(ValidID, *Integer));
     ASSERT_TRUE(Owner.addExport(ValidID, *Boolean));
@@ -125,12 +125,12 @@ namespace ink::ir::test
     IRContext ForeignContext(Target);
     Module Owner(Context);
     Module Other(Context);
-    const auto *Integer = Context.typePool().getInt32Type();
-    auto *Callable = Owner.createGlobalFunction(*Context.typePool().getFunctionType(Integer, {Integer}));
-    auto *OtherCallable = Other.createGlobalFunction(*Context.typePool().getFunctionType(Context.typePool().getVoidType()));
+    const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
+    auto *Callable = Owner.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Integer, {Integer}));
+    auto *OtherCallable = Other.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Context.typePool().get<ink::ir::VoidType>()));
     auto *OtherVariable = Other.createGlobalVariable(*Integer);
     auto *OtherNominal = Other.createStructType(8, 8);
-    const auto *Constant = Context.constantPool().getBoolConstant(true);
+    const auto *Constant = Context.constantPool().get<ink::ir::BoolConstant>(true);
     ASSERT_NE(Callable, nullptr);
     ASSERT_NE(OtherCallable, nullptr);
     ASSERT_NE(OtherVariable, nullptr);
@@ -145,7 +145,7 @@ namespace ink::ir::test
         OtherCallable,
         OtherVariable,
         OtherNominal,
-        ForeignContext.typePool().getInt32Type(),
+        ForeignContext.typePool().get<ink::ir::IntegerType>(32, true),
         Callable->parameter(0),
         Constant,
         &Owner,
@@ -170,11 +170,11 @@ namespace ink::ir::test
     IRContext Context(Target);
     Module Owner(Context);
     const SymbolId ExportID = symbol("IRModuleExportTest.Overloaded");
-    const auto *Integer = Context.typePool().getInt32Type();
-    const auto *Byte = Context.typePool().getUInt8Type();
-    const auto *FirstSignature = Context.typePool().getFunctionType(Integer, {Integer});
+    const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto *Byte = Context.typePool().get<ink::ir::IntegerType>(8, false);
+    const auto *FirstSignature = Context.typePool().get<ink::ir::FunctionType>(Integer, {Integer});
     auto *First = Owner.createGlobalFunction(*FirstSignature, ExportID.SymbolName);
-    auto *Second = Owner.createGlobalFunction(*Context.typePool().getFunctionType(Integer, {Byte}), ExportID.SymbolName);
+    auto *Second = Owner.createGlobalFunction(*Context.typePool().get<ink::ir::FunctionType>(Integer, {Byte}), ExportID.SymbolName);
     auto *SameSignature = Owner.createGlobalFunction(*FirstSignature, ExportID.SymbolName);
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Second, nullptr);
@@ -197,8 +197,8 @@ namespace ink::ir::test
     IRContext Context(Target);
     Module Owner(Context);
     const SymbolId ExportID = symbol("IRModuleExportTest.Duplicate");
-    const auto *Integer = Context.typePool().getInt32Type();
-    const auto *Boolean = Context.typePool().getBoolType();
+    const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto *Boolean = Context.typePool().get<ink::ir::BoolType>();
     ASSERT_TRUE(Owner.addExport(ExportID, *Integer));
     ASSERT_TRUE(Owner.addExport(ExportID, *Boolean));
 
@@ -223,8 +223,8 @@ namespace ink::ir::test
     Module Owner(Context);
     const SymbolId OriginalID = symbol("IRModuleExportTest.Original");
     const SymbolId AliasID = symbol("IRModuleExportTest.Alias");
-    const auto *Integer = Context.typePool().getInt32Type();
-    const auto *Boolean = Context.typePool().getBoolType();
+    const auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
+    const auto *Boolean = Context.typePool().get<ink::ir::BoolType>();
     ASSERT_TRUE(Owner.addExport(OriginalID, *Integer));
     ASSERT_TRUE(Owner.addExport(AliasID, *Integer));
     ASSERT_TRUE(Owner.addExport(AliasID, *Boolean));

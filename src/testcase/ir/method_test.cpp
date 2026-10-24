@@ -44,7 +44,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.direct");
     auto Callable = std::make_unique<Function>(*Signature, Name);
@@ -68,7 +68,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.direct");
     for (std::uint32_t Flags = 1; Flags < 8; ++Flags)
@@ -83,7 +83,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.virtual");
     for (std::uint32_t Flags = 0; Flags < 8; ++Flags)
@@ -107,7 +107,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.abstract");
     for (std::uint32_t Flags = 0; Flags < 8; ++Flags)
@@ -127,7 +127,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.name");
     EXPECT_FALSE(Method(std::make_unique<Function>(*Signature)).valid());
@@ -142,7 +142,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::IntegerType>(32, true), {Types.typePool().get<ink::ir::IntegerType>(32, true)});
     ASSERT_NE(Signature, nullptr);
     const core::Name MemberName = core::NamePool::instance().intern("method");
     const core::Name LoweredName = core::NamePool::instance().intern("ink_math_Point_method_i32");
@@ -174,7 +174,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name FirstName = core::NamePool::instance().intern("IRMethodTest.first");
     const core::Name SecondName = core::NamePool::instance().intern("IRMethodTest.second");
@@ -198,7 +198,7 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getInt32Type(), {Types.typePool().getInt32Type()});
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::IntegerType>(32, true), {Types.typePool().get<ink::ir::IntegerType>(32, true)});
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.body");
     Method Member(std::make_unique<Function>(*Signature, Name));
@@ -233,7 +233,7 @@ namespace ink::ir::test
     expectNoFunction(MovedEmpty);
     IRContext TypesContext(Target);
     Module Types(TypesContext);
-    const auto Signature = Types.typePool().getFunctionType(Types.typePool().getVoidType());
+    const auto Signature = Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>());
     ASSERT_NE(Signature, nullptr);
     const core::Name Name = core::NamePool::instance().intern("IRMethodTest.moved");
     Method Member(std::make_unique<Function>(*Signature, Name));

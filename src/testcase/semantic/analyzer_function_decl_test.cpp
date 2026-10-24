@@ -294,8 +294,8 @@ namespace ink::semantic::test
     EXPECT_EQ(Identity->symbolLinkage(), ir::SymbolLinkage::Local);
     ASSERT_EQ(Identity->parameterCount(), 2U);
     EXPECT_EQ(Identity->parameter(0)->name(), name("Value"));
-    EXPECT_EQ(Identity->parameter(0)->type(), Context.typePool().getInt32Type());
-    EXPECT_EQ(Identity->parameter(1)->type(), Context.typePool().getPointerType(Context.typePool().getUInt8Type()));
+    EXPECT_EQ(Identity->parameter(0)->type(), Context.typePool().get<ink::ir::IntegerType>(32, true));
+    EXPECT_EQ(Identity->parameter(1)->type(), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(8, false)));
     EXPECT_EQ(Identity->parameter(0)->function(), Identity);
     EXPECT_FALSE(Identity->parameter(0)->isVariadic());
     const auto *Return = returnInstruction(*Identity);
@@ -318,8 +318,8 @@ namespace ink::semantic::test
     auto *Unit = function("unit");
     ASSERT_NE(Unit, nullptr);
     ASSERT_EQ(Unit->parameterCount(), 1U);
-    EXPECT_EQ(Unit->parameter(0)->type(), Context.typePool().getVoidType());
-    EXPECT_EQ(Unit->functionType()->parameters()[0].ParameterType, Context.typePool().getVoidType());
+    EXPECT_EQ(Unit->parameter(0)->type(), Context.typePool().get<ink::ir::VoidType>());
+    EXPECT_EQ(Unit->functionType()->parameters()[0].ParameterType, Context.typePool().get<ink::ir::VoidType>());
     EXPECT_NE(returnInstruction(*Unit), nullptr);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
@@ -339,10 +339,10 @@ namespace ink::semantic::test
     ASSERT_NE(ByteReturn, nullptr);
     ASSERT_NE(NegativeReturn, nullptr);
     ASSERT_TRUE(ir::IntegerConstant::classof(ByteReturn->returnedValue()));
-    EXPECT_EQ(ByteReturn->returnedValue()->type(), Context.typePool().getUInt8Type());
-    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(ByteReturn->returnedValue())->bits(), 255U);
+    EXPECT_EQ(ByteReturn->returnedValue()->type(), Context.typePool().get<ink::ir::IntegerType>(8, false));
+    EXPECT_EQ(static_cast<const ir::IntegerConstant *>(ByteReturn->returnedValue())->bits().tryGetUInt64(), 255U);
     ASSERT_TRUE(ir::NegInstruction::classof(NegativeReturn->returnedValue()));
-    EXPECT_EQ(NegativeReturn->returnedValue()->type(), Context.typePool().getInt8Type());
+    EXPECT_EQ(NegativeReturn->returnedValue()->type(), Context.typePool().get<ink::ir::IntegerType>(8, true));
     EXPECT_EQ(Negative->entryBlock()->instructionCount(), 2U);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
@@ -350,7 +350,7 @@ namespace ink::semantic::test
   // A pooled null pointer remains a valid initializer for a concrete pointer return type.
   TEST_F(SemanticFunctionDeclTest, ReturnsCompatibleNullPointerBinding)
   {
-    const auto *Null = Output.constantPool().getNullPointerConstant();
+    const auto *Null = Output.constantPool().get<ink::ir::NullPointerConstant>();
     ASSERT_NE(Null, nullptr);
     ASSERT_EQ(NameResolver(Context).bind(name("Null"), const_cast<ir::NullPointerConstant &>(*Null)), BindResult::Inserted);
     auto Input = read("func emptyPointer(): *u8 { return Null; }");
@@ -361,7 +361,7 @@ namespace ink::semantic::test
     const auto *Return = returnInstruction(*Function);
     ASSERT_NE(Return, nullptr);
     EXPECT_EQ(Return->returnedValue(), Null);
-    EXPECT_EQ(Function->functionType()->returnType(), Context.typePool().getPointerType(Context.typePool().getUInt8Type()));
+    EXPECT_EQ(Function->functionType()->returnType(), Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(8, false)));
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 

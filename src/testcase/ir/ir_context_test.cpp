@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <type_traits>
 #include <utility>
 
@@ -36,12 +37,12 @@ namespace ink::ir::test
     EXPECT_EQ(&First.targetContext(), &Context.targetContext());
     EXPECT_EQ(&First.typePool(), &Second.typePool());
     EXPECT_EQ(&First.constantPool(), &Second.constantPool());
-    auto *Integer = First.typePool().getInt32Type();
-    auto *Signature = First.typePool().getFunctionType(Integer, {Integer});
+    auto *Integer = First.typePool().get<ink::ir::IntegerType>(32, true);
+    auto *Signature = First.typePool().get<ink::ir::FunctionType>(Integer, {Integer});
     ASSERT_NE(Signature, nullptr);
-    EXPECT_EQ(Signature, Second.typePool().getFunctionType(Integer, {Integer}));
-    auto *Constant = First.constantPool().getSignedIntegerConstant(Integer, 42);
-    EXPECT_EQ(Constant, Second.constantPool().getSignedIntegerConstant(Integer, 42));
+    EXPECT_EQ(Signature, Second.typePool().get<ink::ir::FunctionType>(Integer, {Integer}));
+    auto *Constant = First.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(42));
+    EXPECT_EQ(Constant, Second.constantPool().get<ink::ir::IntegerConstant>(Integer, static_cast<std::int64_t>(42)));
     auto *FirstFunction = First.createGlobalFunction(*Signature);
     auto *SecondFunction = Second.createGlobalFunction(*Signature);
     ASSERT_NE(FirstFunction, nullptr);
@@ -49,10 +50,10 @@ namespace ink::ir::test
     EXPECT_NE(FirstFunction, SecondFunction);
     EXPECT_FALSE(First.owns(SecondFunction));
     EXPECT_FALSE(Second.owns(FirstFunction));
-    auto *Pointer = Second.typePool().getPointerType(Integer);
+    auto *Pointer = Second.typePool().get<ink::ir::PointerType>(Integer);
     ASSERT_NE(Pointer, nullptr);
-    auto *Null = First.constantPool().getNullPointerConstant();
-    EXPECT_EQ(Null, Second.constantPool().getNullPointerConstant());
+    auto *Null = First.constantPool().get<ink::ir::NullPointerConstant>();
+    EXPECT_EQ(Null, Second.constantPool().get<ink::ir::NullPointerConstant>());
     EXPECT_TRUE(Null->canInitialize(Pointer));
     auto *Variable = Second.createGlobalVariable(*Pointer);
     ASSERT_NE(Variable, nullptr);
@@ -85,18 +86,18 @@ namespace ink::ir::test
     EXPECT_FALSE(First.ownsType(SecondClass));
     EXPECT_FALSE(Second.ownsType(FirstClass));
     auto &Types = Context.typePool();
-    auto *FirstPointer = Types.getPointerType(FirstClass);
-    auto *SecondPointer = Types.getPointerType(SecondClass);
+    auto *FirstPointer = Types.get<ink::ir::PointerType>(FirstClass);
+    auto *SecondPointer = Types.get<ink::ir::PointerType>(SecondClass);
     ASSERT_NE(FirstPointer, nullptr);
     ASSERT_NE(SecondPointer, nullptr);
     EXPECT_NE(FirstPointer, SecondPointer);
-    EXPECT_EQ(FirstPointer, Types.getPointerType(FirstClass));
-    EXPECT_NE(Types.getFunctionType(FirstClass), Types.getFunctionType(SecondClass));
-    EXPECT_NE(Types.getReferenceType(Interface), nullptr);
-    EXPECT_NE(Types.getArrayType(Struct, 2), nullptr);
+    EXPECT_EQ(FirstPointer, Types.get<ink::ir::PointerType>(FirstClass));
+    EXPECT_NE(Types.get<ink::ir::FunctionType>(FirstClass), Types.get<ink::ir::FunctionType>(SecondClass));
+    EXPECT_NE(Types.get<ink::ir::ReferenceType>(Interface), nullptr);
+    EXPECT_NE(Types.get<ink::ir::ArrayType>(Struct, 2), nullptr);
     IRContext Foreign(Target);
     EXPECT_FALSE(Foreign.containsType(FirstClass));
-    EXPECT_EQ(Foreign.typePool().getPointerType(FirstClass), nullptr);
+    EXPECT_EQ(Foreign.typePool().get<ink::ir::PointerType>(FirstClass), nullptr);
     EXPECT_FALSE(Context.containsType(nullptr));
   }
 
@@ -109,9 +110,9 @@ namespace ink::ir::test
     const NullPointerConstant *Null = nullptr;
     {
       Module Owner(Context);
-      Pointer = Owner.typePool().getPointerType(Owner.typePool().getInt32Type());
-      Text = Owner.constantPool().getStringConstant("persistent");
-      Null = Owner.constantPool().getNullPointerConstant();
+      Pointer = Owner.typePool().get<ink::ir::PointerType>(Owner.typePool().get<ink::ir::IntegerType>(32, true));
+      Text = Owner.constantPool().get<ink::ir::StringConstant>("persistent");
+      Null = Owner.constantPool().get<ink::ir::NullPointerConstant>();
       ASSERT_NE(Pointer, nullptr);
       ASSERT_NE(Text, nullptr);
       auto *Variable = Owner.createGlobalVariable(*Pointer);
@@ -120,10 +121,10 @@ namespace ink::ir::test
     }
     EXPECT_TRUE(Context.containsType(Pointer));
     EXPECT_EQ(Pointer->size(), Target.pointerByteWidth());
-    EXPECT_EQ(Pointer, Context.typePool().getPointerType(Context.typePool().getInt32Type()));
+    EXPECT_EQ(Pointer, Context.typePool().get<ink::ir::PointerType>(Context.typePool().get<ink::ir::IntegerType>(32, true)));
     EXPECT_TRUE(Context.constantPool().owns(Text));
-    EXPECT_EQ(Text, Context.constantPool().getStringConstant("persistent"));
-    EXPECT_EQ(Null, Context.constantPool().getNullPointerConstant());
+    EXPECT_EQ(Text, Context.constantPool().get<ink::ir::StringConstant>("persistent"));
+    EXPECT_EQ(Null, Context.constantPool().get<ink::ir::NullPointerConstant>());
     EXPECT_TRUE(Null->canInitialize(Pointer));
     Module Next(Context);
     EXPECT_NE(Next.createGlobalVariable(*Text->type()), nullptr);
@@ -135,8 +136,8 @@ namespace ink::ir::test
     IRContext Context(Target);
     Module First(Context);
     Module Second(Context);
-    auto *Integer = Context.typePool().getInt32Type();
-    auto *Signature = Context.typePool().getFunctionType(Integer, {Integer});
+    auto *Integer = Context.typePool().get<ink::ir::IntegerType>(32, true);
+    auto *Signature = Context.typePool().get<ink::ir::FunctionType>(Integer, {Integer});
     ASSERT_NE(Signature, nullptr);
     auto *FirstFunction = First.createGlobalFunction(*Signature);
     auto *SecondFunction = Second.createGlobalFunction(*Signature);
@@ -153,7 +154,7 @@ namespace ink::ir::test
     EXPECT_EQ(FirstBlock->instructionCount(), 0U);
     IRContext Foreign(Target);
     Module ForeignModule(Foreign);
-    auto *ForeignFunction = ForeignModule.createGlobalFunction(*Foreign.typePool().getFunctionType(Foreign.typePool().getVoidType()));
+    auto *ForeignFunction = ForeignModule.createGlobalFunction(*Foreign.typePool().get<ink::ir::FunctionType>(Foreign.typePool().get<ink::ir::VoidType>()));
     ASSERT_NE(ForeignFunction, nullptr);
     EXPECT_FALSE(FirstBuilder.setInsertPoint(*ForeignFunction->createBlock()));
     EXPECT_EQ(FirstBuilder.insertBlock(), FirstBlock);

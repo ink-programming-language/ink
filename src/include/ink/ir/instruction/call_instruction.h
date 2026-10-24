@@ -13,7 +13,8 @@ namespace ink::ir
   class FunctionType;
 
   // Owns the actual argument records; borrows the signature, callee and argument values.
-  // The explicit signature supports indirect calls and must match the resolved callee and arguments.
+  // The explicit signature supports indirect calls and must match the resolved function value and arguments.
+  // The callee is a function value, not a pointer to function-value storage; calls never implicitly load the callee.
   class CallInstruction final : public Instruction
   {
     public:

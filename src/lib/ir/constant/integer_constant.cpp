@@ -2,13 +2,13 @@
 
 namespace ink::ir
 {
-  IntegerConstant::IntegerConstant(const IntegerType *IntegerTypeValue, std::uint64_t Bits) noexcept
+  IntegerConstant::IntegerConstant(const IntegerType *IntegerTypeValue, const core::IntegerBits &Bits)
       : Constant(ValueKind::IntegerConstant, IntegerTypeValue),
         Bits(Bits)
   {
   }
 
-  std::uint64_t IntegerConstant::bits() const noexcept
+  const core::IntegerBits &IntegerConstant::bits() const noexcept
   {
     return Bits;
   }
@@ -16,7 +16,7 @@ namespace ink::ir
   bool IntegerConstant::isNegative() const noexcept
   {
     const auto &Integer = static_cast<const IntegerType &>(*type());
-    return Integer.isSigned() && (Bits & (std::uint64_t{1} << (Integer.width() - 1U))) != 0;
+    return Integer.isSigned() && Bits.isNegative();
   }
 
   std::optional<std::uint64_t> IntegerConstant::tryGetNonNegativeUInt64() const noexcept
@@ -25,7 +25,7 @@ namespace ink::ir
     {
       return std::nullopt;
     }
-    return Bits;
+    return Bits.tryGetUInt64();
   }
 
   bool IntegerConstant::classof(const Value *Value) noexcept

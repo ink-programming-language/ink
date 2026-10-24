@@ -26,14 +26,14 @@ namespace ink::semantic
     if (ir::StringConstant::classof(&Value) && ir::PointerType::classof(&ExpectedType))
     {
       const ir::Type *Pointee = static_cast<const ir::PointerType &>(ExpectedType).pointeeType();
-      if (!Pointee->isMutable() && Pointee->unqualifiedType() == Context.typePool().getUInt8Type())
+      if (!Pointee->isMutable() && Pointee->unqualifiedType() == Context.typePool().get<ir::IntegerType>(8, false))
       {
         auto &Builder = State.irBuilder();
         // Validate insertion before materializing storage; address instructions belong to this use's function and block.
         CHECK_ICE(Site, Builder.insertFunction() && Builder.insertBlock() && !Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed);
         const ir::GlobalVariable *StringStorage = State.Output.getOrCreateStringStorage(static_cast<const ir::StringConstant &>(Value));
         CHECK_ICE(Site, StringStorage, core::DiagnosticKind::SemanticConstructionFailed);
-        const auto *Zero = Context.irContext().constantPool().getUnsignedIntegerConstant(Context.typePool().getUInt32Type(), 0);
+        const auto *Zero = Context.irContext().constantPool().get<ir::IntegerConstant>(Context.typePool().get<ir::IntegerType>(32, false), 0U);
         CHECK_ICE(Site, Zero, core::DiagnosticKind::SemanticConstructionFailed);
         const auto *Address = Builder.createAddressOf(*StringStorage);
         CHECK_ICE(Site, Address, core::DiagnosticKind::SemanticConstructionFailed);

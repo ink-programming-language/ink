@@ -154,7 +154,7 @@ namespace ink::ir
     check(canAppend());
     RETURN_IF(!Context.containsType(&Signature) || !validOperand(Callee) || Arguments.size() != Signature.parameterCount(), nullptr);
     const Type *CalleeType = Callee.type()->unqualifiedType();
-    RETURN_IF(CalleeType != Signature.unqualifiedType() && (!PointerType::classof(CalleeType) || static_cast<const PointerType *>(CalleeType)->pointeeType()->unqualifiedType() != Signature.unqualifiedType()), nullptr);
+    RETURN_IF(CalleeType != Signature.unqualifiedType(), nullptr);
     for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
     {
       const FunctionTypeParameter &Descriptor = Signature.parameters()[Index];
@@ -175,7 +175,7 @@ namespace ink::ir
       Compatible = (PointerType::classof(LeftType) && canUseAs(Right, *LeftType)) || (PointerType::classof(RightType) && canUseAs(Left, *RightType));
     }
     RETURN_IF(!Compatible, nullptr);
-    return append<ICmpInstruction>(*Context.typePool().getBoolType(), Predicate, Left, Right);
+    return append<ICmpInstruction>(*Context.typePool().get<BoolType>(), Predicate, Left, Right);
   }
 
   NegInstruction *IRBuilder::createNeg(const Value &Operand)
@@ -191,7 +191,7 @@ namespace ink::ir
   {
     check(canAppend());
     RETURN_IF(!Context.containsType(&AllocatedType) || !AllocatedType.hasLayout() || VoidType::classof(&AllocatedType), nullptr);
-    const Type *ObjectType = typePool().getQualifiedType(&AllocatedType, Mutable && AllocatedType.isMutable());
+    const Type *ObjectType = typePool().get(&AllocatedType, Mutable && AllocatedType.isMutable());
     RETURN_IF_NULL(ObjectType, nullptr);
     AllocaInstruction *Storage = append<AllocaInstruction>(*ObjectType);
     Storage->Initialized = Initialized;
@@ -211,7 +211,7 @@ namespace ink::ir
   {
     check(canAppend());
     RETURN_IF(!validStorage(Storage), nullptr);
-    const PointerType *ResultType = typePool().getPointerType(Storage.type());
+    const PointerType *ResultType = typePool().get<PointerType>(Storage.type());
     RETURN_IF_NULL(ResultType, nullptr);
     return append<AddressOfInstruction>(*ResultType, Storage);
   }
@@ -232,14 +232,14 @@ namespace ink::ir
     RETURN_IF(Pointer.isStorage() && !Pointer.isMutable(), nullptr);
     const Type *StoredType = memoryPointeeType(Pointer);
     RETURN_IF(!StoredType || !StoredType->isMutable() || !canUseAs(StoredValue, *StoredType), nullptr);
-    return append<StoreInstruction>(*Context.typePool().getVoidType(), StoredValue, Pointer);
+    return append<StoreInstruction>(*Context.typePool().get<VoidType>(), StoredValue, Pointer);
   }
 
   StoreInstruction *IRBuilder::createInitialize(const Value &Initializer, AllocaInstruction &Storage)
   {
     check(canAppend());
     RETURN_IF(!validStorage(Storage) || Storage.isInitialized() || !canUseAs(Initializer, *Storage.type()), nullptr);
-    StoreInstruction *Initialization = append<StoreInstruction>(*Context.typePool().getVoidType(), Initializer, Storage);
+    StoreInstruction *Initialization = append<StoreInstruction>(*Context.typePool().get<VoidType>(), Initializer, Storage);
     Storage.Initialized = true;
     return Initialization;
   }
@@ -249,7 +249,7 @@ namespace ink::ir
     check(canAppend());
     RETURN_IF(!Context.containsType(&SourceElementType) || !SourceElementType.hasLayout() || VoidType::classof(&SourceElementType) || !validOperand(Pointer), nullptr);
     const Type *PointerValueType = Pointer.type();
-    RETURN_IF(&Pointer != Context.constantPool().getNullPointerConstant() && (!PointerType::classof(PointerValueType) || static_cast<const PointerType *>(PointerValueType)->pointeeType() != &SourceElementType), nullptr);
+    RETURN_IF(&Pointer != Context.constantPool().get<NullPointerConstant>() && (!PointerType::classof(PointerValueType) || static_cast<const PointerType *>(PointerValueType)->pointeeType() != &SourceElementType), nullptr);
     const Type *SelectedType = &SourceElementType;
     for (std::size_t Index = 0; Index < Indices.size(); ++Index)
     {
@@ -275,11 +275,11 @@ namespace ink::ir
       RETURN_IF(!Context.containsType(SelectedType) || !SelectedType->hasLayout(), nullptr);
       if (!Mutable)
       {
-        SelectedType = typePool().getQualifiedType(SelectedType, false);
+        SelectedType = typePool().get(SelectedType, false);
         RETURN_IF_NULL(SelectedType, nullptr);
       }
     }
-    const PointerType *ResultType = typePool().getPointerType(SelectedType);
+    const PointerType *ResultType = typePool().get<PointerType>(SelectedType);
     RETURN_IF_NULL(ResultType, nullptr);
     return append<GetElementPtrInstruction>(*ResultType, SourceElementType, Pointer, std::move(Indices), InBounds);
   }
@@ -288,27 +288,27 @@ namespace ink::ir
   {
     check(canAppend());
     RETURN_IF(!validTarget(Target), nullptr);
-    return append<BranchInstruction>(*Context.typePool().getVoidType(), Target);
+    return append<BranchInstruction>(*Context.typePool().get<VoidType>(), Target);
   }
 
   ConditionalBranchInstruction *IRBuilder::createConditionalBranch(const Value &Condition, BasicBlock &TrueTarget, BasicBlock &FalseTarget)
   {
     check(canAppend());
-    RETURN_IF(!canUseAs(Condition, *Context.typePool().getBoolType()) || !validTarget(TrueTarget) || !validTarget(FalseTarget), nullptr);
-    return append<ConditionalBranchInstruction>(*Context.typePool().getVoidType(), Condition, TrueTarget, FalseTarget);
+    RETURN_IF(!canUseAs(Condition, *Context.typePool().get<BoolType>()) || !validTarget(TrueTarget) || !validTarget(FalseTarget), nullptr);
+    return append<ConditionalBranchInstruction>(*Context.typePool().get<VoidType>(), Condition, TrueTarget, FalseTarget);
   }
 
   ReturnInstruction *IRBuilder::createReturn()
   {
     check(canAppend());
     RETURN_IF(!VoidType::classof(insertFunction()->functionType()->returnType()), nullptr);
-    return append<ReturnInstruction>(*Context.typePool().getVoidType());
+    return append<ReturnInstruction>(*Context.typePool().get<VoidType>());
   }
 
   ReturnInstruction *IRBuilder::createReturn(const Value &ReturnedValue)
   {
     check(canAppend());
     RETURN_IF(VoidType::classof(insertFunction()->functionType()->returnType()) || !canUseAs(ReturnedValue, *insertFunction()->functionType()->returnType()), nullptr);
-    return append<ReturnInstruction>(*Context.typePool().getVoidType(), &ReturnedValue);
+    return append<ReturnInstruction>(*Context.typePool().get<VoidType>(), &ReturnedValue);
   }
 } // namespace ink::ir

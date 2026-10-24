@@ -32,14 +32,14 @@ namespace ink::ir::test
         const target::TargetContext Target(Width, Order);
         IRContext TypesContext(Target);
         Module Types(TypesContext);
-        const auto Text = Types.constantPool().getStringConstant("hello, world\n");
+        const auto Text = Types.constantPool().get<ink::ir::StringConstant>("hello, world\n");
         ASSERT_NE(Text, nullptr);
         const Type *TypeValue = Text->type();
         EXPECT_EQ(TypeValue->kind(), ValueKind::Array);
         EXPECT_TRUE(TypeValue->hasLayout());
         EXPECT_EQ(TypeValue->size(), 13U);
         EXPECT_EQ(TypeValue->alignment(), 1U);
-        EXPECT_EQ(TypeValue, Types.typePool().getArrayType(Types.typePool().getUInt8Type(), 13));
+        EXPECT_EQ(TypeValue, Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(8, false), 13));
         EXPECT_EQ(Text->byteLength(), 13U);
         EXPECT_EQ(Text->value(), "hello, world\n");
       }
@@ -61,21 +61,21 @@ namespace ink::ir::test
     };
     for (const std::string_view Expected : Contents)
     {
-      const auto Text = Constants.getStringConstant(std::string(Expected));
+      const auto Text = Constants.get<ink::ir::StringConstant>(std::string(Expected));
       ASSERT_NE(Text, nullptr);
-      EXPECT_EQ(Text->type(), Types.typePool().getArrayType(Types.typePool().getUInt8Type(), Expected.size()));
+      EXPECT_EQ(Text->type(), Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(8, false), Expected.size()));
       EXPECT_EQ(Text->value(), Expected);
       EXPECT_EQ(Text->byteLength(), Expected.size());
       EXPECT_EQ(Text->type()->size(), Expected.size());
       ASSERT_TRUE(ArrayType::classof(Text->type()));
       const auto Array = static_cast<const ArrayType *>(Text->type());
-      EXPECT_EQ(Array->elementType(), Types.typePool().getUInt8Type());
+      EXPECT_EQ(Array->elementType(), Types.typePool().get<ink::ir::IntegerType>(8, false));
       EXPECT_EQ(Array->elementCount(), Expected.size());
     }
-    const auto Chinese = Constants.getStringConstant("\xE4\xBD\xA0\xE5\xA5\xBD");
+    const auto Chinese = Constants.get<ink::ir::StringConstant>("\xE4\xBD\xA0\xE5\xA5\xBD");
     ASSERT_NE(Chinese, nullptr);
     EXPECT_EQ(Chinese->byteLength(), 6U);
-    const auto Empty = Constants.getStringConstant("");
+    const auto Empty = Constants.get<ink::ir::StringConstant>("");
     ASSERT_NE(Empty, nullptr);
     EXPECT_EQ(Empty->type()->size(), 0U);
     EXPECT_EQ(Empty->type()->alignment(), 1U);
@@ -88,11 +88,11 @@ namespace ink::ir::test
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     const std::string_view EmbeddedNul("a\0b", 3);
-    const auto BinarySafe = Constants.getStringConstant(std::string(EmbeddedNul));
-    const auto Bom = Constants.getStringConstant("\xEF\xBB\xBF");
-    const auto EscapeText = Constants.getStringConstant("\\u4E2D\\n");
-    const auto Composed = Constants.getStringConstant("\xC3\xA9");
-    const auto Decomposed = Constants.getStringConstant("e\xCC\x81");
+    const auto BinarySafe = Constants.get<ink::ir::StringConstant>(std::string(EmbeddedNul));
+    const auto Bom = Constants.get<ink::ir::StringConstant>("\xEF\xBB\xBF");
+    const auto EscapeText = Constants.get<ink::ir::StringConstant>("\\u4E2D\\n");
+    const auto Composed = Constants.get<ink::ir::StringConstant>("\xC3\xA9");
+    const auto Decomposed = Constants.get<ink::ir::StringConstant>("e\xCC\x81");
     ASSERT_NE(BinarySafe, nullptr);
     ASSERT_NE(Bom, nullptr);
     ASSERT_NE(EscapeText, nullptr);
@@ -114,7 +114,7 @@ namespace ink::ir::test
     Module Types(TypesContext);
     auto &Constants = Types.constantPool();
     std::string Source = "original";
-    const auto Copied = Constants.getStringConstant(Source);
+    const auto Copied = Constants.get<ink::ir::StringConstant>(Source);
     ASSERT_NE(Copied, nullptr);
     Source.assign("changed");
     EXPECT_EQ(Copied->value(), "original");
@@ -122,7 +122,7 @@ namespace ink::ir::test
     const StringConstant *Moved = nullptr;
     {
       std::string Temporary(256, 'x');
-      Moved = Constants.getStringConstant(std::move(Temporary));
+      Moved = Constants.get<ink::ir::StringConstant>(std::move(Temporary));
     }
     ASSERT_NE(Moved, nullptr);
     EXPECT_EQ(Moved->value(), std::string(256, 'x'));
@@ -156,7 +156,7 @@ namespace ink::ir::test
     };
     for (std::size_t Index = 0; Index < std::size(InvalidContents); ++Index)
     {
-      EXPECT_EQ(Constants.getStringConstant(std::string(InvalidContents[Index])), nullptr) << "invalid sequence " << Index;
+      EXPECT_EQ(Constants.get<ink::ir::StringConstant>(std::string(InvalidContents[Index])), nullptr) << "invalid sequence " << Index;
     }
   }
 
@@ -168,24 +168,24 @@ namespace ink::ir::test
       IRContext TypesContext(Target);
       Module Types(TypesContext);
       auto &Constants = Types.constantPool();
-      const auto First = Constants.getStringConstant("first");
-      const auto Second = Constants.getStringConstant("other");
-      const auto Longer = Constants.getStringConstant("second");
+      const auto First = Constants.get<ink::ir::StringConstant>("first");
+      const auto Second = Constants.get<ink::ir::StringConstant>("other");
+      const auto Longer = Constants.get<ink::ir::StringConstant>("second");
       ASSERT_NE(First, nullptr);
       ASSERT_NE(Second, nullptr);
       ASSERT_NE(Longer, nullptr);
-      const auto Bytes = Types.typePool().getArrayType(Types.typePool().getUInt8Type(), 5);
+      const auto Bytes = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(8, false), 5);
       EXPECT_EQ(First->type(), Bytes);
       EXPECT_EQ(Second->type(), Bytes);
       EXPECT_NE(First, Second);
       EXPECT_NE(Longer->type(), Bytes);
-      const auto Array = Types.typePool().getArrayType(Bytes, 2);
-      const auto Function = Types.typePool().getFunctionType(Bytes, {Bytes});
+      const auto Array = Types.typePool().get<ink::ir::ArrayType>(Bytes, 2);
+      const auto Function = Types.typePool().get<ink::ir::FunctionType>(Bytes, {Bytes});
       ASSERT_NE(Array, nullptr);
       ASSERT_NE(Function, nullptr);
-      const auto Values = Constants.getArrayConstant(Array, {First, Second});
+      const auto Values = Constants.get<ink::ir::ArrayConstant>(Array, {First, Second});
       ASSERT_NE(Values, nullptr);
-      EXPECT_EQ(Constants.getArrayConstant(Array, {First, Longer}), nullptr);
+      EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(Array, {First, Longer}), nullptr);
       EXPECT_EQ(Array->size(), 10U);
       EXPECT_EQ(Array->alignment(), 1U);
       ASSERT_EQ(Values->elementCount(), 2U);
@@ -206,8 +206,8 @@ namespace ink::ir::test
     const core::Name Name = core::NamePool::instance().intern("IRStringTest.Text");
     for (const std::string_view Contents : {std::string_view(), std::string_view("hello"), std::string_view("\xE4\xB8\xAD")})
     {
-      const auto Text = Constants.getStringConstant(std::string(Contents));
-      const auto Bytes = Types.typePool().getArrayType(Types.typePool().getUInt8Type(), Contents.size());
+      const auto Text = Constants.get<ink::ir::StringConstant>(std::string(Contents));
+      const auto Bytes = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(8, false), Contents.size());
       ASSERT_NE(Text, nullptr);
       ASSERT_NE(Bytes, nullptr);
       EXPECT_TRUE(Text->canInitialize(Bytes));
@@ -231,12 +231,12 @@ namespace ink::ir::test
     IRContext OtherTypesContext(Target64);
     Module OtherTypes(OtherTypesContext);
     auto &Constants = Types.constantPool();
-    const auto Text = Constants.getStringConstant("hello");
-    const auto Short = Constants.getStringConstant("hell");
-    const auto Foreign = OtherTypes.constantPool().getStringConstant("hello");
-    const auto Bytes = Types.typePool().getArrayType(Types.typePool().getUInt8Type(), 5);
-    const auto BoolArray = Types.typePool().getArrayType(Types.typePool().getBoolType(), 5);
-    const auto OtherBytes = OtherTypes.typePool().getArrayType(OtherTypes.typePool().getUInt8Type(), 5);
+    const auto Text = Constants.get<ink::ir::StringConstant>("hello");
+    const auto Short = Constants.get<ink::ir::StringConstant>("hell");
+    const auto Foreign = OtherTypes.constantPool().get<ink::ir::StringConstant>("hello");
+    const auto Bytes = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(8, false), 5);
+    const auto BoolArray = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::BoolType>(), 5);
+    const auto OtherBytes = OtherTypes.typePool().get<ink::ir::ArrayType>(OtherTypes.typePool().get<ink::ir::IntegerType>(8, false), 5);
     const core::Name Name = core::NamePool::instance().intern("IRStringTest.Text");
     ASSERT_NE(Text, nullptr);
     ASSERT_NE(Short, nullptr);
@@ -254,10 +254,10 @@ namespace ink::ir::test
     EXPECT_FALSE(Field(Bytes, Name, 0, Short).valid());
     EXPECT_FALSE(Field(Bytes, Name, 0, Foreign).valid());
     EXPECT_FALSE(Field(BoolArray, Name, 0, Text).valid());
-    const auto Array = Types.typePool().getArrayType(Bytes, 1);
+    const auto Array = Types.typePool().get<ink::ir::ArrayType>(Bytes, 1);
     ASSERT_NE(Array, nullptr);
-    EXPECT_EQ(Constants.getArrayConstant(Array, {Foreign}), nullptr);
-    EXPECT_EQ(Constants.getArrayConstant(Array, {Short}), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(Array, {Foreign}), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(Array, {Short}), nullptr);
     EXPECT_FALSE(Constants.owns(Foreign));
     EXPECT_FALSE(OtherTypes.constantPool().owns(Text));
   }
@@ -267,9 +267,9 @@ namespace ink::ir::test
   {
     IRContext Context(Target64);
     Module Owner(Context);
-    const auto First = Context.constantPool().getStringConstant("first");
-    const auto Repeated = Context.constantPool().getStringConstant(std::string("first"));
-    const auto Other = Context.constantPool().getStringConstant("other");
+    const auto First = Context.constantPool().get<ink::ir::StringConstant>("first");
+    const auto Repeated = Context.constantPool().get<ink::ir::StringConstant>(std::string("first"));
+    const auto Other = Context.constantPool().get<ink::ir::StringConstant>("other");
     ASSERT_NE(First, nullptr);
     ASSERT_NE(Repeated, nullptr);
     ASSERT_NE(Other, nullptr);
@@ -284,7 +284,7 @@ namespace ink::ir::test
     EXPECT_TRUE(FirstStorage->isInitialized());
     EXPECT_FALSE(FirstStorage->isMutable());
     EXPECT_FALSE(FirstStorage->hasName());
-    EXPECT_EQ(FirstStorage->type(), Context.typePool().getQualifiedType(First->type(), false));
+    EXPECT_EQ(FirstStorage->type(), Context.typePool().get(First->type(), false));
     EXPECT_EQ(FirstStorage->initializer(), First);
 
     const auto OtherStorage = Owner.getOrCreateStringStorage(*Other);
@@ -302,7 +302,7 @@ namespace ink::ir::test
     IRContext Context(Target64);
     Module FirstOwner(Context);
     Module SecondOwner(Context);
-    const auto Text = Context.constantPool().getStringConstant("shared");
+    const auto Text = Context.constantPool().get<ink::ir::StringConstant>("shared");
     ASSERT_NE(Text, nullptr);
     const auto FirstStorage = FirstOwner.getOrCreateStringStorage(*Text);
     const auto SecondStorage = SecondOwner.getOrCreateStringStorage(*Text);
@@ -327,8 +327,8 @@ namespace ink::ir::test
     IRContext Context(Target64);
     IRContext OtherContext(Target64);
     Module Owner(Context);
-    const auto LocalText = Context.constantPool().getStringConstant("same");
-    const auto ForeignText = OtherContext.constantPool().getStringConstant("same");
+    const auto LocalText = Context.constantPool().get<ink::ir::StringConstant>("same");
+    const auto ForeignText = OtherContext.constantPool().get<ink::ir::StringConstant>("same");
     ASSERT_NE(LocalText, nullptr);
     ASSERT_NE(ForeignText, nullptr);
     EXPECT_EQ(Owner.getOrCreateStringStorage(*ForeignText), nullptr);
@@ -355,7 +355,7 @@ namespace ink::ir::test
     };
     for (const std::string_view Expected : Contents)
     {
-      const auto Text = Context.constantPool().getStringConstant(std::string(Expected));
+      const auto Text = Context.constantPool().get<ink::ir::StringConstant>(std::string(Expected));
       ASSERT_NE(Text, nullptr);
       const auto Storage = Owner.getOrCreateStringStorage(*Text);
       ASSERT_NE(Storage, nullptr);

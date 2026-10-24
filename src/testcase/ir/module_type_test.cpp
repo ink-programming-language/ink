@@ -23,43 +23,43 @@ namespace ink::ir::test
     static_assert(!std::is_move_assignable_v<Module>);
   } // namespace
 
-  // Named and width-based builtin lookups share immutable objects, including signedness distinctions.
+  // Module and context template lookups share canonical builtin objects while signedness distinguishes integer types.
   TEST(IRModuleTypeTest, BuiltinLookupsReturnCanonicalTypes)
   {
     IRContext TypesContext(Target64);
-    const Module Types(TypesContext);
+    Module Types(TypesContext);
     EXPECT_EQ(Types.targetContext(), Target64);
     EXPECT_EQ(&Types.typePool().irContext(), &Types.irContext());
-    EXPECT_EQ(Types.typePool().getVoidType(), Types.typePool().getVoidType());
-    EXPECT_EQ(Types.typePool().getBoolType(), Types.typePool().getBoolType());
-    EXPECT_EQ(Types.typePool().getInt8Type(), Types.typePool().getIntegerType(8, true));
-    EXPECT_EQ(Types.typePool().getUInt8Type(), Types.typePool().getIntegerType(8, false));
-    EXPECT_EQ(Types.typePool().getInt16Type(), Types.typePool().getIntegerType(16, true));
-    EXPECT_EQ(Types.typePool().getUInt16Type(), Types.typePool().getIntegerType(16, false));
-    EXPECT_EQ(Types.typePool().getInt32Type(), Types.typePool().getIntegerType(32, true));
-    EXPECT_EQ(Types.typePool().getUInt32Type(), Types.typePool().getIntegerType(32, false));
-    EXPECT_EQ(Types.typePool().getInt64Type(), Types.typePool().getIntegerType(64, true));
-    EXPECT_EQ(Types.typePool().getUInt64Type(), Types.typePool().getIntegerType(64, false));
-    EXPECT_EQ(Types.typePool().getFloat32Type(), Types.typePool().getFloatType(32));
-    EXPECT_EQ(Types.typePool().getFloat64Type(), Types.typePool().getFloatType(64));
-    EXPECT_EQ(Types.typePool().getNullPointerType(), Types.typePool().getNullPointerType());
-    EXPECT_EQ(Types.typePool().getIntegerType(24, true), nullptr);
-    EXPECT_EQ(Types.typePool().getFloatType(16), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::VoidType>(), Types.typePool().get<ink::ir::VoidType>());
+    EXPECT_EQ(Types.typePool().get<ink::ir::BoolType>(), Types.typePool().get<ink::ir::BoolType>());
+    EXPECT_EQ(Types.typePool().get<ink::ir::IntegerType>(8, true), TypesContext.typePool().get<ink::ir::IntegerType>(8, true));
+    EXPECT_EQ(Types.typePool().get<ink::ir::IntegerType>(8, false), TypesContext.typePool().get<ink::ir::IntegerType>(8, false));
+    EXPECT_EQ(Types.typePool().get<ink::ir::IntegerType>(16, true), TypesContext.typePool().get<ink::ir::IntegerType>(16, true));
+    EXPECT_EQ(Types.typePool().get<ink::ir::IntegerType>(16, false), TypesContext.typePool().get<ink::ir::IntegerType>(16, false));
+    EXPECT_EQ(Types.typePool().get<ink::ir::IntegerType>(32, true), TypesContext.typePool().get<ink::ir::IntegerType>(32, true));
+    EXPECT_EQ(Types.typePool().get<ink::ir::IntegerType>(32, false), TypesContext.typePool().get<ink::ir::IntegerType>(32, false));
+    EXPECT_EQ(Types.typePool().get<ink::ir::IntegerType>(64, true), TypesContext.typePool().get<ink::ir::IntegerType>(64, true));
+    EXPECT_EQ(Types.typePool().get<ink::ir::IntegerType>(64, false), TypesContext.typePool().get<ink::ir::IntegerType>(64, false));
+    EXPECT_EQ(Types.typePool().get<ink::ir::FloatType>(32), TypesContext.typePool().get<ink::ir::FloatType>(32));
+    EXPECT_EQ(Types.typePool().get<ink::ir::FloatType>(64), TypesContext.typePool().get<ink::ir::FloatType>(64));
+    EXPECT_EQ(Types.typePool().get<ink::ir::NullPointerType>(), Types.typePool().get<ink::ir::NullPointerType>());
+    EXPECT_NE(TypesContext.typePool().get<ink::ir::IntegerType>(24, true), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::FloatType>(16), nullptr);
     const std::array<const Type *, 14> Builtins = {
-        Types.typePool().getVoidType(),
-        Types.typePool().getVariadicType(),
-        Types.typePool().getBoolType(),
-        Types.typePool().getInt8Type(),
-        Types.typePool().getUInt8Type(),
-        Types.typePool().getInt16Type(),
-        Types.typePool().getUInt16Type(),
-        Types.typePool().getInt32Type(),
-        Types.typePool().getUInt32Type(),
-        Types.typePool().getInt64Type(),
-        Types.typePool().getUInt64Type(),
-        Types.typePool().getFloat32Type(),
-        Types.typePool().getFloat64Type(),
-        Types.typePool().getNullPointerType(),
+        Types.typePool().get<ink::ir::VoidType>(),
+        Types.typePool().get<ink::ir::VariadicType>(),
+        Types.typePool().get<ink::ir::BoolType>(),
+        Types.typePool().get<ink::ir::IntegerType>(8, true),
+        Types.typePool().get<ink::ir::IntegerType>(8, false),
+        Types.typePool().get<ink::ir::IntegerType>(16, true),
+        Types.typePool().get<ink::ir::IntegerType>(16, false),
+        Types.typePool().get<ink::ir::IntegerType>(32, true),
+        Types.typePool().get<ink::ir::IntegerType>(32, false),
+        Types.typePool().get<ink::ir::IntegerType>(64, true),
+        Types.typePool().get<ink::ir::IntegerType>(64, false),
+        Types.typePool().get<ink::ir::FloatType>(32),
+        Types.typePool().get<ink::ir::FloatType>(64),
+        Types.typePool().get<ink::ir::NullPointerType>(),
     };
     const std::unordered_set<const Type *> UniqueTypes(Builtins.begin(), Builtins.end());
     EXPECT_EQ(UniqueTypes.size(), Builtins.size());
@@ -80,31 +80,31 @@ namespace ink::ir::test
     IRContext Types64Context(Target64);
     Module Types64(Types64Context);
     IRContext Other64Context(Target64);
-    const Module Other64(Other64Context);
+    Module Other64(Other64Context);
     const target::TargetContext Native = target::TargetContext::native();
     IRContext NativeTypesContext(Native);
-    const Module NativeTypes(NativeTypesContext);
+    Module NativeTypes(NativeTypesContext);
     EXPECT_EQ(NativeTypes.targetContext(), Native);
-    EXPECT_EQ(NativeTypes.typePool().getInt64Type()->alignment(), Native.integerAlignment(64));
-    EXPECT_EQ(NativeTypes.typePool().getFloat64Type()->alignment(), Native.floatAlignment(64));
-    EXPECT_EQ(Types32.typePool().getInt64Type()->alignment(), 4U);
-    EXPECT_EQ(Types64.typePool().getInt64Type()->alignment(), 8U);
-    EXPECT_EQ(Types32.typePool().getUInt8Type()->size(), 1U);
-    EXPECT_EQ(Types64.typePool().getUInt8Type()->size(), 1U);
-    const PointerType *Pointer32 = Types32.typePool().getPointerType(Types32.typePool().getBoolType());
-    const PointerType *Pointer64 = Types64.typePool().getPointerType(Types64.typePool().getBoolType());
+    EXPECT_EQ(NativeTypes.typePool().get<ink::ir::IntegerType>(64, true)->alignment(), Native.integerAlignment(64));
+    EXPECT_EQ(NativeTypes.typePool().get<ink::ir::FloatType>(64)->alignment(), Native.floatAlignment(64));
+    EXPECT_EQ(Types32.typePool().get<ink::ir::IntegerType>(64, true)->alignment(), 4U);
+    EXPECT_EQ(Types64.typePool().get<ink::ir::IntegerType>(64, true)->alignment(), 8U);
+    EXPECT_EQ(Types32.typePool().get<ink::ir::IntegerType>(8, false)->size(), 1U);
+    EXPECT_EQ(Types64.typePool().get<ink::ir::IntegerType>(8, false)->size(), 1U);
+    const PointerType *Pointer32 = Types32.typePool().get<ink::ir::PointerType>(Types32.typePool().get<ink::ir::BoolType>());
+    const PointerType *Pointer64 = Types64.typePool().get<ink::ir::PointerType>(Types64.typePool().get<ink::ir::BoolType>());
     ASSERT_NE(Pointer32, nullptr);
     ASSERT_NE(Pointer64, nullptr);
     EXPECT_EQ(Pointer32->size(), 4U);
     EXPECT_EQ(Pointer64->size(), 8U);
-    EXPECT_NE(Types64.typePool().getVoidType(), Other64.typePool().getVoidType());
-    EXPECT_NE(Types64.typePool().getBoolType(), Other64.typePool().getBoolType());
-    EXPECT_NE(Types64.typePool().getUInt8Type(), Other64.typePool().getUInt8Type());
-    EXPECT_NE(Types64.typePool().getInt32Type(), Other64.typePool().getInt32Type());
-    EXPECT_NE(Types64.typePool().getFloat32Type(), Other64.typePool().getFloat32Type());
-    EXPECT_NE(Types64.typePool().getNullPointerType(), Other64.typePool().getNullPointerType());
-    EXPECT_FALSE(Types64.ownsType(Other64.typePool().getBoolType()));
-    EXPECT_FALSE(Types64.ownsType(Other64.typePool().getUInt8Type()));
+    EXPECT_NE(Types64.typePool().get<ink::ir::VoidType>(), Other64.typePool().get<ink::ir::VoidType>());
+    EXPECT_NE(Types64.typePool().get<ink::ir::BoolType>(), Other64.typePool().get<ink::ir::BoolType>());
+    EXPECT_NE(Types64.typePool().get<ink::ir::IntegerType>(8, false), Other64.typePool().get<ink::ir::IntegerType>(8, false));
+    EXPECT_NE(Types64.typePool().get<ink::ir::IntegerType>(32, true), Other64.typePool().get<ink::ir::IntegerType>(32, true));
+    EXPECT_NE(Types64.typePool().get<ink::ir::FloatType>(32), Other64.typePool().get<ink::ir::FloatType>(32));
+    EXPECT_NE(Types64.typePool().get<ink::ir::NullPointerType>(), Other64.typePool().get<ink::ir::NullPointerType>());
+    EXPECT_FALSE(Types64.ownsType(Other64.typePool().get<ink::ir::BoolType>()));
+    EXPECT_FALSE(Types64.ownsType(Other64.typePool().get<ink::ir::IntegerType>(8, false)));
   }
 
   // Repeated structural lookups reuse objects and retain identity when owning storage and caches grow.
@@ -112,30 +112,30 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const Type *Element = Types.typePool().getInt32Type();
-    const PointerType *Pointer = Types.typePool().getPointerType(Element);
-    const ReferenceType *Reference = Types.typePool().getReferenceType(Element);
-    const ArrayType *Array = Types.typePool().getArrayType(Element, 3);
-    const ArrayType *Nested = Types.typePool().getArrayType(Array, 2);
+    const Type *Element = Types.typePool().get<ink::ir::IntegerType>(32, true);
+    const PointerType *Pointer = Types.typePool().get<ink::ir::PointerType>(Element);
+    const ReferenceType *Reference = Types.typePool().get<ink::ir::ReferenceType>(Element);
+    const ArrayType *Array = Types.typePool().get<ink::ir::ArrayType>(Element, 3);
+    const ArrayType *Nested = Types.typePool().get<ink::ir::ArrayType>(Array, 2);
     ASSERT_NE(Pointer, nullptr);
     ASSERT_NE(Reference, nullptr);
     ASSERT_NE(Array, nullptr);
     ASSERT_NE(Nested, nullptr);
-    EXPECT_NE(Types.typePool().getPointerType(Element), Types.typePool().getPointerType(Types.typePool().getUInt32Type()));
-    EXPECT_NE(Types.typePool().getReferenceType(Element), Types.typePool().getReferenceType(Types.typePool().getUInt32Type()));
-    EXPECT_NE(Array, Types.typePool().getArrayType(Element, 4));
-    EXPECT_NE(Array, Types.typePool().getArrayType(Types.typePool().getUInt32Type(), 3));
+    EXPECT_NE(Types.typePool().get<ink::ir::PointerType>(Element), Types.typePool().get<ink::ir::PointerType>(Types.typePool().get<ink::ir::IntegerType>(32, false)));
+    EXPECT_NE(Types.typePool().get<ink::ir::ReferenceType>(Element), Types.typePool().get<ink::ir::ReferenceType>(Types.typePool().get<ink::ir::IntegerType>(32, false)));
+    EXPECT_NE(Array, Types.typePool().get<ink::ir::ArrayType>(Element, 4));
+    EXPECT_NE(Array, Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::IntegerType>(32, false), 3));
     for (std::uint64_t Count = 0; Count < 256; ++Count)
     {
-      const ArrayType *Added = Types.typePool().getArrayType(Element, Count);
+      const ArrayType *Added = Types.typePool().get<ink::ir::ArrayType>(Element, Count);
       ASSERT_NE(Added, nullptr);
-      ASSERT_NE(Types.typePool().getPointerType(Added), nullptr);
-      ASSERT_NE(Types.typePool().getReferenceType(Added), nullptr);
+      ASSERT_NE(Types.typePool().get<ink::ir::PointerType>(Added), nullptr);
+      ASSERT_NE(Types.typePool().get<ink::ir::ReferenceType>(Added), nullptr);
     }
-    EXPECT_EQ(Pointer, Types.typePool().getPointerType(Element));
-    EXPECT_EQ(Reference, Types.typePool().getReferenceType(Element));
-    EXPECT_EQ(Array, Types.typePool().getArrayType(Element, 3));
-    EXPECT_EQ(Nested, Types.typePool().getArrayType(Array, 2));
+    EXPECT_EQ(Pointer, Types.typePool().get<ink::ir::PointerType>(Element));
+    EXPECT_EQ(Reference, Types.typePool().get<ink::ir::ReferenceType>(Element));
+    EXPECT_EQ(Array, Types.typePool().get<ink::ir::ArrayType>(Element, 3));
+    EXPECT_EQ(Nested, Types.typePool().get<ink::ir::ArrayType>(Array, 2));
     EXPECT_EQ(Nested->elementType(), Array);
     EXPECT_EQ(Array->elementType(), Element);
     EXPECT_TRUE(Types.ownsType(Pointer));
@@ -148,18 +148,18 @@ namespace ink::ir::test
   {
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
-    const Type *Bool = Types.typePool().getBoolType();
-    const Type *Int32 = Types.typePool().getInt32Type();
-    const FunctionType *Function = Types.typePool().getFunctionType(Bool, {Int32, Bool});
+    const Type *Bool = Types.typePool().get<ink::ir::BoolType>();
+    const Type *Int32 = Types.typePool().get<ink::ir::IntegerType>(32, true);
+    const FunctionType *Function = Types.typePool().get<ink::ir::FunctionType>(Bool, {Int32, Bool});
     ASSERT_NE(Function, nullptr);
-    EXPECT_EQ(Function, Types.typePool().getFunctionType(Bool, {Int32, Bool}));
-    EXPECT_NE(Function, Types.typePool().getFunctionType(Int32, {Int32, Bool}));
-    EXPECT_NE(Function, Types.typePool().getFunctionType(Bool, {Bool, Int32}));
-    EXPECT_NE(Function, Types.typePool().getFunctionType(Bool, {Bool, Bool}));
-    EXPECT_NE(Function, Types.typePool().getFunctionType(Bool, {Int32}));
-    EXPECT_NE(Function, Types.typePool().getFunctionType(Bool, {Int32, Int32}));
-    EXPECT_EQ(Types.typePool().getFunctionType(Bool, {Int32, Int32}), Types.typePool().getFunctionType(Bool, {Int32, Int32}));
-    EXPECT_EQ(Types.typePool().getFunctionType(Bool), Types.typePool().getFunctionType(Bool, {}));
+    EXPECT_EQ(Function, Types.typePool().get<ink::ir::FunctionType>(Bool, {Int32, Bool}));
+    EXPECT_NE(Function, Types.typePool().get<ink::ir::FunctionType>(Int32, {Int32, Bool}));
+    EXPECT_NE(Function, Types.typePool().get<ink::ir::FunctionType>(Bool, {Bool, Int32}));
+    EXPECT_NE(Function, Types.typePool().get<ink::ir::FunctionType>(Bool, {Bool, Bool}));
+    EXPECT_NE(Function, Types.typePool().get<ink::ir::FunctionType>(Bool, {Int32}));
+    EXPECT_NE(Function, Types.typePool().get<ink::ir::FunctionType>(Bool, {Int32, Int32}));
+    EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Bool, {Int32, Int32}), Types.typePool().get<ink::ir::FunctionType>(Bool, {Int32, Int32}));
+    EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Bool), Types.typePool().get<ink::ir::FunctionType>(Bool, {}));
     EXPECT_TRUE(Types.ownsType(Function));
   }
 
@@ -169,21 +169,21 @@ namespace ink::ir::test
     IRContext TypesContext(Target64);
     Module Types(TypesContext);
     IRContext OtherContext(Target64);
-    const Module Other(OtherContext);
-    const Type *Local = Types.typePool().getBoolType();
-    const std::array<const Type *, 2> ForeignTypes{Other.typePool().getBoolType(), Other.typePool().getUInt8Type()};
+    Module Other(OtherContext);
+    const Type *Local = Types.typePool().get<ink::ir::BoolType>();
+    const std::array<const Type *, 2> ForeignTypes{Other.typePool().get<ink::ir::BoolType>(), Other.typePool().get<ink::ir::IntegerType>(8, false)};
     for (const Type *Foreign : ForeignTypes)
     {
-      EXPECT_EQ(Types.typePool().getPointerType(Foreign), nullptr);
-      EXPECT_EQ(Types.typePool().getReferenceType(Foreign), nullptr);
-      EXPECT_EQ(Types.typePool().getArrayType(Foreign, 0), nullptr);
-      EXPECT_EQ(Types.typePool().getArrayType(Foreign, 1), nullptr);
-      EXPECT_EQ(Types.typePool().getFunctionType(Foreign), nullptr);
-      EXPECT_EQ(Types.typePool().getFunctionType(Local, {Foreign}), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::PointerType>(Foreign), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::ReferenceType>(Foreign), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(Foreign, 0), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::ArrayType>(Foreign, 1), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Foreign), nullptr);
+      EXPECT_EQ(Types.typePool().get<ink::ir::FunctionType>(Local, {Foreign}), nullptr);
       EXPECT_FALSE(Types.ownsType(Foreign));
     }
-    EXPECT_EQ(Types.typePool().getPointerType(nullptr), nullptr);
-    EXPECT_EQ(Types.typePool().getReferenceType(nullptr), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::PointerType>(nullptr), nullptr);
+    EXPECT_EQ(Types.typePool().get<ink::ir::ReferenceType>(nullptr), nullptr);
   }
 
   // Boolean constants use their owning context's canonical type and can populate matching arrays.
@@ -194,15 +194,15 @@ namespace ink::ir::test
     auto &Constants = Types.constantPool();
     IRContext OtherContext(Target64);
     Module Other(OtherContext);
-    const auto True = Constants.getBoolConstant(true);
-    const auto False = Constants.getBoolConstant(false);
+    const auto True = Constants.get<ink::ir::BoolConstant>(true);
+    const auto False = Constants.get<ink::ir::BoolConstant>(false);
     ASSERT_NE(True, nullptr);
     ASSERT_NE(False, nullptr);
-    EXPECT_EQ(True->type(), Types.typePool().getBoolType());
-    EXPECT_EQ(False->type(), Types.typePool().getBoolType());
-    const ArrayType *Array = Types.typePool().getArrayType(Types.typePool().getBoolType(), 2);
-    const ArrayType *OtherArray = Other.typePool().getArrayType(Other.typePool().getBoolType(), 2);
-    EXPECT_NE(Constants.getArrayConstant(Array, {True, False}), nullptr);
-    EXPECT_EQ(Constants.getArrayConstant(OtherArray, {True, False}), nullptr);
+    EXPECT_EQ(True->type(), Types.typePool().get<ink::ir::BoolType>());
+    EXPECT_EQ(False->type(), Types.typePool().get<ink::ir::BoolType>());
+    const ArrayType *Array = Types.typePool().get<ink::ir::ArrayType>(Types.typePool().get<ink::ir::BoolType>(), 2);
+    const ArrayType *OtherArray = Other.typePool().get<ink::ir::ArrayType>(Other.typePool().get<ink::ir::BoolType>(), 2);
+    EXPECT_NE(Constants.get<ink::ir::ArrayConstant>(Array, {True, False}), nullptr);
+    EXPECT_EQ(Constants.get<ink::ir::ArrayConstant>(OtherArray, {True, False}), nullptr);
   }
 } // namespace ink::ir::test

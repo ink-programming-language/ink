@@ -54,7 +54,8 @@ namespace ink::ir
       [[nodiscard]] bool setInsertPoint(BasicBlock &Block) noexcept;
       void clearInsertPoint() noexcept;
 
-      // Callees must have this signature, either directly or through a pointer to it, ignoring the signature object's top-level qualifier.
+      // Callees must be function values with this signature, ignoring the signature object's top-level qualifier.
+      // Pointers to function-value storage must be explicitly dereferenced and loaded before calling.
       // Arguments are already in parameter order; by-value comparisons ignore only each argument object's top-level qualifier.
       // Variadic calls and variadic parameter operands are rejected until parameter-pack lowering is available.
       [[nodiscard]] CallInstruction *createCall(const Function &Callee, std::vector<Argument> Arguments = {});

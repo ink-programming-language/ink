@@ -160,10 +160,10 @@ namespace ink::ir::test
     Module Owner(OwnerContext);
     Module &Types = Owner;
     IRBuilder Builder(Owner.irContext());
-    auto *Callable = Owner.createGlobalFunction(*Types.typePool().getFunctionType(Types.typePool().getVoidType(), {Types.typePool().getInt32Type()}));
+    auto *Callable = Owner.createGlobalFunction(*Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>(), {Types.typePool().get<ink::ir::IntegerType>(32, true)}));
     auto *Entry = Callable->createBlock();
     auto *ParameterValue = Callable->parameter(0);
-    auto *Variable = Owner.createGlobalVariable(*Types.typePool().getInt32Type());
+    auto *Variable = Owner.createGlobalVariable(*Types.typePool().get<ink::ir::IntegerType>(32, true));
     auto *Class = Owner.createClassType(8, 8);
     auto *Interface = Owner.createInterfaceType(8, 8);
     auto *Struct = Owner.createStructType(8, 8);
@@ -203,7 +203,7 @@ namespace ink::ir::test
     EXPECT_EQ(Callable->blockCount(), 1U);
     EXPECT_EQ(Entry->instructionCount(), 1U);
 
-    auto *Lifecycle = Owner.createGlobalFunction(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
+    auto *Lifecycle = Owner.createGlobalFunction(*Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>()));
     ASSERT_TRUE(Owner.setInitializationFunction(Lifecycle));
     ASSERT_TRUE(Owner.setDeinitializationFunction(Lifecycle));
     EXPECT_EQ(std::move(Owner).initializationFunction(), Lifecycle);
@@ -222,7 +222,7 @@ namespace ink::ir::test
     IRContext OwnerContext(Target);
     Module Owner(OwnerContext);
     Module &Types = Owner;
-    Function Callable(*Types.typePool().getFunctionType(Types.typePool().getVoidType()));
+    Function Callable(*Types.typePool().get<ink::ir::FunctionType>(Types.typePool().get<ink::ir::VoidType>()));
     BasicBlock Detached;
     Method Empty(nullptr);
     Method Member(std::make_unique<Function>(*Callable.functionType()));
