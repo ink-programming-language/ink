@@ -11,22 +11,23 @@ namespace ink::semantic
 {
   bool Analyzer::analyzeReturnStmt(AnalyzerState &State, const frontend::parser::ReturnStmt &Node)
   {
-    auto &Context = State.semanticContext();
+    const auto Site = State.at(Node);
     auto &Builder = State.irBuilder();
     const ir::Function *Function = Builder.insertFunction();
-    RETURN_REPORT_IF_FALSE(Context, Function, core::DiagnosticKind::SemanticReturnOutsideFunction, false, Node.getSourceRange());
+    RETURN_REPORT_IF_FALSE(Site, Function, core::DiagnosticKind::SemanticReturnOutsideFunction, false);
     const ir::Type *ReturnType = Function->functionType()->returnType();
     const bool ReturnsVoid = ir::VoidType::classof(ReturnType);
     if (!Node.value())
     {
-      RETURN_REPORT_IF_FALSE(Context, ReturnsVoid, core::DiagnosticKind::SemanticMissingReturn, false, Node.getSourceRange(), core::NamePool::instance().text(Function->name()));
-      RETURN_REPORT_IF_FALSE(Context, Builder.createReturn(), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
+      RETURN_REPORT_IF_FALSE(Site, ReturnsVoid, core::DiagnosticKind::SemanticMissingReturn, false, core::NamePool::instance().text(Function->name()));
+      CHECK_ICE(Site, Builder.createReturn(), core::DiagnosticKind::SemanticConstructionFailed);
       return true;
     }
-    RETURN_REPORT_IF(Context, ReturnsVoid, core::DiagnosticKind::SemanticTypeMismatch, false, Node.value()->getSourceRange(), "no return value", "a return value");
-    const ir::Value *Value = requireRuntimeValue(Context, Node.value()->getSourceRange(), emitValue(State, *Node.value(), ExprHints{ReturnType}));
+    const auto ValueSite = State.at(*Node.value());
+    RETURN_REPORT_IF(ValueSite, ReturnsVoid, core::DiagnosticKind::SemanticTypeMismatch, false, "no return value", "a return value");
+    const ir::Value *Value = requireRuntimeValue(ValueSite, emitValue(State, *Node.value(), ExprHints{ReturnType}));
     RETURN_IF(!Value, false);
-    RETURN_REPORT_IF_FALSE(Context, Builder.createReturn(*Value), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
+    CHECK_ICE(Site, Builder.createReturn(*Value), core::DiagnosticKind::SemanticConstructionFailed);
     return true;
   }
 } // namespace ink::semantic

@@ -2,7 +2,9 @@
 #include "ink/core/diagnostic/diagnostic_builder.h"
 #include "ink/core/diagnostic/diagnostic_consumer.h"
 #include "ink/core/diagnostic/diagnostic_formatter.h"
+#include "ink/core/source/source_manager.h"
 #include "ink/core/support/core_define.h"
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 #include <cstdlib>
@@ -27,6 +29,34 @@ namespace ink::core::test
   {
     DiagnosticEngine Engine;
     EXPECT_DEATH(Engine.report<DiagnosticKind::ParserInvalidTokenReference>({}, 300U, 256U), "internal compiler error\\[INK-P0048\\]: token index 300 is out of bounds for input of 256 tokens");
+  }
+
+  // Explicit fatal reporting preserves parameter formatting without requiring a source or consumer.
+  TEST(DiagnosticDeathTest, ExplicitICEEntryPrintsParameterizedDiagnostic)
+  {
+    const DiagnosticEngine Engine;
+    EXPECT_DEATH(Engine.reportICE<DiagnosticKind::ParserInvalidTokenReference>({}, 300U, 256U), "internal compiler error\\[INK-P0048\\]: token index 300 is out of bounds for input of 256 tokens");
+  }
+
+  // Explicit fatal reporting retains the selected source and excerpt and bypasses a suppressing consumer.
+  TEST(DiagnosticDeathTest, ExplicitICEEntryPreservesSourceAndBypassesConsumers)
+  {
+    class SuppressingConsumer final : public DiagnosticConsumer
+    {
+      public:
+        void consume(const Diagnostic &) override
+        {
+          std::_Exit(0);
+        }
+    };
+    SourceManager Sources;
+    Sources.addSource("unrelated.ink", "unrelated source");
+    const SourceId Source = Sources.addSource("fatal.ink", "ok\n!");
+    DiagnosticEngine Engine(Sources);
+    SuppressingConsumer Consumer;
+    Engine.addConsumer(Consumer);
+    const DiagnosticEngine &View = Engine;
+    EXPECT_DEATH(View.reportICE<DiagnosticKind::SemanticInvalidAST>(Source, SourceRange::fromByteOffsets(3, 4), "missing required child"), ::testing::AllOf(::testing::HasSubstr("fatal.ink:2:1: internal compiler error[INK-S0061]: invalid AST: missing required child"), ::testing::HasSubstr("[bytes 3, 4)"), ::testing::HasSubstr("2 | !"), ::testing::HasSubstr("^")));
   }
 
   // Invalid semantic AST diagnostics print their invariant description and stable code before termination.

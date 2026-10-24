@@ -2,6 +2,7 @@
 #define INK_SEMANTIC_ANALYZER_ANALYZER_STATE_H
 
 #include "ink/ir/builder/ir_builder.h"
+#include "ink/semantic/analyzer/analysis_site.h"
 #include "ink/semantic/name_resolve/name_resolver.h"
 
 #include <cstddef>
@@ -9,6 +10,7 @@
 
 namespace ink::frontend::parser
 {
+  class ASTNodeBase;
   struct ParseResult;
   class TokenBuffer;
 } // namespace ink::frontend::parser
@@ -63,6 +65,10 @@ namespace ink::semantic
 
       // Exposes the token input without exposing the parsed unit's storage.
       const frontend::parser::TokenBuffer &input() const noexcept;
+
+      // Captures a diagnostic range belonging to this state's input without changing context source selection.
+      AnalysisSite at(core::SourceRange Range) const;
+      AnalysisSite at(const frontend::parser::ASTNodeBase &Node) const;
 
       auto &nameResolver(this auto &&Self) noexcept
       {

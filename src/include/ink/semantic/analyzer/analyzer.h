@@ -56,7 +56,8 @@ namespace ink::semantic
       bool analyze(SemanticContext &Context, const frontend::parser::ParseResult &Input, ir::Module &Output);
 
       // Resolves a type annotation belonging to State's input in its current name scope.
-      // The caller validates input/context compatibility and selects the diagnostic source; a missing expression reports SemanticInvalidAST ICE.
+      // The caller validates input/context compatibility; diagnostic sources are captured from State's input.
+      // A missing expression reports SemanticInvalidAST ICE.
       // Returns a borrowed context/module-owned type, or nullptr after a diagnostic.
       // Unimplemented expressions and nesting limits use the existing ICE policy.
       const ir::Type *analyzeType(AnalyzerState &State, const frontend::parser::TypeSyntax &Node);
@@ -66,7 +67,7 @@ namespace ink::semantic
       // Uses the same preconditions and contextual typing hints as emitValue(); failure returns nullptr.
       const ir::Value *analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
 
-      // Emits an expression's value in State's current scope, with the same input/source preconditions as analyzeType().
+      // Emits an expression's value in State's current scope, with the same input/context preconditions as analyzeType().
       // Non-null hint types must belong to the current IR context; violations report SemanticConstructionFailed ICE.
       // Hints.ExpectedType is optional; integer literals default to i32,
       // floating literals to f64 and character literals to u32. Uncontextualized strings retain their decoded [u8; byteCount] type.

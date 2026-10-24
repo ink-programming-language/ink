@@ -4,6 +4,8 @@
 
 当前 semantic 保留公开的 `Analyzer::analyze` 入口、模块及块遍历和基于 `ASTNodes.def` 的语句及声明分派，已重建类型、名称解析、部分表达式分析、函数声明及函数体、局部变量声明、返回语句和调用；尚未支持的节点仍报告 `SemanticUnsupported` ICE。
 
+分析器诊断通过 `State.at(Node)` 或 `State.at(Range)` 创建的 `AnalysisSite` 固定源码文件和范围。可恢复错误由 `RETURN_REPORT_IF`、`RETURN_REPORT_IF_FALSE`、`EXPECTED_TYPE`、`CHECK_TYPE_MATCH` 和 `CHECK_HAS_LAYOUT` 报告并保留原失败返回值；ICE 条件检查统一使用 `CHECK_ICE`，失败时终止，不再附带不可达的失败返回。`requireType` 和 `requireRuntimeValue` 同样接收 Site。不同子节点和名称仍使用各自的范围，Context 后续切换源码不会改变已有 Site 的诊断位置。
+
 `analyzer_entry_test.cpp` 覆盖公开入口的输入校验、源码归属、嵌套块遍历、具体语句及声明分派、块深度限制和未实现的 comptime 路径。它不依赖已移除的 IR 或 execution。`analyzer_function_decl_test.cpp` 和 `analyzer_call_test.cpp` 覆盖已重建的函数声明、函数体、返回语句和调用路径，包括原生函数导入导出以及实参和返回值的目标类型。
 
 `analyzer_variable_test.cpp` 覆盖函数内名称绑定形式的 `var` 和 `const`、初始化器的目标类型与类型推导、分配及初始化存储、运行时读取、无初始化诊断、同域重名、嵌套遮蔽及失败声明的绑定清理。局部可调用值和指针值均保留声明的类型。变量赋值、声明属性、解构、顶层变量、unit 存储和 comptime 声明仍明确报告未实现。
@@ -14,7 +16,7 @@
 
 `analyzer_address_test.cpp` 覆盖源级取地址和解引用：`&` 接受局部变量和解引用存储，不读取目标；不可写局部得到 `*const T`。未初始化局部仍生成地址，单独报告 `SemanticUninitializedAddress` warning（`INK-S0062`），非存储操作数仍报告 `SemanticInvalidAddressOperand` error。`*` 先取得指针值，再返回 `DereferenceInstruction` 存储，只有 `emitValue` 消费结果时才加载目标；未初始化指针的读取 warning 不阻止这些步骤。解引用存储不记录声明初始化状态，不用其 `isInitialized()` 判断目标是否可读或产生初始化提示。`&*Pointer` 和嵌套运算只求值一次各自操作数；非指针、无类型 `nullptr` 和 `*void` 的解引用仍报告 `SemanticInvalidDereference` error。测试同时验证 warning 后继续检查操作是否合法，例如未初始化整数的解引用产生读取 warning 和解引用 error，最终分析失败。这些操作不提供目标生命周期、空指针或悬空指针的运行时检查。
 
-初始化 warning 使用独立的 `Context.report`，不通过 `RETURN_REPORT_IF` 返回失败。诊断测试检查两种 warning 的等级、编号及格式；CLI 进程测试要求只有 warning 时保留源码位置并退出 0，warning 与真正 error 共存时退出 1。没有类型也没有初始化器、不可取址操作数和类型不匹配等错误不因 warning 规则而放宽。
+初始化 warning 使用独立的 `Site.report`，不通过 `RETURN_REPORT_IF` 返回失败。诊断测试检查两种 warning 的等级、编号及格式；CLI 进程测试要求只有 warning 时保留源码位置并退出 0，warning 与真正 error 共存时退出 1。没有类型也没有初始化器、不可取址操作数和类型不匹配等错误不因 warning 规则而放宽。
 
 内建类型、布尔常量和 `nullptr` 统一由 `lookupBuiltinValue` 的本地表查询，并从当前上下文取得规范对象；作用域绑定优先于内建回退。一元 `*`、`&` 以操作数是否为真正的 IR 类型描述符区分类型构造和运行时操作，指针值的 `type()` 是指针类型并不会使其进入类型构造分支。测试覆盖跨 32/64 位上下文的内建查询和指针参数的运行时分流。
 

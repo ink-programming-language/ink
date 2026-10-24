@@ -408,7 +408,7 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Arity, operand type and noncallable-value errors stay user diagnostics and never append an invalid call.
+  // Invalid calls retain user diagnostics at the call, argument or callee range and never append an invalid call.
   TEST_F(SemanticCallTest, DiagnosesInvalidCallsWithoutAppendingInstructions)
   {
     ASSERT_EQ(NameResolver(Context).bind(name("Package"), Output), BindResult::Inserted);
@@ -418,23 +418,26 @@ namespace ink::semantic::test
     {
         const char *Source;
         core::DiagnosticKind Kind;
+        std::string_view Highlight;
     };
     const Case Cases[] = {
-        {"func f(Value: i32): void {} func main(): void { f(); }", core::DiagnosticKind::SemanticArgumentCount},
-        {"func f(Value: i32): void {} func main(): void { f(1, 2); }", core::DiagnosticKind::SemanticArgumentCount},
-        {"func f(Value: bool): void {} func main(): void { f(1); }", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func f(Value: u8): void {} func main(Value: i32): void { f(Value); }", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func callback(Value: u8): u8 { return Value; } func invoke(Callback: func(i32): i32): void {} func main(): void { invoke(callback); }", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func f(Value: u8): void {} func main(): void { f(256); }", core::DiagnosticKind::SemanticIntegerOutOfRange},
-        {"func main(): void { true(); }", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func main(): void { 1(2); }", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func main(Value: *i32): void { Value(); }", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func main(): void { Null(); }", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func main(): void { Package(); }", core::DiagnosticKind::SemanticTypeMismatch},
+        {"func f(Value: i32): void {} func main(): void { f(); }", core::DiagnosticKind::SemanticArgumentCount, "f()"},
+        {"func f(Value: i32): void {} func main(): void { f(1, 2); }", core::DiagnosticKind::SemanticArgumentCount, "f(1, 2)"},
+        {"func f(Value: bool): void {} func main(): void { f(1); }", core::DiagnosticKind::SemanticTypeMismatch, "1"},
+        {"func f(Value: u8): void {} func main(Value: i32): void { f(Value); }", core::DiagnosticKind::SemanticTypeMismatch, "Value"},
+        {"func callback(Value: u8): u8 { return Value; } func invoke(Callback: func(i32): i32): void {} func main(): void { invoke(callback); }", core::DiagnosticKind::SemanticTypeMismatch, "callback"},
+        {"func f(Value: u8): void {} func main(): void { f(256); }", core::DiagnosticKind::SemanticIntegerOutOfRange, "256"},
+        {"func main(): void { true(); }", core::DiagnosticKind::SemanticTypeMismatch, "true"},
+        {"func main(): void { 1(2); }", core::DiagnosticKind::SemanticTypeMismatch, "1"},
+        {"func main(Value: *i32): void { Value(); }", core::DiagnosticKind::SemanticTypeMismatch, "Value"},
+        {"func main(): void { Null(); }", core::DiagnosticKind::SemanticTypeMismatch, "Null"},
+        {"func main(): void { Package(); }", core::DiagnosticKind::SemanticTypeMismatch, "Package"},
     };
     for (const auto &Entry : Cases)
     {
       SCOPED_TRACE(Entry.Source);
+      const auto Offset = std::string_view(Entry.Source).rfind(Entry.Highlight);
+      ASSERT_NE(Offset, std::string_view::npos);
       ir::Module Destination(Context.irContext());
       auto Input = read(Entry.Source);
       ASSERT_TRUE(Input.succeeded());
@@ -442,6 +445,8 @@ namespace ink::semantic::test
       ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
       EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, Entry.Kind);
       EXPECT_EQ(Diagnostics.diagnostics()[0].classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Source, Input.Unit->input().lexedFile().sourceId());
+      EXPECT_EQ(Diagnostics.diagnostics()[0].Span, core::SourceRange::fromByteOffsets(Offset, Offset + Entry.Highlight.size()));
       ASSERT_GT(Destination.globalFunctionCount(), 0U);
       auto *Main = Destination.globalFunction(Destination.globalFunctionCount() - 1);
       ASSERT_NE(Main, nullptr);

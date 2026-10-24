@@ -4,6 +4,7 @@
 #include "ink/frontend/parser/ast/expr.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/structure_type/pointer_type.h"
+#include "ink/semantic/analyzer/analysis_site.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
 #include "ink/semantic/analyzer/analyzer_utils.h"
 #include "ink/semantic/context.h"
@@ -13,57 +14,83 @@
 
 namespace ink::semantic
 {
-  const ir::Value *Analyzer::analyzeCallExpr(AnalyzerState &State, const frontend::parser::CallExpr &Node)
+  namespace
   {
-    auto &Context = State.semanticContext();
-    RETURN_REPORT_IF_FALSE(Context, Node.callee(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "CallExpr requires a callee expression");
-    for (const auto &Argument : Node.arguments())
+    void validateCallShape(AnalyzerState &State, const frontend::parser::CallExpr &Node)
     {
-      using frontend::parser::ArgumentKind;
-      RETURN_REPORT_IF(Context, Argument.form() != ArgumentKind::Named && Argument.form() != ArgumentKind::Positional && Argument.form() != ArgumentKind::SpreadPositional, core::DiagnosticKind::SemanticInvalidAST, nullptr, Argument.range(), "call argument kind must be Named, Positional or SpreadPositional");
-      RETURN_REPORT_IF_FALSE(Context, Argument.value(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Argument.range(), "call argument requires a value expression");
-      if (Argument.form() == ArgumentKind::Named)
+      const auto CallSite = State.at(Node);
+      CHECK_ICE(CallSite, Node.callee(), core::DiagnosticKind::SemanticInvalidAST, "CallExpr requires a callee expression");
+      for (const auto &Argument : Node.arguments())
       {
-        RETURN_REPORT_IF_FALSE(Context, Argument.name(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Argument.range(), "named call argument requires a name");
-        RETURN_REPORT_IF(Context, Argument.name()->Text.empty(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Argument.range(), "named call argument requires a nonempty name");
+        using frontend::parser::ArgumentKind;
+        const auto ArgumentSite = State.at(Argument.range());
+        CHECK_ICE(ArgumentSite, Argument.form() == ArgumentKind::Named || Argument.form() == ArgumentKind::Positional || Argument.form() == ArgumentKind::SpreadPositional, core::DiagnosticKind::SemanticInvalidAST, "call argument kind must be Named, Positional or SpreadPositional");
+        CHECK_ICE(ArgumentSite, Argument.value(), core::DiagnosticKind::SemanticInvalidAST, "call argument requires a value expression");
+        if (Argument.form() == ArgumentKind::Named)
+        {
+          CHECK_ICE(ArgumentSite, Argument.name(), core::DiagnosticKind::SemanticInvalidAST, "named call argument requires a name");
+          CHECK_ICE(ArgumentSite, !Argument.name()->Text.empty(), core::DiagnosticKind::SemanticInvalidAST, "named call argument requires a nonempty name");
+        }
+        else
+        {
+          CHECK_ICE(ArgumentSite, !Argument.name(), core::DiagnosticKind::SemanticInvalidAST, "positional or spread call argument must not have a name");
+        }
       }
-      else
-      {
-        RETURN_REPORT_IF(Context, Argument.name(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Argument.range(), "positional or spread call argument must not have a name");
-      }
-    }
-    // TODO: Lower optional calls with conditional evaluation and the appropriate result type.
-    UNSUPPORT_IF(State, Node.optional(), nullptr, Node.getSourceRange(), "optional calls");
-    for (const auto &Argument : Node.arguments())
-    {
-      // TODO: Map named arguments to parameter slots without changing source evaluation order.
-      UNSUPPORT_IF(State, Argument.form() == frontend::parser::ArgumentKind::Named, nullptr, Argument.range(), "named call arguments");
-      // TODO: Expand spread operands when variadic argument lowering is available.
-      UNSUPPORT_IF(State, Argument.form() == frontend::parser::ArgumentKind::SpreadPositional, nullptr, Argument.range(), "spread call arguments");
     }
 
+    void validateCallSupport(AnalyzerState &State, const frontend::parser::CallExpr &Node)
+    {
+      const auto CallSite = State.at(Node);
+      // TODO: Lower optional calls with conditional evaluation and the appropriate result type.
+      CHECK_ICE(CallSite, !Node.optional(), core::DiagnosticKind::SemanticUnsupported, "optional calls");
+      for (const auto &Argument : Node.arguments())
+      {
+        const auto ArgumentSite = State.at(Argument.range());
+        // TODO: Map named arguments to parameter slots without changing source evaluation order.
+        CHECK_ICE(ArgumentSite, Argument.form() != frontend::parser::ArgumentKind::Named, core::DiagnosticKind::SemanticUnsupported, "named call arguments");
+        // TODO: Expand spread operands when variadic argument lowering is available.
+        CHECK_ICE(ArgumentSite, Argument.form() != frontend::parser::ArgumentKind::SpreadPositional, core::DiagnosticKind::SemanticUnsupported, "spread call arguments");
+      }
+
+      auto &Builder = State.irBuilder();
+      const ir::BasicBlock *Block = Builder.insertBlock();
+      // TODO: Lower module-level runtime calls into the module initialization function.
+      CHECK_ICE(CallSite, Block, core::DiagnosticKind::SemanticUnsupported, "module-level calls");
+      CHECK_ICE(CallSite, Builder.insertFunction() && !Block->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed);
+    }
+
+    const ir::FunctionType *requireCallableSignature(const AnalysisSite &Site, const ir::Value &Callee)
+    {
+      // TODO: Analyze type construction and explicit conversion calls separately from runtime function calls.
+      CHECK_ICE(Site, !ir::Type::classof(&Callee), core::DiagnosticKind::SemanticUnsupported, "type construction and conversion calls");
+      RETURN_REPORT_IF(Site, ir::Module::classof(&Callee), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a callable function or function pointer", ir::valueKindName(Callee.kind()));
+      RETURN_IF_NULL(requireRuntimeValue(Site, &Callee), nullptr);
+      const ir::Type *CalleeType = Callee.type();
+      const ir::Type *SignatureType = ir::PointerType::classof(CalleeType) ? static_cast<const ir::PointerType *>(CalleeType)->pointeeType() : CalleeType;
+      RETURN_REPORT_IF_FALSE(Site, ir::FunctionType::classof(SignatureType), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a callable function or function pointer", CalleeType->toString());
+      return static_cast<const ir::FunctionType *>(SignatureType);
+    }
+  } // namespace
+
+  const ir::Value *Analyzer::analyzeCallExpr(AnalyzerState &State, const frontend::parser::CallExpr &Node)
+  {
+    const auto CallSite = State.at(Node);
+    // Validate the complete AST shape before checking feature support or emitting any IR.
+    validateCallShape(State, Node);
+    validateCallSupport(State, Node);
+
     auto &Builder = State.irBuilder();
-    const ir::BasicBlock *Block = Builder.insertBlock();
-    // TODO: Lower module-level runtime calls into the module initialization function.
-    UNSUPPORT_IF(State, !Block, nullptr, Node.getSourceRange(), "module-level calls");
-    RETURN_REPORT_IF(Context, !Builder.insertFunction() || Block->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed, nullptr, Node.getSourceRange());
+    const auto CalleeSite = State.at(*Node.callee());
     const ir::Value *Callee = emitValue(State, *Node.callee(), {.IsCallCallee = true});
-    RETURN_IF(!Callee, nullptr);
-    // TODO: Analyze type construction and explicit conversion calls separately from runtime function calls.
-    UNSUPPORT_IF(State, ir::Type::classof(Callee), nullptr, Node.callee()->getSourceRange(), "type construction and conversion calls");
-    RETURN_REPORT_IF(Context, ir::Module::classof(Callee), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.callee()->getSourceRange(), "a callable function or function pointer", ir::valueKindName(Callee->kind()));
-    Callee = requireRuntimeValue(Context, Node.callee()->getSourceRange(), Callee);
-    RETURN_IF(!Callee, nullptr);
-    const ir::Type *CalleeType = Callee->type();
-    const ir::Type *SignatureType = ir::PointerType::classof(CalleeType) ? static_cast<const ir::PointerType *>(CalleeType)->pointeeType() : CalleeType;
-    RETURN_REPORT_IF_FALSE(Context, ir::FunctionType::classof(SignatureType), core::DiagnosticKind::SemanticTypeMismatch, nullptr, Node.callee()->getSourceRange(), "a callable function or function pointer", CalleeType->toString());
-    const auto &Signature = static_cast<const ir::FunctionType &>(*SignatureType);
-    for (const auto &Parameter : Signature.parameters())
+    RETURN_IF_NULL(Callee, nullptr);
+    const ir::FunctionType *Signature = requireCallableSignature(CalleeSite, *Callee);
+    RETURN_IF_NULL(Signature, nullptr);
+    for (const auto &Parameter : Signature->parameters())
     {
       // TODO: Match variadic argument packs once the signature and operand lowering support them.
-      UNSUPPORT_IF(State, Parameter.Variadic, nullptr, Node.getSourceRange(), "variadic calls");
+      CHECK_ICE(CallSite, !Parameter.Variadic, core::DiagnosticKind::SemanticUnsupported, "variadic calls");
     }
-    RETURN_REPORT_IF(Context, Node.arguments().size() != Signature.parameterCount(), core::DiagnosticKind::SemanticArgumentCount, nullptr, Node.getSourceRange(), Signature.parameterCount(), Node.arguments().size());
+    RETURN_REPORT_IF(CallSite, Node.arguments().size() != Signature->parameterCount(), core::DiagnosticKind::SemanticArgumentCount, nullptr, Signature->parameterCount(), Node.arguments().size());
 
     std::vector<ir::Argument> Arguments;
     Arguments.reserve(Node.arguments().size());
@@ -71,13 +98,14 @@ namespace ink::semantic
     for (std::size_t Index = 0; Index < Node.arguments().size(); ++Index)
     {
       const auto &Argument = Node.arguments()[Index];
-      const ir::Type *ExpectedType = Signature.parameters()[Index].ParameterType;
-      const ir::Value *Value = requireRuntimeValue(Context, Argument.range(), emitValue(State, *Argument.value(), {.ExpectedType = ExpectedType}));
-      RETURN_IF(!Value, nullptr);
+      const auto ArgumentSite = State.at(Argument.range());
+      const ir::Type *ExpectedType = Signature->parameters()[Index].ParameterType;
+      const ir::Value *Value = requireRuntimeValue(ArgumentSite, emitValue(State, *Argument.value(), {.ExpectedType = ExpectedType}));
+      RETURN_IF_NULL(Value, nullptr);
       Arguments.emplace_back(*Value);
     }
-    const ir::CallInstruction *Call = Builder.createCall(Signature, *Callee, std::move(Arguments));
-    RETURN_REPORT_IF_FALSE(Context, Call, core::DiagnosticKind::SemanticConstructionFailed, nullptr, Node.getSourceRange());
+    const ir::CallInstruction *Call = Builder.createCall(*Signature, *Callee, std::move(Arguments));
+    CHECK_ICE(CallSite, Call, core::DiagnosticKind::SemanticConstructionFailed);
     return Call;
   }
 } // namespace ink::semantic

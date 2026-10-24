@@ -11,8 +11,8 @@ namespace ink::semantic
 {
   bool Analyzer::analyzeBlockStmt(AnalyzerState &State, const frontend::parser::BlockStmt &Node)
   {
-    auto &Context = State.semanticContext();
-    CHECK_RECURSION_DEPTH(State, Node.getSourceRange(), false);
+    const auto Site = State.at(Node);
+    CHECK_ICE(Site, State.recursionDepth() < State.recursionDepthLimit(), core::DiagnosticKind::SemanticNestingLimit);
     BlockDepthGuard DepthGuard(State.recursionDepth());
     ScopeGuard Scope(State.nameResolver());
     bool Succeeded = true;
@@ -23,7 +23,7 @@ namespace ink::semantic
       {
         // TODO: Extend reachability handling when structured control flow and deferred cleanup are lowered.
         // Invalid unreachable source must not append to the already terminated IR block.
-        Context.report<core::DiagnosticKind::SemanticUnreachableStatement>(Stmt->getSourceRange());
+        State.at(*Stmt).report<core::DiagnosticKind::SemanticUnreachableStatement>();
         Succeeded = false;
         continue;
       }

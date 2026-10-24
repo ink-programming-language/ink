@@ -73,6 +73,13 @@ namespace ink::semantic
         diagnosticEngine().report<Kind>(Source, Span, std::forward<ArgumentTypes>(Arguments)...);
       }
 
+      // Reports a fatal invariant or unsupported feature against the selected source; never returns.
+      template <core::DiagnosticKind Kind, typename... ArgumentTypes>
+      [[noreturn]] void reportICE(core::SourceRange Span, ArgumentTypes &&...Arguments)
+      {
+        diagnosticEngine().reportICE<Kind>(Source, Span, std::forward<ArgumentTypes>(Arguments)...);
+      }
+
     private:
       frontend::FrontendContext Frontend;
       ir::IRContext IR;

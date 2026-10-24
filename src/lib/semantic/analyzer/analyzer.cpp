@@ -15,7 +15,8 @@ namespace ink::semantic
     const auto &Lexed = Input.Unit->input().lexedFile();
     RETURN_IF(!Lexed.isRegisteredWith(Context.sourceManager()), false);
     Context.setSource(Lexed.sourceId());
-    RETURN_REPORT_IF_FALSE(Context, Input.Unit->root(), core::DiagnosticKind::SemanticInvalidAST, false, {}, "successful parse result requires a module AST root");
+    const AnalysisSite InputSite(Context, Lexed.sourceId(), {});
+    CHECK_ICE(InputSite, Input.Unit->root(), core::DiagnosticKind::SemanticInvalidAST, "successful parse result requires a module AST root");
 
     // Preserve caller-owned output and pooled IR, with fresh traversal state for this call.
     AnalyzerState State(Context, Input, Output);
@@ -24,7 +25,7 @@ namespace ink::semantic
     {
       ModuleScope = Context.scopeStore().createScope(State.Resolver.rootScope(), Output);
     }
-    RETURN_REPORT_IF_FALSE(Context, ModuleScope, core::DiagnosticKind::SemanticConstructionFailed, false, Input.Unit->root()->getSourceRange());
+    CHECK_ICE(State.at(*Input.Unit->root()), ModuleScope, core::DiagnosticKind::SemanticConstructionFailed);
     ScopeGuard ModuleGuard(State.Resolver, *ModuleScope);
     // TODO: Restore declaration collection and forward references before analyzing function bodies.
     bool Succeeded = true;
@@ -45,8 +46,7 @@ namespace ink::semantic
 
   bool Analyzer::reportUnsupported(AnalyzerState &State, core::SourceRange Range, std::string_view Description)
   {
-    State.Context.report<core::DiagnosticKind::SemanticUnsupported>(Range, Description);
-    return false;
+    State.at(Range).reportICE<core::DiagnosticKind::SemanticUnsupported>(Description);
   }
 
   bool Analyzer::analyzeMissingStmt(AnalyzerState &State, const frontend::parser::MissingStmt &Node)

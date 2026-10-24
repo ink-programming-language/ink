@@ -45,7 +45,26 @@ namespace ink::core
         report(Entry);
       }
 
+      // Explicit fatal reporting accepts only registered ICE kinds and never returns to the caller.
+      template <DiagnosticKind Kind, typename... ArgumentTypes>
+      [[noreturn]] void reportICE(SourceRange Span, ArgumentTypes &&...Arguments) const
+      {
+        static_assert(DiagnosticTraits<Kind>::Classification == DiagnosticClass::InternalCompilerError, "reportICE requires an internal compiler error diagnostic");
+        reportICE(makeDiagnostic<Kind>(Span, std::forward<ArgumentTypes>(Arguments)...));
+      }
+
+      template <DiagnosticKind Kind, typename... ArgumentTypes>
+      [[noreturn]] void reportICE(SourceId Source, SourceRange Span, ArgumentTypes &&...Arguments) const
+      {
+        static_assert(DiagnosticTraits<Kind>::Classification == DiagnosticClass::InternalCompilerError, "reportICE requires an internal compiler error diagnostic");
+        auto Entry = makeDiagnostic<Kind>(Span, std::forward<ArgumentTypes>(Arguments)...);
+        Entry.Source = Source;
+        reportICE(Entry);
+      }
+
     private:
+      [[noreturn]] void reportICE(const Diagnostic &DiagnosticEntry) const;
+
       const SourceManager *Sources = nullptr;
       std::vector<DiagnosticConsumer *> Consumers;
   };

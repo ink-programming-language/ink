@@ -11,14 +11,15 @@ namespace ink::semantic
 {
   const ir::Value *Analyzer::convertToExpectedType(AnalyzerState &State, core::SourceRange Range, const ir::Value &Value, const ir::Type &ExpectedType)
   {
+    const auto Site = State.at(Range);
     auto &Context = State.semanticContext();
     const bool Storage = Value.isStorage();
     if (ir::MetaType::classof(&ExpectedType))
     {
-      RETURN_REPORT_IF(Context, Storage, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Range, "a type", "variable storage");
-      return requireType(Context, Range, &Value);
+      RETURN_REPORT_IF(Site, Storage, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type", "variable storage");
+      return requireType(Site, &Value);
     }
-    RETURN_IF(!Storage && !requireRuntimeValue(Context, Range, &Value), nullptr);
+    RETURN_IF(!Storage && !requireRuntimeValue(Site, &Value), nullptr);
     // Value compatibility drops only the object's top-level qualifier; pointee and element qualifiers remain part of the type.
     const ir::Type *Type = Value.type();
     const bool Compatible = !Storage && ir::Constant::classof(&Value) ? static_cast<const ir::Constant &>(Value).canInitialize(&ExpectedType) : Type->unqualifiedType() == ExpectedType.unqualifiedType();
@@ -30,20 +31,20 @@ namespace ink::semantic
       {
         auto &Builder = State.irBuilder();
         // Validate insertion before materializing storage; address instructions belong to this use's function and block.
-        RETURN_REPORT_IF(Context, !Builder.insertFunction() || !Builder.insertBlock() || Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed, nullptr, Range);
+        CHECK_ICE(Site, Builder.insertFunction() && Builder.insertBlock() && !Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed);
         const ir::GlobalVariable *StringStorage = State.Output.getOrCreateStringStorage(static_cast<const ir::StringConstant &>(Value));
-        RETURN_REPORT_IF_FALSE(Context, StringStorage, core::DiagnosticKind::SemanticConstructionFailed, nullptr, Range);
+        CHECK_ICE(Site, StringStorage, core::DiagnosticKind::SemanticConstructionFailed);
         const auto *Zero = Context.irContext().constantPool().getUnsignedIntegerConstant(Context.typePool().getUInt32Type(), 0);
-        RETURN_REPORT_IF_FALSE(Context, Zero, core::DiagnosticKind::SemanticConstructionFailed, nullptr, Range);
+        CHECK_ICE(Site, Zero, core::DiagnosticKind::SemanticConstructionFailed);
         const auto *Address = Builder.createAddressOf(*StringStorage);
-        RETURN_REPORT_IF_FALSE(Context, Address, core::DiagnosticKind::SemanticConstructionFailed, nullptr, Range);
+        CHECK_ICE(Site, Address, core::DiagnosticKind::SemanticConstructionFailed);
         // Empty strings retain zero-byte storage: computing its start address does not read an element.
         const auto *Pointer = Builder.createGetElementPtr(*StringStorage->type(), *Address, {Zero, Zero});
-        RETURN_REPORT_IF_FALSE(Context, Pointer, core::DiagnosticKind::SemanticConstructionFailed, nullptr, Range);
+        CHECK_ICE(Site, Pointer, core::DiagnosticKind::SemanticConstructionFailed);
         return Pointer;
       }
     }
-    Context.report<core::DiagnosticKind::SemanticTypeMismatch>(Range, ExpectedType.toString(), Type->toString());
+    Site.report<core::DiagnosticKind::SemanticTypeMismatch>(ExpectedType.toString(), Type->toString());
     return nullptr;
   }
 } // namespace ink::semantic

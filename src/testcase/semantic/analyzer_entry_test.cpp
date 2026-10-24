@@ -1,5 +1,6 @@
 #include "ink/semantic/analyzer/analyzer.h"
 #include "ink/semantic/analyzer/analyzer_state.h"
+#include "ink/semantic/analyzer/analyzer_utils.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/diagnostic/diagnostic_consumer.h"
 #include "ink/core/name/name_pool.h"
@@ -10,6 +11,7 @@
 #include "ink/frontend/parser/parser.h"
 #include "../core/support/environment_test_support.h"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <memory>
@@ -180,6 +182,217 @@ namespace ink::semantic::test
     EXPECT_EQ(SecondBlock->instruction(0), SecondReturn);
     EXPECT_EQ(FirstReturn->type(), Context.typePool().getVoidType());
     EXPECT_EQ(SecondReturn->type(), Context.typePool().getVoidType());
+  }
+
+  // Node and explicit-range sites retain their input source across other states without changing the context's selected source.
+  TEST(SemanticAnalyzerEntryTest, KeepsAnalysisSitesAnchoredAcrossSourceSelection)
+  {
+    core::SourceManager Sources;
+    core::CollectingDiagnosticConsumer Consumer;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Consumer);
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    const auto FirstSource = Sources.addSource("first.ink", "First;\n  Second;");
+    const auto SecondSource = Sources.addSource("second.ink", "Other;");
+    const auto SelectedSource = Sources.addSource("selected.ink", "Selected;");
+    auto FirstInput = frontend::parser::parse(Frontend, frontend::tokenizer::tokenizeSource(Frontend, FirstSource));
+    auto SecondInput = frontend::parser::parse(Frontend, frontend::tokenizer::tokenizeSource(Frontend, SecondSource));
+    ASSERT_TRUE(FirstInput.succeeded());
+    ASSERT_TRUE(SecondInput.succeeded());
+    ASSERT_TRUE(Consumer.diagnostics().empty());
+    AnalyzerState First(Context, FirstInput, Output);
+    const auto &FirstNode = *FirstInput.Unit->root()->statements()[0];
+    const auto ExplicitRange = core::SourceRange::fromByteOffsets(9, 15);
+    const auto SelectedRange = core::SourceRange::fromByteOffsets(0, 8);
+    Context.setSource(SelectedSource);
+    const auto NodeSite = First.at(FirstNode);
+    const auto RangeSite = First.at(ExplicitRange);
+    Context.report<core::DiagnosticKind::SemanticUnknownName>(SelectedRange, "Selected");
+    Context.setSource(SecondSource);
+    AnalyzerState Second(Context, SecondInput, Output);
+    const auto &SecondNode = *SecondInput.Unit->root()->statements()[0];
+    const auto OtherSite = Second.at(SecondNode);
+    OtherSite.report<core::DiagnosticKind::SemanticUnknownName>("Other");
+    NodeSite.report<core::DiagnosticKind::SemanticUnknownName>("First");
+    RangeSite.report<core::DiagnosticKind::SemanticUnknownName>("Second");
+    Context.report<core::DiagnosticKind::SemanticUnknownName>(SecondNode.getSourceRange(), "Other");
+    ASSERT_EQ(Consumer.diagnostics().size(), 5U);
+    EXPECT_EQ(Consumer.diagnostics()[0].Source, SelectedSource);
+    EXPECT_EQ(Consumer.diagnostics()[0].Span, SelectedRange);
+    EXPECT_EQ(Consumer.diagnostics()[1].Source, SecondSource);
+    EXPECT_EQ(Consumer.diagnostics()[1].Span, SecondNode.getSourceRange());
+    EXPECT_EQ(Consumer.diagnostics()[2].Source, FirstSource);
+    EXPECT_EQ(Consumer.diagnostics()[2].Span, FirstNode.getSourceRange());
+    EXPECT_EQ(Consumer.diagnostics()[3].Source, FirstSource);
+    EXPECT_EQ(Consumer.diagnostics()[3].Span, ExplicitRange);
+    EXPECT_EQ(Consumer.diagnostics()[4].Source, SecondSource);
+    EXPECT_EQ(Consumer.diagnostics()[4].Span, SecondNode.getSourceRange());
+  }
+
+  // Runtime validation rejects descriptors at the site's captured location while preserving null propagation and valid value identity.
+  TEST(SemanticAnalyzerEntryTest, RuntimeValueValidationPreservesAnalysisSiteLocation)
+  {
+    core::SourceManager Sources;
+    core::CollectingDiagnosticConsumer Consumer;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Consumer);
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    const auto Source = Sources.addSource("value.ink", "Value;");
+    const auto OtherSource = Sources.addSource("other.ink", "Other;");
+    auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenizeSource(Frontend, Source));
+    ASSERT_TRUE(Input.succeeded());
+    AnalyzerState State(Context, Input, Output);
+    const auto Range = core::SourceRange::fromByteOffsets(0, 5);
+    const auto Site = State.at(Range);
+    Context.setSource(OtherSource);
+    EXPECT_EQ(requireRuntimeValue(Site, &Output), nullptr);
+    EXPECT_EQ(requireRuntimeValue(Site, Context.typePool().getInt32Type()), nullptr);
+    ASSERT_EQ(Consumer.diagnostics().size(), 2U);
+    for (const auto &Diagnostic : Consumer.diagnostics())
+    {
+      EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticTypeMismatch);
+      EXPECT_EQ(Diagnostic.classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(Diagnostic.Source, Source);
+      EXPECT_EQ(Diagnostic.Span, Range);
+    }
+    EXPECT_EQ(requireRuntimeValue(Site, nullptr), nullptr);
+    const auto *Boolean = Context.irContext().constantPool().getBoolConstant(true);
+    ASSERT_NE(Boolean, nullptr);
+    EXPECT_EQ(requireRuntimeValue(Site, Boolean), Boolean);
+    EXPECT_EQ(Consumer.diagnostics().size(), 2U);
+  }
+
+  // Type requirements retain their site when the context changes and distinguish local types from values and foreign types.
+  TEST(SemanticAnalyzerEntryTest, TypeValidationPreservesAnalysisSiteLocation)
+  {
+    core::SourceManager Sources;
+    core::CollectingDiagnosticConsumer Consumer;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Consumer);
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    ir::IRContext Foreign(target::TargetContext::native());
+    const auto Source = Sources.addSource("type.ink", "Type;");
+    const auto OtherSource = Sources.addSource("other.ink", "Other;");
+    auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenizeSource(Frontend, Source));
+    ASSERT_TRUE(Input.succeeded());
+    AnalyzerState State(Context, Input, Output);
+    const auto Range = core::SourceRange::fromByteOffsets(0, 4);
+    const auto Site = State.at(Range);
+    Context.setSource(OtherSource);
+    const auto *Boolean = Context.irContext().constantPool().getBoolConstant(true);
+    ASSERT_NE(Boolean, nullptr);
+    EXPECT_EQ(requireType(Site, Boolean), nullptr);
+    EXPECT_EQ(requireType(Site, Foreign.typePool().getInt32Type()), nullptr);
+    ASSERT_EQ(Consumer.diagnostics().size(), 2U);
+    for (const auto &Diagnostic : Consumer.diagnostics())
+    {
+      EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticTypeMismatch);
+      EXPECT_EQ(Diagnostic.classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(Diagnostic.Source, Source);
+      EXPECT_EQ(Diagnostic.Span, Range);
+    }
+    EXPECT_EQ(requireType(Site, nullptr), nullptr);
+    const auto *Type = Context.typePool().getInt32Type();
+    EXPECT_EQ(requireType(Site, Type), Type);
+    EXPECT_EQ(Consumer.diagnostics().size(), 2U);
+  }
+
+  // Recoverable guards observe candidates once and format diagnostics only on failure without losing their captured location.
+  TEST(SemanticAnalyzerEntryTest, RecoverableGuardsPreserveLazyFailurePropagation)
+  {
+    core::SourceManager Sources;
+    core::CollectingDiagnosticConsumer Consumer;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Consumer);
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    const auto Source = Sources.addSource("guard.ink", "Missing;");
+    const auto OtherSource = Sources.addSource("other.ink", "Other;");
+    auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenizeSource(Frontend, Source));
+    ASSERT_TRUE(Input.succeeded());
+    AnalyzerState State(Context, Input, Output);
+    const auto Range = core::SourceRange::fromByteOffsets(0, 7);
+    const auto Site = State.at(Range);
+    Context.setSource(OtherSource);
+    unsigned Conditions = 0;
+    unsigned Descriptions = 0;
+    unsigned FailureValues = 0;
+    unsigned Continuations = 0;
+    const auto Observe = [&](bool Condition)
+    {
+      ++Conditions;
+      return Condition;
+    };
+    const auto Describe = [&]()
+    {
+      ++Descriptions;
+      Context.setSource(OtherSource);
+      return "Missing";
+    };
+    const auto Failure = [&]() -> const ir::Value *
+    {
+      ++FailureValues;
+      return nullptr;
+    };
+    const auto Require = [&](const ir::Value *Candidate) -> const ir::Value *
+    {
+      RETURN_REPORT_IF_FALSE(Site, Observe(Candidate != nullptr), core::DiagnosticKind::SemanticUnknownName, Failure(), Describe());
+      ++Continuations;
+      return Candidate;
+    };
+    const auto Reject = [&](const ir::Value *Candidate) -> const ir::Value *
+    {
+      RETURN_REPORT_IF(Site, Observe(Candidate == nullptr), core::DiagnosticKind::SemanticUnknownName, Failure(), Describe());
+      ++Continuations;
+      return Candidate;
+    };
+    const auto *Value = Context.irContext().constantPool().getBoolConstant(true);
+    ASSERT_NE(Value, nullptr);
+    EXPECT_EQ(Require(Value), Value);
+    EXPECT_EQ(Reject(Value), Value);
+    EXPECT_EQ(Conditions, 2U);
+    EXPECT_EQ(Descriptions, 0U);
+    EXPECT_EQ(FailureValues, 0U);
+    EXPECT_EQ(Continuations, 2U);
+    EXPECT_TRUE(Consumer.diagnostics().empty());
+    EXPECT_EQ(Require(nullptr), nullptr);
+    EXPECT_EQ(Reject(nullptr), nullptr);
+    EXPECT_EQ(Conditions, 4U);
+    EXPECT_EQ(Descriptions, 2U);
+    EXPECT_EQ(FailureValues, 2U);
+    EXPECT_EQ(Continuations, 2U);
+    ASSERT_EQ(Consumer.diagnostics().size(), 2U);
+    for (const auto &Diagnostic : Consumer.diagnostics())
+    {
+      EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticUnknownName);
+      EXPECT_EQ(Diagnostic.Source, Source);
+      EXPECT_EQ(Diagnostic.Span, Range);
+    }
+  }
+
+  // Site ICE formatting uses its captured source and exact range after the context selects a different source.
+  TEST(SemanticAnalyzerEntryDeathTest, ReportsAnalysisSiteICEAtCapturedLocation)
+  {
+    core::SourceManager Sources;
+    core::DiagnosticEngine Diagnostics(Sources);
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    const auto Source = Sources.addSource("first.ink", "First;\n  Second;");
+    const auto OtherSource = Sources.addSource("other.ink", "Unrelated;");
+    auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenizeSource(Frontend, Source));
+    ASSERT_TRUE(Input.succeeded());
+    AnalyzerState State(Context, Input, Output);
+    const auto Site = State.at(core::SourceRange::fromByteOffsets(9, 15));
+    Context.setSource(OtherSource);
+    EXPECT_DEATH(Site.reportICE<core::DiagnosticKind::SemanticInvalidAST>("missing required child"), ::testing::AllOf(::testing::HasSubstr("first.ink:2:3: internal compiler error[INK-S0061]: invalid AST: missing required child"), ::testing::HasSubstr("[bytes 9, 15)"), ::testing::HasSubstr("2 |   Second;")));
   }
 
   // A state without a parsed unit reports an explicit ICE without attributing the missing input to a stale semantic source.
@@ -575,17 +788,18 @@ namespace ink::semantic::test
     EXPECT_DEATH(Analysis.analyze(Context, Siblings, Output), "INK-S0014");
   }
 
-  // A comptime block cannot be accepted as an ordinary empty block while evaluation remains absent.
+  // A comptime block reports the unsupported ICE at its exact source range while evaluation remains absent.
   TEST(SemanticAnalyzerEntryDeathTest, ReportsComptimeAsUnimplemented)
   {
     core::SourceManager Sources;
-    core::DiagnosticEngine DiagnosticEngine;
+    core::DiagnosticEngine DiagnosticEngine(Sources);
     frontend::FrontendContext Frontend(Sources, DiagnosticEngine);
-    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, "comptime {}"));
+    const auto Source = Sources.addSource("comptime.ink", "\n  comptime {}");
+    auto Parsed = frontend::parser::parse(Frontend, frontend::tokenizer::tokenizeSource(Frontend, Source));
     ASSERT_TRUE(Parsed.succeeded());
     SemanticContext Context(Sources, DiagnosticEngine, target::TargetContext::native());
     ir::Module Output(Context.irContext());
-    EXPECT_DEATH(Analyzer{}.analyze(Context, Parsed, Output), "initial semantic analyzer does not support BlockStmt");
+    EXPECT_DEATH(Analyzer{}.analyze(Context, Parsed, Output), ::testing::AllOf(::testing::HasSubstr("comptime.ink:2:3: internal compiler error[INK-S0012]: initial semantic analyzer does not support BlockStmt"), ::testing::HasSubstr("[bytes 3, 14)"), ::testing::HasSubstr("2 |   comptime {}")));
   }
 
   // A real statement object carrying an expression kind must fail statement dispatch with the AST contract ICE.

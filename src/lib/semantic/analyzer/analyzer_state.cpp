@@ -1,7 +1,9 @@
 #include "ink/semantic/analyzer/analyzer_state.h"
 
 #include "ink/core/config/config_manager.h"
+#include "ink/frontend/parser/ast/ast_node_base.h"
 #include "ink/frontend/parser/parser.h"
+#include "ink/semantic/analyzer/analyzer_utils.h"
 #include "ink/semantic/context.h"
 
 namespace ink::semantic
@@ -31,10 +33,17 @@ namespace ink::semantic
 
   const frontend::parser::TokenBuffer &AnalyzerState::input() const noexcept
   {
-    if (!Input.Unit)
-    {
-      Context.diagnosticEngine().report<core::DiagnosticKind::SemanticInvalidAST>({}, "analysis input requires a parsed unit");
-    }
+    CHECK_ICE(AnalysisSite(Context, {}, {}), Input.Unit, core::DiagnosticKind::SemanticInvalidAST, "analysis input requires a parsed unit");
     return Input.Unit->input();
+  }
+
+  AnalysisSite AnalyzerState::at(core::SourceRange Range) const
+  {
+    return AnalysisSite(Context, input().lexedFile().sourceId(), Range);
+  }
+
+  AnalysisSite AnalyzerState::at(const frontend::parser::ASTNodeBase &Node) const
+  {
+    return at(Node.getSourceRange());
   }
 } // namespace ink::semantic

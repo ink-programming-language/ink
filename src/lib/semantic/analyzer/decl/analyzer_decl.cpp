@@ -9,7 +9,8 @@ namespace ink::semantic
 {
   bool Analyzer::analyzeDecl(AnalyzerState &State, const frontend::parser::Decl &Declaration)
   {
-    UNSUPPORT_IF(State, Declaration.isComptime(), false, Declaration.getSourceRange(), frontend::parser::astKindName(Declaration.getKind()));
+    const auto Site = State.at(Declaration);
+    CHECK_ICE(Site, !Declaration.isComptime(), core::DiagnosticKind::SemanticUnsupported, frontend::parser::astKindName(Declaration.getKind()));
     switch (Declaration.getKind())
     {
 #define INK_ANALYZE_Root(Name)
@@ -32,8 +33,7 @@ namespace ink::semantic
 #undef INK_ANALYZE_BindingPattern
 #undef INK_ANALYZE_MatchPattern
     default:
-      State.semanticContext().report<core::DiagnosticKind::SemanticInvalidAST>(Declaration.getSourceRange(), "declaration node kind must belong to the declaration AST category");
-      return false;
+      Site.reportICE<core::DiagnosticKind::SemanticInvalidAST>("declaration node kind must belong to the declaration AST category");
     }
   }
 

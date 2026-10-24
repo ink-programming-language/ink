@@ -10,20 +10,21 @@ namespace ink::semantic
 {
   const ir::Value *Analyzer::loadStorage(AnalyzerState &State, core::SourceRange Range, const ir::Value &Storage)
   {
+    const auto Site = State.at(Range);
     auto &Context = State.semanticContext();
     // TODO: Lower explicit global storage reads through the module's address representation.
-    UNSUPPORT_IF(State, ir::GlobalVariable::classof(&Storage), nullptr, Range, "variable storage reads");
+    CHECK_ICE(Site, !ir::GlobalVariable::classof(&Storage), core::DiagnosticKind::SemanticUnsupported, "variable storage reads");
     const ir::Type *Type = Storage.type();
-    RETURN_REPORT_IF(Context, !Storage.isStorage() || !Context.irContext().containsType(Type) || !Type->hasLayout(), core::DiagnosticKind::SemanticConstructionFailed, nullptr, Range);
+    CHECK_ICE(Site, Storage.isStorage() && Context.irContext().containsType(Type) && Type->hasLayout(), core::DiagnosticKind::SemanticConstructionFailed);
     auto &Builder = State.irBuilder();
-    RETURN_REPORT_IF(Context, !Builder.insertBlock() || Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed, nullptr, Range);
+    CHECK_ICE(Site, Builder.insertBlock() && !Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed);
     const ir::Value *Loaded = Builder.createLoad(*Type, Storage);
-    RETURN_REPORT_IF_FALSE(Context, Loaded, core::DiagnosticKind::SemanticConstructionFailed, nullptr, Range);
+    CHECK_ICE(Site, Loaded, core::DiagnosticKind::SemanticConstructionFailed);
     // Declaration initialization is advisory; indirect storage has no declaration flag to check.
     if (ir::AllocaInstruction::classof(&Storage) && !Storage.isInitialized())
     {
       const core::Name Name = static_cast<const ir::AllocaInstruction &>(Storage).name();
-      Context.report<core::DiagnosticKind::SemanticUninitializedRead>(Range, core::NamePool::instance().text(Name));
+      Site.report<core::DiagnosticKind::SemanticUninitializedRead>(core::NamePool::instance().text(Name));
     }
     return Loaded;
   }

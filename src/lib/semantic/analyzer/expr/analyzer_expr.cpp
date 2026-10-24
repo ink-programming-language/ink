@@ -18,12 +18,14 @@ namespace ink::semantic
   const ir::Value *Analyzer::analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
   {
     auto &Context = State.semanticContext();
-    CHECK_RECURSION_DEPTH(State, Node.getSourceRange(), nullptr);
+    const auto Site = State.at(Node);
+    CHECK_ICE(Site, State.recursionDepth() < State.recursionDepthLimit(), core::DiagnosticKind::SemanticNestingLimit);
     BlockDepthGuard DepthGuard(State.recursionDepth());
-    UNSUPPORT_IF(State, Node.isComptime(), nullptr, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
+    CHECK_ICE(Site, !Node.isComptime(), core::DiagnosticKind::SemanticUnsupported, frontend::parser::astKindName(Node.getKind()));
     const ir::Type *ExpectedType = Hints.ExpectedType;
-    CHECK_VALID_TYPE(Context, ExpectedType, Node.getSourceRange());
-    CHECK_VALID_TYPE(Context, Hints.DefaultIntegerLiteralType, Node.getSourceRange());
+    CHECK_ICE(Site, !ExpectedType || Context.irContext().containsType(ExpectedType), core::DiagnosticKind::SemanticConstructionFailed);
+    const ir::Type *DefaultIntegerLiteralType = Hints.DefaultIntegerLiteralType;
+    CHECK_ICE(Site, !DefaultIntegerLiteralType || Context.irContext().containsType(DefaultIntegerLiteralType), core::DiagnosticKind::SemanticConstructionFailed);
 
     const ir::Value *Result = nullptr;
     using namespace frontend::parser;
@@ -54,10 +56,9 @@ namespace ink::semantic
         Result = analyzeFunctionTypeExpr(State, static_cast<const FunctionTypeExpr &>(Node));
         break;
       default:
-        RETURN_REPORT_IF(Context, categoryOf(Node.getKind()) != ASTCategory::Expr, core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "expression node kind must belong to the expression AST category");
+        CHECK_ICE(Site, categoryOf(Node.getKind()) == ASTCategory::Expr, core::DiagnosticKind::SemanticInvalidAST, "expression node kind must belong to the expression AST category");
         // TODO: Restore generic applications, remaining operators and type-valued compile-time evaluation.
-        reportUnsupported(State, Node);
-        return nullptr;
+        Site.reportICE<core::DiagnosticKind::SemanticUnsupported>(astKindName(Node.getKind()));
     }
     RETURN_IF(!Result || !ExpectedType, Result);
     return convertToExpectedType(State, Node.getSourceRange(), *Result, *ExpectedType);

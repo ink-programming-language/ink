@@ -9,7 +9,7 @@ namespace ink::semantic
 {
   const ir::Value *Analyzer::analyzeParenExpr(AnalyzerState &State, const frontend::parser::ParenExpr &Node, ExprHints Hints)
   {
-    RETURN_REPORT_IF_FALSE(State.semanticContext(), Node.expression(), core::DiagnosticKind::SemanticInvalidAST, nullptr, Node.getSourceRange(), "ParenExpr requires an expression");
+    CHECK_ICE(State.at(Node), Node.expression(), core::DiagnosticKind::SemanticInvalidAST, "ParenExpr requires an expression");
     return analyzeExpr(State, *Node.expression(), Hints);
   }
 } // namespace ink::semantic

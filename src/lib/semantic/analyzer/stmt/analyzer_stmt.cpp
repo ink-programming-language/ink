@@ -9,8 +9,9 @@ namespace ink::semantic
 {
   bool Analyzer::analyzeStmt(AnalyzerState &State, const frontend::parser::Stmt &Stmt)
   {
+    const auto Site = State.at(Stmt);
     // TODO: Restore compile-time statement evaluation.
-    UNSUPPORT_IF(State, Stmt.isComptime(), false, Stmt.getSourceRange(), frontend::parser::astKindName(Stmt.getKind()));
+    CHECK_ICE(Site, !Stmt.isComptime(), core::DiagnosticKind::SemanticUnsupported, frontend::parser::astKindName(Stmt.getKind()));
     switch (Stmt.getKind())
     {
 #define INK_ANALYZE_Root(Name)
@@ -33,21 +34,21 @@ namespace ink::semantic
 #undef INK_ANALYZE_BindingPattern
 #undef INK_ANALYZE_MatchPattern
     default:
-      State.semanticContext().report<core::DiagnosticKind::SemanticInvalidAST>(Stmt.getSourceRange(), "statement node kind must belong to the statement AST category");
-      return false;
+      Site.reportICE<core::DiagnosticKind::SemanticInvalidAST>("statement node kind must belong to the statement AST category");
     }
   }
 
   bool Analyzer::analyzeSimpleStmt(AnalyzerState &State, const frontend::parser::SimpleStmt &Node)
   {
     RETURN_IF(State.AnalysisMode == AnalyzerState::Mode::CollectDecls, true);
+    const auto Site = State.at(Node);
     bool Succeeded = true;
     for (const frontend::parser::SimpleItem *Item : Node.items())
     {
       // TODO: Restore assignments and the remaining simple items.
-      UNSUPPORT_IF(State, !frontend::parser::ExprItem::classof(Item), false, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
+      CHECK_ICE(Site, frontend::parser::ExprItem::classof(Item), core::DiagnosticKind::SemanticUnsupported, frontend::parser::astKindName(Node.getKind()));
       const auto &Expression = *static_cast<const frontend::parser::ExprItem *>(Item)->expression();
-      if (!requireRuntimeValue(State.semanticContext(), Expression.getSourceRange(), emitValue(State, Expression)))
+      if (!requireRuntimeValue(State.at(Expression), emitValue(State, Expression)))
       {
         Succeeded = false;
       }

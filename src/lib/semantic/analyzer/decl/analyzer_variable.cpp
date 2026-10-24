@@ -10,38 +10,39 @@ namespace ink::semantic
 {
   bool Analyzer::analyzeVarDecl(AnalyzerState &State, const frontend::parser::VarDecl &Node)
   {
-    auto &Context = State.semanticContext();
+    const auto Site = State.at(Node);
     auto &Builder = State.irBuilder();
     auto &Resolver = State.nameResolver();
-    RETURN_REPORT_IF_FALSE(Context, Node.binding(), core::DiagnosticKind::SemanticInvalidAST, false, Node.getSourceRange(), "VarDecl requires a binding pattern");
+    CHECK_ICE(Site, Node.binding(), core::DiagnosticKind::SemanticInvalidAST, "VarDecl requires a binding pattern");
     // TODO: Validate and lower variable attributes.
-    UNSUPPORT_IF(State, !Node.attributes().empty(), false, Node.getSourceRange(), "variable attributes");
+    CHECK_ICE(Site, Node.attributes().empty(), core::DiagnosticKind::SemanticUnsupported, "variable attributes");
     // TODO: Lower discard, tuple, array and rest bindings with single evaluation of the initializer.
-    UNSUPPORT_IF(State, !frontend::parser::NameBindingPattern::classof(Node.binding()), false, Node.getSourceRange(), "variable binding patterns");
+    CHECK_ICE(Site, frontend::parser::NameBindingPattern::classof(Node.binding()), core::DiagnosticKind::SemanticUnsupported, "variable binding patterns");
     // TODO: Lower top-level variables into module storage and its initialization function.
-    UNSUPPORT_IF(State, !Builder.insertFunction(), false, Node.getSourceRange(), frontend::parser::astKindName(Node.getKind()));
+    CHECK_ICE(Site, Builder.insertFunction(), core::DiagnosticKind::SemanticUnsupported, frontend::parser::astKindName(Node.getKind()));
     RETURN_IF(State.AnalysisMode == AnalyzerState::Mode::CollectDecls, true);
-    RETURN_REPORT_IF(Context, !Builder.insertBlock() || Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
+    CHECK_ICE(Site, Builder.insertBlock() && !Builder.insertBlock()->hasTerminator(), core::DiagnosticKind::SemanticConstructionFailed);
     const auto NameToken = static_cast<const frontend::parser::NameBindingPattern *>(Node.binding())->name();
-    RETURN_REPORT_IF(Context, NameToken.Text.empty(), core::DiagnosticKind::SemanticInvalidAST, false, NameToken.Range, "variable name must be nonempty");
+    const auto NameSite = State.at(NameToken.Range);
+    CHECK_ICE(NameSite, !NameToken.Text.empty(), core::DiagnosticKind::SemanticInvalidAST, "variable name must be nonempty");
     const auto Name = core::NamePool::instance().intern(NameToken.Text);
-    CHECK_VALID_NAME(Context, NameToken.Range, Name, false);
-    RETURN_REPORT_IF(Context, Resolver.lookupLocal(Name), core::DiagnosticKind::SemanticDuplicateName, false, NameToken.Range, NameToken.Text);
-    RETURN_REPORT_IF(Context, Node.constant() && !Node.initializer(), core::DiagnosticKind::SemanticInvalidAST, false, Node.getSourceRange(), "const declaration requires an initializer");
+    CHECK_ICE(NameSite, Name.valid(), core::DiagnosticKind::SemanticConstructionFailed);
+    RETURN_REPORT_IF(NameSite, Resolver.lookupLocal(Name), core::DiagnosticKind::SemanticDuplicateName, false, NameToken.Text);
+    CHECK_ICE(Site, !Node.constant() || Node.initializer(), core::DiagnosticKind::SemanticInvalidAST, "const declaration requires an initializer");
 
     const ir::Type *Type = nullptr;
     if (Node.type())
     {
       Type = analyzeType(State, *Node.type());
       RETURN_IF_NULL(Type, false);
-      CHECK_HAS_LAYOUT(Context, Node.type()->getSourceRange(), Type, "a variable type with runtime layout", false);
+      CHECK_HAS_LAYOUT(State.at(*Node.type()), Type, "a variable type with runtime layout", false);
     }
-    RETURN_REPORT_IF(Context, !Type && !Node.initializer(), core::DiagnosticKind::SemanticMissingVariableType, false, Node.getSourceRange());
+    RETURN_REPORT_IF(Site, !Type && !Node.initializer(), core::DiagnosticKind::SemanticMissingVariableType, false);
     const ir::Value *Initializer = nullptr;
     if (Node.initializer())
     {
       // The new name becomes visible only after its initializer succeeds; outer bindings remain visible here.
-      Initializer = requireRuntimeValue(Context, Node.initializer()->getSourceRange(), emitValue(State, *Node.initializer(), {.ExpectedType = Type}));
+      Initializer = requireRuntimeValue(State.at(*Node.initializer()), emitValue(State, *Node.initializer(), {.ExpectedType = Type}));
       RETURN_IF(!Initializer, false);
       if (!Type)
       {
@@ -49,12 +50,12 @@ namespace ink::semantic
       }
     }
     // TODO: Represent zero-sized unit bindings without allocating runtime storage.
-    UNSUPPORT_IF(State, ir::VoidType::classof(Type), false, Node.getSourceRange(), "unit variable storage");
+    CHECK_ICE(Site, !ir::VoidType::classof(Type), core::DiagnosticKind::SemanticUnsupported, "unit variable storage");
     ir::AllocaInstruction *Storage = Builder.createAlloca(*Type, !Node.constant());
-    RETURN_REPORT_IF_FALSE(Context, Storage, core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
+    CHECK_ICE(Site, Storage, core::DiagnosticKind::SemanticConstructionFailed);
     Storage->setName(Name);
-    RETURN_REPORT_IF(Context, Initializer && !Builder.createInitialize(*Initializer, *Storage), core::DiagnosticKind::SemanticConstructionFailed, false, Node.getSourceRange());
-    RETURN_REPORT_IF(Context, Resolver.bind(Name, *Storage) != BindResult::Inserted, core::DiagnosticKind::SemanticConstructionFailed, false, NameToken.Range);
+    CHECK_ICE(Site, !Initializer || Builder.createInitialize(*Initializer, *Storage), core::DiagnosticKind::SemanticConstructionFailed);
+    CHECK_ICE(NameSite, Resolver.bind(Name, *Storage) == BindResult::Inserted, core::DiagnosticKind::SemanticConstructionFailed);
     return true;
   }
 } // namespace ink::semantic

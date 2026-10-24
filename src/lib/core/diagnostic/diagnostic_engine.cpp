@@ -25,16 +25,21 @@ namespace ink::core
   {
     if (DiagnosticEntry.classification() == DiagnosticClass::InternalCompilerError)
     {
-      if (Sources)
-      {
-        panic(DiagnosticFormatter{}.format(DiagnosticEntry, *Sources));
-      }
-      panic(fmt::format("internal compiler error[{}]: {}", DiagnosticEntry.code(), DiagnosticFormatter{}.format(DiagnosticEntry).Message));
+      reportICE(DiagnosticEntry);
     }
     const std::vector<DiagnosticConsumer *> Snapshot = Consumers;
     for (DiagnosticConsumer *Consumer : Snapshot)
     {
       Consumer->consume(DiagnosticEntry);
     }
+  }
+
+  [[noreturn]] void DiagnosticEngine::reportICE(const Diagnostic &DiagnosticEntry) const
+  {
+    if (Sources)
+    {
+      panic(DiagnosticFormatter{}.format(DiagnosticEntry, *Sources));
+    }
+    panic(fmt::format("internal compiler error[{}]: {}", DiagnosticEntry.code(), DiagnosticFormatter{}.format(DiagnosticEntry).Message));
   }
 } // namespace ink::core
