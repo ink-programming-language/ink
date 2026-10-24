@@ -146,8 +146,6 @@ namespace ink::core
       return "Character";
     case DiagnosticArgumentName::Context:
       return "Context";
-    case DiagnosticArgumentName::RemainingNestingDepth:
-      return "RemainingNestingDepth";
     case DiagnosticArgumentName::Expected:
       return "Expected";
     case DiagnosticArgumentName::Actual:
@@ -156,86 +154,20 @@ namespace ink::core
       return "Description";
     case DiagnosticArgumentName::TypeName:
       return "TypeName";
-    case DiagnosticArgumentName::StructName:
-      return "StructName";
     case DiagnosticArgumentName::SymbolName:
       return "SymbolName";
     case DiagnosticArgumentName::FunctionName:
       return "FunctionName";
-    case DiagnosticArgumentName::BlockName:
-      return "BlockName";
-    case DiagnosticArgumentName::CalleeName:
-      return "CalleeName";
-    case DiagnosticArgumentName::Operation:
-      return "Operation";
-    case DiagnosticArgumentName::ArgumentIndex:
-      return "ArgumentIndex";
-    case DiagnosticArgumentName::ParameterIndex:
-      return "ParameterIndex";
-    case DiagnosticArgumentName::FieldIndex:
-      return "FieldIndex";
-    case DiagnosticArgumentName::ValueId:
-      return "ValueId";
-    case DiagnosticArgumentName::ByteConstantId:
-      return "ByteConstantId";
-    case DiagnosticArgumentName::GlobalId:
-      return "GlobalId";
     case DiagnosticArgumentName::ModuleName:
       return "ModuleName";
-    case DiagnosticArgumentName::RelatedModuleName:
-      return "RelatedModuleName";
-    case DiagnosticArgumentName::ExpectedModuleName:
-      return "ExpectedModuleName";
-    case DiagnosticArgumentName::ActualModuleName:
-      return "ActualModuleName";
-    case DiagnosticArgumentName::FunctionId:
-      return "FunctionId";
-    case DiagnosticArgumentName::ExpectedValue:
-      return "ExpectedValue";
     case DiagnosticArgumentName::ActualValue:
       return "ActualValue";
-    case DiagnosticArgumentName::Predicate:
-      return "Predicate";
-    case DiagnosticArgumentName::FieldType:
-      return "FieldType";
-    case DiagnosticArgumentName::OperandIndex:
-      return "OperandIndex";
-    case DiagnosticArgumentName::RequestedSize:
-      return "RequestedSize";
-    case DiagnosticArgumentName::Index:
-      return "Index";
-    case DiagnosticArgumentName::RegionLength:
-      return "RegionLength";
-    case DiagnosticArgumentName::Format:
-      return "Format";
-    case DiagnosticArgumentName::ExpectedDigits:
-      return "ExpectedDigits";
-    case DiagnosticArgumentName::ActualDigits:
-      return "ActualDigits";
     case DiagnosticArgumentName::ExpectedCount:
       return "ExpectedCount";
     case DiagnosticArgumentName::ActualCount:
       return "ActualCount";
-    case DiagnosticArgumentName::DeclaredSize:
-      return "DeclaredSize";
-    case DiagnosticArgumentName::ActualSize:
-      return "ActualSize";
-    case DiagnosticArgumentName::FieldCount:
-      return "FieldCount";
-    case DiagnosticArgumentName::Offset:
-      return "Offset";
     case DiagnosticArgumentName::Size:
       return "Size";
-    case DiagnosticArgumentName::Alignment:
-      return "Alignment";
-    case DiagnosticArgumentName::MaximumAlignment:
-      return "MaximumAlignment";
-    case DiagnosticArgumentName::CallDepthLimit:
-      return "CallDepthLimit";
-    case DiagnosticArgumentName::ImportDepthLimit:
-      return "ImportDepthLimit";
-    case DiagnosticArgumentName::InstructionName:
-      return "InstructionName";
     }
     return "Unknown";
   }

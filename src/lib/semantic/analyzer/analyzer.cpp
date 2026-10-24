@@ -13,7 +13,7 @@ namespace ink::semantic
   {
     RETURN_IF(&Output.irContext() != &Context.irContext() || !Input.succeeded(), false);
     const auto &Lexed = Input.Unit->input().lexedFile();
-    RETURN_IF(!Lexed.isRegisteredWith(Context.sourceManager()), false);
+    RETURN_IF_NOT(Lexed.isRegisteredWith(Context.sourceManager()), false);
     Context.setSource(Lexed.sourceId());
     const AnalysisSite InputSite(Context, Lexed.sourceId(), {});
     CHECK_ICE(InputSite, Input.Unit->root(), core::DiagnosticKind::SemanticInvalidAST, "successful parse result requires a module AST root");

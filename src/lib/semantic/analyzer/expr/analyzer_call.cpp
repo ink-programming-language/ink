@@ -62,11 +62,11 @@ namespace ink::semantic
     {
       // TODO: Analyze type construction and explicit conversion calls separately from runtime function calls.
       CHECK_ICE(Site, !ir::Type::classof(&Callee), core::DiagnosticKind::SemanticUnsupported, "type construction and conversion calls");
-      RETURN_REPORT_IF(Site, ir::Module::classof(&Callee), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a callable function or function pointer", ir::valueKindName(Callee.kind()));
-      RETURN_IF_NULL(requireRuntimeValue(Site, &Callee), nullptr);
+      RETURN_ERROR_IF(Site, ir::Module::classof(&Callee), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a callable function or function pointer", ir::valueKindName(Callee.kind()));
+      RETURN_IF_NOT(requireRuntimeValue(Site, &Callee), nullptr);
       const ir::Type *CalleeType = Callee.type();
       const ir::Type *SignatureType = ir::PointerType::classof(CalleeType) ? static_cast<const ir::PointerType *>(CalleeType)->pointeeType() : CalleeType;
-      RETURN_REPORT_IF_FALSE(Site, ir::FunctionType::classof(SignatureType), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a callable function or function pointer", CalleeType->toString());
+      RETURN_ERROR_IF_NOT(Site, ir::FunctionType::classof(SignatureType), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a callable function or function pointer", CalleeType->toString());
       return static_cast<const ir::FunctionType *>(SignatureType);
     }
   } // namespace
@@ -81,15 +81,15 @@ namespace ink::semantic
     auto &Builder = State.irBuilder();
     const auto CalleeSite = State.at(*Node.callee());
     const ir::Value *Callee = emitValue(State, *Node.callee(), {.IsCallCallee = true});
-    RETURN_IF_NULL(Callee, nullptr);
+    RETURN_IF_NOT(Callee, nullptr);
     const ir::FunctionType *Signature = requireCallableSignature(CalleeSite, *Callee);
-    RETURN_IF_NULL(Signature, nullptr);
+    RETURN_IF_NOT(Signature, nullptr);
     for (const auto &Parameter : Signature->parameters())
     {
       // TODO: Match variadic argument packs once the signature and operand lowering support them.
       CHECK_ICE(CallSite, !Parameter.Variadic, core::DiagnosticKind::SemanticUnsupported, "variadic calls");
     }
-    RETURN_REPORT_IF(CallSite, Node.arguments().size() != Signature->parameterCount(), core::DiagnosticKind::SemanticArgumentCount, nullptr, Signature->parameterCount(), Node.arguments().size());
+    RETURN_ERROR_IF(CallSite, Node.arguments().size() != Signature->parameterCount(), core::DiagnosticKind::SemanticArgumentCount, nullptr, Signature->parameterCount(), Node.arguments().size());
 
     std::vector<ir::Argument> Arguments;
     Arguments.reserve(Node.arguments().size());
@@ -100,7 +100,7 @@ namespace ink::semantic
       const auto ArgumentSite = State.at(Argument.range());
       const ir::Type *ExpectedType = Signature->parameters()[Index].ParameterType;
       const ir::Value *Value = emitRuntimeValue(State, ArgumentSite, *Argument.value(), {.ExpectedType = ExpectedType});
-      RETURN_IF_NULL(Value, nullptr);
+      RETURN_IF_NOT(Value, nullptr);
       Arguments.emplace_back(*Value);
     }
     const ir::CallInstruction *Call = Builder.createCall(*Signature, *Callee, std::move(Arguments));

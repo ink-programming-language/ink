@@ -247,10 +247,10 @@ namespace ink::semantic::test
     AnalyzerState Second(Context, SecondInput, Output);
     const auto &SecondNode = *SecondInput.Unit->root()->statements()[0];
     const auto OtherSite = Second.at(SecondNode);
-    OtherSite.report<core::DiagnosticKind::SemanticUnknownName>("Other");
-    NodeSite.report<core::DiagnosticKind::SemanticUnknownName>("First");
-    RangeSite.report<core::DiagnosticKind::SemanticUnknownName>("Second");
-    DerivedSite.report<core::DiagnosticKind::SemanticUnknownName>("Second");
+    OtherSite.reportError<core::DiagnosticKind::SemanticUnknownName>("Other");
+    NodeSite.reportError<core::DiagnosticKind::SemanticUnknownName>("First");
+    RangeSite.reportError<core::DiagnosticKind::SemanticUnknownName>("Second");
+    DerivedSite.reportError<core::DiagnosticKind::SemanticUnknownName>("Second");
     Context.report<core::DiagnosticKind::SemanticUnknownName>(SecondNode.getSourceRange(), "Other");
     ASSERT_EQ(Consumer.diagnostics().size(), 6U);
     EXPECT_EQ(Consumer.diagnostics()[0].Source, SelectedSource);
@@ -358,6 +358,7 @@ namespace ink::semantic::test
     const auto Site = State.at(Range);
     Context.setSource(OtherSource);
     unsigned Conditions = 0;
+    unsigned Sites = 0;
     unsigned Descriptions = 0;
     unsigned FailureValues = 0;
     unsigned Continuations = 0;
@@ -372,20 +373,26 @@ namespace ink::semantic::test
       Context.setSource(OtherSource);
       return "Missing";
     };
+    const auto SelectSite = [&]() -> const AnalysisSite &
+    {
+      ++Sites;
+      return Site;
+    };
     const auto Failure = [&]() -> const ir::Value *
     {
       ++FailureValues;
+      EXPECT_EQ(Consumer.diagnostics().size(), FailureValues);
       return nullptr;
     };
     const auto Require = [&](const ir::Value *Candidate) -> const ir::Value *
     {
-      RETURN_REPORT_IF_FALSE(Site, Observe(Candidate != nullptr), core::DiagnosticKind::SemanticUnknownName, Failure(), Describe());
+      RETURN_ERROR_IF_NOT(SelectSite(), Observe(Candidate != nullptr), core::DiagnosticKind::SemanticUnknownName, Failure(), Describe());
       ++Continuations;
       return Candidate;
     };
     const auto Reject = [&](const ir::Value *Candidate) -> const ir::Value *
     {
-      RETURN_REPORT_IF(Site, Observe(Candidate == nullptr), core::DiagnosticKind::SemanticUnknownName, Failure(), Describe());
+      RETURN_ERROR_IF(SelectSite(), Observe(Candidate == nullptr), core::DiagnosticKind::SemanticUnknownName, Failure(), Describe());
       ++Continuations;
       return Candidate;
     };
@@ -394,6 +401,7 @@ namespace ink::semantic::test
     EXPECT_EQ(Require(Value), Value);
     EXPECT_EQ(Reject(Value), Value);
     EXPECT_EQ(Conditions, 2U);
+    EXPECT_EQ(Sites, 0U);
     EXPECT_EQ(Descriptions, 0U);
     EXPECT_EQ(FailureValues, 0U);
     EXPECT_EQ(Continuations, 2U);
@@ -401,6 +409,7 @@ namespace ink::semantic::test
     EXPECT_EQ(Require(nullptr), nullptr);
     EXPECT_EQ(Reject(nullptr), nullptr);
     EXPECT_EQ(Conditions, 4U);
+    EXPECT_EQ(Sites, 2U);
     EXPECT_EQ(Descriptions, 2U);
     EXPECT_EQ(FailureValues, 2U);
     EXPECT_EQ(Continuations, 2U);
@@ -408,9 +417,142 @@ namespace ink::semantic::test
     for (const auto &Diagnostic : Consumer.diagnostics())
     {
       EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticUnknownName);
+      EXPECT_EQ(Diagnostic.classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(core::diagnosticDefaultSeverity(Diagnostic.Kind), core::DiagnosticSeverity::Error);
       EXPECT_EQ(Diagnostic.Source, Source);
       EXPECT_EQ(Diagnostic.Span, Range);
     }
+  }
+
+  // Warning guards evaluate their condition once, retain the captured location and continue after either warning direction.
+  TEST(SemanticAnalyzerEntryTest, WarningGuardsPreserveLazyReportingAndContinuation)
+  {
+    core::SourceManager Sources;
+    core::CollectingDiagnosticConsumer Consumer;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Consumer);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    const auto Source = Sources.addSource("warning.ink", "  Value;");
+    const auto OtherSource = Sources.addSource("other.ink", "Other;");
+    const auto Range = core::SourceRange::fromByteOffsets(2, 7);
+    const AnalysisSite Site(Context, Source, Range);
+    Context.setSource(OtherSource);
+    unsigned Conditions = 0;
+    unsigned Sites = 0;
+    unsigned Descriptions = 0;
+    unsigned Continuations = 0;
+    const auto Observe = [&](bool Condition)
+    {
+      ++Conditions;
+      return Condition;
+    };
+    const auto SelectSite = [&]() -> const AnalysisSite &
+    {
+      ++Sites;
+      return Site;
+    };
+    const auto Describe = [&]()
+    {
+      ++Descriptions;
+      Context.setSource(OtherSource);
+      return "Value";
+    };
+    const auto WarnRead = [&](bool Uninitialized)
+    {
+      WARNING_IF(SelectSite(), Observe(Uninitialized), core::DiagnosticKind::SemanticUninitializedRead, Describe());
+      ++Continuations;
+    };
+    const auto WarnAddress = [&](bool Initialized)
+    {
+      WARNING_IF_NOT(SelectSite(), Observe(Initialized), core::DiagnosticKind::SemanticUninitializedAddress, Describe());
+      ++Continuations;
+    };
+    WarnRead(false);
+    WarnAddress(true);
+    EXPECT_EQ(Conditions, 2U);
+    EXPECT_EQ(Sites, 0U);
+    EXPECT_EQ(Descriptions, 0U);
+    EXPECT_EQ(Continuations, 2U);
+    EXPECT_TRUE(Consumer.diagnostics().empty());
+    WarnRead(true);
+    WarnAddress(false);
+    EXPECT_EQ(Conditions, 4U);
+    EXPECT_EQ(Sites, 2U);
+    EXPECT_EQ(Descriptions, 2U);
+    EXPECT_EQ(Continuations, 4U);
+    ASSERT_EQ(Consumer.diagnostics().size(), 2U);
+    EXPECT_EQ(Consumer.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUninitializedRead);
+    EXPECT_EQ(Consumer.diagnostics()[1].Kind, core::DiagnosticKind::SemanticUninitializedAddress);
+    for (const auto &Diagnostic : Consumer.diagnostics())
+    {
+      EXPECT_EQ(Diagnostic.classification(), core::DiagnosticClass::User);
+      EXPECT_EQ(core::diagnosticDefaultSeverity(Diagnostic.Kind), core::DiagnosticSeverity::Warning);
+      EXPECT_EQ(Diagnostic.Source, Source);
+      EXPECT_EQ(Diagnostic.Span, Range);
+    }
+  }
+
+  // Plain returns propagate null once without diagnostics, and successful ICE checks leave their reporting arguments unevaluated.
+  TEST(SemanticAnalyzerEntryTest, KeepsPlainPropagationAndSuccessfulICEChecksSilent)
+  {
+    core::SourceManager Sources;
+    core::CollectingDiagnosticConsumer Consumer;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Consumer);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    unsigned Conditions = 0;
+    unsigned ReturnValues = 0;
+    unsigned Continuations = 0;
+    unsigned Sites = 0;
+    unsigned Descriptions = 0;
+    const auto Observe = [&](const int *Candidate)
+    {
+      ++Conditions;
+      return Candidate;
+    };
+    const auto Failure = [&]() -> const int *
+    {
+      ++ReturnValues;
+      return nullptr;
+    };
+    const auto Require = [&](const int *Candidate) -> const int *
+    {
+      RETURN_IF_NOT(Observe(Candidate), Failure());
+      ++Continuations;
+      return Candidate;
+    };
+    const auto Reject = [&](const int *Candidate) -> const int *
+    {
+      RETURN_IF(Observe(Candidate) == nullptr, Failure());
+      ++Continuations;
+      return Candidate;
+    };
+    const int Value = 42;
+    EXPECT_EQ(Require(&Value), &Value);
+    EXPECT_EQ(Reject(&Value), &Value);
+    EXPECT_EQ(Conditions, 2U);
+    EXPECT_EQ(ReturnValues, 0U);
+    EXPECT_EQ(Continuations, 2U);
+    EXPECT_EQ(Require(nullptr), nullptr);
+    EXPECT_EQ(Reject(nullptr), nullptr);
+    EXPECT_EQ(Conditions, 4U);
+    EXPECT_EQ(ReturnValues, 2U);
+    EXPECT_EQ(Continuations, 2U);
+    const auto SelectSite = [&]()
+    {
+      ++Sites;
+      return AnalysisSite(Context, {}, {});
+    };
+    const auto Describe = [&]()
+    {
+      ++Descriptions;
+      return "required value";
+    };
+    CHECK_ICE(SelectSite(), Observe(&Value), core::DiagnosticKind::SemanticInvalidAST, Describe());
+    EXPECT_EQ(Conditions, 5U);
+    EXPECT_EQ(Sites, 0U);
+    EXPECT_EQ(Descriptions, 0U);
+    EXPECT_TRUE(Consumer.diagnostics().empty());
   }
 
   // Site ICE formatting uses its captured source and exact range after the context selects a different source.

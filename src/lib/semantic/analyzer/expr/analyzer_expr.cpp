@@ -11,7 +11,7 @@ namespace ink::semantic
   const ir::Value *Analyzer::emitValue(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
   {
     const ir::Value *Value = analyzeExpr(State, Node, Hints);
-    RETURN_IF(!Value, nullptr);
+    RETURN_IF_NOT(Value, nullptr);
     return Value->isStorage() ? loadStorage(State, State.at(Node), *Value) : Value;
   }
 

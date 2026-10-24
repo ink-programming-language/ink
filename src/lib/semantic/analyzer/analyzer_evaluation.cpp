@@ -20,11 +20,7 @@ namespace ink::semantic
     const ir::Value *Loaded = Builder.createLoad(*Type, Storage);
     CHECK_ICE(Site, Loaded, core::DiagnosticKind::SemanticConstructionFailed);
     // Declaration initialization is advisory; indirect storage has no declaration flag to check.
-    if (ir::AllocaInstruction::classof(&Storage) && !Storage.isInitialized())
-    {
-      const core::Name Name = static_cast<const ir::AllocaInstruction &>(Storage).name();
-      Site.report<core::DiagnosticKind::SemanticUninitializedRead>(core::NamePool::instance().text(Name));
-    }
+    WARNING_IF(Site, ir::AllocaInstruction::classof(&Storage) && !Storage.isInitialized(), core::DiagnosticKind::SemanticUninitializedRead, core::NamePool::instance().text(static_cast<const ir::AllocaInstruction &>(Storage).name()));
     return Loaded;
   }
 } // namespace ink::semantic

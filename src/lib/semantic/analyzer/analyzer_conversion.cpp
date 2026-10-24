@@ -15,7 +15,7 @@ namespace ink::semantic
     const bool Storage = Value.isStorage();
     if (ir::MetaType::classof(&ExpectedType))
     {
-      RETURN_REPORT_IF(Site, Storage, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type", "variable storage");
+      RETURN_ERROR_IF(Site, Storage, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type", "variable storage");
       return requireType(Site, &Value);
     }
     RETURN_IF(!Storage && !requireRuntimeValue(Site, &Value), nullptr);
@@ -43,7 +43,7 @@ namespace ink::semantic
         return Pointer;
       }
     }
-    Site.report<core::DiagnosticKind::SemanticTypeMismatch>(ExpectedType.toString(), Type->toString());
+    Site.reportError<core::DiagnosticKind::SemanticTypeMismatch>(ExpectedType.toString(), Type->toString());
     return nullptr;
   }
 } // namespace ink::semantic

@@ -40,6 +40,22 @@ namespace ink::semantic
       }
 
       template <core::DiagnosticKind Kind, typename... ArgumentTypes>
+      void reportError(ArgumentTypes &&...Arguments) const
+      {
+        static_assert(core::DiagnosticTraits<Kind>::Classification == core::DiagnosticClass::User, "reportError requires a user diagnostic");
+        static_assert(core::DiagnosticTraits<Kind>::DefaultSeverity == core::DiagnosticSeverity::Error, "reportError requires an error diagnostic");
+        report<Kind>(std::forward<ArgumentTypes>(Arguments)...);
+      }
+
+      template <core::DiagnosticKind Kind, typename... ArgumentTypes>
+      void reportWarning(ArgumentTypes &&...Arguments) const
+      {
+        static_assert(core::DiagnosticTraits<Kind>::Classification == core::DiagnosticClass::User, "reportWarning requires a user diagnostic");
+        static_assert(core::DiagnosticTraits<Kind>::DefaultSeverity == core::DiagnosticSeverity::Warning, "reportWarning requires a warning diagnostic");
+        report<Kind>(std::forward<ArgumentTypes>(Arguments)...);
+      }
+
+      template <core::DiagnosticKind Kind, typename... ArgumentTypes>
       [[noreturn]] void reportICE(ArgumentTypes &&...Arguments) const
       {
         static_assert(core::DiagnosticTraits<Kind>::Classification == core::DiagnosticClass::InternalCompilerError, "reportICE requires an internal compiler error diagnostic");

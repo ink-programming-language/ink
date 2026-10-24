@@ -4,7 +4,7 @@
 
 当前 semantic 保留公开的 `Analyzer::analyze` 入口、模块及块遍历和基于 `ASTNodes.def` 的语句及声明分派，已重建类型、名称解析、部分表达式分析、函数声明及函数体、局部变量声明、返回语句和调用；尚未支持的节点仍报告 `SemanticUnsupported` ICE。
 
-分析器诊断通过 `State.at(Node)` 或 `State.at(Range)` 创建的 `AnalysisSite` 固定源码文件和范围。可恢复错误由 `RETURN_REPORT_IF`、`RETURN_REPORT_IF_FALSE`、`EXPECTED_TYPE`、`CHECK_TYPE_MATCH` 和 `CHECK_HAS_LAYOUT` 报告并保留原失败返回值；ICE 条件检查统一使用 `CHECK_ICE`，失败时终止，不再附带不可达的失败返回。`requireType` 和 `requireRuntimeValue` 同样接收 Site。不同子节点和名称仍使用各自的范围，Context 后续切换源码不会改变已有 Site 的诊断位置。
+分析器诊断通过 `State.at(Node)` 或 `State.at(Range)` 创建的 `AnalysisSite` 固定源码文件和范围。`RETURN_IF` 和 `RETURN_IF_NOT` 只返回，不新增诊断；已由子分析报告的失败按此传播。用户错误由 `RETURN_ERROR_IF`、`RETURN_ERROR_IF_NOT`、`EXPECTED_TYPE`、`CHECK_TYPE_MATCH` 和 `CHECK_HAS_LAYOUT` 经 `Site.reportError` 报告并保留原失败返回值；需要继续收集错误的调用点直接使用 `Site.reportError`。`reportError` 在编译期要求诊断分类为 User、默认等级为 Error。ICE 条件检查统一使用 `CHECK_ICE`，失败时终止，不再附带不可达的失败返回。`requireType` 和 `requireRuntimeValue` 同样接收 Site。不同子节点和名称仍使用各自的范围，Context 后续切换源码不会改变已有 Site 的诊断位置。
 
 `Site.at(Range)` 在同一源码内派生新位置，保留 Context 和 Source，不改变原 Site。加载、目标类型转换和绑定分析复用调用者的 Site。需要布局的类型注解通过私有 `analyzeTypeWithLayout` 组合类型分析和布局检查；普通实参、初始化器、返回值及表达式语句通过私有 `emitRuntimeValue` 组合 `emitValue` 和运行时值检查。显式传入的消费位置只用于最后的运行时值检查，内部表达式诊断仍使用自己的位置；通用 `analyzeType` 和 `emitValue` 的描述符契约保持不变。
 
@@ -18,7 +18,7 @@
 
 `analyzer_address_test.cpp` 覆盖源级取地址和解引用：`&` 接受局部变量和解引用存储，不读取目标；不可写局部得到 `*const T`。未初始化局部仍生成地址，单独报告 `SemanticUninitializedAddress` warning（`INK-S0062`），非存储操作数仍报告 `SemanticInvalidAddressOperand` error。`*` 先取得指针值，再返回 `DereferenceInstruction` 存储，只有 `emitValue` 消费结果时才加载目标；未初始化指针的读取 warning 不阻止这些步骤。解引用存储不记录声明初始化状态，不用其 `isInitialized()` 判断目标是否可读或产生初始化提示。`&*Pointer` 和嵌套运算只求值一次各自操作数；非指针、无类型 `nullptr` 和 `*void` 的解引用仍报告 `SemanticInvalidDereference` error。测试同时验证 warning 后继续检查操作是否合法，例如未初始化整数的解引用产生读取 warning 和解引用 error，最终分析失败。这些操作不提供目标生命周期、空指针或悬空指针的运行时检查。
 
-初始化 warning 使用独立的 `Site.report`，不通过 `RETURN_REPORT_IF` 返回失败。诊断测试检查两种 warning 的等级、编号及格式；CLI 进程测试要求只有 warning 时保留源码位置并退出 0，warning 与真正 error 共存时退出 1。没有类型也没有初始化器、不可取址操作数和类型不匹配等错误不因 warning 规则而放宽。
+初始化 warning 使用 `WARNING_IF`；`WARNING_IF_NOT` 提供条件不成立时报告的对应形式。两者经 `Site.reportWarning` 报告后继续执行，不返回失败；`reportWarning` 在编译期要求诊断分类为 User、默认等级为 Warning。条件只求值一次，Site 和诊断参数仅在报告分支求值，因此局部存储转换和名称读取仍受原条件保护。诊断测试检查两种 warning 的等级、编号及格式；CLI 进程测试要求只有 warning 时保留源码位置并退出 0，warning 与真正 error 共存时退出 1。没有类型也没有初始化器、不可取址操作数和类型不匹配等错误不因 warning 规则而放宽。
 
 内建类型、布尔常量和 `nullptr` 统一由 `lookupBuiltinValue` 的本地表查询，并从当前上下文取得规范对象；作用域绑定优先于内建回退。一元 `*`、`&` 以操作数是否为真正的 IR 类型描述符区分类型构造和运行时操作，指针值的 `type()` 是指针类型并不会使其进入类型构造分支。测试覆盖跨 32/64 位上下文的内建查询和指针参数的运行时分流。
 

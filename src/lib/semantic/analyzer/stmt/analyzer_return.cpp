@@ -14,19 +14,19 @@ namespace ink::semantic
     const auto Site = State.at(Node);
     auto &Builder = State.irBuilder();
     const ir::Function *Function = Builder.insertFunction();
-    RETURN_REPORT_IF_FALSE(Site, Function, core::DiagnosticKind::SemanticReturnOutsideFunction, false);
+    RETURN_ERROR_IF_NOT(Site, Function, core::DiagnosticKind::SemanticReturnOutsideFunction, false);
     const ir::Type *ReturnType = Function->functionType()->returnType();
     const bool ReturnsVoid = ir::VoidType::classof(ReturnType);
     if (!Node.value())
     {
-      RETURN_REPORT_IF_FALSE(Site, ReturnsVoid, core::DiagnosticKind::SemanticMissingReturn, false, core::NamePool::instance().text(Function->name()));
+      RETURN_ERROR_IF_NOT(Site, ReturnsVoid, core::DiagnosticKind::SemanticMissingReturn, false, core::NamePool::instance().text(Function->name()));
       CHECK_ICE(Site, Builder.createReturn(), core::DiagnosticKind::SemanticConstructionFailed);
       return true;
     }
     const auto ValueSite = State.at(*Node.value());
-    RETURN_REPORT_IF(ValueSite, ReturnsVoid, core::DiagnosticKind::SemanticTypeMismatch, false, "no return value", "a return value");
+    RETURN_ERROR_IF(ValueSite, ReturnsVoid, core::DiagnosticKind::SemanticTypeMismatch, false, "no return value", "a return value");
     const ir::Value *Value = emitRuntimeValue(State, ValueSite, *Node.value(), ExprHints{ReturnType});
-    RETURN_IF(!Value, false);
+    RETURN_IF_NOT(Value, false);
     CHECK_ICE(Site, Builder.createReturn(*Value), core::DiagnosticKind::SemanticConstructionFailed);
     return true;
   }

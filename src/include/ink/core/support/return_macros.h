@@ -11,6 +11,16 @@
     } \
   } while (false)
 
+// Evaluates Value once and returns only when it is false; does not report a diagnostic.
+#define RETURN_IF_NOT(Value, ReturnValue) \
+  do \
+  { \
+    if (!(Value)) \
+    { \
+      return (ReturnValue); \
+    } \
+  } while (false)
+
 // Propagates a null result without adding a diagnostic or changing the variable's scope.
 #define RETURN_IF_NULL(Value, FailureValue) \
   do \

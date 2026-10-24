@@ -62,11 +62,12 @@ namespace ink::core
 
 #define INK_DIAGNOSTIC_ARGUMENT(Name, Type) DiagnosticArgumentSpecification<DiagnosticArgumentName::Name, DiagnosticArgumentType::Type>
 #define INK_DIAGNOSTIC_ARGUMENTS(...) DiagnosticArgumentSchema<__VA_ARGS__>
-#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, Schema) \
+#define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, SeverityValue, DefaultMessage, FormatPattern, Schema) \
   template <>                                                                                                     \
   struct DiagnosticTraits<DiagnosticKind::Name>                                                                   \
   {                                                                                                               \
       static constexpr DiagnosticClass Classification = DiagnosticClass::Class;                                   \
+      static constexpr DiagnosticSeverity DefaultSeverity = DiagnosticSeverity::SeverityValue;                    \
       using Arguments = Schema;                                                                                   \
   };
 #include "ink/core/diagnostic/diagnostic.def"

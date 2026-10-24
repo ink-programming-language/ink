@@ -119,11 +119,11 @@ namespace ink::semantic
     {
       CHECK_ICE(Site, !Node.linkage(), core::DiagnosticKind::SemanticInvalidAST, "FunctionDecl without native import/export must not have a linkage expression");
     }
-    RETURN_REPORT_IF(Site, SymbolLink == ir::SymbolLinkage::Import && HasBody, core::DiagnosticKind::SemanticNativeImportHasBody, false, Node.name().Text);
-    RETURN_REPORT_IF(Site, !HasBody && SymbolLink != ir::SymbolLinkage::Import, core::DiagnosticKind::SemanticFunctionRequiresBody, false, Node.name().Text);
+    RETURN_ERROR_IF(Site, SymbolLink == ir::SymbolLinkage::Import && HasBody, core::DiagnosticKind::SemanticNativeImportHasBody, false, Node.name().Text);
+    RETURN_ERROR_IF(Site, !HasBody && SymbolLink != ir::SymbolLinkage::Import, core::DiagnosticKind::SemanticFunctionRequiresBody, false, Node.name().Text);
 
     const ir::Type *ReturnType = analyzeTypeWithLayout(State, *Node.returnType(), "a return type with runtime layout");
-    RETURN_IF_NULL(ReturnType, false);
+    RETURN_IF_NOT(ReturnType, false);
     std::vector<ir::FunctionTypeParameter> Parameters;
     std::vector<core::Name> ParameterNames;
     std::unordered_set<core::Name> UniqueParameterNames;
@@ -133,9 +133,9 @@ namespace ink::semantic
     {
       const auto Name = core::NamePool::instance().intern(Parameter.name().Text);
       CHECK_ICE(State.at(Parameter.range()), Name.valid(), core::DiagnosticKind::SemanticConstructionFailed);
-      RETURN_REPORT_IF_FALSE(State.at(Parameter.name().Range), UniqueParameterNames.insert(Name).second, core::DiagnosticKind::SemanticDuplicateParameterName, false, Parameter.name().Text);
+      RETURN_ERROR_IF_NOT(State.at(Parameter.name().Range), UniqueParameterNames.insert(Name).second, core::DiagnosticKind::SemanticDuplicateParameterName, false, Parameter.name().Text);
       const ir::Type *Type = analyzeTypeWithLayout(State, *Parameter.type(), "a parameter type with runtime layout");
-      RETURN_IF_NULL(Type, false);
+      RETURN_IF_NOT(Type, false);
       Parameters.emplace_back(Type);
       ParameterNames.push_back(Name);
     }
@@ -146,13 +146,13 @@ namespace ink::semantic
     if (const Binding *Existing = Resolver.lookupLocal(Name))
     {
       const auto NameSite = State.at(Node.name().Range);
-      RETURN_REPORT_IF_FALSE(NameSite, Existing->isOverloadSet(), core::DiagnosticKind::SemanticDuplicateName, false, Node.name().Text);
+      RETURN_ERROR_IF_NOT(NameSite, Existing->isOverloadSet(), core::DiagnosticKind::SemanticDuplicateName, false, Node.name().Text);
       for (const ir::Value *Target : Existing->targets())
       {
         CHECK_ICE(Site, ir::Function::classof(Target), core::DiagnosticKind::SemanticConstructionFailed);
         const auto &ExistingFunction = static_cast<const ir::Function &>(*Target);
         // TODO: Merge compatible native redeclarations once declaration identity and definition tracking exist.
-        RETURN_REPORT_IF(NameSite, LanguageLink == ir::LanguageLinkage::C || ExistingFunction.languageLinkage() == ir::LanguageLinkage::C || sameParameterTypes(*Signature, *ExistingFunction.functionType()), core::DiagnosticKind::SemanticDuplicateName, false, Node.name().Text);
+        RETURN_ERROR_IF(NameSite, LanguageLink == ir::LanguageLinkage::C || ExistingFunction.languageLinkage() == ir::LanguageLinkage::C || sameParameterTypes(*Signature, *ExistingFunction.functionType()), core::DiagnosticKind::SemanticDuplicateName, false, Node.name().Text);
       }
     }
 
@@ -168,18 +168,18 @@ namespace ink::semantic
       Parameter->setName(ParameterNames[Index]);
       CHECK_ICE(State.at(Node.parameters()[Index].range()), Resolver.bind(ParameterNames[Index], *Parameter) == BindResult::Inserted, core::DiagnosticKind::SemanticConstructionFailed);
     }
-    RETURN_IF(!HasBody, registerFunctionExport(Site, State.Output, *Function));
+    RETURN_IF_NOT(HasBody, registerFunctionExport(Site, State.Output, *Function));
 
     auto &Builder = State.irBuilder();
     InsertPointGuard InsertPoint(Builder);
     ir::BasicBlock *Entry = Function->createBlock(core::NamePool::instance().intern("entry"));
     CHECK_ICE(Site, Builder.setInsertPoint(*Entry), core::DiagnosticKind::SemanticConstructionFailed);
-    RETURN_IF(!analyzeBlockStmt(State, *Node.body()), false);
+    RETURN_IF_NOT(analyzeBlockStmt(State, *Node.body()), false);
     ir::BasicBlock *Exit = Builder.insertBlock();
     CHECK_ICE(Site, Exit && Exit->function() == Function, core::DiagnosticKind::SemanticConstructionFailed);
     if (!Exit->hasTerminator())
     {
-      RETURN_REPORT_IF(State.at(*Node.body()), !ir::VoidType::classof(ReturnType), core::DiagnosticKind::SemanticMissingReturn, false, Node.name().Text);
+      RETURN_ERROR_IF(State.at(*Node.body()), !ir::VoidType::classof(ReturnType), core::DiagnosticKind::SemanticMissingReturn, false, Node.name().Text);
       CHECK_ICE(Site, Builder.createReturn(), core::DiagnosticKind::SemanticConstructionFailed);
     }
     return registerFunctionExport(Site, State.Output, *Function);

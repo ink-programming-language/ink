@@ -41,24 +41,44 @@ namespace ink::semantic
   } while (false)
 
 // Evaluates Value once; Site and diagnostic arguments are evaluated only when Value is false.
-#define RETURN_REPORT_IF_FALSE(Site, Value, Kind, FailureValue, ...) \
+#define RETURN_ERROR_IF_NOT(Site, Value, Kind, FailureValue, ...) \
   do \
   { \
     if (!(Value)) \
     { \
-      (Site).template report<Kind>(__VA_ARGS__); \
+      (Site).template reportError<Kind>(__VA_ARGS__); \
       return (FailureValue); \
     } \
   } while (false)
 
 // Evaluates Value once; Site and diagnostic arguments are evaluated only when Value is true.
-#define RETURN_REPORT_IF(Site, Value, Kind, FailureValue, ...) \
+#define RETURN_ERROR_IF(Site, Value, Kind, FailureValue, ...) \
   do \
   { \
     if (Value) \
     { \
-      (Site).template report<Kind>(__VA_ARGS__); \
+      (Site).template reportError<Kind>(__VA_ARGS__); \
       return (FailureValue); \
+    } \
+  } while (false)
+
+// Evaluates Value once; Site and diagnostic arguments are evaluated only when Value is true, and analysis continues.
+#define WARNING_IF(Site, Value, Kind, ...) \
+  do \
+  { \
+    if (Value) \
+    { \
+      (Site).template reportWarning<Kind>(__VA_ARGS__); \
+    } \
+  } while (false)
+
+// Evaluates Value once; Site and diagnostic arguments are evaluated only when Value is false, and analysis continues.
+#define WARNING_IF_NOT(Site, Value, Kind, ...) \
+  do \
+  { \
+    if (!(Value)) \
+    { \
+      (Site).template reportWarning<Kind>(__VA_ARGS__); \
     } \
   } while (false)
 
@@ -69,7 +89,7 @@ namespace ink::semantic
     const ::ink::ir::Type *InkCheckExpectedType = (TypeValue); \
     if (InkCheckExpectedType && !TypeClass::classof(InkCheckExpectedType)) \
     { \
-      (Site).template report<::ink::core::DiagnosticKind::SemanticTypeMismatch>((Description), InkCheckExpectedType->toString()); \
+      (Site).template reportError<::ink::core::DiagnosticKind::SemanticTypeMismatch>((Description), InkCheckExpectedType->toString()); \
       return {}; \
     } \
   } while (false)
@@ -82,7 +102,7 @@ namespace ink::semantic
     const ::ink::ir::Type *InkCheckTypeMatchActual = (ActualType); \
     if (InkCheckTypeMatchExpected && InkCheckTypeMatchExpected != InkCheckTypeMatchActual) \
     { \
-      (Site).template report<::ink::core::DiagnosticKind::SemanticTypeMismatch>(InkCheckTypeMatchExpected->toString(), InkCheckTypeMatchActual->toString()); \
+      (Site).template reportError<::ink::core::DiagnosticKind::SemanticTypeMismatch>(InkCheckTypeMatchExpected->toString(), InkCheckTypeMatchActual->toString()); \
       return (FailureValue); \
     } \
   } while (false)
@@ -94,7 +114,7 @@ namespace ink::semantic
     const ::ink::ir::Type *InkCheckLayoutType = (TypeValue); \
     if (!InkCheckLayoutType->hasLayout()) \
     { \
-      (Site).template report<::ink::core::DiagnosticKind::SemanticTypeMismatch>((Description), InkCheckLayoutType->toString()); \
+      (Site).template reportError<::ink::core::DiagnosticKind::SemanticTypeMismatch>((Description), InkCheckLayoutType->toString()); \
       return (FailureValue); \
     } \
   } while (false)

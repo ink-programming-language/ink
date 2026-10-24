@@ -86,17 +86,17 @@ namespace ink::semantic
 
   const ir::Type *requireType(const AnalysisSite &Site, const ir::Value *Target)
   {
-    RETURN_IF(!Target, nullptr);
-    RETURN_REPORT_IF_FALSE(Site, ir::Type::classof(Target), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type", ir::valueKindName(Target->kind()));
+    RETURN_IF_NOT(Target, nullptr);
+    RETURN_ERROR_IF_NOT(Site, ir::Type::classof(Target), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type", ir::valueKindName(Target->kind()));
     const auto *Type = static_cast<const ir::Type *>(Target);
-    RETURN_REPORT_IF_FALSE(Site, Site.semanticContext().irContext().containsType(Type), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type in the current IR context", "a foreign or unregistered type");
+    RETURN_ERROR_IF_NOT(Site, Site.semanticContext().irContext().containsType(Type), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type in the current IR context", "a foreign or unregistered type");
     return Type;
   }
 
   const ir::Value *requireRuntimeValue(const AnalysisSite &Site, const ir::Value *Target)
   {
-    RETURN_IF_NULL(Target, nullptr);
-    RETURN_REPORT_IF_FALSE(Site, isRuntimeValue(Site.semanticContext(), *Target), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a runtime value", runtimeValueDescription(*Target));
+    RETURN_IF_NOT(Target, nullptr);
+    RETURN_ERROR_IF_NOT(Site, isRuntimeValue(Site.semanticContext(), *Target), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a runtime value", runtimeValueDescription(*Target));
     return Target;
   }
 } // namespace ink::semantic

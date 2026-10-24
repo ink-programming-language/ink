@@ -27,22 +27,22 @@ namespace ink::semantic
     CHECK_ICE(NameSite, !NameToken.Text.empty(), core::DiagnosticKind::SemanticInvalidAST, "variable name must be nonempty");
     const auto Name = core::NamePool::instance().intern(NameToken.Text);
     CHECK_ICE(NameSite, Name.valid(), core::DiagnosticKind::SemanticConstructionFailed);
-    RETURN_REPORT_IF(NameSite, Resolver.lookupLocal(Name), core::DiagnosticKind::SemanticDuplicateName, false, NameToken.Text);
+    RETURN_ERROR_IF(NameSite, Resolver.lookupLocal(Name), core::DiagnosticKind::SemanticDuplicateName, false, NameToken.Text);
     CHECK_ICE(Site, !Node.constant() || Node.initializer(), core::DiagnosticKind::SemanticInvalidAST, "const declaration requires an initializer");
 
     const ir::Type *Type = nullptr;
     if (Node.type())
     {
       Type = analyzeTypeWithLayout(State, *Node.type(), "a variable type with runtime layout");
-      RETURN_IF_NULL(Type, false);
+      RETURN_IF_NOT(Type, false);
     }
-    RETURN_REPORT_IF(Site, !Type && !Node.initializer(), core::DiagnosticKind::SemanticMissingVariableType, false);
+    RETURN_ERROR_IF(Site, !Type && !Node.initializer(), core::DiagnosticKind::SemanticMissingVariableType, false);
     const ir::Value *Initializer = nullptr;
     if (Node.initializer())
     {
       // The new name becomes visible only after its initializer succeeds; outer bindings remain visible here.
       Initializer = emitRuntimeValue(State, *Node.initializer(), {.ExpectedType = Type});
-      RETURN_IF(!Initializer, false);
+      RETURN_IF_NOT(Initializer, false);
       if (!Type)
       {
         Type = Initializer->type()->unqualifiedType();

@@ -50,7 +50,7 @@ namespace ink::semantic
       {
         Constant = Context.irContext().constantPool().getUnsignedIntegerConstant(&Type, Value);
       }
-      RETURN_REPORT_IF_FALSE(Site, Constant, core::DiagnosticKind::SemanticIntegerOutOfRange, nullptr, Type.toString());
+      RETURN_ERROR_IF_NOT(Site, Constant, core::DiagnosticKind::SemanticIntegerOutOfRange, nullptr, Type.toString());
       return Constant;
     }
 
@@ -68,7 +68,7 @@ namespace ink::semantic
       auto &Context = Site.semanticContext();
       auto &Constants = Context.irContext().constantPool();
       const auto *Constant = Type.width() == 32 ? parseFloat<float>(Constants, Text) : parseFloat<double>(Constants, Text);
-      RETURN_REPORT_IF_FALSE(Site, Constant, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Type.toString(), "an invalid or out-of-range floating-point literal");
+      RETURN_ERROR_IF_NOT(Site, Constant, core::DiagnosticKind::SemanticTypeMismatch, nullptr, Type.toString(), "an invalid or out-of-range floating-point literal");
       return Constant;
     }
   } // namespace
@@ -90,14 +90,14 @@ namespace ink::semantic
         const auto *DefaultType = Hints.DefaultIntegerLiteralType ? Hints.DefaultIntegerLiteralType : Context.typePool().getInt32Type();
         const auto *Type = ExpectedType ? static_cast<const ir::IntegerType *>(ExpectedType) : DefaultType;
         const auto Value = parseIntegerLiteral(Site, Input, Token);
-        RETURN_REPORT_IF_FALSE(Site, Value, core::DiagnosticKind::SemanticIntegerOutOfRange, nullptr, Type->toString());
+        RETURN_ERROR_IF_NOT(Site, Value, core::DiagnosticKind::SemanticIntegerOutOfRange, nullptr, Type->toString());
         return materializeInteger(Site, *Value, *Type);
       }
       case TokenKind::FloatLiteral:
       {
         EXPECTED_TYPE(Site, ExpectedType, ir::FloatType, "a floating-point type");
         const auto *Numeric = std::get_if<frontend::tokenizer::NumericInfo>(&Token.Payload);
-        RETURN_REPORT_IF(Site, !Numeric || Numeric->Base != core::NumericBase::Decimal, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a decimal floating-point literal", "invalid numeric metadata");
+        RETURN_ERROR_IF(Site, !Numeric || Numeric->Base != core::NumericBase::Decimal, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a decimal floating-point literal", "invalid numeric metadata");
         const auto *Type = ExpectedType ? static_cast<const ir::FloatType *>(ExpectedType) : Context.typePool().getFloat64Type();
         const std::string_view Text = Input.spelling(Token);
         return materializeFloat(Site, Text, *Type);
@@ -116,14 +116,14 @@ namespace ink::semantic
         const auto *String = std::get_if<frontend::tokenizer::StringInfo>(&Token.Payload);
         CHECK_ICE(Site, String, core::DiagnosticKind::SemanticInvalidAST, "string LiteralExpr must reference a token with StringInfo metadata");
         const auto *StringType = Context.typePool().getArrayType(Context.typePool().getUInt8Type(), String->Decoded.size());
-        RETURN_REPORT_IF_FALSE(Site, StringType, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a string with representable byte length", "an invalid string layout");
+        RETURN_ERROR_IF_NOT(Site, StringType, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a string with representable byte length", "an invalid string layout");
         if (!ir::PointerType::classof(ExpectedType))
         {
           CHECK_TYPE_MATCH(Site, ExpectedType, StringType, nullptr);
         }
         // Pointer targets are checked by the shared conversion path, which can materialize read-only byte storage.
         const auto *Constant = Context.irContext().constantPool().getStringConstant(String->Decoded);
-        RETURN_REPORT_IF_FALSE(Site, Constant, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a valid UTF-8 string with representable byte length", "invalid string bytes or length");
+        RETURN_ERROR_IF_NOT(Site, Constant, core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a valid UTF-8 string with representable byte length", "invalid string bytes or length");
         return Constant;
       }
       default:

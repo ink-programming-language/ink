@@ -23,7 +23,7 @@ namespace ink::semantic
       {
         // TODO: Extend reachability handling when structured control flow and deferred cleanup are lowered.
         // Invalid unreachable source must not append to the already terminated IR block.
-        State.at(*Stmt).report<core::DiagnosticKind::SemanticUnreachableStatement>();
+        State.at(*Stmt).reportError<core::DiagnosticKind::SemanticUnreachableStatement>();
         Succeeded = false;
         continue;
       }
