@@ -33,16 +33,15 @@ namespace ink::semantic
     const ir::Type *Type = nullptr;
     if (Node.type())
     {
-      Type = analyzeType(State, *Node.type());
+      Type = analyzeTypeWithLayout(State, *Node.type(), "a variable type with runtime layout");
       RETURN_IF_NULL(Type, false);
-      CHECK_HAS_LAYOUT(State.at(*Node.type()), Type, "a variable type with runtime layout", false);
     }
     RETURN_REPORT_IF(Site, !Type && !Node.initializer(), core::DiagnosticKind::SemanticMissingVariableType, false);
     const ir::Value *Initializer = nullptr;
     if (Node.initializer())
     {
       // The new name becomes visible only after its initializer succeeds; outer bindings remain visible here.
-      Initializer = requireRuntimeValue(State.at(*Node.initializer()), emitValue(State, *Node.initializer(), {.ExpectedType = Type}));
+      Initializer = emitRuntimeValue(State, *Node.initializer(), {.ExpectedType = Type});
       RETURN_IF(!Initializer, false);
       if (!Type)
       {

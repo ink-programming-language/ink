@@ -69,7 +69,7 @@ namespace ink::semantic
     }
 
     // The operand was already analyzed to distinguish type construction; load a stored pointer without evaluating its expression again.
-    Operand = Operand->isStorage() ? loadStorage(State, Node.operand()->getSourceRange(), *Operand) : Operand;
+    Operand = Operand->isStorage() ? loadStorage(State, OperandSite, *Operand) : Operand;
     Operand = requireRuntimeValue(OperandSite, Operand);
     RETURN_IF(!Operand, nullptr);
     RETURN_REPORT_IF_FALSE(Site, ir::PointerType::classof(Operand->type()), core::DiagnosticKind::SemanticInvalidDereference, nullptr);

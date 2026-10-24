@@ -34,9 +34,8 @@ namespace ink::semantic
     }
   } // namespace
 
-  const ir::Value *Analyzer::analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found, bool IsCallCallee)
+  const ir::Value *Analyzer::analyzeBinding(AnalyzerState &State, const AnalysisSite &Site, const Binding &Found, bool IsCallCallee)
   {
-    const auto Site = State.at(Node);
     const bool HasSingleTarget = Found.targets().size() == 1;
     // TODO: Select an overload using the call arguments or an expected function signature.
     CHECK_ICE(Site, HasSingleTarget || !IsCallCallee, core::DiagnosticKind::SemanticUnsupported, "function overload selection");
@@ -55,7 +54,7 @@ namespace ink::semantic
     const auto Name = Node.name();
     if (const Binding *Found = State.nameResolver().lookup(core::NamePool::instance().find(Name.Text)))
     {
-      return analyzeBinding(State, Node, *Found, IsCallCallee);
+      return analyzeBinding(State, State.at(Node), *Found, IsCallCallee);
     }
     if (const ir::Value *Builtin = lookupBuiltinValue(Context, Name.Text))
     {

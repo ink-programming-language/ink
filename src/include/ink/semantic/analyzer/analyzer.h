@@ -31,6 +31,7 @@ namespace ink::ir
 namespace ink::semantic
 {
   class SemanticContext;
+  class AnalysisSite;
   class AnalyzerState;
   class Binding;
 
@@ -92,9 +93,14 @@ namespace ink::semantic
       bool reportUnsupported(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node);
       bool reportUnsupported(AnalyzerState &State, core::SourceRange Range, std::string_view Description);
 
-      const ir::Value *loadStorage(AnalyzerState &State, core::SourceRange Range, const ir::Value &Storage);
-      const ir::Value *convertToExpectedType(AnalyzerState &State, core::SourceRange Range, const ir::Value &Value, const ir::Type &ExpectedType);
-      const ir::Value *analyzeBinding(AnalyzerState &State, const frontend::parser::ASTNodeBase &Node, const Binding &Found, bool IsCallCallee = false);
+      // Adds a layout requirement at the annotation's range without changing analyzeType's descriptor contract.
+      const ir::Type *analyzeTypeWithLayout(AnalyzerState &State, const frontend::parser::TypeSyntax &Node, std::string_view Description);
+      // Composes value emission with runtime validation; an explicit site preserves a consumer's distinct diagnostic range.
+      const ir::Value *emitRuntimeValue(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints = {});
+      const ir::Value *emitRuntimeValue(AnalyzerState &State, const AnalysisSite &Site, const frontend::parser::Expr &Node, ExprHints Hints = {});
+      const ir::Value *loadStorage(AnalyzerState &State, const AnalysisSite &Site, const ir::Value &Storage);
+      const ir::Value *convertToExpectedType(AnalyzerState &State, const AnalysisSite &Site, const ir::Value &Value, const ir::Type &ExpectedType);
+      const ir::Value *analyzeBinding(AnalyzerState &State, const AnalysisSite &Site, const Binding &Found, bool IsCallCallee = false);
       const ir::Value *analyzeNameExpr(AnalyzerState &State, const frontend::parser::NameExpr &Node, bool IsCallCallee = false);
       const ir::Value *analyzeLiteralExpr(AnalyzerState &State, const frontend::parser::LiteralExpr &Node, ExprHints Hints);
       const ir::Value *analyzeParenExpr(AnalyzerState &State, const frontend::parser::ParenExpr &Node, ExprHints Hints);

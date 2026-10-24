@@ -9,9 +9,8 @@
 
 namespace ink::semantic
 {
-  const ir::Value *Analyzer::convertToExpectedType(AnalyzerState &State, core::SourceRange Range, const ir::Value &Value, const ir::Type &ExpectedType)
+  const ir::Value *Analyzer::convertToExpectedType(AnalyzerState &State, const AnalysisSite &Site, const ir::Value &Value, const ir::Type &ExpectedType)
   {
-    const auto Site = State.at(Range);
     auto &Context = State.semanticContext();
     const bool Storage = Value.isStorage();
     if (ir::MetaType::classof(&ExpectedType))

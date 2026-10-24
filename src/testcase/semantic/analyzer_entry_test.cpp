@@ -14,8 +14,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <iterator>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -95,6 +97,34 @@ namespace ink::semantic::test
     ASSERT_EQ(Consumer.diagnostics().size(), 2U);
     EXPECT_EQ(Consumer.diagnostics()[0].Kind, core::DiagnosticKind::SemanticUnknownName);
     EXPECT_EQ(Consumer.diagnostics()[1].Kind, core::DiagnosticKind::SemanticUnknownName);
+  }
+
+  // Runtime consumers preserve full descriptor-expression ranges, inner lookup ranges and diagnostic order without reporting null results twice.
+  TEST(SemanticAnalyzerEntryTest, ReportsRuntimeDescriptorErrorsInSourceOrder)
+  {
+    core::SourceManager Sources;
+    core::CollectingDiagnosticConsumer Consumer;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Consumer);
+    frontend::FrontendContext Frontend(Sources, Diagnostics);
+    SemanticContext Context(Sources, Diagnostics, target::TargetContext::native());
+    ir::Module Output(Context.irContext());
+    constexpr std::string_view Source = "((i32)); ((Missing)); ((type));";
+    auto Input = frontend::parser::parse(Frontend, frontend::tokenizer::tokenize(Frontend, std::string(Source)));
+    ASSERT_TRUE(Input.succeeded());
+    EXPECT_FALSE(Analyzer{}.analyze(Context, Input, Output));
+    ASSERT_EQ(Consumer.diagnostics().size(), 3U);
+    EXPECT_EQ(Consumer.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
+    EXPECT_EQ(Consumer.diagnostics()[1].Kind, core::DiagnosticKind::SemanticUnknownName);
+    EXPECT_EQ(Consumer.diagnostics()[2].Kind, core::DiagnosticKind::SemanticTypeMismatch);
+    const std::string_view Highlights[] = {"((i32))", "Missing", "((type))"};
+    for (std::size_t Index = 0; Index < std::size(Highlights); ++Index)
+    {
+      const auto Offset = Source.find(Highlights[Index]);
+      ASSERT_NE(Offset, std::string_view::npos);
+      EXPECT_EQ(Consumer.diagnostics()[Index].Source, Input.Unit->input().lexedFile().sourceId());
+      EXPECT_EQ(Consumer.diagnostics()[Index].Span, core::SourceRange::fromByteOffsets(Offset, Offset + Highlights[Index].size()));
+    }
   }
 
   // Returns in ordinary module blocks are source errors and each statement is visited once.
@@ -184,7 +214,7 @@ namespace ink::semantic::test
     EXPECT_EQ(SecondReturn->type(), Context.typePool().getVoidType());
   }
 
-  // Node and explicit-range sites retain their input source across other states without changing the context's selected source.
+  // Node, explicit-range and derived sites retain their input source across context changes without modifying the parent site.
   TEST(SemanticAnalyzerEntryTest, KeepsAnalysisSitesAnchoredAcrossSourceSelection)
   {
     core::SourceManager Sources;
@@ -211,14 +241,18 @@ namespace ink::semantic::test
     const auto RangeSite = First.at(ExplicitRange);
     Context.report<core::DiagnosticKind::SemanticUnknownName>(SelectedRange, "Selected");
     Context.setSource(SecondSource);
+    const auto DerivedSite = NodeSite.at(ExplicitRange);
+    EXPECT_EQ(&DerivedSite.semanticContext(), &NodeSite.semanticContext());
+    EXPECT_EQ(&DerivedSite.semanticContext(), &Context);
     AnalyzerState Second(Context, SecondInput, Output);
     const auto &SecondNode = *SecondInput.Unit->root()->statements()[0];
     const auto OtherSite = Second.at(SecondNode);
     OtherSite.report<core::DiagnosticKind::SemanticUnknownName>("Other");
     NodeSite.report<core::DiagnosticKind::SemanticUnknownName>("First");
     RangeSite.report<core::DiagnosticKind::SemanticUnknownName>("Second");
+    DerivedSite.report<core::DiagnosticKind::SemanticUnknownName>("Second");
     Context.report<core::DiagnosticKind::SemanticUnknownName>(SecondNode.getSourceRange(), "Other");
-    ASSERT_EQ(Consumer.diagnostics().size(), 5U);
+    ASSERT_EQ(Consumer.diagnostics().size(), 6U);
     EXPECT_EQ(Consumer.diagnostics()[0].Source, SelectedSource);
     EXPECT_EQ(Consumer.diagnostics()[0].Span, SelectedRange);
     EXPECT_EQ(Consumer.diagnostics()[1].Source, SecondSource);
@@ -227,8 +261,10 @@ namespace ink::semantic::test
     EXPECT_EQ(Consumer.diagnostics()[2].Span, FirstNode.getSourceRange());
     EXPECT_EQ(Consumer.diagnostics()[3].Source, FirstSource);
     EXPECT_EQ(Consumer.diagnostics()[3].Span, ExplicitRange);
-    EXPECT_EQ(Consumer.diagnostics()[4].Source, SecondSource);
-    EXPECT_EQ(Consumer.diagnostics()[4].Span, SecondNode.getSourceRange());
+    EXPECT_EQ(Consumer.diagnostics()[4].Source, FirstSource);
+    EXPECT_EQ(Consumer.diagnostics()[4].Span, ExplicitRange);
+    EXPECT_EQ(Consumer.diagnostics()[5].Source, SecondSource);
+    EXPECT_EQ(Consumer.diagnostics()[5].Span, SecondNode.getSourceRange());
   }
 
   // Runtime validation rejects descriptors at the site's captured location while preserving null propagation and valid value identity.

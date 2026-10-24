@@ -25,7 +25,7 @@ namespace ink::semantic
     }
     const auto ValueSite = State.at(*Node.value());
     RETURN_REPORT_IF(ValueSite, ReturnsVoid, core::DiagnosticKind::SemanticTypeMismatch, false, "no return value", "a return value");
-    const ir::Value *Value = requireRuntimeValue(ValueSite, emitValue(State, *Node.value(), ExprHints{ReturnType}));
+    const ir::Value *Value = emitRuntimeValue(State, ValueSite, *Node.value(), ExprHints{ReturnType});
     RETURN_IF(!Value, false);
     CHECK_ICE(Site, Builder.createReturn(*Value), core::DiagnosticKind::SemanticConstructionFailed);
     return true;

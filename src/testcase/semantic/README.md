@@ -6,6 +6,8 @@
 
 分析器诊断通过 `State.at(Node)` 或 `State.at(Range)` 创建的 `AnalysisSite` 固定源码文件和范围。可恢复错误由 `RETURN_REPORT_IF`、`RETURN_REPORT_IF_FALSE`、`EXPECTED_TYPE`、`CHECK_TYPE_MATCH` 和 `CHECK_HAS_LAYOUT` 报告并保留原失败返回值；ICE 条件检查统一使用 `CHECK_ICE`，失败时终止，不再附带不可达的失败返回。`requireType` 和 `requireRuntimeValue` 同样接收 Site。不同子节点和名称仍使用各自的范围，Context 后续切换源码不会改变已有 Site 的诊断位置。
 
+`Site.at(Range)` 在同一源码内派生新位置，保留 Context 和 Source，不改变原 Site。加载、目标类型转换和绑定分析复用调用者的 Site。需要布局的类型注解通过私有 `analyzeTypeWithLayout` 组合类型分析和布局检查；普通实参、初始化器、返回值及表达式语句通过私有 `emitRuntimeValue` 组合 `emitValue` 和运行时值检查。显式传入的消费位置只用于最后的运行时值检查，内部表达式诊断仍使用自己的位置；通用 `analyzeType` 和 `emitValue` 的描述符契约保持不变。
+
 `analyzer_entry_test.cpp` 覆盖公开入口的输入校验、源码归属、嵌套块遍历、具体语句及声明分派、块深度限制和未实现的 comptime 路径。它不依赖已移除的 IR 或 execution。`analyzer_function_decl_test.cpp` 和 `analyzer_call_test.cpp` 覆盖已重建的函数声明、函数体、返回语句和调用路径，包括原生函数导入导出以及实参和返回值的目标类型。
 
 `analyzer_variable_test.cpp` 覆盖函数内名称绑定形式的 `var` 和 `const`、初始化器的目标类型与类型推导、分配及初始化存储、运行时读取、无初始化诊断、同域重名、嵌套遮蔽及失败声明的绑定清理。局部可调用值和指针值均保留声明的类型。变量赋值、声明属性、解构、顶层变量、unit 存储和 comptime 声明仍明确报告未实现。

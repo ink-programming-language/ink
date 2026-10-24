@@ -12,7 +12,18 @@ namespace ink::semantic
   {
     const ir::Value *Value = analyzeExpr(State, Node, Hints);
     RETURN_IF(!Value, nullptr);
-    return Value->isStorage() ? loadStorage(State, Node.getSourceRange(), *Value) : Value;
+    return Value->isStorage() ? loadStorage(State, State.at(Node), *Value) : Value;
+  }
+
+  const ir::Value *Analyzer::emitRuntimeValue(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
+  {
+    return emitRuntimeValue(State, State.at(Node), Node, Hints);
+  }
+
+  const ir::Value *Analyzer::emitRuntimeValue(AnalyzerState &State, const AnalysisSite &Site, const frontend::parser::Expr &Node, ExprHints Hints)
+  {
+    const ir::Value *Value = emitValue(State, Node, Hints);
+    return requireRuntimeValue(Site, Value);
   }
 
   const ir::Value *Analyzer::analyzeExpr(AnalyzerState &State, const frontend::parser::Expr &Node, ExprHints Hints)
@@ -61,6 +72,6 @@ namespace ink::semantic
         Site.reportICE<core::DiagnosticKind::SemanticUnsupported>(astKindName(Node.getKind()));
     }
     RETURN_IF(!Result || !ExpectedType, Result);
-    return convertToExpectedType(State, Node.getSourceRange(), *Result, *ExpectedType);
+    return convertToExpectedType(State, Site, *Result, *ExpectedType);
   }
 } // namespace ink::semantic

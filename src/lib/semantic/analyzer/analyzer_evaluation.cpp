@@ -8,9 +8,8 @@
 
 namespace ink::semantic
 {
-  const ir::Value *Analyzer::loadStorage(AnalyzerState &State, core::SourceRange Range, const ir::Value &Storage)
+  const ir::Value *Analyzer::loadStorage(AnalyzerState &State, const AnalysisSite &Site, const ir::Value &Storage)
   {
-    const auto Site = State.at(Range);
     auto &Context = State.semanticContext();
     // TODO: Lower explicit global storage reads through the module's address representation.
     CHECK_ICE(Site, !ir::GlobalVariable::classof(&Storage), core::DiagnosticKind::SemanticUnsupported, "variable storage reads");

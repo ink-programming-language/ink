@@ -515,7 +515,8 @@ namespace ink::semantic::test
   // Uninitialized reads in initializers and call arguments warn independently while producing both the copied local and the call.
   TEST_F(SemanticVariableTest, WarnsAndEmitsUninitializedInitializerAndArgument)
   {
-    auto Input = read("func accepts(Value: i32): void {} func copy(): void { var Value: i32; var Copy = Value; accepts(Value); }");
+    constexpr std::string_view Source = "func accepts(Value: i32): void {} func copy(): void { var Value: i32; var Copy = Value; accepts(Value); }";
+    auto Input = read(Source);
     ASSERT_TRUE(Input.succeeded());
     ASSERT_TRUE(analyze(Input));
     ASSERT_EQ(Diagnostics.diagnostics().size(), 2U);
@@ -523,7 +524,14 @@ namespace ink::semantic::test
     {
       EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticUninitializedRead);
       EXPECT_EQ(core::diagnosticDefaultSeverity(Diagnostic.Kind), core::DiagnosticSeverity::Warning);
+      EXPECT_EQ(Diagnostic.Source, Input.Unit->input().lexedFile().sourceId());
     }
+    const std::size_t InitializerOffset = Source.find("Value; accepts");
+    const std::size_t ArgumentOffset = Source.rfind("Value");
+    ASSERT_NE(InitializerOffset, std::string_view::npos);
+    ASSERT_NE(ArgumentOffset, std::string_view::npos);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Span, core::SourceRange::fromByteOffsets(InitializerOffset, InitializerOffset + std::string_view("Value").size()));
+    EXPECT_EQ(Diagnostics.diagnostics()[1].Span, core::SourceRange::fromByteOffsets(ArgumentOffset, ArgumentOffset + std::string_view("Value").size()));
     const auto *Function = function("copy");
     ASSERT_NE(Function, nullptr);
     const auto Allocations = instructions<ir::AllocaInstruction>(*Function);
@@ -555,19 +563,30 @@ namespace ink::semantic::test
     EXPECT_TRUE(instructions<ir::AllocaInstruction>(*Function).empty());
   }
 
-  // Declared local types reject incompatible existing values and out-of-range literals without numeric coercion.
+  // Local declarations preserve initializer error ranges and reject layout-free type annotations before analyzing their initializers.
   TEST_F(SemanticVariableTest, RejectsInvalidInitializerTypesAndRanges)
   {
-    auto Input = read("func mismatch(Input: i32): void { var Value: u8 = Input; } func overflow(): void { var Value: u8 = 256; }");
+    constexpr std::string_view Source = "func mismatch(Input: i32): void { var Value: u8 = Input; } func overflow(): void { var Value: u8 = 256; } func noLayout(): void { var Value: ((type)) = Missing; }";
+    auto Input = read(Source);
     ASSERT_TRUE(Input.succeeded());
     EXPECT_FALSE(analyze(Input));
-    ASSERT_EQ(Diagnostics.diagnostics().size(), 2U);
+    ASSERT_EQ(Diagnostics.diagnostics().size(), 3U);
     EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
     EXPECT_EQ(Diagnostics.diagnostics()[1].Kind, core::DiagnosticKind::SemanticIntegerOutOfRange);
+    EXPECT_EQ(Diagnostics.diagnostics()[2].Kind, core::DiagnosticKind::SemanticTypeMismatch);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Span, core::SourceRange::fromByteOffsets(Source.rfind("Input"), Source.rfind("Input") + std::string_view("Input").size()));
+    EXPECT_EQ(Diagnostics.diagnostics()[1].Span, core::SourceRange::fromByteOffsets(Source.find("256"), Source.find("256") + std::string_view("256").size()));
+    EXPECT_EQ(Diagnostics.diagnostics()[2].Span, core::SourceRange::fromByteOffsets(Source.find("((type))"), Source.find("((type))") + std::string_view("((type))").size()));
+    for (const auto &Diagnostic : Diagnostics.diagnostics())
+    {
+      EXPECT_EQ(Diagnostic.Source, Input.Unit->input().lexedFile().sourceId());
+    }
     ASSERT_NE(function("mismatch"), nullptr);
     ASSERT_NE(function("overflow"), nullptr);
+    ASSERT_NE(function("noLayout"), nullptr);
     EXPECT_TRUE(instructions<ir::AllocaInstruction>(*function("mismatch")).empty());
     EXPECT_TRUE(instructions<ir::AllocaInstruction>(*function("overflow")).empty());
+    EXPECT_TRUE(instructions<ir::AllocaInstruction>(*function("noLayout")).empty());
   }
 
   // Return and call target types are still enforced after local storage has been converted to its value.

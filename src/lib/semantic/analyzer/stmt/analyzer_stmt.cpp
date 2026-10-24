@@ -48,7 +48,7 @@ namespace ink::semantic
       // TODO: Restore assignments and the remaining simple items.
       CHECK_ICE(Site, frontend::parser::ExprItem::classof(Item), core::DiagnosticKind::SemanticUnsupported, frontend::parser::astKindName(Node.getKind()));
       const auto &Expression = *static_cast<const frontend::parser::ExprItem *>(Item)->expression();
-      if (!requireRuntimeValue(State.at(Expression), emitValue(State, Expression)))
+      if (!emitRuntimeValue(State, Expression))
       {
         Succeeded = false;
       }

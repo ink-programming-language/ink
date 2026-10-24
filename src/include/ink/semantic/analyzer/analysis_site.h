@@ -26,6 +26,12 @@ namespace ink::semantic
         return Context;
       }
 
+      // Selects another range in the same source without changing this site or the context's source selection.
+      AnalysisSite at(core::SourceRange NewRange) const noexcept
+      {
+        return AnalysisSite(Context, Source, NewRange);
+      }
+
       template <core::DiagnosticKind Kind, typename... ArgumentTypes>
       void report(ArgumentTypes &&...Arguments) const
       {

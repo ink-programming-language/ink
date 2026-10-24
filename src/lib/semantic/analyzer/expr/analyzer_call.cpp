@@ -16,14 +16,13 @@ namespace ink::semantic
 {
   namespace
   {
-    void validateCallShape(AnalyzerState &State, const frontend::parser::CallExpr &Node)
+    void validateCallShape(const AnalysisSite &CallSite, const frontend::parser::CallExpr &Node)
     {
-      const auto CallSite = State.at(Node);
       CHECK_ICE(CallSite, Node.callee(), core::DiagnosticKind::SemanticInvalidAST, "CallExpr requires a callee expression");
       for (const auto &Argument : Node.arguments())
       {
         using frontend::parser::ArgumentKind;
-        const auto ArgumentSite = State.at(Argument.range());
+        const auto ArgumentSite = CallSite.at(Argument.range());
         CHECK_ICE(ArgumentSite, Argument.form() == ArgumentKind::Named || Argument.form() == ArgumentKind::Positional || Argument.form() == ArgumentKind::SpreadPositional, core::DiagnosticKind::SemanticInvalidAST, "call argument kind must be Named, Positional or SpreadPositional");
         CHECK_ICE(ArgumentSite, Argument.value(), core::DiagnosticKind::SemanticInvalidAST, "call argument requires a value expression");
         if (Argument.form() == ArgumentKind::Named)
@@ -76,7 +75,7 @@ namespace ink::semantic
   {
     const auto CallSite = State.at(Node);
     // Validate the complete AST shape before checking feature support or emitting any IR.
-    validateCallShape(State, Node);
+    validateCallShape(CallSite, Node);
     validateCallSupport(State, Node);
 
     auto &Builder = State.irBuilder();
@@ -100,7 +99,7 @@ namespace ink::semantic
       const auto &Argument = Node.arguments()[Index];
       const auto ArgumentSite = State.at(Argument.range());
       const ir::Type *ExpectedType = Signature->parameters()[Index].ParameterType;
-      const ir::Value *Value = requireRuntimeValue(ArgumentSite, emitValue(State, *Argument.value(), {.ExpectedType = ExpectedType}));
+      const ir::Value *Value = emitRuntimeValue(State, ArgumentSite, *Argument.value(), {.ExpectedType = ExpectedType});
       RETURN_IF_NULL(Value, nullptr);
       Arguments.emplace_back(*Value);
     }

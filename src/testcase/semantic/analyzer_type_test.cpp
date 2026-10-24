@@ -267,7 +267,7 @@ namespace ink::semantic::test
     }
   }
 
-  // Array elements and function signature positions reject a layout-free marker once at its precise type span, even for empty arrays or variadic parameters.
+  // Layout requirements preserve the consumed type span and reject return types before parameters, including parenthesized types and empty arrays.
   TEST_F(SemanticAnalyzerTypeTest, RequiresRuntimeLayoutAtTypeConsumptionSites)
   {
     const auto *Marker = Context.typePool().getVariadicType();
@@ -278,27 +278,31 @@ namespace ink::semantic::test
     {
         const char *Text;
         const char *Expected;
+        std::string_view Highlight;
     };
     constexpr Case Cases[] = {
-        {"[Pack; 0]", "an array element with runtime layout"},
-        {"func(i32): Pack", "a return type with runtime layout"},
-        {"func(First: Pack): void", "a parameter type with runtime layout"},
-        {"func(i32, Remaining: Pack...): void", "a parameter type with runtime layout"},
+        {"[Pack; 0]", "an array element with runtime layout", "Pack"},
+        {"func(i32): Pack", "a return type with runtime layout", "Pack"},
+        {"func(First: Pack): void", "a parameter type with runtime layout", "Pack"},
+        {"func(i32, Remaining: Pack...): void", "a parameter type with runtime layout", "Pack"},
+        {"[((Pack)); 0]", "an array element with runtime layout", "((Pack))"},
+        {"func(First: ((Pack))): void", "a parameter type with runtime layout", "((Pack))"},
+        {"func(Missing): ((Pack))", "a return type with runtime layout", "((Pack))"},
     };
     for (const auto &Entry : Cases)
     {
       SCOPED_TRACE(Entry.Text);
       auto Input = read(Entry.Text);
       ASSERT_TRUE(Input.succeeded());
-      const std::size_t MarkerOffset = std::string_view(Entry.Text).find("Pack");
-      ASSERT_NE(MarkerOffset, std::string_view::npos);
-      const std::size_t Start = syntax(Input).getSourceRange().getBegin().getByteOffset() + MarkerOffset;
+      const std::size_t HighlightOffset = std::string_view(Entry.Text).find(Entry.Highlight);
+      ASSERT_NE(HighlightOffset, std::string_view::npos);
+      const std::size_t Start = syntax(Input).getSourceRange().getBegin().getByteOffset() + HighlightOffset;
       EXPECT_EQ(analyze(Input), nullptr);
       ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
       const auto &Diagnostic = Diagnostics.diagnostics()[0];
       EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::SemanticTypeMismatch);
       EXPECT_EQ(Diagnostic.Source, Input.Unit->input().lexedFile().sourceId());
-      EXPECT_EQ(Diagnostic.Span, core::SourceRange::fromByteOffsets(Start, Start + std::string_view("Pack").size()));
+      EXPECT_EQ(Diagnostic.Span, core::SourceRange::fromByteOffsets(Start, Start + Entry.Highlight.size()));
       EXPECT_EQ(core::DiagnosticFormatter{}.format(Diagnostic).Message, std::string("expected ") + Entry.Expected + ", got variadic");
     }
   }

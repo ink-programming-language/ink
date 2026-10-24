@@ -424,6 +424,7 @@ namespace ink::semantic::test
         {"func f(Value: i32): void {} func main(): void { f(); }", core::DiagnosticKind::SemanticArgumentCount, "f()"},
         {"func f(Value: i32): void {} func main(): void { f(1, 2); }", core::DiagnosticKind::SemanticArgumentCount, "f(1, 2)"},
         {"func f(Value: bool): void {} func main(): void { f(1); }", core::DiagnosticKind::SemanticTypeMismatch, "1"},
+        {"func f(Value: bool): void {} func main(): void { f(((1))); }", core::DiagnosticKind::SemanticTypeMismatch, "1"},
         {"func f(Value: u8): void {} func main(Value: i32): void { f(Value); }", core::DiagnosticKind::SemanticTypeMismatch, "Value"},
         {"func callback(Value: u8): u8 { return Value; } func invoke(Callback: func(i32): i32): void {} func main(): void { invoke(callback); }", core::DiagnosticKind::SemanticTypeMismatch, "callback"},
         {"func f(Value: u8): void {} func main(): void { f(256); }", core::DiagnosticKind::SemanticIntegerOutOfRange, "256"},
@@ -458,11 +459,14 @@ namespace ink::semantic::test
   // A later argument failure preserves preceding argument evaluation while suppressing the invalid outer call.
   TEST_F(SemanticCallTest, DoesNotAppendOuterCallAfterArgumentFailure)
   {
-    auto Input = read("func side(): i32 { return 1; } func consume(First: i32, Second: bool): void {} func main(): void { consume(side(), 1); }");
+    constexpr std::string_view Source = "func side(): i32 { return 1; } func consume(First: i32, Second: bool): void {} func main(): void { consume(side(), 1); }";
+    auto Input = read(Source);
     ASSERT_TRUE(Input.succeeded());
     EXPECT_FALSE(analyze(Input));
     ASSERT_EQ(Diagnostics.diagnostics().size(), 1U);
     EXPECT_EQ(Diagnostics.diagnostics()[0].Kind, core::DiagnosticKind::SemanticTypeMismatch);
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Source, Input.Unit->input().lexedFile().sourceId());
+    EXPECT_EQ(Diagnostics.diagnostics()[0].Span, core::SourceRange::fromByteOffsets(Source.rfind('1'), Source.rfind('1') + 1));
     auto *Main = function("main");
     ASSERT_NE(Main, nullptr);
     ASSERT_EQ(Main->entryBlock()->instructionCount(), 1U);

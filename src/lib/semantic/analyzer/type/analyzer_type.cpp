@@ -18,4 +18,12 @@ namespace ink::semantic
     RETURN_REPORT_IF(ExpressionSite, Value->isStorage(), core::DiagnosticKind::SemanticTypeMismatch, nullptr, "a type", "variable storage");
     return requireType(ExpressionSite, Value);
   }
+
+  const ir::Type *Analyzer::analyzeTypeWithLayout(AnalyzerState &State, const frontend::parser::TypeSyntax &Node, std::string_view Description)
+  {
+    const ir::Type *Type = analyzeType(State, Node);
+    RETURN_IF_NULL(Type, nullptr);
+    CHECK_HAS_LAYOUT(State.at(Node), Type, Description, nullptr);
+    return Type;
+  }
 } // namespace ink::semantic

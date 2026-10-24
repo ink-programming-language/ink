@@ -463,14 +463,17 @@ namespace ink::semantic::test
     {
         const char *Source;
         core::DiagnosticKind Kind;
+        std::string_view Highlight;
     };
     const Case Cases[] = {
-        {"func f(Value: Missing): void {}", core::DiagnosticKind::SemanticUnknownName},
-        {"func f(): Missing {}", core::DiagnosticKind::SemanticUnknownName},
-        {"func f(Value: type): void {}", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func f(): type {}", core::DiagnosticKind::SemanticTypeMismatch},
-        {"func f(Value: i32, Value: u8): void {}", core::DiagnosticKind::SemanticDuplicateParameterName},
-        {"func f(): void;", core::DiagnosticKind::SemanticFunctionRequiresBody},
+        {"func f(Value: Missing): void {}", core::DiagnosticKind::SemanticUnknownName, "Missing"},
+        {"func f(): Missing {}", core::DiagnosticKind::SemanticUnknownName, "Missing"},
+        {"func f(Value: type): void {}", core::DiagnosticKind::SemanticTypeMismatch, "type"},
+        {"func f(): type {}", core::DiagnosticKind::SemanticTypeMismatch, "type"},
+        {"func f(Value: ((type))): void {}", core::DiagnosticKind::SemanticTypeMismatch, "((type))"},
+        {"func f(Value: Missing): ((type)) {}", core::DiagnosticKind::SemanticTypeMismatch, "((type))"},
+        {"func f(Value: i32, Value: u8): void {}", core::DiagnosticKind::SemanticDuplicateParameterName, "Value"},
+        {"func f(): void;", core::DiagnosticKind::SemanticFunctionRequiresBody, "func f(): void;"},
     };
     for (const auto &Entry : Cases)
     {
@@ -483,7 +486,9 @@ namespace ink::semantic::test
       EXPECT_EQ(Diagnostic.Kind, Entry.Kind);
       EXPECT_EQ(Diagnostic.classification(), core::DiagnosticClass::User);
       EXPECT_EQ(Diagnostic.Source, Input.Unit->input().lexedFile().sourceId());
-      EXPECT_TRUE(Diagnostic.Span.isValid());
+      const auto Offset = std::string_view(Entry.Source).rfind(Entry.Highlight);
+      ASSERT_NE(Offset, std::string_view::npos);
+      EXPECT_EQ(Diagnostic.Span, core::SourceRange::fromByteOffsets(Offset, Offset + Entry.Highlight.size()));
       EXPECT_EQ(Output.globalFunctionCount(), 0U);
       EXPECT_EQ(lookup("f"), nullptr);
       EXPECT_TRUE(Output.exports().empty());

@@ -17,9 +17,8 @@ namespace ink::semantic
 {
   namespace
   {
-    std::optional<std::uint64_t> parseIntegerLiteral(const AnalysisSite &Site, const frontend::parser::TokenBuffer &Input, const frontend::parser::LiteralExpr &Node, const frontend::tokenizer::Token &Token)
+    std::optional<std::uint64_t> parseIntegerLiteral(const AnalysisSite &Site, const frontend::parser::TokenBuffer &Input, const frontend::tokenizer::Token &Token)
     {
-      RETURN_IF(Node.literalKind() != frontend::parser::TokenKind::IntegerLiteral, std::nullopt);
       const auto *Numeric = std::get_if<frontend::tokenizer::NumericInfo>(&Token.Payload);
       CHECK_ICE(Site, Numeric && Numeric->hasValidBase(), core::DiagnosticKind::TokenizerInvalidNumericToken, "invalid integer metadata");
       std::string_view Text = Input.spelling(Token);
@@ -90,7 +89,7 @@ namespace ink::semantic
         EXPECTED_TYPE(Site, ExpectedType, ir::IntegerType, "an integer type");
         const auto *DefaultType = Hints.DefaultIntegerLiteralType ? Hints.DefaultIntegerLiteralType : Context.typePool().getInt32Type();
         const auto *Type = ExpectedType ? static_cast<const ir::IntegerType *>(ExpectedType) : DefaultType;
-        const auto Value = parseIntegerLiteral(Site, Input, Node, Token);
+        const auto Value = parseIntegerLiteral(Site, Input, Token);
         RETURN_REPORT_IF_FALSE(Site, Value, core::DiagnosticKind::SemanticIntegerOutOfRange, nullptr, Type->toString());
         return materializeInteger(Site, *Value, *Type);
       }

@@ -16,17 +16,15 @@ namespace ink::semantic
     auto &Context = State.semanticContext();
     const auto Site = State.at(Node);
     CHECK_ICE(Site, Node.returnType(), core::DiagnosticKind::SemanticInvalidAST, "FunctionTypeExpr requires a return type annotation");
-    const ir::Type *Return = analyzeType(State, *Node.returnType());
+    const ir::Type *Return = analyzeTypeWithLayout(State, *Node.returnType(), "a return type with runtime layout");
     RETURN_IF_NULL(Return, nullptr);
-    CHECK_HAS_LAYOUT(State.at(*Node.returnType()), Return, "a return type with runtime layout", nullptr);
     std::vector<ir::FunctionTypeParameter> Parameters;
     Parameters.reserve(Node.parameters().size());
     for (const auto &Parameter : Node.parameters())
     {
       CHECK_ICE(Site, Parameter.type(), core::DiagnosticKind::SemanticInvalidAST, "FunctionTypeExpr parameter requires a type annotation");
-      const ir::Type *Type = analyzeType(State, *Parameter.type());
+      const ir::Type *Type = analyzeTypeWithLayout(State, *Parameter.type(), "a parameter type with runtime layout");
       RETURN_IF_NULL(Type, nullptr);
-      CHECK_HAS_LAYOUT(State.at(*Parameter.type()), Type, "a parameter type with runtime layout", nullptr);
       Parameters.emplace_back(Type, Parameter.variadic());
     }
     const ir::Type *Result = Context.typePool().getFunctionType(Return, Parameters);

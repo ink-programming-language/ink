@@ -122,9 +122,8 @@ namespace ink::semantic
     RETURN_REPORT_IF(Site, SymbolLink == ir::SymbolLinkage::Import && HasBody, core::DiagnosticKind::SemanticNativeImportHasBody, false, Node.name().Text);
     RETURN_REPORT_IF(Site, !HasBody && SymbolLink != ir::SymbolLinkage::Import, core::DiagnosticKind::SemanticFunctionRequiresBody, false, Node.name().Text);
 
-    const ir::Type *ReturnType = analyzeType(State, *Node.returnType());
+    const ir::Type *ReturnType = analyzeTypeWithLayout(State, *Node.returnType(), "a return type with runtime layout");
     RETURN_IF_NULL(ReturnType, false);
-    CHECK_HAS_LAYOUT(State.at(*Node.returnType()), ReturnType, "a return type with runtime layout", false);
     std::vector<ir::FunctionTypeParameter> Parameters;
     std::vector<core::Name> ParameterNames;
     std::unordered_set<core::Name> UniqueParameterNames;
@@ -135,9 +134,8 @@ namespace ink::semantic
       const auto Name = core::NamePool::instance().intern(Parameter.name().Text);
       CHECK_ICE(State.at(Parameter.range()), Name.valid(), core::DiagnosticKind::SemanticConstructionFailed);
       RETURN_REPORT_IF_FALSE(State.at(Parameter.name().Range), UniqueParameterNames.insert(Name).second, core::DiagnosticKind::SemanticDuplicateParameterName, false, Parameter.name().Text);
-      const ir::Type *Type = analyzeType(State, *Parameter.type());
+      const ir::Type *Type = analyzeTypeWithLayout(State, *Parameter.type(), "a parameter type with runtime layout");
       RETURN_IF_NULL(Type, false);
-      CHECK_HAS_LAYOUT(State.at(*Parameter.type()), Type, "a parameter type with runtime layout", false);
       Parameters.emplace_back(Type);
       ParameterNames.push_back(Name);
     }

@@ -21,6 +21,6 @@ namespace ink::semantic
     const auto Name = Node.member();
     const Binding *Found = State.nameResolver().lookupMember(*Object, core::NamePool::instance().find(Name.Text));
     RETURN_REPORT_IF_FALSE(State.at(Name.Range), Found, core::DiagnosticKind::SemanticUnknownName, nullptr, Name.Text);
-    return analyzeBinding(State, Node, *Found, IsCallCallee);
+    return analyzeBinding(State, Site, *Found, IsCallCallee);
   }
 } // namespace ink::semantic
