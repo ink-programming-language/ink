@@ -60,7 +60,7 @@ namespace ink::semantic
 
     bool registerFunctionExport(const AnalysisSite &Site, ir::Module &Output, const ir::Function &Function)
     {
-      RETURN_IF(Function.visibility() != ir::FunctionVisibility::Public, true);
+      RETURN_IF(Function.visibility() != ir::FunctionVisibility::Public || Function.symbolLinkage() == ir::SymbolLinkage::Import, true);
       const auto Export = Output.addExport(ir::SymbolId{Function.name()}, Function);
       CHECK_ICE(Site, Export, core::DiagnosticKind::SemanticConstructionFailed);
       return true;

@@ -7,6 +7,11 @@
 
 namespace ink::ir
 {
+  namespace detail
+  {
+    struct IRModelAccess;
+  } // namespace detail
+
   // Allocates one function-local object and produces its address as an ordinary pointer value.
   // The result pointer type and its pointee are borrowed and must outlive this instruction.
   class AllocaInstruction final : public Instruction
@@ -25,6 +30,7 @@ namespace ink::ir
 
     private:
       friend class IRBuilder;
+      friend struct detail::IRModelAccess;
 
       bool Initialized = false;
       core::Name Name = core::NAME_None;

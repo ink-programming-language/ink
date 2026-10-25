@@ -24,6 +24,11 @@ namespace ink::ir
 {
   class IRContext;
 
+  namespace detail
+  {
+    class IRLoadTransaction;
+  } // namespace detail
+
   // Owns and reuses immutable constants as an inseparable part of one IRContext.
   // Access through IRContext::constantPool(); constants and pooled types share the context lifetime.
   // External IR users must die first. Operations require external synchronization.
@@ -108,6 +113,7 @@ namespace ink::ir
 
     private:
       friend class IRContext;
+      friend class detail::IRLoadTransaction;
 
       explicit ConstantPool(IRContext &Owner);
       ~ConstantPool() noexcept;

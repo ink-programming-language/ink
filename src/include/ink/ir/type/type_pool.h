@@ -28,6 +28,11 @@ namespace ink::ir
 {
   class IRContext;
 
+  namespace detail
+  {
+    class IRLoadTransaction;
+  } // namespace detail
+
   // Owns and canonicalizes builtin and structural types for its containing IRContext.
   // Nominal operands are borrowed from modules using that context and must outlive all uses of derived types.
   // Operations require external synchronization.
@@ -131,6 +136,7 @@ namespace ink::ir
 
     private:
       friend class IRContext;
+      friend class detail::IRLoadTransaction;
 
       explicit TypePool(IRContext &Owner);
       ~TypePool() noexcept;

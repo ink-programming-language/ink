@@ -13,19 +13,25 @@
 ## 编译器入口
 
 ```text
-inkc -i FILE
+inkc -i FILE [-S [FILE]]
 ```
 
 `-i` / `--input` 指定唯一的输入文件路径，必须提供一次，路径不能为空；也支持 `--input=FILE`。包含空格的路径需加引号。
 
+`-S FILE` 在编译成功后将文本 IR（函数体、基本块标签与内联类型）写入指定路径，文件头使用生成配置头中的 `INK_IR_VERSION`，当前为 `ink_ir 0.0.1`；单独使用 `-S` 或传入空字符串时，在输入文件所在目录生成同名 `.ir` 文件，仅替换输入路径的最后一个扩展名。`-S` 可以放在 `-i` 前后，只能出现一次。未指定 `-S` 时不生成输出文件；输出路径不能与输入文件指向同一个文件。相对输出路径以当前工作目录为基准，父目录须已存在。
+
+`-S` 后以 `-` 开头的参数继续按选项处理；以连字符开头的相对输出文件名可写为 `-S ./-output.ir`。`-i -S` 中的 `-S` 则是必需输入参数的文件名。
+
 ```powershell
 .\build\src\tools\inkc\Release\inkc.exe -i .\examples\hello_world_windows.ink
 .\build\src\tools\inkc\Release\inkc.exe -i "D:\Ink Sources\example.ink"
+.\build\src\tools\inkc\Release\inkc.exe -i .\examples\hello_world_windows.ink -S
+.\build\src\tools\inkc\Release\inkc.exe -S "D:\Ink Output\example.ir" -i "D:\Ink Sources\example.ink"
 ```
 
-入口按原始字节读取文件，通过共享的源码管理器和诊断引擎依次调用 tokenizer、parser 和 semantic，将解析结果交给 `Analyzer::analyze` 写入内存中的 `ir::Module`。词法或语法分析失败时不会进入 semantic。`CompilationContext` 拥有编译会话服务，`SemanticContext` 拥有 Module 借用的 IR 池，Module 先于 SemanticContext 销毁。当前不执行源码，也不生成输出文件；`-` 在 `inkc` 中仍是文件路径。
+入口按原始字节读取文件，通过共享的源码管理器和诊断引擎依次调用 tokenizer、parser 和 semantic，将解析结果交给 `Analyzer::analyze` 写入内存中的 `ir::Module`。词法或语法分析失败时不会进入 semantic。`CompilationContext` 拥有编译会话服务，`SemanticContext` 拥有 Module 借用的 IR 池，Module 先于 SemanticContext 销毁。指定 `-S` 时，成功的模块通过 IR 文本序列化器写入文件，格式见 [IR 文本格式](IR-Serialization-Text.md)；源码分析失败时不会创建或覆盖 IR 输出。当前不执行源码；`-` 在 `inkc` 中仍是普通文件路径。
 
-成功时静默退出，退出码为 0；普通源码错误返回 1；参数错误、文件打开或读取失败、诊断输出失败返回 2。源码诊断由 `DiagnosticFormatter` 使用诊断自身的 `SourceId` 查询源码，输出文件名、从 1 开始的行号和字节列号、诊断码、半开字节范围 `[Begin, End)`、相关源码行及 `^`/`~` 范围标记，写入 stderr；有位置的关联 note 同样显示源码。预览将制表符展开到 8 列制表位，并将不可打印字节和非 ASCII 字节显示为 `\xHH`，以保持无效 UTF-8 等输入下的标记位置准确；位置头始终使用原始源码的字节列号。内部编译错误同样附带可用的源码信息，并沿用项目统一的 ICE/panic 机制直接终止进程。当前 semantic 仅支持空模块和仅含空块的遍历，函数、变量等具体语义及 IR 生成尚未实现，合法但尚未支持的节点会报告 `SemanticUnsupported`（`INK-S0012`），不会作为成功编译处理。`-h` / `--help` 和 `-V` / `--version` 可单独使用，且不读取文件。
+成功时 stdout 保持静默，退出码为 0；普通源码错误返回 1；参数错误、文件打开或读写失败、IR 序列化失败、诊断输出失败返回 2。源码诊断由 `DiagnosticFormatter` 使用诊断自身的 `SourceId` 查询源码，输出文件名、从 1 开始的行号和字节列号、诊断码、半开字节范围 `[Begin, End)`、相关源码行及 `^`/`~` 范围标记，写入 stderr；有位置的关联 note 同样显示源码。预览将制表符展开到 8 列制表位，并将不可打印字节和非 ASCII 字节显示为 `\xHH`，以保持无效 UTF-8 等输入下的标记位置准确；位置头始终使用原始源码的字节列号。内部编译错误同样附带可用的源码信息，并沿用项目统一的 ICE/panic 机制直接终止进程。合法但尚未支持的节点会报告 `SemanticUnsupported`（`INK-S0012`），不会作为成功编译处理。`-h` / `--help` 和 `-V` / `--version` 可单独使用，且不读取文件。
 
 `inkc` 在目标级定义 `CXXOPTS_NO_EXCEPTIONS` 和 `CXXOPTS_NO_REGEX`。由于上游无异常模式的错误分支会直接退出进程，入口使用字符串值、允许暂存未识别参数，并追加一个空保护参数，将缺值和未知参数交由显式状态检查处理；`-i` 保持需要实参，未设置隐式值。保护参数不成为用户输入，正常错误通过工具自身的 spdlog logger 报告。
 

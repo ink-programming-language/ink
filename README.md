@@ -36,7 +36,7 @@ ctest --test-dir build -C Release --output-on-failure
 
 项目自有 C++ 目标统一要求 C++23，编译器和标准库必须支持显式对象参数（deducing this）和 `std::forward_like`；配置阶段会编译探测这两个特性。语言标准通过目标级 `cxx_std_23` 声明，第三方目标保留各自的标准要求。CMake 会根据工具链选择标准选项；部分 CMake/MSVC 组合将 C++23 映射为 `/std:c++latest`。
 
-`-DINK_BUILD_MODE=debug|development|shipping` 选择 Ink 构建模式，默认 `debug`。CMake 将 `src/include/ink/core/config.in` 配置为构建目录下的 `include/ink/core/config.h`，提供目标平台、指针大小、编译器身份与版本，以及互斥的 `INK_BUILD_DEBUG`、`INK_BUILD_DEVELOPMENT`、`INK_BUILD_SHIPPING` 宏。所有布尔宏均定义为 `0` 或 `1`，使用 `#if` 判断。`ink::config` 将生成头目录传递给各模块；生成文件不写入源码树。
+`-DINK_BUILD_MODE=debug|development|shipping` 选择 Ink 构建模式，默认 `debug`。CMake 将 `src/include/ink/core/config.in` 配置为构建目录下的 `include/ink/core/config.h`，提供目标平台、指针大小、编译器身份与版本，以及互斥的 `INK_BUILD_DEBUG`、`INK_BUILD_DEVELOPMENT`、`INK_BUILD_SHIPPING` 宏。文本 IR 版本也由该模板中的 `INK_IR_VERSION` 统一定义，当前为 `"0.0.1"`，读写器要求版本字符串完全一致；它独立于二进制格式版本。所有布尔宏均定义为 `0` 或 `1`，使用 `#if` 判断。`ink::config` 将生成头目录传递给各模块；生成文件不写入源码树。
 
 `core_define.h` 的 `INK_ENABLE_ASSERTIONS` 统一控制八个断言宏：`check`、`checkMsgf`、`checkAlways`、`checkAlwaysMsgf`、`ensure`、`ensureMsgf`、`ensureAlways`、`ensureAlwaysMsgf`。check 和 ensure 采用对称的 `xxx`、`xxxMsgf`、`xxxAlways`、`xxxAlwaysMsgf` 命名。Debug 和 Development 开启，Shipping 关闭。失败时先输出并刷新日志，再在附加了调试器时触发断点；继续执行后，check 终止进程，ensure 返回 `false`。普通 ensure 每个调用点仅报告和中断一次，`ensureAlways` 和 `ensureAlwaysMsgf` 每次失败都报告和中断；check 每次失败都会终止，因此它的 Always 版本与对应普通版本行为相同。Shipping 中 check 不求值，ensure 保留条件求值，所有断言消息参数均不求值。`panic` 始终终止。Ink 模式独立于 `CMAKE_BUILD_TYPE`、`--config` 和 `NDEBUG`，不改变编译器优化或调试信息选项；例如 `cmake -S . -B build -DINK_BUILD_MODE=shipping` 配合 `cmake --build build --config Release` 选择 Shipping 行为和 Release 编译选项。多配置生成器的同一构建目录共用所选 Ink 模式，不同模式请使用不同构建目录。
 
@@ -66,7 +66,7 @@ AST 类声明位于 `src/include/ink/frontend/parser/ast`，每个 class 使用�
 
 `frontend::FrontendContext` 直接借用 `core::SourceManager` 和 `core::DiagnosticEngine`，二者必须比上下文存活更久；tokenizer、parser 和 semantic 使用这些服务而不依赖工具层。`SemanticContext(Sources, Diagnostics, Target)` 组合持有前端服务视图，并按值拥有 `ir::IRContext`、保存当前源码选择，通过 `irContext()` 提供借用访问，`typePool()` 转发至 IRContext 的类型池；它不拥有 Module 或 Builder。上层用 `Module(Context.irContext())` 创建输入输出模块，用 `IRBuilder(Context.irContext())` 独立构建 IR，并保证这些模块和所有池对象使用者先于 SemanticContext 销毁。现有 `ink-tokenize`、`ink-parse` 和测试各自拥有服务实例，以保持编译会话之间的源码和诊断隔离。
 
-`inkc::CompilationContext` 是工具私有的编译会话资源所有者，定义位于 `src/tools/inkc/compilation_context.h`，拥有目标描述、源码管理器和诊断引擎。库和测试不依赖此类型。`inkc` 可执行入口使用 submodule 固定的 cxxopts 3.3.1，以无异常模式解析必需的 `-i FILE` / `--input FILE`，并提供帮助和版本选项。入口按原始字节读取源码，调用 frontend 的 tokenizer/parser，再将成功的解析结果交给 semantic 写入调用方创建的 `ir::Module`；Module 借用 SemanticContext 的 IRContext，并先于它销毁。当前只构建内存模块，不输出 IR 文件或执行源码；具体语义处理仍受上述未实现节点限制。普通源码错误返回 1，参数或文件输入输出错误返回 2，内部编译错误沿用 ICE/panic 机制。
+`inkc::CompilationContext` 是工具私有的编译会话资源所有者，定义位于 `src/tools/inkc/compilation_context.h`，拥有目标描述、源码管理器和诊断引擎。库和测试不依赖此类型。`inkc` 可执行入口使用 submodule 固定的 cxxopts 3.3.1，以无异常模式解析必需的 `-i FILE` / `--input FILE`，并提供帮助和版本选项。入口按原始字节读取源码，调用 frontend 的 tokenizer/parser，再将成功的解析结果交给 semantic 写入调用方创建的 `ir::Module`；Module 借用 SemanticContext 的 IRContext，并先于它销毁。`-S FILE` 将成功编译的模块写为文本 IR；单独使用 `-S` 或传入空字符串时，在输入文件所在目录生成同名 `.ir` 文件，例如 `inkc -i examples/hello_world_windows.ink -S`。未指定 `-S` 时不生成文件，成功编译的 stdout 保持静默；当前不执行源码，具体语义处理仍受上述未实现节点限制。普通源码错误返回 1，参数、序列化或文件输入输出错误返回 2，内部编译错误沿用 ICE/panic 机制。详见 [命令行接口](docs/command-line.md)。
 
 Target 目录提供目标平台描述，头文件位于 `src/include/ink/target`。`target::TargetContext`、`target::PointerWidth` 和 `target::ByteOrder` 定义在 `ink/target/target_context.h` 中；`TargetContext` 保存指针宽度、字节序及标量对齐信息，`native()` 返回宿主目标。inkc 私有的 `CompilationContext` 和 IR 的 `IRContext` 均使用这一描述。
 

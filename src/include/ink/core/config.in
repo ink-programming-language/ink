@@ -8,6 +8,9 @@
 #cmakedefine01 INK_BUILD_DEVELOPMENT
 #cmakedefine01 INK_BUILD_SHIPPING
 
+// Text IR format version in major.minor.patch form; independent of the binary wire version.
+#define INK_IR_VERSION "0.0.1"
+
 // Platform and pointer size describe the compiled target, not the machine running CMake.
 #define INK_PLATFORM_NAME "@CMAKE_SYSTEM_NAME@"
 #define INK_PLATFORM_POINTER_SIZE @CMAKE_SIZEOF_VOID_P@

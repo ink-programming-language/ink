@@ -1,6 +1,11 @@
-if(NOT DEFINED INK_COMPILER OR NOT DEFINED INK_TEST_DIRECTORY)
-  message(FATAL_ERROR "Ink compiler executable and test directory are required")
+if(NOT DEFINED INK_COMPILER OR NOT DEFINED INK_TEST_DIRECTORY OR NOT DEFINED INK_CONFIG_HEADER)
+  message(FATAL_ERROR "Ink compiler executable, test directory and generated configuration header are required")
 endif()
+file(STRINGS "${INK_CONFIG_HEADER}" IRVersionDefinition REGEX "^#define INK_IR_VERSION ")
+if(NOT IRVersionDefinition MATCHES "^#define INK_IR_VERSION \"([^\"]+)\"$")
+  message(FATAL_ERROR "Expected INK_IR_VERSION in '${INK_CONFIG_HEADER}'")
+endif()
+set(IRVersion "${CMAKE_MATCH_1}")
 file(MAKE_DIRECTORY "${INK_TEST_DIRECTORY}/source directory with spaces")
 file(WRITE "${INK_TEST_DIRECTORY}/source.ink" "")
 file(WRITE "${INK_TEST_DIRECTORY}/source directory with spaces/hello world.ink" "")
@@ -323,4 +328,160 @@ endif()
 expect_source_diagnostic("Unsupported function" "unsupported.ink:1:2:" "internal compiler error[INK-S0012]" "[bytes 1, 23)" "[tag] func f(): void {}")
 if(NOT Error MATCHES "\\^~+")
   message(FATAL_ERROR "The unsupported declaration must underline its source range: ${Error}")
+endif()
+
+function(expect_text_ir Name Path)
+  if(NOT EXISTS "${Path}" OR IS_DIRECTORY "${Path}")
+    message(FATAL_ERROR "${Name}: expected a text IR file at '${Path}'")
+  endif()
+  file(READ "${Path}" IRText)
+  string(FIND "${IRText}" "ink_ir ${IRVersion}\n" HeaderIndex)
+  string(FIND "${IRText}" "module [" ModuleIndex)
+  string(FIND "${IRText}" "define i32 @emit(i32 %Value)" FunctionIndex)
+  string(FIND "${IRText}" "ret i32 %" ReturnIndex)
+  if(NOT HeaderIndex EQUAL 0 OR ModuleIndex LESS 0 OR FunctionIndex LESS 0 OR ReturnIndex LESS 0)
+    message(FATAL_ERROR "${Name}: expected versioned text IR containing the compiled function: ${IRText}")
+  endif()
+endfunction()
+
+function(expect_no_ir Name Path)
+  if(EXISTS "${Path}")
+    message(FATAL_ERROR "${Name}: unexpectedly created IR output '${Path}'")
+  endif()
+endfunction()
+
+set(IRSource "func emit(Value: i32): i32 { return Value; }\n")
+file(WRITE "${INK_TEST_DIRECTORY}/emit-cli.ink" "${IRSource}")
+file(MAKE_DIRECTORY "${INK_TEST_DIRECTORY}/IR output directory with spaces")
+
+# Compiling without -S remains silent and does not create an IR file beside the input.
+file(REMOVE "${INK_TEST_DIRECTORY}/emit-cli.ir")
+execute_process(COMMAND "${INK_COMPILER}" -i "emit-cli.ink" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Compilation without IR output" "0" "")
+expect_no_ir("Compilation without IR output" "${INK_TEST_DIRECTORY}/emit-cli.ir")
+
+# An explicit -S path before -i writes text IR and preserves spaces in the output argument.
+execute_process(COMMAND "${INK_COMPILER}" -S "IR output directory with spaces/before input.ir" -i "emit-cli.ink" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Explicit IR output before input option" "0" "")
+expect_text_ir("Explicit IR output before input option" "${INK_TEST_DIRECTORY}/IR output directory with spaces/before input.ir")
+
+# The explicit output path also works after -i and replaces an existing output file.
+file(WRITE "${INK_TEST_DIRECTORY}/explicit-after.ir" "previous output")
+execute_process(COMMAND "${INK_COMPILER}" -i "emit-cli.ink" -S "${INK_TEST_DIRECTORY}/explicit-after.ir" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Explicit IR output after input option" "0" "")
+expect_text_ir("Explicit IR output after input option" "${INK_TEST_DIRECTORY}/explicit-after.ir")
+
+# A bare -S before another option replaces only the input's final extension in its original directory.
+file(WRITE "${INK_TEST_DIRECTORY}/source directory with spaces/emit.default.ink" "${IRSource}")
+file(REMOVE "${INK_TEST_DIRECTORY}/source directory with spaces/emit.default.ir" "${INK_TEST_DIRECTORY}/emit.default.ir")
+execute_process(COMMAND "${INK_COMPILER}" -S -i "source directory with spaces/emit.default.ink" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Default IR path before input option" "0" "")
+expect_text_ir("Default IR path before input option" "${INK_TEST_DIRECTORY}/source directory with spaces/emit.default.ir")
+expect_no_ir("Default IR output must use the input directory" "${INK_TEST_DIRECTORY}/emit.default.ir")
+
+# A trailing bare -S chooses the same default rule without consuming the parser's guard argument.
+file(WRITE "${INK_TEST_DIRECTORY}/source directory with spaces/emit.trailing.ink" "${IRSource}")
+file(REMOVE "${INK_TEST_DIRECTORY}/source directory with spaces/emit.trailing.ir")
+execute_process(COMMAND "${INK_COMPILER}" -i "source directory with spaces/emit.trailing.ink" -S WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Trailing default IR output option" "0" "")
+expect_text_ir("Trailing default IR output option" "${INK_TEST_DIRECTORY}/source directory with spaces/emit.trailing.ir")
+
+# A terminator immediately after a bare -S remains an option terminator and requests the default path.
+file(REMOVE "${INK_TEST_DIRECTORY}/emit-cli.ir")
+execute_process(COMMAND "${INK_COMPILER}" -i "emit-cli.ink" -S -- WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Default IR output before option terminator" "0" "")
+expect_text_ir("Default IR output before option terminator" "${INK_TEST_DIRECTORY}/emit-cli.ir")
+
+# Unknown options following a bare -S are diagnosed instead of becoming output filenames.
+file(REMOVE "${INK_TEST_DIRECTORY}/emit-cli.ir")
+execute_process(COMMAND "${INK_COMPILER}" -i "emit-cli.ink" -S --unknown WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Unknown option following IR output option" "2" "")
+expect_no_ir("Unknown option following IR output option" "${INK_TEST_DIRECTORY}/emit-cli.ir")
+
+# A dash-prefixed output filename can be supplied explicitly with a relative path prefix.
+execute_process(COMMAND "${INK_COMPILER}" -i "emit-cli.ink" -S "./-output.ir" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Dash-prefixed explicit IR filename" "0" "")
+expect_text_ir("Dash-prefixed explicit IR filename" "${INK_TEST_DIRECTORY}/-output.ir")
+
+# An -S argument consumed as the required input value remains a filename and does not enable IR output.
+file(WRITE "${INK_TEST_DIRECTORY}/-S" "${IRSource}")
+file(REMOVE "${INK_TEST_DIRECTORY}/-S.ir")
+execute_process(COMMAND "${INK_COMPILER}" -i "-S" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Input filename equal to IR option" "0" "")
+expect_no_ir("Input filename equal to IR option" "${INK_TEST_DIRECTORY}/-S.ir")
+
+# An explicitly empty -S value requests the default output path and leaves the following input option intact.
+file(WRITE "${INK_TEST_DIRECTORY}/source directory with spaces/emit.empty.ink" "${IRSource}")
+file(REMOVE "${INK_TEST_DIRECTORY}/source directory with spaces/emit.empty.ir")
+execute_process(COMMAND "${INK_COMPILER}" -S "" -i "source directory with spaces/emit.empty.ink" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Explicitly empty IR output path" "0" "")
+expect_text_ir("Explicitly empty IR output path" "${INK_TEST_DIRECTORY}/source directory with spaces/emit.empty.ir")
+
+# An input with no extension receives .ir in the same directory when -S is bare.
+file(WRITE "${INK_TEST_DIRECTORY}/source directory with spaces/emit-no-extension" "${IRSource}")
+file(REMOVE "${INK_TEST_DIRECTORY}/source directory with spaces/emit-no-extension.ir")
+execute_process(COMMAND "${INK_COMPILER}" -i "source directory with spaces/emit-no-extension" -S WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Default IR path for extensionless input" "0" "")
+expect_text_ir("Default IR path for extensionless input" "${INK_TEST_DIRECTORY}/source directory with spaces/emit-no-extension.ir")
+
+# Repeated explicit or bare -S options fail before creating either requested output.
+file(REMOVE "${INK_TEST_DIRECTORY}/duplicate-first.ir" "${INK_TEST_DIRECTORY}/duplicate-second.ir" "${INK_TEST_DIRECTORY}/emit-cli.ir")
+execute_process(COMMAND "${INK_COMPILER}" -i "emit-cli.ink" -S "duplicate-first.ir" -S "duplicate-second.ir" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Repeated explicit IR output option" "2" "")
+expect_no_ir("First duplicate IR output" "${INK_TEST_DIRECTORY}/duplicate-first.ir")
+expect_no_ir("Second duplicate IR output" "${INK_TEST_DIRECTORY}/duplicate-second.ir")
+execute_process(COMMAND "${INK_COMPILER}" -S -i "emit-cli.ink" -S WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Repeated default IR output option" "2" "")
+expect_no_ir("Repeated default IR output option" "${INK_TEST_DIRECTORY}/emit-cli.ir")
+
+# An output directory and an output whose parent is missing both return the file I/O exit status.
+execute_process(COMMAND "${INK_COMPILER}" -i "emit-cli.ink" -S "IR output directory with spaces" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Directory used as IR output" "2" "")
+execute_process(COMMAND "${INK_COMPILER}" -i "emit-cli.ink" -S "missing-ir-parent/output.ir" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Missing IR output parent directory" "2" "")
+expect_no_ir("Missing IR output parent directory" "${INK_TEST_DIRECTORY}/missing-ir-parent/output.ir")
+
+# Input failures never create the requested IR output.
+file(REMOVE "${INK_TEST_DIRECTORY}/missing-input.ir")
+execute_process(COMMAND "${INK_COMPILER}" -i "missing-ir-input.ink" -S "missing-input.ir" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Missing source with IR output requested" "2" "")
+expect_no_ir("Missing source with IR output requested" "${INK_TEST_DIRECTORY}/missing-input.ir")
+
+# Lexical, parser and semantic failures all stop before an IR output file is created.
+file(WRITE "${INK_TEST_DIRECTORY}/ir-lexical-failure.ink" "@")
+file(WRITE "${INK_TEST_DIRECTORY}/ir-syntax-failure.ink" "var Value = ;")
+file(WRITE "${INK_TEST_DIRECTORY}/ir-semantic-failure.ink" "Missing;")
+foreach(Stage IN ITEMS lexical syntax semantic)
+  file(REMOVE "${INK_TEST_DIRECTORY}/ir-${Stage}-failure.ir")
+  execute_process(COMMAND "${INK_COMPILER}" -i "ir-${Stage}-failure.ink" -S "ir-${Stage}-failure.ir" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+  if(NOT Status STREQUAL "1" OR NOT Output STREQUAL "" OR Error STREQUAL "" OR Error MATCHES "internal compiler error")
+    message(FATAL_ERROR "${Stage} failure with IR output requested: expected a source diagnostic and exit 1: ${Status}: stdout=${Output}: stderr=${Error}")
+  endif()
+  expect_no_ir("${Stage} failure with IR output requested" "${INK_TEST_DIRECTORY}/ir-${Stage}-failure.ir")
+endforeach()
+
+# A source error also leaves a pre-existing explicit output file untouched.
+file(WRITE "${INK_TEST_DIRECTORY}/preserved-output.ir" "preserve existing IR")
+execute_process(COMMAND "${INK_COMPILER}" -i "ir-semantic-failure.ink" -S "preserved-output.ir" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+if(NOT Status STREQUAL "1" OR NOT Output STREQUAL "" OR Error STREQUAL "")
+  message(FATAL_ERROR "Semantic failure with existing IR: expected a source diagnostic and exit 1: ${Status}: stdout=${Output}: stderr=${Error}")
+endif()
+file(READ "${INK_TEST_DIRECTORY}/preserved-output.ir" PreservedIR)
+if(NOT PreservedIR STREQUAL "preserve existing IR")
+  message(FATAL_ERROR "A source failure truncated the existing IR output: ${PreservedIR}")
+endif()
+
+# Explicit source/output aliases and an already-.ir source must not overwrite the input file.
+execute_process(COMMAND "${INK_COMPILER}" -i "emit-cli.ink" -S "./emit-cli.ink" WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Explicit IR path aliases the source" "2" "")
+file(READ "${INK_TEST_DIRECTORY}/emit-cli.ink" PreservedSource)
+if(NOT PreservedSource STREQUAL IRSource)
+  message(FATAL_ERROR "The explicit IR path overwrote the source: ${PreservedSource}")
+endif()
+file(WRITE "${INK_TEST_DIRECTORY}/already-ir.ir" "${IRSource}")
+execute_process(COMMAND "${INK_COMPILER}" -i "already-ir.ir" -S WORKING_DIRECTORY "${INK_TEST_DIRECTORY}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_result("Default IR path aliases the source" "2" "")
+file(READ "${INK_TEST_DIRECTORY}/already-ir.ir" PreservedSource)
+if(NOT PreservedSource STREQUAL IRSource)
+  message(FATAL_ERROR "The default IR path overwrote the source: ${PreservedSource}")
 endif()

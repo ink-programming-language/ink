@@ -26,6 +26,11 @@
 
 namespace ink::ir
 {
+  namespace detail
+  {
+    struct IRModelAccess;
+  } // namespace detail
+
   // Owns nominal types, global declarations, symbol imports/exports and the identifier for one Ink module.
   // Borrows its IRContext, which owns builtin/structural types and constants and must outlive this module.
   // All users of module-owned declarations and nominal types must finish before module destruction.
@@ -166,6 +171,8 @@ namespace ink::ir
       static bool classof(const Value *Value) noexcept;
 
     private:
+      friend struct detail::IRModelAccess;
+
       IRContext &Context;
       // Pooled references do not extend nominal lifetimes; their users must finish before module destruction.
       std::vector<std::unique_ptr<ClassType>> Classes;

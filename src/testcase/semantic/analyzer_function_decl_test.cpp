@@ -623,8 +623,8 @@ namespace ink::semantic::test
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
-  // Ink visibility controls native declarations' module exports independently of their C import/export direction.
-  TEST_F(SemanticFunctionDeclTest, PublishesPublicNativeDeclarationsWithoutChangingNativeLinkage)
+  // Native imports never enter module exports, while native exports still respect Ink visibility.
+  TEST_F(SemanticFunctionDeclTest, ExcludesNativeImportsFromModuleExports)
   {
     auto Input = read("import \"C\" func defaultImport(): void; public import \"C\" func publicImport(): void; private import \"C\" func privateImport(): void; export \"C\" func defaultExport(): void {} public export \"C\" func publicExport(): void {} private export \"C\" func privateExport(): void {}");
     ASSERT_TRUE(Input.succeeded());
@@ -634,14 +634,15 @@ namespace ink::semantic::test
         const char *Name;
         ir::SymbolLinkage Linkage;
         ir::FunctionVisibility Visibility;
+        bool Exported;
     };
     const Case Cases[] = {
-        {"defaultImport", ir::SymbolLinkage::Import, ir::FunctionVisibility::Public},
-        {"publicImport", ir::SymbolLinkage::Import, ir::FunctionVisibility::Public},
-        {"privateImport", ir::SymbolLinkage::Import, ir::FunctionVisibility::Private},
-        {"defaultExport", ir::SymbolLinkage::Export, ir::FunctionVisibility::Public},
-        {"publicExport", ir::SymbolLinkage::Export, ir::FunctionVisibility::Public},
-        {"privateExport", ir::SymbolLinkage::Export, ir::FunctionVisibility::Private},
+        {"defaultImport", ir::SymbolLinkage::Import, ir::FunctionVisibility::Public, false},
+        {"publicImport", ir::SymbolLinkage::Import, ir::FunctionVisibility::Public, false},
+        {"privateImport", ir::SymbolLinkage::Import, ir::FunctionVisibility::Private, false},
+        {"defaultExport", ir::SymbolLinkage::Export, ir::FunctionVisibility::Public, true},
+        {"publicExport", ir::SymbolLinkage::Export, ir::FunctionVisibility::Public, true},
+        {"privateExport", ir::SymbolLinkage::Export, ir::FunctionVisibility::Private, false},
     };
     for (const auto &Entry : Cases)
     {
@@ -652,7 +653,7 @@ namespace ink::semantic::test
       EXPECT_EQ(Function->visibility(), Entry.Visibility);
       EXPECT_EQ(Function->languageLinkage(), ir::LanguageLinkage::C);
       EXPECT_EQ(Function->isDeclaration(), Entry.Linkage == ir::SymbolLinkage::Import);
-      if (Entry.Visibility == ir::FunctionVisibility::Public)
+      if (Entry.Exported)
       {
         expectExport(Output, Entry.Name, {Function});
       }
@@ -661,7 +662,7 @@ namespace ink::semantic::test
         EXPECT_EQ(Output.findExport(ir::SymbolId{name(Entry.Name)}), nullptr);
       }
     }
-    EXPECT_EQ(Output.exports().size(), 4U);
+    EXPECT_EQ(Output.exports().size(), 2U);
     EXPECT_TRUE(Diagnostics.diagnostics().empty());
   }
 
