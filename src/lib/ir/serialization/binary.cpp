@@ -314,7 +314,7 @@ namespace ink::ir
         const auto Offset = static_cast<std::size_t>(RecordSection.Offset + Index * RecordSize);
         detail::Record Record;
         Record.Kind = static_cast<detail::RecordKind>(read32(Bytes, Offset));
-        if (detail::recordKindName(Record.Kind).empty())
+        if (!detail::isValidRecordKind(Record.Kind))
         {
           return std::unexpected(failure(IRSerializationErrorCode::UnsupportedKind, Offset, "unknown binary IR record kind"));
         }

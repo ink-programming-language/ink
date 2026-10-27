@@ -52,110 +52,6 @@ namespace ink::ir::detail
 
   namespace
   {
-    struct KindName
-    {
-        RecordKind Kind;
-        std::string_view Name;
-    };
-
-    constexpr KindName KindNames[] = {
-        {RecordKind::Module, "module"},
-        {RecordKind::BoolType, "type.bool"},
-        {RecordKind::IntegerType, "type.integer"},
-        {RecordKind::FloatType, "type.float"},
-        {RecordKind::VoidType, "type.void"},
-        {RecordKind::NullPointerType, "type.nullptr"},
-        {RecordKind::MetaType, "type.meta"},
-        {RecordKind::VariadicType, "type.variadic"},
-        {RecordKind::PointerType, "type.pointer"},
-        {RecordKind::ReferenceType, "type.reference"},
-        {RecordKind::ArrayType, "type.array"},
-        {RecordKind::FunctionType, "type.function"},
-        {RecordKind::ClassType, "type.class"},
-        {RecordKind::InterfaceType, "type.interface"},
-        {RecordKind::StructType, "type.struct"},
-        {RecordKind::QualifiedType, "type.qualified"},
-        {RecordKind::Field, "field"},
-        {RecordKind::Function, "define"},
-        {RecordKind::Parameter, "parameter"},
-        {RecordKind::Block, "block"},
-        {RecordKind::Global, "global"},
-        {RecordKind::Import, "import"},
-        {RecordKind::Export, "export"},
-        {RecordKind::BoolConstant, "const.bool"},
-        {RecordKind::IntegerConstant, "const.integer"},
-        {RecordKind::FloatConstant, "const.float"},
-        {RecordKind::NullPointerConstant, "const.nullptr"},
-        {RecordKind::StringConstant, "const.string"},
-        {RecordKind::ArrayConstant, "const.array"},
-        {RecordKind::Alloca, "alloca"},
-        {RecordKind::Load, "load"},
-        {RecordKind::Store, "store"},
-        {RecordKind::Neg, "neg"},
-        {RecordKind::ICmp, "icmp"},
-        {RecordKind::Branch, "br"},
-        {RecordKind::CondBranch, "br_if"},
-        {RecordKind::Return, "ret"},
-        {RecordKind::Call, "call"},
-        {RecordKind::GetElementPtr, "getelementptr"},
-    };
-
-    constexpr std::uint64_t NoVirtualSlot = std::numeric_limits<std::uint64_t>::max();
-
-    // Array positions are the v1 wire values; native enum ordinals are deliberately irrelevant.
-    constexpr SymbolLinkage SymbolLinkages[] = {
-        SymbolLinkage::Local,
-        SymbolLinkage::Import,
-        SymbolLinkage::Export,
-    };
-
-    constexpr LanguageLinkage LanguageLinkages[] = {
-        LanguageLinkage::Ink,
-        LanguageLinkage::C,
-    };
-
-    constexpr FunctionVisibility Visibilities[] = {
-        FunctionVisibility::Public,
-        FunctionVisibility::Private,
-    };
-
-    constexpr MethodDispatch DispatchKinds[] = {
-        MethodDispatch::Direct,
-        MethodDispatch::Virtual,
-        MethodDispatch::Abstract,
-    };
-
-    constexpr ICmpPredicate Predicates[] = {
-        ICmpPredicate::Equal,
-        ICmpPredicate::NotEqual,
-        ICmpPredicate::UnsignedGreaterThan,
-        ICmpPredicate::UnsignedGreaterEqual,
-        ICmpPredicate::UnsignedLessThan,
-        ICmpPredicate::UnsignedLessEqual,
-        ICmpPredicate::SignedGreaterThan,
-        ICmpPredicate::SignedGreaterEqual,
-        ICmpPredicate::SignedLessThan,
-        ICmpPredicate::SignedLessEqual,
-    };
-
-    constexpr target::ByteOrder ByteOrders[] = {
-        target::ByteOrder::LittleEndian,
-        target::ByteOrder::BigEndian,
-    };
-
-    template <typename T, std::size_t Count>
-    std::uint64_t encodeEnum(T Value, const T (&Entries)[Count]) noexcept
-    {
-      for (std::size_t Index = 0; Index < Count; ++Index)
-      {
-        if (Value == Entries[Index])
-        {
-          return Index;
-        }
-      }
-      return NoVirtualSlot;
-    }
-
     std::string nameText(core::Name Name)
     {
       return std::string(core::NamePool::instance().text(Name));
@@ -164,16 +60,6 @@ namespace ink::ir::detail
     std::array<std::uint64_t, 5> targetAlignments(const target::TargetContext &Target)
     {
       return {Target.integerAlignment(8), Target.integerAlignment(32), Target.integerAlignment(64), Target.integerAlignment(128), Target.floatAlignment(64)};
-    }
-
-    bool isNominal(RecordKind Kind) noexcept
-    {
-      return Kind == RecordKind::ClassType || Kind == RecordKind::InterfaceType || Kind == RecordKind::StructType;
-    }
-
-    bool isInstruction(RecordKind Kind) noexcept
-    {
-      return Kind >= RecordKind::Alloca && Kind <= RecordKind::GetElementPtr;
     }
 
     IRSerializationResult<void> validateModel(const Model &Data, const IRReadOptions &Options)
@@ -221,119 +107,73 @@ namespace ink::ir::detail
           }
           StringBytes += Text.size();
         }
-        auto Shape = [&](std::size_t Numbers, std::size_t References, std::size_t Strings)
+        if (!isValidRecordKind(Entry.Kind))
         {
-          return N.size() == Numbers && R.size() == References && S.size() == Strings;
-        };
+          return Reject("Unknown IR record kind", IRSerializationErrorCode::UnsupportedKind);
+        }
+        if (!validateRecordShape(Entry.Kind, N.size(), R.size(), S.size()))
+        {
+          return Reject("Malformed IR record attributes");
+        }
         auto Flag = [&](std::size_t Position)
         {
-          return Position < N.size() && N[Position] <= 1;
+          return N[Position] <= 1;
         };
-        bool Valid = false;
+        bool Valid = true;
         switch (Entry.Kind)
         {
         case RecordKind::Module:
-          Valid = Index == 0 && N.empty() && R.size() == 2;
+          Valid = Index == 0;
           break;
         case RecordKind::BoolType:
         case RecordKind::VoidType:
         case RecordKind::NullPointerType:
-          Valid = Shape(1, 0, 0) && Flag(0);
-          break;
-        case RecordKind::IntegerType:
-          Valid = Shape(3, 0, 0) && Flag(0) && Flag(2) && N[1] <= core::IntegerBits::MaxBitWidth && N[1] > 0;
-          break;
-        case RecordKind::FloatType:
-          Valid = Shape(2, 0, 0) && Flag(0) && (N[1] == 32 || N[1] == 64);
-          break;
-        case RecordKind::MetaType:
-        case RecordKind::VariadicType:
-          Valid = Shape(0, 0, 0);
-          break;
         case RecordKind::PointerType:
         case RecordKind::ReferenceType:
         case RecordKind::QualifiedType:
-          Valid = Shape(1, 1, 0) && Flag(0);
-          break;
         case RecordKind::ArrayType:
-          Valid = Shape(2, 1, 0) && Flag(0);
+          Valid = Flag(schema::Type::Mutable);
+          break;
+        case RecordKind::IntegerType:
+          Valid = Flag(schema::IntegerType::Mutable) && Flag(schema::IntegerType::Signed) && N[schema::IntegerType::Width] <= core::IntegerBits::MaxBitWidth && N[schema::IntegerType::Width] > 0;
+          break;
+        case RecordKind::FloatType:
+          Valid = Flag(schema::FloatType::Mutable) && (N[schema::FloatType::Width] == 32 || N[schema::FloatType::Width] == 64);
           break;
         case RecordKind::FunctionType:
-          Valid = !N.empty() && N.size() == R.size() && S.empty() && std::all_of(N.begin(), N.end(), [](std::uint64_t Value)
-                                                                                 {
-                                                                                   return Value <= 1;
-                                                                                 });
+          Valid = std::all_of(N.begin(), N.end(), [](std::uint64_t Value)
+          {
+            return Value <= 1;
+          });
           break;
         case RecordKind::ClassType:
         case RecordKind::InterfaceType:
         case RecordKind::StructType:
-          Valid = Shape(3, 0, 1) && Flag(2) && N[1] != 0 && (N[1] & (N[1] - 1)) == 0;
-          break;
-        case RecordKind::Field:
-          Valid = Shape(1, 3, 1);
+          Valid = Flag(schema::NominalType::Frozen) && N[schema::NominalType::Alignment] != 0 && (N[schema::NominalType::Alignment] & (N[schema::NominalType::Alignment] - 1)) == 0;
           break;
         case RecordKind::Function:
-          Valid = Shape(7, 2, 1) && N[0] <= 2 && N[1] <= 1 && N[2] <= 1 && N[3] <= 2 && Flag(4) && Flag(5) && (N[6] <= NullId || N[6] == NoVirtualSlot);
+          Valid = decodeEnum<SymbolLinkage>(N[schema::Function::Linkage]).has_value() && decodeEnum<LanguageLinkage>(N[schema::Function::Language]).has_value() && decodeEnum<FunctionVisibility>(N[schema::Function::Visibility]).has_value() && decodeEnum<MethodDispatch>(N[schema::Function::Dispatch]).has_value() && Flag(schema::Function::Override) && Flag(schema::Function::Final) && (N[schema::Function::Slot] <= std::numeric_limits<std::uint32_t>::max() || N[schema::Function::Slot] == NoVirtualSlot);
           break;
         case RecordKind::Parameter:
-          Valid = Shape(1, 1, 1) && N[0] <= std::numeric_limits<std::size_t>::max();
-          break;
-        case RecordKind::Block:
-          Valid = Shape(0, 1, 1);
+          Valid = N[schema::Parameter::Index] <= std::numeric_limits<std::size_t>::max();
           break;
         case RecordKind::Global:
-          Valid = Shape(1, 2, 1) && Flag(0);
-          break;
-        case RecordKind::Import:
-          Valid = N.empty() && R.size() == 1 && !S.empty();
-          break;
-        case RecordKind::Export:
-          Valid = Shape(0, 1, 1);
+          Valid = Flag(schema::Global::StringStorage);
           break;
         case RecordKind::BoolConstant:
-          Valid = Shape(1, 1, 0) && Flag(0);
-          break;
-        case RecordKind::IntegerConstant:
-          Valid = !N.empty() && R.size() == 1 && S.empty();
-          break;
-        case RecordKind::FloatConstant:
-          Valid = Shape(1, 1, 0);
-          break;
-        case RecordKind::NullPointerConstant:
-          Valid = Shape(0, 1, 0);
-          break;
-        case RecordKind::StringConstant:
-          Valid = Shape(0, 1, 1);
-          break;
-        case RecordKind::ArrayConstant:
-          Valid = N.empty() && !R.empty() && S.empty();
+          Valid = Flag(schema::BoolConstant::Value);
           break;
         case RecordKind::Alloca:
-          Valid = Shape(1, 2, 1) && Flag(0);
-          break;
-        case RecordKind::Load:
-        case RecordKind::Neg:
-        case RecordKind::Branch:
-        case RecordKind::Return:
-          Valid = Shape(0, 3, 0);
-          break;
-        case RecordKind::Store:
-          Valid = Shape(0, 4, 0);
+          Valid = Flag(schema::Alloca::Initialized);
           break;
         case RecordKind::ICmp:
-          Valid = Shape(1, 4, 0) && N[0] <= 9;
-          break;
-        case RecordKind::CondBranch:
-          Valid = Shape(0, 5, 0);
-          break;
-        case RecordKind::Call:
-          Valid = N.empty() && R.size() >= 4 && S.size() == R.size() - 4;
+          Valid = decodeEnum<ICmpPredicate>(N[schema::ICmp::Predicate]).has_value();
           break;
         case RecordKind::GetElementPtr:
-          Valid = N.size() == 1 && Flag(0) && R.size() >= 4 && S.empty();
+          Valid = Flag(schema::GetElementPtr::InBounds);
           break;
         default:
-          return Reject("Unknown IR record kind", IRSerializationErrorCode::UnsupportedKind);
+          break;
         }
         if (!Valid)
         {
@@ -341,7 +181,7 @@ namespace ink::ir::detail
         }
         for (std::size_t Operand = 0; Operand < R.size(); ++Operand)
         {
-          const bool Nullable = Entry.Kind == RecordKind::Module || (Entry.Kind == RecordKind::Function && Operand == 1) || (Entry.Kind == RecordKind::Field && Operand == 2) || (Entry.Kind == RecordKind::Global && Operand == 1) || (Entry.Kind == RecordKind::Return && Operand == 2);
+          const bool Nullable = isNullableReference(Entry.Kind, Operand);
           if ((R[Operand] == NullId && !Nullable) || (R[Operand] != NullId && R[Operand] >= Data.Records.size()))
           {
             return Reject("Invalid IR record reference", IRSerializationErrorCode::InvalidReference);
@@ -368,7 +208,7 @@ namespace ink::ir::detail
             : Owner(Owner)
         {
           Data.PointerBits = static_cast<std::uint32_t>(Owner.targetContext().pointerWidth());
-          Data.ByteOrder = static_cast<std::uint32_t>(encodeEnum(Owner.targetContext().byteOrder(), ByteOrders));
+          Data.ByteOrder = static_cast<std::uint32_t>(encodeEnum(Owner.targetContext().byteOrder()));
           Data.NativeAbi = Owner.targetContext().isNativeAbiCompatible();
           Data.Alignments = targetAlignments(Owner.targetContext());
         }
@@ -527,15 +367,18 @@ namespace ink::ir::detail
           switch (Value.kind())
           {
           case ValueKind::Module:
-            Result.Kind = RecordKind::Module;
-            Result.References = {reference(Owner.initializationFunction()), reference(Owner.deinitializationFunction())};
+            Result = makeRecord(RecordKind::Module);
+            Result.References[schema::Module::Init] = reference(Owner.initializationFunction());
+            Result.References[schema::Module::Deinit] = reference(Owner.deinitializationFunction());
             for (core::Name Component : Owner.moduleID().Components)
             {
               Result.Strings.push_back(nameText(Component));
             }
             for (const auto &Import : Owner.imports())
             {
-              Record Entry{RecordKind::Import, {}, {reference(Import.SymbolType)}, {}};
+              auto Entry = makeRecord(RecordKind::Import);
+              Entry.References[schema::Import::Type] = reference(Import.SymbolType);
+              Entry.Strings.clear();
               for (core::Name Component : Import.Target.Module.Components)
               {
                 Entry.Strings.push_back(nameText(Component));
@@ -547,43 +390,60 @@ namespace ink::ir::detail
             {
               for (const auto &Entry : Export.Entries)
               {
-                appendRecord({RecordKind::Export, {}, {reference(Entry.Declaration)}, {nameText(Export.Symbol.SymbolName)}});
+                auto ExportRecord = makeRecord(RecordKind::Export);
+                ExportRecord.References[schema::Export::Declaration] = reference(Entry.Declaration);
+                ExportRecord.Strings[schema::Export::Name] = nameText(Export.Symbol.SymbolName);
+                appendRecord(std::move(ExportRecord));
               }
             }
             break;
           case ValueKind::Function:
           {
             const auto &FunctionValue = static_cast<const Function &>(Value);
-            Result.Kind = RecordKind::Function;
-            Result.References = {reference(FunctionValue.functionType()), reference(FunctionOwners[&FunctionValue])};
-            Result.Numbers = {encodeEnum(FunctionValue.symbolLinkage(), SymbolLinkages), encodeEnum(FunctionValue.languageLinkage(), LanguageLinkages), encodeEnum(FunctionValue.visibility(), Visibilities), 0, 0, 0, NoVirtualSlot};
-            Result.Strings = {nameText(FunctionValue.name())};
+            Result = makeRecord(RecordKind::Function);
+            Result.References[schema::Function::Signature] = reference(FunctionValue.functionType());
+            Result.References[schema::Function::Owner] = reference(FunctionOwners[&FunctionValue]);
+            Result.Numbers[schema::Function::Linkage] = encodeEnum(FunctionValue.symbolLinkage());
+            Result.Numbers[schema::Function::Language] = encodeEnum(FunctionValue.languageLinkage());
+            Result.Numbers[schema::Function::Visibility] = encodeEnum(FunctionValue.visibility());
+            Result.Numbers[schema::Function::Dispatch] = encodeEnum(MethodDispatch::Direct);
+            Result.Numbers[schema::Function::Slot] = NoVirtualSlot;
+            Result.Strings[schema::Function::Name] = nameText(FunctionValue.name());
             if (auto It = Methods.find(&FunctionValue); It != Methods.end())
             {
               const auto &Info = It->second->virtualInfo();
-              Result.Numbers[3] = encodeEnum(Info.Dispatch, DispatchKinds);
-              Result.Numbers[4] = Info.Override;
-              Result.Numbers[5] = Info.Final;
-              Result.Numbers[6] = Info.Slot ? static_cast<std::uint64_t>(*Info.Slot) : NoVirtualSlot;
+              Result.Numbers[schema::Function::Dispatch] = encodeEnum(Info.Dispatch);
+              Result.Numbers[schema::Function::Override] = Info.Override;
+              Result.Numbers[schema::Function::Final] = Info.Final;
+              Result.Numbers[schema::Function::Slot] = Info.Slot ? static_cast<std::uint64_t>(*Info.Slot) : NoVirtualSlot;
             }
             break;
           }
           case ValueKind::Parameter:
           {
             const auto &ParameterValue = static_cast<const Parameter &>(Value);
-            Result = {RecordKind::Parameter, {ParameterValue.index()}, {reference(ParameterValue.function())}, {nameText(ParameterValue.name())}};
+            Result = makeRecord(RecordKind::Parameter);
+            Result.Numbers[schema::Parameter::Index] = ParameterValue.index();
+            Result.References[schema::Parameter::Function] = reference(ParameterValue.function());
+            Result.Strings[schema::Parameter::Name] = nameText(ParameterValue.name());
             break;
           }
           case ValueKind::BasicBlock:
           {
             const auto &Block = static_cast<const BasicBlock &>(Value);
-            Result = {RecordKind::Block, {}, {reference(Block.function())}, {nameText(Block.name())}};
+            Result = makeRecord(RecordKind::Block);
+            Result.References[schema::Block::Function] = reference(Block.function());
+            Result.Strings[schema::Block::Name] = nameText(Block.name());
             break;
           }
           case ValueKind::GlobalVariable:
           {
             const auto &Global = static_cast<const GlobalVariable &>(Value);
-            Result = {RecordKind::Global, {IRModelAccess::isStringStorage(Owner, Global)}, {reference(Global.type()), reference(Global.initializer())}, {nameText(Global.name())}};
+            Result = makeRecord(RecordKind::Global);
+            Result.Numbers[schema::Global::StringStorage] = IRModelAccess::isStringStorage(Owner, Global);
+            Result.References[schema::Global::Type] = reference(Global.type());
+            Result.References[schema::Global::Initializer] = reference(Global.initializer());
+            Result.Strings[schema::Global::Name] = nameText(Global.name());
             break;
           }
           default:
@@ -594,77 +454,83 @@ namespace ink::ir::detail
 
         void collectType(const Type &Value, Record &Result)
         {
-          Result.Numbers = {Value.isMutable()};
           if (NominalType::classof(&Value))
           {
             const auto &Nominal = static_cast<const NominalType &>(Value);
             if (Nominal.declarationType() != &Nominal)
             {
-              Result.Kind = RecordKind::QualifiedType;
-              Result.References = {reference(Nominal.declarationType())};
+              Result = makeRecord(RecordKind::QualifiedType);
+              Result.Numbers[schema::QualifiedType::Mutable] = Value.isMutable();
+              Result.References[schema::QualifiedType::Declaration] = reference(Nominal.declarationType());
               return;
             }
-            Result.Kind = Value.kind() == ValueKind::Class ? RecordKind::ClassType : Value.kind() == ValueKind::Interface ? RecordKind::InterfaceType
-                                                                                                                          : RecordKind::StructType;
-            Result.Numbers = {Nominal.size(), Nominal.alignment(), Nominal.isFrozen()};
-            Result.Strings = {nameText(Nominal.name())};
+            Result = makeRecord(Value.kind() == ValueKind::Class ? RecordKind::ClassType : Value.kind() == ValueKind::Interface ? RecordKind::InterfaceType : RecordKind::StructType);
+            Result.Numbers[schema::NominalType::Size] = Nominal.size();
+            Result.Numbers[schema::NominalType::Alignment] = Nominal.alignment();
+            Result.Numbers[schema::NominalType::Frozen] = Nominal.isFrozen();
+            Result.Strings[schema::NominalType::Name] = nameText(Nominal.name());
             for (const auto &Field : Nominal.fields())
             {
-              appendRecord({RecordKind::Field, {Field.offset()}, {reference(&Nominal), reference(Field.type()), reference(Field.initializer())}, {nameText(Field.name())}});
+              auto Entry = makeRecord(RecordKind::Field);
+              Entry.Numbers[schema::Field::Offset] = Field.offset();
+              Entry.References[schema::Field::Owner] = reference(&Nominal);
+              Entry.References[schema::Field::Type] = reference(Field.type());
+              Entry.References[schema::Field::Initializer] = reference(Field.initializer());
+              Entry.Strings[schema::Field::Name] = nameText(Field.name());
+              appendRecord(std::move(Entry));
             }
             return;
           }
           switch (Value.kind())
           {
           case ValueKind::Bool:
-            Result.Kind = RecordKind::BoolType;
+            Result = makeRecord(RecordKind::BoolType);
             break;
           case ValueKind::Void:
-            Result.Kind = RecordKind::VoidType;
+            Result = makeRecord(RecordKind::VoidType);
             break;
           case ValueKind::NullPointer:
-            Result.Kind = RecordKind::NullPointerType;
+            Result = makeRecord(RecordKind::NullPointerType);
             break;
           case ValueKind::Integer:
           {
             const auto &Integer = static_cast<const IntegerType &>(Value);
-            Result.Kind = RecordKind::IntegerType;
-            Result.Numbers = {Value.isMutable(), Integer.width(), Integer.isSigned()};
+            Result = makeRecord(RecordKind::IntegerType);
+            Result.Numbers[schema::IntegerType::Width] = Integer.width();
+            Result.Numbers[schema::IntegerType::Signed] = Integer.isSigned();
             break;
           }
           case ValueKind::Float:
-            Result.Kind = RecordKind::FloatType;
-            Result.Numbers.push_back(static_cast<const FloatType &>(Value).width());
+            Result = makeRecord(RecordKind::FloatType);
+            Result.Numbers[schema::FloatType::Width] = static_cast<const FloatType &>(Value).width();
             break;
           case ValueKind::MetaType:
-            Result.Kind = RecordKind::MetaType;
-            Result.Numbers.clear();
-            break;
+            Result = makeRecord(RecordKind::MetaType);
+            return;
           case ValueKind::Variadic:
-            Result.Kind = RecordKind::VariadicType;
-            Result.Numbers.clear();
-            break;
+            Result = makeRecord(RecordKind::VariadicType);
+            return;
           case ValueKind::Pointer:
-            Result.Kind = RecordKind::PointerType;
-            Result.References = {reference(static_cast<const PointerType &>(Value).pointeeType())};
+            Result = makeRecord(RecordKind::PointerType);
+            Result.References[schema::PointerType::Element] = reference(static_cast<const PointerType &>(Value).pointeeType());
             break;
           case ValueKind::Reference:
-            Result.Kind = RecordKind::ReferenceType;
-            Result.References = {reference(static_cast<const ReferenceType &>(Value).referencedType())};
+            Result = makeRecord(RecordKind::ReferenceType);
+            Result.References[schema::ReferenceType::Element] = reference(static_cast<const ReferenceType &>(Value).referencedType());
             break;
           case ValueKind::Array:
           {
             const auto &Array = static_cast<const ArrayType &>(Value);
-            Result.Kind = RecordKind::ArrayType;
-            Result.Numbers.push_back(Array.elementCount());
-            Result.References = {reference(Array.elementType())};
+            Result = makeRecord(RecordKind::ArrayType);
+            Result.Numbers[schema::ArrayType::Count] = Array.elementCount();
+            Result.References[schema::ArrayType::Element] = reference(Array.elementType());
             break;
           }
           case ValueKind::FunctionType:
           {
             const auto &Signature = static_cast<const FunctionType &>(Value);
-            Result.Kind = RecordKind::FunctionType;
-            Result.References = {reference(Signature.returnType())};
+            Result = makeRecord(RecordKind::FunctionType);
+            Result.References[schema::FunctionType::Return] = reference(Signature.returnType());
             for (const auto &Parameter : Signature.parameters())
             {
               Result.Numbers.push_back(Parameter.Variadic);
@@ -674,39 +540,40 @@ namespace ink::ir::detail
           }
           default:
             fail("Unsupported IR type kind", IRSerializationErrorCode::UnsupportedKind);
-            break;
+            return;
           }
+          Result.Numbers[schema::Type::Mutable] = Value.isMutable();
         }
 
         void collectConstant(const Constant &Value, Record &Result)
         {
-          Result.References = {reference(Value.type())};
+          const auto TypeId = reference(Value.type());
           switch (Value.kind())
           {
           case ValueKind::BoolConstant:
-            Result.Kind = RecordKind::BoolConstant;
-            Result.Numbers = {static_cast<const BoolConstant &>(Value).value()};
+            Result = makeRecord(RecordKind::BoolConstant);
+            Result.Numbers[schema::BoolConstant::Value] = static_cast<const BoolConstant &>(Value).value();
             break;
           case ValueKind::IntegerConstant:
           {
-            Result.Kind = RecordKind::IntegerConstant;
+            Result = makeRecord(RecordKind::IntegerConstant);
             const auto Words = static_cast<const IntegerConstant &>(Value).bits().words();
             Result.Numbers.assign(Words.begin(), Words.end());
             break;
           }
           case ValueKind::FloatConstant:
-            Result.Kind = RecordKind::FloatConstant;
-            Result.Numbers = {static_cast<const FloatConstant &>(Value).bits()};
+            Result = makeRecord(RecordKind::FloatConstant);
+            Result.Numbers[schema::FloatConstant::Bits] = static_cast<const FloatConstant &>(Value).bits();
             break;
           case ValueKind::NullPointerConstant:
-            Result.Kind = RecordKind::NullPointerConstant;
+            Result = makeRecord(RecordKind::NullPointerConstant);
             break;
           case ValueKind::StringConstant:
-            Result.Kind = RecordKind::StringConstant;
-            Result.Strings = {std::string(static_cast<const StringConstant &>(Value).value())};
+            Result = makeRecord(RecordKind::StringConstant);
+            Result.Strings[schema::StringConstant::Bytes] = std::string(static_cast<const StringConstant &>(Value).value());
             break;
           case ValueKind::ArrayConstant:
-            Result.Kind = RecordKind::ArrayConstant;
+            Result = makeRecord(RecordKind::ArrayConstant);
             for (const auto *Element : static_cast<const ArrayConstant &>(Value).elements())
             {
               Result.References.push_back(reference(Element));
@@ -714,78 +581,76 @@ namespace ink::ir::detail
             break;
           default:
             fail("Unsupported IR constant kind", IRSerializationErrorCode::UnsupportedKind);
-            break;
+            return;
           }
+          Result.References[schema::Typed::Type] = TypeId;
         }
 
         void collectInstruction(const Instruction &Value, Record &Result)
         {
-          Result.References = {reference(Value.type()), reference(Value.parentBlock())};
-          auto Add = [&](const ink::ir::Value *Operand)
-          {
-            Result.References.push_back(reference(Operand));
-          };
+          const auto TypeId = reference(Value.type());
+          const auto BlockId = reference(Value.parentBlock());
           switch (Value.kind())
           {
           case ValueKind::AllocaInstruction:
           {
             const auto &Instruction = static_cast<const AllocaInstruction &>(Value);
-            Result.Kind = RecordKind::Alloca;
-            Result.Numbers = {Instruction.isInitialized()};
-            Result.Strings = {nameText(Instruction.name())};
+            Result = makeRecord(RecordKind::Alloca);
+            Result.Numbers[schema::Alloca::Initialized] = Instruction.isInitialized();
+            Result.Strings[schema::Alloca::Name] = nameText(Instruction.name());
             break;
           }
           case ValueKind::LoadInstruction:
-            Result.Kind = RecordKind::Load;
-            Add(static_cast<const LoadInstruction &>(Value).pointer());
+            Result = makeRecord(RecordKind::Load);
+            Result.References[schema::Load::Pointer] = reference(static_cast<const LoadInstruction &>(Value).pointer());
             break;
           case ValueKind::StoreInstruction:
           {
             const auto &Instruction = static_cast<const StoreInstruction &>(Value);
-            Result.Kind = RecordKind::Store;
-            Add(Instruction.storedValue());
-            Add(Instruction.pointer());
+            Result = makeRecord(RecordKind::Store);
+            Result.References[schema::Store::Value] = reference(Instruction.storedValue());
+            Result.References[schema::Store::Pointer] = reference(Instruction.pointer());
             break;
           }
           case ValueKind::NegInstruction:
-            Result.Kind = RecordKind::Neg;
-            Add(static_cast<const NegInstruction &>(Value).operand());
+            Result = makeRecord(RecordKind::Neg);
+            Result.References[schema::Neg::Operand] = reference(static_cast<const NegInstruction &>(Value).operand());
             break;
           case ValueKind::ICmpInstruction:
           {
             const auto &Instruction = static_cast<const ICmpInstruction &>(Value);
-            Result.Kind = RecordKind::ICmp;
-            Result.Numbers = {encodeEnum(Instruction.predicate(), Predicates)};
-            Add(Instruction.left());
-            Add(Instruction.right());
+            Result = makeRecord(RecordKind::ICmp);
+            Result.Numbers[schema::ICmp::Predicate] = encodeEnum(Instruction.predicate());
+            Result.References[schema::ICmp::Left] = reference(Instruction.left());
+            Result.References[schema::ICmp::Right] = reference(Instruction.right());
             break;
           }
           case ValueKind::BranchInstruction:
-            Result.Kind = RecordKind::Branch;
-            Add(static_cast<const BranchInstruction &>(Value).target());
+            Result = makeRecord(RecordKind::Branch);
+            Result.References[schema::Branch::Target] = reference(static_cast<const BranchInstruction &>(Value).target());
             break;
           case ValueKind::ConditionalBranchInstruction:
           {
             const auto &Instruction = static_cast<const ConditionalBranchInstruction &>(Value);
-            Result.Kind = RecordKind::CondBranch;
-            Add(Instruction.condition());
-            Add(Instruction.trueTarget());
-            Add(Instruction.falseTarget());
+            Result = makeRecord(RecordKind::CondBranch);
+            Result.References[schema::CondBranch::Condition] = reference(Instruction.condition());
+            Result.References[schema::CondBranch::TrueTarget] = reference(Instruction.trueTarget());
+            Result.References[schema::CondBranch::FalseTarget] = reference(Instruction.falseTarget());
             break;
           }
           case ValueKind::ReturnInstruction:
-            Result.Kind = RecordKind::Return;
-            Add(static_cast<const ReturnInstruction &>(Value).returnedValue());
+            Result = makeRecord(RecordKind::Return);
+            Result.References[schema::Return::Value] = reference(static_cast<const ReturnInstruction &>(Value).returnedValue());
             break;
           case ValueKind::CallInstruction:
           {
             const auto &Instruction = static_cast<const CallInstruction &>(Value);
-            Result.Kind = RecordKind::Call;
-            Add(Instruction.functionType());
-            Add(Instruction.callee());
+            Result = makeRecord(RecordKind::Call);
+            Result.References[schema::Call::Signature] = reference(Instruction.functionType());
+            Result.References[schema::Call::Callee] = reference(Instruction.callee());
             for (const auto &Argument : Instruction.arguments())
             {
-              Add(Argument.value());
+              Result.References.push_back(reference(Argument.value()));
               Result.Strings.push_back(nameText(Argument.name()));
             }
             break;
@@ -793,20 +658,22 @@ namespace ink::ir::detail
           case ValueKind::GetElementPtrInstruction:
           {
             const auto &Instruction = static_cast<const GetElementPtrInstruction &>(Value);
-            Result.Kind = RecordKind::GetElementPtr;
-            Result.Numbers = {Instruction.isInBounds()};
-            Add(Instruction.sourceElementType());
-            Add(Instruction.pointer());
+            Result = makeRecord(RecordKind::GetElementPtr);
+            Result.Numbers[schema::GetElementPtr::InBounds] = Instruction.isInBounds();
+            Result.References[schema::GetElementPtr::SourceType] = reference(Instruction.sourceElementType());
+            Result.References[schema::GetElementPtr::Pointer] = reference(Instruction.pointer());
             for (const auto *Index : Instruction.indices())
             {
-              Add(Index);
+              Result.References.push_back(reference(Index));
             }
             break;
           }
           default:
             fail("Unsupported IR instruction kind", IRSerializationErrorCode::UnsupportedKind);
-            break;
+            return;
           }
+          Result.References[schema::Instruction::Type] = TypeId;
+          Result.References[schema::Instruction::Block] = BlockId;
         }
 
         const Module &Owner;
@@ -844,9 +711,8 @@ namespace ink::ir::detail
             const auto &Entry = Data.Records[Index];
             if (isNominal(Entry.Kind))
             {
-              auto Name = intern(Entry.Strings[0]);
-              NominalType *Value = Entry.Kind == RecordKind::ClassType ? static_cast<NominalType *>(Result.createClassType(Entry.Numbers[0], Entry.Numbers[1], Name)) : Entry.Kind == RecordKind::InterfaceType ? static_cast<NominalType *>(Result.createInterfaceType(Entry.Numbers[0], Entry.Numbers[1], Name))
-                                                                                                                                                                                                                : static_cast<NominalType *>(Result.createStructType(Entry.Numbers[0], Entry.Numbers[1], Name));
+              auto Name = intern(Entry.Strings[schema::Named::Name]);
+              NominalType *Value = Entry.Kind == RecordKind::ClassType ? static_cast<NominalType *>(Result.createClassType(Entry.Numbers[schema::NominalType::Size], Entry.Numbers[schema::NominalType::Alignment], Name)) : Entry.Kind == RecordKind::InterfaceType ? static_cast<NominalType *>(Result.createInterfaceType(Entry.Numbers[schema::NominalType::Size], Entry.Numbers[schema::NominalType::Alignment], Name)) : static_cast<NominalType *>(Result.createStructType(Entry.Numbers[schema::NominalType::Size], Entry.Numbers[schema::NominalType::Alignment], Name));
               set(Index, Value);
             }
           }
@@ -857,17 +723,17 @@ namespace ink::ir::detail
             {
               continue;
             }
-            resolve(Entry.References[0]);
-            const auto *Signature = as<FunctionType>(Entry.References[0]);
+            resolve(Entry.References[schema::Function::Signature]);
+            const auto *Signature = as<FunctionType>(Entry.References[schema::Function::Signature]);
             if (!Signature)
             {
               break;
             }
-            auto Callable = std::make_unique<Function>(*Signature, intern(Entry.Strings[0]), SymbolLinkages[Entry.Numbers[0]], LanguageLinkages[Entry.Numbers[1]], Visibilities[Entry.Numbers[2]]);
+            auto Callable = std::make_unique<Function>(*Signature, intern(Entry.Strings[schema::Named::Name]), *decodeEnum<SymbolLinkage>(Entry.Numbers[schema::Function::Linkage]), *decodeEnum<LanguageLinkage>(Entry.Numbers[schema::Function::Language]), *decodeEnum<FunctionVisibility>(Entry.Numbers[schema::Function::Visibility]));
             set(Index, Callable.get());
-            if (Entry.References[1] == NullId)
+            if (Entry.References[schema::Function::Owner] == NullId)
             {
-              if (Entry.Numbers[3] || Entry.Numbers[4] || Entry.Numbers[5] || Entry.Numbers[6] != NoVirtualSlot)
+              if (Entry.Numbers[schema::Function::Dispatch] != encodeEnum(MethodDispatch::Direct) || Entry.Numbers[schema::Function::Override] || Entry.Numbers[schema::Function::Final] || Entry.Numbers[schema::Function::Slot] != NoVirtualSlot)
               {
                 fail("A global function has method-only attributes");
               }
@@ -878,7 +744,7 @@ namespace ink::ir::detail
             }
             else
             {
-              as<NominalType>(Entry.References[1]);
+              as<NominalType>(Entry.References[schema::Function::Owner]);
               Functions[Index] = std::move(Callable);
             }
           }
@@ -888,26 +754,26 @@ namespace ink::ir::detail
             const auto &Entry = Data.Records[Index];
             if (Entry.Kind == RecordKind::Parameter)
             {
-              auto *Parent = mutableAs<Function>(Entry.References[0]);
+              auto *Parent = mutableAs<Function>(Entry.References[schema::Parameter::Function]);
               if (!Parent)
               {
                 break;
               }
-              auto *Value = Parent->parameter(static_cast<std::size_t>(Entry.Numbers[0]));
+              auto *Value = Parent->parameter(static_cast<std::size_t>(Entry.Numbers[schema::Parameter::Index]));
               if (!Value || !SeenParameters.insert(Value).second)
               {
                 fail("Invalid or duplicate formal parameter index");
                 break;
               }
-              Value->setName(intern(Entry.Strings[0]));
+              Value->setName(intern(Entry.Strings[schema::Named::Name]));
               set(Index, Value);
             }
             else if (Entry.Kind == RecordKind::Block)
             {
-              auto *Parent = mutableAs<Function>(Entry.References[0]);
+              auto *Parent = mutableAs<Function>(Entry.References[schema::Block::Function]);
               if (Parent)
               {
-                set(Index, Parent->createBlock(intern(Entry.Strings[0])));
+                set(Index, Parent->createBlock(intern(Entry.Strings[schema::Named::Name])));
               }
             }
           }
@@ -926,15 +792,15 @@ namespace ink::ir::detail
             }
             else if (Entry.Kind == RecordKind::Global)
             {
-              resolve(Entry.References[0]);
-              resolve(Entry.References[1]);
-              const auto *Address = as<PointerType>(Entry.References[0]);
-              const auto *Initializer = as<Constant>(Entry.References[1], true);
+              resolve(Entry.References[schema::Global::Type]);
+              resolve(Entry.References[schema::Global::Initializer]);
+              const auto *Address = as<PointerType>(Entry.References[schema::Global::Type]);
+              const auto *Initializer = as<Constant>(Entry.References[schema::Global::Initializer], true);
               if (Error || !Address)
               {
                 break;
               }
-              auto Variable = std::make_unique<GlobalVariable>(*Address, intern(Entry.Strings[0]));
+              auto Variable = std::make_unique<GlobalVariable>(*Address, intern(Entry.Strings[schema::Named::Name]));
               if (!Variable->setInitializer(Initializer))
               {
                 fail("Incompatible global initializer");
@@ -942,7 +808,7 @@ namespace ink::ir::detail
               }
               auto *Value = Result.appendGlobalVariable(std::move(Variable));
               set(Index, Value);
-              if (Value && Entry.Numbers[0] && !IRModelAccess::registerStringStorage(Result, *Value))
+              if (Value && Entry.Numbers[schema::Global::StringStorage] && !IRModelAccess::registerStringStorage(Result, *Value))
               {
                 fail("Invalid or duplicate string storage");
               }
@@ -960,7 +826,7 @@ namespace ink::ir::detail
           {
             if (Instructions[Index])
             {
-              auto *Parent = mutableAs<BasicBlock>(Data.Records[Index].References[1]);
+              auto *Parent = mutableAs<BasicBlock>(Data.Records[Index].References[schema::Instruction::Block]);
               if (Parent)
               {
                 Parent->appendInstruction(std::move(Instructions[Index]));
@@ -972,21 +838,21 @@ namespace ink::ir::detail
             const auto &Entry = Data.Records[Index];
             if (Entry.Kind == RecordKind::Field)
             {
-              auto *Owner = mutableAs<NominalType>(Entry.References[0]);
-              const auto *Type = as<ink::ir::Type>(Entry.References[1]);
-              const auto *Initializer = as<Constant>(Entry.References[2], true);
-              if (!Error && !Owner->addField(Field(Type, intern(Entry.Strings[0]), Entry.Numbers[0], Initializer)))
+              auto *Owner = mutableAs<NominalType>(Entry.References[schema::Field::Owner]);
+              const auto *Type = as<ink::ir::Type>(Entry.References[schema::Field::Type]);
+              const auto *Initializer = as<Constant>(Entry.References[schema::Field::Initializer], true);
+              if (!Error && !Owner->addField(Field(Type, intern(Entry.Strings[schema::Named::Name]), Entry.Numbers[schema::Field::Offset], Initializer)))
               {
                 fail("Invalid nominal field metadata");
               }
             }
             else if (Entry.Kind == RecordKind::Function && Functions[Index])
             {
-              auto *Owner = mutableAs<NominalType>(Entry.References[1]);
-              MethodVirtualInfo Info{DispatchKinds[Entry.Numbers[3]], Entry.Numbers[4] != 0, Entry.Numbers[5] != 0, std::nullopt};
-              if (Entry.Numbers[6] != NoVirtualSlot)
+              auto *Owner = mutableAs<NominalType>(Entry.References[schema::Function::Owner]);
+              MethodVirtualInfo Info{*decodeEnum<MethodDispatch>(Entry.Numbers[schema::Function::Dispatch]), Entry.Numbers[schema::Function::Override] != 0, Entry.Numbers[schema::Function::Final] != 0, std::nullopt};
+              if (Entry.Numbers[schema::Function::Slot] != NoVirtualSlot)
               {
-                Info.Slot = static_cast<std::uint32_t>(Entry.Numbers[6]);
+                Info.Slot = static_cast<std::uint32_t>(Entry.Numbers[schema::Function::Slot]);
               }
               Method EntryValue(std::move(Functions[Index]), Info);
               if (!Error && !Owner->addMethod(std::move(EntryValue)))
@@ -997,7 +863,7 @@ namespace ink::ir::detail
             else if (Entry.Kind == RecordKind::Import)
             {
               SymbolImport Import;
-              Import.SymbolType = as<Type>(Entry.References[0]);
+              Import.SymbolType = as<Type>(Entry.References[schema::Import::Type]);
               for (std::size_t Part = 0; Part + 1 < Entry.Strings.size(); ++Part)
               {
                 Import.Target.Module.Components.push_back(intern(Entry.Strings[Part]));
@@ -1007,8 +873,8 @@ namespace ink::ir::detail
             }
             else if (Entry.Kind == RecordKind::Export)
             {
-              const auto *Declaration = value(Entry.References[0]);
-              if (!Error && !Result.addExport({intern(Entry.Strings[0])}, *Declaration))
+              const auto *Declaration = value(Entry.References[schema::Export::Declaration]);
+              if (!Error && !Result.addExport({intern(Entry.Strings[schema::Named::Name])}, *Declaration))
               {
                 fail("Invalid exported declaration");
               }
@@ -1017,7 +883,7 @@ namespace ink::ir::detail
           for (std::size_t Index = 1; Index < Data.Records.size() && !Error; ++Index)
           {
             const auto &Entry = Data.Records[Index];
-            if (isNominal(Entry.Kind) && Entry.Numbers[2])
+            if (isNominal(Entry.Kind) && Entry.Numbers[schema::NominalType::Frozen])
             {
               mutableAs<NominalType>(static_cast<std::uint32_t>(Index))->freeze();
             }
@@ -1026,8 +892,8 @@ namespace ink::ir::detail
           {
             return std::unexpected(std::move(*Error));
           }
-          auto *Initialization = mutableAs<Function>(Data.Records[0].References[0], true);
-          auto *Deinitialization = mutableAs<Function>(Data.Records[0].References[1], true);
+          auto *Initialization = mutableAs<Function>(Data.Records[0].References[schema::Module::Init], true);
+          auto *Deinitialization = mutableAs<Function>(Data.Records[0].References[schema::Module::Deinit], true);
           if (!Error && (!Result.setInitializationFunction(Initialization) || !Result.setDeinitializationFunction(Deinitialization)))
           {
             fail("Invalid module lifecycle function");
@@ -1191,19 +1057,19 @@ namespace ink::ir::detail
           switch (Entry.Kind)
           {
           case RecordKind::BoolType:
-            Constructed = Pool.get<BoolType>(N[0] != 0);
+            Constructed = Pool.get<BoolType>(N[schema::Type::Mutable] != 0);
             break;
           case RecordKind::IntegerType:
-            Constructed = Pool.get<IntegerType>(static_cast<std::uint32_t>(N[1]), N[2] != 0, N[0] != 0);
+            Constructed = Pool.get<IntegerType>(static_cast<std::uint32_t>(N[schema::IntegerType::Width]), N[schema::IntegerType::Signed] != 0, N[schema::IntegerType::Mutable] != 0);
             break;
           case RecordKind::FloatType:
-            Constructed = Pool.get<FloatType>(static_cast<std::uint32_t>(N[1]), N[0] != 0);
+            Constructed = Pool.get<FloatType>(static_cast<std::uint32_t>(N[schema::FloatType::Width]), N[schema::FloatType::Mutable] != 0);
             break;
           case RecordKind::VoidType:
-            Constructed = Pool.get<VoidType>(N[0] != 0);
+            Constructed = Pool.get<VoidType>(N[schema::Type::Mutable] != 0);
             break;
           case RecordKind::NullPointerType:
-            Constructed = Pool.get<NullPointerType>(N[0] != 0);
+            Constructed = Pool.get<NullPointerType>(N[schema::Type::Mutable] != 0);
             break;
           case RecordKind::MetaType:
             Constructed = Pool.get<MetaType>();
@@ -1212,34 +1078,34 @@ namespace ink::ir::detail
             Constructed = Pool.get<VariadicType>();
             break;
           case RecordKind::QualifiedType:
-            Constructed = Pool.get(as<NominalType>(R[0]), N[0] != 0);
+            Constructed = Pool.get(as<NominalType>(R[schema::QualifiedType::Declaration]), N[schema::QualifiedType::Mutable] != 0);
             break;
           case RecordKind::PointerType:
-            Constructed = Pool.get<PointerType>(as<Type>(R[0]), N[0] != 0);
+            Constructed = Pool.get<PointerType>(as<Type>(R[schema::PointerType::Element]), N[schema::PointerType::Mutable] != 0);
             break;
           case RecordKind::ReferenceType:
-            Constructed = Pool.get<ReferenceType>(as<Type>(R[0]), N[0] != 0);
+            Constructed = Pool.get<ReferenceType>(as<Type>(R[schema::ReferenceType::Element]), N[schema::ReferenceType::Mutable] != 0);
             break;
           case RecordKind::ArrayType:
-            Constructed = Pool.get<ArrayType>(as<Type>(R[0]), N[1], N[0] != 0);
+            Constructed = Pool.get<ArrayType>(as<Type>(R[schema::ArrayType::Element]), N[schema::ArrayType::Count], N[schema::ArrayType::Mutable] != 0);
             break;
           case RecordKind::FunctionType:
           {
             std::vector<FunctionTypeParameter> Parameters;
-            Parameters.reserve(R.size() - 1);
-            for (std::size_t Index = 1; Index < R.size(); ++Index)
+            Parameters.reserve(R.size() - schema::FunctionType::ParametersBegin);
+            for (std::size_t Index = schema::FunctionType::ParametersBegin; Index < R.size(); ++Index)
             {
-              Parameters.emplace_back(as<Type>(R[Index]), N[Index] != 0);
+              Parameters.emplace_back(as<Type>(R[Index]), N[Index - schema::FunctionType::ParametersBegin + schema::FunctionType::VariadicsBegin] != 0);
             }
-            Constructed = Pool.get<FunctionType>(as<Type>(R[0]), std::span<const FunctionTypeParameter>(Parameters), N[0] != 0);
+            Constructed = Pool.get<FunctionType>(as<Type>(R[schema::FunctionType::Return]), std::span<const FunctionTypeParameter>(Parameters), N[schema::FunctionType::Mutable] != 0);
             break;
           }
           case RecordKind::BoolConstant:
-            Constructed = Constants.get<BoolConstant>(N[0] != 0);
+            Constructed = Constants.get<BoolConstant>(N[schema::BoolConstant::Value] != 0);
             break;
           case RecordKind::IntegerConstant:
           {
-            const auto *Type = as<IntegerType>(R[0]);
+            const auto *Type = as<IntegerType>(R[schema::IntegerConstant::Type]);
             if (Type && N.size() == (static_cast<std::size_t>(Type->width()) + 63) / 64)
             {
               const auto Bits = core::IntegerBits::fromWords(Type->width(), N);
@@ -1252,10 +1118,10 @@ namespace ink::ir::detail
           }
           case RecordKind::FloatConstant:
           {
-            const auto *Type = as<FloatType>(R[0]);
+            const auto *Type = as<FloatType>(R[schema::FloatConstant::Type]);
             if (Type)
             {
-              const auto Bits = core::IntegerBits::fromUnsigned(Type->width(), N[0]);
+              const auto Bits = core::IntegerBits::fromUnsigned(Type->width(), N[schema::FloatConstant::Bits]);
               if (Bits)
               {
                 Constructed = Constants.get<FloatConstant>(Type, *Bits);
@@ -1267,17 +1133,17 @@ namespace ink::ir::detail
             Constructed = Constants.get<NullPointerConstant>();
             break;
           case RecordKind::StringConstant:
-            Constructed = Constants.get<StringConstant>(Entry.Strings[0]);
+            Constructed = Constants.get<StringConstant>(Entry.Strings[schema::StringConstant::Bytes]);
             break;
           case RecordKind::ArrayConstant:
           {
             std::vector<const Constant *> Elements;
-            Elements.reserve(R.size() - 1);
-            for (std::size_t Index = 1; Index < R.size(); ++Index)
+            Elements.reserve(R.size() - schema::ArrayConstant::ElementsBegin);
+            for (std::size_t Index = schema::ArrayConstant::ElementsBegin; Index < R.size(); ++Index)
             {
               Elements.push_back(as<Constant>(R[Index]));
             }
-            Constructed = Constants.get<ArrayConstant>(as<ArrayType>(R[0]), std::move(Elements));
+            Constructed = Constants.get<ArrayConstant>(as<ArrayType>(R[schema::ArrayConstant::Type]), std::move(Elements));
             break;
           }
           default:
@@ -1289,7 +1155,7 @@ namespace ink::ir::detail
             fail("Unexpected reference to a declaration or metadata record", IRSerializationErrorCode::InvalidReference);
             return;
           }
-          if (Constructed && Constant::classof(Constructed) && Constructed->type() != as<Type>(R[0]))
+          if (Constructed && Constant::classof(Constructed) && Constructed->type() != as<Type>(R[schema::Typed::Type]))
           {
             fail("Constant type does not match its encoded type");
           }
@@ -1301,8 +1167,8 @@ namespace ink::ir::detail
           const auto &Entry = Data.Records[ID];
           const auto &N = Entry.Numbers;
           const auto &R = Entry.References;
-          const auto *Type = as<ink::ir::Type>(R[0]);
-          as<BasicBlock>(R[1]);
+          const auto *Type = as<ink::ir::Type>(R[schema::Instruction::Type]);
+          as<BasicBlock>(R[schema::Instruction::Block]);
           if (Error || !Type)
           {
             return;
@@ -1312,44 +1178,44 @@ namespace ink::ir::detail
           {
           case RecordKind::Alloca:
           {
-            const auto *Pointer = as<PointerType>(R[0]);
+            const auto *Pointer = as<PointerType>(R[schema::Alloca::Type]);
             if (Pointer)
             {
               auto Value = std::make_unique<AllocaInstruction>(*Pointer);
-              IRModelAccess::setInitialized(*Value, N[0] != 0);
-              Value->setName(intern(Entry.Strings[0]));
+              IRModelAccess::setInitialized(*Value, N[schema::Alloca::Initialized] != 0);
+              Value->setName(intern(Entry.Strings[schema::Alloca::Name]));
               InstructionValue = std::move(Value);
             }
             break;
           }
           case RecordKind::Load:
-            InstructionValue = std::make_unique<LoadInstruction>(*Type, *value(R[2]));
+            InstructionValue = std::make_unique<LoadInstruction>(*Type, *value(R[schema::Load::Pointer]));
             break;
           case RecordKind::Store:
           {
-            const auto *Void = as<VoidType>(R[0]);
+            const auto *Void = as<VoidType>(R[schema::Store::Type]);
             if (Void)
             {
-              InstructionValue = std::make_unique<StoreInstruction>(*Void, *value(R[2]), *value(R[3]));
+              InstructionValue = std::make_unique<StoreInstruction>(*Void, *value(R[schema::Store::Value]), *value(R[schema::Store::Pointer]));
             }
             break;
           }
           case RecordKind::Neg:
-            InstructionValue = std::make_unique<NegInstruction>(*value(R[2]));
+            InstructionValue = std::make_unique<NegInstruction>(*value(R[schema::Neg::Operand]));
             break;
           case RecordKind::ICmp:
           {
-            const auto *Bool = as<BoolType>(R[0]);
+            const auto *Bool = as<BoolType>(R[schema::ICmp::Type]);
             if (Bool)
             {
-              InstructionValue = std::make_unique<ICmpInstruction>(*Bool, Predicates[N[0]], *value(R[2]), *value(R[3]));
+              InstructionValue = std::make_unique<ICmpInstruction>(*Bool, *decodeEnum<ICmpPredicate>(N[schema::ICmp::Predicate]), *value(R[schema::ICmp::Left]), *value(R[schema::ICmp::Right]));
             }
             break;
           }
           case RecordKind::Branch:
           {
-            const auto *Void = as<VoidType>(R[0]);
-            auto *Target = mutableAs<BasicBlock>(R[2]);
+            const auto *Void = as<VoidType>(R[schema::Branch::Type]);
+            auto *Target = mutableAs<BasicBlock>(R[schema::Branch::Target]);
             if (!Error)
             {
               InstructionValue = std::make_unique<BranchInstruction>(*Void, *Target);
@@ -1358,52 +1224,52 @@ namespace ink::ir::detail
           }
           case RecordKind::CondBranch:
           {
-            const auto *Void = as<VoidType>(R[0]);
-            auto *True = mutableAs<BasicBlock>(R[3]);
-            auto *False = mutableAs<BasicBlock>(R[4]);
+            const auto *Void = as<VoidType>(R[schema::CondBranch::Type]);
+            auto *True = mutableAs<BasicBlock>(R[schema::CondBranch::TrueTarget]);
+            auto *False = mutableAs<BasicBlock>(R[schema::CondBranch::FalseTarget]);
             if (!Error)
             {
-              InstructionValue = std::make_unique<ConditionalBranchInstruction>(*Void, *value(R[2]), *True, *False);
+              InstructionValue = std::make_unique<ConditionalBranchInstruction>(*Void, *value(R[schema::CondBranch::Condition]), *True, *False);
             }
             break;
           }
           case RecordKind::Return:
           {
-            const auto *Void = as<VoidType>(R[0]);
+            const auto *Void = as<VoidType>(R[schema::Return::Type]);
             if (Void)
             {
-              InstructionValue = std::make_unique<ReturnInstruction>(*Void, value(R[2], true));
+              InstructionValue = std::make_unique<ReturnInstruction>(*Void, value(R[schema::Return::Value], true));
             }
             break;
           }
           case RecordKind::Call:
           {
-            const auto *Signature = as<FunctionType>(R[2]);
+            const auto *Signature = as<FunctionType>(R[schema::Call::Signature]);
             std::vector<Argument> Arguments;
-            Arguments.reserve(R.size() - 4);
-            for (std::size_t Index = 4; Index < R.size(); ++Index)
+            Arguments.reserve(R.size() - schema::Call::ArgumentsBegin);
+            for (std::size_t Index = schema::Call::ArgumentsBegin; Index < R.size(); ++Index)
             {
-              Arguments.emplace_back(*value(R[Index]), intern(Entry.Strings[Index - 4]));
+              Arguments.emplace_back(*value(R[Index]), intern(Entry.Strings[Index - schema::Call::ArgumentsBegin + schema::Call::ArgumentNamesBegin]));
             }
             if (!Error)
             {
-              InstructionValue = std::make_unique<CallInstruction>(*Signature, *value(R[3]), std::move(Arguments));
+              InstructionValue = std::make_unique<CallInstruction>(*Signature, *value(R[schema::Call::Callee]), std::move(Arguments));
             }
             break;
           }
           case RecordKind::GetElementPtr:
           {
-            const auto *Pointer = as<PointerType>(R[0]);
-            const auto *Source = as<ink::ir::Type>(R[2]);
+            const auto *Pointer = as<PointerType>(R[schema::GetElementPtr::Type]);
+            const auto *Source = as<ink::ir::Type>(R[schema::GetElementPtr::SourceType]);
             std::vector<const Value *> Indices;
-            Indices.reserve(R.size() - 4);
-            for (std::size_t Index = 4; Index < R.size(); ++Index)
+            Indices.reserve(R.size() - schema::GetElementPtr::IndicesBegin);
+            for (std::size_t Index = schema::GetElementPtr::IndicesBegin; Index < R.size(); ++Index)
             {
               Indices.push_back(value(R[Index]));
             }
             if (!Error)
             {
-              InstructionValue = std::make_unique<GetElementPtrInstruction>(*Pointer, *Source, *value(R[3]), std::move(Indices), N[0] != 0);
+              InstructionValue = std::make_unique<GetElementPtrInstruction>(*Pointer, *Source, *value(R[schema::GetElementPtr::Pointer]), std::move(Indices), N[schema::GetElementPtr::InBounds] != 0);
             }
             break;
           }
@@ -1432,18 +1298,6 @@ namespace ink::ir::detail
     };
   } // namespace
 
-  std::string_view recordKindName(RecordKind Kind) noexcept
-  {
-    for (const auto &Entry : KindNames)
-    {
-      if (Entry.Kind == Kind)
-      {
-        return Entry.Name;
-      }
-    }
-    return {};
-  }
-
   IRSerializationResult<Model> collectModel(const Module &ModuleValue)
   {
     return Collector(ModuleValue).run();
@@ -1452,7 +1306,7 @@ namespace ink::ir::detail
   IRSerializationResult<std::unique_ptr<Module>> decodeModel(IRContext &Context, const Model &Data, const IRReadOptions &Options)
   {
     const auto &Target = Context.targetContext();
-    if (Data.PointerBits != static_cast<std::uint32_t>(Target.pointerWidth()) || Data.ByteOrder != encodeEnum(Target.byteOrder(), ByteOrders) || Data.NativeAbi != Target.isNativeAbiCompatible() || Data.Alignments != targetAlignments(Target))
+    if (Data.PointerBits != static_cast<std::uint32_t>(Target.pointerWidth()) || Data.ByteOrder != encodeEnum(Target.byteOrder()) || Data.NativeAbi != Target.isNativeAbiCompatible() || Data.Alignments != targetAlignments(Target))
     {
       return std::unexpected(IRSerializationError{IRSerializationErrorCode::TargetMismatch, 0, "IR target layout does not match the destination context"});
     }

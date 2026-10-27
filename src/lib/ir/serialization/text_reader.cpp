@@ -62,15 +62,16 @@ namespace ink::ir::detail
             fail(IRSerializationErrorCode::UnsupportedVersion, "Unsupported Ink text IR version");
           }
           parseTarget();
-          expect("module");
-          Record ModuleRecord{RecordKind::Module, {}, {NullId, NullId}, stringList()};
+          expect(recordTextName(RecordKind::Module));
+          Record ModuleRecord = makeRecord(RecordKind::Module);
+          ModuleRecord.Strings = stringList();
           const auto ModuleId = reserveRecord();
           attributes([&](std::string_view Name)
           {
             if (Name == "init" || Name == "deinit")
             {
               expect("=");
-              ModuleRecord.References[Name == "init" ? 0 : 1] = symbol(GlobalSymbols, '@');
+              ModuleRecord.References[Name == "init" ? schema::Module::Init : schema::Module::Deinit] = symbol(GlobalSymbols, '@');
             }
             else
             {
@@ -89,15 +90,15 @@ namespace ink::ir::detail
             {
               parseGlobal();
             }
-            else if (is("declare") || is("define"))
+            else if (is("declare") || is(recordTextName(RecordKind::Function)))
             {
               parseFunction();
             }
-            else if (consume("import"))
+            else if (consume(recordTextName(RecordKind::Import)))
             {
               parseImport();
             }
-            else if (consume("export"))
+            else if (consume(recordTextName(RecordKind::Export)))
             {
               parseExport();
             }
@@ -496,7 +497,9 @@ namespace ink::ir::detail
 
         std::uint32_t primitive(RecordKind Kind, bool Mutable = true)
         {
-          return internType({Kind, {static_cast<std::uint64_t>(Mutable)}, {}, {}});
+          Record Value = makeRecord(Kind);
+          Value.Numbers[schema::Type::Mutable] = Mutable;
+          return internType(std::move(Value));
         }
 
         std::uint32_t type(std::size_t Depth = 0)
@@ -510,28 +513,39 @@ namespace ink::ir::detail
             fail(IRSerializationErrorCode::ResourceLimit, "Type nesting exceeds MaxDepth");
             return NullId;
           }
-          const bool Mutable = !consume("const");
-          if (consume("*"))
+          const bool Mutable = !consume(recordTextName(RecordKind::QualifiedType));
+          if (consume(recordTextName(RecordKind::PointerType)))
           {
             const auto Element = type(Depth + 1);
-            return internType({RecordKind::PointerType, {Mutable}, {Element}, {}});
+            Record Value = makeRecord(RecordKind::PointerType);
+            Value.Numbers[schema::PointerType::Mutable] = Mutable;
+            Value.References[schema::PointerType::Element] = Element;
+            return internType(std::move(Value));
           }
-          if (consume("&"))
+          if (consume(recordTextName(RecordKind::ReferenceType)))
           {
             const auto Element = type(Depth + 1);
-            return internType({RecordKind::ReferenceType, {Mutable}, {Element}, {}});
+            Record Value = makeRecord(RecordKind::ReferenceType);
+            Value.Numbers[schema::ReferenceType::Mutable] = Mutable;
+            Value.References[schema::ReferenceType::Element] = Element;
+            return internType(std::move(Value));
           }
-          if (consume("["))
+          if (consume(recordTextName(RecordKind::ArrayType)))
           {
             const auto Count = number();
             expect("x");
             const auto Element = type(Depth + 1);
             expect("]");
-            return internType({RecordKind::ArrayType, {Mutable, Count}, {Element}, {}});
+            Record Value = makeRecord(RecordKind::ArrayType);
+            Value.Numbers[schema::ArrayType::Mutable] = Mutable;
+            Value.Numbers[schema::ArrayType::Count] = Count;
+            Value.References[schema::ArrayType::Element] = Element;
+            return internType(std::move(Value));
           }
-          if (consume("fn"))
+          if (consume(recordTextName(RecordKind::FunctionType)))
           {
-            Record Signature{RecordKind::FunctionType, {Mutable}, {NullId}, {}};
+            Record Signature = makeRecord(RecordKind::FunctionType);
+            Signature.Numbers[schema::FunctionType::Mutable] = Mutable;
             expect("(");
             if (!consume(")"))
             {
@@ -547,50 +561,68 @@ namespace ink::ir::detail
               expect(")");
             }
             expect("->");
-            Signature.References[0] = type(Depth + 1);
+            Signature.References[schema::FunctionType::Return] = type(Depth + 1);
             return internType(std::move(Signature));
           }
           if (is("%"))
           {
             const auto Declaration = symbol(TypeSymbols, '%');
-            return Mutable ? Declaration : internType({RecordKind::QualifiedType, {0}, {Declaration}, {}});
+            if (Mutable)
+            {
+              return Declaration;
+            }
+            Record Qualified = makeRecord(RecordKind::QualifiedType);
+            Qualified.References[schema::QualifiedType::Declaration] = Declaration;
+            return internType(std::move(Qualified));
           }
-          if (consume("bool"))
+          if (consume(recordTextName(RecordKind::BoolType)))
           {
             return primitive(RecordKind::BoolType, Mutable);
           }
-          if (consume("void"))
+          if (consume(recordTextName(RecordKind::VoidType)))
           {
             return primitive(RecordKind::VoidType, Mutable);
           }
-          if (consume("nullptr"))
+          if (consume(recordTextName(RecordKind::NullPointerType)))
           {
             return primitive(RecordKind::NullPointerType, Mutable);
           }
-          if (is("meta") || is("variadic"))
+          if (is(recordTextName(RecordKind::MetaType)) || is(recordTextName(RecordKind::VariadicType)))
           {
-            const auto Kind = is("meta") ? RecordKind::MetaType : RecordKind::VariadicType;
+            const auto Kind = is(recordTextName(RecordKind::MetaType)) ? RecordKind::MetaType : RecordKind::VariadicType;
             advance();
             if (!Mutable)
             {
               fail(IRSerializationErrorCode::InvalidSyntax, "This type cannot be const-qualified");
             }
-            return internType({Kind, {}, {}, {}});
+            return internType(makeRecord(Kind));
           }
           auto Spelling = Current.Text;
-          if (!Current.Quoted && Spelling.size() > 1 && (Spelling.front() == 'i' || Spelling.front() == 'u' || Spelling.front() == 'f'))
+          const char FloatPrefix = recordTextName(RecordKind::FloatType).front();
+          if (!Current.Quoted && Spelling.size() > 1 && (Spelling.front() == 'i' || Spelling.front() == 'u' || Spelling.front() == FloatPrefix))
           {
             const char Prefix = Spelling.front();
             Spelling.remove_prefix(1);
             std::uint64_t Width = 0;
             const auto Parsed = std::from_chars(Spelling.data(), Spelling.data() + Spelling.size(), Width);
-            if (Parsed.ec != std::errc{} || Parsed.ptr != Spelling.data() + Spelling.size() || Width == 0 || (Prefix == 'f' ? Width != 32 && Width != 64 : Width > core::IntegerBits::MaxBitWidth))
+            if (Parsed.ec != std::errc{} || Parsed.ptr != Spelling.data() + Spelling.size() || Width == 0 || (Prefix == FloatPrefix ? Width != 32 && Width != 64 : Width > core::IntegerBits::MaxBitWidth))
             {
               fail(IRSerializationErrorCode::InvalidSyntax, "Invalid numeric type width");
               return NullId;
             }
             advance();
-            return Prefix == 'f' ? internType({RecordKind::FloatType, {Mutable, Width}, {}, {}}) : internType({RecordKind::IntegerType, {Mutable, Width, Prefix == 'i'}, {}, {}});
+            if (Prefix == FloatPrefix)
+            {
+              Record Value = makeRecord(RecordKind::FloatType);
+              Value.Numbers[schema::FloatType::Mutable] = Mutable;
+              Value.Numbers[schema::FloatType::Width] = Width;
+              return internType(std::move(Value));
+            }
+            Record Value = makeRecord(RecordKind::IntegerType);
+            Value.Numbers[schema::IntegerType::Mutable] = Mutable;
+            Value.Numbers[schema::IntegerType::Width] = Width;
+            Value.Numbers[schema::IntegerType::Signed] = Prefix == 'i';
+            return internType(std::move(Value));
           }
           fail(IRSerializationErrorCode::InvalidSyntax, "Expected an IR type");
           return NullId;
@@ -611,13 +643,11 @@ namespace ink::ir::detail
           expect(",");
           expect("byte_order");
           expect("=");
-          if (consume("little"))
+          const auto ByteOrder = Current.Quoted ? std::nullopt : parseEnum<target::ByteOrder>(Current.Text);
+          if (ByteOrder)
           {
-            Data.ByteOrder = 0;
-          }
-          else if (consume("big"))
-          {
-            Data.ByteOrder = 1;
+            Data.ByteOrder = static_cast<std::uint32_t>(*ByteOrder);
+            advance();
           }
           else
           {
@@ -656,18 +686,20 @@ namespace ink::ir::detail
           const auto Id = lookup(TypeSymbols, Symbol, Quoted);
           expect("=");
           expect("type");
-          Record Value{RecordKind::StructType, {0, 1, 0}, {}, {inferredName(Symbol, Quoted)}};
+          Record Value = makeRecord(RecordKind::StructType);
+          Value.Numbers[schema::NominalType::Alignment] = 1;
+          Value.Strings[schema::NominalType::Name] = inferredName(Symbol, Quoted);
           bool HasSize = false;
           bool HasAlignment = false;
-          if (consume("struct"))
+          if (consume(recordTextName(RecordKind::StructType)))
           {
             Value.Kind = RecordKind::StructType;
           }
-          else if (consume("class"))
+          else if (consume(recordTextName(RecordKind::ClassType)))
           {
             Value.Kind = RecordKind::ClassType;
           }
-          else if (consume("interface"))
+          else if (consume(recordTextName(RecordKind::InterfaceType)))
           {
             Value.Kind = RecordKind::InterfaceType;
           }
@@ -680,18 +712,18 @@ namespace ink::ir::detail
             if (Name == "size" || Name == "alignment")
             {
               expect("=");
-              Value.Numbers[Name == "size" ? 0 : 1] = number();
+              Value.Numbers[Name == "size" ? schema::NominalType::Size : schema::NominalType::Alignment] = number();
               HasSize = HasSize || Name == "size";
               HasAlignment = HasAlignment || Name == "alignment";
             }
             else if (Name == "frozen")
             {
-              Value.Numbers[2] = 1;
+              Value.Numbers[schema::NominalType::Frozen] = 1;
             }
             else if (Name == "name")
             {
               expect("=");
-              Value.Strings[0] = string();
+              Value.Strings[schema::NominalType::Name] = string();
             }
             else
             {
@@ -706,16 +738,19 @@ namespace ink::ir::detail
           expect("{");
           while (!Error && !consume("}"))
           {
-            expect("field");
+            expect(recordTextName(RecordKind::Field));
             const auto FieldType = type();
-            Record Field{RecordKind::Field, {0}, {Id, FieldType, NullId}, {string()}};
+            Record Field = makeRecord(RecordKind::Field);
+            Field.References[schema::Field::Owner] = Id;
+            Field.References[schema::Field::Type] = FieldType;
+            Field.Strings[schema::Field::Name] = string();
             bool HasOffset = false;
             attributes([&](std::string_view Name)
             {
               if (Name == "offset")
               {
                 expect("=");
-                Field.Numbers[0] = number();
+                Field.Numbers[schema::Field::Offset] = number();
                 HasOffset = true;
               }
               else
@@ -731,7 +766,7 @@ namespace ink::ir::detail
             if (!consume("none"))
             {
               const auto Initializer = typedValue(0, true);
-              Field.References[2] = Initializer.Value;
+              Field.References[schema::Field::Initializer] = Initializer.Value;
             }
             appendRecord(std::move(Field));
             if (!Error)
@@ -748,23 +783,25 @@ namespace ink::ir::detail
           const bool Quoted = NameWasQuoted;
           const auto Id = lookup(GlobalSymbols, Symbol, Quoted);
           expect("=");
-          expect("global");
-          Record Value{RecordKind::Global, {0}, {type(), NullId}, {inferredName(Symbol, Quoted)}};
+          expect(recordTextName(RecordKind::Global));
+          Record Value = makeRecord(RecordKind::Global);
+          Value.References[schema::Global::Type] = type();
+          Value.Strings[schema::Global::Name] = inferredName(Symbol, Quoted);
           expect("=");
           if (!consume("none"))
           {
-            Value.References[1] = typedValue(0, true).Value;
+            Value.References[schema::Global::Initializer] = typedValue(0, true).Value;
           }
           attributes([&](std::string_view Name)
           {
             if (Name == "string_storage")
             {
-              Value.Numbers[0] = 1;
+              Value.Numbers[schema::Global::StringStorage] = 1;
             }
             else if (Name == "name")
             {
               expect("=");
-              Value.Strings[0] = string();
+              Value.Strings[schema::Global::Name] = string();
             }
             else
             {
@@ -780,50 +817,63 @@ namespace ink::ir::detail
           expect(":");
           const auto Type = type();
           expect("from");
-          setRecord(Id, {RecordKind::Import, {}, {Type}, stringList()});
+          Record Value = makeRecord(RecordKind::Import);
+          Value.References[schema::Import::Type] = Type;
+          Value.Strings = stringList();
+          setRecord(Id, std::move(Value));
         }
 
         void parseExport()
         {
           const auto Id = consume("type") ? type() : symbol(GlobalSymbols, '@');
           expect("as");
-          appendRecord({RecordKind::Export, {}, {Id}, {string()}});
+          Record Value = makeRecord(RecordKind::Export);
+          Value.References[schema::Export::Declaration] = Id;
+          Value.Strings[schema::Export::Name] = string();
+          appendRecord(std::move(Value));
         }
 
         void parseFunction()
         {
-          const bool HasBody = consume("define");
+          const bool HasBody = consume(recordTextName(RecordKind::Function));
           if (!HasBody)
           {
             expect("declare");
           }
-          Record Function{RecordKind::Function, {0, 0, 0, 0, 0, 0, std::numeric_limits<std::uint64_t>::max()}, {NullId, NullId}, {}};
-          if (consume("import"))
+          Record Function = makeRecord(RecordKind::Function);
+          Function.Numbers[schema::Function::Linkage] = encodeEnum(SymbolLinkage::Local);
+          Function.Numbers[schema::Function::Language] = encodeEnum(LanguageLinkage::Ink);
+          Function.Numbers[schema::Function::Visibility] = encodeEnum(FunctionVisibility::Public);
+          Function.Numbers[schema::Function::Dispatch] = encodeEnum(MethodDispatch::Direct);
+          Function.Numbers[schema::Function::Slot] = NoVirtualSlot;
+          if (consume(enumName<SymbolLinkage>(encodeEnum(SymbolLinkage::Import))))
           {
-            Function.Numbers[0] = 1;
+            Function.Numbers[schema::Function::Linkage] = encodeEnum(SymbolLinkage::Import);
           }
-          else if (consume("export"))
+          else if (consume(enumName<SymbolLinkage>(encodeEnum(SymbolLinkage::Export))))
           {
-            Function.Numbers[0] = 2;
+            Function.Numbers[schema::Function::Linkage] = encodeEnum(SymbolLinkage::Export);
           }
           if (consume("c"))
           {
-            Function.Numbers[1] = 1;
+            Function.Numbers[schema::Function::Language] = encodeEnum(LanguageLinkage::C);
           }
           else if (Current.Quoted)
           {
-            if (string() != "C")
+            if (string() != enumName<LanguageLinkage>(encodeEnum(LanguageLinkage::C)))
             {
               fail(IRSerializationErrorCode::InvalidSyntax, "Unknown language linkage");
             }
-            Function.Numbers[1] = 1;
+            Function.Numbers[schema::Function::Language] = encodeEnum(LanguageLinkage::C);
           }
-          Record Signature{RecordKind::FunctionType, {1}, {type()}, {}};
+          Record Signature = makeRecord(RecordKind::FunctionType);
+          Signature.Numbers[schema::FunctionType::Mutable] = 1;
+          Signature.References[schema::FunctionType::Return] = type();
           expect("@");
           const auto Symbol = name();
           const bool Quoted = NameWasQuoted;
           const auto Id = lookup(GlobalSymbols, Symbol, Quoted);
-          Function.Strings.push_back(inferredName(Symbol, Quoted));
+          Function.Strings[schema::Function::Name] = inferredName(Symbol, Quoted);
           LocalSymbols.clear();
           expect("(");
           if (!consume(")"))
@@ -840,13 +890,16 @@ namespace ink::ir::detail
               const auto ParameterSymbol = name();
               const bool ParameterQuoted = NameWasQuoted;
               const auto ParameterId = lookup(LocalSymbols, ParameterSymbol, ParameterQuoted);
-              Record Parameter{RecordKind::Parameter, {Signature.References.size() - 2}, {Id}, {inferredName(ParameterSymbol, ParameterQuoted)}};
+              Record Parameter = makeRecord(RecordKind::Parameter);
+              Parameter.Numbers[schema::Parameter::Index] = Signature.References.size() - schema::FunctionType::ParametersBegin - 1;
+              Parameter.References[schema::Parameter::Function] = Id;
+              Parameter.Strings[schema::Parameter::Name] = inferredName(ParameterSymbol, ParameterQuoted);
               attributes([&](std::string_view Name)
               {
                 if (Name == "name")
                 {
                   expect("=");
-                  Parameter.Strings[0] = string();
+                  Parameter.Strings[schema::Parameter::Name] = string();
                 }
                 else
                 {
@@ -859,51 +912,51 @@ namespace ink::ir::detail
           }
           attributes([&](std::string_view Name)
           {
-            if (Name == "private")
+            if (Name == enumName<FunctionVisibility>(encodeEnum(FunctionVisibility::Private)))
             {
-              Function.Numbers[2] = 1;
+              Function.Numbers[schema::Function::Visibility] = encodeEnum(FunctionVisibility::Private);
             }
             else if (Name == "owner")
             {
               expect("=");
-              Function.References[1] = symbol(TypeSymbols, '%');
+              Function.References[schema::Function::Owner] = symbol(TypeSymbols, '%');
             }
-            else if (Name == "virtual" || Name == "abstract")
+            else if (Name == enumName<MethodDispatch>(encodeEnum(MethodDispatch::Virtual)) || Name == enumName<MethodDispatch>(encodeEnum(MethodDispatch::Abstract)))
             {
-              if (Function.Numbers[3] != 0)
+              if (Function.Numbers[schema::Function::Dispatch] != encodeEnum(MethodDispatch::Direct))
               {
                 fail(IRSerializationErrorCode::InvalidSyntax, "Conflicting method dispatch attributes");
               }
-              Function.Numbers[3] = Name == "virtual" ? 1 : 2;
+              Function.Numbers[schema::Function::Dispatch] = *parseEnum<MethodDispatch>(Name);
             }
             else if (Name == "override" || Name == "final")
             {
-              Function.Numbers[Name == "override" ? 4 : 5] = 1;
+              Function.Numbers[Name == "override" ? schema::Function::Override : schema::Function::Final] = 1;
             }
             else if (Name == "slot")
             {
               expect("=");
-              Function.Numbers[6] = number();
-              if (Function.Numbers[6] > std::numeric_limits<std::uint32_t>::max())
+              Function.Numbers[schema::Function::Slot] = number();
+              if (Function.Numbers[schema::Function::Slot] > std::numeric_limits<std::uint32_t>::max())
               {
                 fail(IRSerializationErrorCode::InvalidSyntax, "Virtual slot exceeds 32 bits");
               }
             }
             else if (Name == "signature_const")
             {
-              Signature.Numbers[0] = 0;
+              Signature.Numbers[schema::FunctionType::Mutable] = 0;
             }
             else if (Name == "name")
             {
               expect("=");
-              Function.Strings[0] = string();
+              Function.Strings[schema::Function::Name] = string();
             }
             else
             {
               unknownAttribute(Name);
             }
           });
-          Function.References[0] = internType(std::move(Signature));
+          Function.References[schema::Function::Signature] = internType(std::move(Signature));
           setRecord(Id, std::move(Function));
           if (HasBody)
           {
@@ -940,13 +993,15 @@ namespace ink::ir::detail
             if (ResultId == NullId && consume(":"))
             {
               BlockId = lookup(LocalSymbols, Word, WordQuoted);
-              Record Block{RecordKind::Block, {}, {FunctionId}, {inferredName(Word, WordQuoted)}};
+              Record Block = makeRecord(RecordKind::Block);
+              Block.References[schema::Block::Function] = FunctionId;
+              Block.Strings[schema::Block::Name] = inferredName(Word, WordQuoted);
               attributes([&](std::string_view Name)
               {
                 if (Name == "name")
                 {
                   expect("=");
-                  Block.Strings[0] = string();
+                  Block.Strings[schema::Block::Name] = string();
                 }
                 else
                 {
@@ -1003,17 +1058,17 @@ namespace ink::ir::detail
             return NullId;
           }
           const auto TypeKind = Data.Records[Type].Kind;
-          Record Value{RecordKind::BoolConstant, {}, {Type}, {}};
+          Record Value;
           if (TypeKind == RecordKind::BoolType)
           {
-            Value.Kind = RecordKind::BoolConstant;
+            Value = makeRecord(RecordKind::BoolConstant);
             if (consume("true"))
             {
-              Value.Numbers = {1};
+              Value.Numbers[schema::BoolConstant::Value] = 1;
             }
             else if (consume("false"))
             {
-              Value.Numbers = {0};
+              Value.Numbers[schema::BoolConstant::Value] = 0;
             }
             else
             {
@@ -1022,13 +1077,13 @@ namespace ink::ir::detail
           }
           else if (TypeKind == RecordKind::NullPointerType)
           {
-            Value.Kind = RecordKind::NullPointerConstant;
-            expect("null");
+            Value = makeRecord(RecordKind::NullPointerConstant);
+            expect(recordTextName(RecordKind::NullPointerConstant));
           }
           else if (TypeKind == RecordKind::IntegerType)
           {
-            Value.Kind = RecordKind::IntegerConstant;
-            const auto Width = Data.Records[Type].Numbers[1];
+            Value = makeRecord(RecordKind::IntegerConstant);
+            const auto Width = Data.Records[Type].Numbers[schema::IntegerType::Width];
             const auto WordCount = static_cast<std::size_t>((Width + 63) / 64);
             if (WordCount >= Options.MaxOperands - OperandCount)
             {
@@ -1078,8 +1133,8 @@ namespace ink::ir::detail
               {
                 fail(IRSerializationErrorCode::InvalidSyntax, "Decimal integer magnitude exceeds 64 bits; use hexadecimal for wider values");
               }
-              Value.Numbers[0] = Magnitude;
-              const bool Signed = Data.Records[Type].Numbers[2] != 0;
+              Value.Numbers[schema::IntegerConstant::WordsBegin] = Magnitude;
+              const bool Signed = Data.Records[Type].Numbers[schema::IntegerType::Signed] != 0;
               if ((Negative && !Signed) || (Signed && Width <= 64 && (Magnitude > (std::uint64_t{1} << (Width - 1)) || (!Negative && Magnitude == (std::uint64_t{1} << (Width - 1))))))
               {
                 fail(IRSerializationErrorCode::InvalidSyntax, "Decimal integer literal does not fit its signedness and width");
@@ -1108,23 +1163,23 @@ namespace ink::ir::detail
           }
           else if (TypeKind == RecordKind::FloatType)
           {
-            Value.Kind = RecordKind::FloatConstant;
-            expect("bits");
+            Value = makeRecord(RecordKind::FloatConstant);
+            expect(recordTextName(RecordKind::FloatConstant));
             expect("(");
-            Value.Numbers = {number()};
+            Value.Numbers[schema::FloatConstant::Bits] = number();
             expect(")");
           }
           else if (TypeKind == RecordKind::ArrayType)
           {
-            if (consume("c"))
+            if (consume(recordTextName(RecordKind::StringConstant)))
             {
-              Value.Kind = RecordKind::StringConstant;
-              Value.Strings = {string()};
+              Value = makeRecord(RecordKind::StringConstant);
+              Value.Strings[schema::StringConstant::Bytes] = string();
             }
             else
             {
-              Value.Kind = RecordKind::ArrayConstant;
-              expect("[");
+              Value = makeRecord(RecordKind::ArrayConstant);
+              expect(recordTextName(RecordKind::ArrayConstant));
               if (!consume("]"))
               {
                 do
@@ -1142,7 +1197,9 @@ namespace ink::ir::detail
           else
           {
             fail(IRSerializationErrorCode::InvalidSyntax, "This type has no inline constant syntax");
+            return NullId;
           }
+          Value.References[schema::Typed::Type] = Type;
           return appendRecord(std::move(Value));
         }
 
@@ -1154,104 +1211,93 @@ namespace ink::ir::detail
 
         void parseInstruction(const std::string &Opcode, std::uint32_t ResultId, const std::string &ResultName, std::uint32_t BlockId)
         {
-          Record Value{RecordKind::Return, {}, {NullId, BlockId}, {}};
+          Record Value;
           bool HasResult = true;
           bool CallWithoutSignature = false;
-          if (Opcode == "alloca")
+          if (Opcode == recordTextName(RecordKind::Alloca))
           {
-            Value.Kind = RecordKind::Alloca;
-            Value.Numbers = {0};
+            Value = makeRecord(RecordKind::Alloca);
             const auto Allocated = type();
-            Value.References[0] = internType({RecordKind::PointerType, {1}, {Allocated}, {}});
-            Value.Strings = {ResultName};
+            Record Pointer = makeRecord(RecordKind::PointerType);
+            Pointer.Numbers[schema::PointerType::Mutable] = 1;
+            Pointer.References[schema::PointerType::Element] = Allocated;
+            Value.References[schema::Alloca::Type] = internType(std::move(Pointer));
+            Value.Strings[schema::Alloca::Name] = ResultName;
           }
-          else if (Opcode == "load")
+          else if (Opcode == recordTextName(RecordKind::Load))
           {
-            Value.Kind = RecordKind::Load;
-            Value.References[0] = type();
+            Value = makeRecord(RecordKind::Load);
+            Value.References[schema::Load::Type] = type();
             expect(",");
-            Value.References.push_back(typedValue().Value);
+            Value.References[schema::Load::Pointer] = typedValue().Value;
           }
-          else if (Opcode == "store")
+          else if (Opcode == recordTextName(RecordKind::Store))
           {
-            Value.Kind = RecordKind::Store;
+            Value = makeRecord(RecordKind::Store);
             HasResult = false;
-            Value.References[0] = primitive(RecordKind::VoidType);
-            Value.References.push_back(typedValue().Value);
+            Value.References[schema::Store::Type] = primitive(RecordKind::VoidType);
+            Value.References[schema::Store::Value] = typedValue().Value;
             expect(",");
-            Value.References.push_back(typedValue().Value);
+            Value.References[schema::Store::Pointer] = typedValue().Value;
           }
-          else if (Opcode == "neg")
+          else if (Opcode == recordTextName(RecordKind::Neg))
           {
-            Value.Kind = RecordKind::Neg;
+            Value = makeRecord(RecordKind::Neg);
             const auto Operand = typedValue();
-            Value.References[0] = unqualified(Operand.Type);
-            Value.References.push_back(Operand.Value);
+            Value.References[schema::Neg::Type] = unqualified(Operand.Type);
+            Value.References[schema::Neg::Operand] = Operand.Value;
           }
-          else if (Opcode == "icmp")
+          else if (Opcode == recordTextName(RecordKind::ICmp))
           {
-            Value.Kind = RecordKind::ICmp;
-            constexpr std::string_view Predicates[] = {
-                "eq",
-                "ne",
-                "ugt",
-                "uge",
-                "ult",
-                "ule",
-                "sgt",
-                "sge",
-                "slt",
-                "sle",
-            };
-            const auto It = std::find(std::begin(Predicates), std::end(Predicates), Current.Text);
-            if (It == std::end(Predicates))
+            Value = makeRecord(RecordKind::ICmp);
+            const auto Predicate = parseEnum<ICmpPredicate>(Current.Text);
+            if (!Predicate)
             {
               fail(IRSerializationErrorCode::InvalidSyntax, "Unknown integer comparison predicate");
             }
-            Value.Numbers = {static_cast<std::uint64_t>(It - std::begin(Predicates))};
+            Value.Numbers[schema::ICmp::Predicate] = Predicate.value_or(InvalidEnumValue);
             advance();
-            Value.References[0] = primitive(RecordKind::BoolType);
-            Value.References.push_back(typedValue().Value);
+            Value.References[schema::ICmp::Type] = primitive(RecordKind::BoolType);
+            Value.References[schema::ICmp::Left] = typedValue().Value;
             expect(",");
-            Value.References.push_back(typedValue().Value);
+            Value.References[schema::ICmp::Right] = typedValue().Value;
           }
-          else if (Opcode == "br")
+          else if (Opcode == recordTextName(RecordKind::Branch))
           {
-            Value.Kind = RecordKind::Branch;
+            Value = makeRecord(RecordKind::Branch);
             HasResult = false;
-            Value.References[0] = primitive(RecordKind::VoidType);
-            Value.References.push_back(blockReference());
+            Value.References[schema::Branch::Type] = primitive(RecordKind::VoidType);
+            Value.References[schema::Branch::Target] = blockReference();
           }
-          else if (Opcode == "br_if")
+          else if (Opcode == recordTextName(RecordKind::CondBranch))
           {
-            Value.Kind = RecordKind::CondBranch;
+            Value = makeRecord(RecordKind::CondBranch);
             HasResult = false;
-            Value.References[0] = primitive(RecordKind::VoidType);
-            Value.References.push_back(typedValue().Value);
+            Value.References[schema::CondBranch::Type] = primitive(RecordKind::VoidType);
+            Value.References[schema::CondBranch::Condition] = typedValue().Value;
             expect(",");
-            Value.References.push_back(blockReference());
+            Value.References[schema::CondBranch::TrueTarget] = blockReference();
             expect(",");
-            Value.References.push_back(blockReference());
+            Value.References[schema::CondBranch::FalseTarget] = blockReference();
           }
-          else if (Opcode == "ret")
+          else if (Opcode == recordTextName(RecordKind::Return))
           {
-            Value.Kind = RecordKind::Return;
+            Value = makeRecord(RecordKind::Return);
             HasResult = false;
-            Value.References[0] = primitive(RecordKind::VoidType);
-            Value.References.push_back(consume("void") ? NullId : typedValue().Value);
+            Value.References[schema::Return::Type] = primitive(RecordKind::VoidType);
+            Value.References[schema::Return::Value] = consume(recordTextName(RecordKind::VoidType)) ? NullId : typedValue().Value;
           }
-          else if (Opcode == "call")
+          else if (Opcode == recordTextName(RecordKind::Call))
           {
-            Value.Kind = RecordKind::Call;
-            Value.References[0] = type();
-            Value.References.push_back(NullId);
+            Value = makeRecord(RecordKind::Call);
+            Value.References[schema::Call::Type] = type();
             if (is("@"))
             {
-              Value.References.push_back(symbol(GlobalSymbols, '@'));
+              Value.References[schema::Call::Callee] = symbol(GlobalSymbols, '@');
             }
             else
             {
-              Value.References.push_back(symbol(LocalSymbols, '%'));
+              Value.References[schema::Call::Callee] = symbol(LocalSymbols, '%');
             }
             expect("(");
             if (!consume(")"))
@@ -1280,15 +1326,14 @@ namespace ink::ir::detail
               expect(")");
             }
             CallWithoutSignature = true;
-            HasResult = !Error && Data.Records[Value.References[0]].Kind != RecordKind::VoidType;
+            HasResult = !Error && Data.Records[Value.References[schema::Call::Type]].Kind != RecordKind::VoidType;
           }
-          else if (Opcode == "getelementptr")
+          else if (Opcode == recordTextName(RecordKind::GetElementPtr))
           {
-            Value.Kind = RecordKind::GetElementPtr;
-            Value.Numbers = {0};
-            Value.References.push_back(type());
+            Value = makeRecord(RecordKind::GetElementPtr);
+            Value.References[schema::GetElementPtr::SourceType] = type();
             expect(",");
-            Value.References.push_back(typedValue().Value);
+            Value.References[schema::GetElementPtr::Pointer] = typedValue().Value;
             while (consume(","))
             {
               if (!listRoom(Value.References.size()))
@@ -1301,26 +1346,28 @@ namespace ink::ir::detail
           else
           {
             fail(IRSerializationErrorCode::InvalidSyntax, "Unknown instruction '" + Opcode + "'");
+            return;
           }
+          Value.References[schema::Instruction::Block] = BlockId;
           attributes([&](std::string_view Name)
           {
             if (Name == "initialized" && Value.Kind == RecordKind::Alloca)
             {
-              Value.Numbers[0] = 1;
+              Value.Numbers[schema::Alloca::Initialized] = 1;
             }
             else if (Name == "name" && Value.Kind == RecordKind::Alloca)
             {
               expect("=");
-              Value.Strings[0] = string();
+              Value.Strings[schema::Alloca::Name] = string();
             }
             else if (Name == "inbounds" && Value.Kind == RecordKind::GetElementPtr)
             {
-              Value.Numbers[0] = 1;
+              Value.Numbers[schema::GetElementPtr::InBounds] = 1;
             }
             else if (Name == "signature" && Value.Kind == RecordKind::Call)
             {
               expect("=");
-              Value.References[2] = type();
+              Value.References[schema::Call::Signature] = type();
               CallWithoutSignature = false;
             }
             else
@@ -1341,7 +1388,7 @@ namespace ink::ir::detail
           {
             Calls.push_back(ResultId);
           }
-          if (Opcode == "getelementptr")
+          if (Opcode == recordTextName(RecordKind::GetElementPtr))
           {
             GetElementPtrs.push_back(ResultId);
           }
@@ -1356,14 +1403,14 @@ namespace ink::ir::detail
           const auto &Value = Data.Records[Id];
           if (Value.Kind == RecordKind::QualifiedType)
           {
-            return Value.References[0];
+            return Value.References[schema::QualifiedType::Declaration];
           }
-          if (Value.Numbers.empty() || Value.Kind == PendingKind || Value.Kind == RecordKind::ClassType || Value.Kind == RecordKind::StructType || Value.Kind == RecordKind::InterfaceType || Value.Numbers[0])
+          if (Value.Numbers.empty() || Value.Kind == PendingKind || isNominal(Value.Kind) || Value.Numbers[schema::Type::Mutable])
           {
             return Id;
           }
           Record Copy = Value;
-          Copy.Numbers[0] = 1;
+          Copy.Numbers[schema::Type::Mutable] = 1;
           return internType(std::move(Copy));
         }
 
@@ -1376,20 +1423,20 @@ namespace ink::ir::detail
           const auto &Value = Data.Records[Id];
           if (Value.Kind == RecordKind::Parameter)
           {
-            const auto &Function = Data.Records[Value.References[0]];
+            const auto &Function = Data.Records[Value.References[schema::Parameter::Function]];
             if (Function.Kind != RecordKind::Function)
             {
               return NullId;
             }
-            const auto &Signature = Data.Records[Function.References[0]];
-            const auto Index = static_cast<std::size_t>(Value.Numbers[0]) + 1;
+            const auto &Signature = Data.Records[Function.References[schema::Function::Signature]];
+            const auto Index = static_cast<std::size_t>(Value.Numbers[schema::Parameter::Index]) + schema::FunctionType::ParametersBegin;
             return Index < Signature.References.size() ? Signature.References[Index] : NullId;
           }
           if (Value.Kind == RecordKind::Block || Value.Kind == PendingKind || Value.References.empty())
           {
             return NullId;
           }
-          return Value.References[0];
+          return Value.References[schema::Typed::Type];
         }
 
         bool isMutableType(std::uint32_t Id) const
@@ -1399,7 +1446,7 @@ namespace ink::ir::detail
           {
             return false;
           }
-          return Value.Kind == RecordKind::ClassType || Value.Kind == RecordKind::StructType || Value.Kind == RecordKind::InterfaceType || Value.Numbers.empty() || Value.Numbers[0] != 0;
+          return isNominal(Value.Kind) || Value.Numbers.empty() || Value.Numbers[schema::Type::Mutable] != 0;
         }
 
         std::uint32_t constQualified(std::uint32_t Id)
@@ -1409,9 +1456,11 @@ namespace ink::ir::detail
             return Id;
           }
           const auto &Value = Data.Records[Id];
-          if (Value.Kind == RecordKind::ClassType || Value.Kind == RecordKind::StructType || Value.Kind == RecordKind::InterfaceType)
+          if (isNominal(Value.Kind))
           {
-            return internType({RecordKind::QualifiedType, {0}, {Id}, {}});
+            Record Qualified = makeRecord(RecordKind::QualifiedType);
+            Qualified.References[schema::QualifiedType::Declaration] = Id;
+            return internType(std::move(Qualified));
           }
           if (Value.Numbers.empty())
           {
@@ -1419,15 +1468,15 @@ namespace ink::ir::detail
             return NullId;
           }
           Record Copy = Value;
-          Copy.Numbers[0] = 0;
+          Copy.Numbers[schema::Type::Mutable] = 0;
           return internType(std::move(Copy));
         }
 
         void inferGetElementPtrType(std::uint32_t Id)
         {
-          auto Selected = Data.Records[Id].References[2];
+          auto Selected = Data.Records[Id].References[schema::GetElementPtr::SourceType];
           bool Mutable = isMutableType(Selected);
-          for (std::size_t Index = 4; Index < Data.Records[Id].References.size(); ++Index)
+          for (std::size_t Index = schema::GetElementPtr::IndicesBegin; Index < Data.Records[Id].References.size(); ++Index)
           {
             const auto IndexId = Data.Records[Id].References[Index];
             const auto IndexType = valueType(IndexId);
@@ -1436,20 +1485,20 @@ namespace ink::ir::detail
               fail(IRSerializationErrorCode::InvalidIR, "Getelementptr index must be an integer value");
               return;
             }
-            if (Index == 4)
+            if (Index == schema::GetElementPtr::IndicesBegin)
             {
               continue;
             }
             if (Data.Records[Selected].Kind == RecordKind::QualifiedType)
             {
-              Selected = Data.Records[Selected].References[0];
+              Selected = Data.Records[Selected].References[schema::QualifiedType::Declaration];
             }
             const auto Kind = Data.Records[Selected].Kind;
             if (Kind == RecordKind::ArrayType)
             {
-              Selected = Data.Records[Selected].References[0];
+              Selected = Data.Records[Selected].References[schema::ArrayType::Element];
             }
-            else if (Kind == RecordKind::ClassType || Kind == RecordKind::StructType || Kind == RecordKind::InterfaceType)
+            else if (isNominal(Kind))
             {
               const auto &IndexValue = Data.Records[IndexId];
               if (IndexValue.Kind != RecordKind::IntegerConstant)
@@ -1458,8 +1507,8 @@ namespace ink::ir::detail
                 return;
               }
               const auto &IntegerType = Data.Records[IndexType];
-              const auto Bits = core::IntegerBits::fromWords(static_cast<std::uint32_t>(IntegerType.Numbers[1]), IndexValue.Numbers);
-              const auto FieldIndex = Bits && (!IntegerType.Numbers[2] || !Bits->isNegative()) ? Bits->tryGetUInt64() : std::nullopt;
+              const auto Bits = core::IntegerBits::fromWords(static_cast<std::uint32_t>(IntegerType.Numbers[schema::IntegerType::Width]), IndexValue.Numbers);
+              const auto FieldIndex = Bits && (!IntegerType.Numbers[schema::IntegerType::Signed] || !Bits->isNegative()) ? Bits->tryGetUInt64() : std::nullopt;
               const auto Fields = NominalFields.find(Selected);
               if (!FieldIndex || Fields == NominalFields.end() || *FieldIndex >= Fields->second.size())
               {
@@ -1481,10 +1530,13 @@ namespace ink::ir::detail
           }
           if (!Error)
           {
-            const auto ResultType = internType({RecordKind::PointerType, {1}, {Selected}, {}});
+            Record Pointer = makeRecord(RecordKind::PointerType);
+            Pointer.Numbers[schema::PointerType::Mutable] = 1;
+            Pointer.References[schema::PointerType::Element] = Selected;
+            const auto ResultType = internType(std::move(Pointer));
             if (!Error)
             {
-              Data.Records[Id].References[0] = ResultType;
+              Data.Records[Id].References[schema::GetElementPtr::Type] = ResultType;
             }
           }
         }
@@ -1513,18 +1565,18 @@ namespace ink::ir::detail
           }
           for (const auto Id : Calls)
           {
-            const auto CalleeType = valueType(Data.Records[Id].References[3]);
+            const auto CalleeType = valueType(Data.Records[Id].References[schema::Call::Callee]);
             auto Signature = CalleeType;
             if (Signature != NullId && Data.Records[Signature].Kind == RecordKind::PointerType)
             {
-              Signature = Data.Records[Signature].References[0];
+              Signature = Data.Records[Signature].References[schema::PointerType::Element];
             }
             if (Signature == NullId || Data.Records[Signature].Kind != RecordKind::FunctionType)
             {
               fail(IRSerializationErrorCode::InvalidReference, "Call requires a callable callee or explicit signature");
               return;
             }
-            Data.Records[Id].References[2] = Signature;
+            Data.Records[Id].References[schema::Call::Signature] = Signature;
           }
           for (const auto &Check : Checks)
           {

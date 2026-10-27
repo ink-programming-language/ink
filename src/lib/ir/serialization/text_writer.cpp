@@ -12,21 +12,6 @@ namespace ink::ir::detail
 {
   namespace
   {
-    bool isNominal(RecordKind Kind)
-    {
-      return Kind == RecordKind::ClassType || Kind == RecordKind::InterfaceType || Kind == RecordKind::StructType;
-    }
-
-    bool isType(RecordKind Kind)
-    {
-      return Kind >= RecordKind::BoolType && Kind <= RecordKind::QualifiedType;
-    }
-
-    bool isInstruction(RecordKind Kind)
-    {
-      return Kind >= RecordKind::Alloca && Kind <= RecordKind::GetElementPtr;
-    }
-
     bool isPlainName(std::string_view Name)
     {
       if (Name.empty() || (Name.front() >= '0' && Name.front() <= '9') || Name.find("...") != std::string_view::npos || Name.find("->") != std::string_view::npos)
@@ -95,7 +80,7 @@ namespace ink::ir::detail
           append("\ntarget(pointer_bits = ");
           number(Data.PointerBits);
           append(", byte_order = ");
-          append(Data.ByteOrder == 0 ? "little" : "big");
+          append(enumName<target::ByteOrder>(Data.ByteOrder));
           append(", native_abi = ");
           number(Data.NativeAbi ? 1 : 0);
           append(", alignments = [");
@@ -104,14 +89,15 @@ namespace ink::ir::detail
             separator(Index);
             number(Data.Alignments[Index]);
           }
-          append("])\nmodule ");
+          append("])\n");
+          keyword(RecordKind::Module);
           strings(Data.Records[0].Strings);
           bool Attributes = false;
-          for (std::size_t Index = 0; Index < 2; ++Index)
+          for (const auto Index : {schema::Module::Init, schema::Module::Deinit})
           {
             if (Data.Records[0].References[Index] != NullId)
             {
-              attribute(Attributes, Index == 0 ? "init = " : "deinit = ");
+              attribute(Attributes, Index == schema::Module::Init ? "init = " : "deinit = ");
               reference(Data.Records[0].References[Index]);
             }
           }
@@ -148,10 +134,11 @@ namespace ink::ir::detail
             if (Entry.Kind == RecordKind::Import)
             {
               topSeparator(First);
-              append("  import ");
+              append("  ");
+              keyword(RecordKind::Import);
               reference(Id);
               append(" : ");
-              type(Entry.References[0]);
+              type(Entry.References[schema::Import::Type]);
               append(" from ");
               strings(Entry.Strings);
               append('\n');
@@ -159,8 +146,9 @@ namespace ink::ir::detail
             else if (Entry.Kind == RecordKind::Export)
             {
               topSeparator(First);
-              append("  export ");
-              const auto Declaration = Entry.References[0];
+              append("  ");
+              keyword(RecordKind::Export);
+              const auto Declaration = Entry.References[schema::Export::Declaration];
               if (isType(Data.Records[Declaration].Kind))
               {
                 append("type ");
@@ -171,7 +159,7 @@ namespace ink::ir::detail
                 reference(Declaration);
               }
               append(" as ");
-              string(Entry.Strings[0]);
+              string(Entry.Strings[schema::Export::Name]);
               append('\n');
             }
           }
@@ -197,6 +185,12 @@ namespace ink::ir::detail
         void append(char Character)
         {
           append(std::string_view(&Character, 1));
+        }
+
+        void keyword(RecordKind Kind)
+        {
+          append(recordTextName(Kind));
+          append(' ');
         }
 
         void number(std::uint64_t Number)
@@ -291,7 +285,7 @@ namespace ink::ir::detail
           if (Symbols[Id].ExplicitName)
           {
             attribute(Started, "name = ");
-            string(Data.Records[Id].Strings[0]);
+            string(Data.Records[Id].Strings[schema::Named::Name]);
           }
         }
 
@@ -299,7 +293,7 @@ namespace ink::ir::detail
         {
           const auto &Entry = Data.Records[Id];
           const bool HasName = isNominal(Entry.Kind) || Entry.Kind == RecordKind::Function || Entry.Kind == RecordKind::Global || Entry.Kind == RecordKind::Parameter || Entry.Kind == RecordKind::Block || Entry.Kind == RecordKind::Alloca;
-          const std::string_view Name = HasName ? std::string_view(Entry.Strings[0]) : std::string_view{};
+          const std::string_view Name = HasName ? std::string_view(Entry.Strings[schema::Named::Name]) : std::string_view{};
           auto &Result = Symbols[Id];
           if (Name.empty())
           {
@@ -345,19 +339,19 @@ namespace ink::ir::detail
             }
             else if (Entry.Kind == RecordKind::Parameter)
             {
-              Parameters[Entry.References[0]].push_back(Id);
+              Parameters[Entry.References[schema::Parameter::Function]].push_back(Id);
             }
             else if (Entry.Kind == RecordKind::Block)
             {
-              Blocks[Entry.References[0]].push_back(Id);
+              Blocks[Entry.References[schema::Block::Function]].push_back(Id);
             }
             else if (Entry.Kind == RecordKind::Field)
             {
-              Fields[Entry.References[0]].push_back(Id);
+              Fields[Entry.References[schema::Field::Owner]].push_back(Id);
             }
             else if (isInstruction(Entry.Kind))
             {
-              Instructions[Entry.References[1]].push_back(Id);
+              Instructions[Entry.References[schema::Instruction::Block]].push_back(Id);
             }
           }
           for (std::uint32_t Id = 1; Id < Data.Records.size(); ++Id)
@@ -409,9 +403,11 @@ namespace ink::ir::detail
           const auto &Entry = Data.Records[Id];
           if (Entry.Kind == RecordKind::Parameter)
           {
-            return Data.Records[Data.Records[Entry.References[0]].References[0]].References[static_cast<std::size_t>(Entry.Numbers[0]) + 1];
+            const auto &Function = Data.Records[Entry.References[schema::Parameter::Function]];
+            const auto &Signature = Data.Records[Function.References[schema::Function::Signature]];
+            return Signature.References[schema::FunctionType::ParametersBegin + static_cast<std::size_t>(Entry.Numbers[schema::Parameter::Index])];
           }
-          return Entry.References[0];
+          return Entry.References[schema::Typed::Type];
         }
 
         void type(std::uint32_t Id)
@@ -463,30 +459,31 @@ namespace ink::ir::detail
             switch (Entry.Kind)
             {
             case RecordKind::BoolConstant:
-              append(Entry.Numbers[0] ? "true" : "false");
+              append(Entry.Numbers[schema::BoolConstant::Value] ? "true" : "false");
               break;
             case RecordKind::IntegerConstant:
               integer(Entry);
               break;
             case RecordKind::FloatConstant:
-              append("bits(0x");
-              hexadecimal(Entry.Numbers[0]);
+              append(recordTextName(Entry.Kind));
+              append("(0x");
+              hexadecimal(Entry.Numbers[schema::FloatConstant::Bits]);
               append(')');
               break;
             case RecordKind::NullPointerConstant:
-              append("null");
+              append(recordTextName(Entry.Kind));
               break;
             case RecordKind::StringConstant:
-              append('c');
-              string(Entry.Strings[0]);
+              append(recordTextName(Entry.Kind));
+              string(Entry.Strings[schema::StringConstant::Bytes]);
               break;
             case RecordKind::ArrayConstant:
-              append('[');
+              append(recordTextName(Entry.Kind));
               Work.push_back({RenderKind::Text, 0, "]"});
-              for (std::size_t Index = Entry.References.size(); Index > 1; --Index)
+              for (std::size_t Index = Entry.References.size(); Index > schema::ArrayConstant::ElementsBegin; --Index)
               {
                 Work.push_back({RenderKind::TypedValue, Entry.References[Index - 1], {}});
-                if (Index > 2)
+                if (Index > schema::ArrayConstant::ElementsBegin + 1)
                 {
                   Work.push_back({RenderKind::Text, 0, ", "});
                 }
@@ -507,62 +504,56 @@ namespace ink::ir::detail
             reference(Id);
             return;
           }
-          if (Entry.Kind != RecordKind::MetaType && Entry.Kind != RecordKind::VariadicType && !Entry.Numbers[0])
+          if (Entry.Kind != RecordKind::MetaType && Entry.Kind != RecordKind::VariadicType && !Entry.Numbers[schema::Type::Mutable])
           {
-            append("const ");
+            keyword(RecordKind::QualifiedType);
           }
           switch (Entry.Kind)
           {
           case RecordKind::BoolType:
-            append("bool");
+          case RecordKind::VoidType:
+          case RecordKind::NullPointerType:
+          case RecordKind::MetaType:
+          case RecordKind::VariadicType:
+            append(recordTextName(Entry.Kind));
             break;
           case RecordKind::IntegerType:
-            append(Entry.Numbers[2] ? 'i' : 'u');
-            number(Entry.Numbers[1]);
+            append(Entry.Numbers[schema::IntegerType::Signed] ? 'i' : 'u');
+            number(Entry.Numbers[schema::IntegerType::Width]);
             break;
           case RecordKind::FloatType:
-            append('f');
-            number(Entry.Numbers[1]);
-            break;
-          case RecordKind::VoidType:
-            append("void");
-            break;
-          case RecordKind::NullPointerType:
-            append("nullptr");
-            break;
-          case RecordKind::MetaType:
-            append("meta");
-            break;
-          case RecordKind::VariadicType:
-            append("variadic");
+            append(recordTextName(Entry.Kind));
+            number(Entry.Numbers[schema::FloatType::Width]);
             break;
           case RecordKind::PointerType:
           case RecordKind::ReferenceType:
-            append(Entry.Kind == RecordKind::PointerType ? '*' : '&');
-            Work.push_back({RenderKind::Type, Entry.References[0], {}});
+            append(recordTextName(Entry.Kind));
+            Work.push_back({RenderKind::Type, Entry.References[schema::PointerType::Element], {}});
             break;
           case RecordKind::QualifiedType:
-            reference(Entry.References[0]);
+            reference(Entry.References[schema::QualifiedType::Declaration]);
             break;
           case RecordKind::ArrayType:
-            append('[');
-            number(Entry.Numbers[1]);
+            append(recordTextName(Entry.Kind));
+            number(Entry.Numbers[schema::ArrayType::Count]);
             append(" x ");
             Work.push_back({RenderKind::Text, 0, "]"});
-            Work.push_back({RenderKind::Type, Entry.References[0], {}});
+            Work.push_back({RenderKind::Type, Entry.References[schema::ArrayType::Element], {}});
             break;
           case RecordKind::FunctionType:
-            append("fn(");
-            Work.push_back({RenderKind::Type, Entry.References[0], {}});
+            append(recordTextName(Entry.Kind));
+            append('(');
+            Work.push_back({RenderKind::Type, Entry.References[schema::FunctionType::Return], {}});
             Work.push_back({RenderKind::Text, 0, ") -> "});
-            for (std::size_t Index = Entry.References.size(); Index > 1; --Index)
+            for (std::size_t Index = Entry.References.size(); Index > schema::FunctionType::ParametersBegin; --Index)
             {
-              if (Entry.Numbers[Index - 1])
+              const auto ParameterIndex = Index - schema::FunctionType::ParametersBegin - 1;
+              if (Entry.Numbers[schema::FunctionType::VariadicsBegin + ParameterIndex])
               {
                 Work.push_back({RenderKind::Text, 0, "..."});
               }
-              Work.push_back({RenderKind::Type, Entry.References[Index - 1], {}});
-              if (Index > 2)
+              Work.push_back({RenderKind::Type, Entry.References[schema::FunctionType::ParametersBegin + ParameterIndex], {}});
+              if (ParameterIndex != 0)
               {
                 Work.push_back({RenderKind::Text, 0, ", "});
               }
@@ -575,8 +566,8 @@ namespace ink::ir::detail
 
         void integer(const Record &Entry)
         {
-          const auto &Type = Data.Records[Entry.References[0]];
-          const auto Width = Type.Numbers[1];
+          const auto &Type = Data.Records[Entry.References[schema::IntegerConstant::Type]];
+          const auto Width = Type.Numbers[schema::IntegerType::Width];
           if (Width > 64)
           {
             append("0x");
@@ -592,8 +583,8 @@ namespace ink::ir::detail
             }
             return;
           }
-          const auto Bits = Entry.Numbers[0];
-          if (Type.Numbers[2] && (Bits & (std::uint64_t{1} << (Width - 1))))
+          const auto Bits = Entry.Numbers[schema::IntegerConstant::WordsBegin];
+          if (Type.Numbers[schema::IntegerType::Signed] && (Bits & (std::uint64_t{1} << (Width - 1))))
           {
             append('-');
             const auto Mask = Width == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << Width) - 1;
@@ -611,13 +602,13 @@ namespace ink::ir::detail
           append("  ");
           reference(Id);
           append(" = type ");
-          append(Entry.Kind == RecordKind::ClassType ? "class" : Entry.Kind == RecordKind::InterfaceType ? "interface" : "struct");
+          append(recordTextName(Entry.Kind));
           bool Attributes = false;
           attribute(Attributes, "size = ");
-          number(Entry.Numbers[0]);
+          number(Entry.Numbers[schema::NominalType::Size]);
           attribute(Attributes, "alignment = ");
-          number(Entry.Numbers[1]);
-          if (Entry.Numbers[2])
+          number(Entry.Numbers[schema::NominalType::Alignment]);
+          if (Entry.Numbers[schema::NominalType::Frozen])
           {
             attribute(Attributes, "frozen");
           }
@@ -627,20 +618,21 @@ namespace ink::ir::detail
           for (auto FieldId : Fields[Id])
           {
             const auto &Field = Data.Records[FieldId];
-            append("    field ");
-            type(Field.References[1]);
+            append("    ");
+            keyword(RecordKind::Field);
+            type(Field.References[schema::Field::Type]);
             append(' ');
-            string(Field.Strings[0]);
+            string(Field.Strings[schema::Field::Name]);
             append(" [offset = ");
-            number(Field.Numbers[0]);
+            number(Field.Numbers[schema::Field::Offset]);
             append("] = ");
-            if (Field.References[2] == NullId)
+            if (Field.References[schema::Field::Initializer] == NullId)
             {
               append("none");
             }
             else
             {
-              typedValue(Field.References[2]);
+              typedValue(Field.References[schema::Field::Initializer]);
             }
             append('\n');
           }
@@ -652,19 +644,20 @@ namespace ink::ir::detail
           const auto &Entry = Data.Records[Id];
           append("  ");
           reference(Id);
-          append(" = global ");
-          type(Entry.References[0]);
           append(" = ");
-          if (Entry.References[1] == NullId)
+          keyword(RecordKind::Global);
+          type(Entry.References[schema::Global::Type]);
+          append(" = ");
+          if (Entry.References[schema::Global::Initializer] == NullId)
           {
             append("none");
           }
           else
           {
-            typedValue(Entry.References[1]);
+            typedValue(Entry.References[schema::Global::Initializer]);
           }
           bool Attributes = false;
-          if (Entry.Numbers[0])
+          if (Entry.Numbers[schema::Global::StringStorage])
           {
             attribute(Attributes, "string_storage");
           }
@@ -676,25 +669,29 @@ namespace ink::ir::detail
         void function(std::uint32_t Id)
         {
           const auto &Entry = Data.Records[Id];
-          const auto &Signature = Data.Records[Entry.References[0]];
-          append(Blocks[Id].empty() ? "  declare " : "  define ");
-          if (Entry.Numbers[0] != 0)
+          const auto &Signature = Data.Records[Entry.References[schema::Function::Signature]];
+          append("  ");
+          append(Blocks[Id].empty() ? "declare" : recordTextName(RecordKind::Function));
+          append(' ');
+          if (Entry.Numbers[schema::Function::Linkage] != encodeEnum(SymbolLinkage::Local))
           {
-            append(Entry.Numbers[0] == 1 ? "import " : "export ");
+            append(enumName<SymbolLinkage>(Entry.Numbers[schema::Function::Linkage]));
+            append(' ');
           }
-          if (Entry.Numbers[1] != 0)
+          if (Entry.Numbers[schema::Function::Language] != encodeEnum(LanguageLinkage::Ink))
           {
-            append("\"C\" ");
+            string(enumName<LanguageLinkage>(Entry.Numbers[schema::Function::Language]));
+            append(' ');
           }
-          type(Signature.References[0]);
+          type(Signature.References[schema::FunctionType::Return]);
           append(' ');
           reference(Id);
           append('(');
           for (std::size_t Index = 0; Index < Parameters[Id].size(); ++Index)
           {
             separator(Index);
-            type(Signature.References[Index + 1]);
-            if (Signature.Numbers[Index + 1])
+            type(Signature.References[schema::FunctionType::ParametersBegin + Index]);
+            if (Signature.Numbers[schema::FunctionType::VariadicsBegin + Index])
             {
               append("...");
             }
@@ -706,33 +703,33 @@ namespace ink::ir::detail
           }
           append(')');
           bool Attributes = false;
-          if (Entry.Numbers[2] != 0)
+          if (Entry.Numbers[schema::Function::Visibility] != encodeEnum(FunctionVisibility::Public))
           {
-            attribute(Attributes, "private");
+            attribute(Attributes, enumName<FunctionVisibility>(Entry.Numbers[schema::Function::Visibility]));
           }
-          if (Entry.References[1] != NullId)
+          if (Entry.References[schema::Function::Owner] != NullId)
           {
             attribute(Attributes, "owner = ");
-            reference(Entry.References[1]);
+            reference(Entry.References[schema::Function::Owner]);
           }
-          if (Entry.Numbers[3] != 0)
+          if (Entry.Numbers[schema::Function::Dispatch] != encodeEnum(MethodDispatch::Direct))
           {
-            attribute(Attributes, Entry.Numbers[3] == 1 ? "virtual" : "abstract");
+            attribute(Attributes, enumName<MethodDispatch>(Entry.Numbers[schema::Function::Dispatch]));
           }
-          if (Entry.Numbers[4])
+          if (Entry.Numbers[schema::Function::Override])
           {
             attribute(Attributes, "override");
           }
-          if (Entry.Numbers[5])
+          if (Entry.Numbers[schema::Function::Final])
           {
             attribute(Attributes, "final");
           }
-          if (Entry.Numbers[6] != std::numeric_limits<std::uint64_t>::max())
+          if (Entry.Numbers[schema::Function::Slot] != NoVirtualSlot)
           {
             attribute(Attributes, "slot = ");
-            number(Entry.Numbers[6]);
+            number(Entry.Numbers[schema::Function::Slot]);
           }
-          if (!Signature.Numbers[0])
+          if (!Signature.Numbers[schema::FunctionType::Mutable])
           {
             attribute(Attributes, "signature_const");
           }
@@ -771,114 +768,93 @@ namespace ink::ir::detail
             reference(Id);
             append(" = ");
           }
+          keyword(Entry.Kind);
           bool Attributes = false;
           switch (Entry.Kind)
           {
           case RecordKind::Alloca:
-            append("alloca ");
-            type(Data.Records[R[0]].References[0]);
-            if (Entry.Numbers[0])
+            type(Data.Records[R[schema::Alloca::Type]].References[schema::PointerType::Element]);
+            if (Entry.Numbers[schema::Alloca::Initialized])
             {
               attribute(Attributes, "initialized");
             }
             nameAttribute(Id, Attributes);
             break;
           case RecordKind::Load:
-            append("load ");
-            type(R[0]);
+            type(R[schema::Load::Type]);
             append(", ");
-            typedValue(R[2]);
+            typedValue(R[schema::Load::Pointer]);
             break;
           case RecordKind::Store:
-            append("store ");
-            typedValue(R[2]);
+            typedValue(R[schema::Store::Value]);
             append(", ");
-            typedValue(R[3]);
+            typedValue(R[schema::Store::Pointer]);
             break;
           case RecordKind::Neg:
-            append("neg ");
-            typedValue(R[2]);
+            typedValue(R[schema::Neg::Operand]);
             break;
           case RecordKind::ICmp:
-          {
-            static constexpr std::string_view Predicates[] = {
-                "eq",
-                "ne",
-                "ugt",
-                "uge",
-                "ult",
-                "ule",
-                "sgt",
-                "sge",
-                "slt",
-                "sle",
-            };
-            append("icmp ");
-            append(Predicates[Entry.Numbers[0]]);
+            append(enumName<ICmpPredicate>(Entry.Numbers[schema::ICmp::Predicate]));
             append(' ');
-            typedValue(R[2]);
+            typedValue(R[schema::ICmp::Left]);
             append(", ");
-            typedValue(R[3]);
+            typedValue(R[schema::ICmp::Right]);
             break;
-          }
           case RecordKind::Branch:
-            append("br label ");
-            reference(R[2]);
+            append("label ");
+            reference(R[schema::Branch::Target]);
             break;
           case RecordKind::CondBranch:
-            append("br_if ");
-            typedValue(R[2]);
+            typedValue(R[schema::CondBranch::Condition]);
             append(", label ");
-            reference(R[3]);
+            reference(R[schema::CondBranch::TrueTarget]);
             append(", label ");
-            reference(R[4]);
+            reference(R[schema::CondBranch::FalseTarget]);
             break;
           case RecordKind::Return:
-            append("ret ");
-            if (R[2] == NullId)
+            if (R[schema::Return::Value] == NullId)
             {
-              append("void");
+              append(recordTextName(RecordKind::VoidType));
             }
             else
             {
-              typedValue(R[2]);
+              typedValue(R[schema::Return::Value]);
             }
             break;
           case RecordKind::Call:
-            append("call ");
-            type(R[0]);
+            type(R[schema::Call::Type]);
             append(' ');
-            value(R[3]);
+            value(R[schema::Call::Callee]);
             append('(');
-            for (std::size_t Index = 4; Index < R.size(); ++Index)
+            for (std::size_t Index = schema::Call::ArgumentsBegin; Index < R.size(); ++Index)
             {
-              separator(Index - 4);
+              const auto ArgumentIndex = Index - schema::Call::ArgumentsBegin;
+              separator(ArgumentIndex);
               typedValue(R[Index]);
-              if (!Entry.Strings[Index - 4].empty())
+              if (!Entry.Strings[schema::Call::ArgumentNamesBegin + ArgumentIndex].empty())
               {
                 append(" [name = ");
-                string(Entry.Strings[Index - 4]);
+                string(Entry.Strings[schema::Call::ArgumentNamesBegin + ArgumentIndex]);
                 append(']');
               }
             }
             append(')');
-            if (Data.Records[R[3]].Kind != RecordKind::Function || Data.Records[R[3]].References[0] != R[2])
+            if (Data.Records[R[schema::Call::Callee]].Kind != RecordKind::Function || Data.Records[R[schema::Call::Callee]].References[schema::Function::Signature] != R[schema::Call::Signature])
             {
               attribute(Attributes, "signature = ");
-              type(R[2]);
+              type(R[schema::Call::Signature]);
             }
             break;
           case RecordKind::GetElementPtr:
-            append("getelementptr ");
-            type(R[2]);
+            type(R[schema::GetElementPtr::SourceType]);
             append(", ");
-            typedValue(R[3]);
-            for (std::size_t Index = 4; Index < R.size(); ++Index)
+            typedValue(R[schema::GetElementPtr::Pointer]);
+            for (std::size_t Index = schema::GetElementPtr::IndicesBegin; Index < R.size(); ++Index)
             {
               append(", ");
               typedValue(R[Index]);
             }
-            if (Entry.Numbers[0])
+            if (Entry.Numbers[schema::GetElementPtr::InBounds])
             {
               attribute(Attributes, "inbounds");
             }
@@ -893,7 +869,7 @@ namespace ink::ir::detail
         bool hasResult(std::uint32_t Id) const
         {
           const auto &Entry = Data.Records[Id];
-          return Data.Records[Entry.References[0]].Kind != RecordKind::VoidType || (Entry.Kind == RecordKind::Call && Referenced[Id]);
+          return Data.Records[Entry.References[schema::Instruction::Type]].Kind != RecordKind::VoidType || (Entry.Kind == RecordKind::Call && Referenced[Id]);
         }
 
         const Model &Data;
