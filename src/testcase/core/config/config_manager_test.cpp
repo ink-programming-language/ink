@@ -8,8 +8,8 @@
 namespace ink::core::test
 {
   // Config readers return concrete values; callers do not handle a missing-value state.
-  static_assert(std::is_same_v<decltype(ConfigManager::get<ConfigKind::SemanticRecursionDepthLimit>()), std::string>);
-  static_assert(std::is_same_v<decltype(ConfigManager::getSize<ConfigKind::SemanticRecursionDepthLimit>()), std::size_t>);
+  static_assert(std::is_same_v<decltype(ConfigManager::get<ConfigKind::ParserMaxNestingDepth>()), std::string>);
+  static_assert(std::is_same_v<decltype(ConfigManager::getSize<ConfigKind::ParserMaxNestingDepth>()), std::size_t>);
 
   // Both readers print the missing key diagnostic and terminate for unregistered enum values.
   TEST(ConfigManagerDeathTest, MissingKeysReportICEAndPanic)
@@ -23,43 +23,43 @@ namespace ink::core::test
   // An absent environment override returns the default registered in config.def.
   TEST(ConfigManagerTest, UsesDefaultWhenEnvironmentIsAbsent)
   {
-    ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
+    ScopedEnvironmentVariable Environment("INK_PARSER_MAX_NESTING_DEPTH");
     ASSERT_TRUE(Environment.set(nullptr));
-    EXPECT_EQ(ConfigManager::get<ConfigKind::SemanticRecursionDepthLimit>(), "256");
-    EXPECT_EQ(ConfigManager::getSize<ConfigKind::SemanticRecursionDepthLimit>(), 256U);
+    EXPECT_EQ(ConfigManager::get<ConfigKind::ParserMaxNestingDepth>(), "128");
+    EXPECT_EQ(ConfigManager::getSize<ConfigKind::ParserMaxNestingDepth>(), 128U);
   }
 
   // Reads observe changed environment values while previously returned strings retain their own storage.
   TEST(ConfigManagerTest, CopiesOverridesAndReadsCurrentEnvironment)
   {
-    ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
+    ScopedEnvironmentVariable Environment("INK_PARSER_MAX_NESTING_DEPTH");
     ASSERT_TRUE(Environment.set("32"));
-    const auto First = ConfigManager::get<ConfigKind::SemanticRecursionDepthLimit>();
+    const auto First = ConfigManager::get<ConfigKind::ParserMaxNestingDepth>();
     EXPECT_EQ(First, "32");
-    EXPECT_EQ(ConfigManager::getSize<ConfigKind::SemanticRecursionDepthLimit>(), 32U);
+    EXPECT_EQ(ConfigManager::getSize<ConfigKind::ParserMaxNestingDepth>(), 32U);
     ASSERT_TRUE(Environment.set("64"));
-    EXPECT_EQ(ConfigManager::get<ConfigKind::SemanticRecursionDepthLimit>(), "64");
-    EXPECT_EQ(ConfigManager::getSize<ConfigKind::SemanticRecursionDepthLimit>(), 64U);
+    EXPECT_EQ(ConfigManager::get<ConfigKind::ParserMaxNestingDepth>(), "64");
+    EXPECT_EQ(ConfigManager::getSize<ConfigKind::ParserMaxNestingDepth>(), 64U);
     EXPECT_EQ(First, "32");
     ASSERT_TRUE(Environment.set(nullptr));
-    EXPECT_EQ(ConfigManager::get<ConfigKind::SemanticRecursionDepthLimit>(), "256");
+    EXPECT_EQ(ConfigManager::get<ConfigKind::ParserMaxNestingDepth>(), "128");
   }
 
   // Unsigned size conversion preserves both zero and the largest representable size.
   TEST(ConfigManagerTest, AcceptsUnsignedSizeBoundaries)
   {
-    ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
+    ScopedEnvironmentVariable Environment("INK_PARSER_MAX_NESTING_DEPTH");
     ASSERT_TRUE(Environment.set("0"));
-    EXPECT_EQ(ConfigManager::getSize<ConfigKind::SemanticRecursionDepthLimit>(), 0U);
+    EXPECT_EQ(ConfigManager::getSize<ConfigKind::ParserMaxNestingDepth>(), 0U);
     const std::string Maximum = std::to_string(std::numeric_limits<std::size_t>::max());
     ASSERT_TRUE(Environment.set(Maximum.c_str()));
-    EXPECT_EQ(ConfigManager::getSize<ConfigKind::SemanticRecursionDepthLimit>(), std::numeric_limits<std::size_t>::max());
+    EXPECT_EQ(ConfigManager::getSize<ConfigKind::ParserMaxNestingDepth>(), std::numeric_limits<std::size_t>::max());
   }
 
   // Invalid decimal syntax and overflow preserve raw overrides but use the default for size reads.
   TEST(ConfigManagerTest, FallsBackForInvalidSizeOverrides)
   {
-    ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
+    ScopedEnvironmentVariable Environment("INK_PARSER_MAX_NESTING_DEPTH");
     const std::string InvalidValues[] = {
         "invalid",
         "-1",
@@ -74,8 +74,8 @@ namespace ink::core::test
     {
       SCOPED_TRACE(Value);
       ASSERT_TRUE(Environment.set(Value.c_str()));
-      EXPECT_EQ(ConfigManager::get<ConfigKind::SemanticRecursionDepthLimit>(), Value);
-      EXPECT_EQ(ConfigManager::getSize<ConfigKind::SemanticRecursionDepthLimit>(), 256U);
+      EXPECT_EQ(ConfigManager::get<ConfigKind::ParserMaxNestingDepth>(), Value);
+      EXPECT_EQ(ConfigManager::getSize<ConfigKind::ParserMaxNestingDepth>(), 128U);
     }
   }
 
@@ -83,10 +83,10 @@ namespace ink::core::test
   // POSIX permits present-but-empty environment values, unlike the Windows CRT environment setter.
   TEST(ConfigManagerTest, PreservesEmptyOverrideAndFallsBackForSize)
   {
-    ScopedEnvironmentVariable Environment("INK_SEMANTIC_RECURSION_DEPTH_LIMIT");
+    ScopedEnvironmentVariable Environment("INK_PARSER_MAX_NESTING_DEPTH");
     ASSERT_TRUE(Environment.set(""));
-    EXPECT_EQ(ConfigManager::get<ConfigKind::SemanticRecursionDepthLimit>(), "");
-    EXPECT_EQ(ConfigManager::getSize<ConfigKind::SemanticRecursionDepthLimit>(), 256U);
+    EXPECT_EQ(ConfigManager::get<ConfigKind::ParserMaxNestingDepth>(), "");
+    EXPECT_EQ(ConfigManager::getSize<ConfigKind::ParserMaxNestingDepth>(), 128U);
   }
 #endif
 } // namespace ink::core::test

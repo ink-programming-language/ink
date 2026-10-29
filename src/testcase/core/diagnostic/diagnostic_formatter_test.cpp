@@ -32,10 +32,10 @@ namespace ink::core::test
     DiagnosticEngine Engine(Sources);
     SuppressingConsumer Consumer;
     Engine.addConsumer(Consumer);
-    auto Entry = makeDiagnostic<DiagnosticKind::SemanticUnsupported>(SourceRange::fromByteOffsets(3, 4), "SimpleStmt");
+    auto Entry = makeDiagnostic<DiagnosticKind::ParserInvalidTokenReference>(SourceRange::fromByteOffsets(3, 4), 300U, 256U);
     Entry.Source = Source;
 
-    EXPECT_DEATH(Engine.report(Entry), ::testing::AllOf(::testing::HasSubstr("fatal.ink:2:1: internal compiler error[INK-S0012]: initial semantic analyzer does not support SimpleStmt"), ::testing::HasSubstr("[bytes 3, 4)"), ::testing::HasSubstr("2 | !"), ::testing::HasSubstr("^")));
+    EXPECT_DEATH(Engine.report(Entry), ::testing::AllOf(::testing::HasSubstr("fatal.ink:2:1: internal compiler error[INK-P0048]: token index 300 is out of bounds for input of 256 tokens"), ::testing::HasSubstr("[bytes 3, 4)"), ::testing::HasSubstr("2 | !"), ::testing::HasSubstr("^")));
   }
 
   // Source identity, one-based byte coordinates and half-open offsets describe the diagnostic's registered file.

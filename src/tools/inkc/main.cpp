@@ -2,14 +2,9 @@
 
 #include "ink/core/diagnostic/diagnostic_consumer.h"
 #include "ink/core/diagnostic/diagnostic_formatter.h"
-#include "ink/core/name/name_pool.h"
 #include "ink/frontend/context.h"
 #include "ink/frontend/parser/parser.h"
 #include "ink/frontend/tokenizer/tokenizer.h"
-#include "ink/ir/module/module.h"
-#include "ink/ir/serialization/serialization.h"
-#include "ink/semantic/analyzer/analyzer.h"
-#include "ink/semantic/context.h"
 
 #include <cxxopts.hpp>
 #include <spdlog/logger.h>
@@ -17,14 +12,12 @@
 #include <spdlog/sinks/ostream_sink.h>
 
 #include <array>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <string>
 #include <string_view>
-#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -52,66 +45,19 @@ int main(int ArgumentCount, char **ArgumentValues)
   }
 
   std::string InputFile;
-  std::string IRFile;
   std::string HelpValue;
   std::string VersionValue;
-  cxxopts::Options Options("inkc", "Compile an Ink source file into an IR module. Semantic lowering is still under development.");
-  Options.custom_help("-i FILE [-S [FILE]] [options]");
+  cxxopts::Options Options("inkc", "Check an Ink source file for lexical and syntax errors.");
+  Options.custom_help("-i FILE [options]");
   Options.allow_unrecognised_options();
   auto AddOption = Options.add_options();
   AddOption("i,input", "Input file path (required)", cxxopts::value<std::string>(InputFile), "FILE");
-  AddOption("S", "Write text IR (default: input path with .ir extension)", cxxopts::value<std::string>(IRFile), "[FILE]");
   AddOption("h,help", "Print help", cxxopts::value<std::string>(HelpValue)->implicit_value(""));
   AddOption("V,version", "Print version", cxxopts::value<std::string>(VersionValue)->implicit_value(""));
 
-  // cxxopts does not consume separate values for options with implicit values.
-  // Supply an empty value for bare -S while preserving required -i values and argv bytes.
-  std::vector<const char *> ParserArguments;
-  for (int Index = 0; Index < ArgumentCount; ++Index)
-  {
-    const std::string_view Argument(ArgumentValues[Index]);
-    ParserArguments.push_back(ArgumentValues[Index]);
-    if (Index == 0)
-    {
-      continue;
-    }
-    if (Argument == "--")
-    {
-      ParserArguments.insert(ParserArguments.end(), ArgumentValues + Index + 1, ArgumentValues + ArgumentCount);
-      break;
-    }
-    char ValueOption = 0;
-    if (Argument == "--input")
-    {
-      ValueOption = 'i';
-    }
-    else if (Argument == "--S")
-    {
-      ValueOption = 'S';
-    }
-    else if (Argument.size() > 1 && Argument.front() == '-' && Argument[1] != '-')
-    {
-      const auto ValueIndex = Argument.find_first_of("iS", 1);
-      if (ValueIndex != std::string_view::npos && ValueIndex + 1 == Argument.size())
-      {
-        ValueOption = Argument[ValueIndex];
-      }
-    }
-    if (ValueOption == 'S' && (Index + 1 == ArgumentCount || ArgumentValues[Index + 1][0] == '-'))
-    {
-      ParserArguments.push_back("");
-    }
-    else if (ValueOption != 0 && Index + 1 < ArgumentCount)
-    {
-      ParserArguments.push_back(ArgumentValues[++Index]);
-    }
-  }
   // The sentinel routes missing required values through explicit validation.
+  std::vector<const char *> ParserArguments(ArgumentValues, ArgumentValues + ArgumentCount);
   ParserArguments.push_back("");
-  if (ParserArguments.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
-  {
-    return Error("too many arguments");
-  }
   const cxxopts::ParseResult Parsed = Options.parse(static_cast<int>(ParserArguments.size()), ParserArguments.data());
   const auto &Unmatched = Parsed.unmatched();
   const std::size_t UnmatchedCount = Unmatched.size() - (!Unmatched.empty() && Unmatched.back().empty() ? 1 : 0);
@@ -119,7 +65,7 @@ int main(int ArgumentCount, char **ArgumentValues)
   {
     return Error("unexpected argument '" + Unmatched.front() + "'");
   }
-  if (Parsed.count("input") > 1 || Parsed.count("S") > 1 || Parsed.count("help") > 1 || Parsed.count("version") > 1)
+  if (Parsed.count("input") > 1 || Parsed.count("help") > 1 || Parsed.count("version") > 1)
   {
     return Error("options must not be repeated");
   }
@@ -190,62 +136,5 @@ int main(int ArgumentCount, char **ArgumentValues)
     return OutputFailed || !std::cerr ? 2 : 1;
   }
 
-  // The single-input driver uses a logical entry name until source module resolution is implemented.
-  ink::semantic::SemanticContext Semantic(Compilation.sourceManager(), Compilation.diagnosticEngine(), Compilation.targetContext());
-  const auto Module = Semantic.moduleManager().createModule({{ink::core::NamePool::instance().intern("main")}});
-  if (!Module)
-  {
-    ErrorOutput.error("inkc: error: cannot create entry IR module\n");
-    return 2;
-  }
-  const bool Succeeded = ink::semantic::Analyzer{}.analyze(Semantic, Result, **Module);
-  const bool SemanticErrors = ReportDiagnostics();
-  if (!Succeeded && !SemanticErrors)
-  {
-    ErrorOutput.error("inkc: error: semantic analysis failed for '{}'\n", InputFile);
-  }
-  if (OutputFailed || !std::cerr)
-  {
-    return 2;
-  }
-  if (!Succeeded || SemanticErrors)
-  {
-    return 1;
-  }
-  if (Parsed.count("S") != 0)
-  {
-    const auto TextIR = ink::ir::writeText(**Module);
-    if (!TextIR)
-    {
-      ErrorOutput.error("inkc: error: cannot serialize text IR: {}\n", TextIR.error().Message);
-      return 2;
-    }
-    const std::filesystem::path InputPath(InputFile);
-    const std::filesystem::path IRPath = IRFile.empty() ? std::filesystem::path(InputPath).replace_extension(".ir") : std::filesystem::path(IRFile);
-    std::error_code PathError;
-    if (std::filesystem::equivalent(InputPath, IRPath, PathError))
-    {
-      ErrorOutput.error("inkc: error: IR output '{}' would overwrite the input file\n", IRPath.string());
-      return 2;
-    }
-    if (PathError && PathError != std::errc::no_such_file_or_directory)
-    {
-      ErrorOutput.error("inkc: error: cannot inspect IR output '{}': {}\n", IRPath.string(), PathError.message());
-      return 2;
-    }
-    std::ofstream IRStream(IRPath, std::ios::binary | std::ios::trunc);
-    if (!IRStream)
-    {
-      ErrorOutput.error("inkc: error: cannot open IR output '{}'\n", IRPath.string());
-      return 2;
-    }
-    IRStream.write(TextIR->data(), static_cast<std::streamsize>(TextIR->size()));
-    IRStream.close();
-    if (!IRStream)
-    {
-      ErrorOutput.error("inkc: error: cannot write IR output '{}'\n", IRPath.string());
-      return 2;
-    }
-  }
-  return 0;
+  return OutputFailed || !std::cerr ? 2 : 0;
 }

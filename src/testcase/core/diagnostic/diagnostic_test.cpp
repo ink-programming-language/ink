@@ -56,14 +56,7 @@ namespace ink::core::test
     SuppressingConsumer Consumer;
     Engine.addConsumer(Consumer);
     const DiagnosticEngine &View = Engine;
-    EXPECT_DEATH(View.reportICE<DiagnosticKind::SemanticInvalidAST>(Source, SourceRange::fromByteOffsets(3, 4), "missing required child"), ::testing::AllOf(::testing::HasSubstr("fatal.ink:2:1: internal compiler error[INK-S0061]: invalid AST: missing required child"), ::testing::HasSubstr("[bytes 3, 4)"), ::testing::HasSubstr("2 | !"), ::testing::HasSubstr("^")));
-  }
-
-  // Invalid semantic AST diagnostics print their invariant description and stable code before termination.
-  TEST(DiagnosticDeathTest, PrintsInvalidSemanticASTReason)
-  {
-    DiagnosticEngine Engine;
-    EXPECT_DEATH(Engine.report<DiagnosticKind::SemanticInvalidAST>({}, "FunctionDecl definition requires a body"), "internal compiler error\\[INK-S0061\\]: invalid AST: FunctionDecl definition requires a body");
+    EXPECT_DEATH(View.reportICE<DiagnosticKind::ParserInvalidTokenReference>(Source, SourceRange::fromByteOffsets(3, 4), 300U, 256U), ::testing::AllOf(::testing::HasSubstr("fatal.ink:2:1: internal compiler error[INK-P0048]: token index 300 is out of bounds for input of 256 tokens"), ::testing::HasSubstr("[bytes 3, 4)"), ::testing::HasSubstr("2 | !"), ::testing::HasSubstr("^")));
   }
 
   // A consumer cannot intercept or suppress an ICE before the engine prints and panics.
@@ -80,7 +73,7 @@ namespace ink::core::test
     DiagnosticEngine Engine;
     SuppressingConsumer Consumer;
     Engine.addConsumer(Consumer);
-    EXPECT_DEATH(Engine.report<DiagnosticKind::SemanticConstructionFailed>({}), "internal compiler error\\[INK-S0013\\]");
+    EXPECT_DEATH(Engine.report<DiagnosticKind::ParserLimitExceeded>({}), "internal compiler error\\[INK-P0004\\]");
   }
 
   // The effective classification controls termination, including an explicitly promoted user diagnostic.
@@ -89,9 +82,9 @@ namespace ink::core::test
     DiagnosticEngine Engine;
     auto Promoted = makeDiagnosticBuilder<DiagnosticKind::ParserExpectedToken>({}, ";").classification(DiagnosticClass::InternalCompilerError).build();
     EXPECT_DEATH(Engine.report(Promoted), "internal compiler error\\[INK-P0001\\]: expected ;");
-    auto Malformed = makeDiagnostic<DiagnosticKind::SemanticInvalidAST>({}, "missing required child");
+    auto Malformed = makeDiagnostic<DiagnosticKind::ParserInvalidTokenReference>({}, 300U, 256U);
     Malformed.Arguments.clear();
-    EXPECT_DEATH(Engine.report(Malformed), "internal compiler error\\[INK-S0061\\]: invalid AST");
+    EXPECT_DEATH(Engine.report(Malformed), "internal compiler error\\[INK-P0048\\]: invalid token reference");
   }
 
   // The two definition files stay disjoint, retain unique stable identities and enforce their declared classifications.
@@ -173,44 +166,6 @@ namespace ink::core::test
     EXPECT_EQ(std::get<std::uint64_t>(InvalidReference.Arguments[1].Value), 256U);
   }
 
-  // Initialization warnings preserve their identities and messages while allowing subsequent errors to reach consumers.
-  TEST(DiagnosticTest, InitializationWarningsDoNotStopDiagnosticDispatch)
-  {
-    DiagnosticEngine Engine;
-    CollectingDiagnosticConsumer Consumer;
-    Engine.addConsumer(Consumer);
-    const SourceRange ReadSpan = SourceRange::fromByteOffsets(2, 7);
-    const SourceRange AddressSpan = SourceRange::fromByteOffsets(11, 17);
-    Engine.report<DiagnosticKind::SemanticUninitializedRead>(ReadSpan, "Value");
-    Engine.report<DiagnosticKind::SemanticUninitializedAddress>(AddressSpan, "Output");
-    Engine.report<DiagnosticKind::SemanticInvalidAddressOperand>({});
-    Engine.report<DiagnosticKind::SemanticInvalidDereference>({});
-    ASSERT_EQ(Consumer.diagnostics().size(), 4U);
-    const auto &Read = Consumer.diagnostics()[0];
-    EXPECT_EQ(Read.Kind, DiagnosticKind::SemanticUninitializedRead);
-    EXPECT_EQ(Read.number(), 0x03000006U);
-    EXPECT_STREQ(Read.code(), "INK-S0006");
-    EXPECT_EQ(Read.classification(), DiagnosticClass::User);
-    EXPECT_EQ(Read.Span, ReadSpan);
-    EXPECT_EQ(DiagnosticFormatter{}.format(Read).Severity, DiagnosticSeverity::Warning);
-    EXPECT_EQ(DiagnosticFormatter{}.format(Read).Message, "'Value' is read before initialization");
-    const auto &Address = Consumer.diagnostics()[1];
-    EXPECT_EQ(Address.Kind, DiagnosticKind::SemanticUninitializedAddress);
-    EXPECT_EQ(Address.number(), 0x0300003EU);
-    EXPECT_STREQ(Address.code(), "INK-S0062");
-    EXPECT_EQ(Address.classification(), DiagnosticClass::User);
-    EXPECT_EQ(Address.Span, AddressSpan);
-    EXPECT_EQ(DiagnosticFormatter{}.format(Address).Severity, DiagnosticSeverity::Warning);
-    EXPECT_EQ(DiagnosticFormatter{}.format(Address).Message, "address of 'Output' is taken before initialization");
-    const auto &InvalidAddress = Consumer.diagnostics()[2];
-    EXPECT_EQ(InvalidAddress.Kind, DiagnosticKind::SemanticInvalidAddressOperand);
-    EXPECT_EQ(DiagnosticFormatter{}.format(InvalidAddress).Severity, DiagnosticSeverity::Error);
-    EXPECT_EQ(DiagnosticFormatter{}.format(InvalidAddress).Message, "address-of requires a local variable or a dereference expression");
-    const auto &InvalidDereference = Consumer.diagnostics()[3];
-    EXPECT_EQ(InvalidDereference.Kind, DiagnosticKind::SemanticInvalidDereference);
-    EXPECT_EQ(DiagnosticFormatter{}.format(InvalidDereference).Severity, DiagnosticSeverity::Error);
-  }
-
   // Source-aware reporting preserves each source and span for both argument-free and parameterized diagnostics.
   TEST(DiagnosticTest, EngineReportsSourceIdentityAndSpan)
   {
@@ -237,28 +192,5 @@ namespace ink::core::test
     EXPECT_EQ(Second.Source, SecondSource);
     EXPECT_EQ(Second.Span, SecondSpan);
     EXPECT_EQ(DiagnosticFormatter{}.format(Second).Message, "expected ;");
-  }
-
-  // Invalid semantic AST diagnostics own their description and preserve their registered identity, classification and fallback.
-  TEST(DiagnosticTest, InvalidSemanticASTOwnsDescriptionAndHasStableIdentity)
-  {
-    const SourceId Source(29);
-    const SourceRange Span = SourceRange::fromByteOffsets(3, 11);
-    auto Diagnostic = makeDiagnostic<DiagnosticKind::SemanticInvalidAST>(Span, std::string("FunctionDecl definition requires a body"));
-    Diagnostic.Source = Source;
-    EXPECT_EQ(Diagnostic.Kind, DiagnosticKind::SemanticInvalidAST);
-    EXPECT_EQ(diagnosticNumber(Diagnostic.Kind), 0x0300003DU);
-    EXPECT_STREQ(Diagnostic.code(), "INK-S0061");
-    EXPECT_EQ(Diagnostic.classification(), DiagnosticClass::InternalCompilerError);
-    EXPECT_EQ(Diagnostic.Source, Source);
-    EXPECT_EQ(Diagnostic.Span, Span);
-    const auto Formatted = DiagnosticFormatter{}.format(Diagnostic);
-    EXPECT_EQ(Formatted.Severity, DiagnosticSeverity::Error);
-    EXPECT_EQ(Formatted.Message, "invalid AST: FunctionDecl definition requires a body");
-    ASSERT_EQ(Diagnostic.Arguments.size(), 1U);
-    EXPECT_EQ(Diagnostic.Arguments[0].Name, DiagnosticArgumentName::Description);
-    EXPECT_EQ(std::get<std::string>(Diagnostic.Arguments[0].Value), "FunctionDecl definition requires a body");
-    Diagnostic.Arguments.clear();
-    EXPECT_EQ(DiagnosticFormatter{}.format(Diagnostic).Message, "invalid AST");
   }
 } // namespace ink::core::test
