@@ -1,6 +1,6 @@
 # ink
 
-`main` 保留 Core、目标平台描述、tokenizer、parser、AST 及对应测试。IR、semantic 及其测试已移除；`inkc` 仅检查输入文件的词法和语法，`ink-tokenize` 和 `ink-parse` 分别提供 token 流和 AST 输出。
+`main` 保留 Core、目标平台描述、tokenizer、parser、AST、IR 基础类型及对应测试。semantic 和其余 IR 实现已移除；`inkc` 仅检查输入文件的词法和语法，`ink-tokenize` 和 `ink-parse` 分别提供 token 流和 AST 输出。
 
 精简前的完整主干保存在 [`saved-execution`](https://github.com/ink-programming-language/ink/tree/saved-execution) 分支，快照提交为 `22c3946c4737a7942fc28ab7cfa6f78e6fa3bd31`。原有 semantic 实现、IR、execution、ABI、LLVM backend、inkc 及其测试和文档可在该分支查看。
 
@@ -40,7 +40,7 @@ ctest --test-dir build -C Release --output-on-failure
 
 `core_define.h` 的 `INK_ENABLE_ASSERTIONS` 统一控制八个断言宏：`check`、`checkMsgf`、`checkAlways`、`checkAlwaysMsgf`、`ensure`、`ensureMsgf`、`ensureAlways`、`ensureAlwaysMsgf`。check 和 ensure 采用对称的 `xxx`、`xxxMsgf`、`xxxAlways`、`xxxAlwaysMsgf` 命名。Debug 和 Development 开启，Shipping 关闭。失败时先输出并刷新日志，再在附加了调试器时触发断点；继续执行后，check 终止进程，ensure 返回 `false`。普通 ensure 每个调用点仅报告和中断一次，`ensureAlways` 和 `ensureAlwaysMsgf` 每次失败都报告和中断；check 每次失败都会终止，因此它的 Always 版本与对应普通版本行为相同。Shipping 中 check 不求值，ensure 保留条件求值，所有断言消息参数均不求值。`panic` 始终终止。Ink 模式独立于 `CMAKE_BUILD_TYPE`、`--config` 和 `NDEBUG`，不改变编译器优化或调试信息选项；例如 `cmake -S . -B build -DINK_BUILD_MODE=shipping` 配合 `cmake --build build --config Release` 选择 Shipping 行为和 Release 编译选项。多配置生成器的同一构建目录共用所选 Ink 模式，不同模式请使用不同构建目录。
 
-`ink_tests` 包含 Core、tokenizer 和 parser/AST 的单元测试，构建时同时构建 `inkc`、`ink-tokenize` 和 `ink-parse`。CTest 还运行三个工具的 CLI 进程测试和 parser 对抗输入测试。单独构建并运行全部启用测试可使用 `cmake --build build --config Release --target run_all_tests`。
+`ink_tests` 包含 Core、tokenizer、parser/AST 和 IR 类型的单元测试，构建时同时构建 `inkc`、`ink-tokenize` 和 `ink-parse`。CTest 还运行三个工具的 CLI 进程测试和 parser 对抗输入测试。单独构建并运行全部启用测试可使用 `cmake --build build --config Release --target run_all_tests`。
 
 启用 `BUILD_TESTING` 时，配置阶段检查 Frontend/Core 的 CMake 目标依赖，CTest 的 `FrontendDependencyBoundaryTest` 检查对应源码和头文件，禁止引入 IR 或 Semantic。源码检查使用轻量文本匹配，覆盖 include 和命名空间引用；可单独运行 `ctest --test-dir build -C Release -R FrontendDependencyBoundaryTest --output-on-failure`。
 
@@ -51,6 +51,8 @@ Core 的公共头文件按职责放在 `src/include/ink/core` 下的 `support`�
 资源限制在 `src/include/ink/core/config/config.def` 中定义，parser 可通过对应的 `INK_PARSER_*` 环境变量配置。内部编译错误经 spdlog 输出后 panic，普通源码错误通过诊断引擎报告。
 
 Frontend 通过统一的 `ink::frontend` 静态库提供 tokenizer、parser/AST 和共享上下文。公共头文件位于 `src/include/ink/frontend`，其中 `tokenizer` 和 `parser` 是两个子目录，命名空间分别为 `ink::frontend::tokenizer` 和 `ink::frontend::parser`；实现位于 `src/lib/frontend` 下对应的子目录。Frontend 的公开编译要求为 C++23，tokenizer 测试也使用 C++23，通过测试辅助函数将 `char8_t` UTF-8 字面量显式转换成字节字符串，最终链接同一个 frontend 库。
+
+IR 基础类型由独立的 `ink::ir` 库提供，公共头文件位于 `src/include/IR/Type`，命名空间为 `ink::ir`。`type.h` 保留 `Type` 基类和 `TypeSemantics` 枚举，枚举项 `Value`、`Reference` 分别表示值语义与引用语义；虚函数 `getSemantics()` 默认返回 `Value`，派生类可以覆盖为 `Reference`。`type_kind.h` 声明类型种类与名称查询，`type.def` 统一列出类型种类、类名和名称。`Int8Type` 至 `Int64Type`、`UInt8Type` 至 `UInt64Type`、`Float32Type`、`Float64Type`、`BoolType`、`VoidType` 和 `ArrayType` 各自定义在独立的 snake_case 头文件中。`getKind()` 和 `getName()` 提供种类与名称，具体类型的 `classof()` 支持按种类识别。数值及布尔类型的非虚 `bitWidth()` 表示逻辑位宽，不表示目标平台存储大小；`void` 和数组不提供这一查询。`ArrayType` 保存元素类型的借用引用和 64 位固定长度，支持空数组与嵌套数组；元素类型必须比数组类型存活更久。类型不可复制或经基类析构，应通过具体类型管理生命周期。
 
 成对的 const／非 const 访问器使用 C++23 显式对象参数合并定义，保持原来的引用、指针和只读节点数组返回类型。值成员直接通过 `Self` 访问；借用引用和指针指向的对象使用 `std::forward_like<decltype(Self) &>` 传播只读属性，并保持右值调用仍返回借用的左值引用或指针。所有借用结果仍受原对象及底层存储的生命周期约束。
 
