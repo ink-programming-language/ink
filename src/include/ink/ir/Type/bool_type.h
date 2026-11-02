@@ -1,17 +1,17 @@
 #pragma once
 
-#include "IR/Type/type.h"
+#include "ink/ir/Type/type.h"
 
 #include <cstdint>
 
 namespace ink::ir
 {
-  class Int8Type final : public Type
+  class BoolType final : public Type
   {
     public:
-      static constexpr TypeKind Kind = TypeKind::Int8;
+      static constexpr TypeKind Kind = TypeKind::Bool;
 
-      constexpr Int8Type() noexcept
+      constexpr BoolType() noexcept
           : Type(Kind)
       {
       }
@@ -23,7 +23,7 @@ namespace ink::ir
 
       constexpr std::uint32_t bitWidth() const noexcept
       {
-        return 8;
+        return 1;
       }
   };
 } // namespace ink::ir

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IR/Type/type_kind.h"
+#include "ink/ir/Type/type_kind.h"
 
 #include <cstdint>
 #include <string_view>

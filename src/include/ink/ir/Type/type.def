@@ -1,0 +1,9 @@
+// TYPE(Kind, Class, Spelling).
+// Intentionally has no include guard: callers define TYPE before inclusion.
+TYPE(Integer, IntegerType, "integer")
+TYPE(Float, FloatType, "float")
+TYPE(Bool, BoolType, "bool")
+TYPE(Void, VoidType, "void")
+TYPE(Array, ArrayType, "array")
+TYPE(Struct, StructType, "struct")
+TYPE(Class, ClassType, "class")

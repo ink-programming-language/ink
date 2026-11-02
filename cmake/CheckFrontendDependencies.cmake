@@ -56,7 +56,7 @@ function(ink_check_frontend_source_dependencies SourceDirectory)
       # This is a source-boundary lint, not a C++ parser; inactive preprocessor branches are checked too.
       string(REGEX REPLACE "/\\*([^*]|\\*+[^*/])*\\*+/" " " Source "${Source}")
       string(REGEX REPLACE "//[^\n]*" " " Source "${Source}")
-      set(ForbiddenInclude "(^|\n)[ \t]*#[ \t]*include[ \t]*[\"<]ink/(ir|semantic)(/|[\">])")
+      set(ForbiddenInclude "(^|\n)[ \t]*#[ \t]*include[ \t]*[\"<]ink/(IR|ir|semantic)(/|[\">])")
       set(ForbiddenQualifiedName "(^|[^A-Za-z0-9_])(ir|semantic)[ \t\r\n]*::|(^|[^A-Za-z0-9_])ink[ \t\r\n]*::[ \t\r\n]*(ir|semantic)([^A-Za-z0-9_]|$)")
       set(ForbiddenNamespace "(namespace|using[ \t\r\n]+namespace)[ \t\r\n]+(ir|semantic)([^A-Za-z0-9_]|$)")
       if(Source MATCHES "${ForbiddenInclude}" OR Source MATCHES "${ForbiddenQualifiedName}" OR Source MATCHES "${ForbiddenNamespace}")

@@ -1,18 +1,10 @@
-#include "IR/Type/type.h"
-#include "IR/Type/type_kind.h"
-#include "IR/Type/int8_type.h"
-#include "IR/Type/int16_type.h"
-#include "IR/Type/int32_type.h"
-#include "IR/Type/int64_type.h"
-#include "IR/Type/uint8_type.h"
-#include "IR/Type/uint16_type.h"
-#include "IR/Type/uint32_type.h"
-#include "IR/Type/uint64_type.h"
-#include "IR/Type/float32_type.h"
-#include "IR/Type/float64_type.h"
-#include "IR/Type/bool_type.h"
-#include "IR/Type/void_type.h"
-#include "IR/Type/array_type.h"
+#include "ink/ir/Type/array_type.h"
+#include "ink/ir/Type/bool_type.h"
+#include "ink/ir/Type/float_type.h"
+#include "ink/ir/Type/integer_type.h"
+#include "ink/ir/Type/type.h"
+#include "ink/ir/Type/type_kind.h"
+#include "ink/ir/Type/void_type.h"
 
 #include <gtest/gtest.h>
 
@@ -23,22 +15,16 @@
 
 namespace ink::ir::test
 {
-  static_assert(!std::is_constructible_v<ArrayType, Int32Type &&, std::uint64_t>);
-  static_assert(!std::is_constructible_v<ArrayType, const Int32Type &&, std::uint64_t>);
+  static_assert(!std::is_constructible_v<ArrayType, IntegerType &&, std::uint64_t>);
+  static_assert(!std::is_constructible_v<ArrayType, const IntegerType &&, std::uint64_t>);
 
-  // Every scalar kind retains its spelling and is distinguished from every other scalar through Type pointers.
+  // Scalar categories keep distinct spellings while different widths and signs share their category kind.
   TEST(IRTypeTest, IdentifiesDistinctScalarTypesThroughBasePointers)
   {
-    const Int8Type Int8;
-    const Int16Type Int16;
-    const Int32Type Int32;
-    const Int64Type Int64;
-    const UInt8Type UInt8;
-    const UInt16Type UInt16;
-    const UInt32Type UInt32;
-    const UInt64Type UInt64;
-    const Float32Type Float32;
-    const Float64Type Float64;
+    const IntegerType SignedInteger(IntegerType::Width::Bits8, IntegerType::Signedness::Signed);
+    const IntegerType UnsignedInteger(IntegerType::Width::Bits64, IntegerType::Signedness::Unsigned);
+    const FloatType Float32(FloatType::Width::Bits32);
+    const FloatType Float64(FloatType::Width::Bits64);
     const BoolType Bool;
     const VoidType Void;
     struct Case
@@ -49,16 +35,10 @@ namespace ink::ir::test
         bool (*Classof)(const Type *) noexcept;
     };
     const Case Cases[] = {
-        {&Int8, TypeKind::Int8, "int8", Int8Type::classof},
-        {&Int16, TypeKind::Int16, "int16", Int16Type::classof},
-        {&Int32, TypeKind::Int32, "int32", Int32Type::classof},
-        {&Int64, TypeKind::Int64, "int64", Int64Type::classof},
-        {&UInt8, TypeKind::UInt8, "uint8", UInt8Type::classof},
-        {&UInt16, TypeKind::UInt16, "uint16", UInt16Type::classof},
-        {&UInt32, TypeKind::UInt32, "uint32", UInt32Type::classof},
-        {&UInt64, TypeKind::UInt64, "uint64", UInt64Type::classof},
-        {&Float32, TypeKind::Float32, "float32", Float32Type::classof},
-        {&Float64, TypeKind::Float64, "float64", Float64Type::classof},
+        {&SignedInteger, TypeKind::Integer, "integer", IntegerType::classof},
+        {&UnsignedInteger, TypeKind::Integer, "integer", IntegerType::classof},
+        {&Float32, TypeKind::Float, "float", FloatType::classof},
+        {&Float64, TypeKind::Float, "float", FloatType::classof},
         {&Bool, TypeKind::Bool, "bool", BoolType::classof},
         {&Void, TypeKind::Void, "void", VoidType::classof},
     };
@@ -79,26 +59,52 @@ namespace ink::ir::test
     }
   }
 
-  // Signed and unsigned integers expose their declared widths, while floating point and bool retain their own widths.
-  TEST(IRTypeTest, ReportsScalarBitWidths)
+  // Every integer width supports both signs without changing its width or the shared integer category.
+  TEST(IRTypeTest, PreservesIntegerWidthsAndSignedness)
   {
-    EXPECT_EQ(Int8Type().bitWidth(), 8U);
-    EXPECT_EQ(Int16Type().bitWidth(), 16U);
-    EXPECT_EQ(Int32Type().bitWidth(), 32U);
-    EXPECT_EQ(Int64Type().bitWidth(), 64U);
-    EXPECT_EQ(UInt8Type().bitWidth(), 8U);
-    EXPECT_EQ(UInt16Type().bitWidth(), 16U);
-    EXPECT_EQ(UInt32Type().bitWidth(), 32U);
-    EXPECT_EQ(UInt64Type().bitWidth(), 64U);
-    EXPECT_EQ(Float32Type().bitWidth(), 32U);
-    EXPECT_EQ(Float64Type().bitWidth(), 64U);
+    struct Case
+    {
+        IntegerType::Width Width;
+        IntegerType::Signedness Sign;
+        std::uint32_t ExpectedWidth;
+        bool ExpectedSigned;
+    };
+    const Case Cases[] = {
+        {IntegerType::Width::Bits8, IntegerType::Signedness::Signed, 8, true},
+        {IntegerType::Width::Bits8, IntegerType::Signedness::Unsigned, 8, false},
+        {IntegerType::Width::Bits16, IntegerType::Signedness::Signed, 16, true},
+        {IntegerType::Width::Bits16, IntegerType::Signedness::Unsigned, 16, false},
+        {IntegerType::Width::Bits32, IntegerType::Signedness::Signed, 32, true},
+        {IntegerType::Width::Bits32, IntegerType::Signedness::Unsigned, 32, false},
+        {IntegerType::Width::Bits64, IntegerType::Signedness::Signed, 64, true},
+        {IntegerType::Width::Bits64, IntegerType::Signedness::Unsigned, 64, false},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.ExpectedWidth);
+      SCOPED_TRACE(Entry.ExpectedSigned);
+      const IntegerType Integer(Entry.Width, Entry.Sign);
+      const Type *Base = &Integer;
+      EXPECT_EQ(Integer.bitWidth(), Entry.ExpectedWidth);
+      EXPECT_EQ(Integer.isSigned(), Entry.ExpectedSigned);
+      EXPECT_EQ(Base->getKind(), TypeKind::Integer);
+      EXPECT_EQ(Base->getSemantics(), TypeSemantics::Value);
+      EXPECT_TRUE(IntegerType::classof(Base));
+    }
+  }
+
+  // Floating point widths remain distinct within one category and bool retains its independent one-bit width.
+  TEST(IRTypeTest, PreservesFloatingPointWidthsAndBooleanWidth)
+  {
+    EXPECT_EQ(FloatType(FloatType::Width::Bits32).bitWidth(), 32U);
+    EXPECT_EQ(FloatType(FloatType::Width::Bits64).bitWidth(), 64U);
     EXPECT_EQ(BoolType().bitWidth(), 1U);
   }
 
   // Nested arrays preserve the borrowed element identity and the independent length of each dimension.
   TEST(IRTypeTest, PreservesNestedArrayElementTypesAndLengths)
   {
-    const Int32Type Element;
+    const IntegerType Element(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const ArrayType Row(Element, 4);
     const ArrayType Matrix(Row, 3);
     const Type *Base = &Matrix;
@@ -108,19 +114,19 @@ namespace ink::ir::test
     EXPECT_EQ(typeKindName(TypeKind::Array), "array");
     EXPECT_TRUE(ArrayType::classof(Base));
     EXPECT_FALSE(ArrayType::classof(nullptr));
-    EXPECT_FALSE(Int32Type::classof(Base));
+    EXPECT_FALSE(IntegerType::classof(Base));
     EXPECT_EQ(&Matrix.elementType(), &Row);
     EXPECT_EQ(Matrix.elementCount(), 3U);
     EXPECT_TRUE(ArrayType::classof(&Matrix.elementType()));
     EXPECT_EQ(&Row.elementType(), &Element);
     EXPECT_EQ(Row.elementCount(), 4U);
-    EXPECT_TRUE(Int32Type::classof(&Row.elementType()));
+    EXPECT_TRUE(IntegerType::classof(&Row.elementType()));
   }
 
   // Zero-length arrays remain representable and large lengths are stored without narrowing to a host-sized integer.
   TEST(IRTypeTest, PreservesEmptyAndMaximumArrayLengths)
   {
-    const UInt8Type Element;
+    const IntegerType Element(IntegerType::Width::Bits8, IntegerType::Signedness::Unsigned);
     const ArrayType Empty(Element, 0);
     const ArrayType Maximum(Element, std::numeric_limits<std::uint64_t>::max());
     EXPECT_EQ(Empty.elementCount(), 0U);

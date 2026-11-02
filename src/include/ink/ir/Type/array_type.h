@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IR/Type/type.h"
+#include "ink/ir/Type/type.h"
 
 #include <cstdint>
 
