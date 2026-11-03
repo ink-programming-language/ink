@@ -1,4 +1,4 @@
-add_library(ink_ir STATIC type/type_kind.cpp)
+add_library(ink_ir STATIC type/type_kind.cpp instruction/opcode.cpp)
 add_library(ink::ir ALIAS ink_ir)
 
 target_compile_features(ink_ir PUBLIC cxx_std_23)

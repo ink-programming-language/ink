@@ -1,6 +1,42 @@
-// OPCODE(Kind, Spelling).
+// OPCODE(Kind, Spelling, Form, Width).
 // Intentionally has no include guard: callers define OPCODE before inclusion.
-OPCODE(Alloca, "alloca")
-OPCODE(Load, "load")
-OPCODE(Store, "store")
-OPCODE(Add, "add")
+// Alloca takes a byte count; it has no fixed data-operation bit width.
+OPCODE(Alloca, "alloca", Alloca, 0)
+
+// Loads read a value of the specified bit width from memory.
+OPCODE(Load8, "load8", Load, 8)
+OPCODE(Load16, "load16", Load, 16)
+OPCODE(Load32, "load32", Load, 32)
+OPCODE(Load64, "load64", Load, 64)
+
+// Stores write to memory; the suffix describes the source: m reads memory, i supplies an immediate.
+OPCODE(Store8m, "store8m", Storem, 8)
+OPCODE(Store8i, "store8i", Storei, 8)
+
+OPCODE(Store16m, "store16m", Storem, 16)
+OPCODE(Store16i, "store16i", Storei, 16)
+
+OPCODE(Store32m, "store32m", Storem, 32)
+OPCODE(Store32i, "store32i", Storei, 32)
+
+OPCODE(Store64m, "store64m", Storem, 64)
+OPCODE(Store64i, "store64i", Storei, 64)
+
+// Integer addition wraps to the specified bit width and writes to a memory result.
+// Suffixes describe LHS and RHS: m reads memory, i supplies an immediate.
+// Integer im inputs are normalized to mi by exchanging LHS and RHS.
+OPCODE(Add8mm, "add8mm", Addmm, 8)
+OPCODE(Add8mi, "add8mi", Addmi, 8)
+OPCODE(Add8ii, "add8ii", Addii, 8)
+
+OPCODE(Add16mm, "add16mm", Addmm, 16)
+OPCODE(Add16mi, "add16mi", Addmi, 16)
+OPCODE(Add16ii, "add16ii", Addii, 16)
+
+OPCODE(Add32mm, "add32mm", Addmm, 32)
+OPCODE(Add32mi, "add32mi", Addmi, 32)
+OPCODE(Add32ii, "add32ii", Addii, 32)
+
+OPCODE(Add64mm, "add64mm", Addmm, 64)
+OPCODE(Add64mi, "add64mi", Addmi, 64)
+OPCODE(Add64ii, "add64ii", Addii, 64)
