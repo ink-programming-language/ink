@@ -17,8 +17,8 @@ namespace ink::ir
 
   enum class ObjectByteOrder : std::uint8_t
   {
-    Little,
-    Big,
+    Little = 0,
+    Big = 1,
   };
 
   class ObjectHeader final

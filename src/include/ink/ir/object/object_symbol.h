@@ -10,9 +10,9 @@ namespace ink::ir
 {
   enum class ObjectSymbolLinkage : std::uint8_t
   {
-    Local,
-    Export,
-    Import,
+    Local = 0,
+    Export = 1,
+    Import = 2,
   };
 
   struct ObjectSymbolDefinition
