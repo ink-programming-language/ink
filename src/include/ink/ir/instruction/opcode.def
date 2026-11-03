@@ -1,0 +1,6 @@
+// OPCODE(Kind, Spelling).
+// Intentionally has no include guard: callers define OPCODE before inclusion.
+OPCODE(Alloca, "alloca")
+OPCODE(Load, "load")
+OPCODE(Store, "store")
+OPCODE(Add, "add")

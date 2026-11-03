@@ -8,7 +8,7 @@ namespace ink::ir
   enum class TypeKind : std::uint8_t
   {
 #define TYPE(Kind, Class, Spelling) Kind,
-#include "ink/ir/Type/type.def"
+#include "ink/ir/type/type.def"
 #undef TYPE
   };
 

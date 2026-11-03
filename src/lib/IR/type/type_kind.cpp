@@ -1,4 +1,4 @@
-#include "ink/ir/Type/type_kind.h"
+#include "ink/ir/type/type_kind.h"
 
 namespace ink::ir
 {
@@ -9,7 +9,7 @@ namespace ink::ir
 #define TYPE(Kind, Class, Spelling) \
   case TypeKind::Kind:              \
     return Spelling;
-#include "ink/ir/Type/type.def"
+#include "ink/ir/type/type.def"
 #undef TYPE
     }
     return "InvalidTypeKind";

@@ -1,10 +1,10 @@
-#include "ink/ir/Type/array_type.h"
-#include "ink/ir/Type/bool_type.h"
-#include "ink/ir/Type/float_type.h"
-#include "ink/ir/Type/integer_type.h"
-#include "ink/ir/Type/type.h"
-#include "ink/ir/Type/type_kind.h"
-#include "ink/ir/Type/void_type.h"
+#include "ink/ir/type/array_type.h"
+#include "ink/ir/type/bool_type.h"
+#include "ink/ir/type/float_type.h"
+#include "ink/ir/type/integer_type.h"
+#include "ink/ir/type/type.h"
+#include "ink/ir/type/type_kind.h"
+#include "ink/ir/type/void_type.h"
 
 #include <gtest/gtest.h>
 

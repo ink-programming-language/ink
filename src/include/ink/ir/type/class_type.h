@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ink/ir/Type/type.h"
+#include "ink/ir/type/type.h"
 
 namespace ink::ir
 {

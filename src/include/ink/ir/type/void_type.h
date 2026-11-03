@@ -1,15 +1,15 @@
 #pragma once
 
-#include "ink/ir/Type/type.h"
+#include "ink/ir/type/type.h"
 
 namespace ink::ir
 {
-  class StructType final : public Type
+  class VoidType final : public Type
   {
     public:
-      static constexpr TypeKind Kind = TypeKind::Struct;
+      static constexpr TypeKind Kind = TypeKind::Void;
 
-      constexpr StructType() noexcept
+      constexpr VoidType() noexcept
           : Type(Kind)
       {
       }

@@ -1,8 +1,8 @@
-#include "ink/ir/Type/array_type.h"
-#include "ink/ir/Type/bool_type.h"
-#include "ink/ir/Type/class_type.h"
-#include "ink/ir/Type/integer_type.h"
-#include "ink/ir/Type/struct_type.h"
+#include "ink/ir/type/array_type.h"
+#include "ink/ir/type/bool_type.h"
+#include "ink/ir/type/class_type.h"
+#include "ink/ir/type/integer_type.h"
+#include "ink/ir/type/struct_type.h"
 
 #include <gtest/gtest.h>
 
