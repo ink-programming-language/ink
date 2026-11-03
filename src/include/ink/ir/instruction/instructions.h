@@ -238,7 +238,7 @@ namespace ink::ir::detail
 
 namespace ink::ir
 {
-#define OPCODE(Kind, Spelling, Form, Width) using Kind##Instruction = detail::Form##Instruction<Opcode::Kind, Width>;
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, AddressCount, ImmediateCount) using Kind##Instruction = detail::Form##Instruction<Opcode::Kind, Width>;
 #include "ink/ir/instruction/opcode.def"
 #undef OPCODE
 } // namespace ink::ir

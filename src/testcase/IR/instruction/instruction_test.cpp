@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <string_view>
@@ -10,6 +11,12 @@
 
 namespace ink::ir::test
 {
+  static_assert(sizeof(Opcode) == 2);
+  static_assert(std::is_same_v<std::underlying_type_t<Opcode>, std::uint16_t>);
+  static_assert(OpcodeEncodingBytes == 2);
+  static_assert(AddressOperandEncodingBytes == 12);
+  static_assert(ImmediateOperandEncodingBytes == 8);
+
   template <typename InstructionType, typename = void>
   struct HasTypeAccessor : std::false_type
   {
@@ -21,7 +28,7 @@ namespace ink::ir::test
   };
 
   static_assert(!HasTypeAccessor<Instruction>::value);
-#define OPCODE(Kind, Spelling, Form, Width) static_assert(Kind##Instruction::Code == Opcode::Kind && Kind##Instruction::BitWidth == Width && !HasTypeAccessor<Kind##Instruction>::value);
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, AddressCount, ImmediateCount) static_assert(Kind##Instruction::Code == Opcode::Kind && Kind##Instruction::BitWidth == Width && !HasTypeAccessor<Kind##Instruction>::value);
 #include "ink/ir/instruction/opcode.def"
 #undef OPCODE
 
@@ -156,7 +163,7 @@ namespace ink::ir::test
 #define DECLARE_Addmm(Kind) const Kind##Instruction Kind##Inst(AddressOperand(2), AddressOperand::bp(2), AddressOperand::data(1, 7));
 #define DECLARE_Addmi(Kind) const Kind##Instruction Kind##Inst(AddressOperand(2), AddressOperand::bp(2), ImmediateOperand(42));
 #define DECLARE_Addii(Kind) const Kind##Instruction Kind##Inst(AddressOperand(2), ImmediateOperand(7), ImmediateOperand(42));
-#define OPCODE(Kind, Spelling, Form, Width) DECLARE_##Form(Kind)
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, AddressCount, ImmediateCount) DECLARE_##Form(Kind)
 #include "ink/ir/instruction/opcode.def"
 #undef OPCODE
 #undef DECLARE_Addii
@@ -170,12 +177,15 @@ namespace ink::ir::test
     {
         const Instruction *Value;
         Opcode Code;
+        std::uint16_t Encoding;
         std::string_view Name;
         std::uint32_t Width;
+        std::uint32_t AddressCount;
+        std::uint32_t ImmediateCount;
         bool (*Classof)(const Instruction *) noexcept;
     };
     const Case Cases[] = {
-#define OPCODE(Kind, Spelling, Form, Width) {&Kind##Inst, Opcode::Kind, Spelling, Width, &Kind##Instruction::classof},
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, AddressCount, ImmediateCount) {&Kind##Inst, Opcode::Kind, Encoding, Spelling, Width, AddressCount, ImmediateCount, &Kind##Instruction::classof},
 #include "ink/ir/instruction/opcode.def"
 #undef OPCODE
     };
@@ -183,10 +193,17 @@ namespace ink::ir::test
     {
       SCOPED_TRACE(Entry.Name);
       EXPECT_EQ(Entry.Value->getOpcode(), Entry.Code);
+      EXPECT_EQ(static_cast<std::uint16_t>(Entry.Code), Entry.Encoding);
       EXPECT_EQ(Entry.Value->getName(), Entry.Name);
       EXPECT_EQ(opcodeName(Entry.Code), Entry.Name);
       EXPECT_EQ(Entry.Value->bitWidth(), Entry.Width);
       EXPECT_EQ(opcodeBitWidth(Entry.Code), Entry.Width);
+      const auto OperandCount = opcodeOperandCount(Entry.Code);
+      ASSERT_TRUE(OperandCount.has_value());
+      EXPECT_EQ(*OperandCount, Entry.AddressCount + Entry.ImmediateCount);
+      const auto EncodedSize = opcodeEncodedSize(Entry.Code);
+      ASSERT_TRUE(EncodedSize.has_value());
+      EXPECT_EQ(*EncodedSize, 2U + 12U * Entry.AddressCount + 8U * Entry.ImmediateCount);
       EXPECT_FALSE(Entry.Classof(nullptr));
       for (const auto &Other : Cases)
       {
@@ -199,10 +216,10 @@ namespace ink::ir::test
   // All widths and memory/immediate forms preserve typed operands and results while rejecting mismatched constructor forms.
   TEST(IRInstructionTest, PreservesTypedOperandsForEveryOpcodeForm)
   {
-#define OPCODE(Kind, Spelling, Form, Width) \
-  {                                         \
-    SCOPED_TRACE(Spelling);                 \
-    check##Form<Kind##Instruction>();       \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, AddressCount, ImmediateCount) \
+  {                                                                                 \
+    SCOPED_TRACE(Spelling);                                                         \
+    check##Form<Kind##Instruction>();                                               \
   }
 #include "ink/ir/instruction/opcode.def"
 #undef OPCODE
@@ -259,11 +276,59 @@ namespace ink::ir::test
     EXPECT_EQ(Alloca.getByteCount().bits(), 42U);
   }
 
-  // Unknown opcode values return an explicit invalid name and zero width without matching any declared instruction.
+  // Representative encodings remain stable and every declared opcode uses a unique 16-bit encoding.
+  TEST(IRInstructionTest, PreservesStableUniqueOpcodeEncodings)
+  {
+    struct Case
+    {
+        Opcode Code;
+        std::uint16_t Encoding;
+        std::uint32_t OperandCount;
+        std::uint32_t EncodedSize;
+    };
+    const Case Cases[] = {
+        {Opcode::Alloca, 0x0000, 2, 22},
+        {Opcode::Load64, 0x0004, 2, 26},
+        {Opcode::Store64i, 0x000C, 2, 22},
+        {Opcode::Add32mm, 0x0013, 3, 38},
+        {Opcode::Add32mi, 0x0014, 3, 34},
+        {Opcode::Add64ii, 0x0018, 3, 30},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(opcodeName(Entry.Code));
+      EXPECT_EQ(static_cast<std::uint16_t>(Entry.Code), Entry.Encoding);
+      const auto OperandCount = opcodeOperandCount(Entry.Code);
+      ASSERT_TRUE(OperandCount.has_value());
+      EXPECT_EQ(*OperandCount, Entry.OperandCount);
+      const auto EncodedSize = opcodeEncodedSize(Entry.Code);
+      ASSERT_TRUE(EncodedSize.has_value());
+      EXPECT_EQ(*EncodedSize, Entry.EncodedSize);
+    }
+    const Opcode Codes[] = {
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, AddressCount, ImmediateCount) Opcode::Kind,
+#include "ink/ir/instruction/opcode.def"
+#undef OPCODE
+    };
+    constexpr std::size_t CodeCount = sizeof(Codes) / sizeof(Codes[0]);
+    for (std::size_t Index = 0; Index < CodeCount; ++Index)
+    {
+      SCOPED_TRACE(opcodeName(Codes[Index]));
+      for (std::size_t OtherIndex = Index + 1; OtherIndex < CodeCount; ++OtherIndex)
+      {
+        SCOPED_TRACE(opcodeName(Codes[OtherIndex]));
+        EXPECT_NE(static_cast<std::uint16_t>(Codes[Index]), static_cast<std::uint16_t>(Codes[OtherIndex]));
+      }
+    }
+  }
+
+  // Unknown 16-bit opcodes have no operand count or encoded size and retain explicit invalid metadata.
   TEST(IRInstructionTest, NamesUnknownOpcodesWithoutMisclassification)
   {
-    const Opcode Invalid = static_cast<Opcode>(255);
+    const Opcode Invalid = static_cast<Opcode>(0xFFFF);
     EXPECT_EQ(opcodeName(Invalid), "InvalidOpcode");
     EXPECT_EQ(opcodeBitWidth(Invalid), 0U);
+    EXPECT_FALSE(opcodeOperandCount(Invalid).has_value());
+    EXPECT_FALSE(opcodeEncodedSize(Invalid).has_value());
   }
 } // namespace ink::ir::test

@@ -7,6 +7,7 @@
 namespace ink::ir
 {
   // Describes a memory operand as a base-table slot and a signed byte offset.
+  // Its bytecode encoding is a 32-bit slot followed by a signed 64-bit byte offset, without padding.
   // The VM updates the BP slot when entering/leaving a frame. Symbol/data slots are assigned by the caller or loader.
   class AddressOperand
   {

@@ -1,42 +1,44 @@
-// OPCODE(Kind, Spelling, Form, Width).
+// OPCODE(Kind, Encoding, Spelling, Form, Width, AddressCount, ImmediateCount).
 // Intentionally has no include guard: callers define OPCODE before inclusion.
+// Encodings are stable 16-bit values. Addresses encode a 32-bit slot followed by a signed 64-bit byte offset; immediates occupy 64 bits.
+// Counts are schema metadata, not additional encoded fields; they include result/destination operands. Encoded fields have no padding.
 // Alloca takes a byte count; it has no fixed data-operation bit width.
-OPCODE(Alloca, "alloca", Alloca, 0)
+OPCODE(Alloca, 0x0000, "alloca", Alloca, 0, 1, 1)
 
 // Loads read a value of the specified bit width from memory.
-OPCODE(Load8, "load8", Load, 8)
-OPCODE(Load16, "load16", Load, 16)
-OPCODE(Load32, "load32", Load, 32)
-OPCODE(Load64, "load64", Load, 64)
+OPCODE(Load8, 0x0001, "load8", Load, 8, 2, 0)
+OPCODE(Load16, 0x0002, "load16", Load, 16, 2, 0)
+OPCODE(Load32, 0x0003, "load32", Load, 32, 2, 0)
+OPCODE(Load64, 0x0004, "load64", Load, 64, 2, 0)
 
 // Stores write to memory; the suffix describes the source: m reads memory, i supplies an immediate.
-OPCODE(Store8m, "store8m", Storem, 8)
-OPCODE(Store8i, "store8i", Storei, 8)
+OPCODE(Store8m, 0x0005, "store8m", Storem, 8, 2, 0)
+OPCODE(Store8i, 0x0006, "store8i", Storei, 8, 1, 1)
 
-OPCODE(Store16m, "store16m", Storem, 16)
-OPCODE(Store16i, "store16i", Storei, 16)
+OPCODE(Store16m, 0x0007, "store16m", Storem, 16, 2, 0)
+OPCODE(Store16i, 0x0008, "store16i", Storei, 16, 1, 1)
 
-OPCODE(Store32m, "store32m", Storem, 32)
-OPCODE(Store32i, "store32i", Storei, 32)
+OPCODE(Store32m, 0x0009, "store32m", Storem, 32, 2, 0)
+OPCODE(Store32i, 0x000A, "store32i", Storei, 32, 1, 1)
 
-OPCODE(Store64m, "store64m", Storem, 64)
-OPCODE(Store64i, "store64i", Storei, 64)
+OPCODE(Store64m, 0x000B, "store64m", Storem, 64, 2, 0)
+OPCODE(Store64i, 0x000C, "store64i", Storei, 64, 1, 1)
 
 // Integer addition wraps to the specified bit width and writes to a memory result.
 // Suffixes describe LHS and RHS: m reads memory, i supplies an immediate.
 // Integer im inputs are normalized to mi by exchanging LHS and RHS.
-OPCODE(Add8mm, "add8mm", Addmm, 8)
-OPCODE(Add8mi, "add8mi", Addmi, 8)
-OPCODE(Add8ii, "add8ii", Addii, 8)
+OPCODE(Add8mm, 0x000D, "add8mm", Addmm, 8, 3, 0)
+OPCODE(Add8mi, 0x000E, "add8mi", Addmi, 8, 2, 1)
+OPCODE(Add8ii, 0x000F, "add8ii", Addii, 8, 1, 2)
 
-OPCODE(Add16mm, "add16mm", Addmm, 16)
-OPCODE(Add16mi, "add16mi", Addmi, 16)
-OPCODE(Add16ii, "add16ii", Addii, 16)
+OPCODE(Add16mm, 0x0010, "add16mm", Addmm, 16, 3, 0)
+OPCODE(Add16mi, 0x0011, "add16mi", Addmi, 16, 2, 1)
+OPCODE(Add16ii, 0x0012, "add16ii", Addii, 16, 1, 2)
 
-OPCODE(Add32mm, "add32mm", Addmm, 32)
-OPCODE(Add32mi, "add32mi", Addmi, 32)
-OPCODE(Add32ii, "add32ii", Addii, 32)
+OPCODE(Add32mm, 0x0013, "add32mm", Addmm, 32, 3, 0)
+OPCODE(Add32mi, 0x0014, "add32mi", Addmi, 32, 2, 1)
+OPCODE(Add32ii, 0x0015, "add32ii", Addii, 32, 1, 2)
 
-OPCODE(Add64mm, "add64mm", Addmm, 64)
-OPCODE(Add64mi, "add64mi", Addmi, 64)
-OPCODE(Add64ii, "add64ii", Addii, 64)
+OPCODE(Add64mm, 0x0016, "add64mm", Addmm, 64, 3, 0)
+OPCODE(Add64mi, 0x0017, "add64mi", Addmi, 64, 2, 1)
+OPCODE(Add64ii, 0x0018, "add64ii", Addii, 64, 1, 2)
