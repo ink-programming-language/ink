@@ -4,6 +4,7 @@
 
 INK_DIAGNOSTIC(ConfigNotFound, 0x08000001U, Core, "INK-C0001", InternalCompilerError, Error, "configuration key is not registered", "configuration key {ActualValue} is not registered", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(ActualValue, UnsignedInteger)))
 INK_DIAGNOSTIC(ConfigInvalidSizeDefault, 0x08000002U, Core, "INK-C0002", InternalCompilerError, Error, "configuration size default is invalid", "configuration '{SymbolName}' has invalid size default '{Actual}'", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(SymbolName, String), INK_DIAGNOSTIC_ARGUMENT(Actual, String)))
+INK_DIAGNOSTIC(ConfigInvalidVersionDefault, 0x08000003U, Core, "INK-C0003", InternalCompilerError, Error, "configuration version default is invalid", "configuration '{SymbolName}' has invalid version default '{Actual}'", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(SymbolName, String), INK_DIAGNOSTIC_ARGUMENT(Actual, String)))
 
 // All failures other than incorrect user source code, including resource limits.
 INK_DIAGNOSTIC(NormalizationFailed, 0x01000014U, Tokenizer, "INK-T0020", InternalCompilerError, Error, "could not normalize the identifier to NFC", "could not normalize the identifier to NFC", INK_DIAGNOSTIC_ARGUMENTS())

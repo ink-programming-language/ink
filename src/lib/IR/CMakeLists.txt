@@ -1,8 +1,9 @@
-add_library(ink_ir STATIC type/type_kind.cpp instruction/opcode.cpp)
+add_library(ink_ir STATIC type/type_kind.cpp instruction/opcode.cpp object/object_file_validator.cpp)
 add_library(ink::ir ALIAS ink_ir)
 
 target_compile_features(ink_ir PUBLIC cxx_std_23)
 target_include_directories(ink_ir PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>")
+target_link_libraries(ink_ir PUBLIC ink::core)
 ink_disable_exceptions(ink_ir)
 
 if(MSVC)

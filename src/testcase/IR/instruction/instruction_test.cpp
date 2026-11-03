@@ -46,10 +46,10 @@ namespace ink::ir::test
     static_assert(!std::is_constructible_v<InstructionType, ImmediateOperand, ImmediateOperand>);
     static_assert(!std::is_constructible_v<InstructionType, AddressOperand, AddressOperand>);
     static_assert(std::is_same_v<decltype(std::declval<const InstructionType &>().getByteCount()), const ImmediateOperand &>);
-    const InstructionType Allocation(AddressOperand(2, 16), ImmediateOperand(13));
+    const InstructionType Allocation(AddressOperand(3, 16), ImmediateOperand(13));
     EXPECT_EQ(Allocation.getByteCount().bits(), 13U);
     ASSERT_TRUE(Allocation.getResult().has_value());
-    EXPECT_EQ(Allocation.getResult()->baseIndex(), 2U);
+    EXPECT_EQ(Allocation.getResult()->baseIndex(), 3U);
     EXPECT_EQ(Allocation.getResult()->byteOffset(), 16);
   }
 
@@ -108,10 +108,10 @@ namespace ink::ir::test
     static_assert(!std::is_constructible_v<InstructionType, AddressOperand, AddressOperand, ImmediateOperand>);
     static_assert(std::is_same_v<decltype(std::declval<const InstructionType &>().getLHS()), const AddressOperand &>);
     static_assert(std::is_same_v<decltype(std::declval<const InstructionType &>().getRHS()), const AddressOperand &>);
-    const InstructionType Add(AddressOperand(5, 8), AddressOperand::bp(-4), AddressOperand::data(1, 12));
+    const InstructionType Add(AddressOperand(5, 8), AddressOperand::bp(-4), AddressOperand::data(3, 12));
     EXPECT_EQ(Add.getLHS().baseIndex(), 0U);
     EXPECT_EQ(Add.getLHS().byteOffset(), -4);
-    EXPECT_EQ(Add.getRHS().baseIndex(), 1U);
+    EXPECT_EQ(Add.getRHS().baseIndex(), 3U);
     EXPECT_EQ(Add.getRHS().byteOffset(), 12);
     ASSERT_TRUE(Add.getResult().has_value());
     EXPECT_EQ(Add.getResult()->baseIndex(), 5U);
@@ -127,8 +127,8 @@ namespace ink::ir::test
     static_assert(!std::is_constructible_v<InstructionType, AddressOperand, AddressOperand, AddressOperand>);
     static_assert(std::is_same_v<decltype(std::declval<const InstructionType &>().getLHS()), const AddressOperand &>);
     static_assert(std::is_same_v<decltype(std::declval<const InstructionType &>().getRHS()), const ImmediateOperand &>);
-    const InstructionType Add(AddressOperand(6, 24), AddressOperand::data(1, -12), ImmediateOperand(17));
-    EXPECT_EQ(Add.getLHS().baseIndex(), 1U);
+    const InstructionType Add(AddressOperand(6, 24), AddressOperand::data(3, -12), ImmediateOperand(17));
+    EXPECT_EQ(Add.getLHS().baseIndex(), 3U);
     EXPECT_EQ(Add.getLHS().byteOffset(), -12);
     EXPECT_EQ(Add.getRHS().bits(), 17U);
     ASSERT_TRUE(Add.getResult().has_value());
@@ -156,13 +156,13 @@ namespace ink::ir::test
   // Every opcode definition maps to a distinct concrete class with matching spelling, width, and exclusive classof checks.
   TEST(IRInstructionTest, IdentifiesEveryOpcodeThroughBasePointers)
   {
-#define DECLARE_Alloca(Kind) const Kind##Instruction Kind##Inst(AddressOperand(2), ImmediateOperand(5));
-#define DECLARE_Load(Kind) const Kind##Instruction Kind##Inst(AddressOperand(2), AddressOperand::bp(2));
-#define DECLARE_Storem(Kind) const Kind##Instruction Kind##Inst(AddressOperand::bp(-2), AddressOperand::data(1, 7));
+#define DECLARE_Alloca(Kind) const Kind##Instruction Kind##Inst(AddressOperand(3), ImmediateOperand(5));
+#define DECLARE_Load(Kind) const Kind##Instruction Kind##Inst(AddressOperand(3), AddressOperand::bp(2));
+#define DECLARE_Storem(Kind) const Kind##Instruction Kind##Inst(AddressOperand::bp(-2), AddressOperand::data(3, 7));
 #define DECLARE_Storei(Kind) const Kind##Instruction Kind##Inst(AddressOperand::bp(-2), ImmediateOperand(42));
-#define DECLARE_Addmm(Kind) const Kind##Instruction Kind##Inst(AddressOperand(2), AddressOperand::bp(2), AddressOperand::data(1, 7));
-#define DECLARE_Addmi(Kind) const Kind##Instruction Kind##Inst(AddressOperand(2), AddressOperand::bp(2), ImmediateOperand(42));
-#define DECLARE_Addii(Kind) const Kind##Instruction Kind##Inst(AddressOperand(2), ImmediateOperand(7), ImmediateOperand(42));
+#define DECLARE_Addmm(Kind) const Kind##Instruction Kind##Inst(AddressOperand(3), AddressOperand::bp(2), AddressOperand::data(3, 7));
+#define DECLARE_Addmi(Kind) const Kind##Instruction Kind##Inst(AddressOperand(3), AddressOperand::bp(2), ImmediateOperand(42));
+#define DECLARE_Addii(Kind) const Kind##Instruction Kind##Inst(AddressOperand(3), ImmediateOperand(7), ImmediateOperand(42));
 #define OPCODE(Kind, Encoding, Spelling, Form, Width, AddressCount, ImmediateCount) DECLARE_##Form(Kind)
 #include "ink/ir/instruction/opcode.def"
 #undef OPCODE

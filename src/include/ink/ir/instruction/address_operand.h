@@ -8,11 +8,14 @@ namespace ink::ir
 {
   // Describes a memory operand as a base-table slot and a signed byte offset.
   // Its bytecode encoding is a 32-bit slot followed by a signed 64-bit byte offset, without padding.
-  // The VM updates the BP slot when entering/leaving a frame. Symbol/data slots are assigned by the caller or loader.
+  // The VM maintains BP, SP, and PC in reserved slots 0, 1, and 2. Symbol/data slots start at 3 and are assigned by the caller or loader.
   class AddressOperand
   {
     public:
       static constexpr std::uint32_t BasePointerSlot = 0;
+      static constexpr std::uint32_t StackPointerSlot = 1;
+      static constexpr std::uint32_t ProgramCounterSlot = 2;
+      static constexpr std::uint32_t ReservedSlotCount = ProgramCounterSlot + 1;
 
       constexpr explicit AddressOperand(std::uint32_t BaseIndex, std::int64_t ByteOffset = 0) noexcept
           : BaseIndex(BaseIndex),
@@ -23,6 +26,16 @@ namespace ink::ir
       static constexpr AddressOperand bp(std::int64_t ByteOffset = 0) noexcept
       {
         return AddressOperand(BasePointerSlot, ByteOffset);
+      }
+
+      static constexpr AddressOperand sp(std::int64_t ByteOffset = 0) noexcept
+      {
+        return AddressOperand(StackPointerSlot, ByteOffset);
+      }
+
+      static constexpr AddressOperand pc(std::int64_t ByteOffset = 0) noexcept
+      {
+        return AddressOperand(ProgramCounterSlot, ByteOffset);
       }
 
       static constexpr AddressOperand data(std::uint32_t BaseIndex, std::int64_t ByteOffset = 0) noexcept

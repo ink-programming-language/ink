@@ -15,28 +15,65 @@ namespace ink::ir::test
   static_assert(std::is_trivially_copyable_v<ImmediateOperand>);
   static_assert(ImmediateOperand::fromSigned(-1).bits() == std::numeric_limits<std::uint64_t>::max());
 
+  // BP, SP, and PC occupy reserved slots zero through two and retain zero, positive, and negative byte displacements.
+  TEST(IRAddressOperandTest, DescribesPredefinedBaseSlots)
+  {
+    static_assert(AddressOperand::BasePointerSlot == 0);
+    static_assert(AddressOperand::StackPointerSlot == 1);
+    static_assert(AddressOperand::ProgramCounterSlot == 2);
+    static_assert(AddressOperand::ReservedSlotCount == 3);
+    static_assert(AddressOperand::sp(7).baseIndex() == AddressOperand::StackPointerSlot);
+    static_assert(AddressOperand::sp(7).byteOffset() == 7);
+    static_assert(AddressOperand::pc(-9).baseIndex() == AddressOperand::ProgramCounterSlot);
+    static_assert(AddressOperand::pc(-9).byteOffset() == -9);
+    struct Case
+    {
+        AddressOperand Address;
+        std::uint32_t Slot;
+        std::int64_t Offset;
+    };
+    constexpr Case Cases[] = {
+        {AddressOperand::bp(), 0, 0},
+        {AddressOperand::sp(), 1, 0},
+        {AddressOperand::pc(), 2, 0},
+        {AddressOperand::bp(17), 0, 17},
+        {AddressOperand::bp(-17), 0, -17},
+        {AddressOperand::sp(17), 1, 17},
+        {AddressOperand::sp(-17), 1, -17},
+        {AddressOperand::pc(17), 2, 17},
+        {AddressOperand::pc(-17), 2, -17},
+    };
+    for (const auto &Entry : Cases)
+    {
+      SCOPED_TRACE(Entry.Slot);
+      SCOPED_TRACE(Entry.Offset);
+      EXPECT_EQ(Entry.Address.baseIndex(), Entry.Slot);
+      EXPECT_EQ(Entry.Address.byteOffset(), Entry.Offset);
+    }
+  }
+
   // BP-relative, symbolic, and arbitrary addresses retain their base slots and signed byte displacements as descriptions.
   TEST(IRAddressOperandTest, DescribesStackDataAndIndependentBaseSlots)
   {
-    constexpr std::uint32_t SymbolSlot = 1;
+    constexpr std::uint32_t SymbolSlot = 3;
     constexpr AddressOperand Stack = AddressOperand::bp(5);
     static_assert(Stack.baseIndex() == AddressOperand::BasePointerSlot);
     static_assert(Stack.byteOffset() == 5);
     const AddressOperand Symbol = AddressOperand::data(SymbolSlot, 42);
-    const AddressOperand Independent(2, -7);
+    const AddressOperand Independent(5, -7);
     EXPECT_EQ(Stack.baseIndex(), AddressOperand::BasePointerSlot);
     EXPECT_EQ(Stack.byteOffset(), 5);
     EXPECT_EQ(AddressOperand::bp().byteOffset(), 0);
     EXPECT_EQ(Symbol.baseIndex(), SymbolSlot);
     EXPECT_EQ(Symbol.byteOffset(), 42);
-    EXPECT_EQ(Independent.baseIndex(), 2U);
+    EXPECT_EQ(Independent.baseIndex(), 5U);
     EXPECT_EQ(Independent.byteOffset(), -7);
   }
 
   // Symbols with equal displacements retain distinct explicit slots, and omitting the displacement records zero.
   TEST(IRAddressOperandTest, KeepsExplicitSymbolBaseSlotsIndependent)
   {
-    constexpr std::uint32_t FirstSymbolSlot = 2;
+    constexpr std::uint32_t FirstSymbolSlot = 3;
     constexpr std::uint32_t SecondSymbolSlot = 4;
     const AddressOperand FirstSymbol = AddressOperand::data(FirstSymbolSlot, 8);
     const AddressOperand SecondSymbol = AddressOperand::data(SecondSymbolSlot, 8);

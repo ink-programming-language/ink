@@ -74,4 +74,19 @@ namespace ink::core
     }
     return *DefaultValue;
   }
+
+  Version ConfigManager::readVersion(ConfigKind Kind)
+  {
+    const ConfigEntry &Entry = findConfig(Kind);
+    if (const auto Value = Version::parse(readValue(Entry)))
+    {
+      return *Value;
+    }
+    const auto DefaultValue = Version::parse(Entry.DefaultValue);
+    if (!DefaultValue)
+    {
+      DiagnosticEngine{}.report<DiagnosticKind::ConfigInvalidVersionDefault>({}, Entry.EnvironmentName, Entry.DefaultValue);
+    }
+    return *DefaultValue;
+  }
 } // namespace ink::core

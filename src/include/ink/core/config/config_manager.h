@@ -1,6 +1,8 @@
 #ifndef INK_CORE_CONFIG_MANAGER_H
 #define INK_CORE_CONFIG_MANAGER_H
 
+#include "ink/core/support/version.h"
+
 #include <cstddef>
 #include <string>
 
@@ -35,9 +37,18 @@ namespace ink::core
         return readSize(Kind);
       }
 
+      // Read an unsigned major.minor.patch version. Invalid overrides use the
+      // definition's default; invalid version defaults report an ICE and panic.
+      template <ConfigKind Kind>
+      static Version getVersion()
+      {
+        return readVersion(Kind);
+      }
+
     private:
       static std::string read(ConfigKind Kind);
       static std::size_t readSize(ConfigKind Kind);
+      static Version readVersion(ConfigKind Kind);
   };
 } // namespace ink::core
 
