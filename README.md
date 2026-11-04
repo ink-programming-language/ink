@@ -40,9 +40,9 @@ ctest --test-dir build -C Release --output-on-failure
 
 `core_define.h` 的 `INK_ENABLE_ASSERTIONS` 统一控制八个断言宏：`check`、`checkMsgf`、`checkAlways`、`checkAlwaysMsgf`、`ensure`、`ensureMsgf`、`ensureAlways`、`ensureAlwaysMsgf`。check 和 ensure 采用对称的 `xxx`、`xxxMsgf`、`xxxAlways`、`xxxAlwaysMsgf` 命名。Debug 和 Development 开启，Shipping 关闭。失败时先输出并刷新日志，再在附加了调试器时触发断点；继续执行后，check 终止进程，ensure 返回 `false`。普通 ensure 每个调用点仅报告和中断一次，`ensureAlways` 和 `ensureAlwaysMsgf` 每次失败都报告和中断；check 每次失败都会终止，因此它的 Always 版本与对应普通版本行为相同。Shipping 中 check 不求值，ensure 保留条件求值，所有断言消息参数均不求值。`panic` 始终终止。Ink 模式独立于 `CMAKE_BUILD_TYPE`、`--config` 和 `NDEBUG`，不改变编译器优化或调试信息选项；例如 `cmake -S . -B build -DINK_BUILD_MODE=shipping` 配合 `cmake --build build --config Release` 选择 Shipping 行为和 Release 编译选项。多配置生成器的同一构建目录共用所选 Ink 模式，不同模式请使用不同构建目录。
 
-`ink_tests` 包含 Core、tokenizer、parser/AST 和 IR 类型的单元测试，构建时同时构建 `inkc`、`ink-tokenize` 和 `ink-parse`。CTest 还运行三个工具的 CLI 进程测试和 parser 对抗输入测试。单独构建并运行全部启用测试可使用 `cmake --build build --config Release --target run_all_tests`。
+`ink_tests` 包含 Core、tokenizer、parser/AST、IR 类型和 VM 指令及对象文件的单元测试，构建时同时构建 `inkc`、`ink-tokenize` 和 `ink-parse`。CTest 还运行三个工具的 CLI 进程测试和 parser 对抗输入测试。单独构建并运行全部启用测试可使用 `cmake --build build --config Release --target run_all_tests`。
 
-启用 `BUILD_TESTING` 时，配置阶段检查 Frontend/Core 的 CMake 目标依赖，CTest 的 `FrontendDependencyBoundaryTest` 检查对应源码和头文件，禁止引入 IR 或 Semantic。源码检查使用轻量文本匹配，覆盖 include 和命名空间引用；可单独运行 `ctest --test-dir build -C Release -R FrontendDependencyBoundaryTest --output-on-failure`。
+启用 `BUILD_TESTING` 时，配置阶段检查 Frontend/Core 的 CMake 目标依赖，CTest 的 `FrontendDependencyBoundaryTest` 检查对应源码和头文件，禁止引入 IR、VM 或 Semantic。源码检查使用轻量文本匹配，覆盖 include 和命名空间引用；可单独运行 `ctest --test-dir build -C Release -R FrontendDependencyBoundaryTest --output-on-failure`。
 
 LLVM/Clang 固定版本为 22.1.8；tokenizer 直接使用 Clang 的 `UnicodeCharSets.h` 和 LLVM 支持库的 Unicode 接口。NFC 校验使用 utf8proc 2.9.0 的 Unicode 15.1 实现。spdlog 1.17.0 负责所有自有 C++ 文本输出；各命令行工具自行配置输出，并直接使用 cxxopts 3.3.1 解析 `argc` / `argv`，暂不处理命令行参数和路径的 UTF-8 转换。所有自有 C++ 编译目标在目标级关闭异常。
 
@@ -62,7 +62,7 @@ IR 值基类 `Value` 定义于 `src/include/ink/ir/value/value.h`，通过唯一
 
 常量池使用三个 `std::unordered_set` 直接持有常量对象，不额外保存一份 key 或使用 `unique_ptr`。常量及公开的数字查询键 `IntegerConstant::Key` 和 `FloatConstant::Key` 提供 `hash()` 成员，三个池分别使用 `core::Hash<IntegerConstant>`、`core::Hash<FloatConstant>` 和 `core::Hash<StringConstant>`，模板参数均为容器自身的 `key_type`。对象及数字查询键优先调用自身的 `hash()`，`StringConstant::hash(std::string_view)` 静态重载将字符串查询统一为字节视图。相等判断通过各类型的成员 `operator==` 和 `std::equal_to<>` 完成。整数使用位宽、符号属性和完整的 64 位位模式，浮点使用位宽和完整的 64 位位模式，字符串使用 `std::string_view` 的完整字节内容；哈希与相等判断使用相同字段，命中时无需构造常量或复制字符串。三个常量类型的构造函数公开，调用方可直接构造，并负责保证所借用的类型比常量存活更久。常量仍不可复制或移动，池在节点内原地构造常量；rehash 不使已返回的常量指针、引用或字符串视图失效。
 
-IR 指令基类 `Instruction` 定义于 `src/include/ink/ir/instruction/instruction.h`，公开继承 `Value`，由派生类构造时传入关联类型，并继承 `getType()`、不可复制和借用类型的生命周期约定。指令通过具体派生类型管理生命周期。
+VM 指令和对象文件由独立的 `ink::vm` 库提供，仅依赖 `ink::core`，命名空间为 `ink::vm`。公共头文件分别位于 `src/include/ink/vm/instruction` 和 `src/include/ink/vm/object`，实现和测试位于 `src/lib/vm` 和 `src/testcase/vm` 的对应子目录。指令基类 `Instruction` 保存操作码和可选的结果地址，提供名称、位宽和结果地址查询；具体指令使用地址或立即数操作数，通过具体派生类型管理生命周期。IR 的 `Type` 和 `Value` 仍由 `ink::ir` 提供。对象文件 API 负责对象结构验证、二进制读写和显式错误报告，格式详见 [对象文件格式](docs/Ink-Object-Format.md)。
 
 成对的 const／非 const 访问器使用 C++23 显式对象参数合并定义，保持原来的引用、指针和只读节点数组返回类型。值成员直接通过 `Self` 访问；借用引用和指针指向的对象使用 `std::forward_like<decltype(Self) &>` 传播只读属性，并保持右值调用仍返回借用的左值引用或指针。所有借用结果仍受原对象及底层存储的生命周期约束。
 

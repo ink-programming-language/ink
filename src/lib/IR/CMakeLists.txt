@@ -1,4 +1,4 @@
-add_library(ink_ir STATIC type/type_kind.cpp type/type_pool.cpp constant/constant_pool.cpp instruction/opcode.cpp object/object_file_reader.cpp object/object_file_validator.cpp object/object_file_writer.cpp)
+add_library(ink_ir STATIC type/type_kind.cpp type/type_pool.cpp constant/constant_pool.cpp)
 add_library(ink::ir ALIAS ink_ir)
 
 target_compile_features(ink_ir PUBLIC cxx_std_23)

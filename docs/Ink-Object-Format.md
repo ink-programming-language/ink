@@ -1,6 +1,6 @@
 # Ink object binary format
 
-This format serializes the logical contents of `ink::ir::ObjectFile`. Its default format and instruction-set versions are both `1.0.0`; the supported versions are read through `ConfigManager`.
+This format serializes the logical contents of `ink::vm::ObjectFile`. Its default format and instruction-set versions are both `1.0.0`; the supported versions are read through `ConfigManager`.
 
 Fields appear in the order below. There is no implicit padding, native pointer, C++ object layout, or terminating byte after a string. All sizes and offsets are byte counts. Section alignment describes loaded storage and does not insert padding into the file.
 
