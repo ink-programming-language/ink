@@ -4,12 +4,12 @@
 
 namespace ink::ir
 {
-  class ClassType final : public Type
+  class ObjectType final : public Type
   {
     public:
-      static constexpr TypeKind Kind = TypeKind::Class;
+      static constexpr TypeKind Kind = TypeKind::Object;
 
-      constexpr ClassType() noexcept
+      constexpr ObjectType() noexcept
           : Type(Kind)
       {
       }

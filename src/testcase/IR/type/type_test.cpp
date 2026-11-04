@@ -2,6 +2,7 @@
 #include "ink/ir/type/bool_type.h"
 #include "ink/ir/type/float_type.h"
 #include "ink/ir/type/integer_type.h"
+#include "ink/ir/type/reference_type.h"
 #include "ink/ir/type/type.h"
 #include "ink/ir/type/type_kind.h"
 #include "ink/ir/type/void_type.h"
@@ -17,6 +18,8 @@ namespace ink::ir::test
 {
   static_assert(!std::is_constructible_v<ArrayType, IntegerType &&, std::uint64_t>);
   static_assert(!std::is_constructible_v<ArrayType, const IntegerType &&, std::uint64_t>);
+  static_assert(!std::is_constructible_v<ReferenceType, IntegerType &&>);
+  static_assert(!std::is_constructible_v<ReferenceType, const IntegerType &&>);
 
   // Scalar categories keep distinct spellings while different widths and signs share their category kind.
   TEST(IRTypeTest, IdentifiesDistinctScalarTypesThroughBasePointers)
@@ -135,26 +138,23 @@ namespace ink::ir::test
     EXPECT_EQ(&Maximum.elementType(), &Element);
   }
 
-  // A derived reference type overrides the default value semantics even when queried through the base interface.
-  TEST(IRTypeTest, QueriesOverriddenSemanticsThroughBasePointer)
+  // References preserve target identity and their distinct kind while exposing reference semantics through Type.
+  TEST(IRTypeTest, IdentifiesReferencesAndPreservesNestedTargets)
   {
-    class ReferenceType final : public Type
-    {
-      public:
-        constexpr ReferenceType() noexcept
-            : Type(TypeKind::Array)
-        {
-        }
-
-        constexpr TypeSemantics getSemantics() const noexcept override
-        {
-          return TypeSemantics::Reference;
-        }
-    };
-
-    const ReferenceType Reference;
+    const IntegerType Integer(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
+    const ReferenceType Reference(Integer);
+    const ReferenceType Nested(static_cast<const Type &>(Reference));
     const Type *Base = &Reference;
+    EXPECT_EQ(Base->getKind(), TypeKind::Reference);
+    EXPECT_EQ(Base->getName(), "reference");
+    EXPECT_EQ(typeKindName(TypeKind::Reference), "reference");
     EXPECT_EQ(Base->getSemantics(), TypeSemantics::Reference);
+    EXPECT_TRUE(ReferenceType::classof(Base));
+    EXPECT_FALSE(ReferenceType::classof(nullptr));
+    EXPECT_FALSE(ReferenceType::classof(&Integer));
+    EXPECT_FALSE(IntegerType::classof(Base));
+    EXPECT_EQ(&Reference.referencedType(), &Integer);
+    EXPECT_EQ(&Nested.referencedType(), &Reference);
   }
 
   // An unrecognized kind is named explicitly instead of being confused with a valid scalar or array.

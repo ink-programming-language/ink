@@ -2,6 +2,7 @@
 
 #include "ink/ir/type/type.h"
 
+#include <cstddef>
 #include <cstdint>
 
 namespace ink::ir
@@ -10,6 +11,19 @@ namespace ink::ir
   class ArrayType final : public Type
   {
     public:
+      struct Key
+      {
+          const Type *ElementType;
+          std::uint64_t ElementCount;
+
+          std::size_t hash() const noexcept;
+          constexpr bool operator==(const Key &) const noexcept = default;
+      };
+
+      std::size_t hash() const noexcept;
+      bool operator==(const ArrayType &Other) const noexcept;
+      bool operator==(const Key &Other) const noexcept;
+
       static constexpr TypeKind Kind = TypeKind::Array;
 
       constexpr ArrayType(const Type &ElementType, std::uint64_t ElementCount) noexcept

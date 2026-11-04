@@ -1,6 +1,6 @@
 #include "ink/ir/type/array_type.h"
 #include "ink/ir/type/bool_type.h"
-#include "ink/ir/type/class_type.h"
+#include "ink/ir/type/object_type.h"
 #include "ink/ir/type/integer_type.h"
 #include "ink/ir/type/struct_type.h"
 
@@ -19,29 +19,29 @@ namespace ink::ir::test
     EXPECT_EQ(Base->getSemantics(), TypeSemantics::Value);
   }
 
-  // A class retains its distinct kind and spelling while overriding value semantics through Type.
-  TEST(IRTypeTest, IdentifiesClassWithReferenceSemanticsThroughBasePointer)
+  // An object retains its distinct kind and spelling while overriding value semantics through Type.
+  TEST(IRTypeTest, IdentifiesObjectWithReferenceSemanticsThroughBasePointer)
   {
-    const ClassType Class;
-    const Type *Base = &Class;
-    EXPECT_EQ(Base->getKind(), TypeKind::Class);
-    EXPECT_EQ(Base->getName(), "class");
-    EXPECT_EQ(typeKindName(TypeKind::Class), "class");
+    const ObjectType Object;
+    const Type *Base = &Object;
+    EXPECT_EQ(Base->getKind(), TypeKind::Object);
+    EXPECT_EQ(Base->getName(), "object");
+    EXPECT_EQ(typeKindName(TypeKind::Object), "object");
     EXPECT_EQ(Base->getSemantics(), TypeSemantics::Reference);
   }
 
-  // Record kind checks distinguish struct from class and reject null, scalar, and array types.
-  TEST(IRTypeTest, DistinguishesStructAndClassFromOtherKinds)
+  // Record kind checks distinguish struct from object and reject null, scalar, and array types.
+  TEST(IRTypeTest, DistinguishesStructAndObjectFromOtherKinds)
   {
     const StructType Struct;
-    const ClassType Class;
+    const ObjectType Object;
     const IntegerType Int32(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const BoolType Bool;
     const ArrayType Array(Int32, 2);
     EXPECT_TRUE(StructType::classof(&Struct));
-    EXPECT_TRUE(ClassType::classof(&Class));
-    EXPECT_FALSE(StructType::classof(&Class));
-    EXPECT_FALSE(ClassType::classof(&Struct));
+    EXPECT_TRUE(ObjectType::classof(&Object));
+    EXPECT_FALSE(StructType::classof(&Object));
+    EXPECT_FALSE(ObjectType::classof(&Struct));
     const Type *OtherTypes[] = {
         nullptr,
         &Int32,
@@ -51,11 +51,11 @@ namespace ink::ir::test
     for (const Type *Other : OtherTypes)
     {
       EXPECT_FALSE(StructType::classof(Other));
-      EXPECT_FALSE(ClassType::classof(Other));
+      EXPECT_FALSE(ObjectType::classof(Other));
     }
     EXPECT_FALSE(IntegerType::classof(&Struct));
-    EXPECT_FALSE(IntegerType::classof(&Class));
+    EXPECT_FALSE(IntegerType::classof(&Object));
     EXPECT_FALSE(ArrayType::classof(&Struct));
-    EXPECT_FALSE(ArrayType::classof(&Class));
+    EXPECT_FALSE(ArrayType::classof(&Object));
   }
 } // namespace ink::ir::test
