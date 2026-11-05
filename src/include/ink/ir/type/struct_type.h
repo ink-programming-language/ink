@@ -1,16 +1,16 @@
 #pragma once
 
-#include "ink/ir/type/type.h"
+#include "ink/ir/type/record_type.h"
 
 namespace ink::ir
 {
-  class StructType final : public Type
+  class StructType final : public RecordType
   {
     public:
       static constexpr TypeKind Kind = TypeKind::Struct;
 
       constexpr StructType() noexcept
-          : Type(Kind)
+          : RecordType(Kind)
       {
       }
 

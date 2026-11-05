@@ -1,7 +1,7 @@
 #pragma once
 
+#include "ink/ir/constant/constant.h"
 #include "ink/ir/type/array_type.h"
-#include "ink/ir/value/value.h"
 
 #include <cstddef>
 #include <string>
@@ -10,7 +10,7 @@
 namespace ink::ir
 {
   // Owns decoded bytes, including embedded NULs, without adding a terminator to the IR array.
-  class StringConstant final : public Value
+  class StringConstant final : public Constant
   {
     public:
       std::size_t hash() const noexcept;
@@ -19,10 +19,12 @@ namespace ink::ir
       bool operator==(std::string_view Other) const noexcept;
 
       StringConstant(const ArrayType &ValueType, std::string_view Bytes)
-          : Value(ValueType),
+          : Constant(ValueType),
             Bytes(Bytes)
       {
       }
+
+      StringConstant(const ArrayType &&, std::string_view) = delete;
 
       ~StringConstant() = default;
 

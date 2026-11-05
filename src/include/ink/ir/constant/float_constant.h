@@ -1,7 +1,7 @@
 #pragma once
 
+#include "ink/ir/constant/constant.h"
 #include "ink/ir/type/float_type.h"
-#include "ink/ir/value/value.h"
 
 #include <bit>
 #include <cstddef>
@@ -10,7 +10,7 @@
 namespace ink::ir
 {
   // Identity uses the IEEE bit pattern, preserving signed zero and NaN payloads.
-  class FloatConstant final : public Value
+  class FloatConstant final : public Constant
   {
     public:
       struct Key
@@ -27,10 +27,12 @@ namespace ink::ir
       bool operator==(const Key &Other) const noexcept;
 
       constexpr FloatConstant(const FloatType &ValueType, std::uint64_t Bits) noexcept
-          : Value(ValueType),
+          : Constant(ValueType),
             Bits(Bits)
       {
       }
+
+      FloatConstant(const FloatType &&, std::uint64_t) = delete;
 
       ~FloatConstant() = default;
 

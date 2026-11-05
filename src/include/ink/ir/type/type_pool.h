@@ -4,18 +4,20 @@
 #include "ink/ir/type/array_type.h"
 #include "ink/ir/type/bool_type.h"
 #include "ink/ir/type/float_type.h"
+#include "ink/ir/type/function_type.h"
 #include "ink/ir/type/integer_type.h"
 #include "ink/ir/type/reference_type.h"
 #include "ink/ir/type/void_type.h"
 
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <unordered_set>
 
 namespace ink::ir
 {
   // Owns immutable types with stable addresses until pool destruction.
-  // Array elements and reference targets may be external, but must outlive the pool.
+  // Borrowed array elements, reference targets, and function signature types may be external, but must outlive the pool.
   // Concurrent pool operations require external synchronization.
   class TypePool final
   {
@@ -37,6 +39,8 @@ namespace ink::ir
       const ArrayType &getArrayType(const Type &&, std::uint64_t) = delete;
       const ReferenceType &getReferenceType(const Type &ReferencedType);
       const ReferenceType &getReferenceType(const Type &&) = delete;
+      const FunctionType &getFunctionType(const Type &ReturnType, std::span<const Parameter> Parameters = {});
+      const FunctionType &getFunctionType(const Type &&, std::span<const Parameter> = {}) = delete;
 
     private:
       IntegerType Integers[8] = {
@@ -57,5 +61,6 @@ namespace ink::ir
       VoidType Void;
       std::unordered_set<ArrayType, core::Hash<ArrayType>, std::equal_to<>> Arrays;
       std::unordered_set<ReferenceType, core::Hash<ReferenceType>, std::equal_to<>> References;
+      std::unordered_set<FunctionType, core::Hash<FunctionType>, std::equal_to<>> Functions;
   };
 } // namespace ink::ir

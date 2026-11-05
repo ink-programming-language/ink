@@ -1,7 +1,7 @@
 #pragma once
 
+#include "ink/ir/constant/constant.h"
 #include "ink/ir/type/integer_type.h"
-#include "ink/ir/value/value.h"
 
 #include <bit>
 #include <cstddef>
@@ -9,7 +9,7 @@
 
 namespace ink::ir
 {
-  class IntegerConstant final : public Value
+  class IntegerConstant final : public Constant
   {
     public:
       struct Key
@@ -27,10 +27,12 @@ namespace ink::ir
       bool operator==(const Key &Other) const noexcept;
 
       constexpr IntegerConstant(const IntegerType &ValueType, std::uint64_t Bits) noexcept
-          : Value(ValueType),
+          : Constant(ValueType),
             Bits(Bits)
       {
       }
+
+      IntegerConstant(const IntegerType &&, std::uint64_t) = delete;
 
       ~IntegerConstant() = default;
 

@@ -133,4 +133,14 @@ namespace ink::ir
     }
     return *References.emplace(ReferencedType).first;
   }
+
+  const FunctionType &TypePool::getFunctionType(const Type &ReturnType, std::span<const Parameter> Parameters)
+  {
+    const auto Existing = Functions.find(FunctionType::Key{&ReturnType, Parameters});
+    if (Existing != Functions.end())
+    {
+      return *Existing;
+    }
+    return *Functions.emplace(ReturnType, Parameters).first;
+  }
 } // namespace ink::ir
