@@ -12,19 +12,16 @@ namespace ink::ir
     public:
       static constexpr InstructionKind Kind = InstructionKind::Return;
 
-      constexpr explicit ReturnInstruction(const VoidType &ValueType) noexcept
+      constexpr explicit ReturnInstruction(ValueRef ValueType) noexcept
           : Instruction(Kind, ValueType)
       {
       }
 
-      constexpr ReturnInstruction(const VoidType &ValueType, ValueRef ReturnValue) noexcept
+      constexpr ReturnInstruction(ValueRef ValueType, ValueRef ReturnValue) noexcept
           : Instruction(Kind, ValueType),
             ReturnValue(&ReturnValue.get())
       {
       }
-
-      ReturnInstruction(const VoidType &&) = delete;
-      ReturnInstruction(const VoidType &&, ValueRef) = delete;
 
       static constexpr bool classof(const Instruction *Value) noexcept
       {

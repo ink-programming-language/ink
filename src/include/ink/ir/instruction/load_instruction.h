@@ -11,13 +11,11 @@ namespace ink::ir
     public:
       static constexpr InstructionKind Kind = InstructionKind::Load;
 
-      constexpr LoadInstruction(const Type &ResultType, ValueRef Source) noexcept
+      constexpr LoadInstruction(ValueRef ResultType, ValueRef Source) noexcept
           : Instruction(Kind, ResultType),
             Source(Source.get())
       {
       }
-
-      LoadInstruction(const Type &&, ValueRef) = delete;
 
       static constexpr bool classof(const Instruction *Value) noexcept
       {

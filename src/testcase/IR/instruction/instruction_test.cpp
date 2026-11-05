@@ -22,8 +22,10 @@ namespace ink::ir::test
   static_assert(std::is_nothrow_constructible_v<AddInstruction, const IntegerConstant &, const IntegerConstant &>);
   static_assert(std::is_nothrow_constructible_v<AddInstruction, ValueRef, ValueRef>);
   static_assert(std::is_nothrow_constructible_v<ReturnInstruction, const VoidType &>);
+  static_assert(std::is_nothrow_constructible_v<ReturnInstruction, ValueRef>);
   static_assert(std::is_nothrow_constructible_v<ReturnInstruction, const VoidType &, const AddInstruction &>);
   static_assert(std::is_nothrow_constructible_v<ReturnInstruction, const VoidType &, ValueRef>);
+  static_assert(std::is_nothrow_constructible_v<ReturnInstruction, ValueRef, ValueRef>);
   static_assert(std::is_same_v<ValueRef, std::reference_wrapper<const Value>>);
   static_assert(std::is_convertible_v<IntegerConstant &, ValueRef> && std::is_convertible_v<const IntegerConstant &, ValueRef>);
   static_assert(std::is_convertible_v<AddInstruction &, ValueRef> && std::is_convertible_v<const AddInstruction &, ValueRef>);

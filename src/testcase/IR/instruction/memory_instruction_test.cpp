@@ -1,8 +1,11 @@
+#include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/instruction_builder.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/store_instruction.h"
+#include "ink/ir/type/meta_type.h"
+#include "ink/ir/type/parameter.h"
 #include "ink/ir/type/type_pool.h"
 
 #include <gtest/gtest.h>
@@ -14,10 +17,14 @@
 namespace ink::ir::test
 {
   static_assert(std::is_nothrow_constructible_v<LoadInstruction, const Type &, ValueRef>);
+  static_assert(std::is_nothrow_constructible_v<LoadInstruction, ValueRef, ValueRef>);
   static_assert(std::is_nothrow_constructible_v<StoreInstruction, const VoidType &, ValueRef, ValueRef>);
+  static_assert(std::is_nothrow_constructible_v<StoreInstruction, ValueRef, ValueRef, ValueRef>);
   static_assert(std::is_constructible_v<LoadInstruction, const Type &, AllocaInstruction &> && std::is_constructible_v<LoadInstruction, const Type &, const AllocaInstruction &>);
   static_assert(std::is_constructible_v<StoreInstruction, const VoidType &, AllocaInstruction &, const IntegerConstant &> && std::is_constructible_v<StoreInstruction, const VoidType &, const AllocaInstruction &, IntegerConstant &>);
   static_assert(!std::is_constructible_v<LoadInstruction, IntegerType &&, ValueRef> && !std::is_constructible_v<LoadInstruction, const IntegerType &&, ValueRef>);
+  static_assert(std::is_nothrow_constructible_v<LoadInstruction, const Parameter &, ValueRef>);
+  static_assert(!std::is_constructible_v<LoadInstruction, Parameter &&, ValueRef> && !std::is_constructible_v<LoadInstruction, const Parameter &&, ValueRef>);
   static_assert(!std::is_constructible_v<StoreInstruction, VoidType &&, ValueRef, ValueRef> && !std::is_constructible_v<StoreInstruction, const VoidType &&, ValueRef, ValueRef>);
 
   template <typename OperandType>
@@ -171,5 +178,55 @@ namespace ink::ir::test
     EXPECT_EQ(Block.instructionCount(), 3u);
     EXPECT_EQ(Builder.getInsertBlock(), nullptr);
     EXPECT_EQ(Builder.getInsertBefore(), nullptr);
+  }
+
+  // Generic storage loads and stores use the exact type parameter identity, even when distinct parameters have the same name.
+  TEST(IRMemoryInstructionTest, PreservesGenericTypesAcrossMemoryOperationsAndRejectsOtherParameters)
+  {
+    const auto TypeName = core::NamePool::instance().intern("T");
+    const Parameter T(MetaType::instance(), TypeName);
+    const Parameter OtherT(MetaType::instance(), TypeName);
+    const Parameter ValueOfT(std::cref(T));
+    const Parameter ValueOfOtherT(std::cref(OtherT));
+    TypePool Types;
+    BasicBlock Block;
+    InstructionBuilder Builder(Types);
+    Builder.setInsertPoint(Block);
+    AllocaInstruction *Slot = Builder.createAlloca(T);
+    ASSERT_NE(Slot, nullptr);
+    StoreInstruction *Store = Builder.createStore(*Slot, ValueOfT);
+    ASSERT_NE(Store, nullptr);
+    LoadInstruction *Load = Builder.createLoad(*Slot);
+    ASSERT_NE(Load, nullptr);
+    ReturnInstruction *Return = Builder.createReturn(*Load);
+    ASSERT_NE(Return, nullptr);
+    EXPECT_EQ(&Slot->getAllocatedType(), &T);
+    EXPECT_EQ(&Load->getType(), &T);
+    EXPECT_EQ(&Store->getSource(), &ValueOfT);
+    EXPECT_EQ(Return->getReturnValue(), Load);
+    ASSERT_TRUE(Builder.setInsertPoint(*Return));
+    EXPECT_EQ(Builder.createStore(*Slot, ValueOfOtherT), nullptr);
+    EXPECT_EQ(Builder.createStore(ValueOfT, ValueOfT), nullptr);
+    EXPECT_EQ(Builder.createLoad(ValueOfT), nullptr);
+    EXPECT_EQ(Block.instructionCount(), 4u);
+    EXPECT_EQ(Builder.getInsertBefore(), Return);
+    StoreInstruction *StoreLoaded = Builder.createStore(*Slot, *Load);
+    ASSERT_NE(StoreLoaded, nullptr);
+    EXPECT_EQ(&StoreLoaded->getDestination(), Slot);
+    EXPECT_EQ(&StoreLoaded->getSource(), Load);
+    const Instruction *Expected[] = {
+        Slot,
+        Store,
+        Load,
+        StoreLoaded,
+        Return,
+    };
+    auto Iterator = Block.instructions().begin();
+    for (const Instruction *ExpectedInstruction : Expected)
+    {
+      ASSERT_NE(Iterator, Block.instructions().end());
+      EXPECT_EQ(&*Iterator++, ExpectedInstruction);
+    }
+    EXPECT_EQ(Iterator, Block.instructions().end());
   }
 } // namespace ink::ir::test

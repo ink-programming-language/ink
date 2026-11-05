@@ -1,21 +1,34 @@
 #pragma once
 
 #include "ink/ir/type/type_kind.h"
+#include "ink/ir/value/value.h"
 
 #include <cstdint>
 #include <string_view>
 
 namespace ink::ir
 {
+  class MetaType;
+
   enum class TypeSemantics : std::uint8_t
   {
     Value,
     Reference,
   };
 
-  class Type
+  class Type : public Value
   {
     public:
+      static constexpr bool classof(const Value *Value) noexcept
+      {
+        return Value && Value->asType() != nullptr;
+      }
+
+      constexpr const Type *asType() const noexcept final
+      {
+        return this;
+      }
+
       constexpr TypeKind getKind() const noexcept
       {
         return Kind;
@@ -35,15 +48,23 @@ namespace ink::ir
       Type &operator=(const Type &) = delete;
 
     protected:
-      constexpr explicit Type(TypeKind Kind) noexcept
-          : Kind(Kind)
-      {
-      }
+      constexpr explicit Type(TypeKind Kind) noexcept;
 
       // Types are destroyed through their concrete class, never through Type.
       ~Type() = default;
 
     private:
+      friend class MetaType;
+
+      constexpr Type(TypeKind Kind, SelfTypedTag Tag) noexcept
+          : Value(Tag),
+            Kind(Kind)
+      {
+      }
+
       TypeKind Kind;
   };
 } // namespace ink::ir
+
+// Complete the metatype before defining the ordinary constexpr Type constructor.
+#include "ink/ir/type/meta_type.h"

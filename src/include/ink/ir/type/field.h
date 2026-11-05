@@ -9,26 +9,24 @@ namespace ink::ir
   class Field
   {
     public:
-      Field(core::Name Name, const Type &FieldType) noexcept
+      Field(core::Name Name, ValueRef FieldType) noexcept
           : Name(Name),
-            FieldType(&FieldType)
+            FieldType(&FieldType.get())
       {
       }
-
-      Field(core::Name, const Type &&) = delete;
 
       core::Name name() const noexcept
       {
         return Name;
       }
 
-      const Type &type() const noexcept
+      const Value &type() const noexcept
       {
         return *FieldType;
       }
 
     private:
       core::Name Name;
-      const Type *FieldType;
+      const Value *FieldType;
   };
 } // namespace ink::ir

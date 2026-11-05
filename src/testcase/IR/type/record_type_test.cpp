@@ -27,13 +27,13 @@ namespace ink::ir::test
   static_assert(std::is_base_of_v<RecordType, StructType>);
   static_assert(std::is_base_of_v<RecordType, ObjectType>);
   static_assert(!std::is_destructible_v<RecordType>);
-  static_assert(std::is_same_v<decltype(std::declval<const RecordType &>().bases()), std::span<const RecordType *const>>);
+  static_assert(std::is_same_v<decltype(std::declval<const RecordType &>().bases()), std::span<const Value *const>>);
   static_assert(std::is_same_v<decltype(std::declval<const RecordType &>().fields()), std::span<const Field>>);
   static_assert(std::is_same_v<decltype(std::declval<const RecordType &>().methods()), std::span<const Method>>);
-  static_assert(std::is_same_v<decltype(std::declval<RecordType &>().bases()), std::span<const RecordType *const>>);
+  static_assert(std::is_same_v<decltype(std::declval<RecordType &>().bases()), std::span<const Value *const>>);
   static_assert(std::is_same_v<decltype(std::declval<RecordType &>().fields()), std::span<const Field>>);
   static_assert(std::is_same_v<decltype(std::declval<RecordType &>().methods()), std::span<const Method>>);
-  static_assert(std::is_same_v<decltype(std::declval<const Field &>().type()), const Type &>);
+  static_assert(std::is_same_v<decltype(std::declval<const Field &>().type()), const Value &>);
   static_assert(std::is_same_v<decltype(std::declval<const Method &>().function()), const Function &>);
   static_assert(std::is_same_v<decltype(std::declval<const Field &>().name()), core::Name>);
   static_assert(std::is_same_v<decltype(std::declval<const Method &>().name()), core::Name>);

@@ -6,6 +6,7 @@
 #include "ink/ir/type/float_type.h"
 #include "ink/ir/type/function_type.h"
 #include "ink/ir/type/integer_type.h"
+#include "ink/ir/type/meta_type.h"
 #include "ink/ir/type/reference_type.h"
 #include "ink/ir/type/void_type.h"
 
@@ -17,7 +18,7 @@
 namespace ink::ir
 {
   // Owns immutable types with stable addresses until pool destruction.
-  // Borrowed array elements, reference targets, and function signature types may be external, but must outlive the pool.
+  // Borrowed array elements, reference targets, and function signature type values may be external, but must outlive the pool.
   // Concurrent pool operations require external synchronization.
   class TypePool final
   {
@@ -33,14 +34,13 @@ namespace ink::ir
       const FloatType &getFloatType(FloatType::Width Width) const noexcept;
       const BoolType &getBoolType() const noexcept;
       const VoidType &getVoidType() const noexcept;
+      const MetaType &getMetaType() const noexcept;
 
-      // Composite types are interned by the identity of the borrowed type and their parameters.
-      const ArrayType &getArrayType(const Type &ElementType, std::uint64_t ElementCount);
-      const ArrayType &getArrayType(const Type &&, std::uint64_t) = delete;
-      const ReferenceType &getReferenceType(const Type &ReferencedType);
-      const ReferenceType &getReferenceType(const Type &&) = delete;
-      const FunctionType &getFunctionType(const Type &ReturnType, std::span<const Parameter> Parameters = {});
-      const FunctionType &getFunctionType(const Type &&, std::span<const Parameter> = {}) = delete;
+      // Composite types are interned by the identity of borrowed type values and their parameters.
+      // Passing a value whose type is not MetaType is a programming error.
+      const ArrayType &getArrayType(ValueRef ElementType, std::uint64_t ElementCount);
+      const ReferenceType &getReferenceType(ValueRef ReferencedType);
+      const FunctionType &getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters = {});
 
     private:
       IntegerType Integers[8] = {

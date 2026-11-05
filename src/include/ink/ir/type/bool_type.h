@@ -16,9 +16,9 @@ namespace ink::ir
       {
       }
 
-      static constexpr bool classof(const Type *Value) noexcept
+      static constexpr bool classof(const Value *Value) noexcept
       {
-        return Value && Value->getKind() == Kind;
+        return Type::classof(Value) && static_cast<const Type *>(Value)->getKind() == Kind;
       }
 
       constexpr std::uint32_t bitWidth() const noexcept

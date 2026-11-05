@@ -27,7 +27,7 @@ namespace ink::ir
 
   std::size_t ArrayType::Key::hash() const noexcept
   {
-    return combineHash(std::hash<const Type *>{}(ElementType), std::hash<std::uint64_t>{}(ElementCount));
+    return combineHash(std::hash<const Value *>{}(ElementType), std::hash<std::uint64_t>{}(ElementCount));
   }
 
   bool ArrayType::operator==(const ArrayType &Other) const noexcept
@@ -45,9 +45,9 @@ namespace ink::ir
     return hash(&ReferencedType);
   }
 
-  std::size_t ReferenceType::hash(const Type *Value) noexcept
+  std::size_t ReferenceType::hash(const Value *Value) noexcept
   {
-    return std::hash<const Type *>{}(Value);
+    return std::hash<const ink::ir::Value *>{}(Value);
   }
 
   bool ReferenceType::operator==(const ReferenceType &Other) const noexcept
@@ -55,7 +55,7 @@ namespace ink::ir
     return &ReferencedType == &Other.ReferencedType;
   }
 
-  bool ReferenceType::operator==(const Type *Other) const noexcept
+  bool ReferenceType::operator==(const Value *Other) const noexcept
   {
     return &ReferencedType == Other;
   }
@@ -114,9 +114,18 @@ namespace ink::ir
     return Void;
   }
 
-  const ArrayType &TypePool::getArrayType(const Type &ElementType, std::uint64_t ElementCount)
+  const MetaType &TypePool::getMetaType() const noexcept
   {
-    const auto Existing = Arrays.find(ArrayType::Key{&ElementType, ElementCount});
+    return MetaType::instance();
+  }
+
+  const ArrayType &TypePool::getArrayType(ValueRef ElementType, std::uint64_t ElementCount)
+  {
+    if (!ElementType.get().isTypeValue())
+    {
+      panic("TypePool requires an array element whose type is MetaType");
+    }
+    const auto Existing = Arrays.find(ArrayType::Key{&ElementType.get(), ElementCount});
     if (Existing != Arrays.end())
     {
       return *Existing;
@@ -124,9 +133,13 @@ namespace ink::ir
     return *Arrays.emplace(ElementType, ElementCount).first;
   }
 
-  const ReferenceType &TypePool::getReferenceType(const Type &ReferencedType)
+  const ReferenceType &TypePool::getReferenceType(ValueRef ReferencedType)
   {
-    const auto Existing = References.find(&ReferencedType);
+    if (!ReferencedType.get().isTypeValue())
+    {
+      panic("TypePool requires a reference target whose type is MetaType");
+    }
+    const auto Existing = References.find(&ReferencedType.get());
     if (Existing != References.end())
     {
       return *Existing;
@@ -134,9 +147,20 @@ namespace ink::ir
     return *References.emplace(ReferencedType).first;
   }
 
-  const FunctionType &TypePool::getFunctionType(const Type &ReturnType, std::span<const Parameter> Parameters)
+  const FunctionType &TypePool::getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters)
   {
-    const auto Existing = Functions.find(FunctionType::Key{&ReturnType, Parameters});
+    if (!ReturnType.get().isTypeValue())
+    {
+      panic("TypePool requires a function return type whose type is MetaType");
+    }
+    for (const auto &ParameterValue : Parameters)
+    {
+      if (!ParameterValue.type().isTypeValue())
+      {
+        panic("TypePool requires function parameter types whose type is MetaType");
+      }
+    }
+    const auto Existing = Functions.find(FunctionType::Key{&ReturnType.get(), Parameters});
     if (Existing != Functions.end())
     {
       return *Existing;

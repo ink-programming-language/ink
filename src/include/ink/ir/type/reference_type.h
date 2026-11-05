@@ -6,28 +6,27 @@
 
 namespace ink::ir
 {
-  // The referenced type is borrowed and must outlive this type.
+  // The referenced type value is borrowed and must outlive this type.
+  // The caller must provide a value whose type is MetaType.
   class ReferenceType final : public Type
   {
     public:
       std::size_t hash() const noexcept;
-      static std::size_t hash(const Type *Value) noexcept;
+      static std::size_t hash(const Value *Value) noexcept;
       bool operator==(const ReferenceType &Other) const noexcept;
-      bool operator==(const Type *Other) const noexcept;
+      bool operator==(const Value *Other) const noexcept;
 
       static constexpr TypeKind Kind = TypeKind::Reference;
 
-      constexpr explicit ReferenceType(const Type &ReferencedType) noexcept
+      constexpr explicit ReferenceType(ValueRef ReferencedType) noexcept
           : Type(Kind),
-            ReferencedType(ReferencedType)
+            ReferencedType(ReferencedType.get())
       {
       }
 
-      ReferenceType(const Type &&) = delete;
-
-      static constexpr bool classof(const Type *Value) noexcept
+      static constexpr bool classof(const Value *Value) noexcept
       {
-        return Value && Value->getKind() == Kind;
+        return Type::classof(Value) && static_cast<const Type *>(Value)->getKind() == Kind;
       }
 
       constexpr TypeSemantics getSemantics() const noexcept override
@@ -35,12 +34,12 @@ namespace ink::ir
         return TypeSemantics::Reference;
       }
 
-      constexpr const Type &referencedType() const noexcept
+      constexpr const Value &referencedType() const noexcept
       {
         return ReferencedType;
       }
 
     private:
-      const Type &ReferencedType;
+      const Value &ReferencedType;
   };
 } // namespace ink::ir

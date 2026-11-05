@@ -11,18 +11,16 @@
 
 namespace ink::ir
 {
-  // Stores an interned name and owns its basic blocks; the signature is borrowed and must outlive this function.
+  // Borrows a FunctionType value and owns its named basic blocks; the signature must outlive this function.
   // Appending a block preserves all existing block addresses and iterators.
   class Function final : public Value
   {
     public:
-      explicit Function(const FunctionType &Signature, core::Name Name = core::NAME_None) noexcept
+      explicit Function(ValueRef Signature, core::Name Name = core::NAME_None) noexcept
           : Value(Signature),
             Name(Name)
       {
       }
-
-      Function(const FunctionType &&, core::Name = core::NAME_None) = delete;
 
       core::Name name() const noexcept
       {

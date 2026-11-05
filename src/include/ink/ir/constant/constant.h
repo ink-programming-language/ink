@@ -4,16 +4,14 @@
 
 namespace ink::ir
 {
-  // Common base for immutable constants; the borrowed type must outlive the concrete constant.
+  // Common base for immutable constants; the borrowed type value must outlive the concrete constant.
   class Constant : public Value
   {
     protected:
-      constexpr explicit Constant(const Type &ValueType) noexcept
+      constexpr explicit Constant(ValueRef ValueType) noexcept
           : Value(ValueType)
       {
       }
-
-      Constant(const Type &&) = delete;
 
       // Constants are destroyed through their concrete class, never through Constant.
       ~Constant() = default;

@@ -5,26 +5,24 @@
 
 namespace ink::ir
 {
-  // Models stack storage for one complete type; allocation legality and target layout are the caller's responsibility.
-  // The result reference type and its referenced type must outlive this instruction.
+  // Models stack storage for a type value, including an unbound generic parameter; target layout is resolved after specialization.
+  // The caller must provide ReferenceType(T) as the result type; it and T must outlive this instruction.
   class AllocaInstruction final : public Instruction
   {
     public:
       static constexpr InstructionKind Kind = InstructionKind::Alloca;
 
-      constexpr explicit AllocaInstruction(const ReferenceType &ResultType) noexcept
+      constexpr explicit AllocaInstruction(ValueRef ResultType) noexcept
           : Instruction(Kind, ResultType)
       {
       }
-
-      AllocaInstruction(const ReferenceType &&) = delete;
 
       static constexpr bool classof(const Instruction *Value) noexcept
       {
         return Value && Value->getKind() == Kind;
       }
 
-      constexpr const Type &getAllocatedType() const noexcept
+      constexpr const Value &getAllocatedType() const noexcept
       {
         return static_cast<const ReferenceType &>(getType()).referencedType();
       }

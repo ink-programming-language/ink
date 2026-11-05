@@ -15,7 +15,7 @@ namespace ink::ir
     public:
       struct Key
       {
-          const Type *ReturnType;
+          const Value *ReturnType;
           std::span<const Parameter> Parameters;
 
           std::size_t hash() const noexcept;
@@ -28,15 +28,14 @@ namespace ink::ir
 
       static constexpr TypeKind Kind = TypeKind::Function;
 
-      explicit FunctionType(const Type &ReturnType, std::span<const Parameter> Parameters = {});
-      FunctionType(const Type &&, std::span<const Parameter> = {}) = delete;
+      explicit FunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters = {});
 
-      static constexpr bool classof(const Type *Value) noexcept
+      static constexpr bool classof(const Value *Value) noexcept
       {
-        return Value && Value->getKind() == Kind;
+        return Type::classof(Value) && static_cast<const Type *>(Value)->getKind() == Kind;
       }
 
-      const Type &returnType() const noexcept
+      const Value &returnType() const noexcept
       {
         return ReturnType;
       }
@@ -47,7 +46,7 @@ namespace ink::ir
       }
 
     private:
-      const Type &ReturnType;
+      const Value &ReturnType;
       std::vector<Parameter> Parameters;
   };
 } // namespace ink::ir

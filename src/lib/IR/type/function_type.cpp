@@ -17,9 +17,9 @@ namespace ink::ir
     }
   } // namespace
 
-  FunctionType::FunctionType(const Type &ReturnType, std::span<const Parameter> Parameters)
+  FunctionType::FunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters)
       : Type(Kind),
-        ReturnType(ReturnType)
+        ReturnType(ReturnType.get())
   {
     if (!Parameters.empty())
     {
@@ -34,10 +34,10 @@ namespace ink::ir
 
   std::size_t FunctionType::Key::hash() const noexcept
   {
-    std::size_t Hash = combineHash(std::hash<const Type *>{}(ReturnType), std::hash<std::size_t>{}(Parameters.size()));
+    std::size_t Hash = combineHash(std::hash<const Value *>{}(ReturnType), std::hash<std::size_t>{}(Parameters.size()));
     for (const auto &ParameterValue : Parameters)
     {
-      Hash = combineHash(Hash, std::hash<const Type *>{}(&ParameterValue.type()));
+      Hash = combineHash(Hash, std::hash<const Value *>{}(&ParameterValue.type()));
       Hash = combineHash(Hash, std::hash<core::Name>{}(ParameterValue.name()));
       Hash = combineHash(Hash, std::hash<Parameter::Kind>{}(ParameterValue.kind()));
     }

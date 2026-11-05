@@ -40,16 +40,15 @@ namespace ink::ir
       [[nodiscard]] AddInstruction *createAdd(ValueRef LHS, ValueRef RHS);
 
       /* -------------------- Alloca -------------------- */
-      // The allocated type is borrowed by the type pool and must outlive it.
-      [[nodiscard]] AllocaInstruction *createAlloca(const Type &AllocatedType);
-      AllocaInstruction *createAlloca(const Type &&) = delete;
+      // Returns nullptr unless the operand is a type value; the borrowed value must outlive the type pool.
+      [[nodiscard]] AllocaInstruction *createAlloca(ValueRef AllocatedType);
 
       /* -------------------- Load -------------------- */
       // Returns nullptr unless the source has ReferenceType; the result removes exactly one reference layer.
       [[nodiscard]] LoadInstruction *createLoad(ValueRef Source);
 
       /* -------------------- Store -------------------- */
-      // Returns nullptr unless the destination references the source's exact type object.
+      // Returns nullptr unless the destination references the source's exact type value.
       [[nodiscard]] StoreInstruction *createStore(ValueRef Destination, ValueRef Source);
 
       /* -------------------- Return -------------------- */

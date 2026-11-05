@@ -1,5 +1,6 @@
 // TYPE(Kind, Class, Spelling).
 // Intentionally has no include guard: callers define TYPE before inclusion.
+TYPE(Meta, MetaType, "type")
 TYPE(Integer, IntegerType, "integer")
 TYPE(Float, FloatType, "float")
 TYPE(Bool, BoolType, "bool")

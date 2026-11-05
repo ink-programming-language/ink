@@ -35,7 +35,7 @@ namespace ink::ir::test
         const Type *Value;
         TypeKind Kind;
         std::string_view Name;
-        bool (*Classof)(const Type *) noexcept;
+        bool (*Classof)(const ink::ir::Value *) noexcept;
     };
     const Case Cases[] = {
         {&SignedInteger, TypeKind::Integer, "integer", IntegerType::classof},

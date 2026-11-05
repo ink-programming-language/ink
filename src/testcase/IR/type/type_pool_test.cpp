@@ -47,6 +47,101 @@ namespace ink::ir::test
   static_assert(!PoolAcceptsTemporaryArrayElement<const IntegerType>);
   static_assert(!PoolAcceptsTemporaryReferenceTarget<IntegerType>);
   static_assert(!PoolAcceptsTemporaryReferenceTarget<const IntegerType>);
+  static_assert(!PoolAcceptsTemporaryArrayElement<Parameter>);
+  static_assert(!PoolAcceptsTemporaryArrayElement<const Parameter>);
+  static_assert(!PoolAcceptsTemporaryReferenceTarget<Parameter>);
+  static_assert(!PoolAcceptsTemporaryReferenceTarget<const Parameter>);
+  static_assert(std::is_same_v<decltype(std::declval<const ArrayType &>().elementType()), const Value &>);
+  static_assert(std::is_same_v<decltype(std::declval<const ReferenceType &>().referencedType()), const Value &>);
+
+  // Growing the pools preserves symbolic operands and keeps equally named generic parameters distinct.
+  TEST(IRTypePoolTest, PreservesGenericCompositesWhileThePoolGrows)
+  {
+    const Parameter T(MetaType::instance());
+    const Parameter U(MetaType::instance());
+    TypePool Pool;
+    const auto *ArrayT = &Pool.getArrayType(T, 1);
+    const auto *ArrayU = &Pool.getArrayType(U, 1);
+    const auto *ReferenceT = &Pool.getReferenceType(T);
+    const auto *ReferenceU = &Pool.getReferenceType(U);
+    const auto *Nested = &Pool.getReferenceType(*ArrayT);
+    for (std::uint64_t Count = 2; Count < 512; ++Count)
+    {
+      const auto &Array = Pool.getArrayType(T, Count);
+      Pool.getReferenceType(Array);
+    }
+    EXPECT_EQ(ArrayT, &Pool.getArrayType(T, 1));
+    EXPECT_EQ(ArrayU, &Pool.getArrayType(U, 1));
+    EXPECT_EQ(ReferenceT, &Pool.getReferenceType(T));
+    EXPECT_EQ(ReferenceU, &Pool.getReferenceType(U));
+    EXPECT_NE(ArrayT, ArrayU);
+    EXPECT_NE(ReferenceT, ReferenceU);
+    EXPECT_EQ(&ArrayT->elementType(), &T);
+    EXPECT_EQ(&ArrayU->elementType(), &U);
+    EXPECT_EQ(&ReferenceT->referencedType(), &T);
+    EXPECT_EQ(&ReferenceU->referencedType(), &U);
+    EXPECT_EQ(Nested, &Pool.getReferenceType(*ArrayT));
+    EXPECT_EQ(&Nested->referencedType(), ArrayT);
+  }
+
+  // Transparent lookup and equality use generic parameter identity rather than their common MetaType.
+  TEST(IRTypePoolTest, FindsGenericCompositeHashSetEntriesAfterRehash)
+  {
+    const Parameter T(MetaType::instance());
+    const Parameter U(MetaType::instance());
+    std::unordered_set<ArrayType, core::Hash<ArrayType>, std::equal_to<>> Arrays;
+    const auto *ArrayT = &*Arrays.emplace(T, 4).first;
+    const auto *ArrayU = &*Arrays.emplace(U, 4).first;
+    Arrays.rehash(Arrays.bucket_count() * 2 + 1);
+    const auto FoundArrayT = Arrays.find(ArrayType::Key{&T, 4});
+    const auto FoundArrayU = Arrays.find(ArrayType::Key{&U, 4});
+    ASSERT_NE(FoundArrayT, Arrays.end());
+    ASSERT_NE(FoundArrayU, Arrays.end());
+    EXPECT_EQ(&*FoundArrayT, ArrayT);
+    EXPECT_EQ(&*FoundArrayU, ArrayU);
+    EXPECT_EQ(Arrays.find(ArrayType::Key{&T, 5}), Arrays.end());
+    const core::Hash<ArrayType> ArrayHash;
+    EXPECT_EQ(ArrayHash(*ArrayT), ArrayHash(ArrayType::Key{&T, 4}));
+    EXPECT_EQ(ArrayHash(*ArrayU), ArrayHash(ArrayType::Key{&U, 4}));
+    std::unordered_set<ReferenceType, core::Hash<ReferenceType>, std::equal_to<>> References;
+    const auto *ReferenceT = &*References.emplace(T).first;
+    const auto *ReferenceU = &*References.emplace(U).first;
+    References.rehash(References.bucket_count() * 2 + 1);
+    const auto FoundReferenceT = References.find(&T);
+    const auto FoundReferenceU = References.find(static_cast<const Value *>(&U));
+    ASSERT_NE(FoundReferenceT, References.end());
+    ASSERT_NE(FoundReferenceU, References.end());
+    EXPECT_EQ(&*FoundReferenceT, ReferenceT);
+    EXPECT_EQ(&*FoundReferenceU, ReferenceU);
+    const core::Hash<ReferenceType> ReferenceHash;
+    EXPECT_EQ(ReferenceHash(*ReferenceT), ReferenceHash(&T));
+    EXPECT_EQ(ReferenceHash(*ReferenceU), ReferenceHash(static_cast<const Value *>(&U)));
+    EXPECT_TRUE(*ReferenceT == &T);
+    EXPECT_TRUE(&T == *ReferenceT);
+    EXPECT_FALSE(*ReferenceT == &U);
+    EXPECT_FALSE(*ReferenceU == &T);
+  }
+
+  // A runtime data parameter is not a type value and cannot enter any composite type position.
+  TEST(IRTypePoolDeathTest, RejectsNonTypeCompositeOperands)
+  {
+    TypePool Pool;
+    const Parameter Data(Pool.getBoolType());
+    EXPECT_DEATH(static_cast<void>(Pool.getArrayType(Data, 1)), "MetaType");
+    EXPECT_DEATH(static_cast<void>(Pool.getReferenceType(Data)), "MetaType");
+    EXPECT_DEATH(static_cast<void>(Pool.getFunctionType(Data)), "MetaType");
+  }
+
+  // A valid return type does not allow a runtime value to be smuggled into a function parameter type.
+  TEST(IRTypePoolDeathTest, RejectsNonTypeFunctionParameterTypes)
+  {
+    TypePool Pool;
+    const Parameter Data(Pool.getBoolType());
+    const Parameter Parameters[] = {
+        Parameter(std::cref(Data)),
+    };
+    EXPECT_DEATH(static_cast<void>(Pool.getFunctionType(Pool.getVoidType(), Parameters)), "MetaType");
+  }
 
   // Each supported width and sign has one scalar identity within a pool, with independent identities across pools.
   TEST(IRTypePoolTest, UniquifiesScalarTypesByCompleteParameters)

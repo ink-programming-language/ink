@@ -16,12 +16,12 @@ namespace ink::ir
   class RecordType : public Type
   {
     public:
-      static constexpr bool classof(const Type *Value) noexcept
+      static constexpr bool classof(const Value *Value) noexcept
       {
-        return Value && (Value->getKind() == TypeKind::Struct || Value->getKind() == TypeKind::Object);
+        return Type::classof(Value) && (static_cast<const Type *>(Value)->getKind() == TypeKind::Struct || static_cast<const Type *>(Value)->getKind() == TypeKind::Object);
       }
 
-      std::span<const RecordType *const> bases() const noexcept
+      std::span<const Value *const> bases() const noexcept
       {
         return Bases;
       }
@@ -36,19 +36,15 @@ namespace ink::ir
         return Methods;
       }
 
-      void addBase(const RecordType &Base)
+      void addBase(ValueRef Base)
       {
-        Bases.push_back(&Base);
+        Bases.push_back(&Base.get());
       }
 
-      void addBase(const RecordType &&) = delete;
-
-      void addField(core::Name Name, const Type &FieldType)
+      void addField(core::Name Name, ValueRef FieldType)
       {
         Fields.emplace_back(Name, FieldType);
       }
-
-      void addField(core::Name, const Type &&) = delete;
 
       void addMethod(const Function &FunctionValue)
       {
@@ -67,7 +63,7 @@ namespace ink::ir
       ~RecordType() = default;
 
     private:
-      std::vector<const RecordType *> Bases;
+      std::vector<const Value *> Bases;
       std::vector<Field> Fields;
       std::vector<Method> Methods;
   };

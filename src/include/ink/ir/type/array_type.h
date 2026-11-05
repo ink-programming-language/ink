@@ -7,13 +7,14 @@
 
 namespace ink::ir
 {
-  // Element types are borrowed and must outlive the array type.
+  // Element type values are borrowed and must outlive the array type.
+  // The caller must provide a value whose type is MetaType.
   class ArrayType final : public Type
   {
     public:
       struct Key
       {
-          const Type *ElementType;
+          const Value *ElementType;
           std::uint64_t ElementCount;
 
           std::size_t hash() const noexcept;
@@ -26,21 +27,19 @@ namespace ink::ir
 
       static constexpr TypeKind Kind = TypeKind::Array;
 
-      constexpr ArrayType(const Type &ElementType, std::uint64_t ElementCount) noexcept
+      constexpr ArrayType(ValueRef ElementType, std::uint64_t ElementCount) noexcept
           : Type(Kind),
-            ElementType(ElementType),
+            ElementType(ElementType.get()),
             ElementCount(ElementCount)
       {
       }
 
-      ArrayType(const Type &&, std::uint64_t) = delete;
-
-      static constexpr bool classof(const Type *Value) noexcept
+      static constexpr bool classof(const Value *Value) noexcept
       {
-        return Value && Value->getKind() == Kind;
+        return Type::classof(Value) && static_cast<const Type *>(Value)->getKind() == Kind;
       }
 
-      constexpr const Type &elementType() const noexcept
+      constexpr const Value &elementType() const noexcept
       {
         return ElementType;
       }
@@ -51,7 +50,7 @@ namespace ink::ir
       }
 
     private:
-      const Type &ElementType;
+      const Value &ElementType;
       std::uint64_t ElementCount;
   };
 } // namespace ink::ir

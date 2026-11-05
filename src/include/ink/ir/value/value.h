@@ -1,36 +1,56 @@
 #pragma once
 
-#include "ink/ir/type/type.h"
-
 #include <functional>
 
 namespace ink::ir
 {
-  // The borrowed type must outlive the value and any derived value.
+  class Type;
+  class Parameter;
+
+  // The borrowed type value must outlive this value and any derived value.
   class Value
   {
     public:
-      constexpr const Type &getType() const noexcept
+      constexpr const Value &getType() const noexcept
       {
-        return ValueType;
+        return *ValueType;
       }
+
+      // Only an actual Type node returns itself; type-valued parameters remain ordinary values.
+      virtual constexpr const Type *asType() const noexcept
+      {
+        return nullptr;
+      }
+
+      bool isTypeValue() const noexcept;
 
       Value(const Value &) = delete;
       Value &operator=(const Value &) = delete;
 
     protected:
-      constexpr explicit Value(const Type &ValueType) noexcept
-          : ValueType(ValueType)
+      struct SelfTypedTag
+      {
+      };
+
+      constexpr explicit Value(std::reference_wrapper<const Value> ValueType) noexcept
+          : ValueType(&ValueType.get())
       {
       }
-
-      Value(const Type &&) = delete;
 
       // Values are destroyed through their concrete class, never through Value.
       ~Value() = default;
 
     private:
-      const Type &ValueType;
+      friend class Type;
+      friend class Parameter;
+
+      // Only Type's metatype constructor may establish the self-typed root.
+      constexpr explicit Value(SelfTypedTag) noexcept
+          : ValueType(this)
+      {
+      }
+
+      const Value *ValueType;
   };
 
   // Borrows a read-only value; implicit construction accepts lvalues and rejects temporary values.

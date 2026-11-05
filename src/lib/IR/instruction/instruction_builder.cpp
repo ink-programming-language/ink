@@ -81,9 +81,9 @@ namespace ink::ir
   }
 
   /* -------------------- Alloca -------------------- */
-  AllocaInstruction *InstructionBuilder::createAlloca(const Type &AllocatedType)
+  AllocaInstruction *InstructionBuilder::createAlloca(ValueRef AllocatedType)
   {
-    if (!InsertBlock)
+    if (!InsertBlock || !AllocatedType.get().isTypeValue())
     {
       return nullptr;
     }
@@ -97,7 +97,7 @@ namespace ink::ir
     {
       return nullptr;
     }
-    const Type &SourceType = Source.get().getType();
+    const Value &SourceType = Source.get().getType();
     if (!ReferenceType::classof(&SourceType))
     {
       return nullptr;
@@ -112,12 +112,12 @@ namespace ink::ir
     {
       return nullptr;
     }
-    const Type &DestinationType = Destination.get().getType();
+    const Value &DestinationType = Destination.get().getType();
     if (!ReferenceType::classof(&DestinationType))
     {
       return nullptr;
     }
-    const Type &StoredType = static_cast<const ReferenceType &>(DestinationType).referencedType();
+    const Value &StoredType = static_cast<const ReferenceType &>(DestinationType).referencedType();
     if (&StoredType != &Source.get().getType())
     {
       return nullptr;

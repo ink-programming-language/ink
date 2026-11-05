@@ -10,7 +10,7 @@ namespace ink::ir
   class BasicBlock;
   class InstructionBuilder;
 
-  // Common base for IR instructions; the borrowed type must outlive the concrete instruction.
+  // Common base for IR instructions; the borrowed type value must outlive the concrete instruction.
   class Instruction : public Value
   {
     public:
@@ -30,13 +30,11 @@ namespace ink::ir
       }
 
     protected:
-      constexpr Instruction(InstructionKind Kind, const Type &ValueType) noexcept
+      constexpr Instruction(InstructionKind Kind, ValueRef ValueType) noexcept
           : Value(ValueType),
             Kind(Kind)
       {
       }
-
-      Instruction(InstructionKind, const Type &&) = delete;
 
       // Instructions are destroyed through their concrete class, never through Instruction.
       ~Instruction() = default;
