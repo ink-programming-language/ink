@@ -68,6 +68,14 @@ IR 的函数、基本块、字段和参数名称统一保存为 `core::Name`，�
 
 IR 值基类 `Value` 定义于 `src/include/ink/ir/value/value.h`，通过唯一字段 `const Type &ValueType` 借用值的完整类型，`getType()` 返回该类型的只读引用。类型对象必须比值对象存活更久；派生类负责维持这一借用约定。`Value` 的构造与析构由派生类使用，复制操作被禁用，应通过具体类型管理值的生命周期。
 
+IR 指令位于 `ink/ir/instruction`，`Instruction` 继承 `Value`，通过 `getKind()`、`getName()` 查询由 `instruction.def` 统一定义并显式编号的种类和拼写。`AddInstruction` 借用两个同类型的整数或浮点操作数，并从左操作数取得结果类型；`ReturnInstruction` 自身类型为 `VoidType`，可借用返回值，也可表示无值返回。`AllocaInstruction` 描述类型 `T` 的栈存储，结果类型为 `ReferenceType(T)`，`getAllocatedType()` 返回被分配的 `T`；固定数组直接使用 `ArrayType`，分配引用类型时仍增加一层引用。该节点只描述分配，实际大小、对齐和栈帧布局留给后续后端。操作数及其类型必须覆盖指令的使用期，类型合法性由调用方负责。
+
+`LoadInstruction` 保存来源引用和显式结果类型，`getSource()` 返回来源值；`StoreInstruction` 保存目标引用和写入值，`getDestination()`、`getSource()` 分别查询二者，自身类型为 `VoidType`。直接构造只建模，调用方负责类型合法性。Builder 的 `createLoad(Source)` 要求来源为 `ReferenceType(T)`，自动推导结果为 `T`，每次只去掉一层引用；`createStore(Destination, Source)` 要求目标为 `ReferenceType(T)`，且写入值的类型与 `T` 是同一个类型对象。非引用地址或不匹配的写入类型使创建返回 `nullptr`，不改变块或当前插入点；这些接口不隐式转换类型。
+
+指令构造函数和 Builder 的操作数参数统一使用 `ValueRef`，即 `std::reference_wrapper<const Value>`。调用方可直接传入普通或 const 左值，也可传入已有引用包装；临时值不能隐式转换为 `ValueRef`。操作数查询仍返回只读引用或指针，调用方负责保证被借用值的生命周期。
+
+`InstructionBuilder` 定义于 `ink/ir/instruction/instruction_builder.h`，借用 `TypePool`，通过 `setInsertPoint(BasicBlock &)` 选择块尾，或通过 `setInsertPoint(Instruction &)` 选择已有指令之前的位置；后者遇到游离指令时返回 `false` 并保留当前插入点。连续创建保持调用顺序，插入不会改变既有指令地址和迭代器。`createAdd()`、`createAlloca()`、`createLoad()`、`createStore()`、`createReturn()` 返回由目标 `BasicBlock` 拥有的具体指令指针；未设置或已清除插入点时返回 `nullptr`。`createAlloca()` 在关联类型池中取得结果引用类型，外部传入的分配类型须比该池存活更久。`clearInsertPoint()` 清除当前选择，`getInsertBlock()`、`getInsertBefore()` 查询当前插入位置。块通过 `instructions()` 提供传播 const 的双向引用视图，通过 `instructionCount()` 查询数量；指令通过 `parent()` 查询所属块。Builder 销毁不影响已创建的指令，类型池和借用操作数必须覆盖这些指令的使用期，当前插入块及锚点必须在使用插入点期间保持存活。
+
 常量池使用三个 `std::unordered_set` 直接持有常量对象，不额外保存一份 key 或使用 `unique_ptr`。常量及公开的数字查询键 `IntegerConstant::Key` 和 `FloatConstant::Key` 提供 `hash()` 成员，三个池分别使用 `core::Hash<IntegerConstant>`、`core::Hash<FloatConstant>` 和 `core::Hash<StringConstant>`，模板参数均为容器自身的 `key_type`。对象及数字查询键优先调用自身的 `hash()`，`StringConstant::hash(std::string_view)` 静态重载将字符串查询统一为字节视图。相等判断通过各类型的成员 `operator==` 和 `std::equal_to<>` 完成。整数使用位宽、符号属性和完整的 64 位位模式，浮点使用位宽和完整的 64 位位模式，字符串使用 `std::string_view` 的完整字节内容；哈希与相等判断使用相同字段，命中时无需构造常量或复制字符串。三个常量类型的构造函数公开，调用方可直接构造，并负责保证所借用的类型比常量存活更久。常量仍不可复制或移动，池在节点内原地构造常量；rehash 不使已返回的常量指针、引用或字符串视图失效。
 
 VM 指令和对象文件由独立的 `ink::vm` 库提供，仅依赖 `ink::core`，命名空间为 `ink::vm`。公共头文件分别位于 `src/include/ink/vm/instruction` 和 `src/include/ink/vm/object`，实现和测试位于 `src/lib/vm` 和 `src/testcase/vm` 的对应子目录。指令基类 `Instruction` 保存操作码和可选的结果地址，提供名称、位宽和结果地址查询；具体指令使用地址或立即数操作数，通过具体派生类型管理生命周期。IR 的 `Type` 和 `Value` 仍由 `ink::ir` 提供。对象文件 API 负责对象结构验证、二进制读写和显式错误报告，格式详见 [对象文件格式](docs/Ink-Object-Format.md)。

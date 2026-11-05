@@ -1,0 +1,35 @@
+#pragma once
+
+#include "ink/ir/instruction/instruction.h"
+
+namespace ink::ir
+{
+  // Borrows the source and result type; both must outlive this instruction.
+  // The caller must provide a reference source whose referenced type is ResultType; construction does not validate types.
+  class LoadInstruction final : public Instruction
+  {
+    public:
+      static constexpr InstructionKind Kind = InstructionKind::Load;
+
+      constexpr LoadInstruction(const Type &ResultType, ValueRef Source) noexcept
+          : Instruction(Kind, ResultType),
+            Source(Source.get())
+      {
+      }
+
+      LoadInstruction(const Type &&, ValueRef) = delete;
+
+      static constexpr bool classof(const Instruction *Value) noexcept
+      {
+        return Value && Value->getKind() == Kind;
+      }
+
+      constexpr const Value &getSource() const noexcept
+      {
+        return Source;
+      }
+
+    private:
+      const Value &Source;
+  };
+} // namespace ink::ir

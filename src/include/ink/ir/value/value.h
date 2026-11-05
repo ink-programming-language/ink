@@ -2,6 +2,8 @@
 
 #include "ink/ir/type/type.h"
 
+#include <functional>
+
 namespace ink::ir
 {
   // The borrowed type must outlive the value and any derived value.
@@ -30,4 +32,7 @@ namespace ink::ir
     private:
       const Type &ValueType;
   };
+
+  // Borrows a read-only value; implicit construction accepts lvalues and rejects temporary values.
+  using ValueRef = std::reference_wrapper<const Value>;
 } // namespace ink::ir

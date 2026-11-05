@@ -1,0 +1,8 @@
+// INSTRUCTION(Kind, Number, Class, Spelling).
+// Intentionally has no include guard: callers define INSTRUCTION before inclusion.
+// Numbers explicitly define InstructionKind values.
+INSTRUCTION(Add, 0, AddInstruction, "add")
+INSTRUCTION(Return, 1, ReturnInstruction, "return")
+INSTRUCTION(Alloca, 2, AllocaInstruction, "alloca")
+INSTRUCTION(Load, 3, LoadInstruction, "load")
+INSTRUCTION(Store, 4, StoreInstruction, "store")
