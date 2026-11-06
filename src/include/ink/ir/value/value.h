@@ -7,7 +7,8 @@ namespace ink::ir
   class Type;
   class Parameter;
 
-  // The borrowed type value must outlive this value and any derived value.
+  // The borrowed type value must remain alive whenever this value or a derived value is used.
+  // Destruction does not access borrowed type values.
   class Value
   {
     public:

@@ -11,9 +11,9 @@
 namespace ink::ir
 {
   // Stores declarations from this record only, in insertion order, without language-level validation.
-  // Borrowed bases, field types, and method functions must remain alive whenever their declarations are accessed.
+  // Owns method functions; borrowed bases, field types, and method signatures must remain alive during use.
   // A common owner can keep recursive record/reference graphs alive throughout use; destruction does not access borrowed types.
-  // Appending declarations may invalidate views and references into the corresponding collection.
+  // Appending declarations may invalidate views and references into the corresponding collection; method function addresses remain stable.
   class RecordType : public Type
   {
     public:
@@ -32,6 +32,11 @@ namespace ink::ir
         return Fields;
       }
 
+      std::span<Method> methods() noexcept
+      {
+        return Methods;
+      }
+
       std::span<const Method> methods() const noexcept
       {
         return Methods;
@@ -42,17 +47,17 @@ namespace ink::ir
         Bases.push_back(&Base.get());
       }
 
-      void addField(core::Name Name, ValueRef FieldType, MemberKind Kind = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Public)
+      void addField(core::Name Name, ValueRef FieldType, MemberKind KindValue = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Public)
       {
-        Fields.emplace_back(Name, FieldType, Kind, Visibility);
+        Fields.emplace_back(Name, FieldType, KindValue, Visibility);
       }
 
-      void addMethod(const Function &FunctionValue, MemberKind Kind = MemberKind::Instance)
+      Method &addMethod(const FunctionType &Signature, core::Name Name = core::NAME_None, MemberKind KindValue = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None)
       {
-        Methods.emplace_back(FunctionValue, Kind);
+        return Methods.emplace_back(Signature, Name, KindValue, Visibility, Linkage);
       }
 
-      void addMethod(const Function &&, MemberKind = MemberKind::Instance) = delete;
+      Method &addMethod(const FunctionType &&, core::Name = core::NAME_None, MemberKind = MemberKind::Instance, SymbolVisibility = SymbolVisibility::Private, NativeLinkage = NativeLinkage::None) = delete;
 
     protected:
       constexpr explicit RecordType(TypeKind Kind) noexcept

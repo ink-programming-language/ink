@@ -4,23 +4,36 @@
 #include "ink/ir/enums.h"
 #include "ink/ir/function/function.h"
 
+#include <memory>
+
 namespace ink::ir
 {
-  // Borrows the function and forwards its name handle; the function must remain alive whenever the method is accessed.
+  // Owns its function; the borrowed signature must remain alive whenever the function is used.
+  // Moving a method preserves function and body addresses; moved-from methods may only be destroyed or assigned.
   class Method
   {
     public:
-      explicit Method(const Function &FunctionValue, MemberKind Kind = MemberKind::Instance) noexcept
-          : MethodFunction(&FunctionValue),
+      explicit Method(const FunctionType &Signature, core::Name Name = core::NAME_None, MemberKind Kind = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None)
+          : MethodFunction(std::make_unique<Function>(Signature, Name, Visibility, Linkage)),
             Kind(Kind)
       {
       }
 
-      Method(const Function &&, MemberKind = MemberKind::Instance) = delete;
+      Method(const FunctionType &&, core::Name = core::NAME_None, MemberKind = MemberKind::Instance, SymbolVisibility = SymbolVisibility::Private, NativeLinkage = NativeLinkage::None) = delete;
+
+      Method(const Method &) = delete;
+      Method &operator=(const Method &) = delete;
+      Method(Method &&) noexcept = default;
+      Method &operator=(Method &&) noexcept = default;
 
       core::Name name() const noexcept
       {
         return MethodFunction->name();
+      }
+
+      Function &function() noexcept
+      {
+        return *MethodFunction;
       }
 
       const Function &function() const noexcept
@@ -39,7 +52,7 @@ namespace ink::ir
       }
 
     private:
-      const Function *MethodFunction = nullptr;
+      std::unique_ptr<Function> MethodFunction = nullptr;
       MemberKind Kind = MemberKind::Instance;
   };
 } // namespace ink::ir

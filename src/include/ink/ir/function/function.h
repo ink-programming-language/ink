@@ -9,9 +9,12 @@
 #include <cstddef>
 #include <list>
 #include <ranges>
+#include <utility>
 
 namespace ink::ir
 {
+  class Module;
+
   // Borrows a FunctionType value and owns its named basic blocks; the signature must outlive this function.
   // Appending a block preserves all existing block addresses and iterators.
   class Function final : public Value
@@ -28,6 +31,11 @@ namespace ink::ir
       core::Name name() const noexcept
       {
         return Name;
+      }
+
+      auto *parent(this auto &&Self) noexcept
+      {
+        return Self.Parent ? &std::forward_like<decltype(Self) &>(*Self.Parent) : nullptr;
       }
 
       SymbolVisibility visibility() const noexcept
@@ -65,9 +73,9 @@ namespace ink::ir
         return signature().callingConvention();
       }
 
-      BasicBlock &createBasicBlock(core::Name Name = core::NAME_None)
+      BasicBlock &createBasicBlock(core::Name BlockName = core::NAME_None)
       {
-        BasicBlock &Block = Blocks.emplace_back(Name);
+        BasicBlock &Block = Blocks.emplace_back(BlockName);
         Block.Parent = this;
         return Block;
       }
@@ -83,9 +91,12 @@ namespace ink::ir
       }
 
     private:
+      friend class Module;
+
       core::Name Name = core::NAME_None;
       SymbolVisibility Visibility = SymbolVisibility::Private;
       NativeLinkage Linkage = NativeLinkage::None;
+      Module *Parent = nullptr;
       std::list<BasicBlock> Blocks = {};
   };
 } // namespace ink::ir

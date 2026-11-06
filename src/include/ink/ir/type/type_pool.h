@@ -7,18 +7,22 @@
 #include "ink/ir/type/function_type.h"
 #include "ink/ir/type/integer_type.h"
 #include "ink/ir/type/meta_type.h"
+#include "ink/ir/type/object_type.h"
 #include "ink/ir/type/reference_type.h"
+#include "ink/ir/type/struct_type.h"
 #include "ink/ir/type/void_type.h"
 
 #include <cstdint>
 #include <functional>
+#include <list>
 #include <span>
 #include <unordered_set>
 
 namespace ink::ir
 {
-  // Owns immutable types with stable addresses until pool destruction.
-  // Borrowed array elements, reference targets, and function signature type values may be external, but must outlive the pool.
+  // Owns types with stable addresses until pool destruction: interned immutable types and unique mutable record definitions.
+  // Borrowed array elements, reference targets, and signature types may be external and must remain alive while the pool is used.
+  // Stop using the pool when any borrowed owner begins destruction; pool destruction does not access borrowed values.
   // Concurrent pool operations require external synchronization.
   class TypePool final
   {
@@ -35,6 +39,10 @@ namespace ink::ir
       const BoolType &getBoolType() const noexcept;
       const VoidType &getVoidType() const noexcept;
       const MetaType &getMetaType() const noexcept;
+
+      // Each call creates a distinct record definition; filling its body does not change its identity.
+      StructType &createStructType();
+      ObjectType &createObjectType();
 
       // Composite types are interned by borrowed type identities, parameter metadata, and function call ABI.
       // Passing a value whose type is not MetaType is a programming error.
@@ -62,5 +70,8 @@ namespace ink::ir
       std::unordered_set<ArrayType, core::Hash<ArrayType>, std::equal_to<>> Arrays = {};
       std::unordered_set<ReferenceType, core::Hash<ReferenceType>, std::equal_to<>> References = {};
       std::unordered_set<FunctionType, core::Hash<FunctionType>, std::equal_to<>> Functions = {};
+      // Destroy record-owned method bodies before their borrowed interned signature types.
+      std::list<StructType> Structs = {};
+      std::list<ObjectType> Objects = {};
   };
 } // namespace ink::ir

@@ -6,7 +6,7 @@
 
 namespace ink::ir
 {
-  // The referenced type value is borrowed and must outlive this type.
+  // Borrowed referenced type values must remain alive during use; destruction does not access them.
   // The caller must provide a value whose type is MetaType.
   class ReferenceType final : public Type
   {

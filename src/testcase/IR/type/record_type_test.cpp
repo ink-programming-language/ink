@@ -1,5 +1,6 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/ir/enums.h"
+#include "ink/ir/instruction/instruction_builder.h"
 #include "ink/ir/type/array_type.h"
 #include "ink/ir/type/bool_type.h"
 #include "ink/ir/type/field.h"
@@ -10,6 +11,7 @@
 #include "ink/ir/type/record_type.h"
 #include "ink/ir/type/reference_type.h"
 #include "ink/ir/type/struct_type.h"
+#include "ink/ir/type/type_pool.h"
 
 #include <gtest/gtest.h>
 
@@ -33,11 +35,13 @@ namespace ink::ir::test
   static_assert(std::is_same_v<decltype(std::declval<const RecordType &>().methods()), std::span<const Method>>);
   static_assert(std::is_same_v<decltype(std::declval<RecordType &>().bases()), std::span<const Value *const>>);
   static_assert(std::is_same_v<decltype(std::declval<RecordType &>().fields()), std::span<const Field>>);
-  static_assert(std::is_same_v<decltype(std::declval<RecordType &>().methods()), std::span<const Method>>);
+  static_assert(std::is_same_v<decltype(std::declval<RecordType &>().methods()), std::span<Method>>);
   static_assert(std::is_same_v<decltype(std::declval<const Field &>().type()), const Value &>);
   static_assert(std::is_same_v<decltype(std::declval<const Field &>().kind()), MemberKind>);
   static_assert(std::is_same_v<decltype(std::declval<const Field &>().visibility()), SymbolVisibility>);
   static_assert(std::is_same_v<decltype(std::declval<const Method &>().function()), const Function &>);
+  static_assert(std::is_same_v<decltype(std::declval<Method &>().function()), Function &>);
+  static_assert(std::is_same_v<decltype(std::declval<RecordType &>().addMethod(std::declval<const FunctionType &>())), Method &>);
   static_assert(std::is_same_v<decltype(std::declval<const Method &>().kind()), MemberKind>);
   static_assert(std::is_same_v<decltype(std::declval<const Field &>().name()), core::Name>);
   static_assert(std::is_same_v<decltype(std::declval<const Method &>().name()), core::Name>);
@@ -45,11 +49,14 @@ namespace ink::ir::test
   static_assert(!std::is_constructible_v<Field, core::Name, const IntegerType &&>);
   static_assert(!std::is_constructible_v<Field, core::Name, IntegerType &&, MemberKind, SymbolVisibility>);
   static_assert(!std::is_constructible_v<Field, core::Name, const IntegerType &&, MemberKind, SymbolVisibility>);
-  static_assert(!std::is_constructible_v<Method, Function &&>);
-  static_assert(!std::is_constructible_v<Method, const Function &&>);
-  static_assert(!std::is_constructible_v<Method, Function &&, MemberKind>);
-  static_assert(!std::is_constructible_v<Method, const Function &&, MemberKind>);
-  static_assert(!std::is_constructible_v<Method, const FunctionType &>);
+  static_assert(!std::is_copy_constructible_v<Method> && !std::is_copy_assignable_v<Method>);
+  static_assert(std::is_move_constructible_v<Method> && std::is_move_assignable_v<Method>);
+  static_assert(!std::is_constructible_v<Method, Function &> && !std::is_constructible_v<Method, const Function &>);
+  static_assert(!std::is_constructible_v<Method, Function &&> && !std::is_constructible_v<Method, const Function &&>);
+  static_assert(std::is_constructible_v<Method, const FunctionType &>);
+  static_assert(!std::is_constructible_v<Method, FunctionType &&> && !std::is_constructible_v<Method, const FunctionType &&>);
+  static_assert(!std::is_constructible_v<Method, FunctionType &&, core::Name, MemberKind, SymbolVisibility, NativeLinkage>);
+  static_assert(!std::is_constructible_v<Method, const FunctionType &&, core::Name, MemberKind, SymbolVisibility, NativeLinkage>);
 
   template <typename Record>
   concept RecordAcceptsTemporaryBase = requires(Record &Value)
@@ -69,16 +76,16 @@ namespace ink::ir::test
     Value.addField(core::NAME_None, IntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed), MemberKind::Static, SymbolVisibility::Private);
   };
 
-  template <typename Record>
-  concept RecordAcceptsTemporaryMethodFunction = requires(Record &Value, const FunctionType &Signature)
+  template <typename Source>
+  concept RecordAcceptsMethodSource = requires(RecordType &Value, Source &&SourceValue)
   {
-    Value.addMethod(Function(Signature));
+    Value.addMethod(std::forward<Source>(SourceValue));
   };
 
-  template <typename Record>
-  concept RecordAcceptsTemporaryStaticMethodFunction = requires(Record &Value, const FunctionType &Signature)
+  template <typename Source>
+  concept RecordAcceptsModifiedMethodSource = requires(RecordType &Value, Source &&SourceValue)
   {
-    Value.addMethod(Function(Signature), MemberKind::Static);
+    Value.addMethod(std::forward<Source>(SourceValue), core::NAME_None, MemberKind::Static, SymbolVisibility::Public, NativeLinkage::Export);
   };
 
   static_assert(!RecordAcceptsTemporaryBase<StructType>);
@@ -87,10 +94,11 @@ namespace ink::ir::test
   static_assert(!RecordAcceptsTemporaryFieldType<ObjectType>);
   static_assert(!RecordAcceptsTemporaryModifiedFieldType<StructType>);
   static_assert(!RecordAcceptsTemporaryModifiedFieldType<ObjectType>);
-  static_assert(!RecordAcceptsTemporaryMethodFunction<StructType>);
-  static_assert(!RecordAcceptsTemporaryMethodFunction<ObjectType>);
-  static_assert(!RecordAcceptsTemporaryStaticMethodFunction<StructType>);
-  static_assert(!RecordAcceptsTemporaryStaticMethodFunction<ObjectType>);
+  static_assert(RecordAcceptsMethodSource<FunctionType &> && RecordAcceptsMethodSource<const FunctionType &>);
+  static_assert(!RecordAcceptsMethodSource<FunctionType> && !RecordAcceptsMethodSource<const FunctionType>);
+  static_assert(!RecordAcceptsModifiedMethodSource<FunctionType> && !RecordAcceptsModifiedMethodSource<const FunctionType>);
+  static_assert(!RecordAcceptsMethodSource<Function &> && !RecordAcceptsMethodSource<const Function &>);
+  static_assert(!RecordAcceptsMethodSource<Function> && !RecordAcceptsMethodSource<const Function>);
 
   // A struct retains its distinct kind and spelling while exposing value semantics through Type.
   TEST(IRTypeTest, IdentifiesStructWithValueSemanticsThroughBasePointer)
@@ -177,8 +185,6 @@ namespace ink::ir::test
     const BoolType Bool;
     const FunctionType FirstSignature(Int32);
     const FunctionType SecondSignature(Bool);
-    const Function FirstFunction(FirstSignature, ConvertName);
-    const Function SecondFunction(SecondSignature, ConvertName);
     StructType StructBase;
     const ObjectType ObjectBase;
     StructBase.addField(InheritedName, Bool);
@@ -194,8 +200,8 @@ namespace ink::ir::test
       Record->addBase(ObjectBase);
       Record->addField(CountName, Int32);
       Record->addField(EnabledName, Bool, MemberKind::Static, SymbolVisibility::Private);
-      Record->addMethod(FirstFunction);
-      Record->addMethod(SecondFunction);
+      Record->addMethod(FirstSignature, ConvertName);
+      Record->addMethod(SecondSignature, ConvertName);
       ASSERT_EQ(Record->bases().size(), 2u);
       EXPECT_EQ(Record->bases()[0], &StructBase);
       EXPECT_EQ(Record->bases()[1], &ObjectBase);
@@ -212,12 +218,11 @@ namespace ink::ir::test
       EXPECT_EQ(Record->fields()[1].visibility(), SymbolVisibility::Private);
       ASSERT_EQ(Record->methods().size(), 2u);
       EXPECT_EQ(Record->methods()[0].name(), ConvertName);
-      EXPECT_EQ(&Record->methods()[0].function(), &FirstFunction);
       EXPECT_EQ(&Record->methods()[0].function().signature(), &FirstSignature);
       EXPECT_EQ(Record->methods()[0].kind(), MemberKind::Instance);
       EXPECT_FALSE(Record->methods()[0].isStatic());
       EXPECT_EQ(Record->methods()[1].name(), ConvertName);
-      EXPECT_EQ(&Record->methods()[1].function(), &SecondFunction);
+      EXPECT_NE(&Record->methods()[0].function(), &Record->methods()[1].function());
       EXPECT_EQ(&Record->methods()[1].function().signature(), &SecondSignature);
       EXPECT_EQ(Record->methods()[1].kind(), MemberKind::Instance);
       EXPECT_FALSE(Record->methods()[1].isStatic());
@@ -226,21 +231,32 @@ namespace ink::ir::test
     EXPECT_EQ(Object.getSemantics(), TypeSemantics::Reference);
   }
 
-  // Instance and static member bindings preserve the same borrowed function identity and symbol metadata.
-  TEST(IRTypeTest, StoresMemberKindWithoutChangingTheAssociatedFunction)
+  // Methods own distinct functions with forwarded symbol attributes, and moving a method transfers its function without relocation.
+  TEST(IRTypeTest, OwnsIndependentFunctionsAndTransfersTheirIdentityWithMethodMoves)
   {
     const BoolType Bool;
     const FunctionType Signature(Bool);
     const core::Name FunctionName = core::NamePool::instance().intern("shared_method");
-    const Function Implementation(Signature, FunctionName, SymbolVisibility::Private, NativeLinkage::Export);
-    const Method DefaultMethod(Implementation);
-    const Method StaticMethod(Implementation, MemberKind::Static);
+    Method DefaultMethod(Signature);
+    Method StaticMethod(Signature, FunctionName, MemberKind::Static, SymbolVisibility::Public, NativeLinkage::Export);
     EXPECT_EQ(DefaultMethod.kind(), MemberKind::Instance);
     EXPECT_FALSE(DefaultMethod.isStatic());
     EXPECT_EQ(StaticMethod.kind(), MemberKind::Static);
     EXPECT_TRUE(StaticMethod.isStatic());
-    EXPECT_EQ(&DefaultMethod.function(), &Implementation);
-    EXPECT_EQ(&StaticMethod.function(), &Implementation);
+    EXPECT_EQ(DefaultMethod.name(), core::NAME_None);
+    EXPECT_EQ(DefaultMethod.function().visibility(), SymbolVisibility::Private);
+    EXPECT_EQ(DefaultMethod.function().nativeLinkage(), NativeLinkage::None);
+    EXPECT_EQ(StaticMethod.name(), FunctionName);
+    EXPECT_EQ(StaticMethod.function().visibility(), SymbolVisibility::Public);
+    EXPECT_EQ(StaticMethod.function().nativeLinkage(), NativeLinkage::Export);
+    EXPECT_NE(&DefaultMethod.function(), &StaticMethod.function());
+    Function *MovedFunction = &StaticMethod.function();
+    Method Moved(std::move(StaticMethod));
+    EXPECT_EQ(&Moved.function(), MovedFunction);
+    DefaultMethod = std::move(Moved);
+    EXPECT_EQ(&DefaultMethod.function(), MovedFunction);
+    EXPECT_EQ(DefaultMethod.kind(), MemberKind::Static);
+    EXPECT_EQ(DefaultMethod.name(), FunctionName);
     StructType Struct;
     ObjectType Object;
     RecordType *Records[] = {
@@ -249,25 +265,25 @@ namespace ink::ir::test
     };
     for (RecordType *Record : Records)
     {
-      Record->addMethod(Implementation);
-      Record->addMethod(Implementation, MemberKind::Static);
+      Function *FirstFunction = &Record->addMethod(Signature, FunctionName).function();
+      Method &StaticRecordMethod = Record->addMethod(Signature, FunctionName, MemberKind::Static, SymbolVisibility::Public, NativeLinkage::Export);
       ASSERT_EQ(Record->methods().size(), 2U);
       EXPECT_EQ(Record->methods()[0].kind(), MemberKind::Instance);
       EXPECT_FALSE(Record->methods()[0].isStatic());
       EXPECT_EQ(Record->methods()[1].kind(), MemberKind::Static);
       EXPECT_TRUE(Record->methods()[1].isStatic());
-      for (const Method &MethodValue : Record->methods())
-      {
-        EXPECT_EQ(MethodValue.name(), FunctionName);
-        EXPECT_EQ(&MethodValue.function(), &Implementation);
-        EXPECT_EQ(&MethodValue.function().signature(), &Signature);
-        EXPECT_EQ(MethodValue.function().visibility(), SymbolVisibility::Private);
-        EXPECT_EQ(MethodValue.function().nativeLinkage(), NativeLinkage::Export);
-      }
+      EXPECT_EQ(&Record->methods()[0].function(), FirstFunction);
+      EXPECT_NE(FirstFunction, &StaticRecordMethod.function());
+      EXPECT_EQ(&FirstFunction->signature(), &Signature);
+      EXPECT_EQ(&StaticRecordMethod.function().signature(), &Signature);
+      EXPECT_EQ(FirstFunction->visibility(), SymbolVisibility::Private);
+      EXPECT_EQ(FirstFunction->nativeLinkage(), NativeLinkage::None);
+      EXPECT_EQ(StaticRecordMethod.function().visibility(), SymbolVisibility::Public);
+      EXPECT_EQ(StaticRecordMethod.function().nativeLinkage(), NativeLinkage::Export);
     }
   }
 
-  // Fields copy interned name handles and methods forward the same handles as their associated functions.
+  // Fields and independently owned method functions retain interned name handles after the original spellings change.
   TEST(IRTypeTest, UsesInternedFieldAndFunctionNamesForMethods)
   {
     core::NamePool &Names = core::NamePool::instance();
@@ -277,45 +293,52 @@ namespace ink::ir::test
     std::string FunctionSpelling = "stored_method";
     const core::Name FieldName = Names.intern(FieldSpelling);
     const core::Name FunctionName = Names.intern(FunctionSpelling);
-    const Function Implementation(Signature, FunctionName);
     const Field FieldValue(FieldName, Int32, MemberKind::Static);
-    const Method MethodValue(Implementation);
+    const Method MethodValue(Signature, FunctionName);
     StructType Struct;
     Struct.addField(FieldName, Int32);
-    Struct.addMethod(Implementation);
+    Struct.addMethod(Signature, FunctionName);
     FieldSpelling.assign("changed_field");
     FunctionSpelling.assign("changed_method");
     EXPECT_EQ(FieldValue.name(), FieldName);
     EXPECT_EQ(FieldValue.name(), Names.intern("stored_field"));
     EXPECT_EQ(Names.text(FieldValue.name()), "stored_field");
     EXPECT_EQ(MethodValue.name(), FunctionName);
-    EXPECT_EQ(MethodValue.name(), Implementation.name());
+    EXPECT_EQ(MethodValue.name(), MethodValue.function().name());
     EXPECT_EQ(&FieldValue.type(), &Int32);
     EXPECT_EQ(FieldValue.kind(), MemberKind::Static);
     EXPECT_TRUE(FieldValue.isStatic());
     EXPECT_EQ(FieldValue.visibility(), SymbolVisibility::Public);
-    EXPECT_EQ(&MethodValue.function(), &Implementation);
+    EXPECT_EQ(&MethodValue.function().signature(), &Signature);
     ASSERT_EQ(Struct.fields().size(), 1u);
     ASSERT_EQ(Struct.methods().size(), 1u);
     EXPECT_EQ(Struct.fields()[0].name(), FieldName);
     EXPECT_EQ(Struct.methods()[0].name(), FunctionName);
-    EXPECT_EQ(Struct.methods()[0].name(), Implementation.name());
+    EXPECT_EQ(Struct.methods()[0].name(), MethodValue.function().name());
     EXPECT_EQ(&Struct.fields()[0].type(), &Int32);
-    EXPECT_EQ(&Struct.methods()[0].function(), &Implementation);
+    EXPECT_NE(&Struct.methods()[0].function(), &MethodValue.function());
+    EXPECT_EQ(&Struct.methods()[0].function().signature(), &Signature);
   }
 
-  // Methods retain distinct function identities even when signatures match and expose their current basic blocks.
-  TEST(IRTypeTest, AssociatesMethodsWithFunctionBodiesInsteadOfSignatures)
+  // Growing method storage moves wrappers while each owned function, block, instruction, and their iterators keep stable identities.
+  TEST(IRTypeTest, KeepsOwnedFunctionBodiesIndependentWhileMethodStorageGrows)
   {
     core::NamePool &Names = core::NamePool::instance();
-    const BoolType Bool;
-    const FunctionType Signature(Bool);
-    Function First(Signature, Names.intern("first"));
-    Function Second(Signature, Names.intern("second"));
+    TypePool Types;
+    const FunctionType &Signature = Types.getFunctionType(Types.getVoidType());
     ObjectType Object;
-    Object.addMethod(First);
-    Object.addMethod(Second);
-    const auto &Entry = First.createBasicBlock(Names.intern("entry"));
+    Function &First = Object.addMethod(Signature, Names.intern("first")).function();
+    Function &Second = Object.addMethod(Signature, Names.intern("second")).function();
+    BasicBlock &Entry = First.createBasicBlock(Names.intern("entry"));
+    ReturnInstruction *Return = nullptr;
+    {
+      InstructionBuilder Builder(Types);
+      Builder.setInsertPoint(Entry);
+      Return = Builder.createReturn();
+      ASSERT_NE(Return, nullptr);
+    }
+    auto BlockPosition = First.basicBlocks().begin();
+    auto InstructionPosition = Entry.instructions().begin();
     ASSERT_EQ(Object.methods().size(), 2U);
     EXPECT_EQ(&Object.methods()[0].function(), &First);
     EXPECT_EQ(&Object.methods()[1].function(), &Second);
@@ -325,6 +348,25 @@ namespace ink::ir::test
     EXPECT_EQ(Entry.name(), Names.intern("entry"));
     EXPECT_EQ(Entry.parent(), &First);
     EXPECT_TRUE(Object.methods()[1].function().basicBlocks().empty());
+    for (unsigned Index = 0; Index < 128; ++Index)
+    {
+      Object.addMethod(Signature);
+    }
+    ASSERT_EQ(Object.methods().size(), 130U);
+    EXPECT_EQ(&Object.methods()[0].function(), &First);
+    EXPECT_EQ(&Object.methods()[1].function(), &Second);
+    EXPECT_NE(&First, &Second);
+    EXPECT_EQ(&*BlockPosition, &Entry);
+    EXPECT_EQ(&*InstructionPosition, Return);
+    EXPECT_EQ(&*First.basicBlocks().begin(), &Entry);
+    EXPECT_EQ(&*Entry.instructions().begin(), Return);
+    EXPECT_EQ(Entry.parent(), &First);
+    EXPECT_EQ(Return->parent(), &Entry);
+    EXPECT_EQ(First.basicBlockCount(), 1U);
+    EXPECT_EQ(Second.basicBlockCount(), 0U);
+    Second.createBasicBlock(Names.intern("other_entry"));
+    EXPECT_EQ(First.basicBlockCount(), 1U);
+    EXPECT_EQ(Second.basicBlockCount(), 1U);
   }
 
   // A record can be declared before a reference to itself is added as a field.

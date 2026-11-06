@@ -9,7 +9,8 @@
 
 namespace ink::ir
 {
-  // Owns copied parameter metadata and interned name handles; borrowed return and parameter types must outlive this type.
+  // Owns copied parameter metadata and interned name handles; borrowed return and parameter types must remain alive during use.
+  // Destruction does not access borrowed type values.
   // Signature identity includes parameter names and kinds, their order, borrowed type identities, and the call ABI.
   class FunctionType final : public Type
   {

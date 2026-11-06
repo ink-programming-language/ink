@@ -1,4 +1,4 @@
-add_library(ink_ir STATIC value/value.cpp type/type_kind.cpp type/type_pool.cpp type/function_type.cpp constant/constant_pool.cpp instruction/instruction_kind.cpp instruction/instruction_builder.cpp)
+add_library(ink_ir STATIC value/value.cpp type/type_kind.cpp type/type_pool.cpp type/function_type.cpp constant/constant_pool.cpp instruction/instruction_kind.cpp instruction/instruction_builder.cpp module/module.cpp module/global_variable.cpp)
 add_library(ink::ir ALIAS ink_ir)
 
 target_compile_features(ink_ir PUBLIC cxx_std_23)

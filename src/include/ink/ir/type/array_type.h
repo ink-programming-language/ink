@@ -7,7 +7,7 @@
 
 namespace ink::ir
 {
-  // Element type values are borrowed and must outlive the array type.
+  // Borrowed element type values must remain alive during use; destruction does not access them.
   // The caller must provide a value whose type is MetaType.
   class ArrayType final : public Type
   {

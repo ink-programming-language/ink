@@ -9,7 +9,8 @@
 namespace ink::ir
 {
   // Every parameter has its own address identity; copies preserve signature metadata, not identity.
-  // Borrowed type values must outlive the parameter and its signature copies.
+  // Borrowed type values must remain alive whenever the parameter or its signature copies are used.
+  // Destruction does not access borrowed type values.
   // A parameter used as a type operand must not be reassigned or relocated while borrowed.
   class Parameter : public Value
   {

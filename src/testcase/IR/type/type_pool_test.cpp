@@ -1,7 +1,11 @@
+#include "ink/core/name/name_pool.h"
+#include "ink/ir/type/object_type.h"
+#include "ink/ir/type/struct_type.h"
 #include "ink/ir/type/type_pool.h"
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -18,6 +22,8 @@ namespace ink::ir::test
   static_assert(!std::is_move_constructible_v<ArrayType>);
   static_assert(!std::is_copy_constructible_v<ReferenceType>);
   static_assert(!std::is_move_constructible_v<ReferenceType>);
+  static_assert(std::is_same_v<decltype(std::declval<TypePool &>().createStructType()), StructType &>);
+  static_assert(std::is_same_v<decltype(std::declval<TypePool &>().createObjectType()), ObjectType &>);
 
   struct CollidingTypeHash
   {
@@ -53,6 +59,96 @@ namespace ink::ir::test
   static_assert(!PoolAcceptsTemporaryReferenceTarget<const Parameter>);
   static_assert(std::is_same_v<decltype(std::declval<const ArrayType &>().elementType()), const Value &>);
   static_assert(std::is_same_v<decltype(std::declval<const ReferenceType &>().referencedType()), const Value &>);
+
+  // Record creation always produces fresh mutable identities, and growing both owned collections preserves existing declarations.
+  TEST(IRTypePoolTest, CreatesDistinctMutableRecordsWithStableIdentityWhileGrowing)
+  {
+    TypePool Pool;
+    StructType &FirstStruct = Pool.createStructType();
+    StructType &SecondStruct = Pool.createStructType();
+    ObjectType &FirstObject = Pool.createObjectType();
+    ObjectType &SecondObject = Pool.createObjectType();
+    EXPECT_NE(&FirstStruct, &SecondStruct);
+    EXPECT_NE(&FirstObject, &SecondObject);
+    const core::Name FieldName = core::NamePool::instance().intern("enabled");
+    FirstStruct.addField(FieldName, Pool.getBoolType());
+    const ReferenceType &FirstReference = Pool.getReferenceType(FirstStruct);
+    FirstObject.addField(FieldName, FirstReference);
+    std::unordered_set<const StructType *> Structs{&FirstStruct, &SecondStruct};
+    std::unordered_set<const ObjectType *> Objects{&FirstObject, &SecondObject};
+    for (unsigned Index = 0; Index < 128; ++Index)
+    {
+      EXPECT_TRUE(Structs.insert(&Pool.createStructType()).second);
+      EXPECT_TRUE(Objects.insert(&Pool.createObjectType()).second);
+    }
+    EXPECT_EQ(Structs.size(), 130U);
+    EXPECT_EQ(Objects.size(), 130U);
+    ASSERT_EQ(FirstStruct.fields().size(), 1U);
+    ASSERT_EQ(FirstObject.fields().size(), 1U);
+    EXPECT_EQ(FirstStruct.fields()[0].name(), FieldName);
+    EXPECT_EQ(&FirstStruct.fields()[0].type(), &Pool.getBoolType());
+    EXPECT_EQ(&FirstObject.fields()[0].type(), &FirstReference);
+    EXPECT_EQ(&FirstReference.referencedType(), &FirstStruct);
+    EXPECT_EQ(&Pool.getReferenceType(FirstStruct), &FirstReference);
+    EXPECT_TRUE(SecondStruct.fields().empty());
+    EXPECT_TRUE(SecondObject.fields().empty());
+    EXPECT_EQ(FirstStruct.getSemantics(), TypeSemantics::Value);
+    EXPECT_EQ(FirstObject.getSemantics(), TypeSemantics::Reference);
+  }
+
+  // Mutable record declarations remain identity keys for cached references, arrays, and signatures through edits and cache growth.
+  TEST(IRTypePoolTest, KeepsCompositeCachesStableWhenOwnedRecordDeclarationsChange)
+  {
+    TypePool Pool;
+    core::NamePool &Names = core::NamePool::instance();
+    StructType &Struct = Pool.createStructType();
+    ObjectType &Object = Pool.createObjectType();
+    const ReferenceType &StructReference = Pool.getReferenceType(Struct);
+    const ReferenceType &ObjectReference = Pool.getReferenceType(Object);
+    const ArrayType &StructArray = Pool.getArrayType(Struct, 4);
+    const ArrayType &ObjectArray = Pool.getArrayType(Object, 4);
+    const std::array Parameters{Parameter(Object, Names.intern("owner"))};
+    const FunctionType &Signature = Pool.getFunctionType(Struct, Parameters);
+    const auto ReferenceHash = StructReference.hash();
+    const auto ArrayHash = StructArray.hash();
+    const auto SignatureHash = Signature.hash();
+    Struct.addBase(Pool.createStructType());
+    Struct.addField(Names.intern("owner"), ObjectReference);
+    Object.addField(Names.intern("payload"), Struct);
+    Object.addField(Names.intern("next"), ObjectReference);
+    Method &OwnedMethod = Object.addMethod(Signature, Names.intern("payload"));
+    Function *MethodFunction = &OwnedMethod.function();
+    for (std::uint64_t Count = 1; Count <= 128; ++Count)
+    {
+      StructType &NextStruct = Pool.createStructType();
+      ObjectType &NextObject = Pool.createObjectType();
+      Pool.getReferenceType(NextStruct);
+      Pool.getReferenceType(NextObject);
+      Pool.getArrayType(NextStruct, Count);
+      Pool.getArrayType(NextObject, Count);
+      const std::array NextParameters{Parameter(NextObject)};
+      Pool.getFunctionType(NextStruct, NextParameters);
+    }
+    EXPECT_EQ(&Pool.getReferenceType(Struct), &StructReference);
+    EXPECT_EQ(&Pool.getReferenceType(Object), &ObjectReference);
+    EXPECT_EQ(&Pool.getArrayType(Struct, 4), &StructArray);
+    EXPECT_EQ(&Pool.getArrayType(Object, 4), &ObjectArray);
+    EXPECT_EQ(&Pool.getFunctionType(Struct, Parameters), &Signature);
+    EXPECT_EQ(StructReference.hash(), ReferenceHash);
+    EXPECT_EQ(StructArray.hash(), ArrayHash);
+    EXPECT_EQ(Signature.hash(), SignatureHash);
+    EXPECT_EQ(&StructArray.elementType(), &Struct);
+    EXPECT_EQ(&ObjectArray.elementType(), &Object);
+    EXPECT_EQ(&Signature.returnType(), &Struct);
+    ASSERT_EQ(Signature.parameters().size(), 1U);
+    EXPECT_EQ(&Signature.parameters()[0].type(), &Object);
+    ASSERT_EQ(Object.methods().size(), 1U);
+    EXPECT_EQ(&Object.methods()[0].function(), MethodFunction);
+    EXPECT_EQ(&MethodFunction->signature(), &Signature);
+    EXPECT_EQ(Struct.bases().size(), 1U);
+    EXPECT_EQ(Struct.fields().size(), 1U);
+    EXPECT_EQ(Object.fields().size(), 2U);
+  }
 
   // Growing the pools preserves symbolic operands and keeps equally named generic parameters distinct.
   TEST(IRTypePoolTest, PreservesGenericCompositesWhileThePoolGrows)
