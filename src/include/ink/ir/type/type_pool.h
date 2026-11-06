@@ -8,7 +8,7 @@
 #include "ink/ir/type/integer_type.h"
 #include "ink/ir/type/meta_type.h"
 #include "ink/ir/type/object_type.h"
-#include "ink/ir/type/reference_type.h"
+#include "ink/ir/type/pointer_type.h"
 #include "ink/ir/type/struct_type.h"
 #include "ink/ir/type/void_type.h"
 
@@ -21,7 +21,7 @@
 namespace ink::ir
 {
   // Owns types with stable addresses until pool destruction: interned immutable types and unique mutable record definitions.
-  // Borrowed array elements, reference targets, and signature types may be external and must remain alive while the pool is used.
+  // Borrowed array elements, pointer targets, and signature types may be external and must remain alive while the pool is used.
   // Stop using the pool when any borrowed owner begins destruction; pool destruction does not access borrowed values.
   // Concurrent pool operations require external synchronization.
   class TypePool final
@@ -47,7 +47,7 @@ namespace ink::ir
       // Composite types are interned by borrowed type identities, parameter metadata, and function call ABI.
       // Passing a value whose type is not MetaType is a programming error.
       const ArrayType &getArrayType(ValueRef ElementType, std::uint64_t ElementCount);
-      const ReferenceType &getReferenceType(ValueRef ReferencedType);
+      const PointerType &getPointerType(ValueRef PointeeType);
       const FunctionType &getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters = {}, CallABI ABI = {});
 
     private:
@@ -68,7 +68,7 @@ namespace ink::ir
       BoolType Bool = {};
       VoidType Void = {};
       std::unordered_set<ArrayType, core::Hash<ArrayType>, std::equal_to<>> Arrays = {};
-      std::unordered_set<ReferenceType, core::Hash<ReferenceType>, std::equal_to<>> References = {};
+      std::unordered_set<PointerType, core::Hash<PointerType>, std::equal_to<>> Pointers = {};
       std::unordered_set<FunctionType, core::Hash<FunctionType>, std::equal_to<>> Functions = {};
       // Destroy record-owned method bodies before their borrowed interned signature types.
       std::list<StructType> Structs = {};

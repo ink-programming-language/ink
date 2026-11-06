@@ -2,7 +2,7 @@
 
 namespace ink::ir
 {
-  GlobalVariable::GlobalVariable(const ReferenceType &ResultType, core::Name Name, SymbolVisibility Visibility, NativeLinkage Linkage) noexcept
+  GlobalVariable::GlobalVariable(const PointerType &ResultType, core::Name Name, SymbolVisibility Visibility, NativeLinkage Linkage) noexcept
       : Value(ValueRef{ResultType}),
         Name(Name),
         Visibility(Visibility),

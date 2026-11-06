@@ -40,24 +40,24 @@ namespace ink::ir
     return arrayKey(*this) == Other;
   }
 
-  std::size_t ReferenceType::hash() const noexcept
+  std::size_t PointerType::hash() const noexcept
   {
-    return hash(&ReferencedType);
+    return hash(&PointeeType);
   }
 
-  std::size_t ReferenceType::hash(const Value *Value) noexcept
+  std::size_t PointerType::hash(const Value *Value) noexcept
   {
     return std::hash<const ink::ir::Value *>{}(Value);
   }
 
-  bool ReferenceType::operator==(const ReferenceType &Other) const noexcept
+  bool PointerType::operator==(const PointerType &Other) const noexcept
   {
-    return &ReferencedType == &Other.ReferencedType;
+    return &PointeeType == &Other.PointeeType;
   }
 
-  bool ReferenceType::operator==(const Value *Other) const noexcept
+  bool PointerType::operator==(const Value *Other) const noexcept
   {
-    return &ReferencedType == Other;
+    return &PointeeType == Other;
   }
 
   const IntegerType &TypePool::getIntegerType(IntegerType::Width Width, IntegerType::Signedness Sign) const noexcept
@@ -143,18 +143,18 @@ namespace ink::ir
     return *Arrays.emplace(ElementType, ElementCount).first;
   }
 
-  const ReferenceType &TypePool::getReferenceType(ValueRef ReferencedType)
+  const PointerType &TypePool::getPointerType(ValueRef PointeeType)
   {
-    if (!ReferencedType.get().isTypeValue())
+    if (!PointeeType.get().isTypeValue())
     {
-      panic("TypePool requires a reference target whose type is MetaType");
+      panic("TypePool requires a pointer target whose type is MetaType");
     }
-    const auto Existing = References.find(&ReferencedType.get());
-    if (Existing != References.end())
+    const auto Existing = Pointers.find(&PointeeType.get());
+    if (Existing != Pointers.end())
     {
       return *Existing;
     }
-    return *References.emplace(ReferencedType).first;
+    return *Pointers.emplace(PointeeType).first;
   }
 
   const FunctionType &TypePool::getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters, CallABI ABI)

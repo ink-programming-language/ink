@@ -47,7 +47,7 @@ namespace ink::ir::test
     ConstantPool Constants(Types);
     const FloatConstant &Value = Constants.getFloat(2.0f);
     AddInstruction Add(Value, Value);
-    AllocaInstruction Alloca(Types.getReferenceType(Value.getType()));
+    AllocaInstruction Alloca(Types.getPointerType(Value.getType()));
     LoadInstruction Load(Value.getType(), Alloca);
     StoreInstruction Store(Types.getVoidType(), Alloca, Value);
     ReturnInstruction Return(Types.getVoidType(), Add);

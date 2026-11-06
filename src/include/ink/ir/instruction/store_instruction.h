@@ -6,7 +6,7 @@
 namespace ink::ir
 {
   // Produces no value and borrows both operands and the void type; all must outlive this instruction.
-  // The destination must reference the source's exact type value; construction does not validate types.
+  // The destination must point to the source's exact type value; construction does not validate types.
   class StoreInstruction final : public Instruction
   {
     public:

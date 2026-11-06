@@ -1,5 +1,5 @@
 #include "ink/ir/instruction/instruction_builder.h"
-#include "ink/ir/type/reference_type.h"
+#include "ink/ir/type/pointer_type.h"
 #include "ink/ir/type/type_pool.h"
 
 #include <utility>
@@ -87,7 +87,7 @@ namespace ink::ir
     {
       return nullptr;
     }
-    return createInstruction<AllocaInstruction>(Types.getReferenceType(AllocatedType));
+    return createInstruction<AllocaInstruction>(Types.getPointerType(AllocatedType));
   }
 
   /* -------------------- Load -------------------- */
@@ -98,11 +98,11 @@ namespace ink::ir
       return nullptr;
     }
     const Value &SourceType = Source.get().getType();
-    if (!ReferenceType::classof(&SourceType))
+    if (!PointerType::classof(&SourceType))
     {
       return nullptr;
     }
-    return createInstruction<LoadInstruction>(static_cast<const ReferenceType &>(SourceType).referencedType(), Source);
+    return createInstruction<LoadInstruction>(static_cast<const PointerType &>(SourceType).pointeeType(), Source);
   }
 
   /* -------------------- Store -------------------- */
@@ -113,11 +113,11 @@ namespace ink::ir
       return nullptr;
     }
     const Value &DestinationType = Destination.get().getType();
-    if (!ReferenceType::classof(&DestinationType))
+    if (!PointerType::classof(&DestinationType))
     {
       return nullptr;
     }
-    const Value &StoredType = static_cast<const ReferenceType &>(DestinationType).referencedType();
+    const Value &StoredType = static_cast<const PointerType &>(DestinationType).pointeeType();
     if (&StoredType != &Source.get().getType())
     {
       return nullptr;

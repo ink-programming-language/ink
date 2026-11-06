@@ -18,10 +18,10 @@ namespace ink::ir::test
   static_assert(std::is_base_of_v<Value, GlobalVariable>);
   static_assert(!std::is_copy_constructible_v<GlobalVariable> && !std::is_copy_assignable_v<GlobalVariable>);
   static_assert(!std::is_move_constructible_v<GlobalVariable> && !std::is_move_assignable_v<GlobalVariable>);
-  static_assert(std::is_nothrow_constructible_v<GlobalVariable, const ReferenceType &>);
-  static_assert(!std::is_constructible_v<GlobalVariable, ReferenceType &&> && !std::is_constructible_v<GlobalVariable, const ReferenceType &&>);
-  static_assert(!std::is_constructible_v<GlobalVariable, ReferenceType &&, core::Name, SymbolVisibility, NativeLinkage>);
-  static_assert(!std::is_constructible_v<GlobalVariable, const ReferenceType &&, core::Name, SymbolVisibility, NativeLinkage>);
+  static_assert(std::is_nothrow_constructible_v<GlobalVariable, const PointerType &>);
+  static_assert(!std::is_constructible_v<GlobalVariable, PointerType &&> && !std::is_constructible_v<GlobalVariable, const PointerType &&>);
+  static_assert(!std::is_constructible_v<GlobalVariable, PointerType &&, core::Name, SymbolVisibility, NativeLinkage>);
+  static_assert(!std::is_constructible_v<GlobalVariable, const PointerType &&, core::Name, SymbolVisibility, NativeLinkage>);
   static_assert(!std::is_constructible_v<GlobalVariable, const IntegerType &>);
   static_assert(std::is_same_v<decltype(std::declval<const GlobalVariable &>().valueType()), const Value &>);
   static_assert(std::is_same_v<decltype(std::declval<GlobalVariable &>().parent()), Module *>);
@@ -53,7 +53,7 @@ namespace ink::ir::test
     const IntegerConstant Value(Int32, 42);
     const IntegerConstant WrongTypeValue(SeparateInt32, 42);
     const core::Name Name = core::NamePool::instance().intern("counter");
-    GlobalVariable Global(Types.getReferenceType(Int32), Name);
+    GlobalVariable Global(Types.getPointerType(Int32), Name);
     Function FunctionValue(Types.getFunctionType(Int32));
     BasicBlock &Block = FunctionValue.createBasicBlock();
     StoreInstruction *Store = nullptr;
@@ -80,7 +80,7 @@ namespace ink::ir::test
     EXPECT_EQ(Global.visibility(), SymbolVisibility::Public);
     EXPECT_EQ(Global.nativeLinkage(), NativeLinkage::Export);
     EXPECT_EQ(Global.name(), Name);
-    EXPECT_EQ(&Global.getType(), &Types.getReferenceType(Int32));
+    EXPECT_EQ(&Global.getType(), &Types.getPointerType(Int32));
     EXPECT_EQ(&Global.valueType(), &Int32);
     EXPECT_EQ(&Store->getDestination(), &Global);
     EXPECT_EQ(&Store->getSource(), &Value);
@@ -95,15 +95,15 @@ namespace ink::ir::test
     EXPECT_EQ(Position, Block.instructions().end());
   }
 
-  // Reference-valued globals store another global's address, and each load removes exactly one reference layer.
-  TEST(IRGlobalVariableTest, LoadsNestedReferenceGlobalsOneLayerAtATime)
+  // Pointer-valued globals store another global's address, and each load removes exactly one pointer layer.
+  TEST(IRGlobalVariableTest, LoadsNestedPointerGlobalsOneLayerAtATime)
   {
     TypePool Types;
     const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
-    const ReferenceType &IntegerReference = Types.getReferenceType(Int32);
-    const ReferenceType &AddressReference = Types.getReferenceType(IntegerReference);
-    const GlobalVariable IntegerGlobal(IntegerReference);
-    const GlobalVariable AddressGlobal(AddressReference);
+    const PointerType &IntegerPointer = Types.getPointerType(Int32);
+    const PointerType &AddressPointer = Types.getPointerType(IntegerPointer);
+    const GlobalVariable IntegerGlobal(IntegerPointer);
+    const GlobalVariable AddressGlobal(AddressPointer);
     const IntegerConstant Value(Int32, 42);
     BasicBlock Block;
     InstructionBuilder Builder(Types);
@@ -115,11 +115,11 @@ namespace ink::ir::test
     ASSERT_NE(LoadedAddress, nullptr);
     LoadInstruction *LoadedInteger = Builder.createLoad(*LoadedAddress);
     ASSERT_NE(LoadedInteger, nullptr);
-    EXPECT_EQ(&AddressGlobal.valueType(), &IntegerReference);
-    EXPECT_EQ(&AddressGlobal.getType(), &AddressReference);
+    EXPECT_EQ(&AddressGlobal.valueType(), &IntegerPointer);
+    EXPECT_EQ(&AddressGlobal.getType(), &AddressPointer);
     EXPECT_EQ(&AddressStore->getDestination(), &AddressGlobal);
     EXPECT_EQ(&AddressStore->getSource(), &IntegerGlobal);
-    EXPECT_EQ(&LoadedAddress->getType(), &IntegerReference);
+    EXPECT_EQ(&LoadedAddress->getType(), &IntegerPointer);
     EXPECT_EQ(&LoadedInteger->getType(), &Int32);
     EXPECT_EQ(&LoadedInteger->getSource(), LoadedAddress);
     EXPECT_EQ(Builder.createStore(AddressGlobal, Value), nullptr);
@@ -135,7 +135,7 @@ namespace ink::ir::test
     const Parameter ValueOfT(std::cref(T));
     const Parameter ValueOfOtherT(std::cref(OtherT));
     TypePool Types;
-    const GlobalVariable Global(Types.getReferenceType(T));
+    const GlobalVariable Global(Types.getPointerType(T));
     BasicBlock Block;
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Block);

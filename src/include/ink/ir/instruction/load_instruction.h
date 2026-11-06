@@ -5,7 +5,7 @@
 namespace ink::ir
 {
   // Borrows the source and result type; both must outlive this instruction.
-  // The caller must provide a reference source whose referenced type is ResultType; construction does not validate types.
+  // The caller must provide a pointer source whose pointee type is ResultType; construction does not validate types.
   class LoadInstruction final : public Instruction
   {
     public:

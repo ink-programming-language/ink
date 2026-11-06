@@ -2,7 +2,7 @@
 #include "ink/ir/type/bool_type.h"
 #include "ink/ir/type/float_type.h"
 #include "ink/ir/type/integer_type.h"
-#include "ink/ir/type/reference_type.h"
+#include "ink/ir/type/pointer_type.h"
 #include "ink/ir/type/type.h"
 #include "ink/ir/type/type_kind.h"
 #include "ink/ir/type/void_type.h"
@@ -18,8 +18,8 @@ namespace ink::ir::test
 {
   static_assert(!std::is_constructible_v<ArrayType, IntegerType &&, std::uint64_t>);
   static_assert(!std::is_constructible_v<ArrayType, const IntegerType &&, std::uint64_t>);
-  static_assert(!std::is_constructible_v<ReferenceType, IntegerType &&>);
-  static_assert(!std::is_constructible_v<ReferenceType, const IntegerType &&>);
+  static_assert(!std::is_constructible_v<PointerType, IntegerType &&>);
+  static_assert(!std::is_constructible_v<PointerType, const IntegerType &&>);
 
   // Scalar categories keep distinct spellings while different widths and signs share their category kind.
   TEST(IRTypeTest, IdentifiesDistinctScalarTypesThroughBasePointers)
@@ -138,23 +138,24 @@ namespace ink::ir::test
     EXPECT_EQ(&Maximum.elementType(), &Element);
   }
 
-  // References preserve target identity and their distinct kind while exposing reference semantics through Type.
-  TEST(IRTypeTest, IdentifiesReferencesAndPreservesNestedTargets)
+  // Pointers preserve pointee identity and their distinct kind while exposing value semantics through Type.
+  TEST(IRTypeTest, IdentifiesPointersAndPreservesNestedTargets)
   {
     const IntegerType Integer(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
-    const ReferenceType Reference(Integer);
-    const ReferenceType Nested(static_cast<const Type &>(Reference));
-    const Type *Base = &Reference;
-    EXPECT_EQ(Base->getKind(), TypeKind::Reference);
-    EXPECT_EQ(Base->getName(), "reference");
-    EXPECT_EQ(typeKindName(TypeKind::Reference), "reference");
-    EXPECT_EQ(Base->getSemantics(), TypeSemantics::Reference);
-    EXPECT_TRUE(ReferenceType::classof(Base));
-    EXPECT_FALSE(ReferenceType::classof(nullptr));
-    EXPECT_FALSE(ReferenceType::classof(&Integer));
+    const PointerType Pointer(Integer);
+    const PointerType Nested(static_cast<const Type &>(Pointer));
+    const Type *Base = &Pointer;
+    EXPECT_EQ(Base->getKind(), TypeKind::Pointer);
+    EXPECT_EQ(Base->getName(), "pointer");
+    EXPECT_EQ(typeKindName(TypeKind::Pointer), "pointer");
+    EXPECT_EQ(Base->getSemantics(), TypeSemantics::Value);
+    EXPECT_TRUE(PointerType::classof(Base));
+    EXPECT_FALSE(PointerType::classof(nullptr));
+    EXPECT_FALSE(PointerType::classof(&Integer));
     EXPECT_FALSE(IntegerType::classof(Base));
-    EXPECT_EQ(&Reference.referencedType(), &Integer);
-    EXPECT_EQ(&Nested.referencedType(), &Reference);
+    EXPECT_EQ(&Pointer.pointeeType(), &Integer);
+    EXPECT_EQ(&Nested.pointeeType(), &Pointer);
+    EXPECT_EQ(Nested.getSemantics(), TypeSemantics::Value);
   }
 
   // An unrecognized kind is named explicitly instead of being confused with a valid scalar or array.

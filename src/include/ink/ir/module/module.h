@@ -111,8 +111,8 @@ namespace ink::ir
       void addStructType(StructType &TypeValue);
       void addObjectType(ObjectType &TypeValue);
       Function &createFunction(ValueRef Signature, core::Name FunctionName = core::NAME_None, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None);
-      GlobalVariable &createGlobalVariable(const ReferenceType &ResultType, core::Name GlobalName = core::NAME_None, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None);
-      GlobalVariable &createGlobalVariable(const ReferenceType &&, core::Name = core::NAME_None, SymbolVisibility = SymbolVisibility::Private, NativeLinkage = NativeLinkage::None) = delete;
+      GlobalVariable &createGlobalVariable(const PointerType &ResultType, core::Name GlobalName = core::NAME_None, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None);
+      GlobalVariable &createGlobalVariable(const PointerType &&, core::Name = core::NAME_None, SymbolVisibility = SymbolVisibility::Private, NativeLinkage = NativeLinkage::None) = delete;
 
       auto structTypes(this auto &&Self) noexcept
       {

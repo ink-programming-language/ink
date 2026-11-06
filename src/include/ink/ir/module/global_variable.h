@@ -2,7 +2,7 @@
 
 #include "ink/core/name/name.h"
 #include "ink/ir/enums.h"
-#include "ink/ir/type/reference_type.h"
+#include "ink/ir/type/pointer_type.h"
 #include "ink/ir/value/value.h"
 
 #include <utility>
@@ -11,13 +11,13 @@ namespace ink::ir
 {
   class Module;
 
-  // Models module-level storage as an address value of ReferenceType(T).
-  // The reference type and its stored type value must outlive this declaration and its uses.
+  // Models module-level storage as an address value of PointerType(T).
+  // The pointer type and its stored type value must outlive this declaration and its uses.
   class GlobalVariable final : public Value
   {
     public:
-      explicit GlobalVariable(const ReferenceType &ResultType, core::Name Name = core::NAME_None, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None) noexcept;
-      GlobalVariable(const ReferenceType &&, core::Name = core::NAME_None, SymbolVisibility = SymbolVisibility::Private, NativeLinkage = NativeLinkage::None) = delete;
+      explicit GlobalVariable(const PointerType &ResultType, core::Name Name = core::NAME_None, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None) noexcept;
+      GlobalVariable(const PointerType &&, core::Name = core::NAME_None, SymbolVisibility = SymbolVisibility::Private, NativeLinkage = NativeLinkage::None) = delete;
 
       core::Name name() const noexcept
       {
@@ -26,7 +26,7 @@ namespace ink::ir
 
       const Value &valueType() const noexcept
       {
-        return static_cast<const ReferenceType &>(getType()).referencedType();
+        return static_cast<const PointerType &>(getType()).pointeeType();
       }
 
       SymbolVisibility visibility() const noexcept

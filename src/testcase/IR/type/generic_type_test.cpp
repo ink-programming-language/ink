@@ -21,7 +21,7 @@ namespace ink::ir::test
     constexpr BoolType CompileTimeBool;
     constexpr VoidType CompileTimeVoid;
     constexpr ArrayType CompileTimeArray(CompileTimeType, 4);
-    constexpr ReferenceType CompileTimeReference(CompileTimeType);
+    constexpr PointerType CompileTimePointer(CompileTimeType);
     constexpr IntegerConstant CompileTimeValue(CompileTimeType, 42);
     constexpr bool haveCanonicalTypeEdges() noexcept
     {
@@ -37,7 +37,7 @@ namespace ink::ir::test
           &Struct,
           &Object,
           &CompileTimeArray,
-          &CompileTimeReference,
+          &CompileTimePointer,
       };
       for (const Type *TypeValue : Types)
       {
@@ -55,7 +55,7 @@ namespace ink::ir::test
     static_assert(&CompileTimeValue.getType() == &CompileTimeType);
     static_assert(&CompileTimeValue.getType().getType() == &MetaType::instance());
     static_assert(&CompileTimeValue.getType().getType().getType() == &MetaType::instance());
-    static_assert(&CompileTimeArray.elementType() == &CompileTimeType && &CompileTimeReference.referencedType() == &CompileTimeType);
+    static_assert(&CompileTimeArray.elementType() == &CompileTimeType && &CompileTimePointer.pointeeType() == &CompileTimeType);
     static_assert(CompileTimeType.asType() == &CompileTimeType);
     static_assert(Type::classof(&CompileTimeType) && IntegerType::classof(&CompileTimeType));
   } // namespace
@@ -85,7 +85,7 @@ namespace ink::ir::test
     EXPECT_TRUE(MetaType::classof(&MetaValue));
   }
 
-  // Scalar, record, array, reference, and function types are values with the shared metatype and recover their concrete Type identity.
+  // Scalar, record, array, pointer, and function types are values with the shared metatype and recover their concrete Type identity.
   TEST(IRGenericTypeTest, RepresentsEveryConcreteTypeAsAMetatypeValue)
   {
     TypePool Types;
@@ -101,7 +101,7 @@ namespace ink::ir::test
         &Struct,
         &Object,
         &Types.getArrayType(Integer, 4),
-        &Types.getReferenceType(Integer),
+        &Types.getPointerType(Integer),
         &Types.getFunctionType(Integer),
     };
     for (const Type *TypeValue : TypeValues)
@@ -151,9 +151,9 @@ namespace ink::ir::test
     EXPECT_FALSE(FromRef.isTypeValue());
     EXPECT_FALSE(FromValueRef.isTypeValue());
     EXPECT_EQ(FromConstRef.asType(), nullptr);
-    EXPECT_NE(&Types.getReferenceType(T), &Types.getReferenceType(SameName));
-    EXPECT_NE(&Types.getReferenceType(T), &Types.getReferenceType(Copied));
-    EXPECT_NE(&Types.getReferenceType(T), &Types.getReferenceType(Assigned));
+    EXPECT_NE(&Types.getPointerType(T), &Types.getPointerType(SameName));
+    EXPECT_NE(&Types.getPointerType(T), &Types.getPointerType(Copied));
+    EXPECT_NE(&Types.getPointerType(T), &Types.getPointerType(Assigned));
   }
 
   // Copying a signature owns its parameter descriptions without rebinding an x:T type edge to a copied T description.
@@ -184,19 +184,19 @@ namespace ink::ir::test
     auto &Names = core::NamePool::instance();
     const Parameter T(MetaType::instance(), Names.intern("T"));
     TypePool Types;
-    const ReferenceType &Reference = Types.getReferenceType(T);
+    const PointerType &Pointer = Types.getPointerType(T);
     const ArrayType &Array = Types.getArrayType(T, 4);
-    const ArrayType &NestedArray = Types.getArrayType(Reference, 2);
+    const ArrayType &NestedArray = Types.getArrayType(Pointer, 2);
     const FunctionType &Signature = Types.getFunctionType(T);
     const Value &ErasedSignature = Signature;
     const Function FunctionValue(ErasedSignature);
     StructType Record;
     Record.addBase(T);
     Record.addField(Names.intern("Value"), T);
-    EXPECT_EQ(&Reference.referencedType(), &T);
+    EXPECT_EQ(&Pointer.pointeeType(), &T);
     EXPECT_EQ(&Array.elementType(), &T);
     EXPECT_EQ(Array.elementCount(), 4U);
-    EXPECT_EQ(&NestedArray.elementType(), &Reference);
+    EXPECT_EQ(&NestedArray.elementType(), &Pointer);
     EXPECT_EQ(&Signature.returnType(), &T);
     EXPECT_EQ(&FunctionValue.getType(), &Signature);
     EXPECT_EQ(&FunctionValue.signature(), &Signature);
@@ -204,7 +204,7 @@ namespace ink::ir::test
     EXPECT_EQ(Record.bases()[0], &T);
     ASSERT_EQ(Record.fields().size(), 1U);
     EXPECT_EQ(&Record.fields()[0].type(), &T);
-    EXPECT_TRUE(Reference.isTypeValue());
+    EXPECT_TRUE(Pointer.isTypeValue());
     EXPECT_TRUE(Array.isTypeValue());
     EXPECT_TRUE(Record.isTypeValue());
   }
@@ -234,7 +234,7 @@ namespace ink::ir::test
         BoolType::classof,
         VoidType::classof,
         ArrayType::classof,
-        ReferenceType::classof,
+        PointerType::classof,
         FunctionType::classof,
         RecordType::classof,
         StructType::classof,

@@ -1,12 +1,12 @@
 #pragma once
 
 #include "ink/ir/instruction/instruction.h"
-#include "ink/ir/type/reference_type.h"
+#include "ink/ir/type/pointer_type.h"
 
 namespace ink::ir
 {
   // Models stack storage for a type value, including an unbound generic parameter; target layout is resolved after specialization.
-  // The caller must provide ReferenceType(T) as the result type; it and T must outlive this instruction.
+  // The caller must provide PointerType(T) as the result type; it and T must outlive this instruction.
   class AllocaInstruction final : public Instruction
   {
     public:
@@ -24,7 +24,7 @@ namespace ink::ir
 
       constexpr const Value &getAllocatedType() const noexcept
       {
-        return static_cast<const ReferenceType &>(getType()).referencedType();
+        return static_cast<const PointerType &>(getType()).pointeeType();
       }
   };
 } // namespace ink::ir

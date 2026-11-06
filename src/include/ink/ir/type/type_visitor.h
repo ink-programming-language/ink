@@ -7,7 +7,7 @@
 #include "ink/ir/type/integer_type.h"
 #include "ink/ir/type/meta_type.h"
 #include "ink/ir/type/object_type.h"
-#include "ink/ir/type/reference_type.h"
+#include "ink/ir/type/pointer_type.h"
 #include "ink/ir/type/struct_type.h"
 #include "ink/ir/type/void_type.h"
 

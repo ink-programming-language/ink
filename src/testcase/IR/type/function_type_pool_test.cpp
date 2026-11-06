@@ -96,7 +96,7 @@ namespace ink::ir::test
     EXPECT_EQ(&Empty, &Pool.getFunctionType(Pool.getVoidType(), {}));
     EXPECT_TRUE(Empty.parameters().empty());
     EXPECT_EQ(&Empty.returnType(), &Pool.getVoidType());
-    EXPECT_EQ(&Pool.getReferenceType(Function).referencedType(), &Function);
+    EXPECT_EQ(&Pool.getPointerType(Function).pointeeType(), &Function);
   }
 
   // ABI and calling convention differences survive interning and remain visible in nested callback types.
@@ -120,7 +120,7 @@ namespace ink::ir::test
       EXPECT_EQ(&Callback, &Pool.getFunctionType(Void, {}, Contract));
       EXPECT_EQ(Callback.callABI(), Contract);
       EXPECT_EQ(&Consumer.parameters()[0].type(), &Callback);
-      EXPECT_EQ(&Pool.getReferenceType(Callback).referencedType(), &Callback);
+      EXPECT_EQ(&Pool.getPointerType(Callback).pointeeType(), &Callback);
       for (const auto OtherContract : Contracts)
       {
         if (Contract == OtherContract)

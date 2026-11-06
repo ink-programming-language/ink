@@ -12,7 +12,7 @@ namespace ink::ir
 {
   // Stores declarations from this record only, in insertion order, without language-level validation.
   // Owns method functions; borrowed bases, field types, and method signatures must remain alive during use.
-  // A common owner can keep recursive record/reference graphs alive throughout use; destruction does not access borrowed types.
+  // A common owner can keep recursive record/pointer graphs alive throughout use; destruction does not access borrowed types.
   // Appending declarations may invalidate views and references into the corresponding collection; method function addresses remain stable.
   class RecordType : public Type
   {

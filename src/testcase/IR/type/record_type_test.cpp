@@ -8,8 +8,8 @@
 #include "ink/ir/type/integer_type.h"
 #include "ink/ir/type/method.h"
 #include "ink/ir/type/object_type.h"
+#include "ink/ir/type/pointer_type.h"
 #include "ink/ir/type/record_type.h"
-#include "ink/ir/type/reference_type.h"
 #include "ink/ir/type/struct_type.h"
 #include "ink/ir/type/type_pool.h"
 
@@ -369,18 +369,18 @@ namespace ink::ir::test
     EXPECT_EQ(Second.basicBlockCount(), 1U);
   }
 
-  // A record can be declared before a reference to itself is added as a field.
-  TEST(IRTypeTest, SupportsSelfReferencesThroughBorrowedReferenceTypes)
+  // A record can be declared before a pointer to itself is added as a field.
+  TEST(IRTypeTest, SupportsSelfReferencesThroughBorrowedPointerTypes)
   {
     const core::Name NextName = core::NamePool::instance().intern("next");
     StructType Node;
-    const ReferenceType Next(Node);
+    const PointerType Next(Node);
     Node.addField(NextName, Next);
     ASSERT_EQ(Node.fields().size(), 1u);
     EXPECT_EQ(Node.fields()[0].name(), NextName);
     EXPECT_EQ(&Node.fields()[0].type(), &Next);
-    EXPECT_TRUE(ReferenceType::classof(&Node.fields()[0].type()));
-    const auto &NextType = static_cast<const ReferenceType &>(Node.fields()[0].type());
-    EXPECT_EQ(&NextType.referencedType(), &Node);
+    EXPECT_TRUE(PointerType::classof(&Node.fields()[0].type()));
+    const auto &NextType = static_cast<const PointerType &>(Node.fields()[0].type());
+    EXPECT_EQ(&NextType.pointeeType(), &Node);
   }
 } // namespace ink::ir::test

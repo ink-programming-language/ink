@@ -14,9 +14,9 @@
 
 namespace ink::ir::test
 {
-  static_assert(std::is_nothrow_constructible_v<AllocaInstruction, const ReferenceType &>);
+  static_assert(std::is_nothrow_constructible_v<AllocaInstruction, const PointerType &>);
   static_assert(std::is_nothrow_constructible_v<AllocaInstruction, ValueRef> && std::is_nothrow_constructible_v<AllocaInstruction, const Value &>);
-  static_assert(!std::is_constructible_v<AllocaInstruction, ReferenceType &&> && !std::is_constructible_v<AllocaInstruction, const ReferenceType &&>);
+  static_assert(!std::is_constructible_v<AllocaInstruction, PointerType &&> && !std::is_constructible_v<AllocaInstruction, const PointerType &&>);
   static_assert(!std::is_constructible_v<AllocaInstruction, Parameter &&> && !std::is_constructible_v<AllocaInstruction, const Parameter &&>);
   static_assert(std::is_same_v<decltype(std::declval<const AllocaInstruction &>().getAllocatedType()), const Value &>);
 
@@ -26,51 +26,53 @@ namespace ink::ir::test
     Builder.createAlloca(std::forward<AllocatedType>(TypeValue));
   };
 
-  static_assert(BuilderAcceptsAllocatedType<IntegerType &> && BuilderAcceptsAllocatedType<const ReferenceType &>);
+  static_assert(BuilderAcceptsAllocatedType<IntegerType &> && BuilderAcceptsAllocatedType<const PointerType &>);
   static_assert(BuilderAcceptsAllocatedType<Parameter &> && BuilderAcceptsAllocatedType<const Parameter &>);
   static_assert(!BuilderAcceptsAllocatedType<IntegerType> && !BuilderAcceptsAllocatedType<const IntegerType>);
-  static_assert(!BuilderAcceptsAllocatedType<ReferenceType> && !BuilderAcceptsAllocatedType<const ReferenceType>);
+  static_assert(!BuilderAcceptsAllocatedType<PointerType> && !BuilderAcceptsAllocatedType<const PointerType>);
   static_assert(!BuilderAcceptsAllocatedType<Parameter> && !BuilderAcceptsAllocatedType<const Parameter>);
 
   namespace
   {
     constexpr IntegerType AllocatedInteger(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
-    constexpr ReferenceType AllocationResult(AllocatedInteger);
+    constexpr PointerType AllocationResult(AllocatedInteger);
     constexpr AllocaInstruction CompileTimeAllocation(AllocationResult);
     static_assert(&CompileTimeAllocation.getAllocatedType() == &AllocatedInteger);
+    static_assert(PointerType::classof(&CompileTimeAllocation.getType()));
+    static_assert(&CompileTimeAllocation.getType() == &AllocationResult);
   } // namespace
 
-  // Arrays and reference-valued slots borrow their complete allocated type and add exactly one reference layer to their result.
-  TEST(IRAllocaInstructionTest, PreservesArrayAndReferenceAllocatedTypeIdentities)
+  // Arrays and pointer-valued slots borrow their complete allocated type and add exactly one pointer layer to their result.
+  TEST(IRAllocaInstructionTest, PreservesArrayAndPointerAllocatedTypeIdentities)
   {
     TypePool Types;
     const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const ArrayType &Array = Types.getArrayType(Int32, 4);
-    const ReferenceType &ArrayResult = Types.getReferenceType(Array);
-    const ReferenceType &ReferenceValue = Types.getReferenceType(Int32);
-    const ReferenceType &ReferenceResult = Types.getReferenceType(ReferenceValue);
+    const PointerType &ArrayResult = Types.getPointerType(Array);
+    const PointerType &PointerValue = Types.getPointerType(Int32);
+    const PointerType &PointerResult = Types.getPointerType(PointerValue);
     const AllocaInstruction ArraySlot(ArrayResult);
-    const AllocaInstruction ReferenceSlot(ReferenceResult);
+    const AllocaInstruction PointerSlot(PointerResult);
     EXPECT_EQ(&ArraySlot.getType(), &ArrayResult);
     EXPECT_EQ(&ArraySlot.getAllocatedType(), &Array);
-    EXPECT_EQ(&ArrayResult.referencedType(), &Array);
-    EXPECT_EQ(&ReferenceSlot.getType(), &ReferenceResult);
-    EXPECT_EQ(&ReferenceSlot.getAllocatedType(), &ReferenceValue);
-    EXPECT_EQ(&ReferenceResult.referencedType(), &ReferenceValue);
-    EXPECT_EQ(&ReferenceValue.referencedType(), &Int32);
-    EXPECT_NE(&ReferenceSlot.getType(), &ReferenceSlot.getAllocatedType());
+    EXPECT_EQ(&ArrayResult.pointeeType(), &Array);
+    EXPECT_EQ(&PointerSlot.getType(), &PointerResult);
+    EXPECT_EQ(&PointerSlot.getAllocatedType(), &PointerValue);
+    EXPECT_EQ(&PointerResult.pointeeType(), &PointerValue);
+    EXPECT_EQ(&PointerValue.pointeeType(), &Int32);
+    EXPECT_NE(&PointerSlot.getType(), &PointerSlot.getAllocatedType());
     EXPECT_EQ(ArraySlot.getKind(), InstructionKind::Alloca);
     EXPECT_EQ(ArraySlot.getName(), "alloca");
-    EXPECT_TRUE(AllocaInstruction::classof(&ReferenceSlot));
+    EXPECT_TRUE(AllocaInstruction::classof(&PointerSlot));
     EXPECT_FALSE(AllocaInstruction::classof(nullptr));
   }
 
-  // Distinct block-owned allocations share a canonical reference type and can be inserted before an existing return.
+  // Distinct block-owned allocations share a canonical pointer type and can be inserted before an existing return.
   TEST(IRAllocaInstructionTest, BuildsDistinctSlotsBeforeReturnWithSharedCanonicalResultType)
   {
     TypePool Types;
     const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
-    const ReferenceType &SlotType = Types.getReferenceType(Int32);
+    const PointerType &SlotType = Types.getPointerType(Int32);
     Function FunctionValue(Types.getFunctionType(Types.getVoidType()));
     BasicBlock &Block = FunctionValue.createBasicBlock();
     AllocaInstruction *FirstSlot = nullptr;
@@ -90,6 +92,7 @@ namespace ink::ir::test
 
     EXPECT_NE(FirstSlot, SecondSlot);
     EXPECT_EQ(&FirstSlot->getType(), &SlotType);
+    EXPECT_TRUE(PointerType::classof(&FirstSlot->getType()));
     EXPECT_EQ(&SecondSlot->getType(), &SlotType);
     EXPECT_EQ(&FirstSlot->getAllocatedType(), &Int32);
     EXPECT_EQ(&SecondSlot->getAllocatedType(), &Int32);
@@ -118,13 +121,13 @@ namespace ink::ir::test
     ASSERT_NE(GenericSlot, nullptr);
     ASSERT_NE(TypeSlot, nullptr);
     EXPECT_EQ(&GenericSlot->getAllocatedType(), &T);
-    EXPECT_EQ(&GenericSlot->getType(), &Types.getReferenceType(T));
+    EXPECT_EQ(&GenericSlot->getType(), &Types.getPointerType(T));
     EXPECT_EQ(&TypeSlot->getAllocatedType(), &Types.getMetaType());
-    EXPECT_EQ(&TypeSlot->getType(), &Types.getReferenceType(Types.getMetaType()));
+    EXPECT_EQ(&TypeSlot->getType(), &Types.getPointerType(Types.getMetaType()));
     EXPECT_NE(&GenericSlot->getType(), &TypeSlot->getType());
     EXPECT_EQ(&GenericSlot->getAllocatedType().getType(), &Types.getMetaType());
     EXPECT_EQ(&TypeSlot->getAllocatedType().getType(), &Types.getMetaType());
-    const Value &ErasedResultType = Types.getReferenceType(T);
+    const Value &ErasedResultType = Types.getPointerType(T);
     const AllocaInstruction DirectSlot(ErasedResultType);
     EXPECT_EQ(&DirectSlot.getType(), &ErasedResultType);
     EXPECT_EQ(&DirectSlot.getAllocatedType(), &T);

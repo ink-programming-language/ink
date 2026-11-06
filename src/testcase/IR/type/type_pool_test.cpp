@@ -20,8 +20,8 @@ namespace ink::ir::test
   static_assert(!std::is_move_constructible_v<TypePool>);
   static_assert(!std::is_copy_constructible_v<ArrayType>);
   static_assert(!std::is_move_constructible_v<ArrayType>);
-  static_assert(!std::is_copy_constructible_v<ReferenceType>);
-  static_assert(!std::is_move_constructible_v<ReferenceType>);
+  static_assert(!std::is_copy_constructible_v<PointerType>);
+  static_assert(!std::is_move_constructible_v<PointerType>);
   static_assert(std::is_same_v<decltype(std::declval<TypePool &>().createStructType()), StructType &>);
   static_assert(std::is_same_v<decltype(std::declval<TypePool &>().createObjectType()), ObjectType &>);
 
@@ -44,21 +44,21 @@ namespace ink::ir::test
   };
 
   template <typename T>
-  concept PoolAcceptsTemporaryReferenceTarget = requires(TypePool &Pool)
+  concept PoolAcceptsTemporaryPointerTarget = requires(TypePool &Pool)
   {
-    Pool.getReferenceType(std::declval<T &&>());
+    Pool.getPointerType(std::declval<T &&>());
   };
 
   static_assert(!PoolAcceptsTemporaryArrayElement<IntegerType>);
   static_assert(!PoolAcceptsTemporaryArrayElement<const IntegerType>);
-  static_assert(!PoolAcceptsTemporaryReferenceTarget<IntegerType>);
-  static_assert(!PoolAcceptsTemporaryReferenceTarget<const IntegerType>);
+  static_assert(!PoolAcceptsTemporaryPointerTarget<IntegerType>);
+  static_assert(!PoolAcceptsTemporaryPointerTarget<const IntegerType>);
   static_assert(!PoolAcceptsTemporaryArrayElement<Parameter>);
   static_assert(!PoolAcceptsTemporaryArrayElement<const Parameter>);
-  static_assert(!PoolAcceptsTemporaryReferenceTarget<Parameter>);
-  static_assert(!PoolAcceptsTemporaryReferenceTarget<const Parameter>);
+  static_assert(!PoolAcceptsTemporaryPointerTarget<Parameter>);
+  static_assert(!PoolAcceptsTemporaryPointerTarget<const Parameter>);
   static_assert(std::is_same_v<decltype(std::declval<const ArrayType &>().elementType()), const Value &>);
-  static_assert(std::is_same_v<decltype(std::declval<const ReferenceType &>().referencedType()), const Value &>);
+  static_assert(std::is_same_v<decltype(std::declval<const PointerType &>().pointeeType()), const Value &>);
 
   // Record creation always produces fresh mutable identities, and growing both owned collections preserves existing declarations.
   TEST(IRTypePoolTest, CreatesDistinctMutableRecordsWithStableIdentityWhileGrowing)
@@ -72,8 +72,8 @@ namespace ink::ir::test
     EXPECT_NE(&FirstObject, &SecondObject);
     const core::Name FieldName = core::NamePool::instance().intern("enabled");
     FirstStruct.addField(FieldName, Pool.getBoolType());
-    const ReferenceType &FirstReference = Pool.getReferenceType(FirstStruct);
-    FirstObject.addField(FieldName, FirstReference);
+    const PointerType &FirstPointer = Pool.getPointerType(FirstStruct);
+    FirstObject.addField(FieldName, FirstPointer);
     std::unordered_set<const StructType *> Structs{&FirstStruct, &SecondStruct};
     std::unordered_set<const ObjectType *> Objects{&FirstObject, &SecondObject};
     for (unsigned Index = 0; Index < 128; ++Index)
@@ -87,54 +87,56 @@ namespace ink::ir::test
     ASSERT_EQ(FirstObject.fields().size(), 1U);
     EXPECT_EQ(FirstStruct.fields()[0].name(), FieldName);
     EXPECT_EQ(&FirstStruct.fields()[0].type(), &Pool.getBoolType());
-    EXPECT_EQ(&FirstObject.fields()[0].type(), &FirstReference);
-    EXPECT_EQ(&FirstReference.referencedType(), &FirstStruct);
-    EXPECT_EQ(&Pool.getReferenceType(FirstStruct), &FirstReference);
+    EXPECT_EQ(&FirstObject.fields()[0].type(), &FirstPointer);
+    EXPECT_EQ(&FirstPointer.pointeeType(), &FirstStruct);
+    EXPECT_EQ(&Pool.getPointerType(FirstStruct), &FirstPointer);
     EXPECT_TRUE(SecondStruct.fields().empty());
     EXPECT_TRUE(SecondObject.fields().empty());
     EXPECT_EQ(FirstStruct.getSemantics(), TypeSemantics::Value);
     EXPECT_EQ(FirstObject.getSemantics(), TypeSemantics::Reference);
   }
 
-  // Mutable record declarations remain identity keys for cached references, arrays, and signatures through edits and cache growth.
+  // Mutable record declarations remain identity keys for cached pointers, arrays, and signatures through edits and cache growth.
   TEST(IRTypePoolTest, KeepsCompositeCachesStableWhenOwnedRecordDeclarationsChange)
   {
     TypePool Pool;
     core::NamePool &Names = core::NamePool::instance();
     StructType &Struct = Pool.createStructType();
     ObjectType &Object = Pool.createObjectType();
-    const ReferenceType &StructReference = Pool.getReferenceType(Struct);
-    const ReferenceType &ObjectReference = Pool.getReferenceType(Object);
+    const PointerType &StructPointer = Pool.getPointerType(Struct);
+    const PointerType &ObjectPointer = Pool.getPointerType(Object);
+    EXPECT_EQ(StructPointer.getSemantics(), TypeSemantics::Value);
+    EXPECT_EQ(ObjectPointer.getSemantics(), TypeSemantics::Value);
     const ArrayType &StructArray = Pool.getArrayType(Struct, 4);
     const ArrayType &ObjectArray = Pool.getArrayType(Object, 4);
     const std::array Parameters{Parameter(Object, Names.intern("owner"))};
     const FunctionType &Signature = Pool.getFunctionType(Struct, Parameters);
-    const auto ReferenceHash = StructReference.hash();
+    const auto PointerHash = StructPointer.hash();
     const auto ArrayHash = StructArray.hash();
     const auto SignatureHash = Signature.hash();
     Struct.addBase(Pool.createStructType());
-    Struct.addField(Names.intern("owner"), ObjectReference);
+    Struct.addField(Names.intern("owner"), ObjectPointer);
     Object.addField(Names.intern("payload"), Struct);
-    Object.addField(Names.intern("next"), ObjectReference);
+    Object.addField(Names.intern("next"), ObjectPointer);
     Method &OwnedMethod = Object.addMethod(Signature, Names.intern("payload"));
     Function *MethodFunction = &OwnedMethod.function();
     for (std::uint64_t Count = 1; Count <= 128; ++Count)
     {
       StructType &NextStruct = Pool.createStructType();
       ObjectType &NextObject = Pool.createObjectType();
-      Pool.getReferenceType(NextStruct);
-      Pool.getReferenceType(NextObject);
+      Pool.getPointerType(NextStruct);
+      Pool.getPointerType(NextObject);
       Pool.getArrayType(NextStruct, Count);
       Pool.getArrayType(NextObject, Count);
       const std::array NextParameters{Parameter(NextObject)};
       Pool.getFunctionType(NextStruct, NextParameters);
     }
-    EXPECT_EQ(&Pool.getReferenceType(Struct), &StructReference);
-    EXPECT_EQ(&Pool.getReferenceType(Object), &ObjectReference);
+    EXPECT_EQ(&Pool.getPointerType(Struct), &StructPointer);
+    EXPECT_EQ(&Pool.getPointerType(Object), &ObjectPointer);
     EXPECT_EQ(&Pool.getArrayType(Struct, 4), &StructArray);
     EXPECT_EQ(&Pool.getArrayType(Object, 4), &ObjectArray);
     EXPECT_EQ(&Pool.getFunctionType(Struct, Parameters), &Signature);
-    EXPECT_EQ(StructReference.hash(), ReferenceHash);
+    EXPECT_EQ(StructPointer.hash(), PointerHash);
     EXPECT_EQ(StructArray.hash(), ArrayHash);
     EXPECT_EQ(Signature.hash(), SignatureHash);
     EXPECT_EQ(&StructArray.elementType(), &Struct);
@@ -158,26 +160,26 @@ namespace ink::ir::test
     TypePool Pool;
     const auto *ArrayT = &Pool.getArrayType(T, 1);
     const auto *ArrayU = &Pool.getArrayType(U, 1);
-    const auto *ReferenceT = &Pool.getReferenceType(T);
-    const auto *ReferenceU = &Pool.getReferenceType(U);
-    const auto *Nested = &Pool.getReferenceType(*ArrayT);
+    const auto *PointerT = &Pool.getPointerType(T);
+    const auto *PointerU = &Pool.getPointerType(U);
+    const auto *Nested = &Pool.getPointerType(*ArrayT);
     for (std::uint64_t Count = 2; Count < 512; ++Count)
     {
       const auto &Array = Pool.getArrayType(T, Count);
-      Pool.getReferenceType(Array);
+      Pool.getPointerType(Array);
     }
     EXPECT_EQ(ArrayT, &Pool.getArrayType(T, 1));
     EXPECT_EQ(ArrayU, &Pool.getArrayType(U, 1));
-    EXPECT_EQ(ReferenceT, &Pool.getReferenceType(T));
-    EXPECT_EQ(ReferenceU, &Pool.getReferenceType(U));
+    EXPECT_EQ(PointerT, &Pool.getPointerType(T));
+    EXPECT_EQ(PointerU, &Pool.getPointerType(U));
     EXPECT_NE(ArrayT, ArrayU);
-    EXPECT_NE(ReferenceT, ReferenceU);
+    EXPECT_NE(PointerT, PointerU);
     EXPECT_EQ(&ArrayT->elementType(), &T);
     EXPECT_EQ(&ArrayU->elementType(), &U);
-    EXPECT_EQ(&ReferenceT->referencedType(), &T);
-    EXPECT_EQ(&ReferenceU->referencedType(), &U);
-    EXPECT_EQ(Nested, &Pool.getReferenceType(*ArrayT));
-    EXPECT_EQ(&Nested->referencedType(), ArrayT);
+    EXPECT_EQ(&PointerT->pointeeType(), &T);
+    EXPECT_EQ(&PointerU->pointeeType(), &U);
+    EXPECT_EQ(Nested, &Pool.getPointerType(*ArrayT));
+    EXPECT_EQ(&Nested->pointeeType(), ArrayT);
   }
 
   // Transparent lookup and equality use generic parameter identity rather than their common MetaType.
@@ -199,23 +201,23 @@ namespace ink::ir::test
     const core::Hash<ArrayType> ArrayHash;
     EXPECT_EQ(ArrayHash(*ArrayT), ArrayHash(ArrayType::Key{&T, 4}));
     EXPECT_EQ(ArrayHash(*ArrayU), ArrayHash(ArrayType::Key{&U, 4}));
-    std::unordered_set<ReferenceType, core::Hash<ReferenceType>, std::equal_to<>> References;
-    const auto *ReferenceT = &*References.emplace(T).first;
-    const auto *ReferenceU = &*References.emplace(U).first;
-    References.rehash(References.bucket_count() * 2 + 1);
-    const auto FoundReferenceT = References.find(&T);
-    const auto FoundReferenceU = References.find(static_cast<const Value *>(&U));
-    ASSERT_NE(FoundReferenceT, References.end());
-    ASSERT_NE(FoundReferenceU, References.end());
-    EXPECT_EQ(&*FoundReferenceT, ReferenceT);
-    EXPECT_EQ(&*FoundReferenceU, ReferenceU);
-    const core::Hash<ReferenceType> ReferenceHash;
-    EXPECT_EQ(ReferenceHash(*ReferenceT), ReferenceHash(&T));
-    EXPECT_EQ(ReferenceHash(*ReferenceU), ReferenceHash(static_cast<const Value *>(&U)));
-    EXPECT_TRUE(*ReferenceT == &T);
-    EXPECT_TRUE(&T == *ReferenceT);
-    EXPECT_FALSE(*ReferenceT == &U);
-    EXPECT_FALSE(*ReferenceU == &T);
+    std::unordered_set<PointerType, core::Hash<PointerType>, std::equal_to<>> Pointers;
+    const auto *PointerT = &*Pointers.emplace(T).first;
+    const auto *PointerU = &*Pointers.emplace(U).first;
+    Pointers.rehash(Pointers.bucket_count() * 2 + 1);
+    const auto FoundPointerT = Pointers.find(&T);
+    const auto FoundPointerU = Pointers.find(static_cast<const Value *>(&U));
+    ASSERT_NE(FoundPointerT, Pointers.end());
+    ASSERT_NE(FoundPointerU, Pointers.end());
+    EXPECT_EQ(&*FoundPointerT, PointerT);
+    EXPECT_EQ(&*FoundPointerU, PointerU);
+    const core::Hash<PointerType> PointerHash;
+    EXPECT_EQ(PointerHash(*PointerT), PointerHash(&T));
+    EXPECT_EQ(PointerHash(*PointerU), PointerHash(static_cast<const Value *>(&U)));
+    EXPECT_TRUE(*PointerT == &T);
+    EXPECT_TRUE(&T == *PointerT);
+    EXPECT_FALSE(*PointerT == &U);
+    EXPECT_FALSE(*PointerU == &T);
   }
 
   // A runtime data parameter is not a type value and cannot enter any composite type position.
@@ -224,7 +226,7 @@ namespace ink::ir::test
     TypePool Pool;
     const Parameter Data(Pool.getBoolType());
     EXPECT_DEATH(static_cast<void>(Pool.getArrayType(Data, 1)), "MetaType");
-    EXPECT_DEATH(static_cast<void>(Pool.getReferenceType(Data)), "MetaType");
+    EXPECT_DEATH(static_cast<void>(Pool.getPointerType(Data)), "MetaType");
     EXPECT_DEATH(static_cast<void>(Pool.getFunctionType(Data)), "MetaType");
   }
 
@@ -276,14 +278,14 @@ namespace ink::ir::test
     EXPECT_NE(&Pool.getVoidType(), &Other.getVoidType());
   }
 
-  // Composite identities include target identity and array count, including nested references and zero or maximum lengths.
+  // Composite identities include target identity and array count, including nested pointers and zero or maximum lengths.
   TEST(IRTypePoolTest, UniquifiesCompositeTypesByBorrowedIdentityAndParameters)
   {
     const IntegerType External(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     TypePool Pool;
     const auto &Integer = Pool.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const auto &Array = Pool.getArrayType(Integer, 4);
-    const auto &Reference = Pool.getReferenceType(Integer);
+    const auto &Pointer = Pool.getPointerType(Integer);
     EXPECT_EQ(&Array, &Pool.getArrayType(Integer, 4));
     EXPECT_EQ(&Array.elementType(), &Integer);
     EXPECT_EQ(Array.elementCount(), 4U);
@@ -291,13 +293,13 @@ namespace ink::ir::test
     EXPECT_NE(&Array, &Pool.getArrayType(External, 4));
     EXPECT_EQ(Pool.getArrayType(Integer, 0).elementCount(), 0U);
     EXPECT_EQ(Pool.getArrayType(Integer, std::numeric_limits<std::uint64_t>::max()).elementCount(), std::numeric_limits<std::uint64_t>::max());
-    EXPECT_EQ(&Reference, &Pool.getReferenceType(Integer));
-    EXPECT_EQ(&Reference.referencedType(), &Integer);
-    EXPECT_NE(&Reference, &Pool.getReferenceType(External));
-    const auto &Nested = Pool.getReferenceType(Reference);
-    EXPECT_EQ(&Nested.referencedType(), &Reference);
-    EXPECT_EQ(&Pool.getArrayType(Reference, 4).elementType(), &Reference);
-    EXPECT_EQ(&Pool.getReferenceType(Array).referencedType(), &Array);
+    EXPECT_EQ(&Pointer, &Pool.getPointerType(Integer));
+    EXPECT_EQ(&Pointer.pointeeType(), &Integer);
+    EXPECT_NE(&Pointer, &Pool.getPointerType(External));
+    const auto &Nested = Pool.getPointerType(Pointer);
+    EXPECT_EQ(&Nested.pointeeType(), &Pointer);
+    EXPECT_EQ(&Pool.getArrayType(Pointer, 4).elementType(), &Pointer);
+    EXPECT_EQ(&Pool.getPointerType(Array).pointeeType(), &Array);
   }
 
   // Inserting many composite types preserves pointers previously returned for both scalar and composite types.
@@ -306,16 +308,16 @@ namespace ink::ir::test
     TypePool Pool;
     const auto &Integer = Pool.getIntegerType(IntegerType::Width::Bits8, IntegerType::Signedness::Unsigned);
     const auto &Array = Pool.getArrayType(Integer, 1);
-    const auto &Reference = Pool.getReferenceType(Array);
+    const auto &Pointer = Pool.getPointerType(Array);
     for (std::uint64_t Count = 2; Count < 512; ++Count)
     {
       const auto &Next = Pool.getArrayType(Integer, Count);
-      Pool.getReferenceType(Next);
+      Pool.getPointerType(Next);
     }
     EXPECT_EQ(&Integer, &Pool.getIntegerType(IntegerType::Width::Bits8, IntegerType::Signedness::Unsigned));
     EXPECT_EQ(&Array, &Pool.getArrayType(Integer, 1));
-    EXPECT_EQ(&Reference, &Pool.getReferenceType(Array));
-    EXPECT_EQ(&Reference.referencedType(), &Array);
+    EXPECT_EQ(&Pointer, &Pool.getPointerType(Array));
+    EXPECT_EQ(&Pointer.pointeeType(), &Array);
     EXPECT_EQ(Array.elementCount(), 1U);
   }
 
@@ -367,40 +369,40 @@ namespace ink::ir::test
     EXPECT_FALSE(Equal(ArrayType::Key{&Second, 0}, *Empty));
   }
 
-  // Reference hash sets retain nested target identity and node addresses across explicit rehashing.
-  TEST(IRTypePoolTest, FindsReferenceHashSetEntriesWithTransparentTargetPointersAfterRehash)
+  // Pointer hash sets retain nested target identity and node addresses across explicit rehashing.
+  TEST(IRTypePoolTest, FindsPointerHashSetEntriesWithTransparentTargetPointersAfterRehash)
   {
     const IntegerType First(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const IntegerType Second(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const BoolType Missing;
-    std::unordered_set<ReferenceType, core::Hash<ReferenceType>, std::equal_to<>> References;
-    const auto [DirectIterator, InsertedDirect] = References.emplace(First);
+    std::unordered_set<PointerType, core::Hash<PointerType>, std::equal_to<>> Pointers;
+    const auto [DirectIterator, InsertedDirect] = Pointers.emplace(First);
     const auto *Direct = &*DirectIterator;
-    const auto [OtherIterator, InsertedOther] = References.emplace(Second);
+    const auto [OtherIterator, InsertedOther] = Pointers.emplace(Second);
     const auto *Other = &*OtherIterator;
-    const auto [NestedIterator, InsertedNested] = References.emplace(static_cast<const Type &>(*Direct));
+    const auto [NestedIterator, InsertedNested] = Pointers.emplace(static_cast<const Type &>(*Direct));
     const auto *Nested = &*NestedIterator;
     EXPECT_TRUE(InsertedDirect);
     EXPECT_TRUE(InsertedOther);
     EXPECT_TRUE(InsertedNested);
-    EXPECT_EQ(References.size(), 3U);
-    EXPECT_FALSE(References.emplace(First).second);
-    const auto PreviousBucketCount = References.bucket_count();
-    References.rehash(PreviousBucketCount * 2 + 1);
-    EXPECT_GT(References.bucket_count(), PreviousBucketCount);
-    const auto FoundDirect = References.find(&First);
-    const auto FoundOther = References.find(static_cast<const Type *>(&Second));
-    const auto FoundNested = References.find(static_cast<const Type *>(Direct));
-    ASSERT_NE(FoundDirect, References.end());
-    ASSERT_NE(FoundOther, References.end());
-    ASSERT_NE(FoundNested, References.end());
+    EXPECT_EQ(Pointers.size(), 3U);
+    EXPECT_FALSE(Pointers.emplace(First).second);
+    const auto PreviousBucketCount = Pointers.bucket_count();
+    Pointers.rehash(PreviousBucketCount * 2 + 1);
+    EXPECT_GT(Pointers.bucket_count(), PreviousBucketCount);
+    const auto FoundDirect = Pointers.find(&First);
+    const auto FoundOther = Pointers.find(static_cast<const Type *>(&Second));
+    const auto FoundNested = Pointers.find(static_cast<const Type *>(Direct));
+    ASSERT_NE(FoundDirect, Pointers.end());
+    ASSERT_NE(FoundOther, Pointers.end());
+    ASSERT_NE(FoundNested, Pointers.end());
     EXPECT_EQ(&*FoundDirect, Direct);
     EXPECT_EQ(&*FoundOther, Other);
     EXPECT_EQ(&*FoundNested, Nested);
-    EXPECT_EQ(References.find(*Direct), FoundDirect);
-    EXPECT_EQ(References.find(static_cast<const Type *>(&Missing)), References.end());
-    EXPECT_EQ(&Nested->referencedType(), Direct);
-    const core::Hash<ReferenceType> Hash;
+    EXPECT_EQ(Pointers.find(*Direct), FoundDirect);
+    EXPECT_EQ(Pointers.find(static_cast<const Type *>(&Missing)), Pointers.end());
+    EXPECT_EQ(&Nested->pointeeType(), Direct);
+    const core::Hash<PointerType> Hash;
     const std::equal_to<> Equal;
     EXPECT_EQ(Hash(*Direct), Hash(&First));
     EXPECT_EQ(Hash(*Other), Hash(static_cast<const Type *>(&Second)));
@@ -437,21 +439,21 @@ namespace ink::ir::test
     EXPECT_EQ(&*FoundOtherArray, OtherArray);
     EXPECT_EQ(Arrays.find(ArrayType::Key{&Second, 1}), Arrays.end());
     EXPECT_FALSE(Arrays.emplace(First, 0).second);
-    std::unordered_set<ReferenceType, CollidingTypeHash, std::equal_to<>> References;
-    const auto *Direct = &*References.emplace(First).first;
-    const auto *Other = &*References.emplace(Second).first;
-    const auto *Nested = &*References.emplace(static_cast<const Type &>(*Direct)).first;
-    EXPECT_EQ(References.size(), 3U);
-    const auto FoundDirect = References.find(static_cast<const Type *>(&First));
-    const auto FoundOther = References.find(static_cast<const Type *>(&Second));
-    const auto FoundNested = References.find(static_cast<const Type *>(Direct));
-    ASSERT_NE(FoundDirect, References.end());
-    ASSERT_NE(FoundOther, References.end());
-    ASSERT_NE(FoundNested, References.end());
+    std::unordered_set<PointerType, CollidingTypeHash, std::equal_to<>> Pointers;
+    const auto *Direct = &*Pointers.emplace(First).first;
+    const auto *Other = &*Pointers.emplace(Second).first;
+    const auto *Nested = &*Pointers.emplace(static_cast<const Type &>(*Direct)).first;
+    EXPECT_EQ(Pointers.size(), 3U);
+    const auto FoundDirect = Pointers.find(static_cast<const Type *>(&First));
+    const auto FoundOther = Pointers.find(static_cast<const Type *>(&Second));
+    const auto FoundNested = Pointers.find(static_cast<const Type *>(Direct));
+    ASSERT_NE(FoundDirect, Pointers.end());
+    ASSERT_NE(FoundOther, Pointers.end());
+    ASSERT_NE(FoundNested, Pointers.end());
     EXPECT_EQ(&*FoundDirect, Direct);
     EXPECT_EQ(&*FoundOther, Other);
     EXPECT_EQ(&*FoundNested, Nested);
-    EXPECT_EQ(References.find(static_cast<const Type *>(Nested)), References.end());
-    EXPECT_FALSE(References.emplace(First).second);
+    EXPECT_EQ(Pointers.find(static_cast<const Type *>(Nested)), Pointers.end());
+    EXPECT_FALSE(Pointers.emplace(First).second);
   }
 } // namespace ink::ir::test

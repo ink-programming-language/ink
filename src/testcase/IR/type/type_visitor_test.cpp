@@ -35,7 +35,7 @@ namespace ink::ir::test
     ArrayType Array(Integer, 3);
     StructType Struct;
     ObjectType Object;
-    ReferenceType Reference(Struct);
+    PointerType Pointer(Struct);
     FunctionType Function(Void);
     const Type *Nodes[] = {
         &MetaType::instance(),
@@ -46,7 +46,7 @@ namespace ink::ir::test
         &Array,
         &Struct,
         &Object,
-        &Reference,
+        &Pointer,
         &Function,
     };
     IdentityVisitor Visitor;

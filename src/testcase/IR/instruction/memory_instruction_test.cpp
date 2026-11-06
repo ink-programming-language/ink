@@ -106,38 +106,38 @@ namespace ink::ir::test
     EXPECT_EQ(Iterator, Block.instructions().end());
   }
 
-  // Storing an address in a reference-valued slot preserves both reference layers, and each load removes exactly one layer.
-  TEST(IRMemoryInstructionTest, LoadsNestedReferenceStorageOneLayerAtATime)
+  // Storing an address in a pointer-valued slot preserves both pointer layers, and each load removes exactly one layer.
+  TEST(IRMemoryInstructionTest, LoadsNestedPointerStorageOneLayerAtATime)
   {
     TypePool Types;
     const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
-    const ReferenceType &Int32Reference = Types.getReferenceType(Int32);
+    const PointerType &Int32Pointer = Types.getPointerType(Int32);
     const IntegerConstant Value(Int32, 42);
     BasicBlock Block;
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Block);
     AllocaInstruction *IntegerSlot = Builder.createAlloca(Int32);
-    AllocaInstruction *ReferenceSlot = Builder.createAlloca(Int32Reference);
+    AllocaInstruction *PointerSlot = Builder.createAlloca(Int32Pointer);
     ASSERT_NE(IntegerSlot, nullptr);
-    ASSERT_NE(ReferenceSlot, nullptr);
+    ASSERT_NE(PointerSlot, nullptr);
     ASSERT_NE(Builder.createStore(*IntegerSlot, Value), nullptr);
-    StoreInstruction *AddressStore = Builder.createStore(*ReferenceSlot, *IntegerSlot);
+    StoreInstruction *AddressStore = Builder.createStore(*PointerSlot, *IntegerSlot);
     ASSERT_NE(AddressStore, nullptr);
-    LoadInstruction *LoadedAddress = Builder.createLoad(*ReferenceSlot);
+    LoadInstruction *LoadedAddress = Builder.createLoad(*PointerSlot);
     ASSERT_NE(LoadedAddress, nullptr);
     LoadInstruction *LoadedInteger = Builder.createLoad(*LoadedAddress);
     ASSERT_NE(LoadedInteger, nullptr);
-    EXPECT_EQ(&ReferenceSlot->getType(), &Types.getReferenceType(Int32Reference));
-    EXPECT_EQ(&AddressStore->getDestination(), ReferenceSlot);
+    EXPECT_EQ(&PointerSlot->getType(), &Types.getPointerType(Int32Pointer));
+    EXPECT_EQ(&AddressStore->getDestination(), PointerSlot);
     EXPECT_EQ(&AddressStore->getSource(), IntegerSlot);
-    EXPECT_EQ(&LoadedAddress->getType(), &Int32Reference);
-    EXPECT_EQ(&LoadedAddress->getSource(), ReferenceSlot);
+    EXPECT_EQ(&LoadedAddress->getType(), &Int32Pointer);
+    EXPECT_EQ(&LoadedAddress->getSource(), PointerSlot);
     EXPECT_EQ(&LoadedInteger->getType(), &Int32);
     EXPECT_EQ(&LoadedInteger->getSource(), LoadedAddress);
     EXPECT_NE(&LoadedAddress->getType(), &LoadedInteger->getType());
   }
 
-  // Missing insertion points, non-reference addresses, and unequal source type identities fail without changing the block or anchor.
+  // Missing insertion points, non-pointer addresses, and unequal source type identities fail without changing the block or anchor.
   TEST(IRMemoryInstructionTest, RejectsInvalidMemoryCreationWithoutMutatingInsertionState)
   {
     TypePool Types;
@@ -145,7 +145,7 @@ namespace ink::ir::test
     const IntegerType SeparateInt32(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const IntegerConstant CanonicalValue(Int32, 20);
     const IntegerConstant SeparateValue(SeparateInt32, 20);
-    const AllocaInstruction DetachedSlot(Types.getReferenceType(Int32));
+    const AllocaInstruction DetachedSlot(Types.getPointerType(Int32));
     BasicBlock Block;
     InstructionBuilder Builder(Types);
     EXPECT_EQ(Builder.createLoad(DetachedSlot), nullptr);

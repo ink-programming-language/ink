@@ -24,7 +24,7 @@ namespace ink::ir
     return Created;
   }
 
-  GlobalVariable &Module::createGlobalVariable(const ReferenceType &ResultType, core::Name GlobalName, SymbolVisibility Visibility, NativeLinkage Linkage)
+  GlobalVariable &Module::createGlobalVariable(const PointerType &ResultType, core::Name GlobalName, SymbolVisibility Visibility, NativeLinkage Linkage)
   {
     GlobalVariable &Created = GlobalVariables.emplace_back(ResultType, GlobalName, Visibility, Linkage);
     Created.Parent = this;

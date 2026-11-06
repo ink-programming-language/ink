@@ -61,9 +61,9 @@ namespace ink::ir::test
     Value.addObjectType(std::forward<Record>(TypeValue));
   };
 
-  static_assert(ModuleAcceptsGlobalResult<ReferenceType &> && ModuleAcceptsGlobalResult<const ReferenceType &>);
-  static_assert(!ModuleAcceptsGlobalResult<ReferenceType> && !ModuleAcceptsGlobalResult<const ReferenceType>);
-  static_assert(!ModuleAcceptsModifiedGlobalResult<ReferenceType> && !ModuleAcceptsModifiedGlobalResult<const ReferenceType>);
+  static_assert(ModuleAcceptsGlobalResult<PointerType &> && ModuleAcceptsGlobalResult<const PointerType &>);
+  static_assert(!ModuleAcceptsGlobalResult<PointerType> && !ModuleAcceptsGlobalResult<const PointerType>);
+  static_assert(!ModuleAcceptsModifiedGlobalResult<PointerType> && !ModuleAcceptsModifiedGlobalResult<const PointerType>);
   static_assert(!ModuleAcceptsGlobalResult<IntegerType &>);
   static_assert(ModuleAcceptsFunctionSignature<const FunctionType &>);
   static_assert(!ModuleAcceptsFunctionSignature<FunctionType> && !ModuleAcceptsFunctionSignature<const FunctionType>);
@@ -76,7 +76,7 @@ namespace ink::ir::test
     TypePool Types;
     core::NamePool &Names = core::NamePool::instance();
     const FunctionType &Signature = Types.getFunctionType(Types.getVoidType());
-    const ReferenceType &GlobalType = Types.getReferenceType(Types.getBoolType());
+    const PointerType &GlobalType = Types.getPointerType(Types.getBoolType());
     const core::Name ModuleName = Names.intern("application");
     const core::Name SharedName = Names.intern("declaration");
     Module ModuleValue(ModuleName);
@@ -161,8 +161,8 @@ namespace ink::ir::test
     ModuleValue.addStructType(FirstStruct);
     ModuleValue.addObjectType(FirstObject);
     const FunctionType &Signature = Types.getFunctionType(FirstStruct);
-    const ReferenceType &GlobalType = Types.getReferenceType(FirstStruct);
-    FirstStruct.addField(core::NAME_None, Types.getReferenceType(FirstObject));
+    const PointerType &GlobalType = Types.getPointerType(FirstStruct);
+    FirstStruct.addField(core::NAME_None, Types.getPointerType(FirstObject));
     FirstObject.addField(core::NAME_None, GlobalType);
     Function &FirstFunction = ModuleValue.createFunction(Signature);
     GlobalVariable &FirstGlobal = ModuleValue.createGlobalVariable(GlobalType);
@@ -205,10 +205,10 @@ namespace ink::ir::test
     EXPECT_EQ(&Load->getType(), &FirstStruct);
     EXPECT_EQ(&FirstFunction.signature().returnType(), &FirstStruct);
     EXPECT_EQ(&FirstGlobal.valueType(), &FirstStruct);
-    EXPECT_EQ(&Types.getReferenceType(FirstStruct), &GlobalType);
+    EXPECT_EQ(&Types.getPointerType(FirstStruct), &GlobalType);
     ASSERT_EQ(FirstStruct.fields().size(), 1U);
     ASSERT_EQ(FirstObject.fields().size(), 1U);
-    EXPECT_EQ(&FirstStruct.fields()[0].type(), &Types.getReferenceType(FirstObject));
+    EXPECT_EQ(&FirstStruct.fields()[0].type(), &Types.getPointerType(FirstObject));
     EXPECT_EQ(&FirstObject.fields()[0].type(), &GlobalType);
     EXPECT_EQ(&*FirstFunction.basicBlocks().begin(), &Entry);
     ++FunctionPosition;
@@ -230,7 +230,7 @@ namespace ink::ir::test
   {
     TypePool Types;
     const FunctionType &Signature = Types.getFunctionType(Types.getBoolType());
-    const ReferenceType &GlobalType = Types.getReferenceType(Types.getBoolType());
+    const PointerType &GlobalType = Types.getPointerType(Types.getBoolType());
     Module SurvivingModule;
     Function &SurvivingFunction = SurvivingModule.createFunction(Signature);
     GlobalVariable &SurvivingGlobal = SurvivingModule.createGlobalVariable(GlobalType);
@@ -246,7 +246,7 @@ namespace ink::ir::test
       EXPECT_EQ(TemporaryGlobal.parent(), &TemporaryModule);
     }
     EXPECT_EQ(&Types.getFunctionType(Types.getBoolType()), &Signature);
-    EXPECT_EQ(&Types.getReferenceType(Types.getBoolType()), &GlobalType);
+    EXPECT_EQ(&Types.getPointerType(Types.getBoolType()), &GlobalType);
     EXPECT_EQ(SurvivingFunction.parent(), &SurvivingModule);
     EXPECT_EQ(SurvivingGlobal.parent(), &SurvivingModule);
     BasicBlock &Entry = SurvivingFunction.createBasicBlock();
@@ -271,16 +271,16 @@ namespace ink::ir::test
     ObjectType &Owner = Types.createObjectType();
     ModuleValue.addStructType(Payload);
     ModuleValue.addObjectType(Owner);
-    const ReferenceType &PayloadReference = Types.getReferenceType(Payload);
-    const ReferenceType &OwnerReference = Types.getReferenceType(Owner);
-    Payload.addField(Names.intern("owner"), OwnerReference);
+    const PointerType &PayloadPointer = Types.getPointerType(Payload);
+    const PointerType &OwnerPointer = Types.getPointerType(Owner);
+    Payload.addField(Names.intern("owner"), OwnerPointer);
     Owner.addField(Names.intern("payload"), Payload);
-    Owner.addField(Names.intern("next"), OwnerReference);
-    const std::array Parameters{Parameter(OwnerReference, Names.intern("owner"))};
+    Owner.addField(Names.intern("next"), OwnerPointer);
+    const std::array Parameters{Parameter(OwnerPointer, Names.intern("owner"))};
     const FunctionType &Signature = Types.getFunctionType(Payload, Parameters);
     Function &FunctionValue = ModuleValue.createFunction(Signature);
-    GlobalVariable &PayloadGlobal = ModuleValue.createGlobalVariable(PayloadReference);
-    GlobalVariable &OwnerGlobal = ModuleValue.createGlobalVariable(OwnerReference);
+    GlobalVariable &PayloadGlobal = ModuleValue.createGlobalVariable(PayloadPointer);
+    GlobalVariable &OwnerGlobal = ModuleValue.createGlobalVariable(OwnerPointer);
     Function &MethodFunction = Owner.addMethod(Signature, Names.intern("method")).function();
     BasicBlock &Entry = FunctionValue.createBasicBlock();
     InstructionBuilder Builder(Types);
@@ -293,15 +293,15 @@ namespace ink::ir::test
     ASSERT_NE(Return, nullptr);
     ASSERT_EQ(Payload.fields().size(), 1U);
     ASSERT_EQ(Owner.fields().size(), 2U);
-    EXPECT_EQ(&Payload.fields()[0].type(), &OwnerReference);
+    EXPECT_EQ(&Payload.fields()[0].type(), &OwnerPointer);
     EXPECT_EQ(&Owner.fields()[0].type(), &Payload);
-    EXPECT_EQ(&Owner.fields()[1].type(), &OwnerReference);
-    EXPECT_EQ(&Types.getReferenceType(Payload), &PayloadReference);
-    EXPECT_EQ(&Types.getReferenceType(Owner), &OwnerReference);
+    EXPECT_EQ(&Owner.fields()[1].type(), &OwnerPointer);
+    EXPECT_EQ(&Types.getPointerType(Payload), &PayloadPointer);
+    EXPECT_EQ(&Types.getPointerType(Owner), &OwnerPointer);
     EXPECT_EQ(&FunctionValue.signature(), &Types.getFunctionType(Payload, Parameters));
     EXPECT_EQ(&Signature.returnType(), &Payload);
     ASSERT_EQ(Signature.parameters().size(), 1U);
-    EXPECT_EQ(&Signature.parameters()[0].type(), &OwnerReference);
+    EXPECT_EQ(&Signature.parameters()[0].type(), &OwnerPointer);
     EXPECT_EQ(&PayloadGlobal.valueType(), &Payload);
     EXPECT_EQ(&OwnerGlobal.valueType(), &Owner);
     EXPECT_EQ(&LoadedPayload->getType(), &Payload);
@@ -321,10 +321,10 @@ namespace ink::ir::test
     ObjectType &Object = Types.createObjectType();
     const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const FunctionType &Signature = Types.getFunctionType(Int32);
-    const ReferenceType &RecordReference = Types.getReferenceType(Record);
-    const ReferenceType &ObjectReference = Types.getReferenceType(Object);
-    Record.addField(core::NAME_None, ObjectReference);
-    Object.addField(core::NAME_None, RecordReference);
+    const PointerType &RecordPointer = Types.getPointerType(Record);
+    const PointerType &ObjectPointer = Types.getPointerType(Object);
+    Record.addField(core::NAME_None, ObjectPointer);
+    Object.addField(core::NAME_None, RecordPointer);
     Function &Implementation = Record.addMethod(Signature, core::NAME_None, MemberKind::Static, SymbolVisibility::Public, NativeLinkage::Export).function();
     BasicBlock &Entry = Implementation.createBasicBlock();
     LoadInstruction *Load = nullptr;
@@ -334,7 +334,7 @@ namespace ink::ir::test
       Registry.addStructType(Record);
       Registry.addObjectType(Object);
       Function &FreeFunction = Registry.createFunction(Signature);
-      Registry.createGlobalVariable(RecordReference);
+      Registry.createGlobalVariable(RecordPointer);
       EXPECT_NE(&Implementation, &FreeFunction);
       EXPECT_EQ(Implementation.parent(), nullptr);
       InstructionBuilder Builder(Types);
@@ -346,8 +346,8 @@ namespace ink::ir::test
       Return = Builder.createReturn(*Load);
       ASSERT_NE(Return, nullptr);
     }
-    EXPECT_EQ(&Types.getReferenceType(Record), &RecordReference);
-    EXPECT_EQ(&Types.getReferenceType(Object), &ObjectReference);
+    EXPECT_EQ(&Types.getPointerType(Record), &RecordPointer);
+    EXPECT_EQ(&Types.getPointerType(Object), &ObjectPointer);
     EXPECT_EQ(&Types.getFunctionType(Int32), &Signature);
     ASSERT_EQ(Record.methods().size(), 1U);
     EXPECT_EQ(&Record.methods()[0].function(), &Implementation);

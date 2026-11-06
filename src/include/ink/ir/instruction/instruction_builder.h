@@ -44,11 +44,11 @@ namespace ink::ir
       [[nodiscard]] AllocaInstruction *createAlloca(ValueRef AllocatedType);
 
       /* -------------------- Load -------------------- */
-      // Returns nullptr unless the source has ReferenceType; the result removes exactly one reference layer.
+      // Returns nullptr unless the source has PointerType; the result removes exactly one pointer layer.
       [[nodiscard]] LoadInstruction *createLoad(ValueRef Source);
 
       /* -------------------- Store -------------------- */
-      // Returns nullptr unless the destination references the source's exact type value.
+      // Returns nullptr unless the destination points to the source's exact type value.
       [[nodiscard]] StoreInstruction *createStore(ValueRef Destination, ValueRef Source);
 
       /* -------------------- Return -------------------- */
