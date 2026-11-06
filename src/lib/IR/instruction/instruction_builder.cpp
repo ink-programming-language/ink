@@ -64,6 +64,19 @@ namespace ink::ir
     checkMsgf(InsertBlock != nullptr, "InstructionBuilder requires an insertion point");
     checkMsgf(InsertPosition != InsertBlock->Instructions.end() || !InsertBlock->isTerminated(), "Cannot append instructions after a terminator");
     checkMsgf(!Instruction::isTerminatorKind(Kind) || InsertPosition == InsertBlock->Instructions.end(), "Terminators must be inserted at the end of a block");
+#if INK_ENABLE_ASSERTIONS
+    if (Kind == PhiInstruction::Kind)
+    {
+      for (auto Position = InsertBlock->Instructions.begin(); Position != InsertPosition; ++Position)
+      {
+        checkMsgf(PhiInstruction::classof(Position->get()), "Phi instructions must form a prefix at the start of a block");
+      }
+    }
+    else
+    {
+      checkMsgf(InsertPosition == InsertBlock->Instructions.end() || !PhiInstruction::classof(InsertPosition->get()), "Non-phi instructions cannot be inserted before phi instructions");
+    }
+#endif
   }
 
   template <typename InstructionType, typename... Arguments>
@@ -116,6 +129,14 @@ namespace ink::ir
     [[maybe_unused]] const Value &StoredType = static_cast<const PointerType &>(DestinationType).pointeeType();
     checkMsgf(&StoredType == &Source.get().getType(), "Store source type must match the destination pointee type");
     return createInstruction<StoreInstruction>(Types.getVoidType(), Destination, Source);
+  }
+
+  /* -------------------- Phi -------------------- */
+  PhiInstruction &InstructionBuilder::createPhi(ValueRef ResultType)
+  {
+    checkInsertPoint(PhiInstruction::Kind);
+    checkMsgf(ResultType.get().isTypeValue() && !VoidType::classof(&ResultType.get()), "Phi requires a non-void type value");
+    return createInstruction<PhiInstruction>(ResultType);
   }
 
   /* -------------------- Return -------------------- */

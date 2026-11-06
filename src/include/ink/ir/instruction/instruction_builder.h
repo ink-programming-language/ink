@@ -6,6 +6,7 @@
 #include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/cond_branch_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
+#include "ink/ir/instruction/phi_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/instruction/store_instruction.h"
 
@@ -55,6 +56,11 @@ namespace ink::ir
       /* -------------------- Store -------------------- */
       // The destination must point to the source's exact type value.
       [[nodiscard]] StoreInstruction &createStore(ValueRef Destination, ValueRef Source);
+
+      /* -------------------- Phi -------------------- */
+      // ResultType must be a non-void type value; phi instructions must form a prefix at the start of the block.
+      // Incoming pairs may be added after dependent instructions and loop backedges have been created.
+      [[nodiscard]] PhiInstruction &createPhi(ValueRef ResultType);
 
       /* -------------------- Return -------------------- */
       // Owned blocks must return the enclosing signature's exact type; detached blocks have no signature to check.

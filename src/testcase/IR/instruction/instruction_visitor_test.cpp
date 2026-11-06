@@ -58,6 +58,7 @@ namespace ink::ir::test
     BasicBlock &FalseTarget = FunctionValue.createBasicBlock();
     BranchInstruction Branch(Types.getVoidType(), TrueTarget);
     CondBranchInstruction CondBranch(Types.getVoidType(), FunctionValue.argument(0), TrueTarget, FalseTarget);
+    PhiInstruction Phi(Value.getType());
     Instruction *Nodes[] = {
         &Add,
         &Alloca,
@@ -66,6 +67,7 @@ namespace ink::ir::test
         &Return,
         &Branch,
         &CondBranch,
+        &Phi,
     };
     IdentityVisitor Visitor;
     CountingVisitor Counter;
@@ -78,7 +80,7 @@ namespace ink::ir::test
       EXPECT_TRUE(Visitor.WasConst);
       Counter.visit(Constant);
     }
-    EXPECT_EQ(Counter.Count, 7U);
+    EXPECT_EQ(Counter.Count, 8U);
     EXPECT_EQ(&Add.getLHS(), &Value);
     EXPECT_EQ(Return.getReturnValue(), &Add);
     EXPECT_EQ(&Branch.getTarget(), &TrueTarget);

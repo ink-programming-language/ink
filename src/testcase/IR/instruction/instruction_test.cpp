@@ -5,6 +5,7 @@
 #include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/cond_branch_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
+#include "ink/ir/instruction/phi_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/instruction/store_instruction.h"
 #include "ink/ir/type/type_pool.h"
@@ -143,11 +144,13 @@ namespace ink::ir::test
     const AllocaInstruction Alloca(Types.getPointerType(Value.getType()));
     const LoadInstruction Load(Value.getType(), Alloca);
     const StoreInstruction Store(Types.getVoidType(), Alloca, Value);
+    const PhiInstruction Phi(Value.getType());
     const Instruction *OtherInstructions[] = {
         &Add,
         &Alloca,
         &Load,
         &Store,
+        &Phi,
     };
     for (const Instruction *Other : OtherInstructions)
     {

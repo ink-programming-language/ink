@@ -5,6 +5,7 @@
 #include "ink/ir/instruction/branch_instruction.h"
 #include "ink/ir/instruction/cond_branch_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
+#include "ink/ir/instruction/phi_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/instruction/store_instruction.h"
 
