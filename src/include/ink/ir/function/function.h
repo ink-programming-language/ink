@@ -113,6 +113,9 @@ namespace ink::ir
         return Blocks.size();
       }
 
+      // A declaration with no blocks is valid; every definition block must end in exactly one terminator.
+      bool hasValidControlFlow() const noexcept;
+
     private:
       friend class Module;
 

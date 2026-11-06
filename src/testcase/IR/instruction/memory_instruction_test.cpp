@@ -1,3 +1,4 @@
+#include "ink/core/support/core_define.h"
 #include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/argument.h"
@@ -20,6 +21,8 @@ namespace ink::ir::test
 {
   static_assert(std::is_nothrow_constructible_v<LoadInstruction, const Type &, ValueRef>);
   static_assert(std::is_nothrow_constructible_v<LoadInstruction, ValueRef, ValueRef>);
+  static_assert(std::is_same_v<decltype(std::declval<InstructionBuilder &>().createLoad(std::declval<ValueRef>())), LoadInstruction &>);
+  static_assert(std::is_same_v<decltype(std::declval<InstructionBuilder &>().createStore(std::declval<ValueRef>(), std::declval<ValueRef>())), StoreInstruction &>);
   static_assert(std::is_nothrow_constructible_v<StoreInstruction, const VoidType &, ValueRef, ValueRef>);
   static_assert(std::is_nothrow_constructible_v<StoreInstruction, ValueRef, ValueRef, ValueRef>);
   static_assert(std::is_constructible_v<LoadInstruction, const Type &, AllocaInstruction &> && std::is_constructible_v<LoadInstruction, const Type &, const AllocaInstruction &>);
@@ -65,16 +68,11 @@ namespace ink::ir::test
     {
       InstructionBuilder Builder(Types);
       Builder.setInsertPoint(Block);
-      Slot = Builder.createAlloca(Int32);
-      ASSERT_NE(Slot, nullptr);
-      Store = Builder.createStore(*Slot, ValueRef(*Twenty));
-      ASSERT_NE(Store, nullptr);
-      Load = Builder.createLoad(std::cref(*Slot));
-      ASSERT_NE(Load, nullptr);
-      Sum = Builder.createAdd(*Load, *TwentyTwo);
-      ASSERT_NE(Sum, nullptr);
-      Return = Builder.createReturn(*Sum);
-      ASSERT_NE(Return, nullptr);
+      Slot = &Builder.createAlloca(Int32);
+      Store = &Builder.createStore(*Slot, ValueRef(*Twenty));
+      Load = &Builder.createLoad(std::cref(*Slot));
+      Sum = &Builder.createAdd(*Load, *TwentyTwo);
+      Return = &Builder.createReturn(*Sum);
     }
 
     EXPECT_EQ(&Store->getDestination(), Slot);
@@ -119,17 +117,12 @@ namespace ink::ir::test
     BasicBlock Block;
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Block);
-    AllocaInstruction *IntegerSlot = Builder.createAlloca(Int32);
-    AllocaInstruction *PointerSlot = Builder.createAlloca(Int32Pointer);
-    ASSERT_NE(IntegerSlot, nullptr);
-    ASSERT_NE(PointerSlot, nullptr);
-    ASSERT_NE(Builder.createStore(*IntegerSlot, Value), nullptr);
-    StoreInstruction *AddressStore = Builder.createStore(*PointerSlot, *IntegerSlot);
-    ASSERT_NE(AddressStore, nullptr);
-    LoadInstruction *LoadedAddress = Builder.createLoad(*PointerSlot);
-    ASSERT_NE(LoadedAddress, nullptr);
-    LoadInstruction *LoadedInteger = Builder.createLoad(*LoadedAddress);
-    ASSERT_NE(LoadedInteger, nullptr);
+    AllocaInstruction *IntegerSlot = &Builder.createAlloca(Int32);
+    AllocaInstruction *PointerSlot = &Builder.createAlloca(Int32Pointer);
+    static_cast<void>(Builder.createStore(*IntegerSlot, Value));
+    StoreInstruction *AddressStore = &Builder.createStore(*PointerSlot, *IntegerSlot);
+    LoadInstruction *LoadedAddress = &Builder.createLoad(*PointerSlot);
+    LoadInstruction *LoadedInteger = &Builder.createLoad(*LoadedAddress);
     EXPECT_EQ(&PointerSlot->getType(), &Types.getPointerType(Int32Pointer));
     EXPECT_EQ(&AddressStore->getDestination(), PointerSlot);
     EXPECT_EQ(&AddressStore->getSource(), IntegerSlot);
@@ -140,35 +133,38 @@ namespace ink::ir::test
     EXPECT_NE(&LoadedAddress->getType(), &LoadedInteger->getType());
   }
 
-  // Missing insertion points, non-pointer addresses, and unequal source type identities fail without changing the block or anchor.
-  TEST(IRMemoryInstructionTest, RejectsInvalidMemoryCreationWithoutMutatingInsertionState)
+  // Valid stores preserve the insertion anchor, while assertions reject missing insertion points and incompatible memory operands.
+  TEST(IRMemoryInstructionTest, PreservesValidInsertionStateAndAssertsOnInvalidMemoryOperands)
   {
     TypePool Types;
     const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
-    const IntegerType SeparateInt32(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const IntegerConstant CanonicalValue(Int32, 20);
+#if INK_ENABLE_ASSERTIONS
+    const IntegerType SeparateInt32(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const IntegerConstant SeparateValue(SeparateInt32, 20);
     const AllocaInstruction DetachedSlot(Types.getPointerType(Int32));
+#endif
     BasicBlock Block;
     InstructionBuilder Builder(Types);
-    EXPECT_EQ(Builder.createLoad(DetachedSlot), nullptr);
-    EXPECT_EQ(Builder.createStore(DetachedSlot, CanonicalValue), nullptr);
+#if INK_ENABLE_ASSERTIONS
+    EXPECT_DEATH(static_cast<void>(Builder.createLoad(DetachedSlot)), "InstructionBuilder requires an insertion point");
+    EXPECT_DEATH(static_cast<void>(Builder.createStore(DetachedSlot, CanonicalValue)), "InstructionBuilder requires an insertion point");
+#endif
     EXPECT_EQ(Block.instructionCount(), 0u);
     Builder.setInsertPoint(Block);
-    AllocaInstruction *Slot = Builder.createAlloca(Int32);
-    ReturnInstruction *Anchor = Builder.createReturn();
-    ASSERT_NE(Slot, nullptr);
-    ASSERT_NE(Anchor, nullptr);
+    AllocaInstruction *Slot = &Builder.createAlloca(Int32);
+    ReturnInstruction *Anchor = &Builder.createReturn();
     ASSERT_TRUE(Builder.setInsertPoint(*Anchor));
-    EXPECT_EQ(Builder.createLoad(CanonicalValue), nullptr);
-    EXPECT_EQ(Builder.createStore(CanonicalValue, CanonicalValue), nullptr);
-    EXPECT_EQ(Builder.createStore(*Slot, SeparateValue), nullptr);
-    EXPECT_EQ(Builder.createStore(*Slot, DetachedSlot), nullptr);
+#if INK_ENABLE_ASSERTIONS
+    EXPECT_DEATH(static_cast<void>(Builder.createLoad(CanonicalValue)), "Load requires a pointer source");
+    EXPECT_DEATH(static_cast<void>(Builder.createStore(CanonicalValue, CanonicalValue)), "Store requires a pointer destination");
+    EXPECT_DEATH(static_cast<void>(Builder.createStore(*Slot, SeparateValue)), "Store source type must match the destination pointee type");
+    EXPECT_DEATH(static_cast<void>(Builder.createStore(*Slot, DetachedSlot)), "Store source type must match the destination pointee type");
+#endif
     EXPECT_EQ(Block.instructionCount(), 2u);
     EXPECT_EQ(Builder.getInsertBlock(), &Block);
     EXPECT_EQ(Builder.getInsertBefore(), Anchor);
-    StoreInstruction *ValidStore = Builder.createStore(*Slot, CanonicalValue);
-    ASSERT_NE(ValidStore, nullptr);
+    StoreInstruction *ValidStore = &Builder.createStore(*Slot, CanonicalValue);
     auto Iterator = Block.instructions().begin();
     EXPECT_EQ(&*Iterator++, Slot);
     EXPECT_EQ(&*Iterator++, ValidStore);
@@ -176,8 +172,10 @@ namespace ink::ir::test
     EXPECT_EQ(Iterator, Block.instructions().end());
 
     Builder.clearInsertPoint();
-    EXPECT_EQ(Builder.createLoad(*Slot), nullptr);
-    EXPECT_EQ(Builder.createStore(*Slot, CanonicalValue), nullptr);
+#if INK_ENABLE_ASSERTIONS
+    EXPECT_DEATH(static_cast<void>(Builder.createLoad(*Slot)), "InstructionBuilder requires an insertion point");
+    EXPECT_DEATH(static_cast<void>(Builder.createStore(*Slot, CanonicalValue)), "InstructionBuilder requires an insertion point");
+#endif
     EXPECT_EQ(Block.instructionCount(), 3u);
     EXPECT_EQ(Builder.getInsertBlock(), nullptr);
     EXPECT_EQ(Builder.getInsertBefore(), nullptr);
@@ -196,29 +194,28 @@ namespace ink::ir::test
     Function Values(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(T), Parameter(OtherT)}));
     const Argument &ValueOfT = Values.argument(0);
     const Argument &ValueOfOtherT = Values.argument(1);
+    EXPECT_EQ(T.name(), OtherT.name());
+    EXPECT_NE(&ValueOfT.getType(), &ValueOfOtherT.getType());
     BasicBlock Block;
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Block);
-    AllocaInstruction *Slot = Builder.createAlloca(T);
-    ASSERT_NE(Slot, nullptr);
-    StoreInstruction *Store = Builder.createStore(*Slot, ValueOfT);
-    ASSERT_NE(Store, nullptr);
-    LoadInstruction *Load = Builder.createLoad(*Slot);
-    ASSERT_NE(Load, nullptr);
-    ReturnInstruction *Return = Builder.createReturn(*Load);
-    ASSERT_NE(Return, nullptr);
+    AllocaInstruction *Slot = &Builder.createAlloca(T);
+    StoreInstruction *Store = &Builder.createStore(*Slot, ValueOfT);
+    LoadInstruction *Load = &Builder.createLoad(*Slot);
+    ReturnInstruction *Return = &Builder.createReturn(*Load);
     EXPECT_EQ(&Slot->getAllocatedType(), &T);
     EXPECT_EQ(&Load->getType(), &T);
     EXPECT_EQ(&Store->getSource(), &ValueOfT);
     EXPECT_EQ(Return->getReturnValue(), Load);
     ASSERT_TRUE(Builder.setInsertPoint(*Return));
-    EXPECT_EQ(Builder.createStore(*Slot, ValueOfOtherT), nullptr);
-    EXPECT_EQ(Builder.createStore(ValueOfT, ValueOfT), nullptr);
-    EXPECT_EQ(Builder.createLoad(ValueOfT), nullptr);
+#if INK_ENABLE_ASSERTIONS
+    EXPECT_DEATH(static_cast<void>(Builder.createStore(*Slot, ValueOfOtherT)), "Store source type must match the destination pointee type");
+    EXPECT_DEATH(static_cast<void>(Builder.createStore(ValueOfT, ValueOfT)), "Store requires a pointer destination");
+    EXPECT_DEATH(static_cast<void>(Builder.createLoad(ValueOfT)), "Load requires a pointer source");
+#endif
     EXPECT_EQ(Block.instructionCount(), 4u);
     EXPECT_EQ(Builder.getInsertBefore(), Return);
-    StoreInstruction *StoreLoaded = Builder.createStore(*Slot, *Load);
-    ASSERT_NE(StoreLoaded, nullptr);
+    StoreInstruction *StoreLoaded = &Builder.createStore(*Slot, *Load);
     EXPECT_EQ(&StoreLoaded->getDestination(), Slot);
     EXPECT_EQ(&StoreLoaded->getSource(), Load);
     const Instruction *Expected[] = {

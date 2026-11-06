@@ -1,8 +1,10 @@
 #include "ink/ir/constant/constant_pool.h"
+#include "ink/ir/function/function.h"
 #include "ink/ir/instruction/instruction_visitor.h"
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <type_traits>
 
 namespace ink::ir::test
@@ -51,12 +53,19 @@ namespace ink::ir::test
     LoadInstruction Load(Value.getType(), Alloca);
     StoreInstruction Store(Types.getVoidType(), Alloca, Value);
     ReturnInstruction Return(Types.getVoidType(), Add);
+    Function FunctionValue(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(Types.getBoolType())}));
+    BasicBlock &TrueTarget = FunctionValue.createBasicBlock();
+    BasicBlock &FalseTarget = FunctionValue.createBasicBlock();
+    BranchInstruction Branch(Types.getVoidType(), TrueTarget);
+    CondBranchInstruction CondBranch(Types.getVoidType(), FunctionValue.argument(0), TrueTarget, FalseTarget);
     Instruction *Nodes[] = {
         &Add,
         &Alloca,
         &Load,
         &Store,
         &Return,
+        &Branch,
+        &CondBranch,
     };
     IdentityVisitor Visitor;
     CountingVisitor Counter;
@@ -69,8 +78,12 @@ namespace ink::ir::test
       EXPECT_TRUE(Visitor.WasConst);
       Counter.visit(Constant);
     }
-    EXPECT_EQ(Counter.Count, 5U);
+    EXPECT_EQ(Counter.Count, 7U);
     EXPECT_EQ(&Add.getLHS(), &Value);
     EXPECT_EQ(Return.getReturnValue(), &Add);
+    EXPECT_EQ(&Branch.getTarget(), &TrueTarget);
+    EXPECT_EQ(&CondBranch.getCondition(), &FunctionValue.argument(0));
+    EXPECT_EQ(&CondBranch.getTrueTarget(), &TrueTarget);
+    EXPECT_EQ(&CondBranch.getFalseTarget(), &FalseTarget);
   }
 } // namespace ink::ir::test

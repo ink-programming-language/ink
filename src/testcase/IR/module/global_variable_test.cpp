@@ -1,3 +1,4 @@
+#include "ink/core/support/core_define.h"
 #include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/function/argument.h"
@@ -51,9 +52,11 @@ namespace ink::ir::test
   {
     TypePool Types;
     const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
-    const IntegerType SeparateInt32(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const IntegerConstant Value(Int32, 42);
+#if INK_ENABLE_ASSERTIONS
+    const IntegerType SeparateInt32(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const IntegerConstant WrongTypeValue(SeparateInt32, 42);
+#endif
     const core::Name Name = core::NamePool::instance().intern("counter");
     GlobalVariable Global(Types.getPointerType(Int32), Name);
     Function FunctionValue(Types.getFunctionType(Int32));
@@ -64,14 +67,13 @@ namespace ink::ir::test
     {
       InstructionBuilder Builder(Types);
       Builder.setInsertPoint(Block);
-      EXPECT_EQ(Builder.createStore(Global, WrongTypeValue), nullptr);
+#if INK_ENABLE_ASSERTIONS
+      EXPECT_DEATH(static_cast<void>(Builder.createStore(Global, WrongTypeValue)), "Store source type must match the destination pointee type");
+#endif
       EXPECT_EQ(Block.instructionCount(), 0U);
-      Store = Builder.createStore(Global, Value);
-      Load = Builder.createLoad(std::cref(Global));
-      ASSERT_NE(Store, nullptr);
-      ASSERT_NE(Load, nullptr);
-      Return = Builder.createReturn(*Load);
-      ASSERT_NE(Return, nullptr);
+      Store = &Builder.createStore(Global, Value);
+      Load = &Builder.createLoad(std::cref(Global));
+      Return = &Builder.createReturn(*Load);
     }
     EXPECT_EQ(Global.parent(), nullptr);
     EXPECT_EQ(FunctionValue.parent(), nullptr);
@@ -110,13 +112,10 @@ namespace ink::ir::test
     BasicBlock Block;
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Block);
-    ASSERT_NE(Builder.createStore(IntegerGlobal, Value), nullptr);
-    StoreInstruction *AddressStore = Builder.createStore(AddressGlobal, IntegerGlobal);
-    ASSERT_NE(AddressStore, nullptr);
-    LoadInstruction *LoadedAddress = Builder.createLoad(AddressGlobal);
-    ASSERT_NE(LoadedAddress, nullptr);
-    LoadInstruction *LoadedInteger = Builder.createLoad(*LoadedAddress);
-    ASSERT_NE(LoadedInteger, nullptr);
+    static_cast<void>(Builder.createStore(IntegerGlobal, Value));
+    StoreInstruction *AddressStore = &Builder.createStore(AddressGlobal, IntegerGlobal);
+    LoadInstruction *LoadedAddress = &Builder.createLoad(AddressGlobal);
+    LoadInstruction *LoadedInteger = &Builder.createLoad(*LoadedAddress);
     EXPECT_EQ(&AddressGlobal.valueType(), &IntegerPointer);
     EXPECT_EQ(&AddressGlobal.getType(), &AddressPointer);
     EXPECT_EQ(&AddressStore->getDestination(), &AddressGlobal);
@@ -124,7 +123,9 @@ namespace ink::ir::test
     EXPECT_EQ(&LoadedAddress->getType(), &IntegerPointer);
     EXPECT_EQ(&LoadedInteger->getType(), &Int32);
     EXPECT_EQ(&LoadedInteger->getSource(), LoadedAddress);
-    EXPECT_EQ(Builder.createStore(AddressGlobal, Value), nullptr);
+#if INK_ENABLE_ASSERTIONS
+    EXPECT_DEATH(static_cast<void>(Builder.createStore(AddressGlobal, Value)), "Store source type must match the destination pointee type");
+#endif
     EXPECT_EQ(Block.instructionCount(), 4U);
   }
 
@@ -141,19 +142,21 @@ namespace ink::ir::test
     Function Values(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(T), Parameter(OtherT)}));
     const Argument &ValueOfT = Values.argument(0);
     const Argument &ValueOfOtherT = Values.argument(1);
+    EXPECT_EQ(T.name(), OtherT.name());
+    EXPECT_NE(&ValueOfT.getType(), &ValueOfOtherT.getType());
     const GlobalVariable Global(Types.getPointerType(T));
     BasicBlock Block;
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Block);
-    StoreInstruction *Store = Builder.createStore(Global, ValueOfT);
-    LoadInstruction *Load = Builder.createLoad(Global);
-    ASSERT_NE(Store, nullptr);
-    ASSERT_NE(Load, nullptr);
+    StoreInstruction *Store = &Builder.createStore(Global, ValueOfT);
+    LoadInstruction *Load = &Builder.createLoad(Global);
     EXPECT_EQ(&Global.valueType(), &T);
     EXPECT_EQ(&Load->getType(), &T);
     EXPECT_EQ(&Store->getSource(), &ValueOfT);
-    EXPECT_EQ(Builder.createStore(Global, ValueOfOtherT), nullptr);
-    ASSERT_NE(Builder.createStore(Global, *Load), nullptr);
+#if INK_ENABLE_ASSERTIONS
+    EXPECT_DEATH(static_cast<void>(Builder.createStore(Global, ValueOfOtherT)), "Store source type must match the destination pointee type");
+#endif
+    static_cast<void>(Builder.createStore(Global, *Load));
     EXPECT_EQ(Block.instructionCount(), 3U);
   }
 } // namespace ink::ir::test

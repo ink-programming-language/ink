@@ -1,3 +1,4 @@
+#include "ink/core/support/core_define.h"
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/function/argument.h"
 #include "ink/ir/function/function.h"
@@ -21,6 +22,7 @@ namespace ink::ir::test
   static_assert(!std::is_constructible_v<AllocaInstruction, PointerType &&> && !std::is_constructible_v<AllocaInstruction, const PointerType &&>);
   static_assert(!std::is_constructible_v<AllocaInstruction, Argument &&> && !std::is_constructible_v<AllocaInstruction, const Argument &&>);
   static_assert(std::is_same_v<decltype(std::declval<const AllocaInstruction &>().getAllocatedType()), const Value &>);
+  static_assert(std::is_same_v<decltype(std::declval<InstructionBuilder &>().createAlloca(std::declval<ValueRef>())), AllocaInstruction &>);
 
   template <typename AllocatedType>
   constexpr bool BuilderAcceptsAllocatedType = requires(InstructionBuilder &Builder, AllocatedType &&TypeValue)
@@ -83,13 +85,10 @@ namespace ink::ir::test
     {
       InstructionBuilder Builder(Types);
       Builder.setInsertPoint(Block);
-      FirstSlot = Builder.createAlloca(Int32);
-      ASSERT_NE(FirstSlot, nullptr);
-      Return = Builder.createReturn();
-      ASSERT_NE(Return, nullptr);
+      FirstSlot = &Builder.createAlloca(Int32);
+      Return = &Builder.createReturn();
       ASSERT_TRUE(Builder.setInsertPoint(*Return));
-      SecondSlot = Builder.createAlloca(Int32);
-      ASSERT_NE(SecondSlot, nullptr);
+      SecondSlot = &Builder.createAlloca(Int32);
     }
 
     EXPECT_NE(FirstSlot, SecondSlot);
@@ -119,10 +118,8 @@ namespace ink::ir::test
     BasicBlock Block;
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Block);
-    AllocaInstruction *GenericSlot = Builder.createAlloca(T);
-    AllocaInstruction *TypeSlot = Builder.createAlloca(Types.getMetaType());
-    ASSERT_NE(GenericSlot, nullptr);
-    ASSERT_NE(TypeSlot, nullptr);
+    AllocaInstruction *GenericSlot = &Builder.createAlloca(T);
+    AllocaInstruction *TypeSlot = &Builder.createAlloca(Types.getMetaType());
     EXPECT_EQ(&GenericSlot->getAllocatedType(), &T);
     EXPECT_EQ(&GenericSlot->getType(), &Types.getPointerType(T));
     EXPECT_EQ(&TypeSlot->getAllocatedType(), &Types.getMetaType());
@@ -136,28 +133,28 @@ namespace ink::ir::test
     EXPECT_EQ(&DirectSlot.getAllocatedType(), &T);
   }
 
-  // Non-type operands cannot create an allocation or disturb an existing insertion anchor.
-  TEST(IRAllocaInstructionTest, RejectsOrdinaryValuesWithoutChangingTheInsertionPoint)
+  // Type-valued arguments remain valid allocation operands, while assertions reject ordinary data values.
+  TEST(IRAllocaInstructionTest, PreservesGenericInsertionAndAssertsOnOrdinaryTypeOperands)
   {
     TypePool Types;
     Function Owner(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(Types.getMetaType())}));
     const Argument &T = Owner.argument(0);
-    Function Values(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(T)}));
-    const Argument &GenericValue = Values.argument(0);
-    const IntegerConstant IntegerValue(Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed), 42);
     BasicBlock Block;
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Block);
-    ReturnInstruction *Anchor = Builder.createReturn();
-    ASSERT_NE(Anchor, nullptr);
+    ReturnInstruction *Anchor = &Builder.createReturn();
     ASSERT_TRUE(Builder.setInsertPoint(*Anchor));
-    EXPECT_EQ(Builder.createAlloca(IntegerValue), nullptr);
-    EXPECT_EQ(Builder.createAlloca(GenericValue), nullptr);
+#if INK_ENABLE_ASSERTIONS
+    Function Values(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(T)}));
+    const Argument &GenericValue = Values.argument(0);
+    const IntegerConstant IntegerValue(Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed), 42);
+    EXPECT_DEATH(static_cast<void>(Builder.createAlloca(IntegerValue)), "Alloca requires a type value");
+    EXPECT_DEATH(static_cast<void>(Builder.createAlloca(GenericValue)), "Alloca requires a type value");
+#endif
     EXPECT_EQ(Builder.getInsertBlock(), &Block);
     EXPECT_EQ(Builder.getInsertBefore(), Anchor);
     EXPECT_EQ(Block.instructionCount(), 1u);
-    AllocaInstruction *Slot = Builder.createAlloca(T);
-    ASSERT_NE(Slot, nullptr);
+    AllocaInstruction *Slot = &Builder.createAlloca(T);
     auto Iterator = Block.instructions().begin();
     EXPECT_EQ(&*Iterator++, Slot);
     EXPECT_EQ(&*Iterator++, Anchor);

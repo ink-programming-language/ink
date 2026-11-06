@@ -20,4 +20,31 @@ namespace ink::ir
     checkMsgf(Index < Arguments.size(), "Function argument index is out of range");
     return *Arguments[Index];
   }
+
+  bool Function::hasValidControlFlow() const noexcept
+  {
+    for (const BasicBlock &Block : basicBlocks())
+    {
+      const Instruction *Last = Block.terminator();
+      if (!Last)
+      {
+        return false;
+      }
+      for (const Instruction &Node : Block.instructions())
+      {
+        if (Node.isTerminator() && &Node != Last)
+        {
+          return false;
+        }
+      }
+      for (const BasicBlock &Target : Block.successors())
+      {
+        if (Target.parent() != this)
+        {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
 } // namespace ink::ir

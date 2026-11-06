@@ -334,8 +334,7 @@ namespace ink::ir::test
     {
       InstructionBuilder Builder(Types);
       Builder.setInsertPoint(Entry);
-      Return = Builder.createReturn();
-      ASSERT_NE(Return, nullptr);
+      Return = &Builder.createReturn();
     }
     auto BlockPosition = First.basicBlocks().begin();
     auto InstructionPosition = Entry.instructions().begin();

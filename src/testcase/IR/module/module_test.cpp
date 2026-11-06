@@ -175,8 +175,7 @@ namespace ink::ir::test
     {
       InstructionBuilder Builder(Types);
       Builder.setInsertPoint(Entry);
-      Load = Builder.createLoad(FirstGlobal);
-      ASSERT_NE(Load, nullptr);
+      Load = &Builder.createLoad(FirstGlobal);
     }
     for (unsigned Index = 0; Index < 128; ++Index)
     {
@@ -252,10 +251,8 @@ namespace ink::ir::test
     BasicBlock &Entry = SurvivingFunction.createBasicBlock();
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Entry);
-    LoadInstruction *Load = Builder.createLoad(SurvivingGlobal);
-    ASSERT_NE(Load, nullptr);
-    ReturnInstruction *Return = Builder.createReturn(*Load);
-    ASSERT_NE(Return, nullptr);
+    LoadInstruction *Load = &Builder.createLoad(SurvivingGlobal);
+    ReturnInstruction *Return = &Builder.createReturn(*Load);
     EXPECT_EQ(&Load->getSource(), &SurvivingGlobal);
     EXPECT_EQ(&Load->getType(), &Types.getBoolType());
     EXPECT_EQ(Return->getReturnValue(), Load);
@@ -285,12 +282,9 @@ namespace ink::ir::test
     BasicBlock &Entry = FunctionValue.createBasicBlock();
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Entry);
-    LoadInstruction *LoadedPayload = Builder.createLoad(PayloadGlobal);
-    LoadInstruction *LoadedOwner = Builder.createLoad(OwnerGlobal);
-    ASSERT_NE(LoadedPayload, nullptr);
-    ASSERT_NE(LoadedOwner, nullptr);
-    ReturnInstruction *Return = Builder.createReturn(*LoadedPayload);
-    ASSERT_NE(Return, nullptr);
+    LoadInstruction *LoadedPayload = &Builder.createLoad(PayloadGlobal);
+    LoadInstruction *LoadedOwner = &Builder.createLoad(OwnerGlobal);
+    ReturnInstruction *Return = &Builder.createReturn(*LoadedPayload);
     ASSERT_EQ(Payload.fields().size(), 1U);
     ASSERT_EQ(Owner.fields().size(), 2U);
     EXPECT_EQ(&Payload.fields()[0].type(), &OwnerPointer);
@@ -339,12 +333,9 @@ namespace ink::ir::test
       EXPECT_EQ(Implementation.parent(), nullptr);
       InstructionBuilder Builder(Types);
       Builder.setInsertPoint(Entry);
-      AllocaInstruction *Slot = Builder.createAlloca(Int32);
-      ASSERT_NE(Slot, nullptr);
-      Load = Builder.createLoad(*Slot);
-      ASSERT_NE(Load, nullptr);
-      Return = Builder.createReturn(*Load);
-      ASSERT_NE(Return, nullptr);
+      AllocaInstruction *Slot = &Builder.createAlloca(Int32);
+      Load = &Builder.createLoad(*Slot);
+      Return = &Builder.createReturn(*Load);
     }
     EXPECT_EQ(&Types.getPointerType(Record), &RecordPointer);
     EXPECT_EQ(&Types.getPointerType(Object), &ObjectPointer);
@@ -359,8 +350,7 @@ namespace ink::ir::test
     EXPECT_EQ(Entry.parent(), &Implementation);
     InstructionBuilder Builder(Types);
     ASSERT_TRUE(Builder.setInsertPoint(*Return));
-    AddInstruction *Sum = Builder.createAdd(*Load, *Load);
-    ASSERT_NE(Sum, nullptr);
+    AddInstruction *Sum = &Builder.createAdd(*Load, *Load);
     EXPECT_EQ(&Sum->getLHS(), Load);
     EXPECT_EQ(&Sum->getRHS(), Load);
     EXPECT_EQ(Entry.instructionCount(), 4U);

@@ -92,14 +92,10 @@ namespace ink::ir::test
     {
       InstructionBuilder Builder(Types);
       Builder.setInsertPoint(Entry);
-      AllocaInstruction *Slot = Builder.createAlloca(Int32);
-      ASSERT_NE(Slot, nullptr);
-      Sum = Builder.createAdd(FunctionValue.argument(0), FunctionValue.argument(1));
-      Store = Builder.createStore(*Slot, FunctionValue.argument(0));
-      Return = Builder.createReturn(FunctionValue.argument(1));
-      ASSERT_NE(Sum, nullptr);
-      ASSERT_NE(Store, nullptr);
-      ASSERT_NE(Return, nullptr);
+      AllocaInstruction *Slot = &Builder.createAlloca(Int32);
+      Sum = &Builder.createAdd(FunctionValue.argument(0), FunctionValue.argument(1));
+      Store = &Builder.createStore(*Slot, FunctionValue.argument(0));
+      Return = &Builder.createReturn(FunctionValue.argument(1));
     }
     EXPECT_EQ(&Sum->getLHS(), &FunctionValue.argument(0));
     EXPECT_EQ(&Sum->getRHS(), &FunctionValue.argument(1));
@@ -132,8 +128,7 @@ namespace ink::ir::test
     BasicBlock &Entry = First.createBasicBlock();
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Entry);
-    AllocaInstruction *Slot = Builder.createAlloca(T);
-    ASSERT_NE(Slot, nullptr);
+    AllocaInstruction *Slot = &Builder.createAlloca(T);
     EXPECT_EQ(&Slot->getAllocatedType(), &T);
     EXPECT_EQ(&Slot->getType(), &Pointer);
   }

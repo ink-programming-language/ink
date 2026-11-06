@@ -1,3 +1,4 @@
+#include "ink/core/support/core_define.h"
 #include "ink/ir/constant/constant_pool.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/instruction_builder.h"
@@ -14,6 +15,14 @@
 namespace ink::ir::test
 {
   static_assert(!std::is_constructible_v<InstructionBuilder, TypePool &&>);
+  static_assert(std::is_same_v<decltype(std::declval<InstructionBuilder &>().createAdd(std::declval<ValueRef>(), std::declval<ValueRef>())), AddInstruction &>);
+  static_assert(std::is_same_v<decltype(std::declval<InstructionBuilder &>().createAlloca(std::declval<ValueRef>())), AllocaInstruction &>);
+  static_assert(std::is_same_v<decltype(std::declval<InstructionBuilder &>().createLoad(std::declval<ValueRef>())), LoadInstruction &>);
+  static_assert(std::is_same_v<decltype(std::declval<InstructionBuilder &>().createStore(std::declval<ValueRef>(), std::declval<ValueRef>())), StoreInstruction &>);
+  static_assert(std::is_same_v<decltype(std::declval<InstructionBuilder &>().createReturn()), ReturnInstruction &>);
+  static_assert(std::is_same_v<decltype(std::declval<InstructionBuilder &>().createReturn(std::declval<ValueRef>())), ReturnInstruction &>);
+  static_assert(std::is_same_v<decltype(std::declval<InstructionBuilder &>().createBranch(std::declval<BasicBlock &>())), BranchInstruction &>);
+  static_assert(std::is_same_v<decltype(std::declval<InstructionBuilder &>().createCondBranch(std::declval<ValueRef>(), std::declval<BasicBlock &>(), std::declval<BasicBlock &>())), CondBranchInstruction &>);
   static_assert(std::is_same_v<decltype(std::declval<Instruction &>().parent()), BasicBlock *>);
   static_assert(std::is_same_v<decltype(std::declval<const Instruction &>().parent()), const BasicBlock *>);
   static_assert(std::is_same_v<std::ranges::range_reference_t<decltype(std::declval<BasicBlock &>().instructions())>, Instruction &>);
@@ -50,8 +59,9 @@ namespace ink::ir::test
   static_assert(RejectsTemporaryBuilderOperands<IntegerConstant> && RejectsTemporaryBuilderOperands<const IntegerConstant>);
   static_assert(RejectsTemporaryBuilderOperands<AddInstruction> && RejectsTemporaryBuilderOperands<const AddInstruction>);
 
-  // An unset or cleared insertion point rejects every creation overload without changing the selected block.
-  TEST(IRInstructionBuilderTest, RejectsCreationWithoutAnInsertionPoint)
+#if INK_ENABLE_ASSERTIONS
+  // Creation without an insertion point aborts both before selecting a block and after clearing a previously valid point.
+  TEST(IRInstructionBuilderDeathTest, ChecksCreationWithoutAnInsertionPoint)
   {
     TypePool Types;
     ConstantPool Constants(Types);
@@ -61,23 +71,26 @@ namespace ink::ir::test
     InstructionBuilder Builder(Types);
     EXPECT_EQ(Builder.getInsertBlock(), nullptr);
     EXPECT_EQ(Builder.getInsertBefore(), nullptr);
-    EXPECT_EQ(Builder.createAlloca(Types.getFloatType(FloatType::Width::Bits32)), nullptr);
-    EXPECT_EQ(Builder.createAdd(LHS, RHS), nullptr);
-    EXPECT_EQ(Builder.createReturn(), nullptr);
-    EXPECT_EQ(Builder.createReturn(LHS), nullptr);
+    EXPECT_DEATH(static_cast<void>(Builder.createAlloca(Types.getFloatType(FloatType::Width::Bits32))), "insertion point");
+    EXPECT_DEATH(static_cast<void>(Builder.createAdd(LHS, RHS)), "insertion point");
+    EXPECT_DEATH(static_cast<void>(Builder.createLoad(LHS)), "insertion point");
+    EXPECT_DEATH(static_cast<void>(Builder.createStore(LHS, RHS)), "insertion point");
+    EXPECT_DEATH(static_cast<void>(Builder.createReturn()), "insertion point");
+    EXPECT_DEATH(static_cast<void>(Builder.createReturn(LHS)), "insertion point");
     EXPECT_EQ(Block.instructionCount(), 0u);
 
     Builder.setInsertPoint(Block);
-    ASSERT_NE(Builder.createAdd(LHS, RHS), nullptr);
+    static_cast<void>(Builder.createAdd(LHS, RHS));
     Builder.clearInsertPoint();
     EXPECT_EQ(Builder.getInsertBlock(), nullptr);
     EXPECT_EQ(Builder.getInsertBefore(), nullptr);
-    EXPECT_EQ(Builder.createAlloca(Types.getFloatType(FloatType::Width::Bits32)), nullptr);
-    EXPECT_EQ(Builder.createAdd(LHS, RHS), nullptr);
-    EXPECT_EQ(Builder.createReturn(), nullptr);
-    EXPECT_EQ(Builder.createReturn(LHS), nullptr);
+    EXPECT_DEATH(static_cast<void>(Builder.createAlloca(Types.getFloatType(FloatType::Width::Bits32))), "insertion point");
+    EXPECT_DEATH(static_cast<void>(Builder.createAdd(LHS, RHS)), "insertion point");
+    EXPECT_DEATH(static_cast<void>(Builder.createReturn()), "insertion point");
+    EXPECT_DEATH(static_cast<void>(Builder.createReturn(LHS)), "insertion point");
     EXPECT_EQ(Block.instructionCount(), 1u);
   }
+#endif
 
   // Function blocks own ordered Add and Return nodes after their builder is destroyed, preserving borrowed operand identities.
   TEST(IRInstructionBuilderTest, KeepsCreatedInstructionsInTheirOwningBlockAfterBuilderDestruction)
@@ -96,10 +109,8 @@ namespace ink::ir::test
     {
       InstructionBuilder Builder(Types);
       Builder.setInsertPoint(Block);
-      Sum = Builder.createAdd(ValueRef(*Twenty), std::cref(*TwentyTwo));
-      ASSERT_NE(Sum, nullptr);
-      Return = Builder.createReturn(std::cref(*Sum));
-      ASSERT_NE(Return, nullptr);
+      Sum = &Builder.createAdd(ValueRef(*Twenty), std::cref(*TwentyTwo));
+      Return = &Builder.createReturn(std::cref(*Sum));
     }
 
     ASSERT_EQ(Block.instructionCount(), 2u);
@@ -133,18 +144,15 @@ namespace ink::ir::test
     BasicBlock SecondBlock;
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(FirstBlock);
-    ReturnInstruction *Anchor = Builder.createReturn();
-    ASSERT_NE(Anchor, nullptr);
+    ReturnInstruction *Anchor = &Builder.createReturn();
     ASSERT_TRUE(Builder.setInsertPoint(*Anchor));
-    AddInstruction *First = Builder.createAdd(LHS, RHS);
-    ASSERT_NE(First, nullptr);
+    AddInstruction *First = &Builder.createAdd(LHS, RHS);
     auto SavedIterator = FirstBlock.instructions().begin();
     EXPECT_EQ(&*SavedIterator, First);
     std::vector<const Instruction *> Expected = {First};
 
     Builder.setInsertPoint(SecondBlock);
-    ReturnInstruction *SecondReturn = Builder.createReturn();
-    ASSERT_NE(SecondReturn, nullptr);
+    ReturnInstruction *SecondReturn = &Builder.createReturn();
     EXPECT_EQ(SecondReturn->parent(), &SecondBlock);
     EXPECT_EQ(SecondReturn->getReturnValue(), nullptr);
     EXPECT_EQ(SecondBlock.instructionCount(), 1u);
@@ -157,8 +165,7 @@ namespace ink::ir::test
 
     for (unsigned Index = 0; Index < 32; ++Index)
     {
-      AddInstruction *Inserted = Builder.createAdd(*First, RHS);
-      ASSERT_NE(Inserted, nullptr);
+      AddInstruction *Inserted = &Builder.createAdd(*First, RHS);
       EXPECT_EQ(Inserted->parent(), &FirstBlock);
       Expected.push_back(Inserted);
     }

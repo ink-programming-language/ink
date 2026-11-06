@@ -1,6 +1,9 @@
 #include "ink/ir/constant/constant_pool.h"
+#include "ink/ir/function/function.h"
 #include "ink/ir/instruction/add_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
+#include "ink/ir/instruction/branch_instruction.h"
+#include "ink/ir/instruction/cond_branch_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/instruction/store_instruction.h"
@@ -8,13 +11,34 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <functional>
 #include <type_traits>
+#include <utility>
 
 namespace ink::ir::test
 {
   static_assert(std::is_base_of_v<Instruction, AddInstruction>);
   static_assert(std::is_base_of_v<Instruction, ReturnInstruction>);
+  static_assert(std::is_base_of_v<Instruction, BranchInstruction> && std::is_base_of_v<Instruction, CondBranchInstruction>);
+  static_assert(!std::is_copy_constructible_v<BranchInstruction> && !std::is_copy_assignable_v<BranchInstruction>);
+  static_assert(!std::is_move_constructible_v<BranchInstruction> && !std::is_move_assignable_v<BranchInstruction>);
+  static_assert(!std::is_copy_constructible_v<CondBranchInstruction> && !std::is_copy_assignable_v<CondBranchInstruction>);
+  static_assert(!std::is_move_constructible_v<CondBranchInstruction> && !std::is_move_assignable_v<CondBranchInstruction>);
+  static_assert(std::is_nothrow_constructible_v<BranchInstruction, ValueRef, BasicBlock &>);
+  static_assert(std::is_nothrow_constructible_v<CondBranchInstruction, ValueRef, ValueRef, BasicBlock &, BasicBlock &>);
+  static_assert(!std::is_constructible_v<BranchInstruction, ValueRef, BasicBlock &&>);
+  static_assert(!std::is_constructible_v<BranchInstruction, VoidType &&, BasicBlock &>);
+  static_assert(!std::is_constructible_v<CondBranchInstruction, ValueRef, ValueRef, BasicBlock &&, BasicBlock &>);
+  static_assert(!std::is_constructible_v<CondBranchInstruction, ValueRef, ValueRef, BasicBlock &, BasicBlock &&>);
+  static_assert(!std::is_constructible_v<CondBranchInstruction, ValueRef, Argument &&, BasicBlock &, BasicBlock &>);
+  static_assert(std::is_same_v<decltype(std::declval<BranchInstruction &>().getTarget()), BasicBlock &>);
+  static_assert(std::is_same_v<decltype(std::declval<const BranchInstruction &>().getTarget()), const BasicBlock &>);
+  static_assert(std::is_same_v<decltype(std::declval<const CondBranchInstruction &>().getCondition()), const Value &>);
+  static_assert(std::is_same_v<decltype(std::declval<CondBranchInstruction &>().getTrueTarget()), BasicBlock &>);
+  static_assert(std::is_same_v<decltype(std::declval<const CondBranchInstruction &>().getTrueTarget()), const BasicBlock &>);
+  static_assert(std::is_same_v<decltype(std::declval<CondBranchInstruction &>().getFalseTarget()), BasicBlock &>);
+  static_assert(std::is_same_v<decltype(std::declval<const CondBranchInstruction &>().getFalseTarget()), const BasicBlock &>);
   static_assert(!std::is_copy_constructible_v<AddInstruction> && !std::is_copy_assignable_v<AddInstruction>);
   static_assert(!std::is_move_constructible_v<AddInstruction> && !std::is_move_assignable_v<AddInstruction>);
   static_assert(!std::is_copy_constructible_v<ReturnInstruction> && !std::is_copy_assignable_v<ReturnInstruction>);
@@ -91,6 +115,44 @@ namespace ink::ir::test
     EXPECT_EQ(Return.getReturnValue(), nullptr);
     EXPECT_EQ(&Base.getType(), &Types.getVoidType());
     EXPECT_EQ(Base.getKind(), InstructionKind::Return);
+  }
+
+  // Only returns and branches terminate a block; arithmetic, allocation, and memory operations do not.
+  TEST(IRInstructionTest, ClassifiesEveryTerminatorKind)
+  {
+    TypePool Types;
+    ConstantPool Constants(Types);
+    const FloatConstant &Value = Constants.getFloat(2.0f);
+    Function FunctionValue(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(Types.getBoolType())}));
+    BasicBlock &TrueTarget = FunctionValue.createBasicBlock();
+    BasicBlock &FalseTarget = FunctionValue.createBasicBlock();
+    const Argument &Condition = FunctionValue.argument(0);
+    BranchInstruction Branch(Types.getVoidType(), TrueTarget);
+    CondBranchInstruction CondBranch(Types.getVoidType(), Condition, TrueTarget, FalseTarget);
+    const ReturnInstruction Return(Types.getVoidType());
+    const Instruction *Terminators[] = {
+        &Return,
+        &Branch,
+        &CondBranch,
+    };
+    for (const Instruction *Terminator : Terminators)
+    {
+      EXPECT_TRUE(Terminator->isTerminator());
+    }
+    const AddInstruction Add(Value, Value);
+    const AllocaInstruction Alloca(Types.getPointerType(Value.getType()));
+    const LoadInstruction Load(Value.getType(), Alloca);
+    const StoreInstruction Store(Types.getVoidType(), Alloca, Value);
+    const Instruction *OtherInstructions[] = {
+        &Add,
+        &Alloca,
+        &Load,
+        &Store,
+    };
+    for (const Instruction *Other : OtherInstructions)
+    {
+      EXPECT_FALSE(Other->isTerminator());
+    }
   }
 
   // Floating additions retain their pooled operands and infer the floating result type without evaluating the expression.

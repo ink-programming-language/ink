@@ -3,6 +3,8 @@
 #include "ink/ir/function/basic_block.h"
 #include "ink/ir/instruction/add_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
+#include "ink/ir/instruction/branch_instruction.h"
+#include "ink/ir/instruction/cond_branch_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/return_instruction.h"
 #include "ink/ir/instruction/store_instruction.h"
@@ -35,29 +37,40 @@ namespace ink::ir
       BasicBlock *getInsertBlock() const noexcept;
       Instruction *getInsertBefore() const noexcept;
 
-      // Creation returns nullptr when there is no insertion point. Operand type requirements match the concrete classes.
+      // Creation requires a valid insertion point and returns a block-owned instruction reference.
+      // API preconditions are checked with checkMsgf in assertion-enabled builds; callers must satisfy them in every build.
+      // Terminators may only be created at the end of an unterminated block.
       /* -------------------- Add -------------------- */
-      [[nodiscard]] AddInstruction *createAdd(ValueRef LHS, ValueRef RHS);
+      // Operands must have the same integer or floating-point type value.
+      [[nodiscard]] AddInstruction &createAdd(ValueRef LHS, ValueRef RHS);
 
       /* -------------------- Alloca -------------------- */
-      // Returns nullptr unless the operand is a type value; the borrowed value must outlive the type pool.
-      [[nodiscard]] AllocaInstruction *createAlloca(ValueRef AllocatedType);
+      // The operand must be a type value; the borrowed value must outlive the type pool.
+      [[nodiscard]] AllocaInstruction &createAlloca(ValueRef AllocatedType);
 
       /* -------------------- Load -------------------- */
-      // Returns nullptr unless the source has PointerType; the result removes exactly one pointer layer.
-      [[nodiscard]] LoadInstruction *createLoad(ValueRef Source);
+      // The source must have PointerType; the result removes exactly one pointer layer.
+      [[nodiscard]] LoadInstruction &createLoad(ValueRef Source);
 
       /* -------------------- Store -------------------- */
-      // Returns nullptr unless the destination points to the source's exact type value.
-      [[nodiscard]] StoreInstruction *createStore(ValueRef Destination, ValueRef Source);
+      // The destination must point to the source's exact type value.
+      [[nodiscard]] StoreInstruction &createStore(ValueRef Destination, ValueRef Source);
 
       /* -------------------- Return -------------------- */
-      [[nodiscard]] ReturnInstruction *createReturn();
-      [[nodiscard]] ReturnInstruction *createReturn(ValueRef ReturnValue);
+      // Owned blocks must return the enclosing signature's exact type; detached blocks have no signature to check.
+      [[nodiscard]] ReturnInstruction &createReturn();
+      [[nodiscard]] ReturnInstruction &createReturn(ValueRef ReturnValue);
+
+      /* -------------------- Branch -------------------- */
+      // The source and all destinations must belong to the same function; conditional branches require a boolean value.
+      [[nodiscard]] BranchInstruction &createBranch(BasicBlock &Target);
+      [[nodiscard]] CondBranchInstruction &createCondBranch(ValueRef Condition, BasicBlock &TrueTarget, BasicBlock &FalseTarget);
 
     private:
+      void checkInsertPoint(InstructionKind Kind) const noexcept;
+
       template <typename InstructionType, typename... Arguments>
-      InstructionType *createInstruction(Arguments &&...Args);
+      InstructionType &createInstruction(Arguments &&...Args);
 
       TypePool &Types;
       BasicBlock *InsertBlock = nullptr;

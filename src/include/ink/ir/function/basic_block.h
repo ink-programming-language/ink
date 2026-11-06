@@ -10,6 +10,7 @@
 #include <ranges>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace ink::ir
 {
@@ -125,6 +126,42 @@ namespace ink::ir
         return Instructions.size();
       }
 
+      auto *terminator(this auto &&Self) noexcept
+      {
+        Instruction *Value = Self.terminatorAt();
+        return Value ? &std::forward_like<decltype(Self) &>(*Value) : nullptr;
+      }
+
+      bool isTerminated() const noexcept
+      {
+        return terminatorAt() != nullptr;
+      }
+
+      std::size_t successorCount() const noexcept;
+
+      auto &successor(this auto &&Self, std::size_t Index) noexcept
+      {
+        return std::forward_like<decltype(Self) &>(Self.successorAt(Index));
+      }
+
+      // Enumerates outgoing edges in branch order, including repeated destinations.
+      auto successors(this auto &&Self) noexcept
+      {
+        return std::views::iota(std::size_t{0}, Self.successorCount()) | std::views::transform([Block = &Self](std::size_t Index) -> decltype(auto)
+        {
+          return Block->successor(Index);
+        });
+      }
+
+      // Takes a snapshot of incoming edges by scanning the owning function; repeated source blocks are retained.
+      auto predecessors(this auto &&Self)
+      {
+        return Self.predecessorBlocks() | std::views::transform([](BasicBlock *Block) -> decltype(auto)
+        {
+          return std::forward_like<decltype(Self) &>(*Block);
+        });
+      }
+
       auto instructions(this auto &&Self) noexcept
       {
         if constexpr (std::is_const_v<std::remove_reference_t<decltype(Self)>>)
@@ -140,6 +177,10 @@ namespace ink::ir
     private:
       friend class Function;
       friend class InstructionBuilder;
+
+      Instruction *terminatorAt() const noexcept;
+      BasicBlock &successorAt(std::size_t Index) const noexcept;
+      std::vector<BasicBlock *> predecessorBlocks() const;
 
       core::Name Name;
       Function *Parent = nullptr;

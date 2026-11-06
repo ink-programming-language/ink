@@ -19,6 +19,16 @@ namespace ink::ir
         return Kind;
       }
 
+      constexpr bool isTerminator() const noexcept
+      {
+        return isTerminatorKind(Kind);
+      }
+
+      static constexpr bool isTerminatorKind(InstructionKind Kind) noexcept
+      {
+        return Kind == InstructionKind::Return || Kind == InstructionKind::Branch || Kind == InstructionKind::CondBranch;
+      }
+
       std::string_view getName() const noexcept
       {
         return instructionKindName(Kind);
