@@ -1,14 +1,16 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/integer_constant.h"
+#include "ink/ir/function/argument.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/instruction_builder.h"
 #include "ink/ir/module/global_variable.h"
 #include "ink/ir/type/meta_type.h"
-#include "ink/ir/type/parameter.h"
+#include "ink/ir/function/parameter.h"
 #include "ink/ir/type/type_pool.h"
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -126,15 +128,19 @@ namespace ink::ir::test
     EXPECT_EQ(Block.instructionCount(), 4U);
   }
 
-  // Generic globals borrow the exact symbolic type parameter rather than merging parameters that share a name.
-  TEST(IRGlobalVariableTest, PreservesSymbolicStorageAndRejectsValuesOfAnotherTypeParameter)
+  // Generic globals borrow the exact symbolic type argument rather than merging arguments that share a name.
+  TEST(IRGlobalVariableTest, PreservesSymbolicStorageAndRejectsValuesOfAnotherTypeArgument)
   {
     const core::Name Name = core::NamePool::instance().intern("T");
-    const Parameter T(MetaType::instance(), Name);
-    const Parameter OtherT(MetaType::instance(), Name);
-    const Parameter ValueOfT(std::cref(T));
-    const Parameter ValueOfOtherT(std::cref(OtherT));
     TypePool Types;
+    Function Owner(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(Types.getMetaType()), Parameter(Types.getMetaType())}));
+    Argument &T = Owner.argument(0);
+    Argument &OtherT = Owner.argument(1);
+    T.setName(Name);
+    OtherT.setName(Name);
+    Function Values(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(T), Parameter(OtherT)}));
+    const Argument &ValueOfT = Values.argument(0);
+    const Argument &ValueOfOtherT = Values.argument(1);
     const GlobalVariable Global(Types.getPointerType(T));
     BasicBlock Block;
     InstructionBuilder Builder(Types);

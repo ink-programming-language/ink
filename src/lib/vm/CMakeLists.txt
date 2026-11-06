@@ -1,4 +1,5 @@
-add_library(ink_vm STATIC instruction/opcode.cpp object/object_file_reader.cpp object/object_file_validator.cpp object/object_file_writer.cpp)
+file(GLOB_RECURSE INK_VM_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_library(ink_vm STATIC ${INK_VM_SOURCES})
 add_library(ink::vm ALIAS ink_vm)
 
 target_compile_features(ink_vm PUBLIC cxx_std_23)

@@ -41,7 +41,6 @@ namespace ink::ir
     for (const auto &ParameterValue : Parameters)
     {
       Hash = combineHash(Hash, std::hash<const Value *>{}(&ParameterValue.type()));
-      Hash = combineHash(Hash, std::hash<core::Name>{}(ParameterValue.name()));
       Hash = combineHash(Hash, std::hash<Parameter::Kind>{}(ParameterValue.kind()));
     }
     return Hash;
@@ -65,7 +64,7 @@ namespace ink::ir
     }
     for (std::size_t Index = 0; Index < Parameters.size(); ++Index)
     {
-      if (&Parameters[Index].type() != &Other.Parameters[Index].type() || Parameters[Index].name() != Other.Parameters[Index].name() || Parameters[Index].kind() != Other.Parameters[Index].kind())
+      if (&Parameters[Index].type() != &Other.Parameters[Index].type() || Parameters[Index].kind() != Other.Parameters[Index].kind())
       {
         return false;
       }

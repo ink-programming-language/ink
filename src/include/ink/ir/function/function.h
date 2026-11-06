@@ -2,20 +2,24 @@
 
 #include "ink/core/name/name.h"
 #include "ink/ir/enums.h"
+#include "ink/ir/function/argument.h"
 #include "ink/ir/function/basic_block.h"
 #include "ink/ir/type/function_type.h"
 #include "ink/ir/value/value.h"
 
 #include <cstddef>
 #include <list>
+#include <memory>
 #include <ranges>
 #include <utility>
+#include <vector>
 
 namespace ink::ir
 {
   class Module;
 
-  // Borrows a FunctionType value and owns its named basic blocks; the signature must outlive this function.
+  // Borrows a FunctionType value and owns distinct arguments and named basic blocks; the signature must outlive this function.
+  // Argument types borrow the exact signature type values, without rebinding generic dependencies.
   // Appending a block preserves all existing block addresses and iterators.
   class Function final : public Value
   {
@@ -26,6 +30,7 @@ namespace ink::ir
             Visibility(Visibility),
             Linkage(Linkage)
       {
+        initializeArguments();
       }
 
       core::Name name() const noexcept
@@ -73,6 +78,24 @@ namespace ink::ir
         return signature().callingConvention();
       }
 
+      auto &argument(this auto &&Self, std::size_t Index) noexcept
+      {
+        return std::forward_like<decltype(Self) &>(Self.argumentAt(Index));
+      }
+
+      auto arguments(this auto &&Self) noexcept
+      {
+        return Self.Arguments | std::views::transform([](const std::unique_ptr<Argument> &Owned) -> decltype(auto)
+        {
+          return std::forward_like<decltype(Self) &>(*Owned);
+        });
+      }
+
+      std::size_t argumentCount() const noexcept
+      {
+        return Arguments.size();
+      }
+
       BasicBlock &createBasicBlock(core::Name BlockName = core::NAME_None)
       {
         BasicBlock &Block = Blocks.emplace_back(BlockName);
@@ -93,10 +116,14 @@ namespace ink::ir
     private:
       friend class Module;
 
+      void initializeArguments() noexcept;
+      Argument &argumentAt(std::size_t Index) const noexcept;
+
       core::Name Name = core::NAME_None;
       SymbolVisibility Visibility = SymbolVisibility::Private;
       NativeLinkage Linkage = NativeLinkage::None;
       Module *Parent = nullptr;
+      std::vector<std::unique_ptr<Argument>> Arguments = {};
       std::list<BasicBlock> Blocks = {};
   };
 } // namespace ink::ir

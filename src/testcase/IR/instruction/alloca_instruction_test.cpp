@@ -1,13 +1,15 @@
 #include "ink/ir/constant/integer_constant.h"
+#include "ink/ir/function/argument.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/instruction_builder.h"
 #include "ink/ir/type/meta_type.h"
-#include "ink/ir/type/parameter.h"
+#include "ink/ir/function/parameter.h"
 #include "ink/ir/type/type_pool.h"
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -17,7 +19,7 @@ namespace ink::ir::test
   static_assert(std::is_nothrow_constructible_v<AllocaInstruction, const PointerType &>);
   static_assert(std::is_nothrow_constructible_v<AllocaInstruction, ValueRef> && std::is_nothrow_constructible_v<AllocaInstruction, const Value &>);
   static_assert(!std::is_constructible_v<AllocaInstruction, PointerType &&> && !std::is_constructible_v<AllocaInstruction, const PointerType &&>);
-  static_assert(!std::is_constructible_v<AllocaInstruction, Parameter &&> && !std::is_constructible_v<AllocaInstruction, const Parameter &&>);
+  static_assert(!std::is_constructible_v<AllocaInstruction, Argument &&> && !std::is_constructible_v<AllocaInstruction, const Argument &&>);
   static_assert(std::is_same_v<decltype(std::declval<const AllocaInstruction &>().getAllocatedType()), const Value &>);
 
   template <typename AllocatedType>
@@ -27,10 +29,10 @@ namespace ink::ir::test
   };
 
   static_assert(BuilderAcceptsAllocatedType<IntegerType &> && BuilderAcceptsAllocatedType<const PointerType &>);
-  static_assert(BuilderAcceptsAllocatedType<Parameter &> && BuilderAcceptsAllocatedType<const Parameter &>);
+  static_assert(BuilderAcceptsAllocatedType<Argument &> && BuilderAcceptsAllocatedType<const Argument &>);
   static_assert(!BuilderAcceptsAllocatedType<IntegerType> && !BuilderAcceptsAllocatedType<const IntegerType>);
   static_assert(!BuilderAcceptsAllocatedType<PointerType> && !BuilderAcceptsAllocatedType<const PointerType>);
-  static_assert(!BuilderAcceptsAllocatedType<Parameter> && !BuilderAcceptsAllocatedType<const Parameter>);
+  static_assert(!BuilderAcceptsAllocatedType<Argument> && !BuilderAcceptsAllocatedType<const Argument>);
 
   namespace
   {
@@ -108,11 +110,12 @@ namespace ink::ir::test
     EXPECT_EQ(Iterator, Block.instructions().end());
   }
 
-  // Generic allocation preserves its parameter operand, while allocating MetaType creates a separate slot for type values.
+  // Generic allocation preserves its type-valued argument, while allocating MetaType creates a separate slot for type values.
   TEST(IRAllocaInstructionTest, DistinguishesGenericStorageFromStorageForTypeValues)
   {
-    const Parameter T(MetaType::instance());
     TypePool Types;
+    Function Owner(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(Types.getMetaType())}));
+    const Argument &T = Owner.argument(0);
     BasicBlock Block;
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Block);
@@ -136,9 +139,11 @@ namespace ink::ir::test
   // Non-type operands cannot create an allocation or disturb an existing insertion anchor.
   TEST(IRAllocaInstructionTest, RejectsOrdinaryValuesWithoutChangingTheInsertionPoint)
   {
-    const Parameter T(MetaType::instance());
-    const Parameter GenericValue(std::cref(T));
     TypePool Types;
+    Function Owner(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(Types.getMetaType())}));
+    const Argument &T = Owner.argument(0);
+    Function Values(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(T)}));
+    const Argument &GenericValue = Values.argument(0);
     const IntegerConstant IntegerValue(Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed), 42);
     BasicBlock Block;
     InstructionBuilder Builder(Types);

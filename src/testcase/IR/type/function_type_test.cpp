@@ -1,4 +1,3 @@
-#include "ink/core/name/name_pool.h"
 #include "ink/core/support/hash.h"
 #include "ink/ir/type/bool_type.h"
 #include "ink/ir/type/function_type.h"
@@ -9,24 +8,22 @@
 
 #include <functional>
 #include <span>
-#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace ink::ir::test
 {
+  static_assert(!std::is_base_of_v<Value, Parameter>);
+  static_assert(std::is_trivially_copyable_v<Parameter>);
   static_assert(std::is_copy_constructible_v<Parameter>);
   static_assert(std::is_copy_assignable_v<Parameter>);
-  static_assert(std::is_same_v<decltype(std::declval<const Parameter &>().name()), core::Name>);
-  static_assert(!std::is_constructible_v<Parameter, const IntegerType &, std::string>);
-  static_assert(!std::is_constructible_v<Parameter, const IntegerType &, const char *>);
+  static_assert(std::is_same_v<decltype(std::declval<const Parameter &>().type()), const Value &>);
+  static_assert(std::is_same_v<decltype(std::declval<const Parameter &>().kind()), Parameter::Kind>);
   static_assert(!std::is_constructible_v<Parameter, IntegerType &&>);
   static_assert(!std::is_constructible_v<Parameter, const IntegerType &&>);
-  static_assert(!std::is_constructible_v<Parameter, IntegerType &&, core::Name>);
-  static_assert(!std::is_constructible_v<Parameter, const IntegerType &&, core::Name>);
-  static_assert(!std::is_constructible_v<Parameter, IntegerType &&, core::Name, Parameter::Kind>);
-  static_assert(!std::is_constructible_v<Parameter, const IntegerType &&, core::Name, Parameter::Kind>);
+  static_assert(!std::is_constructible_v<Parameter, IntegerType &&, Parameter::Kind>);
+  static_assert(!std::is_constructible_v<Parameter, const IntegerType &&, Parameter::Kind>);
   static_assert(!std::is_constructible_v<FunctionType, IntegerType &&>);
   static_assert(!std::is_constructible_v<FunctionType, const IntegerType &&>);
   static_assert(!std::is_constructible_v<FunctionType, IntegerType &&, std::span<const Parameter>>);
@@ -34,41 +31,32 @@ namespace ink::ir::test
   static_assert(!std::is_copy_constructible_v<FunctionType>);
   static_assert(!std::is_move_constructible_v<FunctionType>);
 
-  // Parameter copies share interned names while retaining the exact borrowed type identity and parameter kind.
-  TEST(IRFunctionTypeTest, CopiesInternedParameterNamesAndBorrowedTypeIdentity)
+  // Copying parameter metadata preserves its borrowed type and kind, while assigning a copy leaves the original unchanged.
+  TEST(IRFunctionTypeTest, CopiesParameterMetadataWithoutCreatingValueIdentity)
   {
-    auto &Names = core::NamePool::instance();
     const IntegerType Integer(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const BoolType Bool;
-    std::string SourceName = "count";
-    const Parameter Named(Integer, Names.intern(SourceName), Parameter::Kind::Named);
-    SourceName.assign("changed");
-    EXPECT_EQ(Named.name(), Names.intern("count"));
-    EXPECT_EQ(Names.text(Named.name()), "count");
+    const Parameter Named(Integer, Parameter::Kind::Named);
     EXPECT_EQ(&Named.type(), &Integer);
     EXPECT_EQ(Named.kind(), Parameter::Kind::Named);
     Parameter Copy = Named;
-    EXPECT_EQ(Copy.name(), Named.name());
     EXPECT_EQ(&Copy.type(), &Integer);
     EXPECT_EQ(Copy.kind(), Parameter::Kind::Named);
     Copy = Parameter(Bool);
-    EXPECT_EQ(Copy.name(), core::NAME_None);
     EXPECT_EQ(&Copy.type(), &Bool);
     EXPECT_EQ(Copy.kind(), Parameter::Kind::Positional);
-    EXPECT_EQ(Named.name(), Names.intern("count"));
     EXPECT_EQ(&Named.type(), &Integer);
     EXPECT_EQ(Named.kind(), Parameter::Kind::Named);
   }
 
-  // Names do not imply named parameters, and signatures retain positional, named, and variadic metadata independently.
-  TEST(IRFunctionTypeTest, PreservesExplicitParameterKindsWithoutInferringFromNames)
+  // Signatures retain positional, named, and variadic kinds independently of their shared parameter type.
+  TEST(IRFunctionTypeTest, PreservesExplicitParameterKinds)
   {
-    auto &Names = core::NamePool::instance();
     const IntegerType Integer(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const Parameter Parameters[] = {
-        Parameter(Integer, Names.intern("value")),
-        Parameter(Integer, Names.intern("value"), Parameter::Kind::Named),
-        Parameter(Integer, Names.intern("value"), Parameter::Kind::Variadic),
+        Parameter(Integer),
+        Parameter(Integer, Parameter::Kind::Named),
+        Parameter(Integer, Parameter::Kind::Variadic),
     };
     const FunctionType Function(Integer, Parameters);
     ASSERT_EQ(Function.parameters().size(), 3U);
@@ -77,7 +65,6 @@ namespace ink::ir::test
     EXPECT_EQ(Function.parameters()[2].kind(), Parameter::Kind::Variadic);
     for (const auto &ParameterValue : Function.parameters())
     {
-      EXPECT_EQ(ParameterValue.name(), Names.intern("value"));
       EXPECT_EQ(&ParameterValue.type(), &Integer);
     }
   }
@@ -85,13 +72,12 @@ namespace ink::ir::test
   // Function types preserve ordered parameter metadata and expose their distinct kind through Type.
   TEST(IRFunctionTypeTest, IdentifiesFunctionsAndPreservesOrderedSignatures)
   {
-    auto &Names = core::NamePool::instance();
     const IntegerType Integer(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const BoolType Bool;
     const VoidType Void;
     const Parameter Parameters[] = {
-        Parameter(Integer, Names.intern("count")),
-        Parameter(Bool, Names.intern("ready")),
+        Parameter(Integer),
+        Parameter(Bool, Parameter::Kind::Named),
     };
     const FunctionType Function(Void, Parameters);
     const Type *Base = &Function;
@@ -106,91 +92,85 @@ namespace ink::ir::test
     EXPECT_EQ(&Function.returnType(), &Void);
     ASSERT_EQ(Function.parameters().size(), 2U);
     EXPECT_EQ(&Function.parameters()[0].type(), &Integer);
-    EXPECT_EQ(Function.parameters()[0].name(), Names.intern("count"));
+    EXPECT_EQ(Function.parameters()[0].kind(), Parameter::Kind::Positional);
     EXPECT_EQ(&Function.parameters()[1].type(), &Bool);
-    EXPECT_EQ(Function.parameters()[1].name(), Names.intern("ready"));
+    EXPECT_EQ(Function.parameters()[1].kind(), Parameter::Kind::Named);
   }
 
   // Empty signatures and function-typed parameters retain their borrowed return and parameter types.
   TEST(IRFunctionTypeTest, SupportsEmptyAndNestedFunctionSignatures)
   {
-    auto &Names = core::NamePool::instance();
     const VoidType Void;
     const FunctionType Empty(Void);
     EXPECT_TRUE(Empty.parameters().empty());
     EXPECT_EQ(&Empty.returnType(), &Void);
     const Parameter Parameters[] = {
-        Parameter(Empty, Names.intern("callback")),
+        Parameter(Empty),
     };
     const FunctionType Nested(Empty, Parameters);
     EXPECT_EQ(&Nested.returnType(), &Empty);
     ASSERT_EQ(Nested.parameters().size(), 1U);
     EXPECT_EQ(&Nested.parameters()[0].type(), &Empty);
-    EXPECT_EQ(Nested.parameters()[0].name(), Names.intern("callback"));
+    EXPECT_EQ(Nested.parameters()[0].kind(), Parameter::Kind::Positional);
   }
 
-  // A signature copies parameter metadata and retains interned names after input vectors and source strings are destroyed.
-  TEST(IRFunctionTypeTest, CopiesParameterMetadataAndRetainsInternedNamesAfterInputsAreDestroyed)
+  // Signatures own parameter metadata snapshots after the source vector is edited and destroyed.
+  TEST(IRFunctionTypeTest, CopiesParameterMetadataBeforeInputsAreChangedAndDestroyed)
   {
-    auto &Names = core::NamePool::instance();
     const IntegerType Integer(IntegerType::Width::Bits64, IntegerType::Signedness::Unsigned);
-    const auto MakeFunction = [&Integer, &Names]()
+    const BoolType Bool;
+    const auto MakeFunction = [&Integer, &Bool]()
     {
-      std::string Name = "a_parameter_name_long_enough_to_require_owned_string_storage";
       std::vector<Parameter> Parameters;
-      Parameters.emplace_back(Integer, Names.intern(Name));
-      return FunctionType(Integer, Parameters);
+      Parameters.emplace_back(Integer, Parameter::Kind::Variadic);
+      FunctionType Function(Integer, Parameters);
+      Parameters[0] = Parameter(Bool, Parameter::Kind::Named);
+      EXPECT_EQ(&Function.parameters()[0].type(), &Integer);
+      EXPECT_EQ(Function.parameters()[0].kind(), Parameter::Kind::Variadic);
+      return FunctionType(Integer, Function.parameters());
     };
     const FunctionType Function = MakeFunction();
     ASSERT_EQ(Function.parameters().size(), 1U);
-    EXPECT_EQ(Function.parameters()[0].name(), Names.intern("a_parameter_name_long_enough_to_require_owned_string_storage"));
-    EXPECT_EQ(Names.text(Function.parameters()[0].name()), "a_parameter_name_long_enough_to_require_owned_string_storage");
     EXPECT_EQ(&Function.parameters()[0].type(), &Integer);
+    EXPECT_EQ(Function.parameters()[0].kind(), Parameter::Kind::Variadic);
     EXPECT_EQ(&Function.returnType(), &Integer);
   }
 
-  // Function values and transparent keys agree on parameter names and kinds, ordering, and borrowed type identity.
+  // Function values and transparent keys agree on parameter kinds, ordering, and borrowed type identity.
   TEST(IRFunctionTypeTest, MatchesTransparentKeysByCompleteSignatureMetadata)
   {
-    auto &Names = core::NamePool::instance();
     const IntegerType Integer(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const IntegerType OtherInteger(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const BoolType Bool;
     const Parameter Parameters[] = {
-        Parameter(Integer, Names.intern("first")),
-        Parameter(Bool, Names.intern("second")),
+        Parameter(Integer),
+        Parameter(Bool),
     };
     const Parameter MatchingParameters[] = {
-        Parameter(Integer, Names.intern("first")),
-        Parameter(Bool, Names.intern("second")),
-    };
-    const Parameter RenamedParameters[] = {
-        Parameter(Integer, Names.intern("renamed")),
-        Parameter(Bool, Names.intern("second")),
+        Parameter(Integer),
+        Parameter(Bool),
     };
     const Parameter ReorderedParameters[] = {
-        Parameter(Bool, Names.intern("second")),
-        Parameter(Integer, Names.intern("first")),
+        Parameter(Bool),
+        Parameter(Integer),
     };
     const Parameter OtherTypeParameters[] = {
-        Parameter(OtherInteger, Names.intern("first")),
-        Parameter(Bool, Names.intern("second")),
+        Parameter(OtherInteger),
+        Parameter(Bool),
     };
     const Parameter NamedParameters[] = {
-        Parameter(Integer, Names.intern("first"), Parameter::Kind::Named),
-        Parameter(Bool, Names.intern("second")),
+        Parameter(Integer, Parameter::Kind::Named),
+        Parameter(Bool),
     };
     const Parameter VariadicParameters[] = {
-        Parameter(Integer, Names.intern("first"), Parameter::Kind::Variadic),
-        Parameter(Bool, Names.intern("second")),
+        Parameter(Integer, Parameter::Kind::Variadic),
+        Parameter(Bool),
     };
     const FunctionType Function(Integer, Parameters);
     const FunctionType Matching(Integer, MatchingParameters);
-    const FunctionType Renamed(Integer, RenamedParameters);
     const FunctionType::Key MatchingKey{&Integer, MatchingParameters};
     const FunctionType::Key OtherKeys[] = {
         {&OtherInteger, Parameters},
-        {&Integer, RenamedParameters},
         {&Integer, ReorderedParameters},
         {&Integer, OtherTypeParameters},
         {&Integer, NamedParameters},
@@ -207,7 +187,6 @@ namespace ink::ir::test
     EXPECT_EQ(Hash(Function), Hash(MatchingKey));
     EXPECT_TRUE(Equal(Function, MatchingKey));
     EXPECT_TRUE(Equal(MatchingKey, Function));
-    EXPECT_FALSE(Function == Renamed);
     for (const auto &OtherKey : OtherKeys)
     {
       EXPECT_FALSE(Function == OtherKey);

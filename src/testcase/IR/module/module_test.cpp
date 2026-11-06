@@ -2,7 +2,7 @@
 #include "ink/ir/instruction/instruction_builder.h"
 #include "ink/ir/module/module.h"
 #include "ink/ir/type/object_type.h"
-#include "ink/ir/type/parameter.h"
+#include "ink/ir/function/parameter.h"
 #include "ink/ir/type/struct_type.h"
 #include "ink/ir/type/type_pool.h"
 
@@ -276,7 +276,7 @@ namespace ink::ir::test
     Payload.addField(Names.intern("owner"), OwnerPointer);
     Owner.addField(Names.intern("payload"), Payload);
     Owner.addField(Names.intern("next"), OwnerPointer);
-    const std::array Parameters{Parameter(OwnerPointer, Names.intern("owner"))};
+    const std::array Parameters{Parameter(OwnerPointer)};
     const FunctionType &Signature = Types.getFunctionType(Payload, Parameters);
     Function &FunctionValue = ModuleValue.createFunction(Signature);
     GlobalVariable &PayloadGlobal = ModuleValue.createGlobalVariable(PayloadPointer);

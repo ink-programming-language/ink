@@ -1,15 +1,17 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/constant_pool.h"
+#include "ink/ir/function/argument.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/instruction_builder.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/store_instruction.h"
 #include "ink/ir/type/meta_type.h"
-#include "ink/ir/type/parameter.h"
+#include "ink/ir/function/parameter.h"
 #include "ink/ir/type/type_pool.h"
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -23,8 +25,8 @@ namespace ink::ir::test
   static_assert(std::is_constructible_v<LoadInstruction, const Type &, AllocaInstruction &> && std::is_constructible_v<LoadInstruction, const Type &, const AllocaInstruction &>);
   static_assert(std::is_constructible_v<StoreInstruction, const VoidType &, AllocaInstruction &, const IntegerConstant &> && std::is_constructible_v<StoreInstruction, const VoidType &, const AllocaInstruction &, IntegerConstant &>);
   static_assert(!std::is_constructible_v<LoadInstruction, IntegerType &&, ValueRef> && !std::is_constructible_v<LoadInstruction, const IntegerType &&, ValueRef>);
-  static_assert(std::is_nothrow_constructible_v<LoadInstruction, const Parameter &, ValueRef>);
-  static_assert(!std::is_constructible_v<LoadInstruction, Parameter &&, ValueRef> && !std::is_constructible_v<LoadInstruction, const Parameter &&, ValueRef>);
+  static_assert(std::is_nothrow_constructible_v<LoadInstruction, const Argument &, ValueRef>);
+  static_assert(!std::is_constructible_v<LoadInstruction, Argument &&, ValueRef> && !std::is_constructible_v<LoadInstruction, const Argument &&, ValueRef>);
   static_assert(!std::is_constructible_v<StoreInstruction, VoidType &&, ValueRef, ValueRef> && !std::is_constructible_v<StoreInstruction, const VoidType &&, ValueRef, ValueRef>);
 
   template <typename OperandType>
@@ -41,6 +43,7 @@ namespace ink::ir::test
 
   static_assert(RejectsTemporaryMemoryOperands<AllocaInstruction> && RejectsTemporaryMemoryOperands<const AllocaInstruction>);
   static_assert(RejectsTemporaryMemoryOperands<IntegerConstant> && RejectsTemporaryMemoryOperands<const IntegerConstant>);
+  static_assert(RejectsTemporaryMemoryOperands<Argument> && RejectsTemporaryMemoryOperands<const Argument>);
 
   // A block owns the complete store-load-add-return graph after its builder is destroyed, retaining each borrowed value and type.
   TEST(IRMemoryInstructionTest, BuildsOwnedIntegerMemoryExpressionInInstructionOrder)
@@ -180,15 +183,19 @@ namespace ink::ir::test
     EXPECT_EQ(Builder.getInsertBefore(), nullptr);
   }
 
-  // Generic storage loads and stores use the exact type parameter identity, even when distinct parameters have the same name.
-  TEST(IRMemoryInstructionTest, PreservesGenericTypesAcrossMemoryOperationsAndRejectsOtherParameters)
+  // Generic storage loads and stores use the exact type argument identity, even when distinct arguments have the same name.
+  TEST(IRMemoryInstructionTest, PreservesGenericTypesAcrossMemoryOperationsAndRejectsOtherArguments)
   {
     const auto TypeName = core::NamePool::instance().intern("T");
-    const Parameter T(MetaType::instance(), TypeName);
-    const Parameter OtherT(MetaType::instance(), TypeName);
-    const Parameter ValueOfT(std::cref(T));
-    const Parameter ValueOfOtherT(std::cref(OtherT));
     TypePool Types;
+    Function Owner(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(Types.getMetaType()), Parameter(Types.getMetaType())}));
+    Argument &T = Owner.argument(0);
+    Argument &OtherT = Owner.argument(1);
+    T.setName(TypeName);
+    OtherT.setName(TypeName);
+    Function Values(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(T), Parameter(OtherT)}));
+    const Argument &ValueOfT = Values.argument(0);
+    const Argument &ValueOfOtherT = Values.argument(1);
     BasicBlock Block;
     InstructionBuilder Builder(Types);
     Builder.setInsertPoint(Block);

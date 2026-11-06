@@ -1,4 +1,6 @@
 #include "ink/core/name/name_pool.h"
+#include "ink/ir/function/argument.h"
+#include "ink/ir/function/function.h"
 #include "ink/ir/type/object_type.h"
 #include "ink/ir/type/struct_type.h"
 #include "ink/ir/type/type_pool.h"
@@ -53,10 +55,10 @@ namespace ink::ir::test
   static_assert(!PoolAcceptsTemporaryArrayElement<const IntegerType>);
   static_assert(!PoolAcceptsTemporaryPointerTarget<IntegerType>);
   static_assert(!PoolAcceptsTemporaryPointerTarget<const IntegerType>);
-  static_assert(!PoolAcceptsTemporaryArrayElement<Parameter>);
-  static_assert(!PoolAcceptsTemporaryArrayElement<const Parameter>);
-  static_assert(!PoolAcceptsTemporaryPointerTarget<Parameter>);
-  static_assert(!PoolAcceptsTemporaryPointerTarget<const Parameter>);
+  static_assert(!PoolAcceptsTemporaryArrayElement<Argument>);
+  static_assert(!PoolAcceptsTemporaryArrayElement<const Argument>);
+  static_assert(!PoolAcceptsTemporaryPointerTarget<Argument>);
+  static_assert(!PoolAcceptsTemporaryPointerTarget<const Argument>);
   static_assert(std::is_same_v<decltype(std::declval<const ArrayType &>().elementType()), const Value &>);
   static_assert(std::is_same_v<decltype(std::declval<const PointerType &>().pointeeType()), const Value &>);
 
@@ -109,7 +111,7 @@ namespace ink::ir::test
     EXPECT_EQ(ObjectPointer.getSemantics(), TypeSemantics::Value);
     const ArrayType &StructArray = Pool.getArrayType(Struct, 4);
     const ArrayType &ObjectArray = Pool.getArrayType(Object, 4);
-    const std::array Parameters{Parameter(Object, Names.intern("owner"))};
+    const std::array Parameters{Parameter(Object)};
     const FunctionType &Signature = Pool.getFunctionType(Struct, Parameters);
     const auto PointerHash = StructPointer.hash();
     const auto ArrayHash = StructArray.hash();
@@ -152,12 +154,15 @@ namespace ink::ir::test
     EXPECT_EQ(Object.fields().size(), 2U);
   }
 
-  // Growing the pools preserves symbolic operands and keeps equally named generic parameters distinct.
+  // Growing the pools preserves symbolic operands and keeps equally named generic arguments distinct.
   TEST(IRTypePoolTest, PreservesGenericCompositesWhileThePoolGrows)
   {
-    const Parameter T(MetaType::instance());
-    const Parameter U(MetaType::instance());
     TypePool Pool;
+    Function Owner(Pool.getFunctionType(Pool.getVoidType(), std::array{Parameter(Pool.getMetaType()), Parameter(Pool.getMetaType())}));
+    Argument &T = Owner.argument(0);
+    Argument &U = Owner.argument(1);
+    T.setName(core::NamePool::instance().intern("T"));
+    U.setName(T.name());
     const auto *ArrayT = &Pool.getArrayType(T, 1);
     const auto *ArrayU = &Pool.getArrayType(U, 1);
     const auto *PointerT = &Pool.getPointerType(T);
@@ -182,11 +187,13 @@ namespace ink::ir::test
     EXPECT_EQ(&Nested->pointeeType(), ArrayT);
   }
 
-  // Transparent lookup and equality use generic parameter identity rather than their common MetaType.
+  // Transparent lookup and equality use generic argument identity rather than their common MetaType.
   TEST(IRTypePoolTest, FindsGenericCompositeHashSetEntriesAfterRehash)
   {
-    const Parameter T(MetaType::instance());
-    const Parameter U(MetaType::instance());
+    TypePool Pool;
+    Function Owner(Pool.getFunctionType(Pool.getVoidType(), std::array{Parameter(Pool.getMetaType()), Parameter(Pool.getMetaType())}));
+    const Argument &T = Owner.argument(0);
+    const Argument &U = Owner.argument(1);
     std::unordered_set<ArrayType, core::Hash<ArrayType>, std::equal_to<>> Arrays;
     const auto *ArrayT = &*Arrays.emplace(T, 4).first;
     const auto *ArrayU = &*Arrays.emplace(U, 4).first;
@@ -220,11 +227,12 @@ namespace ink::ir::test
     EXPECT_FALSE(*PointerU == &T);
   }
 
-  // A runtime data parameter is not a type value and cannot enter any composite type position.
+  // A runtime data argument is not a type value and cannot enter any composite type position.
   TEST(IRTypePoolDeathTest, RejectsNonTypeCompositeOperands)
   {
     TypePool Pool;
-    const Parameter Data(Pool.getBoolType());
+    Function Owner(Pool.getFunctionType(Pool.getVoidType(), std::array{Parameter(Pool.getBoolType())}));
+    const Argument &Data = Owner.argument(0);
     EXPECT_DEATH(static_cast<void>(Pool.getArrayType(Data, 1)), "MetaType");
     EXPECT_DEATH(static_cast<void>(Pool.getPointerType(Data)), "MetaType");
     EXPECT_DEATH(static_cast<void>(Pool.getFunctionType(Data)), "MetaType");
@@ -234,7 +242,8 @@ namespace ink::ir::test
   TEST(IRTypePoolDeathTest, RejectsNonTypeFunctionParameterTypes)
   {
     TypePool Pool;
-    const Parameter Data(Pool.getBoolType());
+    Function Owner(Pool.getFunctionType(Pool.getVoidType(), std::array{Parameter(Pool.getBoolType())}));
+    const Argument &Data = Owner.argument(0);
     const Parameter Parameters[] = {
         Parameter(std::cref(Data)),
     };

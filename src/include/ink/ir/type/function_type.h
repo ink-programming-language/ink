@@ -1,7 +1,8 @@
 #pragma once
 
 #include "ink/ir/type/call_abi.h"
-#include "ink/ir/type/parameter.h"
+#include "ink/ir/function/parameter.h"
+#include "ink/ir/type/type.h"
 
 #include <cstddef>
 #include <span>
@@ -9,9 +10,9 @@
 
 namespace ink::ir
 {
-  // Owns copied parameter metadata and interned name handles; borrowed return and parameter types must remain alive during use.
+  // Owns copied parameter metadata; borrowed return and parameter types must remain alive during use.
   // Destruction does not access borrowed type values.
-  // Signature identity includes parameter names and kinds, their order, borrowed type identities, and the call ABI.
+  // Signature identity includes parameter kinds, their order, borrowed type identities, and the call ABI.
   class FunctionType final : public Type
   {
     public:

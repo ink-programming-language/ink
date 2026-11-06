@@ -5,7 +5,6 @@
 namespace ink::ir
 {
   class Type;
-  class Parameter;
 
   // The borrowed type value must remain alive whenever this value or a derived value is used.
   // Destruction does not access borrowed type values.
@@ -17,7 +16,7 @@ namespace ink::ir
         return *ValueType;
       }
 
-      // Only an actual Type node returns itself; type-valued parameters remain ordinary values.
+      // Only an actual Type node returns itself; type-valued arguments remain ordinary values.
       virtual constexpr const Type *asType() const noexcept
       {
         return nullptr;
@@ -43,7 +42,6 @@ namespace ink::ir
 
     private:
       friend class Type;
-      friend class Parameter;
 
       // Only Type's metatype constructor may establish the self-typed root.
       constexpr explicit Value(SelfTypedTag) noexcept

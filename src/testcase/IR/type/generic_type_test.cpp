@@ -1,5 +1,6 @@
 #include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/integer_constant.h"
+#include "ink/ir/function/argument.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/type/meta_type.h"
 #include "ink/ir/type/object_type.h"
@@ -8,6 +9,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -60,13 +62,17 @@ namespace ink::ir::test
     static_assert(Type::classof(&CompileTimeType) && IntegerType::classof(&CompileTimeType));
   } // namespace
 
-  static_assert(std::is_base_of_v<Value, Type> && std::is_base_of_v<Value, Parameter>);
+  static_assert(std::is_base_of_v<Value, Type> && std::is_base_of_v<Value, Argument>);
+  static_assert(!std::is_base_of_v<Value, Parameter>);
   static_assert(std::is_base_of_v<Type, MetaType>);
   static_assert(std::is_same_v<decltype(std::declval<const Value &>().getType()), const Value &>);
   static_assert(std::is_same_v<decltype(std::declval<const Value &>().asType()), const Type *>);
   static_assert(std::is_same_v<decltype(std::declval<const Parameter &>().type()), const Value &>);
   static_assert(std::is_copy_constructible_v<Parameter> && std::is_copy_assignable_v<Parameter>);
-  static_assert(!std::is_convertible_v<Parameter &&, ValueRef> && !std::is_convertible_v<const Parameter &&, ValueRef>);
+  static_assert(!std::is_convertible_v<Parameter &, ValueRef> && !std::is_convertible_v<const Parameter &, ValueRef>);
+  static_assert(!std::is_convertible_v<Argument &&, ValueRef> && !std::is_convertible_v<const Argument &&, ValueRef>);
+  static_assert(!std::is_copy_constructible_v<Argument> && !std::is_copy_assignable_v<Argument>);
+  static_assert(!std::is_move_constructible_v<Argument> && !std::is_move_assignable_v<Argument>);
 
   // Every pool exposes the same metatype, and querying that singleton through Value returns itself as its type.
   TEST(IRGenericTypeTest, SharesOneSelfTypedMetatypeAcrossPools)
@@ -114,76 +120,90 @@ namespace ink::ir::test
     }
   }
 
-  // Parameter copies preserve descriptions but create new identities, while all explicit reference-wrapper paths borrow the parameter as a type.
-  TEST(IRGenericTypeTest, DistinguishesParameterCopiesFromExplicitTypeReferences)
+  // Arguments in one function or in separate functions keep distinct identities despite sharing a signature and name.
+  TEST(IRGenericTypeTest, DistinguishesArgumentIdentitiesFromCopiedParameterDescriptions)
   {
     auto &Names = core::NamePool::instance();
-    const Parameter T(MetaType::instance(), Names.intern("T"));
-    const Parameter SameName(MetaType::instance(), Names.intern("T"));
-    Parameter MutableT(MetaType::instance(), Names.intern("T"));
-    const Parameter Copied(T);
-    Parameter Assigned(MetaType::instance());
-    Assigned = T;
-    const Parameter FromConstRef(std::cref(T));
-    const Parameter FromRef(std::ref(MutableT));
-    const Parameter FromValueRef(ValueRef{T});
-    const Parameter Named(std::cref(T), Names.intern("x"), Parameter::Kind::Named);
     TypePool Types;
+    const std::array Parameters{Parameter(Types.getMetaType()), Parameter(Types.getMetaType())};
+    const FunctionType &Signature = Types.getFunctionType(Types.getVoidType(), Parameters);
+    Function First(Signature);
+    Function Second(Signature);
+    Argument &T = First.argument(0);
+    Argument &SameName = First.argument(1);
+    Argument &OtherOwner = Second.argument(0);
+    T.setName(Names.intern("T"));
+    SameName.setName(T.name());
+    OtherOwner.setName(T.name());
+    const Parameter FromConstRef(std::cref(T));
+    const Parameter FromRef(std::ref(SameName));
+    const Parameter FromValueRef(ValueRef{T});
+    const Parameter Named(std::cref(T), Parameter::Kind::Named);
+    const Parameter Copied(Named);
+    Parameter Assigned(Types.getMetaType());
+    Assigned = Named;
     EXPECT_EQ(T.name(), SameName.name());
-    EXPECT_EQ(Copied.name(), T.name());
-    EXPECT_EQ(Assigned.name(), T.name());
+    EXPECT_EQ(T.name(), OtherOwner.name());
+    EXPECT_EQ(T.parent(), &First);
+    EXPECT_EQ(SameName.parent(), &First);
+    EXPECT_EQ(OtherOwner.parent(), &Second);
+    EXPECT_EQ(T.index(), 0U);
+    EXPECT_EQ(SameName.index(), 1U);
     EXPECT_EQ(&T.getType(), &MetaType::instance());
-    EXPECT_EQ(&Copied.getType(), &MetaType::instance());
-    EXPECT_EQ(&Assigned.getType(), &MetaType::instance());
     EXPECT_TRUE(T.isTypeValue());
-    EXPECT_TRUE(Copied.isTypeValue());
-    EXPECT_TRUE(Assigned.isTypeValue());
     EXPECT_EQ(T.asType(), nullptr);
-    EXPECT_EQ(&FromConstRef.getType(), &T);
     EXPECT_EQ(&FromConstRef.type(), &T);
-    EXPECT_EQ(&FromRef.getType(), &MutableT);
-    EXPECT_EQ(&FromValueRef.getType(), &T);
-    EXPECT_EQ(&Named.getType(), &T);
-    EXPECT_EQ(Named.name(), Names.intern("x"));
+    EXPECT_EQ(&FromRef.type(), &SameName);
+    EXPECT_EQ(&FromValueRef.type(), &T);
+    EXPECT_EQ(&Named.type(), &T);
     EXPECT_EQ(Named.kind(), Parameter::Kind::Named);
-    EXPECT_EQ(FromConstRef.name(), core::NAME_None);
-    EXPECT_FALSE(FromConstRef.isTypeValue());
-    EXPECT_FALSE(FromRef.isTypeValue());
-    EXPECT_FALSE(FromValueRef.isTypeValue());
-    EXPECT_EQ(FromConstRef.asType(), nullptr);
-    EXPECT_NE(&Types.getPointerType(T), &Types.getPointerType(SameName));
-    EXPECT_NE(&Types.getPointerType(T), &Types.getPointerType(Copied));
-    EXPECT_NE(&Types.getPointerType(T), &Types.getPointerType(Assigned));
+    EXPECT_EQ(&Copied.type(), &T);
+    EXPECT_EQ(Copied.kind(), Parameter::Kind::Named);
+    EXPECT_EQ(&Assigned.type(), &T);
+    EXPECT_EQ(Assigned.kind(), Parameter::Kind::Named);
+    EXPECT_EQ(FromConstRef.kind(), Parameter::Kind::Positional);
+    const PointerType &Pointer = Types.getPointerType(T);
+    EXPECT_NE(&Pointer, &Types.getPointerType(SameName));
+    EXPECT_NE(&Pointer, &Types.getPointerType(OtherOwner));
+    T.setName(Names.intern("RenamedT"));
+    EXPECT_EQ(&Pointer, &Types.getPointerType(T));
+    EXPECT_EQ(&Pointer.pointeeType(), &T);
   }
 
-  // Copying a signature owns its parameter descriptions without rebinding an x:T type edge to a copied T description.
-  TEST(IRGenericTypeTest, PreservesExternalTypeParameterIdentityWhenCopyingFunctionDescriptions)
+  // Copying signature descriptions retains x:T edges to the original argument instead of rebinding them to a new function's argument.
+  TEST(IRGenericTypeTest, PreservesExternalArgumentIdentityWhenCopyingFunctionDescriptions)
   {
-    auto &Names = core::NamePool::instance();
-    const Parameter T(MetaType::instance(), Names.intern("T"));
     TypePool Types;
+    Function Owner(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(Types.getMetaType())}));
+    Argument &T = Owner.argument(0);
+    T.setName(core::NamePool::instance().intern("T"));
     const Parameter Parameters[] = {
-        T,
-        Parameter(std::cref(T), Names.intern("x")),
+        Parameter(Types.getMetaType()),
+        Parameter(std::cref(T)),
     };
-    const FunctionType &Function = Types.getFunctionType(T, Parameters);
-    EXPECT_EQ(&Function.returnType(), &T);
-    ASSERT_EQ(Function.parameters().size(), 2U);
-    EXPECT_NE(&Function.parameters()[0], &T);
-    EXPECT_NE(&Function.parameters()[0], &Parameters[0]);
-    EXPECT_EQ(&Function.parameters()[0].getType(), &MetaType::instance());
-    EXPECT_EQ(Function.parameters()[0].name(), T.name());
-    EXPECT_EQ(&Function.parameters()[1].type(), &T);
-    EXPECT_EQ(&Function.parameters()[1].getType(), &T);
-    EXPECT_NE(&Function.parameters()[1].getType(), &Function.parameters()[0]);
+    const FunctionType &Signature = Types.getFunctionType(T, Parameters);
+    const std::array CopiedParameters{Parameters[0], Parameters[1]};
+    Function Dependent(Signature);
+    EXPECT_EQ(&Types.getFunctionType(T, CopiedParameters), &Signature);
+    EXPECT_EQ(&Signature.returnType(), &T);
+    ASSERT_EQ(Signature.parameters().size(), 2U);
+    EXPECT_NE(&Signature.parameters()[0], &Parameters[0]);
+    EXPECT_EQ(&Signature.parameters()[0].type(), &MetaType::instance());
+    EXPECT_EQ(&Signature.parameters()[1].type(), &T);
+    EXPECT_EQ(&Dependent.argument(0).getType(), &MetaType::instance());
+    EXPECT_EQ(&Dependent.argument(1).getType(), &T);
+    EXPECT_NE(&Dependent.argument(1).getType(), &Dependent.argument(0));
+    EXPECT_EQ(&Dependent.signature().returnType(), &T);
   }
 
   // Composite types and record declarations preserve symbolic type operands, and functions accept an erased concrete function type.
   TEST(IRGenericTypeTest, KeepsSymbolicTypesInCompositeTypesAndRecordFields)
   {
     auto &Names = core::NamePool::instance();
-    const Parameter T(MetaType::instance(), Names.intern("T"));
     TypePool Types;
+    Function Owner(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(Types.getMetaType())}));
+    Argument &T = Owner.argument(0);
+    T.setName(Names.intern("T"));
     const PointerType &Pointer = Types.getPointerType(T);
     const ArrayType &Array = Types.getArrayType(T, 4);
     const ArrayType &NestedArray = Types.getArrayType(Pointer, 2);
@@ -209,14 +229,16 @@ namespace ink::ir::test
     EXPECT_TRUE(Record.isTypeValue());
   }
 
-  // asType and every type classifier safely reject parameters and constants even when a parameter itself has MetaType.
+  // asType and every type classifier safely reject arguments and constants even when an argument itself has MetaType.
   TEST(IRGenericTypeTest, RejectsNonTypeObjectsThroughValuePointers)
   {
     TypePool Types;
     const IntegerType &Integer = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
-    const Parameter T(Types.getMetaType());
-    const Parameter X(std::cref(T));
-    const Parameter Ordinary(Integer);
+    Function Owner(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(Types.getMetaType()), Parameter(Integer)}));
+    const Argument &T = Owner.argument(0);
+    const Argument &Ordinary = Owner.argument(1);
+    Function Dependent(Types.getFunctionType(Types.getVoidType(), std::array{Parameter(T)}));
+    const Argument &X = Dependent.argument(0);
     const IntegerConstant Constant(Integer, 42);
     const Value *NonTypes[] = {
         &T,
