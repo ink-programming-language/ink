@@ -99,6 +99,43 @@ namespace ink::ir::test
     EXPECT_EQ(&Pool.getReferenceType(Function).referencedType(), &Function);
   }
 
+  // ABI and calling convention differences survive interning and remain visible in nested callback types.
+  TEST(IRTypePoolTest, KeepsDistinctCallContractsInInternedCallbacks)
+  {
+    TypePool Pool;
+    const auto &Void = Pool.getVoidType();
+    const CallABI Contracts[] = {
+        {},
+        {ABIKind::C, CallingConvention::Default},
+        {ABIKind::C, CallingConvention::CDecl},
+        {ABIKind::C, CallingConvention::StdCall},
+        {ABIKind::C, CallingConvention::FastCall},
+        {ABIKind::C, CallingConvention::VectorCall},
+    };
+    for (const auto Contract : Contracts)
+    {
+      const auto &Callback = Pool.getFunctionType(Void, {}, Contract);
+      const std::array Parameters{Parameter(Callback)};
+      const auto &Consumer = Pool.getFunctionType(Void, Parameters);
+      EXPECT_EQ(&Callback, &Pool.getFunctionType(Void, {}, Contract));
+      EXPECT_EQ(Callback.callABI(), Contract);
+      EXPECT_EQ(&Consumer.parameters()[0].type(), &Callback);
+      EXPECT_EQ(&Pool.getReferenceType(Callback).referencedType(), &Callback);
+      for (const auto OtherContract : Contracts)
+      {
+        if (Contract == OtherContract)
+        {
+          continue;
+        }
+        const auto &OtherCallback = Pool.getFunctionType(Void, {}, OtherContract);
+        const std::array OtherParameters{Parameter(OtherCallback)};
+        EXPECT_NE(&Callback, &OtherCallback);
+        EXPECT_NE(&Consumer, &Pool.getFunctionType(Void, OtherParameters));
+      }
+    }
+    EXPECT_EQ(&Pool.getFunctionType(Void), &Pool.getFunctionType(Void, {}, CallABI{}));
+  }
+
   // Signature storage and interned names retain their identities while both the type and name pools grow.
   TEST(IRTypePoolTest, OwnsFunctionDescriptionsAndPreservesThemWhileGrowing)
   {
@@ -153,8 +190,14 @@ namespace ink::ir::test
     const auto *OtherKind = &*Functions.emplace(Integer, Named).first;
     const auto *VariadicKind = &*Functions.emplace(Integer, Variadic).first;
     const auto *Empty = &*Functions.emplace(Integer).first;
-    EXPECT_EQ(Functions.size(), 6U);
+    const CallABI CABI{ABIKind::C, CallingConvention::Default};
+    const CallABI StdCallABI{ABIKind::C, CallingConvention::StdCall};
+    const auto *CFunction = &*Functions.emplace(Integer, Parameters, CABI).first;
+    const auto *StdCallFunction = &*Functions.emplace(Integer, Parameters, StdCallABI).first;
+    EXPECT_EQ(Functions.size(), 8U);
     EXPECT_FALSE(Functions.emplace(Integer, Parameters).second);
+    EXPECT_FALSE(Functions.emplace(Integer, Parameters, CABI).second);
+    EXPECT_FALSE(Functions.emplace(Integer, Parameters, StdCallABI).second);
     const auto PreviousBucketCount = Functions.bucket_count();
     Functions.rehash(PreviousBucketCount * 2 + 1);
     EXPECT_GT(Functions.bucket_count(), PreviousBucketCount);
@@ -164,18 +207,24 @@ namespace ink::ir::test
     const auto FoundKind = Functions.find(FunctionType::Key{&Integer, Named});
     const auto FoundVariadic = Functions.find(FunctionType::Key{&Integer, Variadic});
     const auto FoundEmpty = Functions.find(FunctionType::Key{&Integer, {}});
+    const auto FoundC = Functions.find(FunctionType::Key{&Integer, Parameters, CABI});
+    const auto FoundStdCall = Functions.find(FunctionType::Key{&Integer, Parameters, StdCallABI});
     ASSERT_NE(Found, Functions.end());
     ASSERT_NE(FoundReturn, Functions.end());
     ASSERT_NE(FoundName, Functions.end());
     ASSERT_NE(FoundKind, Functions.end());
     ASSERT_NE(FoundVariadic, Functions.end());
     ASSERT_NE(FoundEmpty, Functions.end());
+    ASSERT_NE(FoundC, Functions.end());
+    ASSERT_NE(FoundStdCall, Functions.end());
     EXPECT_EQ(&*Found, Function);
     EXPECT_EQ(&*FoundReturn, OtherReturn);
     EXPECT_EQ(&*FoundName, OtherName);
     EXPECT_EQ(&*FoundKind, OtherKind);
     EXPECT_EQ(&*FoundVariadic, VariadicKind);
     EXPECT_EQ(&*FoundEmpty, Empty);
+    EXPECT_EQ(&*FoundC, CFunction);
+    EXPECT_EQ(&*FoundStdCall, StdCallFunction);
     EXPECT_EQ(Functions.find(FunctionType::Key{&Bool, Renamed}), Functions.end());
     const core::Hash<FunctionType> Hash;
     const std::equal_to<> Equal;
@@ -183,6 +232,8 @@ namespace ink::ir::test
     EXPECT_EQ(Hash(*OtherKind), Hash(FunctionType::Key{&Integer, Named}));
     EXPECT_EQ(Hash(*VariadicKind), Hash(FunctionType::Key{&Integer, Variadic}));
     EXPECT_EQ(Hash(*Empty), Hash(FunctionType::Key{&Integer, {}}));
+    EXPECT_EQ(Hash(*CFunction), Hash(FunctionType::Key{&Integer, Parameters, CABI}));
+    EXPECT_EQ(Hash(*StdCallFunction), Hash(FunctionType::Key{&Integer, Parameters, StdCallABI}));
     EXPECT_TRUE(Equal(*Function, FunctionType::Key{&Integer, Parameters}));
     EXPECT_TRUE(Equal(FunctionType::Key{&Integer, Parameters}, *Function));
     EXPECT_FALSE(Equal(*Function, *OtherReturn));
@@ -191,6 +242,8 @@ namespace ink::ir::test
     EXPECT_FALSE(Equal(*Function, *VariadicKind));
     EXPECT_FALSE(Equal(*OtherKind, *VariadicKind));
     EXPECT_FALSE(Equal(*Function, *Empty));
+    EXPECT_FALSE(Equal(*Function, *CFunction));
+    EXPECT_FALSE(Equal(*CFunction, *StdCallFunction));
     EXPECT_FALSE(Equal(FunctionType::Key{&Integer, Renamed}, *Function));
   }
 } // namespace ink::ir::test

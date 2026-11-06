@@ -36,11 +36,11 @@ namespace ink::ir
       const VoidType &getVoidType() const noexcept;
       const MetaType &getMetaType() const noexcept;
 
-      // Composite types are interned by the identity of borrowed type values and their parameters.
+      // Composite types are interned by borrowed type identities, parameter metadata, and function call ABI.
       // Passing a value whose type is not MetaType is a programming error.
       const ArrayType &getArrayType(ValueRef ElementType, std::uint64_t ElementCount);
       const ReferenceType &getReferenceType(ValueRef ReferencedType);
-      const FunctionType &getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters = {});
+      const FunctionType &getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters = {}, CallABI ABI = {});
 
     private:
       IntegerType Integers[8] = {
@@ -57,10 +57,10 @@ namespace ink::ir
           FloatType(FloatType::Width::Bits32),
           FloatType(FloatType::Width::Bits64),
       };
-      BoolType Bool;
-      VoidType Void;
-      std::unordered_set<ArrayType, core::Hash<ArrayType>, std::equal_to<>> Arrays;
-      std::unordered_set<ReferenceType, core::Hash<ReferenceType>, std::equal_to<>> References;
-      std::unordered_set<FunctionType, core::Hash<FunctionType>, std::equal_to<>> Functions;
+      BoolType Bool = {};
+      VoidType Void = {};
+      std::unordered_set<ArrayType, core::Hash<ArrayType>, std::equal_to<>> Arrays = {};
+      std::unordered_set<ReferenceType, core::Hash<ReferenceType>, std::equal_to<>> References = {};
+      std::unordered_set<FunctionType, core::Hash<FunctionType>, std::equal_to<>> Functions = {};
   };
 } // namespace ink::ir

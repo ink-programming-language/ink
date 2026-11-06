@@ -230,4 +230,39 @@ namespace ink::ir::test
     EXPECT_EQ(Empty.hash(), Key.hash());
     EXPECT_EQ(Empty.hash(), Other.hash());
   }
+
+  // Call ABI is copied into signatures and participates in both value and transparent-key identity.
+  TEST(IRFunctionTypeTest, DistinguishesABIAndCallingConventionInSignaturesAndKeys)
+  {
+    const VoidType Void;
+    const FunctionType Ink(Void);
+    const FunctionType C(Void, {}, {ABIKind::C, CallingConvention::Default});
+    CallABI Contract{ABIKind::C, CallingConvention::StdCall};
+    const FunctionType StdCall(Void, {}, Contract);
+    Contract = {};
+    const FunctionType Matching(Void, {}, {ABIKind::C, CallingConvention::StdCall});
+    const FunctionType::Key InkKey{&Void, {}};
+    const FunctionType::Key CKey{&Void, {}, {ABIKind::C, CallingConvention::Default}};
+    const FunctionType::Key StdCallKey{&Void, {}, {ABIKind::C, CallingConvention::StdCall}};
+    EXPECT_EQ(Ink.callABI(), CallABI{});
+    EXPECT_EQ(Ink.abi(), ABIKind::Ink);
+    EXPECT_EQ(Ink.callingConvention(), CallingConvention::Default);
+    EXPECT_EQ(C.abi(), ABIKind::C);
+    EXPECT_EQ(C.callingConvention(), CallingConvention::Default);
+    EXPECT_EQ(StdCall.abi(), ABIKind::C);
+    EXPECT_EQ(StdCall.callingConvention(), CallingConvention::StdCall);
+    EXPECT_TRUE(Ink == InkKey);
+    EXPECT_TRUE(C == CKey);
+    EXPECT_TRUE(StdCall == Matching);
+    EXPECT_TRUE(StdCall == StdCallKey);
+    EXPECT_TRUE(StdCallKey == StdCall);
+    EXPECT_EQ(StdCall.hash(), Matching.hash());
+    EXPECT_EQ(StdCall.hash(), StdCallKey.hash());
+    EXPECT_FALSE(Ink == C);
+    EXPECT_FALSE(C == StdCall);
+    EXPECT_FALSE(Ink == CKey);
+    EXPECT_FALSE(CKey == InkKey);
+    EXPECT_FALSE(C == StdCallKey);
+    EXPECT_FALSE(StdCallKey == CKey);
+  }
 } // namespace ink::ir::test

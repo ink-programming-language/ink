@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ink/core/name/name.h"
+#include "ink/ir/enums.h"
 #include "ink/ir/type/field.h"
 #include "ink/ir/type/method.h"
 
@@ -41,17 +42,17 @@ namespace ink::ir
         Bases.push_back(&Base.get());
       }
 
-      void addField(core::Name Name, ValueRef FieldType)
+      void addField(core::Name Name, ValueRef FieldType, MemberKind Kind = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Public)
       {
-        Fields.emplace_back(Name, FieldType);
+        Fields.emplace_back(Name, FieldType, Kind, Visibility);
       }
 
-      void addMethod(const Function &FunctionValue)
+      void addMethod(const Function &FunctionValue, MemberKind Kind = MemberKind::Instance)
       {
-        Methods.emplace_back(FunctionValue);
+        Methods.emplace_back(FunctionValue, Kind);
       }
 
-      void addMethod(const Function &&) = delete;
+      void addMethod(const Function &&, MemberKind = MemberKind::Instance) = delete;
 
     protected:
       constexpr explicit RecordType(TypeKind Kind) noexcept
@@ -63,8 +64,8 @@ namespace ink::ir
       ~RecordType() = default;
 
     private:
-      std::vector<const Value *> Bases;
-      std::vector<Field> Fields;
-      std::vector<Method> Methods;
+      std::vector<const Value *> Bases = {};
+      std::vector<Field> Fields = {};
+      std::vector<Method> Methods = {};
   };
 } // namespace ink::ir

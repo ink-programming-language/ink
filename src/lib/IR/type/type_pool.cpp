@@ -147,7 +147,7 @@ namespace ink::ir
     return *References.emplace(ReferencedType).first;
   }
 
-  const FunctionType &TypePool::getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters)
+  const FunctionType &TypePool::getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters, CallABI ABI)
   {
     if (!ReturnType.get().isTypeValue())
     {
@@ -160,11 +160,11 @@ namespace ink::ir
         panic("TypePool requires function parameter types whose type is MetaType");
       }
     }
-    const auto Existing = Functions.find(FunctionType::Key{&ReturnType.get(), Parameters});
+    const auto Existing = Functions.find(FunctionType::Key{&ReturnType.get(), Parameters, ABI});
     if (Existing != Functions.end())
     {
       return *Existing;
     }
-    return *Functions.emplace(ReturnType, Parameters).first;
+    return *Functions.emplace(ReturnType, Parameters, ABI).first;
   }
 } // namespace ink::ir

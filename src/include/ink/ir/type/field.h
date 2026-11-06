@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ink/core/name/name.h"
+#include "ink/ir/enums.h"
 #include "ink/ir/type/type.h"
 
 namespace ink::ir
@@ -9,9 +10,11 @@ namespace ink::ir
   class Field
   {
     public:
-      Field(core::Name Name, ValueRef FieldType) noexcept
+      Field(core::Name Name, ValueRef FieldType, MemberKind Kind = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Public) noexcept
           : Name(Name),
-            FieldType(&FieldType.get())
+            FieldType(&FieldType.get()),
+            Kind(Kind),
+            Visibility(Visibility)
       {
       }
 
@@ -25,8 +28,25 @@ namespace ink::ir
         return *FieldType;
       }
 
+      MemberKind kind() const noexcept
+      {
+        return Kind;
+      }
+
+      bool isStatic() const noexcept
+      {
+        return Kind == MemberKind::Static;
+      }
+
+      SymbolVisibility visibility() const noexcept
+      {
+        return Visibility;
+      }
+
     private:
-      core::Name Name;
-      const Value *FieldType;
+      core::Name Name = core::NAME_None;
+      const Value *FieldType = nullptr;
+      MemberKind Kind = MemberKind::Instance;
+      SymbolVisibility Visibility = SymbolVisibility::Public;
   };
 } // namespace ink::ir

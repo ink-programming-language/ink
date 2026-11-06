@@ -8,7 +8,7 @@ namespace ink::ir
   {
     FunctionType::Key functionKey(const FunctionType &Value) noexcept
     {
-      return {&Value.returnType(), Value.parameters()};
+      return {&Value.returnType(), Value.parameters(), Value.callABI()};
     }
 
     std::size_t combineHash(std::size_t First, std::size_t Second) noexcept
@@ -17,9 +17,10 @@ namespace ink::ir
     }
   } // namespace
 
-  FunctionType::FunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters)
+  FunctionType::FunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters, CallABI ABI)
       : Type(Kind),
-        ReturnType(ReturnType.get())
+        ReturnType(ReturnType.get()),
+        ABI(ABI)
   {
     if (!Parameters.empty())
     {
@@ -35,6 +36,8 @@ namespace ink::ir
   std::size_t FunctionType::Key::hash() const noexcept
   {
     std::size_t Hash = combineHash(std::hash<const Value *>{}(ReturnType), std::hash<std::size_t>{}(Parameters.size()));
+    Hash = combineHash(Hash, std::hash<ABIKind>{}(ABI.ABI));
+    Hash = combineHash(Hash, std::hash<CallingConvention>{}(ABI.Convention));
     for (const auto &ParameterValue : Parameters)
     {
       Hash = combineHash(Hash, std::hash<const Value *>{}(&ParameterValue.type()));
@@ -56,7 +59,7 @@ namespace ink::ir
 
   bool FunctionType::Key::operator==(const Key &Other) const noexcept
   {
-    if (ReturnType != Other.ReturnType || Parameters.size() != Other.Parameters.size())
+    if (ReturnType != Other.ReturnType || Parameters.size() != Other.Parameters.size() || ABI != Other.ABI)
     {
       return false;
     }

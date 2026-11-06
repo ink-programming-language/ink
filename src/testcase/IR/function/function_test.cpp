@@ -1,7 +1,9 @@
 #include "ink/core/name/name.h"
 #include "ink/core/name/name_pool.h"
+#include "ink/ir/enums.h"
 #include "ink/ir/function/basic_block.h"
 #include "ink/ir/function/function.h"
+#include "ink/ir/type/call_abi.h"
 #include "ink/ir/type/function_type.h"
 #include "ink/ir/type/type_pool.h"
 #include "ink/ir/value/value.h"
@@ -34,6 +36,10 @@ namespace ink::ir::test
   static_assert(!std::is_constructible_v<BasicBlock, std::string>);
   static_assert(!std::is_constructible_v<BasicBlock, const char *>);
   static_assert(std::is_same_v<decltype(std::declval<const Function &>().name()), core::Name>);
+  static_assert(std::is_same_v<decltype(std::declval<const Function &>().visibility()), SymbolVisibility>);
+  static_assert(std::is_same_v<decltype(std::declval<const Function &>().nativeLinkage()), NativeLinkage>);
+  static_assert(std::is_same_v<decltype(std::declval<const Function &>().abi()), ABIKind>);
+  static_assert(std::is_same_v<decltype(std::declval<const Function &>().callingConvention()), CallingConvention>);
   static_assert(std::is_same_v<decltype(std::declval<const BasicBlock &>().name()), core::Name>);
   static_assert(std::is_same_v<decltype(std::declval<BasicBlock &>().parent()), Function *>);
   static_assert(std::is_same_v<decltype(std::declval<const BasicBlock &>().parent()), const Function *>);
@@ -63,11 +69,49 @@ namespace ink::ir::test
     EXPECT_EQ(&Base->getType(), &Signature);
     EXPECT_TRUE(FunctionType::classof(&Base->getType()));
     EXPECT_EQ(FunctionValue.name(), core::NAME_None);
+    EXPECT_EQ(FunctionValue.visibility(), SymbolVisibility::Private);
+    EXPECT_EQ(FunctionValue.nativeLinkage(), NativeLinkage::None);
+    EXPECT_EQ(FunctionValue.abi(), ABIKind::Ink);
+    EXPECT_EQ(FunctionValue.callingConvention(), CallingConvention::Default);
     EXPECT_EQ(FunctionValue.basicBlockCount(), 0u);
     EXPECT_TRUE(std::ranges::empty(FunctionValue.basicBlocks()));
     BasicBlock &Unnamed = FunctionValue.createBasicBlock();
     EXPECT_EQ(Unnamed.name(), core::NAME_None);
     EXPECT_EQ(Unnamed.parent(), &FunctionValue);
+  }
+
+  // A private function may be exported, while public access alone does not expose a native symbol.
+  TEST(IRFunctionTest, KeepsSourceVisibilityIndependentFromNativeLinkage)
+  {
+    TypePool Types;
+    const FunctionType &Signature = Types.getFunctionType(Types.getVoidType());
+    Function PrivateExport(Signature, core::NAME_None, SymbolVisibility::Private, NativeLinkage::Export);
+    Function PublicFunction(Signature, core::NAME_None, SymbolVisibility::Public);
+    EXPECT_EQ(PrivateExport.visibility(), SymbolVisibility::Private);
+    EXPECT_EQ(PrivateExport.nativeLinkage(), NativeLinkage::Export);
+    EXPECT_EQ(PublicFunction.visibility(), SymbolVisibility::Public);
+    EXPECT_EQ(PublicFunction.nativeLinkage(), NativeLinkage::None);
+    PrivateExport.setVisibility(SymbolVisibility::Public);
+    EXPECT_EQ(PrivateExport.nativeLinkage(), NativeLinkage::Export);
+    PrivateExport.setNativeLinkage(NativeLinkage::Import);
+    EXPECT_EQ(PrivateExport.visibility(), SymbolVisibility::Public);
+    EXPECT_EQ(PrivateExport.nativeLinkage(), NativeLinkage::Import);
+    EXPECT_EQ(&PrivateExport.signature(), &Signature);
+    EXPECT_EQ(PrivateExport.abi(), ABIKind::Ink);
+  }
+
+  // A private callback borrows its C ABI and calling convention without requiring native import or export.
+  TEST(IRFunctionTest, GetsCallbackABIFromTheCanonicalSignature)
+  {
+    TypePool Types;
+    const FunctionType &Signature = Types.getFunctionType(Types.getVoidType(), {}, CallABI{ABIKind::C, CallingConvention::CDecl});
+    const Function Callback(Signature);
+    EXPECT_EQ(Callback.visibility(), SymbolVisibility::Private);
+    EXPECT_EQ(Callback.nativeLinkage(), NativeLinkage::None);
+    EXPECT_EQ(Callback.abi(), ABIKind::C);
+    EXPECT_EQ(Callback.callingConvention(), CallingConvention::CDecl);
+    EXPECT_EQ(&Callback.signature(), &Signature);
+    EXPECT_EQ(&Callback.getType(), &Signature);
   }
 
   // Standalone blocks start detached, with either NAME_None or an explicit interned name.

@@ -1,4 +1,5 @@
 #include "ink/core/name/name_pool.h"
+#include "ink/ir/enums.h"
 #include "ink/ir/type/array_type.h"
 #include "ink/ir/type/bool_type.h"
 #include "ink/ir/type/field.h"
@@ -34,13 +35,20 @@ namespace ink::ir::test
   static_assert(std::is_same_v<decltype(std::declval<RecordType &>().fields()), std::span<const Field>>);
   static_assert(std::is_same_v<decltype(std::declval<RecordType &>().methods()), std::span<const Method>>);
   static_assert(std::is_same_v<decltype(std::declval<const Field &>().type()), const Value &>);
+  static_assert(std::is_same_v<decltype(std::declval<const Field &>().kind()), MemberKind>);
+  static_assert(std::is_same_v<decltype(std::declval<const Field &>().visibility()), SymbolVisibility>);
   static_assert(std::is_same_v<decltype(std::declval<const Method &>().function()), const Function &>);
+  static_assert(std::is_same_v<decltype(std::declval<const Method &>().kind()), MemberKind>);
   static_assert(std::is_same_v<decltype(std::declval<const Field &>().name()), core::Name>);
   static_assert(std::is_same_v<decltype(std::declval<const Method &>().name()), core::Name>);
   static_assert(!std::is_constructible_v<Field, core::Name, IntegerType &&>);
   static_assert(!std::is_constructible_v<Field, core::Name, const IntegerType &&>);
+  static_assert(!std::is_constructible_v<Field, core::Name, IntegerType &&, MemberKind, SymbolVisibility>);
+  static_assert(!std::is_constructible_v<Field, core::Name, const IntegerType &&, MemberKind, SymbolVisibility>);
   static_assert(!std::is_constructible_v<Method, Function &&>);
   static_assert(!std::is_constructible_v<Method, const Function &&>);
+  static_assert(!std::is_constructible_v<Method, Function &&, MemberKind>);
+  static_assert(!std::is_constructible_v<Method, const Function &&, MemberKind>);
   static_assert(!std::is_constructible_v<Method, const FunctionType &>);
 
   template <typename Record>
@@ -56,17 +64,33 @@ namespace ink::ir::test
   };
 
   template <typename Record>
+  concept RecordAcceptsTemporaryModifiedFieldType = requires(Record &Value)
+  {
+    Value.addField(core::NAME_None, IntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed), MemberKind::Static, SymbolVisibility::Private);
+  };
+
+  template <typename Record>
   concept RecordAcceptsTemporaryMethodFunction = requires(Record &Value, const FunctionType &Signature)
   {
     Value.addMethod(Function(Signature));
+  };
+
+  template <typename Record>
+  concept RecordAcceptsTemporaryStaticMethodFunction = requires(Record &Value, const FunctionType &Signature)
+  {
+    Value.addMethod(Function(Signature), MemberKind::Static);
   };
 
   static_assert(!RecordAcceptsTemporaryBase<StructType>);
   static_assert(!RecordAcceptsTemporaryBase<ObjectType>);
   static_assert(!RecordAcceptsTemporaryFieldType<StructType>);
   static_assert(!RecordAcceptsTemporaryFieldType<ObjectType>);
+  static_assert(!RecordAcceptsTemporaryModifiedFieldType<StructType>);
+  static_assert(!RecordAcceptsTemporaryModifiedFieldType<ObjectType>);
   static_assert(!RecordAcceptsTemporaryMethodFunction<StructType>);
   static_assert(!RecordAcceptsTemporaryMethodFunction<ObjectType>);
+  static_assert(!RecordAcceptsTemporaryStaticMethodFunction<StructType>);
+  static_assert(!RecordAcceptsTemporaryStaticMethodFunction<ObjectType>);
 
   // A struct retains its distinct kind and spelling while exposing value semantics through Type.
   TEST(IRTypeTest, IdentifiesStructWithValueSemanticsThroughBasePointer)
@@ -141,7 +165,7 @@ namespace ink::ir::test
     }
   }
 
-  // Both record kinds retain direct declarations in order without flattening inherited members or combining overloads.
+  // Both record kinds retain ordered declarations and field modifiers without flattening inherited members or combining overloads.
   TEST(IRTypeTest, SharesOrderedBaseFieldAndMethodStorageBetweenRecordKinds)
   {
     core::NamePool &Names = core::NamePool::instance();
@@ -169,7 +193,7 @@ namespace ink::ir::test
       Record->addBase(StructBase);
       Record->addBase(ObjectBase);
       Record->addField(CountName, Int32);
-      Record->addField(EnabledName, Bool);
+      Record->addField(EnabledName, Bool, MemberKind::Static, SymbolVisibility::Private);
       Record->addMethod(FirstFunction);
       Record->addMethod(SecondFunction);
       ASSERT_EQ(Record->bases().size(), 2u);
@@ -178,18 +202,69 @@ namespace ink::ir::test
       ASSERT_EQ(Record->fields().size(), 2u);
       EXPECT_EQ(Record->fields()[0].name(), CountName);
       EXPECT_EQ(&Record->fields()[0].type(), &Int32);
+      EXPECT_EQ(Record->fields()[0].kind(), MemberKind::Instance);
+      EXPECT_FALSE(Record->fields()[0].isStatic());
+      EXPECT_EQ(Record->fields()[0].visibility(), SymbolVisibility::Public);
       EXPECT_EQ(Record->fields()[1].name(), EnabledName);
       EXPECT_EQ(&Record->fields()[1].type(), &Bool);
+      EXPECT_EQ(Record->fields()[1].kind(), MemberKind::Static);
+      EXPECT_TRUE(Record->fields()[1].isStatic());
+      EXPECT_EQ(Record->fields()[1].visibility(), SymbolVisibility::Private);
       ASSERT_EQ(Record->methods().size(), 2u);
       EXPECT_EQ(Record->methods()[0].name(), ConvertName);
       EXPECT_EQ(&Record->methods()[0].function(), &FirstFunction);
       EXPECT_EQ(&Record->methods()[0].function().signature(), &FirstSignature);
+      EXPECT_EQ(Record->methods()[0].kind(), MemberKind::Instance);
+      EXPECT_FALSE(Record->methods()[0].isStatic());
       EXPECT_EQ(Record->methods()[1].name(), ConvertName);
       EXPECT_EQ(&Record->methods()[1].function(), &SecondFunction);
       EXPECT_EQ(&Record->methods()[1].function().signature(), &SecondSignature);
+      EXPECT_EQ(Record->methods()[1].kind(), MemberKind::Instance);
+      EXPECT_FALSE(Record->methods()[1].isStatic());
     }
     EXPECT_EQ(Struct.getSemantics(), TypeSemantics::Value);
     EXPECT_EQ(Object.getSemantics(), TypeSemantics::Reference);
+  }
+
+  // Instance and static member bindings preserve the same borrowed function identity and symbol metadata.
+  TEST(IRTypeTest, StoresMemberKindWithoutChangingTheAssociatedFunction)
+  {
+    const BoolType Bool;
+    const FunctionType Signature(Bool);
+    const core::Name FunctionName = core::NamePool::instance().intern("shared_method");
+    const Function Implementation(Signature, FunctionName, SymbolVisibility::Private, NativeLinkage::Export);
+    const Method DefaultMethod(Implementation);
+    const Method StaticMethod(Implementation, MemberKind::Static);
+    EXPECT_EQ(DefaultMethod.kind(), MemberKind::Instance);
+    EXPECT_FALSE(DefaultMethod.isStatic());
+    EXPECT_EQ(StaticMethod.kind(), MemberKind::Static);
+    EXPECT_TRUE(StaticMethod.isStatic());
+    EXPECT_EQ(&DefaultMethod.function(), &Implementation);
+    EXPECT_EQ(&StaticMethod.function(), &Implementation);
+    StructType Struct;
+    ObjectType Object;
+    RecordType *Records[] = {
+        &Struct,
+        &Object,
+    };
+    for (RecordType *Record : Records)
+    {
+      Record->addMethod(Implementation);
+      Record->addMethod(Implementation, MemberKind::Static);
+      ASSERT_EQ(Record->methods().size(), 2U);
+      EXPECT_EQ(Record->methods()[0].kind(), MemberKind::Instance);
+      EXPECT_FALSE(Record->methods()[0].isStatic());
+      EXPECT_EQ(Record->methods()[1].kind(), MemberKind::Static);
+      EXPECT_TRUE(Record->methods()[1].isStatic());
+      for (const Method &MethodValue : Record->methods())
+      {
+        EXPECT_EQ(MethodValue.name(), FunctionName);
+        EXPECT_EQ(&MethodValue.function(), &Implementation);
+        EXPECT_EQ(&MethodValue.function().signature(), &Signature);
+        EXPECT_EQ(MethodValue.function().visibility(), SymbolVisibility::Private);
+        EXPECT_EQ(MethodValue.function().nativeLinkage(), NativeLinkage::Export);
+      }
+    }
   }
 
   // Fields copy interned name handles and methods forward the same handles as their associated functions.
@@ -203,7 +278,7 @@ namespace ink::ir::test
     const core::Name FieldName = Names.intern(FieldSpelling);
     const core::Name FunctionName = Names.intern(FunctionSpelling);
     const Function Implementation(Signature, FunctionName);
-    const Field FieldValue(FieldName, Int32);
+    const Field FieldValue(FieldName, Int32, MemberKind::Static);
     const Method MethodValue(Implementation);
     StructType Struct;
     Struct.addField(FieldName, Int32);
@@ -216,6 +291,9 @@ namespace ink::ir::test
     EXPECT_EQ(MethodValue.name(), FunctionName);
     EXPECT_EQ(MethodValue.name(), Implementation.name());
     EXPECT_EQ(&FieldValue.type(), &Int32);
+    EXPECT_EQ(FieldValue.kind(), MemberKind::Static);
+    EXPECT_TRUE(FieldValue.isStatic());
+    EXPECT_EQ(FieldValue.visibility(), SymbolVisibility::Public);
     EXPECT_EQ(&MethodValue.function(), &Implementation);
     ASSERT_EQ(Struct.fields().size(), 1u);
     ASSERT_EQ(Struct.methods().size(), 1u);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ink/core/name/name.h"
+#include "ink/ir/enums.h"
 #include "ink/ir/function/basic_block.h"
 #include "ink/ir/type/function_type.h"
 #include "ink/ir/value/value.h"
@@ -16,9 +17,11 @@ namespace ink::ir
   class Function final : public Value
   {
     public:
-      explicit Function(ValueRef Signature, core::Name Name = core::NAME_None) noexcept
+      explicit Function(ValueRef Signature, core::Name Name = core::NAME_None, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None) noexcept
           : Value(Signature),
-            Name(Name)
+            Name(Name),
+            Visibility(Visibility),
+            Linkage(Linkage)
       {
       }
 
@@ -27,9 +30,39 @@ namespace ink::ir
         return Name;
       }
 
+      SymbolVisibility visibility() const noexcept
+      {
+        return Visibility;
+      }
+
+      void setVisibility(SymbolVisibility Value) noexcept
+      {
+        Visibility = Value;
+      }
+
+      NativeLinkage nativeLinkage() const noexcept
+      {
+        return Linkage;
+      }
+
+      void setNativeLinkage(NativeLinkage Value) noexcept
+      {
+        Linkage = Value;
+      }
+
       const FunctionType &signature() const noexcept
       {
         return static_cast<const FunctionType &>(getType());
+      }
+
+      ABIKind abi() const noexcept
+      {
+        return signature().abi();
+      }
+
+      CallingConvention callingConvention() const noexcept
+      {
+        return signature().callingConvention();
       }
 
       BasicBlock &createBasicBlock(core::Name Name = core::NAME_None)
@@ -50,7 +83,9 @@ namespace ink::ir
       }
 
     private:
-      core::Name Name;
-      std::list<BasicBlock> Blocks;
+      core::Name Name = core::NAME_None;
+      SymbolVisibility Visibility = SymbolVisibility::Private;
+      NativeLinkage Linkage = NativeLinkage::None;
+      std::list<BasicBlock> Blocks = {};
   };
 } // namespace ink::ir
