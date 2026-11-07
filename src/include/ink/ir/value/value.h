@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ink/ir/value/value_kind.h"
+
 #include <functional>
 
 namespace ink::ir
@@ -11,15 +13,14 @@ namespace ink::ir
   class Value
   {
     public:
+      constexpr ValueKind valueKind() const noexcept
+      {
+        return Kind;
+      }
+
       constexpr const Value &getType() const noexcept
       {
         return *ValueType;
-      }
-
-      // Only an actual Type node returns itself; type-valued arguments remain ordinary values.
-      virtual constexpr const Type *asType() const noexcept
-      {
-        return nullptr;
       }
 
       bool isTypeValue() const noexcept;
@@ -32,8 +33,9 @@ namespace ink::ir
       {
       };
 
-      constexpr explicit Value(std::reference_wrapper<const Value> ValueType) noexcept
-          : ValueType(&ValueType.get())
+      constexpr explicit Value(std::reference_wrapper<const Value> ValueType, ValueKind Kind = ValueKind::Unknown) noexcept
+          : ValueType(&ValueType.get()),
+            Kind(Kind)
       {
       }
 
@@ -45,11 +47,13 @@ namespace ink::ir
 
       // Only Type's metatype constructor may establish the self-typed root.
       constexpr explicit Value(SelfTypedTag) noexcept
-          : ValueType(this)
+          : ValueType(this),
+            Kind(ValueKind::Type)
       {
       }
 
       const Value *ValueType;
+      ValueKind Kind;
   };
 
   // Borrows a read-only value; implicit construction accepts lvalues and rejects temporary values.

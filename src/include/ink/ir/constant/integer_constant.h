@@ -27,7 +27,7 @@ namespace ink::ir
       bool operator==(const Key &Other) const noexcept;
 
       constexpr IntegerConstant(const IntegerType &ValueType, std::uint64_t Bits) noexcept
-          : Constant(ValueType),
+          : Constant(ValueType, ValueKind::IntegerConstant),
             Bits(Bits)
       {
       }

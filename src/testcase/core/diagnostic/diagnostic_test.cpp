@@ -9,9 +9,15 @@
 #include <spdlog/spdlog.h>
 #include <cstdlib>
 #include <set>
+#include <type_traits>
 
 namespace ink::core::test
 {
+  using IRVerificationArguments = DiagnosticArgumentSchema<DiagnosticArgumentSpecification<DiagnosticArgumentName::Context, DiagnosticArgumentType::String>, DiagnosticArgumentSpecification<DiagnosticArgumentName::Description, DiagnosticArgumentType::String>>;
+  static_assert(static_cast<std::uint8_t>(DiagnosticDomain::IR) == 0x03U);
+  static_assert(std::is_same_v<DiagnosticTraits<DiagnosticKind::IRVerificationFailed>::Arguments, IRVerificationArguments>);
+  static_assert(DiagnosticTraits<DiagnosticKind::IRVerificationFailed>::Classification == DiagnosticClass::InternalCompilerError);
+
   // panic flushes its message and call-site location before terminating, even when normal logging is disabled.
   TEST(DiagnosticDeathTest, PanicWritesBeforeTerminating)
   {
@@ -36,6 +42,13 @@ namespace ink::core::test
   {
     const DiagnosticEngine Engine;
     EXPECT_DEATH(Engine.reportICE<DiagnosticKind::ParserInvalidTokenReference>({}, 300U, 256U), "internal compiler error\\[INK-P0048\\]: token index 300 is out of bounds for input of 256 tokens");
+  }
+
+  // IR verification failures use the explicit fatal API and format both context and detailed description without a source.
+  TEST(DiagnosticDeathTest, ExplicitICEEntryPrintsIRVerificationContextAndDescription)
+  {
+    const DiagnosticEngine Engine;
+    EXPECT_DEATH(Engine.reportICE<DiagnosticKind::IRVerificationFailed>({}, "function 'sum'", "instruction definition does not dominate its use"), "internal compiler error\\[INK-I0001\\]: invalid IR in function 'sum': instruction definition does not dominate its use");
   }
 
   // Explicit fatal reporting retains the selected source and excerpt and bypasses a suppressing consumer.
@@ -140,6 +153,33 @@ namespace ink::core::test
     EXPECT_STREQ(diagnosticCode(DiagnosticKind::ParserLimitExceeded), "INK-P0004");
     EXPECT_EQ(diagnosticClass(DiagnosticKind::InvalidUtf8), DiagnosticClass::User);
     EXPECT_EQ(diagnosticClass(DiagnosticKind::ParserExpectedToken), DiagnosticClass::User);
+  }
+
+  // IR verification has its own stable domain and identity, and its two string fields are copied and formatted in schema order.
+  TEST(DiagnosticTest, RegistersIRVerificationMetadataAndTypedArguments)
+  {
+    constexpr DiagnosticKind Kind = DiagnosticKind::IRVerificationFailed;
+    EXPECT_EQ(diagnosticNumber(Kind), 0x03000001U);
+    EXPECT_STREQ(diagnosticCode(Kind), "INK-I0001");
+    EXPECT_STREQ(diagnosticKindName(Kind), "IRVerificationFailed");
+    EXPECT_EQ(diagnosticDomain(Kind), DiagnosticDomain::IR);
+    EXPECT_EQ(diagnosticClass(Kind), DiagnosticClass::InternalCompilerError);
+    EXPECT_EQ(diagnosticDefaultSeverity(Kind), DiagnosticSeverity::Error);
+    EXPECT_STREQ(diagnosticFormatPattern(Kind), "invalid IR in {Context}: {Description}");
+    std::string Context = "function 'sum'";
+    std::string Description = "instruction definition does not dominate its use";
+    const Diagnostic Entry = makeDiagnostic<Kind>({}, Context, Description);
+    Context.clear();
+    Description.clear();
+    EXPECT_EQ(Entry.number(), 0x03000001U);
+    EXPECT_STREQ(Entry.code(), "INK-I0001");
+    EXPECT_EQ(Entry.classification(), DiagnosticClass::InternalCompilerError);
+    ASSERT_EQ(Entry.Arguments.size(), 2U);
+    EXPECT_EQ(Entry.Arguments[0].Name, DiagnosticArgumentName::Context);
+    EXPECT_EQ(std::get<std::string>(Entry.Arguments[0].Value), "function 'sum'");
+    EXPECT_EQ(Entry.Arguments[1].Name, DiagnosticArgumentName::Description);
+    EXPECT_EQ(std::get<std::string>(Entry.Arguments[1].Value), "instruction definition does not dominate its use");
+    EXPECT_EQ(DiagnosticFormatter{}.format(Entry).Message, "invalid IR in function 'sum': instruction definition does not dominate its use");
   }
 
   // User errors return to their caller, while ICE values can be inspected and formatted before reporting.

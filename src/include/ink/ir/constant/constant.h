@@ -8,8 +8,8 @@ namespace ink::ir
   class Constant : public Value
   {
     protected:
-      constexpr explicit Constant(ValueRef ValueType) noexcept
-          : Value(ValueType)
+      constexpr explicit Constant(ValueRef ValueType, ValueKind Kind) noexcept
+          : Value(ValueType, Kind)
       {
       }
 

@@ -21,12 +21,7 @@ namespace ink::ir
     public:
       static constexpr bool classof(const Value *Value) noexcept
       {
-        return Value && Value->asType() != nullptr;
-      }
-
-      constexpr const Type *asType() const noexcept final
-      {
-        return this;
+        return Value && Value->valueKind() == ValueKind::Type;
       }
 
       constexpr TypeKind getKind() const noexcept

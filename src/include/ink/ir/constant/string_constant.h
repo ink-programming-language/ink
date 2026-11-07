@@ -19,7 +19,7 @@ namespace ink::ir
       bool operator==(std::string_view Other) const noexcept;
 
       StringConstant(const ArrayType &ValueType, std::string_view Bytes)
-          : Constant(ValueType),
+          : Constant(ValueType, ValueKind::StringConstant),
             Bytes(Bytes)
       {
       }

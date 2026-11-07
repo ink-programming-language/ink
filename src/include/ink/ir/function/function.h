@@ -25,7 +25,7 @@ namespace ink::ir
   {
     public:
       explicit Function(ValueRef Signature, core::Name Name = core::NAME_None, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None) noexcept
-          : Value(Signature),
+          : Value(Signature, ValueKind::Function),
             Name(Name),
             Visibility(Visibility),
             Linkage(Linkage)

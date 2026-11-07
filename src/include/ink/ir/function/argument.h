@@ -42,7 +42,7 @@ namespace ink::ir
       friend class Function;
 
       Argument(ValueRef ArgumentType, Function &Parent, std::size_t Index) noexcept
-          : Value(ArgumentType),
+          : Value(ArgumentType, ValueKind::Argument),
             Parent(&Parent),
             Index(Index)
       {

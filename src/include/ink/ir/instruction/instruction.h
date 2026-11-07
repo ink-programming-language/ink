@@ -41,7 +41,7 @@ namespace ink::ir
 
     protected:
       constexpr Instruction(InstructionKind Kind, ValueRef ValueType) noexcept
-          : Value(ValueType),
+          : Value(ValueType, ValueKind::Instruction),
             Kind(Kind)
       {
       }

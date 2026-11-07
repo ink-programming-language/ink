@@ -16,6 +16,7 @@ namespace ink::core
     Unknown = 0x00,
     Tokenizer = 0x01,
     Parser = 0x02,
+    IR = 0x03,
     Core = 0x08,
   };
 

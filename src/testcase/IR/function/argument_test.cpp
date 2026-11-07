@@ -1,4 +1,5 @@
 #include "ink/core/name/name_pool.h"
+#include "ink/core/support/core_define.h"
 #include "ink/ir/function/argument.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/instruction/instruction_builder.h"
@@ -33,7 +34,7 @@ namespace ink::ir::test
     const std::array Parameters{
         Parameter(Int32),
         Parameter(Types.getBoolType(), Parameter::Kind::Named),
-        Parameter(Int32, Parameter::Kind::Variadic),
+        Parameter(Int32),
     };
     const FunctionType &Signature = Types.getFunctionType(Int32, Parameters);
     Function First(Signature);
@@ -54,6 +55,10 @@ namespace ink::ir::test
       EXPECT_EQ(FirstArgument.kind(), Parameters[Index].kind());
       EXPECT_EQ(SecondArgument.kind(), Parameters[Index].kind());
       EXPECT_EQ(FirstArgument.name(), core::NAME_None);
+      EXPECT_EQ(FirstArgument.valueKind(), ValueKind::Argument);
+      EXPECT_EQ(SecondArgument.valueKind(), ValueKind::Argument);
+      EXPECT_FALSE(Type::classof(&FirstArgument));
+      EXPECT_FALSE(Type::classof(&SecondArgument));
     }
   }
 
@@ -118,9 +123,16 @@ namespace ink::ir::test
     Argument &T = First.argument(0);
     Argument &OtherT = Second.argument(0);
     EXPECT_TRUE(T.isTypeValue());
-    EXPECT_EQ(T.asType(), nullptr);
+    EXPECT_EQ(T.valueKind(), ValueKind::Argument);
+    EXPECT_FALSE(Type::classof(&T));
+    EXPECT_FALSE(MetaType::classof(&T));
+    EXPECT_FALSE(Type::classof(&OtherT));
     const PointerType &Pointer = Types.getPointerType(T);
     const ArrayType &Array = Types.getArrayType(T, 4);
+    EXPECT_EQ(Pointer.valueKind(), ValueKind::Type);
+    EXPECT_EQ(Array.valueKind(), ValueKind::Type);
+    EXPECT_TRUE(Type::classof(&Pointer));
+    EXPECT_TRUE(Type::classof(&Array));
     EXPECT_EQ(&Pointer.pointeeType(), &T);
     EXPECT_EQ(&Array.elementType(), &T);
     EXPECT_NE(&Pointer, &Types.getPointerType(OtherT));
@@ -176,4 +188,46 @@ namespace ink::ir::test
     EXPECT_TRUE(std::ranges::empty(FunctionValue.arguments()));
     EXPECT_TRUE(std::ranges::empty(ConstFunction.arguments()));
   }
+
+  // Variadic signatures create arguments only for their fixed prefix, including one-fixed-parameter and empty-prefix C functions.
+  TEST(IRArgumentTest, CreatesOnlyFixedArgumentsForVariadicSignatures)
+  {
+    TypePool Types;
+    const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
+    const std::array Parameters{Parameter(Int32, Parameter::Kind::Named)};
+    const CallABI CABI{ABIKind::C, CallingConvention::Default};
+    const FunctionType &Signature = Types.getFunctionType(Types.getVoidType(), Parameters, CABI, true);
+    Function WithFixed(Signature);
+    const Function &ConstWithFixed = WithFixed;
+    EXPECT_TRUE(WithFixed.signature().isVariadic());
+    ASSERT_EQ(WithFixed.argumentCount(), 1U);
+    EXPECT_EQ(std::ranges::distance(WithFixed.arguments()), 1);
+    EXPECT_EQ(std::ranges::distance(ConstWithFixed.arguments()), 1);
+    EXPECT_EQ(&WithFixed.argument(0).getType(), &Int32);
+    EXPECT_EQ(WithFixed.argument(0).kind(), Parameter::Kind::Named);
+    EXPECT_EQ(WithFixed.argument(0).index(), 0U);
+    EXPECT_EQ(WithFixed.argument(0).parent(), &WithFixed);
+    EXPECT_EQ(&ConstWithFixed.argument(0), &WithFixed.argument(0));
+    Function NoFixed(Types.getFunctionType(Types.getVoidType(), {}, CABI, true));
+    const Function &ConstNoFixed = NoFixed;
+    EXPECT_TRUE(NoFixed.signature().isVariadic());
+    EXPECT_EQ(NoFixed.argumentCount(), 0U);
+    EXPECT_TRUE(std::ranges::empty(NoFixed.arguments()));
+    EXPECT_TRUE(std::ranges::empty(ConstNoFixed.arguments()));
+  }
+
+#if INK_ENABLE_ASSERTIONS
+  // A variadic ellipsis does not provide an argument at or beyond the end of the fixed parameter prefix.
+  TEST(IRArgumentDeathTest, ChecksArgumentIndicesAgainstOnlyTheFixedParameterCount)
+  {
+    TypePool Types;
+    const std::array Parameters{Parameter(Types.getBoolType())};
+    Function WithFixed(Types.getFunctionType(Types.getVoidType(), Parameters, {}, true));
+    const Function &ConstWithFixed = WithFixed;
+    Function NoFixed(Types.getFunctionType(Types.getVoidType(), {}, {}, true));
+    EXPECT_DEATH(static_cast<void>(WithFixed.argument(1)), "argument index");
+    EXPECT_DEATH(static_cast<void>(ConstWithFixed.argument(1)), "argument index");
+    EXPECT_DEATH(static_cast<void>(NoFixed.argument(0)), "argument index");
+  }
+#endif
 } // namespace ink::ir::test

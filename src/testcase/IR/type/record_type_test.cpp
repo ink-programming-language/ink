@@ -239,6 +239,8 @@ namespace ink::ir::test
     const core::Name FunctionName = core::NamePool::instance().intern("shared_method");
     Method DefaultMethod(Signature);
     Method StaticMethod(Signature, FunctionName, MemberKind::Static, SymbolVisibility::Public, NativeLinkage::Export);
+    EXPECT_TRUE(DefaultMethod.hasFunction());
+    EXPECT_TRUE(StaticMethod.hasFunction());
     EXPECT_EQ(DefaultMethod.kind(), MemberKind::Instance);
     EXPECT_FALSE(DefaultMethod.isStatic());
     EXPECT_EQ(StaticMethod.kind(), MemberKind::Static);
@@ -252,8 +254,12 @@ namespace ink::ir::test
     EXPECT_NE(&DefaultMethod.function(), &StaticMethod.function());
     Function *MovedFunction = &StaticMethod.function();
     Method Moved(std::move(StaticMethod));
+    EXPECT_FALSE(StaticMethod.hasFunction());
+    EXPECT_TRUE(Moved.hasFunction());
     EXPECT_EQ(&Moved.function(), MovedFunction);
     DefaultMethod = std::move(Moved);
+    EXPECT_FALSE(Moved.hasFunction());
+    EXPECT_TRUE(DefaultMethod.hasFunction());
     EXPECT_EQ(&DefaultMethod.function(), MovedFunction);
     EXPECT_EQ(DefaultMethod.kind(), MemberKind::Static);
     EXPECT_EQ(DefaultMethod.name(), FunctionName);

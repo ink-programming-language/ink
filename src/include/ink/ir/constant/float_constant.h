@@ -27,7 +27,7 @@ namespace ink::ir
       bool operator==(const Key &Other) const noexcept;
 
       constexpr FloatConstant(const FloatType &ValueType, std::uint64_t Bits) noexcept
-          : Constant(ValueType),
+          : Constant(ValueType, ValueKind::FloatConstant),
             Bits(Bits)
       {
       }

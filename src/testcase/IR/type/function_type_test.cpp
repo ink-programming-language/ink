@@ -49,20 +49,24 @@ namespace ink::ir::test
     EXPECT_EQ(Named.kind(), Parameter::Kind::Named);
   }
 
-  // Signatures retain positional, named, and variadic kinds independently of their shared parameter type.
+  // Positional and named fixed parameters keep their kinds independently of a signature's variadic flag.
   TEST(IRFunctionTypeTest, PreservesExplicitParameterKinds)
   {
     const IntegerType Integer(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
     const Parameter Parameters[] = {
         Parameter(Integer),
         Parameter(Integer, Parameter::Kind::Named),
-        Parameter(Integer, Parameter::Kind::Variadic),
     };
     const FunctionType Function(Integer, Parameters);
-    ASSERT_EQ(Function.parameters().size(), 3U);
+    const FunctionType Variadic(Integer, Parameters, {}, true);
+    ASSERT_EQ(Function.parameters().size(), 2U);
+    ASSERT_EQ(Variadic.parameters().size(), 2U);
+    EXPECT_FALSE(Function.isVariadic());
+    EXPECT_TRUE(Variadic.isVariadic());
     EXPECT_EQ(Function.parameters()[0].kind(), Parameter::Kind::Positional);
     EXPECT_EQ(Function.parameters()[1].kind(), Parameter::Kind::Named);
-    EXPECT_EQ(Function.parameters()[2].kind(), Parameter::Kind::Variadic);
+    EXPECT_EQ(Variadic.parameters()[0].kind(), Parameter::Kind::Positional);
+    EXPECT_EQ(Variadic.parameters()[1].kind(), Parameter::Kind::Named);
     for (const auto &ParameterValue : Function.parameters())
     {
       EXPECT_EQ(&ParameterValue.type(), &Integer);
@@ -114,7 +118,7 @@ namespace ink::ir::test
     EXPECT_EQ(Nested.parameters()[0].kind(), Parameter::Kind::Positional);
   }
 
-  // Signatures own parameter metadata snapshots after the source vector is edited and destroyed.
+  // Signature copies retain owned fixed parameter metadata and the variadic flag after source vectors are edited and destroyed.
   TEST(IRFunctionTypeTest, CopiesParameterMetadataBeforeInputsAreChangedAndDestroyed)
   {
     const IntegerType Integer(IntegerType::Width::Bits64, IntegerType::Signedness::Unsigned);
@@ -122,21 +126,29 @@ namespace ink::ir::test
     const auto MakeFunction = [&Integer, &Bool]()
     {
       std::vector<Parameter> Parameters;
-      Parameters.emplace_back(Integer, Parameter::Kind::Variadic);
-      FunctionType Function(Integer, Parameters);
-      Parameters[0] = Parameter(Bool, Parameter::Kind::Named);
+      Parameters.emplace_back(Integer, Parameter::Kind::Named);
+      FunctionType Function(Integer, Parameters, {}, true);
+      Parameters[0] = Parameter(Bool);
       EXPECT_EQ(&Function.parameters()[0].type(), &Integer);
-      EXPECT_EQ(Function.parameters()[0].kind(), Parameter::Kind::Variadic);
-      return FunctionType(Integer, Function.parameters());
+      EXPECT_EQ(Function.parameters()[0].kind(), Parameter::Kind::Named);
+      EXPECT_TRUE(Function.isVariadic());
+      return FunctionType(Integer, Function.parameters(), Function.callABI(), Function.isVariadic());
     };
     const FunctionType Function = MakeFunction();
     ASSERT_EQ(Function.parameters().size(), 1U);
     EXPECT_EQ(&Function.parameters()[0].type(), &Integer);
-    EXPECT_EQ(Function.parameters()[0].kind(), Parameter::Kind::Variadic);
+    EXPECT_EQ(Function.parameters()[0].kind(), Parameter::Kind::Named);
+    EXPECT_TRUE(Function.isVariadic());
     EXPECT_EQ(&Function.returnType(), &Integer);
+    const FunctionType::Key Description{&Function.returnType(), Function.parameters(), Function.callABI(), Function.isVariadic()};
+    const FunctionType::Key Copied = Description;
+    EXPECT_TRUE(Copied.IsVariadic);
+    EXPECT_TRUE(Function == Copied);
+    EXPECT_TRUE(Copied == Function);
+    EXPECT_EQ(Function.hash(), Copied.hash());
   }
 
-  // Function values and transparent keys agree on parameter kinds, ordering, and borrowed type identity.
+  // Function values and transparent keys agree on fixed parameter kinds, ordering, borrowed type identity, and the variadic flag.
   TEST(IRFunctionTypeTest, MatchesTransparentKeysByCompleteSignatureMetadata)
   {
     const IntegerType Integer(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
@@ -162,19 +174,17 @@ namespace ink::ir::test
         Parameter(Integer, Parameter::Kind::Named),
         Parameter(Bool),
     };
-    const Parameter VariadicParameters[] = {
-        Parameter(Integer, Parameter::Kind::Variadic),
-        Parameter(Bool),
-    };
     const FunctionType Function(Integer, Parameters);
     const FunctionType Matching(Integer, MatchingParameters);
+    const FunctionType Variadic(Integer, MatchingParameters, {}, true);
     const FunctionType::Key MatchingKey{&Integer, MatchingParameters};
+    const FunctionType::Key VariadicKey{&Integer, MatchingParameters, {}, true};
     const FunctionType::Key OtherKeys[] = {
         {&OtherInteger, Parameters},
         {&Integer, ReorderedParameters},
         {&Integer, OtherTypeParameters},
         {&Integer, NamedParameters},
-        {&Integer, VariadicParameters},
+        {&Integer, Parameters, {}, true},
         {&Integer, std::span<const Parameter>(Parameters, 1)},
         {&Integer, {}},
     };
@@ -187,6 +197,10 @@ namespace ink::ir::test
     EXPECT_EQ(Hash(Function), Hash(MatchingKey));
     EXPECT_TRUE(Equal(Function, MatchingKey));
     EXPECT_TRUE(Equal(MatchingKey, Function));
+    EXPECT_FALSE(Function == Variadic);
+    EXPECT_TRUE(Variadic == VariadicKey);
+    EXPECT_TRUE(VariadicKey == Variadic);
+    EXPECT_EQ(Hash(Variadic), Hash(VariadicKey));
     for (const auto &OtherKey : OtherKeys)
     {
       EXPECT_FALSE(Function == OtherKey);
@@ -196,18 +210,30 @@ namespace ink::ir::test
     }
   }
 
-  // A default empty key and an explicit empty span share the same signature identity and hash.
+  // Empty signatures default to fixed arity, while zero-fixed-parameter variadic signatures retain a distinct identity.
   TEST(IRFunctionTypeTest, MatchesEmptySignaturesWithTransparentKeys)
   {
     const VoidType Void;
     const FunctionType Empty(Void);
     const FunctionType Other(Void, std::span<const Parameter>{});
+    const FunctionType Variadic(Void, {}, {}, true);
     const FunctionType::Key Key{&Void, {}};
+    const FunctionType::Key VariadicKey{&Void, {}, {}, true};
+    EXPECT_FALSE(Empty.isVariadic());
+    EXPECT_FALSE(Key.IsVariadic);
     EXPECT_TRUE(Empty == Other);
     EXPECT_TRUE(Empty == Key);
     EXPECT_TRUE(Key == Empty);
     EXPECT_EQ(Empty.hash(), Key.hash());
     EXPECT_EQ(Empty.hash(), Other.hash());
+    EXPECT_TRUE(Variadic.isVariadic());
+    EXPECT_TRUE(Variadic.parameters().empty());
+    EXPECT_FALSE(Empty == Variadic);
+    EXPECT_FALSE(Empty == VariadicKey);
+    EXPECT_FALSE(VariadicKey == Empty);
+    EXPECT_TRUE(Variadic == VariadicKey);
+    EXPECT_TRUE(VariadicKey == Variadic);
+    EXPECT_EQ(Variadic.hash(), VariadicKey.hash());
   }
 
   // Call ABI is copied into signatures and participates in both value and transparent-key identity.
@@ -216,12 +242,14 @@ namespace ink::ir::test
     const VoidType Void;
     const FunctionType Ink(Void);
     const FunctionType C(Void, {}, {ABIKind::C, CallingConvention::Default});
+    const FunctionType CVariadic(Void, {}, {ABIKind::C, CallingConvention::Default}, true);
     CallABI Contract{ABIKind::C, CallingConvention::StdCall};
     const FunctionType StdCall(Void, {}, Contract);
     Contract = {};
     const FunctionType Matching(Void, {}, {ABIKind::C, CallingConvention::StdCall});
     const FunctionType::Key InkKey{&Void, {}};
     const FunctionType::Key CKey{&Void, {}, {ABIKind::C, CallingConvention::Default}};
+    const FunctionType::Key CVariadicKey{&Void, {}, {ABIKind::C, CallingConvention::Default}, true};
     const FunctionType::Key StdCallKey{&Void, {}, {ABIKind::C, CallingConvention::StdCall}};
     EXPECT_EQ(Ink.callABI(), CallABI{});
     EXPECT_EQ(Ink.abi(), ABIKind::Ink);
@@ -232,6 +260,12 @@ namespace ink::ir::test
     EXPECT_EQ(StdCall.callingConvention(), CallingConvention::StdCall);
     EXPECT_TRUE(Ink == InkKey);
     EXPECT_TRUE(C == CKey);
+    EXPECT_TRUE(CVariadic == CVariadicKey);
+    EXPECT_TRUE(CVariadicKey == CVariadic);
+    EXPECT_EQ(CVariadic.hash(), CVariadicKey.hash());
+    EXPECT_FALSE(C == CVariadic);
+    EXPECT_FALSE(C == CVariadicKey);
+    EXPECT_FALSE(CVariadicKey == C);
     EXPECT_TRUE(StdCall == Matching);
     EXPECT_TRUE(StdCall == StdCallKey);
     EXPECT_TRUE(StdCallKey == StdCall);

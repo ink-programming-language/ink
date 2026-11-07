@@ -47,6 +47,11 @@ namespace ink::ir
         return Sign == Signedness::Signed;
       }
 
+      constexpr Signedness signedness() const noexcept
+      {
+        return Sign;
+      }
+
     private:
       Width BitWidth;
       Signedness Sign;

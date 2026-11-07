@@ -6,6 +6,7 @@
 
 namespace ink::ir
 {
+  // Describes one typed fixed parameter; C ellipses are represented by FunctionType::isVariadic().
   // Signature metadata borrows its type value; copies retain that identity without creating an IR value.
   // Borrowed type values must remain alive during use; destruction does not access them.
   class Parameter
@@ -15,7 +16,6 @@ namespace ink::ir
       {
         Positional,
         Named,
-        Variadic,
       };
 
       constexpr Parameter(ValueRef ParameterType, Kind ParameterKind = Kind::Positional) noexcept

@@ -48,7 +48,8 @@ namespace ink::ir
       // Passing a value whose type is not MetaType is a programming error.
       const ArrayType &getArrayType(ValueRef ElementType, std::uint64_t ElementCount);
       const PointerType &getPointerType(ValueRef PointeeType);
-      const FunctionType &getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters = {}, CallABI ABI = {});
+      // Parameters describe fixed arguments; IsVariadic records an untyped C ellipsis.
+      const FunctionType &getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters = {}, CallABI ABI = {}, bool IsVariadic = false);
 
     private:
       IntegerType Integers[8] = {

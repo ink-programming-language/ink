@@ -9,7 +9,7 @@
 namespace ink::ir
 {
   // Owns its function; the borrowed signature must remain alive whenever the function is used.
-  // Moving a method preserves function and body addresses; moved-from methods may only be destroyed or assigned.
+  // Moving a method preserves function and body addresses; hasFunction() safely detects a moved-from method.
   class Method
   {
     public:
@@ -25,6 +25,11 @@ namespace ink::ir
       Method &operator=(const Method &) = delete;
       Method(Method &&) noexcept = default;
       Method &operator=(Method &&) noexcept = default;
+
+      bool hasFunction() const noexcept
+      {
+        return MethodFunction != nullptr;
+      }
 
       core::Name name() const noexcept
       {

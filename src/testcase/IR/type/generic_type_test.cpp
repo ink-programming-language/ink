@@ -43,7 +43,8 @@ namespace ink::ir::test
       };
       for (const Type *TypeValue : Types)
       {
-        if (&TypeValue->getType() != &MetaType::instance() || &TypeValue->getType().getType() != &MetaType::instance() || &TypeValue->getType().getType().getType() != &MetaType::instance())
+        const Value *Erased = TypeValue;
+        if (Erased->valueKind() != ValueKind::Type || !Type::classof(Erased) || static_cast<const Type *>(Erased) != TypeValue || &TypeValue->getType() != &MetaType::instance() || &TypeValue->getType().getType() != &MetaType::instance() || &TypeValue->getType().getType().getType() != &MetaType::instance())
         {
           return false;
         }
@@ -58,7 +59,10 @@ namespace ink::ir::test
     static_assert(&CompileTimeValue.getType().getType() == &MetaType::instance());
     static_assert(&CompileTimeValue.getType().getType().getType() == &MetaType::instance());
     static_assert(&CompileTimeArray.elementType() == &CompileTimeType && &CompileTimePointer.pointeeType() == &CompileTimeType);
-    static_assert(CompileTimeType.asType() == &CompileTimeType);
+    constexpr const Value *CompileTimeErasedType = &CompileTimeType;
+    static_assert(CompileTimeErasedType->valueKind() == ValueKind::Type);
+    static_assert(static_cast<const Type *>(CompileTimeErasedType) == &CompileTimeType);
+    static_assert(!Type::classof(nullptr));
     static_assert(Type::classof(&CompileTimeType) && IntegerType::classof(&CompileTimeType));
   } // namespace
 
@@ -66,7 +70,7 @@ namespace ink::ir::test
   static_assert(!std::is_base_of_v<Value, Parameter>);
   static_assert(std::is_base_of_v<Type, MetaType>);
   static_assert(std::is_same_v<decltype(std::declval<const Value &>().getType()), const Value &>);
-  static_assert(std::is_same_v<decltype(std::declval<const Value &>().asType()), const Type *>);
+  static_assert(std::is_same_v<decltype(std::declval<const Value &>().valueKind()), ValueKind>);
   static_assert(std::is_same_v<decltype(std::declval<const Parameter &>().type()), const Value &>);
   static_assert(std::is_copy_constructible_v<Parameter> && std::is_copy_assignable_v<Parameter>);
   static_assert(!std::is_convertible_v<Parameter &, ValueRef> && !std::is_convertible_v<const Parameter &, ValueRef>);
@@ -85,7 +89,8 @@ namespace ink::ir::test
     EXPECT_EQ(&Second.getMetaType(), &Meta);
     EXPECT_EQ(&Meta.getType(), &Meta);
     EXPECT_EQ(&MetaValue.getType(), &MetaValue);
-    EXPECT_EQ(MetaValue.asType(), &Meta);
+    EXPECT_EQ(MetaValue.valueKind(), ValueKind::Type);
+    EXPECT_EQ(static_cast<const Type *>(&MetaValue), &Meta);
     EXPECT_TRUE(MetaValue.isTypeValue());
     EXPECT_TRUE(Type::classof(&MetaValue));
     EXPECT_TRUE(MetaType::classof(&MetaValue));
@@ -114,7 +119,8 @@ namespace ink::ir::test
     {
       const Value &Value = *TypeValue;
       EXPECT_EQ(&Value.getType(), &Types.getMetaType());
-      EXPECT_EQ(Value.asType(), TypeValue);
+      EXPECT_EQ(Value.valueKind(), ValueKind::Type);
+      EXPECT_EQ(static_cast<const Type *>(&Value), TypeValue);
       EXPECT_TRUE(Value.isTypeValue());
       EXPECT_TRUE(Type::classof(&Value));
     }
@@ -151,7 +157,8 @@ namespace ink::ir::test
     EXPECT_EQ(SameName.index(), 1U);
     EXPECT_EQ(&T.getType(), &MetaType::instance());
     EXPECT_TRUE(T.isTypeValue());
-    EXPECT_EQ(T.asType(), nullptr);
+    EXPECT_EQ(T.valueKind(), ValueKind::Argument);
+    EXPECT_FALSE(Type::classof(&T));
     EXPECT_EQ(&FromConstRef.type(), &T);
     EXPECT_EQ(&FromRef.type(), &SameName);
     EXPECT_EQ(&FromValueRef.type(), &T);
@@ -229,7 +236,7 @@ namespace ink::ir::test
     EXPECT_TRUE(Record.isTypeValue());
   }
 
-  // asType and every type classifier safely reject arguments and constants even when an argument itself has MetaType.
+  // ValueKind and every type classifier distinguish concrete types from arguments and constants, including MetaType arguments.
   TEST(IRGenericTypeTest, RejectsNonTypeObjectsThroughValuePointers)
   {
     TypePool Types;
@@ -270,7 +277,7 @@ namespace ink::ir::test
     {
       if (NonType)
       {
-        EXPECT_EQ(NonType->asType(), nullptr);
+        EXPECT_NE(NonType->valueKind(), ValueKind::Type);
       }
       for (Classifier Classof : Classifiers)
       {

@@ -157,7 +157,7 @@ namespace ink::ir
     return *Pointers.emplace(PointeeType).first;
   }
 
-  const FunctionType &TypePool::getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters, CallABI ABI)
+  const FunctionType &TypePool::getFunctionType(ValueRef ReturnType, std::span<const Parameter> Parameters, CallABI ABI, bool IsVariadic)
   {
     if (!ReturnType.get().isTypeValue())
     {
@@ -170,11 +170,11 @@ namespace ink::ir
         panic("TypePool requires function parameter types whose type is MetaType");
       }
     }
-    const auto Existing = Functions.find(FunctionType::Key{&ReturnType.get(), Parameters, ABI});
+    const auto Existing = Functions.find(FunctionType::Key{&ReturnType.get(), Parameters, ABI, IsVariadic});
     if (Existing != Functions.end())
     {
       return *Existing;
     }
-    return *Functions.emplace(ReturnType, Parameters, ABI).first;
+    return *Functions.emplace(ReturnType, Parameters, ABI, IsVariadic).first;
   }
 } // namespace ink::ir

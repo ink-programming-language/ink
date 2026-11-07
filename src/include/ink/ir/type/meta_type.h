@@ -34,7 +34,7 @@ namespace ink::ir
   }
 
   constexpr Type::Type(TypeKind Kind) noexcept
-      : Value(ValueRef{MetaType::instance()}),
+      : Value(ValueRef{MetaType::instance()}, ValueKind::Type),
         Kind(Kind)
   {
   }
