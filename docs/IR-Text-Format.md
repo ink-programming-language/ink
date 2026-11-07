@@ -7,7 +7,7 @@ std::expected<std::string, core::Diagnostic> writeModuleText(const Module &Modul
 std::expected<std::unique_ptr<ParsedModule>, core::Diagnostic> readModuleText(std::string_view Text);
 ```
 
-读取成功后，通过 `(*Result)->module()` 访问 Module。`ParsedModule` 同时拥有类型池、常量池和 Module；使用读取后的任何节点时都必须保留该 owner。失败返回 Core 的 `IRTextInvalid`（`INK-I0002`）诊断，不触发 fatal IR verifier。读取错误的 `SourceRange` 是输入文本中的字节范围；调用方可补充 `SourceId` 后交给诊断引擎。
+读取成功后，通过 `(*Result)->module()` 访问 Module。`ParsedModule` 同时拥有 `IRContext` 和 Module；`context()` 提供类型池、常量池和默认 Builder，`types()`、`constants()` 保留为上下文的转发入口。文本读取使用该 Builder，成功返回时已清除插入点；调用方可重新设置插入点继续构建。使用读取后的任何节点时都必须保留该 owner。失败返回 Core 的 `IRTextInvalid`（`INK-I0002`）诊断，不触发 fatal IR verifier。读取错误的 `SourceRange` 是输入文本中的字节范围；调用方可补充 `SourceId` 后交给诊断引擎。
 
 ## 文本示例
 

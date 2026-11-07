@@ -71,7 +71,7 @@ namespace ink::ir::text
               Types(Owned->types()),
               Constants(Owned->constants()),
               ModuleValue(Owned->module()),
-              Instructions(Types)
+              Instructions(Owned->context().builder())
         {
         }
 
@@ -86,6 +86,7 @@ namespace ink::ir::text
           {
             return std::unexpected(error(0, Description));
           }
+          Instructions.clearInsertPoint();
           return std::move(Owned);
         }
 
@@ -944,7 +945,7 @@ namespace ink::ir::text
         TypePool &Types;
         ConstantPool &Constants;
         Module &ModuleValue;
-        InstructionBuilder Instructions;
+        InstructionBuilder &Instructions;
         std::optional<core::Diagnostic> Failure;
         std::unordered_map<std::string_view, Definition> Definitions;
         std::unordered_map<std::string_view, const Value *> Values;

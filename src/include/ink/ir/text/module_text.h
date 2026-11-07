@@ -1,9 +1,8 @@
 #pragma once
 
 #include "ink/core/diagnostic/diagnostic.h"
-#include "ink/ir/constant/constant_pool.h"
+#include "ink/ir/ir_context.h"
 #include "ink/ir/module/module.h"
-#include "ink/ir/type/type_pool.h"
 
 #include <expected>
 #include <memory>
@@ -12,25 +11,29 @@
 
 namespace ink::ir
 {
-  // Owns a parsed module and every type/constant it borrows. Keep this owner alive while using the graph.
-  // The module is destroyed before the pools; record-owned methods are destroyed with the type pool.
+  // Owns a parsed module and its IR context. Keep this owner alive while using the graph.
+  // The module is destroyed before the context; record-owned methods are destroyed with the type pool.
   class ParsedModule final
   {
     public:
       explicit ParsedModule(core::Name Name = core::NAME_None)
-          : Constants(Types),
-            ModuleValue(Name)
+          : ModuleValue(Name)
       {
       }
 
-      TypePool &types() noexcept
+      auto &context(this auto &&Self) noexcept
       {
-        return Types;
+        return Self.Context;
       }
 
-      ConstantPool &constants() noexcept
+      auto &types(this auto &&Self) noexcept
       {
-        return Constants;
+        return Self.Context.types();
+      }
+
+      auto &constants(this auto &&Self) noexcept
+      {
+        return Self.Context.constants();
       }
 
       auto &module(this auto &&Self) noexcept
@@ -39,8 +42,7 @@ namespace ink::ir
       }
 
     private:
-      TypePool Types;
-      ConstantPool Constants;
+      IRContext Context;
       Module ModuleValue;
   };
 

@@ -1,6 +1,6 @@
 #include "ink/core/diagnostic/diagnostic_formatter.h"
 #include "ink/core/name/name_pool.h"
-#include "ink/ir/instruction/instruction_builder.h"
+#include "ink/ir/ir_context.h"
 #include "ink/ir/text/module_text.h"
 
 #include <spdlog/logger.h>
@@ -19,8 +19,9 @@ int main()
 
   using namespace ink::ir;
   ink::core::NamePool &Names = ink::core::NamePool::instance();
-  TypePool Types;
-  ConstantPool Constants(Types);
+  IRContext Context;
+  TypePool &Types = Context.types();
+  ConstantPool &Constants = Context.constants();
   Module ModuleValue(Names.intern("RecordsAndMethods"));
   const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
   const IntegerType &UInt64 = Types.getIntegerType(IntegerType::Width::Bits64, IntegerType::Signedness::Unsigned);
@@ -36,7 +37,7 @@ int main()
   Counter.addField(Names.intern("Next"), Counter, MemberKind::Instance, SymbolVisibility::Private);
   Counter.addField(Names.intern("LiveCount"), UInt64, MemberKind::Static, SymbolVisibility::Private);
 
-  InstructionBuilder Builder(Types);
+  InstructionBuilder &Builder = Context.builder();
   Function &Sum = Point.addMethod(Types.getFunctionType(Int32, std::array{Parameter(Int32), Parameter(Int32)}), Names.intern("sum"), MemberKind::Static, SymbolVisibility::Public).function();
   Sum.argument(0).setName(Names.intern("x"));
   Sum.argument(1).setName(Names.intern("y"));
@@ -77,6 +78,7 @@ int main()
   LoadInstruction &Loaded = Builder.createLoad(Slot);
   static_cast<void>(Builder.createReturn(Loaded));
   ModuleValue.createGlobalVariable(Types.getPointerType(UInt64), Names.intern("LiveCounters"), SymbolVisibility::Public);
+  Builder.clearInsertPoint();
 
   auto Text = writeModuleText(ModuleValue);
   if (!Text)
