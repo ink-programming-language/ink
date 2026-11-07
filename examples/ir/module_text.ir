@@ -1,0 +1,41 @@
+module "RecordsAndMethods"
+{
+  %t0 = type struct
+  {
+    field public instance "X": i32;
+    field public instance "Y": i32;
+    method static define public none i32 @f0 name "sum"(positional i32 %a0 name "x", positional i32 %a1 name "y") abi ink cc default fixed
+    {
+      %bb0 name "entry":
+        %v0 = add %a0, %a1: i32;
+        return %v0;
+    }
+  }
+  %t1 = type class
+  {
+    field private instance "Value": i32;
+    field public instance "Origin": %t0;
+    field private instance "Next": %t1;
+    field private static "LiveCount": u64;
+    method instance define public none i32 @f1 name "applyDelta"(positional %t1 %a2 name "self", positional bool %a3 name "enabled", positional i32 %a4 name "current", named i32 %a5 name "delta") abi ink cc default fixed
+    {
+      %bb1 name "entry":
+        cond_branch %a3, %bb2, %bb3;
+      %bb2 name "apply":
+        %v1 = add %a4, %a5: i32;
+        branch %bb3;
+      %bb3 name "merge":
+        %v2 = phi [%a4, %bb1], [%v1, %bb2]: i32;
+        return %v2;
+    }
+    method static define private none i32 @f2 name "scratch"() abi ink cc default fixed
+    {
+      %bb4 name "entry":
+        %v3 = alloca i32: ptr<i32>;
+        store %v3, int<i32>(42);
+        %v4 = load %v3: i32;
+        return %v4;
+    }
+  }
+  global public none @g0 name "LiveCounters": ptr<u64>;
+}

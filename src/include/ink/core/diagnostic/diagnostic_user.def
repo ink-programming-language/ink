@@ -4,6 +4,8 @@
 
 // Errors and warnings reported for user source code.
 
+INK_DIAGNOSTIC(IRTextInvalid, 0x03000002U, IR, "INK-I0002", User, Error, "invalid IR text", "invalid IR text: {Description}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Description, String)))
+
 INK_DIAGNOSTIC(InvalidUtf8, 0x01000001U, Tokenizer, "INK-T0001", User, Error, "source is not valid UTF-8", "source is not valid UTF-8", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(UnexpectedBom, 0x01000002U, Tokenizer, "INK-T0002", User, Error, "a UTF-8 BOM is not permitted at the start of a source file", "a UTF-8 BOM is not permitted at the start of a source file", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(NullInSource, 0x01000003U, Tokenizer, "INK-T0003", User, Error, "a literal NUL byte is not permitted in source text", "a literal NUL byte is not permitted in source text", INK_DIAGNOSTIC_ARGUMENTS())
