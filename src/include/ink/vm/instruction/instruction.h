@@ -1,12 +1,17 @@
 #pragma once
 
-#include "ink/vm/instruction/address_operand.h"
-#include "ink/vm/instruction/opcode.h"
-
-#include <optional>
+#include <cstdint>
+#include <string_view>
 
 namespace ink::vm
 {
+  enum class Opcode : std::uint16_t
+  {
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount) Kind = Encoding,
+#include "ink/vm/instruction/opcode.def"
+#undef OPCODE
+  };
+
   class Instruction
   {
     public:
@@ -15,28 +20,34 @@ namespace ink::vm
         return Operation;
       }
 
-      std::string_view getName() const noexcept
+      constexpr std::string_view getName() const noexcept
       {
-        return opcodeName(Operation);
+        switch (Operation)
+        {
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount) case Opcode::Kind: return Spelling;
+#include "ink/vm/instruction/opcode.def"
+#undef OPCODE
+        }
+        return "InvalidOpcode";
       }
 
-      std::uint32_t bitWidth() const noexcept
+      constexpr std::uint32_t bitWidth() const noexcept
       {
-        return opcodeBitWidth(Operation);
-      }
-
-      constexpr const std::optional<AddressOperand> &getResult() const noexcept
-      {
-        return Result;
+        switch (Operation)
+        {
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount) case Opcode::Kind: return Width;
+#include "ink/vm/instruction/opcode.def"
+#undef OPCODE
+        }
+        return 0;
       }
 
       Instruction(const Instruction &) = delete;
       Instruction &operator=(const Instruction &) = delete;
 
     protected:
-      constexpr Instruction(Opcode Operation, std::optional<AddressOperand> Result) noexcept
-          : Operation(Operation),
-            Result(Result)
+      constexpr explicit Instruction(Opcode Operation) noexcept
+          : Operation(Operation)
       {
       }
 
@@ -44,6 +55,5 @@ namespace ink::vm
 
     private:
       Opcode Operation;
-      std::optional<AddressOperand> Result;
   };
 } // namespace ink::vm

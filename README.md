@@ -100,7 +100,7 @@ IR 指令位于 `ink/ir/instruction`，`Instruction` 继承 `Value`，通过 `ge
 
 常量池使用三个 `std::unordered_set` 直接持有常量对象，不额外保存一份 key 或使用 `unique_ptr`。常量及公开的数字查询键 `IntegerConstant::Key` 和 `FloatConstant::Key` 提供 `hash()` 成员，三个池分别使用 `core::Hash<IntegerConstant>`、`core::Hash<FloatConstant>` 和 `core::Hash<StringConstant>`，模板参数均为容器自身的 `key_type`。对象及数字查询键优先调用自身的 `hash()`，`StringConstant::hash(std::string_view)` 静态重载将字符串查询统一为字节视图。相等判断通过各类型的成员 `operator==` 和 `std::equal_to<>` 完成。整数使用位宽、符号属性和完整的 64 位位模式，浮点使用位宽和完整的 64 位位模式，字符串使用 `std::string_view` 的完整字节内容；哈希与相等判断使用相同字段，命中时无需构造常量或复制字符串。三个常量类型的构造函数公开，调用方可直接构造，并负责保证所借用的类型比常量存活更久。常量仍不可复制或移动，池在节点内原地构造常量；rehash 不使已返回的常量指针、引用或字符串视图失效。
 
-VM 指令和对象文件由独立的 `ink::vm` 库提供，仅依赖 `ink::core`，命名空间为 `ink::vm`。公共头文件分别位于 `src/include/ink/vm/instruction` 和 `src/include/ink/vm/object`，实现和测试位于 `src/lib/vm` 和 `src/testcase/vm` 的对应子目录。指令基类 `Instruction` 保存操作码和可选的结果地址，提供名称、位宽和结果地址查询；具体指令使用地址或立即数操作数，通过具体派生类型管理生命周期。IR 的 `Type` 和 `Value` 仍由 `ink::ir` 提供。对象文件 API 负责对象结构验证、二进制读写和显式错误报告，格式详见 [对象文件格式](docs/Ink-Object-Format.md)。
+VM 指令和对象文件由独立的 `ink::vm` 库提供，仅依赖 `ink::core`，命名空间为 `ink::vm`。指令目录暂只保留 `instruction.h` 和 `opcode.def`：`Opcode` 枚举由定义表生成，`Instruction` 基类仅保存操作码并提供名称和位宽查询；具体指令、操作数及编码查询已移除，等待运行时约定确定后重新设计。VM 通过 `add64rri` 等寄存器加法调整栈顶；加法后缀按目标、左来源、右来源描述 `r/m/i` 类别，定义表分别记录寄存器、内存地址和立即数的操作数数量，具体操作数编码尚未确定。运行时的逻辑寄存器、栈传参及栈空间预留约定见 [VM 运行时设计讨论稿](docs/VM-Runtime.md)。IR 的 `Type` 和 `Value` 仍由 `ink::ir` 提供。对象文件 API 位于 `src/include/ink/vm/object`，负责对象结构验证、二进制读写和显式错误报告，实现和测试分别位于 `src/lib/vm/object` 和 `src/testcase/vm/object`，格式详见 [对象文件格式](docs/Ink-Object-Format.md)。
 
 成对的 const／非 const 访问器使用 C++23 显式对象参数合并定义，保持原来的引用、指针和只读节点数组返回类型。值成员直接通过 `Self` 访问；借用引用和指针指向的对象使用 `std::forward_like<decltype(Self) &>` 传播只读属性，并保持右值调用仍返回借用的左值引用或指针。所有借用结果仍受原对象及底层存储的生命周期约束。
 
