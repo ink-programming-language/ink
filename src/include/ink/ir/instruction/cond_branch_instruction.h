@@ -15,7 +15,7 @@ namespace ink::ir
 
       constexpr CondBranchInstruction(ValueRef ResultType, ValueRef Condition, BasicBlock &TrueTarget, BasicBlock &FalseTarget) noexcept
           : Instruction(Kind, ResultType),
-            Condition(Condition.get()),
+            Condition(Condition),
             TrueTarget(TrueTarget),
             FalseTarget(FalseTarget)
       {
@@ -28,7 +28,7 @@ namespace ink::ir
 
       constexpr const Value &getCondition() const noexcept
       {
-        return Condition;
+        return Condition.get();
       }
 
       constexpr auto &getTrueTarget(this auto &&Self) noexcept
@@ -42,7 +42,9 @@ namespace ink::ir
       }
 
     private:
-      const Value &Condition;
+      friend struct detail::InstructionOperands<CondBranchInstruction>;
+
+      ValueRef Condition;
       BasicBlock &TrueTarget;
       BasicBlock &FalseTarget;
   };

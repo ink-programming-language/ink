@@ -14,8 +14,8 @@ namespace ink::ir
 
       constexpr StoreInstruction(ValueRef ValueType, ValueRef Destination, ValueRef Source) noexcept
           : Instruction(Kind, ValueType),
-            Destination(Destination.get()),
-            Source(Source.get())
+            Destination(Destination),
+            Source(Source)
       {
       }
 
@@ -26,16 +26,18 @@ namespace ink::ir
 
       constexpr const Value &getDestination() const noexcept
       {
-        return Destination;
+        return Destination.get();
       }
 
       constexpr const Value &getSource() const noexcept
       {
-        return Source;
+        return Source.get();
       }
 
     private:
-      const Value &Destination;
-      const Value &Source;
+      friend struct detail::InstructionOperands<StoreInstruction>;
+
+      ValueRef Destination;
+      ValueRef Source;
   };
 } // namespace ink::ir

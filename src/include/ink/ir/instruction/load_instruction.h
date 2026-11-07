@@ -13,7 +13,7 @@ namespace ink::ir
 
       constexpr LoadInstruction(ValueRef ResultType, ValueRef Source) noexcept
           : Instruction(Kind, ResultType),
-            Source(Source.get())
+            Source(Source)
       {
       }
 
@@ -24,10 +24,12 @@ namespace ink::ir
 
       constexpr const Value &getSource() const noexcept
       {
-        return Source;
+        return Source.get();
       }
 
     private:
-      const Value &Source;
+      friend struct detail::InstructionOperands<LoadInstruction>;
+
+      ValueRef Source;
   };
 } // namespace ink::ir

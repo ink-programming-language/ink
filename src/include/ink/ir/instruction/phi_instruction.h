@@ -65,6 +65,8 @@ namespace ink::ir
       }
 
     private:
+      friend struct detail::InstructionOperands<PhiInstruction>;
+
       BasicBlock &incomingBlockAt(std::size_t Index) const noexcept;
 
       std::vector<Incoming> IncomingValues = {};

@@ -13,8 +13,8 @@ namespace ink::ir
 
       constexpr AddInstruction(ValueRef LHS, ValueRef RHS) noexcept
           : Instruction(Kind, LHS.get().getType()),
-            LHS(LHS.get()),
-            RHS(RHS.get())
+            LHS(LHS),
+            RHS(RHS)
       {
       }
 
@@ -25,16 +25,18 @@ namespace ink::ir
 
       constexpr const Value &getLHS() const noexcept
       {
-        return LHS;
+        return LHS.get();
       }
 
       constexpr const Value &getRHS() const noexcept
       {
-        return RHS;
+        return RHS.get();
       }
 
     private:
-      const Value &LHS;
-      const Value &RHS;
+      friend struct detail::InstructionOperands<AddInstruction>;
+
+      ValueRef LHS;
+      ValueRef RHS;
   };
 } // namespace ink::ir

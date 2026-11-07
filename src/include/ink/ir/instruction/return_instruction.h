@@ -34,6 +34,8 @@ namespace ink::ir
       }
 
     private:
+      friend struct detail::InstructionOperands<ReturnInstruction>;
+
       const Value *ReturnValue = nullptr;
   };
 } // namespace ink::ir

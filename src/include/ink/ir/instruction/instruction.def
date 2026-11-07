@@ -1,6 +1,7 @@
 // INSTRUCTION(Kind, Number, Class, Spelling).
 // Intentionally has no include guard: callers define INSTRUCTION before inclusion.
 // Numbers explicitly define InstructionKind values.
+// Each Class must provide detail::InstructionOperands<Class> in instruction.cpp; this list also generates operand dispatch.
 INSTRUCTION(Add, 0, AddInstruction, "add")
 INSTRUCTION(Return, 1, ReturnInstruction, "return")
 INSTRUCTION(Alloca, 2, AllocaInstruction, "alloca")
