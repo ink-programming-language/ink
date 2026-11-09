@@ -6,12 +6,12 @@ file(GLOB_RECURSE INK_CORE_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURC
 file(GLOB_RECURSE INK_TOKENIZER_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tokenizer/*_test.cpp")
 file(GLOB_RECURSE INK_PARSER_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/parser/*_test.cpp")
 file(GLOB_RECURSE INK_IR_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/IR/*_test.cpp")
-file(GLOB_RECURSE INK_VM_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vm/*_test.cpp")
+file(GLOB_RECURSE INK_BACKEND_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/backend/*_test.cpp")
 list(SORT INK_CORE_TEST_SOURCES)
 list(SORT INK_TOKENIZER_TEST_SOURCES)
 list(SORT INK_PARSER_TEST_SOURCES)
 list(SORT INK_IR_TEST_SOURCES)
-list(SORT INK_VM_TEST_SOURCES)
+list(SORT INK_BACKEND_TEST_SOURCES)
 
 # Keep tokenizer-specific test definitions on their object target while linking every active test into one executable.
 # UTF-8 test literals are converted explicitly from char8_t to the tokenizer's byte strings.
@@ -21,7 +21,7 @@ target_compile_definitions(ink_tokenizer_test_objects PRIVATE INK_LEXICAL_RULES_
 target_link_libraries(ink_tokenizer_test_objects PRIVATE ink::core GTest::gtest)
 ink_disable_exceptions(ink_tokenizer_test_objects)
 
-add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_IR_TEST_SOURCES} ${INK_VM_TEST_SOURCES})
+add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_IR_TEST_SOURCES} ${INK_BACKEND_TEST_SOURCES})
 add_dependencies(ink_tests ink_tokenize ink_parse inkc)
 target_compile_features(ink_tests PRIVATE cxx_std_23)
 target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::frontend ink::ir ink::vm ink::llvm GTest::gtest_main GTest::gmock spdlog::spdlog)

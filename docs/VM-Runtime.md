@@ -10,6 +10,8 @@
 
 逻辑寄存器属于 VM 的可见执行状态，与宿主 CPU 的寄存器分配无关。解释器计算有效地址、解码操作数时使用的宿主临时变量不增加 VM 的逻辑寄存器。
 
+[VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录常量、全局数据和栈帧描述。该模型独立于执行器和对象文件容器；本文后续的调用约定建议仍不等同于已实现的执行行为。
+
 ## 寄存器与符号引用编号
 
 `register.def` 通过 `REGISTER(Kind, Encoding, Spelling)` 定义寄存器，`register.h` 据此提供底层类型为 `std::uint8_t` 的 `RegisterId`：
