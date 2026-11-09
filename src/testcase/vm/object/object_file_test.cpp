@@ -85,8 +85,8 @@ namespace ink::vm::test
     EXPECT_EQ(Error->RecordIndex, RecordIndex);
   }
 
-  // A new object has the default header and symbol-free BP, SP, and PC slots without requiring code or symbols.
-  TEST(VMObjectFileTest, AcceptsEmptyObjectWithThreeReservedBaseSlots)
+  // A new object has the current header and an empty symbol-reference table without register placeholders.
+  TEST(VMObjectFileTest, AcceptsEmptyObjectWithoutReservedBaseSlots)
   {
     core::test::ScopedEnvironmentVariable FormatEnvironment("INK_OBJECT_FORMAT_VERSION");
     core::test::ScopedEnvironmentVariable InstructionSetEnvironment("INK_OBJECT_INSTRUCTION_SET_VERSION");
@@ -94,8 +94,8 @@ namespace ink::vm::test
     ASSERT_TRUE(InstructionSetEnvironment.set(nullptr));
     const ObjectFile Object;
     EXPECT_EQ(Object.getHeader().getMagic(), ObjectFileMagic);
-    EXPECT_EQ(Object.getHeader().getFormatVersion(), core::Version(1, 0, 0));
-    EXPECT_EQ(Object.getHeader().getFormatVersion().toString(), "1.0.0");
+    EXPECT_EQ(Object.getHeader().getFormatVersion(), core::Version(2, 0, 0));
+    EXPECT_EQ(Object.getHeader().getFormatVersion().toString(), "2.0.0");
     EXPECT_EQ(Object.getHeader().getInstructionSetVersion(), core::Version(1, 0, 0));
     EXPECT_EQ(Object.getHeader().getInstructionSetVersion().toString(), "1.0.0");
     EXPECT_EQ(Object.getHeader().getAddressBitWidth(), 64U);
@@ -103,11 +103,7 @@ namespace ink::vm::test
     EXPECT_TRUE(Object.getConstants().getBytes().empty());
     EXPECT_EQ(Object.getGlobalStorage().getByteSize(), 0U);
     EXPECT_TRUE(Object.getGlobalStorage().getInitialBytes().empty());
-    ASSERT_EQ(Object.getBaseReferences().getEntries().size(), 3U);
-    for (const auto &Reference : Object.getBaseReferences().getEntries())
-    {
-      EXPECT_FALSE(Reference.SymbolIndex.has_value());
-    }
+    EXPECT_TRUE(Object.getBaseReferences().getEntries().empty());
     EXPECT_FALSE(ObjectFileValidator::validate(Object).has_value());
   }
 
@@ -122,8 +118,10 @@ namespace ink::vm::test
     EXPECT_FALSE(Object.getSymbols().getEntries()[0].isImport());
     EXPECT_TRUE(Object.getSymbols().getEntries()[5].isImport());
     EXPECT_TRUE(Object.getSymbols().getEntries()[6].isImport());
-    ASSERT_TRUE(Object.getBaseReferences().getEntries()[5].SymbolIndex.has_value());
-    EXPECT_EQ(*Object.getBaseReferences().getEntries()[5].SymbolIndex, 5U);
+    ASSERT_EQ(Object.getBaseReferences().getEntries().size(), 4U);
+    EXPECT_EQ(Object.getBaseReferences().getEntries()[0].SymbolIndex, 0U);
+    EXPECT_EQ(Object.getBaseReferences().getEntries()[2].SymbolIndex, 5U);
+    EXPECT_EQ(Object.getBaseReferences().getEntries()[3].SymbolIndex, 6U);
     ASSERT_TRUE(Object.getDebugInfo().has_value());
     EXPECT_EQ(Object.getSymbols().getEntries()[0].Definition->Section, ObjectSectionKind::Code);
     EXPECT_EQ(Object.getSymbols().getEntries()[1].Definition->ByteOffset, 4U);
@@ -143,14 +141,14 @@ namespace ink::vm::test
     Original.getGlobalStorage().getInitialBytes()[0] = 99;
     Original.getSymbols().getEntries()[0].Name = "changed";
     Original.getSymbols().getEntries()[0].Definition->ByteSize = 2;
-    Original.getBaseReferences().getEntries()[3].SymbolIndex = 6;
+    Original.getBaseReferences().getEntries()[0].SymbolIndex = 6;
     Original.getDebugInfo()->getSourceFiles()[0] = "changed.ink";
     EXPECT_EQ(Copy.getCode().getBytes()[0], 0xFF);
     EXPECT_EQ(Copy.getConstants().getBytes()[0], 'o');
     EXPECT_EQ(Copy.getGlobalStorage().getInitialBytes()[0], 1U);
     EXPECT_EQ(Copy.getSymbols().getEntries()[0].Name, "entry");
     EXPECT_EQ(Copy.getSymbols().getEntries()[0].Definition->ByteSize, 4U);
-    EXPECT_EQ(*Copy.getBaseReferences().getEntries()[3].SymbolIndex, 0U);
+    EXPECT_EQ(Copy.getBaseReferences().getEntries()[0].SymbolIndex, 0U);
     EXPECT_EQ(Copy.getDebugInfo()->getSourceFiles()[0], "main.ink");
     EXPECT_FALSE(ObjectFileValidator::validate(Copy).has_value());
   }
@@ -165,17 +163,27 @@ namespace ink::vm::test
     ObjectFile Object = makeValidObjectFile();
     Object.getHeader().getMagic()[0] = 'X';
     expectObjectError(Object, ObjectValidationErrorKind::InvalidHeader, 0);
-    const core::Version InvalidVersions[] = {
-        core::Version(2, 0, 0),
-        core::Version(1, 1, 0),
-        core::Version(1, 0, 1),
+    const core::Version InvalidFormatVersions[] = {
+        core::Version(1, 0, 0),
+        core::Version(3, 0, 0),
+        core::Version(2, 1, 0),
+        core::Version(2, 0, 1),
     };
-    for (const auto &Version : InvalidVersions)
+    for (const auto &Version : InvalidFormatVersions)
     {
       SCOPED_TRACE(Version.toString());
       Object = makeValidObjectFile();
       Object.getHeader().getFormatVersion() = Version;
       expectObjectError(Object, ObjectValidationErrorKind::InvalidHeader, 0);
+    }
+    const core::Version InvalidInstructionSetVersions[] = {
+        core::Version(2, 0, 0),
+        core::Version(1, 1, 0),
+        core::Version(1, 0, 1),
+    };
+    for (const auto &Version : InvalidInstructionSetVersions)
+    {
+      SCOPED_TRACE(Version.toString());
       Object = makeValidObjectFile();
       Object.getHeader().getInstructionSetVersion() = Version;
       expectObjectError(Object, ObjectValidationErrorKind::InvalidHeader, 0);
@@ -338,31 +346,35 @@ namespace ink::vm::test
     expectObjectError(Object, ObjectValidationErrorKind::InvalidSymbol, 5);
   }
 
-  // BP, SP, and PC must exist without symbols, and dynamic slots must hold valid object-local symbol indices.
-  TEST(VMObjectFileTest, RejectsMissingReservedOrDanglingBaseReferences)
+  // A symbol table may have no references, and slot zero can directly name a definition or an unresolved import.
+  TEST(VMObjectFileTest, AcceptsEmptyAndZeroBasedSymbolReferences)
   {
     ObjectFile Object = makeValidObjectFile();
     Object.getBaseReferences().getEntries().clear();
-    expectObjectError(Object, ObjectValidationErrorKind::InvalidBaseReference, 0);
-    Object = makeValidObjectFile();
-    Object.getBaseReferences().getEntries().resize(1);
-    expectObjectError(Object, ObjectValidationErrorKind::InvalidBaseReference, 1);
-    Object = makeValidObjectFile();
-    Object.getBaseReferences().getEntries().resize(2);
-    expectObjectError(Object, ObjectValidationErrorKind::InvalidBaseReference, 2);
-    for (std::uint64_t Index = 0; Index < 3; ++Index)
+    EXPECT_FALSE(ObjectFileValidator::validate(Object).has_value());
+    Object.getBaseReferences().getEntries().push_back({0});
+    EXPECT_FALSE(ObjectFileValidator::validate(Object).has_value());
+    Object.getBaseReferences().getEntries()[0].SymbolIndex = 5;
+    EXPECT_FALSE(ObjectFileValidator::validate(Object).has_value());
+    EXPECT_TRUE(Object.getSymbols().getEntries()[Object.getBaseReferences().getEntries()[0].SymbolIndex].isImport());
+  }
+
+  // Every reference, including slot zero, must name an existing symbol rather than a register or an absent symbol.
+  TEST(VMObjectFileTest, RejectsDanglingBaseReferencesAtEverySlot)
+  {
+    const ObjectFile Valid = makeValidObjectFile();
+    for (std::uint64_t Index = 0; Index < Valid.getBaseReferences().getEntries().size(); ++Index)
     {
       SCOPED_TRACE(Index);
-      Object = makeValidObjectFile();
-      Object.getBaseReferences().getEntries()[Index].SymbolIndex = 0;
+      ObjectFile Object = Valid;
+      Object.getBaseReferences().getEntries()[Index].SymbolIndex = static_cast<std::uint32_t>(Object.getSymbols().getEntries().size());
+      expectObjectError(Object, ObjectValidationErrorKind::InvalidBaseReference, Index);
+      Object.getBaseReferences().getEntries()[Index].SymbolIndex = std::numeric_limits<std::uint32_t>::max();
       expectObjectError(Object, ObjectValidationErrorKind::InvalidBaseReference, Index);
     }
-    Object = makeValidObjectFile();
-    Object.getBaseReferences().getEntries()[4].SymbolIndex.reset();
-    expectObjectError(Object, ObjectValidationErrorKind::InvalidBaseReference, 4);
-    Object = makeValidObjectFile();
-    Object.getBaseReferences().getEntries()[4].SymbolIndex = 7;
-    expectObjectError(Object, ObjectValidationErrorKind::InvalidBaseReference, 4);
+    ObjectFile Empty;
+    Empty.getBaseReferences().getEntries().push_back({0});
+    expectObjectError(Empty, ObjectValidationErrorKind::InvalidBaseReference, 0);
   }
 
   // Debug records use global code offsets and reject dangling file indices, code-end offsets, and zero-based locations.

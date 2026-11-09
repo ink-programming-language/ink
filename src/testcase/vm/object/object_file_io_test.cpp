@@ -137,7 +137,7 @@ namespace ink::vm::test
 49 4e 4b 4f
 00
 40 00
-01 00 00 00
+02 00 00 00
 00 00 00 00
 00 00 00 00
 01 00 00 00
@@ -154,8 +154,8 @@ namespace ink::vm::test
 01 01 02
 01 00 00 00 00 00 00 00
 02 00 00 00 00 00 00 00
-04 00 00 00 00 00 00 00
-00 00 00 01 00 00 00 00
+01 00 00 00 00 00 00 00
+00 00 00 00
 01
 01 00 00 00 00 00 00 00
 01 00 00 00 00 00 00 00 73
@@ -173,7 +173,7 @@ namespace ink::vm::test
 49 4e 4b 4f
 01
 00 40
-00 00 00 01
+00 00 00 02
 00 00 00 00
 00 00 00 00
 00 00 00 01
@@ -190,8 +190,8 @@ namespace ink::vm::test
 01 01 02
 00 00 00 00 00 00 00 01
 00 00 00 00 00 00 00 02
-00 00 00 00 00 00 00 04
-00 00 00 01 00 00 00 00
+00 00 00 00 00 00 00 01
+00 00 00 00
 01
 00 00 00 00 00 00 00 01
 00 00 00 00 00 00 00 01 73
@@ -209,7 +209,7 @@ namespace ink::vm::test
 49 4e 4b 4f
 00
 40 00
-01 00 00 00
+02 00 00 00
 00 00 00 00
 00 00 00 00
 01 00 00 00
@@ -222,8 +222,7 @@ namespace ink::vm::test
 00 00 00 00 00 00 00 00
 00 00 00 00 00 00 00 00
 00 00 00 00 00 00 00 00
-03 00 00 00 00 00 00 00
-00 00 00
+00 00 00 00 00 00 00 00
 00
 )");
   }
@@ -383,7 +382,7 @@ namespace ink::vm::test
   TEST_F(VMObjectFileIOTest, MatchesIndependentLittleEndianGolden)
   {
     const auto Golden = littleEndianObjectGolden();
-    ASSERT_EQ(Golden.size(), 182U);
+    ASSERT_EQ(Golden.size(), 178U);
     const auto Expected = makeGoldenObject(ObjectByteOrder::Little);
     const auto Encoded = ObjectFileWriter::write(Expected);
     ASSERT_TRUE(Encoded.has_value());
@@ -397,7 +396,7 @@ namespace ink::vm::test
   TEST_F(VMObjectFileIOTest, MatchesIndependentBigEndianGolden)
   {
     const auto Golden = bigEndianObjectGolden();
-    ASSERT_EQ(Golden.size(), 182U);
+    ASSERT_EQ(Golden.size(), 178U);
     const auto Expected = makeGoldenObject(ObjectByteOrder::Big);
     const auto Encoded = ObjectFileWriter::write(Expected);
     ASSERT_TRUE(Encoded.has_value());
@@ -407,12 +406,47 @@ namespace ink::vm::test
     expectSameObjectContents(Expected, *Decoded);
   }
 
-  // An empty object has exactly 99 bytes, three symbol-free reserved slots, and an absent debug payload.
+  // Symbol references use exactly one endian-aware u32 per slot, with no presence byte or register entries.
+  TEST_F(VMObjectFileIOTest, EncodesSymbolReferenceIndicesAsFixedWidthIntegers)
+  {
+    const ObjectByteOrder Orders[] = {ObjectByteOrder::Little, ObjectByteOrder::Big};
+    const std::uint8_t ReferenceBytes[][4] = {
+        {0x00, 0x01, 0x00, 0x00},
+        {0x00, 0x00, 0x01, 0x00},
+    };
+    for (std::size_t OrderIndex = 0; OrderIndex < 2; ++OrderIndex)
+    {
+      SCOPED_TRACE(OrderIndex);
+      ObjectFile Object;
+      Object.getHeader().getByteOrder() = Orders[OrderIndex];
+      Object.getSymbols().getEntries().resize(257);
+      for (auto &Symbol : Object.getSymbols().getEntries())
+      {
+        Symbol.Name = "x";
+        Symbol.Definition = ObjectSymbolDefinition{ObjectSectionKind::Code, 0, 0};
+      }
+      Object.getBaseReferences().getEntries().push_back({256});
+      const auto Encoded = ObjectFileWriter::write(Object);
+      ASSERT_TRUE(Encoded.has_value());
+      ASSERT_EQ(Encoded->size(), 96U + 257U * 28U + 4U);
+      const auto ReferenceOffset = Encoded->size() - 5;
+      for (std::size_t ByteIndex = 0; ByteIndex < 4; ++ByteIndex)
+      {
+        EXPECT_EQ((*Encoded)[ReferenceOffset + ByteIndex], ReferenceBytes[OrderIndex][ByteIndex]);
+      }
+      const auto Decoded = ObjectFileReader::read(*Encoded);
+      ASSERT_TRUE(Decoded.has_value());
+      ASSERT_EQ(Decoded->getBaseReferences().getEntries().size(), 1U);
+      EXPECT_EQ(Decoded->getBaseReferences().getEntries()[0].SymbolIndex, 256U);
+    }
+  }
+
+  // An empty object has exactly 96 bytes, no register placeholders, and an absent debug payload.
   TEST_F(VMObjectFileIOTest, MatchesMinimalEmptyObjectWireLayout)
   {
     const ObjectFile Empty;
     const auto Golden = emptyObjectGolden();
-    ASSERT_EQ(Golden.size(), 99U);
+    ASSERT_EQ(Golden.size(), 96U);
     const auto Encoded = ObjectFileWriter::write(Empty);
     ASSERT_TRUE(Encoded.has_value());
     EXPECT_EQ(*Encoded, Golden);
@@ -428,7 +462,7 @@ namespace ink::vm::test
     Object.getDebugInfo().emplace();
     const auto Encoded = ObjectFileWriter::write(Object);
     ASSERT_TRUE(Encoded.has_value());
-    EXPECT_EQ(Encoded->size(), 115U);
+    EXPECT_EQ(Encoded->size(), 112U);
     const auto Decoded = ObjectFileReader::read(*Encoded);
     ASSERT_TRUE(Decoded.has_value());
     ASSERT_TRUE(Decoded->getDebugInfo().has_value());
@@ -440,7 +474,7 @@ namespace ink::vm::test
   TEST_F(VMObjectFileIOTest, RejectsEveryBytewiseTruncation)
   {
     const auto Golden = littleEndianObjectGolden();
-    ASSERT_EQ(Golden.size(), 182U);
+    ASSERT_EQ(Golden.size(), 178U);
     for (std::size_t Length = 0; Length < Golden.size(); ++Length)
     {
       SCOPED_TRACE(Length);
@@ -456,7 +490,7 @@ namespace ink::vm::test
     const auto Decoded = ObjectFileReader::read(Bytes);
     ASSERT_FALSE(Decoded.has_value());
     EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::TrailingData);
-    EXPECT_EQ(Decoded.error().ByteOffset, 182U);
+    EXPECT_EQ(Decoded.error().ByteOffset, 178U);
   }
 
   // Corrupted magic and unknown byte-order markers are rejected before an object can be returned.
@@ -470,10 +504,10 @@ namespace ink::vm::test
     EXPECT_FALSE(ObjectFileReader::read(Bytes).has_value());
   }
 
-  // Optional-definition, base-reference, and debug flags accept only the protocol's zero and one values.
+  // Optional-definition and debug flags accept only the protocol's zero and one values.
   TEST_F(VMObjectFileIOTest, RejectsNonBooleanPresenceFlags)
   {
-    const std::size_t FlagOffsets[] = {102, 131, 136};
+    const std::size_t FlagOffsets[] = {102, 132};
     for (const auto Offset : FlagOffsets)
     {
       SCOPED_TRACE(Offset);
@@ -516,7 +550,7 @@ namespace ink::vm::test
       overwriteLittleInteger(Bytes, Offset, std::numeric_limits<std::uint64_t>::max(), 8);
       EXPECT_FALSE(ObjectFileReader::read(Bytes).has_value());
     }
-    const std::size_t StringLengthOffsets[] = {92, 145};
+    const std::size_t StringLengthOffsets[] = {92, 141};
     for (const auto Offset : StringLengthOffsets)
     {
       SCOPED_TRACE(Offset);
@@ -537,13 +571,57 @@ namespace ink::vm::test
       overwriteLittleInteger(Bytes, Offset, std::numeric_limits<std::uint64_t>::max(), 8);
       EXPECT_FALSE(ObjectFileReader::read(Bytes).has_value());
     }
-    const std::size_t DebugCountOffsets[] = {137, 154};
+    const std::size_t DebugCountOffsets[] = {133, 150};
     for (const auto Offset : DebugCountOffsets)
     {
       SCOPED_TRACE(Offset);
       auto Bytes = littleEndianObjectGolden();
       overwriteLittleInteger(Bytes, Offset, std::numeric_limits<std::uint64_t>::max(), 8);
       EXPECT_FALSE(ObjectFileReader::read(Bytes).has_value());
+    }
+  }
+
+  // Reference counts require four available bytes per record before the reader allocates the table.
+  TEST_F(VMObjectFileIOTest, RejectsReferenceCountsWithoutCompleteIntegerPayloads)
+  {
+    auto Bytes = emptyObjectGolden();
+    overwriteLittleInteger(Bytes, 87, 1, 8);
+    Bytes.resize(98, 0);
+    const auto Decoded = ObjectFileReader::read(Bytes);
+    ASSERT_FALSE(Decoded.has_value());
+    EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::UnexpectedEnd);
+    EXPECT_EQ(Decoded.error().ByteOffset, 87U);
+  }
+
+  // The u32 index space allows 2^32 records, while a larger count fails as an unrepresentable table.
+  TEST_F(VMObjectFileIOTest, ChecksReferenceCountIndexCapacityBeforeAllocation)
+  {
+    auto Bytes = emptyObjectGolden();
+    const auto MaximumCount = static_cast<std::uint64_t>(std::numeric_limits<std::uint32_t>::max()) + 1;
+    overwriteLittleInteger(Bytes, 87, MaximumCount, 8);
+    const auto MissingPayload = ObjectFileReader::read(Bytes);
+    ASSERT_FALSE(MissingPayload.has_value());
+    EXPECT_EQ(MissingPayload.error().Kind, ObjectFileIOErrorKind::UnexpectedEnd);
+    EXPECT_EQ(MissingPayload.error().ByteOffset, 87U);
+    overwriteLittleInteger(Bytes, 87, MaximumCount + 1, 8);
+    const auto Overflow = ObjectFileReader::read(Bytes);
+    ASSERT_FALSE(Overflow.has_value());
+    EXPECT_EQ(Overflow.error().Kind, ObjectFileIOErrorKind::InvalidObject);
+    ASSERT_TRUE(Overflow.error().ValidationError.has_value());
+    EXPECT_EQ(Overflow.error().ValidationError->Kind, ObjectValidationErrorKind::TooManyRecords);
+  }
+
+  // Each missing byte of a symbol-index payload is rejected rather than treated as an absent reference.
+  TEST_F(VMObjectFileIOTest, RejectsTruncatedSymbolReferenceIndices)
+  {
+    const auto Golden = littleEndianObjectGolden();
+    for (std::size_t Length = 128; Length < 132; ++Length)
+    {
+      SCOPED_TRACE(Length);
+      const auto Decoded = ObjectFileReader::read(std::span<const std::uint8_t>(Golden.data(), Length));
+      ASSERT_FALSE(Decoded.has_value());
+      EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::UnexpectedEnd);
+      EXPECT_EQ(Decoded.error().ByteOffset, 120U);
     }
   }
 
@@ -561,7 +639,7 @@ namespace ink::vm::test
     const Case Cases[] = {
         {41, 3, 8, ObjectValidationErrorKind::InvalidConstantSection, 0},
         {58, 3, 8, ObjectValidationErrorKind::InvalidGlobalStorage, 0},
-        {132, 1, 4, ObjectValidationErrorKind::InvalidBaseReference, 3},
+        {128, 1, 4, ObjectValidationErrorKind::InvalidBaseReference, 0},
     };
     for (const auto &Entry : Cases)
     {
@@ -585,7 +663,7 @@ namespace ink::vm::test
     {
       SCOPED_TRACE(Offset);
       auto Bytes = emptyObjectGolden();
-      Bytes[Offset] = Offset == 5 ? 32 : 2;
+      Bytes[Offset] = Offset == 5 ? 32 : 3;
       const auto Decoded = ObjectFileReader::read(Bytes);
       ASSERT_FALSE(Decoded.has_value());
       EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::InvalidObject);
@@ -594,11 +672,26 @@ namespace ink::vm::test
     }
   }
 
+  // Version 1 objects carrying reserved register slots are rejected before their obsolete records are decoded.
+  TEST_F(VMObjectFileIOTest, RejectsLegacyObjectFormatWithReservedRegisterSlots)
+  {
+    auto Bytes = emptyObjectGolden();
+    overwriteLittleInteger(Bytes, 7, 1, 4);
+    overwriteLittleInteger(Bytes, 87, 3, 8);
+    Bytes.insert(Bytes.end() - 1, 3, 0);
+    ASSERT_EQ(Bytes.size(), 99U);
+    const auto Decoded = ObjectFileReader::read(Bytes);
+    ASSERT_FALSE(Decoded.has_value());
+    EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::InvalidObject);
+    ASSERT_TRUE(Decoded.error().ValidationError.has_value());
+    EXPECT_EQ(Decoded.error().ValidationError->Kind, ObjectValidationErrorKind::InvalidHeader);
+  }
+
   // Invalid source objects are rejected with their validation error before binary encoding begins.
   TEST_F(VMObjectFileIOTest, WriterRejectsInvalidObject)
   {
     auto Object = makeCompleteIOObject(ObjectByteOrder::Little);
-    Object.getBaseReferences().getEntries()[0].SymbolIndex = 0;
+    Object.getBaseReferences().getEntries()[0].SymbolIndex = static_cast<std::uint32_t>(Object.getSymbols().getEntries().size());
     const auto Encoded = ObjectFileWriter::write(Object);
     ASSERT_FALSE(Encoded.has_value());
     EXPECT_EQ(Encoded.error().Kind, ObjectFileIOErrorKind::InvalidObject);
@@ -654,7 +747,7 @@ namespace ink::vm::test
       ASSERT_TRUE(Output.good());
     }
     ObjectFile Invalid;
-    Invalid.getBaseReferences().getEntries().clear();
+    Invalid.getBaseReferences().getEntries().push_back({0});
     const auto Written = ObjectFileWriter::writeFile(Invalid, Directory.filePath());
     ASSERT_FALSE(Written.has_value());
     EXPECT_EQ(Written.error().Kind, ObjectFileIOErrorKind::InvalidObject);

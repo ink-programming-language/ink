@@ -1,6 +1,8 @@
 # Ink object binary format
 
-This format serializes the logical contents of `ink::vm::ObjectFile`. Its default format and instruction-set versions are both `1.0.0`; the supported versions are read through `ConfigManager`.
+This format serializes the logical contents of `ink::vm::ObjectFile`. Its default object format version is `2.0.0`, and its default instruction-set version remains `1.0.0`; the supported versions are read through `ConfigManager`.
+
+Object format `2.0.0` removes the reserved BP/SP/PC base-reference entries and the optional-symbol flag from each base-reference record. This is a breaking container-format change. Readers using the defaults reject objects declaring format `1.0.0`; no legacy decoder or automatic migration is provided. Overriding the configured version does not restore the old record encoding. The first operand encoding specification retains instruction-set version `1.0.0`; see [VM instruction encoding](VM-Instruction-Format.md). Instruction codecs are not yet implemented.
 
 Fields appear in the order below. There is no implicit padding, native pointer, C++ object layout, or terminating byte after a string. All sizes and offsets are byte counts. Section alignment describes loaded storage and does not insert padding into the file.
 
@@ -62,14 +64,15 @@ Local and exported symbols require definitions. Imported symbols have none. Impo
 
 ## Base references
 
-A `u64` entry count is followed by that many records:
+A `u64` entry count is followed by that many records, each exactly four bytes:
 
 | Field | Encoding |
 | --- | --- |
-| Symbol index present | `u8`: absent `0`, present `1` |
-| Symbol index, if present | `u32` |
+| Symbol index | `u32`, a required valid index into the object's symbol table |
 
-Entries `0`, `1`, and `2` are required and have no symbol index: they represent BP, SP, and PC. Subsequent entries require valid object-local symbol indices. Counts of index-addressable tables must fit the model's 32-bit indices.
+The table is empty by default. Its entry indices start at `0` and map only to object-local symbols, including unresolved imports. There are no reserved register entries or per-record presence flags. Counts of index-addressable tables must fit the model's 32-bit indices.
+
+Registers use the independent `RegisterId` numbering space: BP is `0`, SP is `1`, and PC is `2`. A base-reference index of `0` denotes the first symbol reference, not BP. [VM instruction encoding](VM-Instruction-Format.md) distinguishes register-relative addresses from symbol-relative addresses with a compact base prefix; the symbol-reference index carried by an instruction is an index into this base-reference table, whose entry then identifies a symbol.
 
 ## Debug information
 
@@ -88,4 +91,4 @@ Code offsets address the whole code buffer. Source-file indices are object local
 
 Both classes report failures through `std::expected` and `ObjectFileIOError`. Structural validation errors retain the `ObjectFileValidator` error kind and record index. Decoder errors carry a byte offset. Lengths and counts are checked against the remaining input before allocating their contents.
 
-An empty valid object without debug information occupies 99 bytes, including the three empty base-reference entries.
+An empty valid object without debug information occupies 96 bytes: 31 header bytes, 8 code-count bytes, 16 constant-section bytes, 24 global-storage bytes, 8 symbol-count bytes, 8 base-reference-count bytes, and 1 debug-presence byte. It contains no base-reference records.

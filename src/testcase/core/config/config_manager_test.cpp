@@ -99,9 +99,9 @@ namespace ink::core::test
     ScopedEnvironmentVariable InstructionSetEnvironment("INK_OBJECT_INSTRUCTION_SET_VERSION");
     ASSERT_TRUE(FormatEnvironment.set(nullptr));
     ASSERT_TRUE(InstructionSetEnvironment.set(nullptr));
-    EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectFormatVersion>(), "1.0.0");
+    EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectFormatVersion>(), "2.0.0");
     EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectInstructionSetVersion>(), "1.0.0");
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(1, 0, 0));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(2, 0, 0));
     EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 0, 0));
   }
 
@@ -126,7 +126,7 @@ namespace ink::core::test
     EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(9, 8, 7));
     ASSERT_TRUE(FormatEnvironment.set(nullptr));
     ASSERT_TRUE(InstructionSetEnvironment.set(nullptr));
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(1, 0, 0));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(2, 0, 0));
     EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 0, 0));
   }
 
@@ -173,7 +173,7 @@ namespace ink::core::test
       ASSERT_TRUE(InstructionSetEnvironment.set(Value));
       EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectFormatVersion>(), Value);
       EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectInstructionSetVersion>(), Value);
-      EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(1, 0, 0));
+      EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(2, 0, 0));
       EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 0, 0));
     }
   }
@@ -197,7 +197,7 @@ namespace ink::core::test
     ASSERT_TRUE(InstructionSetEnvironment.set(""));
     EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectFormatVersion>(), "");
     EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectInstructionSetVersion>(), "");
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(1, 0, 0));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(2, 0, 0));
     EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 0, 0));
   }
 #endif

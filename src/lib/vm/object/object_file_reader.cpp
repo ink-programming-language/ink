@@ -256,27 +256,16 @@ namespace ink::vm
 
     auto &BaseReferences = Object.getBaseReferences().getEntries();
     std::uint64_t BaseReferenceCount = 0;
-    if (!Input.readCount(BaseReferenceCount, 1, BaseReferences, true))
+    if (!Input.readCount(BaseReferenceCount, 4, BaseReferences, true))
     {
       return std::unexpected(Input.error());
     }
-    BaseReferences.clear();
     BaseReferences.resize(static_cast<std::size_t>(BaseReferenceCount));
     for (auto &Reference : BaseReferences)
     {
-      bool HasSymbol = false;
-      if (!Input.readMarker(HasSymbol))
+      if (!Input.readInteger(Reference.SymbolIndex))
       {
         return std::unexpected(Input.error());
-      }
-      if (HasSymbol)
-      {
-        std::uint32_t SymbolIndex = 0;
-        if (!Input.readInteger(SymbolIndex))
-        {
-          return std::unexpected(Input.error());
-        }
-        Reference.SymbolIndex = SymbolIndex;
       }
     }
 

@@ -157,11 +157,7 @@ namespace ink::vm
     }
     for (const auto &Reference : BaseReferences)
     {
-      if (!Buffer.appendUnsigned(Reference.SymbolIndex.has_value() ? 1 : 0, 1))
-      {
-        return Buffer.sizeOverflow();
-      }
-      if (Reference.SymbolIndex && !Buffer.appendUnsigned(*Reference.SymbolIndex, 4))
+      if (!Buffer.appendUnsigned(Reference.SymbolIndex, 4))
       {
         return Buffer.sizeOverflow();
       }

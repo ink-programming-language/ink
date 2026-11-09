@@ -1,14 +1,13 @@
 #pragma once
 
 #include <cstdint>
-#include <optional>
 
 namespace ink::vm
 {
   struct ObjectBaseReference
   {
-      // Vector index is the object's BaseIndex. The first three slots denote BP, SP, and PC and have no symbol.
-      // Every later entry names an object-local symbol, including unresolved imports.
-      std::optional<std::uint32_t> SymbolIndex;
+      // Vector index is the object's symbol-only base-reference index, independent of RegisterId.
+      // Every entry names an object-local symbol, including unresolved imports.
+      std::uint32_t SymbolIndex = 0;
   };
 } // namespace ink::vm

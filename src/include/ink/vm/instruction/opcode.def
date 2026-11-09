@@ -1,6 +1,6 @@
 // OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount).
 // Intentionally has no include guard: callers define OPCODE before inclusion.
-// Opcode values occupy 16 bits. Operand counts include destinations; operand byte encodings are not yet fixed.
+// Opcode values occupy 16 bits. Operand counts include destinations; see docs/VM-Instruction-Format.md for byte encodings.
 // 0x0000 is unassigned after removal of the dedicated stack-allocation opcode.
 
 // Loads read a value of the specified bit width from memory.
@@ -23,6 +23,8 @@ OPCODE(Store64m, 0x000B, "store64m", Storem, 64, 0, 2, 0)
 OPCODE(Store64i, 0x000C, "store64i", Storei, 64, 0, 1, 1)
 
 // Add suffixes describe destination, LHS, RHS: r is a logical register, m is memory, i is an immediate.
+// Register operands use the independent RegisterId values from register.def, never BaseReferences slots.
+// Memory operands encode a register ID or the 0x80 symbol-reference prefix, followed by the fields defined in docs/VM-Instruction-Format.md.
 // For memory destinations, addition wraps to Width bits and interchangeable sources use r before m before i.
 OPCODE(Add8mmm, 0x000D, "add8mmm", Addmmm, 8, 0, 3, 0)
 OPCODE(Add8mmi, 0x000E, "add8mmi", Addmmi, 8, 0, 2, 1)

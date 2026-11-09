@@ -101,17 +101,10 @@ namespace ink::vm
       }
     }
 
-    for (std::uint32_t Index = 0; Index < ObjectBaseReferenceTable::ReservedSlotCount; ++Index)
-    {
-      if (Index >= BaseReferences.size() || BaseReferences[Index].SymbolIndex)
-      {
-        return ObjectValidationError{ObjectValidationErrorKind::InvalidBaseReference, Index};
-      }
-    }
-    for (std::size_t Index = ObjectBaseReferenceTable::ReservedSlotCount; Index < BaseReferences.size(); ++Index)
+    for (std::size_t Index = 0; Index < BaseReferences.size(); ++Index)
     {
       const auto &Reference = BaseReferences[Index];
-      if (!Reference.SymbolIndex || *Reference.SymbolIndex >= Symbols.size())
+      if (Reference.SymbolIndex >= Symbols.size())
       {
         return ObjectValidationError{ObjectValidationErrorKind::InvalidBaseReference, Index};
       }

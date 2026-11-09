@@ -15,7 +15,7 @@ namespace ink::vm
   // Owns a linkable VM object's logical contents. Runtime addresses, file handles,
   // binary encoding/decoding, and linker state are outside this model.
   // References use object-local indices and section-relative byte offsets. Readers/writers must encode fields explicitly,
-  // never dump this C++ layout. Symbol addresses are resolved through BaseReferences.
+  // never dump this C++ layout. Symbol addresses are resolved through BaseReferences; register IDs use a separate namespace.
   class ObjectFile final
   {
     public:
