@@ -68,6 +68,8 @@ namespace ink::vm
 
 ## 对象文件边界
 
+`serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
+
 `vm::MachineModule` 是可编辑逻辑代码模型。现有 `vm::ObjectFile` 保存已经编码的 Code 字节、常量区、全局存储、符号、基址引用和调试记录，`ObjectFileReader`、`ObjectFileWriter` 继续负责文件容器的读取与写出。
 
 后续的 `ObjectEmitter` 应当完成模块布局、标签解析、符号偏移、指令编码与对象内容生成。当前尚未实现该发射器、指令编解码器、lowering pass 或 VM 执行器；创建一个 `vm::MachineModule` 不会自动产生可执行字节。指令字节布局见 [VM 指令编码格式](VM-Instruction-Format.md)，执行状态与调用约定的讨论见 [VM 运行时设计](VM-Runtime.md)。

@@ -182,6 +182,19 @@ namespace ink::core::test
     EXPECT_EQ(DiagnosticFormatter{}.format(Entry).Message, "invalid IR in function 'sum': instruction definition does not dominate its use");
   }
 
+  // VM assembly diagnostics use a distinct stable domain and retain their description and source position.
+  TEST(DiagnosticTest, RegistersVMTextMetadataAndFormatsDescription)
+  {
+    const auto Entry = makeDiagnostic<DiagnosticKind::VMTextInvalid>(SourceRange::fromByteOffsets(12, 12), "unknown opcode");
+    EXPECT_EQ(Entry.number(), 0x04000001U);
+    EXPECT_STREQ(Entry.code(), "INK-V0001");
+    EXPECT_EQ(diagnosticDomain(Entry.Kind), DiagnosticDomain::VM);
+    EXPECT_EQ(Entry.classification(), DiagnosticClass::User);
+    EXPECT_EQ(diagnosticDefaultSeverity(Entry.Kind), DiagnosticSeverity::Error);
+    EXPECT_EQ(Entry.Span, SourceRange::fromByteOffsets(12, 12));
+    EXPECT_EQ(DiagnosticFormatter{}.format(Entry).Message, "invalid VM text: unknown opcode");
+  }
+
   // User errors return to their caller, while ICE values can be inspected and formatted before reporting.
   TEST(DiagnosticTest, EngineDeliversUserErrorsAndParameterizedICE)
   {

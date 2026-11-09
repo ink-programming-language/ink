@@ -109,6 +109,8 @@ Opcode:u16 | Destination:RegisterId:u8 | LHS:RegisterId:u8 | RHS:i64
 
 ## C++ 指令模型
 
+`MachineModule` 的临时文本读写由 `backend/vm/serialization` 提供。文本保留 `ImmediateOperand` 的完整 `u64` 位模式；本节的字节格式则由操作码位宽决定立即数字段的长度。
+
 `opcode.def` 通过 `OPCODE_FORM(Kind, ...)` 集中定义当前十一种操作数签名，`OPCODE` 记录引用其中的签名。形式名称仅描述操作数类型及顺序，不包含指令语义或位宽，例如 `Add64rri` 引用 `Rri`，`Load64` 和 `Store64m` 共同引用 `Mm`。`instruction_form.h` 直接从同一份 `opcode.def` 生成 `InstructionForm` 枚举和 `FormTraits` 特化，每种签名只展开一次。每种形式提供 `OperandTuple` 和各类操作数计数，例如 `Rri` 的元组依次包含 `RegisterOperand`、`RegisterOperand`、`ImmediateOperand`。顺序来自签名定义；操作数计数用于一致性校验，不能单独推导顺序，例如 `Rrm` 和 `Mrr` 的计数相同而顺序不同。
 
 `machine_instructions.h` 根据 `opcode.def` 为每个操作码生成 `OpcodeTraits`，将操作码绑定到对应的 `Form`、`BitWidth` 和操作数布局。`MachineInstructionImpl<Opcode>` 按值持有该布局的 `std::tuple`，并为每个现有操作码提供对应的指令别名，例如 `MachineAdd64rriInstruction`。构造函数要求操作数的数量和具体类型匹配布局，操作数存储随指令对象一起分配。
