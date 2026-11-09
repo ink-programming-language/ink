@@ -1,57 +1,81 @@
+// OPCODE_FORM(Kind, ...): concrete operand types in semantic order, including the destination.
 // OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount).
-// Intentionally has no include guard: callers define OPCODE before inclusion.
+// Intentionally has no include guard: callers define OPCODE and optionally OPCODE_FORM before inclusion.
 // Opcode values occupy 16 bits. Operand counts include destinations; see docs/VM-Instruction-Format.md for byte encodings.
 // 0x0000 is unassigned after removal of the dedicated stack-allocation opcode.
 
+#ifndef OPCODE_FORM
+#define OPCODE_FORM(Kind, ...)
+#define INK_VM_OPCODE_DEF_UNDEF_FORM
+#endif
+
+// Forms describe only ordered operand kinds; opcodes supply the operation and width.
+OPCODE_FORM(Mm, AddressOperand, AddressOperand)
+OPCODE_FORM(Mi, AddressOperand, ImmediateOperand)
+OPCODE_FORM(Mmm, AddressOperand, AddressOperand, AddressOperand)
+OPCODE_FORM(Mmi, AddressOperand, AddressOperand, ImmediateOperand)
+OPCODE_FORM(Mii, AddressOperand, ImmediateOperand, ImmediateOperand)
+OPCODE_FORM(Rrr, RegisterOperand, RegisterOperand, RegisterOperand)
+OPCODE_FORM(Rrm, RegisterOperand, RegisterOperand, AddressOperand)
+OPCODE_FORM(Rri, RegisterOperand, RegisterOperand, ImmediateOperand)
+OPCODE_FORM(Mrr, AddressOperand, RegisterOperand, RegisterOperand)
+OPCODE_FORM(Mrm, AddressOperand, RegisterOperand, AddressOperand)
+OPCODE_FORM(Mri, AddressOperand, RegisterOperand, ImmediateOperand)
+
 // Loads read a value of the specified bit width from memory.
-OPCODE(Load8, 0x0001, "load8", Load, 8, 0, 2, 0)
-OPCODE(Load16, 0x0002, "load16", Load, 16, 0, 2, 0)
-OPCODE(Load32, 0x0003, "load32", Load, 32, 0, 2, 0)
-OPCODE(Load64, 0x0004, "load64", Load, 64, 0, 2, 0)
+OPCODE(Load8, 0x0001, "load8", Mm, 8, 0, 2, 0)
+OPCODE(Load16, 0x0002, "load16", Mm, 16, 0, 2, 0)
+OPCODE(Load32, 0x0003, "load32", Mm, 32, 0, 2, 0)
+OPCODE(Load64, 0x0004, "load64", Mm, 64, 0, 2, 0)
 
 // Stores write to memory; the suffix describes the source: m reads memory, i supplies an immediate.
-OPCODE(Store8m, 0x0005, "store8m", Storem, 8, 0, 2, 0)
-OPCODE(Store8i, 0x0006, "store8i", Storei, 8, 0, 1, 1)
+OPCODE(Store8m, 0x0005, "store8m", Mm, 8, 0, 2, 0)
+OPCODE(Store8i, 0x0006, "store8i", Mi, 8, 0, 1, 1)
 
-OPCODE(Store16m, 0x0007, "store16m", Storem, 16, 0, 2, 0)
-OPCODE(Store16i, 0x0008, "store16i", Storei, 16, 0, 1, 1)
+OPCODE(Store16m, 0x0007, "store16m", Mm, 16, 0, 2, 0)
+OPCODE(Store16i, 0x0008, "store16i", Mi, 16, 0, 1, 1)
 
-OPCODE(Store32m, 0x0009, "store32m", Storem, 32, 0, 2, 0)
-OPCODE(Store32i, 0x000A, "store32i", Storei, 32, 0, 1, 1)
+OPCODE(Store32m, 0x0009, "store32m", Mm, 32, 0, 2, 0)
+OPCODE(Store32i, 0x000A, "store32i", Mi, 32, 0, 1, 1)
 
-OPCODE(Store64m, 0x000B, "store64m", Storem, 64, 0, 2, 0)
-OPCODE(Store64i, 0x000C, "store64i", Storei, 64, 0, 1, 1)
+OPCODE(Store64m, 0x000B, "store64m", Mm, 64, 0, 2, 0)
+OPCODE(Store64i, 0x000C, "store64i", Mi, 64, 0, 1, 1)
 
 // Add suffixes describe destination, LHS, RHS: r is a logical register, m is memory, i is an immediate.
 // Register operands use the independent RegisterId values from register.def, never BaseReferences slots.
 // Memory operands encode a register ID or the 0x80 symbol-reference prefix, followed by the fields defined in docs/VM-Instruction-Format.md.
 // For memory destinations, addition wraps to Width bits and interchangeable sources use r before m before i.
-OPCODE(Add8mmm, 0x000D, "add8mmm", Addmmm, 8, 0, 3, 0)
-OPCODE(Add8mmi, 0x000E, "add8mmi", Addmmi, 8, 0, 2, 1)
-OPCODE(Add8mii, 0x000F, "add8mii", Addmii, 8, 0, 1, 2)
+OPCODE(Add8mmm, 0x000D, "add8mmm", Mmm, 8, 0, 3, 0)
+OPCODE(Add8mmi, 0x000E, "add8mmi", Mmi, 8, 0, 2, 1)
+OPCODE(Add8mii, 0x000F, "add8mii", Mii, 8, 0, 1, 2)
 
-OPCODE(Add16mmm, 0x0010, "add16mmm", Addmmm, 16, 0, 3, 0)
-OPCODE(Add16mmi, 0x0011, "add16mmi", Addmmi, 16, 0, 2, 1)
-OPCODE(Add16mii, 0x0012, "add16mii", Addmii, 16, 0, 1, 2)
+OPCODE(Add16mmm, 0x0010, "add16mmm", Mmm, 16, 0, 3, 0)
+OPCODE(Add16mmi, 0x0011, "add16mmi", Mmi, 16, 0, 2, 1)
+OPCODE(Add16mii, 0x0012, "add16mii", Mii, 16, 0, 1, 2)
 
-OPCODE(Add32mmm, 0x0013, "add32mmm", Addmmm, 32, 0, 3, 0)
-OPCODE(Add32mmi, 0x0014, "add32mmi", Addmmi, 32, 0, 2, 1)
-OPCODE(Add32mii, 0x0015, "add32mii", Addmii, 32, 0, 1, 2)
+OPCODE(Add32mmm, 0x0013, "add32mmm", Mmm, 32, 0, 3, 0)
+OPCODE(Add32mmi, 0x0014, "add32mmi", Mmi, 32, 0, 2, 1)
+OPCODE(Add32mii, 0x0015, "add32mii", Mii, 32, 0, 1, 2)
 
-OPCODE(Add64mmm, 0x0016, "add64mmm", Addmmm, 64, 0, 3, 0)
-OPCODE(Add64mmi, 0x0017, "add64mmi", Addmmi, 64, 0, 2, 1)
-OPCODE(Add64mii, 0x0018, "add64mii", Addmii, 64, 0, 1, 2)
+OPCODE(Add64mmm, 0x0016, "add64mmm", Mmm, 64, 0, 3, 0)
+OPCODE(Add64mmi, 0x0017, "add64mmi", Mmi, 64, 0, 2, 1)
+OPCODE(Add64mii, 0x0018, "add64mii", Mii, 64, 0, 1, 2)
 
 // Logical registers have 64-bit address width; arithmetic destinations may be BP or SP, never PC.
 // For register destinations, LHS is an address and RHS is a signed 64-bit byte displacement.
 // These sources retain their address/displacement roles and must not be exchanged.
 // Address arithmetic is checked before updating the register; SP updates must also satisfy stack bounds and frame rules.
 // add64rri sp, sp, ByteCount reserves stack space; a negative displacement reclaims it.
-OPCODE(Add64rrr, 0x0019, "add64rrr", Addrrr, 64, 3, 0, 0)
-OPCODE(Add64rrm, 0x001A, "add64rrm", Addrrm, 64, 2, 1, 0)
-OPCODE(Add64rri, 0x001B, "add64rri", Addrri, 64, 2, 0, 1)
+OPCODE(Add64rrr, 0x0019, "add64rrr", Rrr, 64, 3, 0, 0)
+OPCODE(Add64rrm, 0x001A, "add64rrm", Rrm, 64, 2, 1, 0)
+OPCODE(Add64rri, 0x001B, "add64rri", Rri, 64, 2, 0, 1)
 
 // These forms consume logical register values and write ordinary integer results to memory.
-OPCODE(Add64mrr, 0x001C, "add64mrr", Addmrr, 64, 2, 1, 0)
-OPCODE(Add64mrm, 0x001D, "add64mrm", Addmrm, 64, 1, 2, 0)
-OPCODE(Add64mri, 0x001E, "add64mri", Addmri, 64, 1, 1, 1)
+OPCODE(Add64mrr, 0x001C, "add64mrr", Mrr, 64, 2, 1, 0)
+OPCODE(Add64mrm, 0x001D, "add64mrm", Mrm, 64, 1, 2, 0)
+OPCODE(Add64mri, 0x001E, "add64mri", Mri, 64, 1, 1, 1)
+
+#ifdef INK_VM_OPCODE_DEF_UNDEF_FORM
+#undef INK_VM_OPCODE_DEF_UNDEF_FORM
+#undef OPCODE_FORM
+#endif
