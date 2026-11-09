@@ -1,6 +1,7 @@
 #include "ink/ir/instruction/instruction.h"
 
 #include "ink/core/support/core_define.h"
+#include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/add_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
@@ -138,6 +139,33 @@ namespace ink::ir
         static bool set(CondBranchInstruction &Node, std::size_t, ValueRef Replacement) noexcept
         {
           Node.Condition = Replacement;
+          return true;
+        }
+    };
+
+    template <>
+    struct InstructionOperands<CallInstruction>
+    {
+        static std::size_t count(const CallInstruction &Node) noexcept
+        {
+          return 1 + Node.argumentCount();
+        }
+
+        static const Value &get(const CallInstruction &Node, std::size_t Index) noexcept
+        {
+          return Index == 0 ? Node.getCallee() : Node.argument(Index - 1);
+        }
+
+        static bool set(CallInstruction &Node, std::size_t Index, ValueRef Replacement) noexcept
+        {
+          if (Index == 0)
+          {
+            Node.Callee = Replacement;
+          }
+          else
+          {
+            Node.Arguments[Index - 1] = Replacement;
+          }
           return true;
         }
     };

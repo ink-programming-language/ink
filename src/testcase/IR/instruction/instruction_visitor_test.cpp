@@ -59,6 +59,8 @@ namespace ink::ir::test
     BranchInstruction Branch(Types.getVoidType(), TrueTarget);
     CondBranchInstruction CondBranch(Types.getVoidType(), FunctionValue.argument(0), TrueTarget, FalseTarget);
     PhiInstruction Phi(Value.getType());
+    Function Callee(Types.getFunctionType(Types.getVoidType()));
+    CallInstruction Call(Callee);
     Instruction *Nodes[] = {
         &Add,
         &Alloca,
@@ -68,6 +70,7 @@ namespace ink::ir::test
         &Branch,
         &CondBranch,
         &Phi,
+        &Call,
     };
     IdentityVisitor Visitor;
     CountingVisitor Counter;
@@ -80,12 +83,13 @@ namespace ink::ir::test
       EXPECT_TRUE(Visitor.WasConst);
       Counter.visit(Constant);
     }
-    EXPECT_EQ(Counter.Count, 8U);
+    EXPECT_EQ(Counter.Count, 9U);
     EXPECT_EQ(&Add.getLHS(), &Value);
     EXPECT_EQ(Return.getReturnValue(), &Add);
     EXPECT_EQ(&Branch.getTarget(), &TrueTarget);
     EXPECT_EQ(&CondBranch.getCondition(), &FunctionValue.argument(0));
     EXPECT_EQ(&CondBranch.getTrueTarget(), &TrueTarget);
     EXPECT_EQ(&CondBranch.getFalseTarget(), &FalseTarget);
+    EXPECT_EQ(&Call.getCallee(), &Callee);
   }
 } // namespace ink::ir::test

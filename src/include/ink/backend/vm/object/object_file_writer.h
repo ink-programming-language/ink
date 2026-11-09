@@ -7,6 +7,11 @@
 #include <filesystem>
 #include <vector>
 
+namespace ink::core
+{
+  class DiagnosticEngine;
+} // namespace ink::core
+
 namespace ink::vm
 {
   class ObjectFile;
@@ -14,10 +19,10 @@ namespace ink::vm
   class ObjectFileWriter final
   {
     public:
-      // Encodes validated fields explicitly; code and data payload bytes are preserved verbatim.
-      [[nodiscard]] static std::expected<std::vector<std::uint8_t>, ObjectFileIOError> write(const ObjectFile &Object);
+      // Structural validation failures report an ICE; valid code and data payload bytes are encoded verbatim.
+      [[nodiscard]] static std::expected<std::vector<std::uint8_t>, ObjectFileIOError> write(const ObjectFile &Object, const core::DiagnosticEngine &Diagnostics);
 
       // Validation and encoding finish before the destination file is opened for writing.
-      [[nodiscard]] static std::expected<void, ObjectFileIOError> writeFile(const ObjectFile &Object, const std::filesystem::path &Path);
+      [[nodiscard]] static std::expected<void, ObjectFileIOError> writeFile(const ObjectFile &Object, const std::filesystem::path &Path, const core::DiagnosticEngine &Diagnostics);
   };
 } // namespace ink::vm

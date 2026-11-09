@@ -1,9 +1,14 @@
 #include "ink/backend/vm/object/object_file_validator.h"
 
 #include "ink/core/config/config_manager.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/name/name_pool.h"
 #include "ink/backend/vm/object/object_file.h"
 
+#include <spdlog/fmt/fmt.h>
+
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <string_view>
 #include <unordered_set>
@@ -12,6 +17,16 @@ namespace ink::vm
 {
   namespace
   {
+    [[noreturn]] void failValidation(const core::DiagnosticEngine &Diagnostics, std::string_view Context, std::string_view Description)
+    {
+      Diagnostics.reportICE<core::DiagnosticKind::VMObjectValidationFailed>({}, Context, Description);
+    }
+
+    [[noreturn]] void failRecord(const core::DiagnosticEngine &Diagnostics, std::string_view Kind, std::uint64_t Index, std::string_view Description)
+    {
+      failValidation(Diagnostics, fmt::format("{} #{}", Kind, Index), Description);
+    }
+
     constexpr bool hasTooManyRecords(std::size_t Count) noexcept
     {
       return Count != 0 && Count - 1 > std::numeric_limits<std::uint32_t>::max();
@@ -23,7 +38,7 @@ namespace ink::vm
     }
   } // namespace
 
-  std::optional<ObjectValidationError> ObjectFileValidator::validate(const ObjectFile &Object) noexcept
+  void ObjectFileValidator::validate(const ObjectFile &Object, const core::DiagnosticEngine &Diagnostics) noexcept
   {
     const auto &Header = Object.getHeader();
     const auto &Code = Object.getCode();
@@ -35,44 +50,77 @@ namespace ink::vm
 
     const auto FormatVersion = core::ConfigManager::getVersion<core::ConfigKind::ObjectFormatVersion>();
     const auto InstructionSetVersion = core::ConfigManager::getVersion<core::ConfigKind::ObjectInstructionSetVersion>();
-    if (Header.getMagic() != ObjectFileMagic || Header.getFormatVersion() != FormatVersion || Header.getInstructionSetVersion() != InstructionSetVersion || Header.getAddressBitWidth() != 64 || (Header.getByteOrder() != ObjectByteOrder::Little && Header.getByteOrder() != ObjectByteOrder::Big))
+    if (Header.getMagic() != ObjectFileMagic)
     {
-      return ObjectValidationError{ObjectValidationErrorKind::InvalidHeader, 0};
+      failValidation(Diagnostics, "header", "magic is invalid");
     }
-    if (hasTooManyRecords(Symbols.size()) || hasTooManyRecords(BaseReferences.size()) || (DebugInfo && hasTooManyRecords(DebugInfo->getSourceFiles().size())))
+    if (Header.getFormatVersion() != FormatVersion)
     {
-      return ObjectValidationError{ObjectValidationErrorKind::TooManyRecords, 0};
+      failValidation(Diagnostics, "header", "object format version is unsupported");
+    }
+    if (Header.getInstructionSetVersion() != InstructionSetVersion)
+    {
+      failValidation(Diagnostics, "header", "instruction-set version is unsupported");
+    }
+    if (Header.getAddressBitWidth() != 64)
+    {
+      failValidation(Diagnostics, "header", "address width must be 64 bits");
+    }
+    if (Header.getByteOrder() != ObjectByteOrder::Little && Header.getByteOrder() != ObjectByteOrder::Big)
+    {
+      failValidation(Diagnostics, "header", "byte order is invalid");
+    }
+    if (hasTooManyRecords(Symbols.size()))
+    {
+      failValidation(Diagnostics, "symbol table", "record count exceeds the u32 index range");
+    }
+    if (hasTooManyRecords(BaseReferences.size()))
+    {
+      failValidation(Diagnostics, "base reference table", "record count exceeds the u32 index range");
+    }
+    if (DebugInfo && hasTooManyRecords(DebugInfo->getSourceFiles().size()))
+    {
+      failValidation(Diagnostics, "debug source file table", "record count exceeds the u32 index range");
     }
 
     if (!hasValidAlignment(Constants.getAlignment()))
     {
-      return ObjectValidationError{ObjectValidationErrorKind::InvalidConstantSection, 0};
+      failValidation(Diagnostics, "constants", "alignment must be a nonzero power of two");
     }
-    if (!hasValidAlignment(GlobalStorage.getAlignment()) || GlobalStorage.getInitialBytes().size() > GlobalStorage.getByteSize())
+    if (!hasValidAlignment(GlobalStorage.getAlignment()))
     {
-      return ObjectValidationError{ObjectValidationErrorKind::InvalidGlobalStorage, 0};
+      failValidation(Diagnostics, "global storage", "alignment must be a nonzero power of two");
+    }
+    if (GlobalStorage.getInitialBytes().size() > GlobalStorage.getByteSize())
+    {
+      failValidation(Diagnostics, "global storage", "initializer exceeds the declared storage size");
     }
 
-    std::unordered_set<std::string_view> ExternalNames;
+    const core::NamePool &Names = core::NamePool::instance();
+    std::unordered_set<core::Name> ExternalNames;
     for (std::size_t Index = 0; Index < Symbols.size(); ++Index)
     {
       const auto &Symbol = Symbols[Index];
-      if (Symbol.Name.empty() || (Symbol.Linkage != ObjectSymbolLinkage::Local && Symbol.Linkage != ObjectSymbolLinkage::Export && Symbol.Linkage != ObjectSymbolLinkage::Import))
+      if (!Names.contains(Symbol.Name))
       {
-        return ObjectValidationError{ObjectValidationErrorKind::InvalidSymbol, Index};
+        failRecord(Diagnostics, "symbol", Index, "name is not registered in the name pool");
+      }
+      if (Symbol.Linkage != ObjectSymbolLinkage::Local && Symbol.Linkage != ObjectSymbolLinkage::Export && Symbol.Linkage != ObjectSymbolLinkage::Import)
+      {
+        failRecord(Diagnostics, "symbol", Index, "linkage is invalid");
       }
       if (Symbol.isImport())
       {
         if (Symbol.Definition)
         {
-          return ObjectValidationError{ObjectValidationErrorKind::InvalidSymbol, Index};
+          failRecord(Diagnostics, "symbol", Index, "import must not have a definition");
         }
       }
       else
       {
         if (!Symbol.Definition)
         {
-          return ObjectValidationError{ObjectValidationErrorKind::InvalidSymbol, Index};
+          failRecord(Diagnostics, "symbol", Index, "local or exported symbol requires a definition");
         }
         const auto &Definition = *Symbol.Definition;
         std::uint64_t SectionSize = 0;
@@ -88,16 +136,16 @@ namespace ink::vm
           SectionSize = GlobalStorage.getByteSize();
           break;
         default:
-          return ObjectValidationError{ObjectValidationErrorKind::InvalidSymbol, Index};
+          failRecord(Diagnostics, "symbol", Index, "definition section is invalid");
         }
         if (Definition.ByteOffset > SectionSize || Definition.ByteSize > SectionSize - Definition.ByteOffset)
         {
-          return ObjectValidationError{ObjectValidationErrorKind::InvalidSymbol, Index};
+          failRecord(Diagnostics, "symbol", Index, "definition range is outside its section");
         }
       }
       if (Symbol.Linkage != ObjectSymbolLinkage::Local && !ExternalNames.insert(Symbol.Name).second)
       {
-        return ObjectValidationError{ObjectValidationErrorKind::InvalidSymbol, Index};
+        failRecord(Diagnostics, "symbol", Index, "external name is duplicated");
       }
     }
 
@@ -106,7 +154,7 @@ namespace ink::vm
       const auto &Reference = BaseReferences[Index];
       if (Reference.SymbolIndex >= Symbols.size())
       {
-        return ObjectValidationError{ObjectValidationErrorKind::InvalidBaseReference, Index};
+        failRecord(Diagnostics, "base reference", Index, "symbol index is outside the symbol table");
       }
     }
 
@@ -116,16 +164,23 @@ namespace ink::vm
       for (std::size_t Index = 0; Index < Lines.size(); ++Index)
       {
         const auto &Line = Lines[Index];
-        if (Line.FileIndex >= DebugInfo->getSourceFiles().size() || Line.Line == 0 || Line.Column == 0)
+        if (Line.FileIndex >= DebugInfo->getSourceFiles().size())
         {
-          return ObjectValidationError{ObjectValidationErrorKind::InvalidDebugInfo, Index};
+          failRecord(Diagnostics, "debug line", Index, "source file index is outside the source file table");
+        }
+        if (Line.Line == 0)
+        {
+          failRecord(Diagnostics, "debug line", Index, "line must be one-based");
+        }
+        if (Line.Column == 0)
+        {
+          failRecord(Diagnostics, "debug line", Index, "column must be one-based");
         }
         if (Line.CodeOffset >= Code.byteSize())
         {
-          return ObjectValidationError{ObjectValidationErrorKind::InvalidDebugInfo, Index};
+          failRecord(Diagnostics, "debug line", Index, "code offset is outside the code section");
         }
       }
     }
-    return std::nullopt;
   }
 } // namespace ink::vm

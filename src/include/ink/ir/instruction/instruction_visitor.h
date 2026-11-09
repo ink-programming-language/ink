@@ -3,6 +3,7 @@
 #include "ink/ir/instruction/add_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
+#include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/cond_branch_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/phi_instruction.h"

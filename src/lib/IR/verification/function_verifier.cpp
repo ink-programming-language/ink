@@ -76,6 +76,24 @@ namespace ink::ir
           verifyOperand(Node, Node.getRHS(), 1);
         }
 
+        void visitCallInstruction(const CallInstruction &Node)
+        {
+          const Value &CalleeType = Node.getCallee().getType();
+          require(FunctionType::classof(&CalleeType), Node, "call callee must have function type");
+          const auto &Signature = static_cast<const FunctionType &>(CalleeType);
+          const auto Parameters = Signature.parameters();
+          require(&Node.getType() == &Signature.returnType(), Node, "call result type must match the callee return type");
+          require(Signature.isVariadic() ? Node.argumentCount() >= Parameters.size() : Node.argumentCount() == Parameters.size(), Node, "call argument count does not match the callee signature");
+          for (std::size_t Index = 0; Index < Parameters.size(); ++Index)
+          {
+            require(&Node.argument(Index).getType() == &Parameters[Index].type(), Node, "call argument type does not match the callee signature");
+          }
+          for (std::size_t Index = 0; Index < Node.operandCount(); ++Index)
+          {
+            verifyOperand(Node, Node.operand(Index), Index);
+          }
+        }
+
         void visitAllocaInstruction(const AllocaInstruction &Node)
         {
           require(PointerType::classof(&Node.getType()), Node, "alloca result must have pointer type");

@@ -4,6 +4,7 @@
 #include "ink/ir/instruction/add_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
+#include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/cond_branch_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/phi_instruction.h"
@@ -56,6 +57,11 @@ namespace ink::ir
       /* -------------------- Store -------------------- */
       // The destination must point to the source's exact type value.
       [[nodiscard]] StoreInstruction &createStore(ValueRef Destination, ValueRef Source);
+
+      /* -------------------- Call -------------------- */
+      // The callee must have FunctionType and arguments must match its fixed parameters; receivers are explicit first arguments.
+      // Variadic callees accept additional non-void arguments. The instruction copies the borrowed argument reference list.
+      [[nodiscard]] CallInstruction &createCall(ValueRef Callee, std::span<const ValueRef> Arguments = {});
 
       /* -------------------- Phi -------------------- */
       // ResultType must be a non-void type value; phi instructions must form a prefix at the start of the block.

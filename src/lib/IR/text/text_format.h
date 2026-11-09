@@ -295,6 +295,36 @@ namespace ink::ir::text
   }
 
   template <typename IO>
+  bool formatCallOperands(IO &Io, InstructionSyntax &Node)
+  {
+    if constexpr (IO::Reading)
+    {
+      Node.Operands.resize(1);
+    }
+    if (Node.Operands.empty() || !formatExpression(Io, Node.Operands.front()) || !Io.token("("))
+    {
+      return Io.fail("call requires a callee and an argument list");
+    }
+    std::vector<Expression> Arguments;
+    if constexpr (!IO::Reading)
+    {
+      Arguments.assign(Node.Operands.begin() + 1, Node.Operands.end());
+    }
+    if (!commaList(Io, Arguments, ")", formatExpression<IO>) || !Io.token(")"))
+    {
+      return false;
+    }
+    if constexpr (IO::Reading)
+    {
+      for (auto &Argument : Arguments)
+      {
+        Node.Operands.push_back(std::move(Argument));
+      }
+    }
+    return true;
+  }
+
+  template <typename IO>
   bool target(IO &Io, InstructionSyntax &Node, std::size_t Index)
   {
     if constexpr (IO::Reading)
@@ -322,7 +352,7 @@ namespace ink::ir::text
     {
       return false;
     }
-    const bool HasResult = Node.Kind == InstructionKind::Add || Node.Kind == InstructionKind::Alloca || Node.Kind == InstructionKind::Load || Node.Kind == InstructionKind::Phi;
+    const bool HasResult = Node.Kind == InstructionKind::Add || Node.Kind == InstructionKind::Alloca || Node.Kind == InstructionKind::Load || Node.Kind == InstructionKind::Phi || (Node.Kind == InstructionKind::Call && !Node.Id.empty());
     if (HasResult != !Node.Id.empty())
     {
       return Io.fail("only value-producing instructions require a result identifier");
@@ -357,12 +387,15 @@ namespace ink::ir::text
     case InstructionKind::Phi:
       Result = commaList(Io, Node.Incoming, ":", formatIncoming<IO>);
       break;
+    case InstructionKind::Call:
+      Result = formatCallOperands(Io, Node);
+      break;
     }
     if (!Result)
     {
       return Io.fail("instruction format or operands are invalid");
     }
-    if (HasResult)
+    if (HasResult || Node.Kind == InstructionKind::Call)
     {
       if (!Io.token(":") || !formatExpression(Io, Node.ResultType))
       {

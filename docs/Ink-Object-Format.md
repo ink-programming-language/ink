@@ -8,6 +8,8 @@ Fields appear in the order below. There is no implicit padding, native pointer, 
 
 `u8`, `u16`, `u32`, and `u64` denote unsigned integers of exactly that many bits. The byte-order field controls every multibyte integer in the container. Code, constants, global initializers, and strings are raw byte sequences and are copied verbatim. Code must already contain instructions encoded in the declared byte order; these APIs do not encode individual instructions.
 
+The in-memory `ObjectSymbol::Name` is a `core::Name` handle into the process-wide `core::NamePool`, with `core::NAME_None` as its invalid default. Copies share the pool's immutable spelling while owning independent symbol records. The writer obtains the spelling from the pool and serializes its byte length and bytes; the reader interns those bytes into the current process's pool. Process-local Name indices are never written to the object file. This change to the in-memory name representation preserves the existing wire encoding and object format version `2.0.0`.
+
 ## Header
 
 The header occupies 31 bytes. The byte-order field precedes all multibyte fields so readers can interpret the rest without assuming the host byte order.
@@ -60,7 +62,7 @@ A `u64` symbol count is followed by that many records:
 | Byte offset, if a definition is present | `u64`, relative to the selected section |
 | Byte size, if a definition is present | `u64` |
 
-Local and exported symbols require definitions. Imported symbols have none. Import and export names share the object's external namespace.
+Local and exported symbols require definitions. Imported symbols have none. Symbol names must have nonempty spellings registered in the NamePool; invalid handles and empty names are rejected. Name bytes may contain embedded NUL bytes and are preserved by length, without C-string truncation. Import and export names share the object's external namespace.
 
 ## Base references
 
@@ -83,12 +85,18 @@ A `u8` presence flag (`0` or `1`) follows the base references. An absent debug r
 
 Code offsets address the whole code buffer. Source-file indices are object local; line and column numbers start at one. A present but empty debug record is distinct from an absent record.
 
+## Structural validation
+
+`ObjectFileValidator::validate(const ObjectFile &, const core::DiagnosticEngine &) noexcept` returns `void` and requires a diagnostic engine. Success returns normally. Any structural or semantic validation failure reports `VMObjectValidationFailed` through `DiagnosticEngine::reportICE`, with stable diagnostic code `INK-V0003`, number `0x04000003`, and string arguments `Context` and `Description`. The engine prints the diagnostic and terminates even without a consumer, independently of assertions and build mode.
+
+Validation checks the header, section metadata, symbol definitions and identities, base references, and debug records. Unresolved imports are valid object contents. Code bytes remain opaque: validation does not decode instructions or establish legal instruction boundaries, call contracts, or executable behavior.
+
 ## Reading and writing
 
-`ObjectFileWriter::write()` returns the encoded bytes. `writeFile()` validates and encodes the object before opening the destination in binary truncation mode. It reports open, write, and close failures explicitly.
+`ObjectFileWriter::write(Object, Diagnostics)` returns the encoded bytes. `writeFile(Object, Path, Diagnostics)` validates and encodes the object before opening the destination in binary truncation mode. Both require the diagnostic engine used for structural validation.
 
-`ObjectFileReader::read()` returns an owned, validated object from a byte span. `readFile()` reads a binary file and applies the same decoder. A buffer or file contains exactly one object; trailing bytes are rejected.
+`ObjectFileReader::read(Bytes, Diagnostics)` returns an owned, validated object from a byte span. `readFile(Path, Diagnostics)` reads a binary file and applies the same decoder and validator. A buffer or file contains exactly one object.
 
-Both classes report failures through `std::expected` and `ObjectFileIOError`. Structural validation errors retain the `ObjectFileValidator` error kind and record index. Decoder errors carry a byte offset. Lengths and counts are checked against the remaining input before allocating their contents.
+Byte decoding and file I/O failures return through `std::expected` and `ObjectFileIOError`, whose fields are `Kind` and `ByteOffset`. Decoder errors include `UnexpectedEnd`, `InvalidEncoding`, `SizeOverflow`, and `TrailingData`; file operations report open, read, write, and close failures explicitly. Lengths and counts are checked before allocating their contents. Structural failures use the fatal validation diagnostic, including invalid decoded objects originating in a byte buffer or file; they are not returned as I/O errors. Changing this error-reporting API does not change the wire encoding or format version.
 
 An empty valid object without debug information occupies 96 bytes: 31 header bytes, 8 code-count bytes, 16 constant-section bytes, 24 global-storage bytes, 8 symbol-count bytes, 8 base-reference-count bytes, and 1 debug-presence byte. It contains no base-reference records.

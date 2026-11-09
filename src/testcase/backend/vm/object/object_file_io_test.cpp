@@ -2,6 +2,8 @@
 
 #include "ink/backend/vm/object/object_file_reader.h"
 #include "ink/backend/vm/object/object_file_writer.h"
+#include "ink/core/name/name_pool.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 
 #include <gtest/gtest.h>
 
@@ -10,9 +12,11 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -238,7 +242,7 @@ namespace ink::vm::test
     Object.getGlobalStorage().getByteSize() = 9;
     Object.getGlobalStorage().getInitialBytes() = {0xDD, 0xEE};
     ObjectSymbol Symbol;
-    Symbol.Name = "x";
+    Symbol.Name = core::NamePool::instance().intern("x");
     Symbol.Linkage = ObjectSymbolLinkage::Export;
     Symbol.Definition = ObjectSymbolDefinition{ObjectSectionKind::GlobalStorage, 1, 2};
     Object.getSymbols().getEntries().push_back(Symbol);
@@ -261,21 +265,21 @@ namespace ink::vm::test
     Object.getGlobalStorage().getByteSize() = 64;
     Object.getGlobalStorage().getInitialBytes() = {1, 2, 3, 4};
     ObjectSymbol Entry;
-    Entry.Name = "entry";
+    Entry.Name = core::NamePool::instance().intern("entry");
     Entry.Linkage = ObjectSymbolLinkage::Export;
     Entry.Definition = ObjectSymbolDefinition{ObjectSectionKind::Code, 0, 4};
     Object.getSymbols().getEntries().push_back(Entry);
     ObjectSymbol Constant;
-    Constant.Name = std::string("local\0constant", 14);
+    Constant.Name = core::NamePool::instance().intern(std::string_view("local\0constant", 14));
     Constant.Definition = ObjectSymbolDefinition{ObjectSectionKind::Constants, 0, 3};
     Object.getSymbols().getEntries().push_back(Constant);
     ObjectSymbol Counter;
-    Counter.Name = "counter";
+    Counter.Name = core::NamePool::instance().intern("counter");
     Counter.Linkage = ObjectSymbolLinkage::Export;
     Counter.Definition = ObjectSymbolDefinition{ObjectSectionKind::GlobalStorage, 0, 4};
     Object.getSymbols().getEntries().push_back(Counter);
     ObjectSymbol Imported;
-    Imported.Name = "external";
+    Imported.Name = core::NamePool::instance().intern("external");
     Imported.Linkage = ObjectSymbolLinkage::Import;
     Object.getSymbols().getEntries().push_back(Imported);
     Object.getBaseReferences().getEntries().push_back({0});
@@ -348,12 +352,13 @@ namespace ink::vm::test
   void expectCompleteRoundTrip(ObjectByteOrder ByteOrder)
   {
     const auto Original = makeCompleteIOObject(ByteOrder);
-    const auto Encoded = ObjectFileWriter::write(Original);
+    const auto Encoded = ObjectFileWriter::write(Original, core::DiagnosticEngine{});
     ASSERT_TRUE(Encoded.has_value());
-    const auto Decoded = ObjectFileReader::read(*Encoded);
+    const auto Decoded = ObjectFileReader::read(*Encoded, core::DiagnosticEngine{});
     ASSERT_TRUE(Decoded.has_value());
     expectSameObjectContents(Original, *Decoded);
-    const auto Rewritten = ObjectFileWriter::write(*Decoded);
+    EXPECT_EQ(core::NamePool::instance().text(Decoded->getSymbols().getEntries()[1].Name), std::string_view("local\0constant", 14));
+    const auto Rewritten = ObjectFileWriter::write(*Decoded, core::DiagnosticEngine{});
     ASSERT_TRUE(Rewritten.has_value());
     EXPECT_EQ(*Rewritten, *Encoded);
   }
@@ -378,16 +383,46 @@ namespace ink::vm::test
     expectCompleteRoundTrip(ObjectByteOrder::Big);
   }
 
+  // Separate input byte buffers intern equal symbol spellings into one handle without changing the existing wire bytes.
+  TEST_F(VMObjectFileIOTest, InternsSymbolNamesAcrossIndependentInputBuffers)
+  {
+    const auto FirstBytes = littleEndianObjectGolden();
+    const auto SecondBytes = FirstBytes;
+    ASSERT_NE(FirstBytes.data(), SecondBytes.data());
+    const auto First = ObjectFileReader::read(FirstBytes, core::DiagnosticEngine{});
+    const auto Second = ObjectFileReader::read(SecondBytes, core::DiagnosticEngine{});
+    ASSERT_TRUE(First.has_value());
+    ASSERT_TRUE(Second.has_value());
+    ASSERT_EQ(First->getSymbols().getEntries().size(), 1U);
+    ASSERT_EQ(Second->getSymbols().getEntries().size(), 1U);
+    const core::Name FirstName = First->getSymbols().getEntries()[0].Name;
+    const core::Name SecondName = Second->getSymbols().getEntries()[0].Name;
+    EXPECT_EQ(FirstName, SecondName);
+    EXPECT_EQ(core::NamePool::instance().text(FirstName), "x");
+    const auto Rewritten = ObjectFileWriter::write(*Second, core::DiagnosticEngine{});
+    ASSERT_TRUE(Rewritten.has_value());
+    EXPECT_EQ(*Rewritten, littleEndianObjectGolden());
+  }
+
+  // An empty wire spelling becomes NAME_None and reports a fatal VM object validation diagnostic with its symbol index.
+  TEST_F(VMObjectFileIOTest, RejectsEmptyWireSymbolNamesAfterInterning)
+  {
+    auto Bytes = littleEndianObjectGolden();
+    overwriteLittleInteger(Bytes, 92, 0, 8);
+    Bytes.erase(Bytes.begin() + 100);
+    EXPECT_DEATH(static_cast<void>(ObjectFileReader::read(Bytes, core::DiagnosticEngine{})), "INK-V0003.*invalid VM object in symbol #0: name is not registered in the name pool");
+  }
+
   // Independent little-endian bytes fix all field widths, order, flags, and multibyte debug values without padding.
   TEST_F(VMObjectFileIOTest, MatchesIndependentLittleEndianGolden)
   {
     const auto Golden = littleEndianObjectGolden();
     ASSERT_EQ(Golden.size(), 178U);
     const auto Expected = makeGoldenObject(ObjectByteOrder::Little);
-    const auto Encoded = ObjectFileWriter::write(Expected);
+    const auto Encoded = ObjectFileWriter::write(Expected, core::DiagnosticEngine{});
     ASSERT_TRUE(Encoded.has_value());
     EXPECT_EQ(*Encoded, Golden);
-    const auto Decoded = ObjectFileReader::read(Golden);
+    const auto Decoded = ObjectFileReader::read(Golden, core::DiagnosticEngine{});
     ASSERT_TRUE(Decoded.has_value());
     expectSameObjectContents(Expected, *Decoded);
   }
@@ -398,10 +433,10 @@ namespace ink::vm::test
     const auto Golden = bigEndianObjectGolden();
     ASSERT_EQ(Golden.size(), 178U);
     const auto Expected = makeGoldenObject(ObjectByteOrder::Big);
-    const auto Encoded = ObjectFileWriter::write(Expected);
+    const auto Encoded = ObjectFileWriter::write(Expected, core::DiagnosticEngine{});
     ASSERT_TRUE(Encoded.has_value());
     EXPECT_EQ(*Encoded, Golden);
-    const auto Decoded = ObjectFileReader::read(Golden);
+    const auto Decoded = ObjectFileReader::read(Golden, core::DiagnosticEngine{});
     ASSERT_TRUE(Decoded.has_value());
     expectSameObjectContents(Expected, *Decoded);
   }
@@ -422,11 +457,11 @@ namespace ink::vm::test
       Object.getSymbols().getEntries().resize(257);
       for (auto &Symbol : Object.getSymbols().getEntries())
       {
-        Symbol.Name = "x";
+        Symbol.Name = core::NamePool::instance().intern("x");
         Symbol.Definition = ObjectSymbolDefinition{ObjectSectionKind::Code, 0, 0};
       }
       Object.getBaseReferences().getEntries().push_back({256});
-      const auto Encoded = ObjectFileWriter::write(Object);
+      const auto Encoded = ObjectFileWriter::write(Object, core::DiagnosticEngine{});
       ASSERT_TRUE(Encoded.has_value());
       ASSERT_EQ(Encoded->size(), 96U + 257U * 28U + 4U);
       const auto ReferenceOffset = Encoded->size() - 5;
@@ -434,7 +469,7 @@ namespace ink::vm::test
       {
         EXPECT_EQ((*Encoded)[ReferenceOffset + ByteIndex], ReferenceBytes[OrderIndex][ByteIndex]);
       }
-      const auto Decoded = ObjectFileReader::read(*Encoded);
+      const auto Decoded = ObjectFileReader::read(*Encoded, core::DiagnosticEngine{});
       ASSERT_TRUE(Decoded.has_value());
       ASSERT_EQ(Decoded->getBaseReferences().getEntries().size(), 1U);
       EXPECT_EQ(Decoded->getBaseReferences().getEntries()[0].SymbolIndex, 256U);
@@ -447,10 +482,10 @@ namespace ink::vm::test
     const ObjectFile Empty;
     const auto Golden = emptyObjectGolden();
     ASSERT_EQ(Golden.size(), 96U);
-    const auto Encoded = ObjectFileWriter::write(Empty);
+    const auto Encoded = ObjectFileWriter::write(Empty, core::DiagnosticEngine{});
     ASSERT_TRUE(Encoded.has_value());
     EXPECT_EQ(*Encoded, Golden);
-    const auto Decoded = ObjectFileReader::read(Golden);
+    const auto Decoded = ObjectFileReader::read(Golden, core::DiagnosticEngine{});
     ASSERT_TRUE(Decoded.has_value());
     expectSameObjectContents(Empty, *Decoded);
   }
@@ -460,10 +495,10 @@ namespace ink::vm::test
   {
     ObjectFile Object;
     Object.getDebugInfo().emplace();
-    const auto Encoded = ObjectFileWriter::write(Object);
+    const auto Encoded = ObjectFileWriter::write(Object, core::DiagnosticEngine{});
     ASSERT_TRUE(Encoded.has_value());
     EXPECT_EQ(Encoded->size(), 112U);
-    const auto Decoded = ObjectFileReader::read(*Encoded);
+    const auto Decoded = ObjectFileReader::read(*Encoded, core::DiagnosticEngine{});
     ASSERT_TRUE(Decoded.has_value());
     ASSERT_TRUE(Decoded->getDebugInfo().has_value());
     EXPECT_TRUE(Decoded->getDebugInfo()->getSourceFiles().empty());
@@ -478,7 +513,7 @@ namespace ink::vm::test
     for (std::size_t Length = 0; Length < Golden.size(); ++Length)
     {
       SCOPED_TRACE(Length);
-      EXPECT_FALSE(ObjectFileReader::read(std::span<const std::uint8_t>(Golden.data(), Length)).has_value());
+      EXPECT_FALSE(ObjectFileReader::read(std::span<const std::uint8_t>(Golden.data(), Length), core::DiagnosticEngine{}).has_value());
     }
   }
 
@@ -487,21 +522,24 @@ namespace ink::vm::test
   {
     auto Bytes = littleEndianObjectGolden();
     Bytes.push_back(0xA5);
-    const auto Decoded = ObjectFileReader::read(Bytes);
+    const auto Decoded = ObjectFileReader::read(Bytes, core::DiagnosticEngine{});
     ASSERT_FALSE(Decoded.has_value());
     EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::TrailingData);
     EXPECT_EQ(Decoded.error().ByteOffset, 178U);
   }
 
-  // Corrupted magic and unknown byte-order markers are rejected before an object can be returned.
+  // Invalid magic is a fatal header validation failure while an unknown byte-order marker remains a recoverable encoding error.
   TEST_F(VMObjectFileIOTest, RejectsCorruptMagicAndByteOrder)
   {
     auto Bytes = emptyObjectGolden();
     Bytes[0] = 'X';
-    EXPECT_FALSE(ObjectFileReader::read(Bytes).has_value());
+    EXPECT_DEATH(static_cast<void>(ObjectFileReader::read(Bytes, core::DiagnosticEngine{})), "INK-V0003.*invalid VM object in header: magic is invalid");
     Bytes = emptyObjectGolden();
     Bytes[4] = 2;
-    EXPECT_FALSE(ObjectFileReader::read(Bytes).has_value());
+    const auto InvalidOrder = ObjectFileReader::read(Bytes, core::DiagnosticEngine{});
+    ASSERT_FALSE(InvalidOrder.has_value());
+    EXPECT_EQ(InvalidOrder.error().Kind, ObjectFileIOErrorKind::InvalidEncoding);
+    EXPECT_EQ(InvalidOrder.error().ByteOffset, 4U);
   }
 
   // Optional-definition and debug flags accept only the protocol's zero and one values.
@@ -513,7 +551,7 @@ namespace ink::vm::test
       SCOPED_TRACE(Offset);
       auto Bytes = littleEndianObjectGolden();
       Bytes[Offset] = 2;
-      const auto Decoded = ObjectFileReader::read(Bytes);
+      const auto Decoded = ObjectFileReader::read(Bytes, core::DiagnosticEngine{});
       ASSERT_FALSE(Decoded.has_value());
       EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::InvalidEncoding);
       EXPECT_EQ(Decoded.error().ByteOffset, Offset);
@@ -529,7 +567,10 @@ namespace ink::vm::test
       SCOPED_TRACE(Offset);
       auto Bytes = littleEndianObjectGolden();
       Bytes[Offset] = 255;
-      EXPECT_FALSE(ObjectFileReader::read(Bytes).has_value());
+      const auto Decoded = ObjectFileReader::read(Bytes, core::DiagnosticEngine{});
+      ASSERT_FALSE(Decoded.has_value());
+      EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::InvalidEncoding);
+      EXPECT_EQ(Decoded.error().ByteOffset, Offset);
     }
   }
 
@@ -538,7 +579,7 @@ namespace ink::vm::test
   {
     auto CapacityBytes = emptyObjectGolden();
     overwriteLittleInteger(CapacityBytes, 63, std::numeric_limits<std::uint64_t>::max(), 8);
-    const auto CapacityObject = ObjectFileReader::read(CapacityBytes);
+    const auto CapacityObject = ObjectFileReader::read(CapacityBytes, core::DiagnosticEngine{});
     ASSERT_TRUE(CapacityObject.has_value());
     EXPECT_EQ(CapacityObject->getGlobalStorage().getByteSize(), std::numeric_limits<std::uint64_t>::max());
     EXPECT_TRUE(CapacityObject->getGlobalStorage().getInitialBytes().empty());
@@ -548,7 +589,7 @@ namespace ink::vm::test
       SCOPED_TRACE(Offset);
       auto Bytes = emptyObjectGolden();
       overwriteLittleInteger(Bytes, Offset, std::numeric_limits<std::uint64_t>::max(), 8);
-      EXPECT_FALSE(ObjectFileReader::read(Bytes).has_value());
+      EXPECT_FALSE(ObjectFileReader::read(Bytes, core::DiagnosticEngine{}).has_value());
     }
     const std::size_t StringLengthOffsets[] = {92, 141};
     for (const auto Offset : StringLengthOffsets)
@@ -556,29 +597,38 @@ namespace ink::vm::test
       SCOPED_TRACE(Offset);
       auto Bytes = littleEndianObjectGolden();
       overwriteLittleInteger(Bytes, Offset, std::numeric_limits<std::uint64_t>::max(), 8);
-      EXPECT_FALSE(ObjectFileReader::read(Bytes).has_value());
+      EXPECT_FALSE(ObjectFileReader::read(Bytes, core::DiagnosticEngine{}).has_value());
     }
   }
 
-  // Record counts beyond available bytes and index capacity fail before allocating or iterating the claimed records.
+  // Indexed table counts beyond the u32 capacity report an ICE before allocation, while oversized nonindexed line payloads remain decoding errors.
   TEST_F(VMObjectFileIOTest, RejectsOversizedRecordCounts)
   {
-    const std::size_t EmptyCountOffsets[] = {79, 87};
-    for (const auto Offset : EmptyCountOffsets)
+    struct IndexedCount
     {
-      SCOPED_TRACE(Offset);
-      auto Bytes = emptyObjectGolden();
-      overwriteLittleInteger(Bytes, Offset, std::numeric_limits<std::uint64_t>::max(), 8);
-      EXPECT_FALSE(ObjectFileReader::read(Bytes).has_value());
-    }
-    const std::size_t DebugCountOffsets[] = {133, 150};
-    for (const auto Offset : DebugCountOffsets)
+        std::size_t Offset;
+        const char *Context;
+        bool HasDebugInfo;
+    };
+    const IndexedCount Counts[] = {
+        {79, "symbol table", false},
+        {87, "base reference table", false},
+        {133, "debug source file table", true},
+    };
+    for (const auto &Count : Counts)
     {
-      SCOPED_TRACE(Offset);
-      auto Bytes = littleEndianObjectGolden();
-      overwriteLittleInteger(Bytes, Offset, std::numeric_limits<std::uint64_t>::max(), 8);
-      EXPECT_FALSE(ObjectFileReader::read(Bytes).has_value());
+      SCOPED_TRACE(Count.Offset);
+      auto Bytes = Count.HasDebugInfo ? littleEndianObjectGolden() : emptyObjectGolden();
+      overwriteLittleInteger(Bytes, Count.Offset, std::numeric_limits<std::uint64_t>::max(), 8);
+      const std::string Pattern = std::string("INK-V0003.*invalid VM object in ") + Count.Context + ": record count exceeds the u32 index range";
+      EXPECT_DEATH(static_cast<void>(ObjectFileReader::read(Bytes, core::DiagnosticEngine{})), Pattern);
     }
+    auto Bytes = littleEndianObjectGolden();
+    overwriteLittleInteger(Bytes, 150, std::numeric_limits<std::uint64_t>::max(), 8);
+    const auto Lines = ObjectFileReader::read(Bytes, core::DiagnosticEngine{});
+    ASSERT_FALSE(Lines.has_value());
+    EXPECT_EQ(Lines.error().Kind, ObjectFileIOErrorKind::UnexpectedEnd);
+    EXPECT_EQ(Lines.error().ByteOffset, 150U);
   }
 
   // Reference counts require four available bytes per record before the reader allocates the table.
@@ -587,28 +637,24 @@ namespace ink::vm::test
     auto Bytes = emptyObjectGolden();
     overwriteLittleInteger(Bytes, 87, 1, 8);
     Bytes.resize(98, 0);
-    const auto Decoded = ObjectFileReader::read(Bytes);
+    const auto Decoded = ObjectFileReader::read(Bytes, core::DiagnosticEngine{});
     ASSERT_FALSE(Decoded.has_value());
     EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::UnexpectedEnd);
     EXPECT_EQ(Decoded.error().ByteOffset, 87U);
   }
 
-  // The u32 index space allows 2^32 records, while a larger count fails as an unrepresentable table.
+  // A missing payload at the u32 count boundary remains recoverable, while exceeding that boundary reports a fatal structural error.
   TEST_F(VMObjectFileIOTest, ChecksReferenceCountIndexCapacityBeforeAllocation)
   {
     auto Bytes = emptyObjectGolden();
     const auto MaximumCount = static_cast<std::uint64_t>(std::numeric_limits<std::uint32_t>::max()) + 1;
     overwriteLittleInteger(Bytes, 87, MaximumCount, 8);
-    const auto MissingPayload = ObjectFileReader::read(Bytes);
+    const auto MissingPayload = ObjectFileReader::read(Bytes, core::DiagnosticEngine{});
     ASSERT_FALSE(MissingPayload.has_value());
     EXPECT_EQ(MissingPayload.error().Kind, ObjectFileIOErrorKind::UnexpectedEnd);
     EXPECT_EQ(MissingPayload.error().ByteOffset, 87U);
     overwriteLittleInteger(Bytes, 87, MaximumCount + 1, 8);
-    const auto Overflow = ObjectFileReader::read(Bytes);
-    ASSERT_FALSE(Overflow.has_value());
-    EXPECT_EQ(Overflow.error().Kind, ObjectFileIOErrorKind::InvalidObject);
-    ASSERT_TRUE(Overflow.error().ValidationError.has_value());
-    EXPECT_EQ(Overflow.error().ValidationError->Kind, ObjectValidationErrorKind::TooManyRecords);
+    EXPECT_DEATH(static_cast<void>(ObjectFileReader::read(Bytes, core::DiagnosticEngine{})), "INK-V0003.*invalid VM object in base reference table: record count exceeds the u32 index range");
   }
 
   // Each missing byte of a symbol-index payload is rejected rather than treated as an absent reference.
@@ -618,14 +664,14 @@ namespace ink::vm::test
     for (std::size_t Length = 128; Length < 132; ++Length)
     {
       SCOPED_TRACE(Length);
-      const auto Decoded = ObjectFileReader::read(std::span<const std::uint8_t>(Golden.data(), Length));
+      const auto Decoded = ObjectFileReader::read(std::span<const std::uint8_t>(Golden.data(), Length), core::DiagnosticEngine{});
       ASSERT_FALSE(Decoded.has_value());
       EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::UnexpectedEnd);
       EXPECT_EQ(Decoded.error().ByteOffset, 120U);
     }
   }
 
-  // Decoded references and alignments are structurally validated and preserve the validator's record diagnosis.
+  // Decoded alignment and reference failures report a fatal VM diagnostic naming their region or reference index.
   TEST_F(VMObjectFileIOTest, RejectsSemanticallyInvalidReferencesAndAlignments)
   {
     struct Case
@@ -633,46 +679,47 @@ namespace ink::vm::test
         std::size_t Offset;
         std::uint64_t Value;
         std::size_t ByteCount;
-        ObjectValidationErrorKind Kind;
-        std::uint64_t RecordIndex;
+        const char *Pattern;
     };
     const Case Cases[] = {
-        {41, 3, 8, ObjectValidationErrorKind::InvalidConstantSection, 0},
-        {58, 3, 8, ObjectValidationErrorKind::InvalidGlobalStorage, 0},
-        {128, 1, 4, ObjectValidationErrorKind::InvalidBaseReference, 0},
+        {41, 3, 8, "INK-V0003.*invalid VM object in constants: alignment must be a nonzero power of two"},
+        {58, 3, 8, "INK-V0003.*invalid VM object in global storage: alignment must be a nonzero power of two"},
+        {128, 1, 4, "INK-V0003.*invalid VM object in base reference #0: symbol index is outside the symbol table"},
     };
     for (const auto &Entry : Cases)
     {
       SCOPED_TRACE(Entry.Offset);
       auto Bytes = littleEndianObjectGolden();
       overwriteLittleInteger(Bytes, Entry.Offset, Entry.Value, Entry.ByteCount);
-      const auto Decoded = ObjectFileReader::read(Bytes);
-      ASSERT_FALSE(Decoded.has_value());
-      EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::InvalidObject);
-      ASSERT_TRUE(Decoded.error().ValidationError.has_value());
-      EXPECT_EQ(Decoded.error().ValidationError->Kind, Entry.Kind);
-      EXPECT_EQ(Decoded.error().ValidationError->RecordIndex, Entry.RecordIndex);
+      EXPECT_DEATH(static_cast<void>(ObjectFileReader::read(Bytes, core::DiagnosticEngine{})), Entry.Pattern);
     }
   }
 
-  // Address width and both configured version triplets are validated after wire decoding.
+  // Unsupported width and versions report fatal header diagnostics before decoding any payload bytes.
   TEST_F(VMObjectFileIOTest, RejectsSemanticallyInvalidHeaderVersionsAndAddressWidth)
   {
-    const std::size_t HeaderOffsets[] = {5, 7, 19};
-    for (const auto Offset : HeaderOffsets)
+    struct InvalidHeader
     {
-      SCOPED_TRACE(Offset);
+        std::size_t Offset;
+        std::uint8_t Value;
+        const char *Pattern;
+    };
+    const InvalidHeader Headers[] = {
+        {5, 32, "INK-V0003.*invalid VM object in header: address width must be 64 bits"},
+        {7, 3, "INK-V0003.*invalid VM object in header: object format version is unsupported"},
+        {19, 3, "INK-V0003.*invalid VM object in header: instruction-set version is unsupported"},
+    };
+    for (const auto &Header : Headers)
+    {
+      SCOPED_TRACE(Header.Offset);
       auto Bytes = emptyObjectGolden();
-      Bytes[Offset] = Offset == 5 ? 32 : 3;
-      const auto Decoded = ObjectFileReader::read(Bytes);
-      ASSERT_FALSE(Decoded.has_value());
-      EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::InvalidObject);
-      ASSERT_TRUE(Decoded.error().ValidationError.has_value());
-      EXPECT_EQ(Decoded.error().ValidationError->Kind, ObjectValidationErrorKind::InvalidHeader);
+      Bytes[Header.Offset] = Header.Value;
+      Bytes.resize(31);
+      EXPECT_DEATH(static_cast<void>(ObjectFileReader::read(Bytes, core::DiagnosticEngine{})), Header.Pattern);
     }
   }
 
-  // Version 1 objects carrying reserved register slots are rejected before their obsolete records are decoded.
+  // Legacy version 1 objects report a fatal version diagnostic before decoding their obsolete reserved-register records.
   TEST_F(VMObjectFileIOTest, RejectsLegacyObjectFormatWithReservedRegisterSlots)
   {
     auto Bytes = emptyObjectGolden();
@@ -680,24 +727,15 @@ namespace ink::vm::test
     overwriteLittleInteger(Bytes, 87, 3, 8);
     Bytes.insert(Bytes.end() - 1, 3, 0);
     ASSERT_EQ(Bytes.size(), 99U);
-    const auto Decoded = ObjectFileReader::read(Bytes);
-    ASSERT_FALSE(Decoded.has_value());
-    EXPECT_EQ(Decoded.error().Kind, ObjectFileIOErrorKind::InvalidObject);
-    ASSERT_TRUE(Decoded.error().ValidationError.has_value());
-    EXPECT_EQ(Decoded.error().ValidationError->Kind, ObjectValidationErrorKind::InvalidHeader);
+    EXPECT_DEATH(static_cast<void>(ObjectFileReader::read(Bytes, core::DiagnosticEngine{})), "INK-V0003.*invalid VM object in header: object format version is unsupported");
   }
 
-  // Invalid source objects are rejected with their validation error before binary encoding begins.
+  // Writer validation reports a fatal VM reference diagnostic before encoding an invalid source object.
   TEST_F(VMObjectFileIOTest, WriterRejectsInvalidObject)
   {
     auto Object = makeCompleteIOObject(ObjectByteOrder::Little);
     Object.getBaseReferences().getEntries()[0].SymbolIndex = static_cast<std::uint32_t>(Object.getSymbols().getEntries().size());
-    const auto Encoded = ObjectFileWriter::write(Object);
-    ASSERT_FALSE(Encoded.has_value());
-    EXPECT_EQ(Encoded.error().Kind, ObjectFileIOErrorKind::InvalidObject);
-    ASSERT_TRUE(Encoded.error().ValidationError.has_value());
-    EXPECT_EQ(Encoded.error().ValidationError->Kind, ObjectValidationErrorKind::InvalidBaseReference);
-    EXPECT_EQ(Encoded.error().ValidationError->RecordIndex, 0U);
+    EXPECT_DEATH(static_cast<void>(ObjectFileWriter::write(Object, core::DiagnosticEngine{})), "INK-V0003.*invalid VM object in base reference #0: symbol index is outside the symbol table");
   }
 
   // File wrappers preserve complete little- and big-endian objects through unique temporary paths.
@@ -710,9 +748,9 @@ namespace ink::vm::test
       ScopedObjectIODirectory Directory;
       ASSERT_TRUE(Directory.valid());
       const auto Object = makeCompleteIOObject(Order);
-      const auto Written = ObjectFileWriter::writeFile(Object, Directory.filePath());
+      const auto Written = ObjectFileWriter::writeFile(Object, Directory.filePath(), core::DiagnosticEngine{});
       ASSERT_TRUE(Written.has_value());
-      const auto Read = ObjectFileReader::readFile(Directory.filePath());
+      const auto Read = ObjectFileReader::readFile(Directory.filePath(), core::DiagnosticEngine{});
       ASSERT_TRUE(Read.has_value());
       expectSameObjectContents(Object, *Read);
     }
@@ -723,35 +761,48 @@ namespace ink::vm::test
   {
     ScopedObjectIODirectory Directory;
     ASSERT_TRUE(Directory.valid());
-    const auto Missing = ObjectFileReader::readFile(Directory.filePath());
+    const auto Missing = ObjectFileReader::readFile(Directory.filePath(), core::DiagnosticEngine{});
     ASSERT_FALSE(Missing.has_value());
     EXPECT_EQ(Missing.error().Kind, ObjectFileIOErrorKind::FileOpenFailed);
     const ObjectFile Object;
-    const auto MissingParent = ObjectFileWriter::writeFile(Object, Directory.directoryPath() / "missing" / "object.inko");
+    const auto MissingParent = ObjectFileWriter::writeFile(Object, Directory.directoryPath() / "missing" / "object.inko", core::DiagnosticEngine{});
     ASSERT_FALSE(MissingParent.has_value());
     EXPECT_EQ(MissingParent.error().Kind, ObjectFileIOErrorKind::FileOpenFailed);
-    EXPECT_FALSE(ObjectFileReader::readFile(Directory.directoryPath()).has_value());
-    EXPECT_FALSE(ObjectFileWriter::writeFile(Object, Directory.directoryPath()).has_value());
+    EXPECT_FALSE(ObjectFileReader::readFile(Directory.directoryPath(), core::DiagnosticEngine{}).has_value());
+    EXPECT_FALSE(ObjectFileWriter::writeFile(Object, Directory.directoryPath(), core::DiagnosticEngine{}).has_value());
   }
 
-  // Rejected objects leave an existing file's bytes intact instead of opening it in truncation mode first.
+  // Fatal writer validation preserves the same existing file across death-test processes instead of opening it in truncation mode.
   TEST_F(VMObjectFileIOTest, InvalidObjectDoesNotTruncateExistingFile)
   {
-    ScopedObjectIODirectory Directory;
-    ASSERT_TRUE(Directory.valid());
+    constexpr const char *PathEnvironmentName = "INK_OBJECT_IO_VALIDATION_DEATH_PATH";
+    std::optional<ScopedObjectIODirectory> Directory;
+    std::filesystem::path Path;
+    const char *InheritedPath = std::getenv(PathEnvironmentName);
+    if (InheritedPath && *InheritedPath)
+    {
+      Path = InheritedPath;
+    }
+    else
+    {
+      Directory.emplace();
+      ASSERT_TRUE(Directory->valid());
+      Path = Directory->filePath();
+    }
+    core::test::ScopedEnvironmentVariable PathEnvironment(PathEnvironmentName);
+    const std::string PathText = Path.string();
+    ASSERT_TRUE(PathEnvironment.set(PathText.c_str()));
     const std::array<char, 4> Sentinel = {'k', 'e', 'e', 'p'};
     {
-      std::ofstream Output(Directory.filePath(), std::ios::binary | std::ios::trunc);
+      std::ofstream Output(Path, std::ios::binary | std::ios::trunc);
       ASSERT_TRUE(Output.is_open());
       Output.write(Sentinel.data(), static_cast<std::streamsize>(Sentinel.size()));
       ASSERT_TRUE(Output.good());
     }
     ObjectFile Invalid;
     Invalid.getBaseReferences().getEntries().push_back({0});
-    const auto Written = ObjectFileWriter::writeFile(Invalid, Directory.filePath());
-    ASSERT_FALSE(Written.has_value());
-    EXPECT_EQ(Written.error().Kind, ObjectFileIOErrorKind::InvalidObject);
-    std::ifstream Input(Directory.filePath(), std::ios::binary);
+    EXPECT_DEATH(static_cast<void>(ObjectFileWriter::writeFile(Invalid, Path, core::DiagnosticEngine{})), "INK-V0003.*invalid VM object in base reference #0: symbol index is outside the symbol table");
+    std::ifstream Input(Path, std::ios::binary);
     ASSERT_TRUE(Input.is_open());
     std::array<char, 4> Actual{};
     Input.read(Actual.data(), static_cast<std::streamsize>(Actual.size()));

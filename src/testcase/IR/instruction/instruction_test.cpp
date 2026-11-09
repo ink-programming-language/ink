@@ -3,6 +3,7 @@
 #include "ink/ir/instruction/add_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
+#include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/cond_branch_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/phi_instruction.h"
@@ -118,7 +119,7 @@ namespace ink::ir::test
     EXPECT_EQ(Base.getKind(), InstructionKind::Return);
   }
 
-  // Only returns and branches terminate a block; arithmetic, allocation, and memory operations do not.
+  // Only returns and branches terminate a block; calls and other value or memory operations do not.
   TEST(IRInstructionTest, ClassifiesEveryTerminatorKind)
   {
     TypePool Types;
@@ -145,12 +146,15 @@ namespace ink::ir::test
     const LoadInstruction Load(Value.getType(), Alloca);
     const StoreInstruction Store(Types.getVoidType(), Alloca, Value);
     const PhiInstruction Phi(Value.getType());
+    const Function Callee(Types.getFunctionType(Types.getVoidType()));
+    const CallInstruction Call(Callee);
     const Instruction *OtherInstructions[] = {
         &Add,
         &Alloca,
         &Load,
         &Store,
         &Phi,
+        &Call,
     };
     for (const Instruction *Other : OtherInstructions)
     {

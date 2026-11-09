@@ -1,10 +1,10 @@
 #pragma once
 
 #include "ink/backend/vm/object/object_section_kind.h"
+#include "ink/core/name/name.h"
 
 #include <cstdint>
 #include <optional>
-#include <string>
 
 namespace ink::vm
 {
@@ -26,7 +26,7 @@ namespace ink::vm
   struct ObjectSymbol
   {
       // Import and Export names share one external namespace; Local names are object-private.
-      std::string Name;
+      core::Name Name = core::NAME_None;
       ObjectSymbolLinkage Linkage = ObjectSymbolLinkage::Local;
       // Local and Export symbols require a definition; Import symbols must not have one.
       std::optional<ObjectSymbolDefinition> Definition;

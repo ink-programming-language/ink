@@ -131,6 +131,25 @@ namespace ink::ir
     return createInstruction<StoreInstruction>(Types.getVoidType(), Destination, Source);
   }
 
+  /* -------------------- Call -------------------- */
+  CallInstruction &InstructionBuilder::createCall(ValueRef Callee, std::span<const ValueRef> Arguments)
+  {
+    checkInsertPoint(CallInstruction::Kind);
+    checkMsgf(FunctionType::classof(&Callee.get().getType()), "Call requires a function-typed callee");
+#if INK_ENABLE_ASSERTIONS
+    const auto &Signature = static_cast<const FunctionType &>(Callee.get().getType());
+    const auto Parameters = Signature.parameters();
+    checkMsgf(Arguments.size() >= Parameters.size() && (Signature.isVariadic() || Arguments.size() == Parameters.size()), "Call argument count must match the callee signature");
+    for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
+    {
+      const Value &ArgumentType = Arguments[Index].get().getType();
+      checkMsgf(!VoidType::classof(&ArgumentType), "Call arguments must have non-void types");
+      checkMsgf(Index >= Parameters.size() || &ArgumentType == &Parameters[Index].type(), "Call argument type must match the callee parameter type");
+    }
+#endif
+    return createInstruction<CallInstruction>(Callee, Arguments);
+  }
+
   /* -------------------- Phi -------------------- */
   PhiInstruction &InstructionBuilder::createPhi(ValueRef ResultType)
   {

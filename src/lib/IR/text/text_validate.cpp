@@ -4,6 +4,7 @@
 #include "ink/ir/instruction/add_instruction.h"
 #include "ink/ir/instruction/alloca_instruction.h"
 #include "ink/ir/instruction/branch_instruction.h"
+#include "ink/ir/instruction/call_instruction.h"
 #include "ink/ir/instruction/cond_branch_instruction.h"
 #include "ink/ir/instruction/load_instruction.h"
 #include "ink/ir/instruction/phi_instruction.h"
@@ -684,6 +685,37 @@ namespace ink::ir::text
                   return fail(Node, "store source type must match its destination pointee type");
                 }
                 return checkOperand(Node, Store.getDestination()) && checkOperand(Node, Store.getSource());
+              }
+              case InstructionKind::Call:
+              {
+                const auto &Call = static_cast<const CallInstruction &>(Node);
+                if (!FunctionType::classof(&Call.getCallee().getType()))
+                {
+                  return fail(Node, "call callee must have a function type");
+                }
+                const FunctionType &Signature = Call.signature();
+                const auto Parameters = Signature.parameters();
+                if (&Node.getType() != &Signature.returnType() || Call.argumentCount() < Parameters.size() || (!Signature.isVariadic() && Call.argumentCount() != Parameters.size()))
+                {
+                  return fail(Node, "call result type or argument count does not match its callee signature");
+                }
+                if (!checkOperand(Node, Call.getCallee()))
+                {
+                  return false;
+                }
+                for (std::size_t Index = 0; Index < Call.argumentCount(); ++Index)
+                {
+                  const Value &Argument = Call.argument(Index);
+                  if (Index < Parameters.size() && &Argument.getType() != &Parameters[Index].type())
+                  {
+                    return fail(Node, "call argument type does not match its fixed parameter type");
+                  }
+                  if (!checkOperand(Node, Argument))
+                  {
+                    return false;
+                  }
+                }
+                return true;
               }
               case InstructionKind::Return:
               {

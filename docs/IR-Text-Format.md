@@ -74,6 +74,8 @@ module "Demo"
 %v2 = load Source: Type;
 store Destination, Source;
 %v3 = phi [Value, %Predecessor], [Value, %Predecessor]: Type;
+%v4 = call Callee(Value, Value): ReturnType;
+call Callee(): void;
 return;
 return Value;
 branch %Target;
@@ -81,6 +83,8 @@ cond_branch Condition, %TrueTarget, %FalseTarget;
 ```
 
 `Value` 可以是引用、类型表达式或常量表达式。有结果的指令显式记录结果类型，无结果指令不分配 ID。phi incoming 对保留顺序和重复 CFG 边；所有读入的完整图都要通过可恢复的类型、CFG 和 SSA 校验。
+
+`call` 的第一个操作数是 `Callee`，其后依次保存圆括号内的实参。callee 必须直接具有 `FunctionType`，可以是函数声明、方法的函数，或函数类型的 SSA 值；`ptr<fn<...>>` 需要先 `load`。call 始终记录返回类型，`void` 调用不分配结果 ID；返回类型必须与 callee 签名一致。固定实参数量和类型必须与形参精确匹配，variadic 调用允许在全部固定实参之后追加非 void 实参。实例方法的 receiver 是签名及实参中的第一个显式参数，call 不自动添加 receiver，也不执行方法名查找或动态派发。模块外函数仍受下面的序列化边界限制。
 
 ## 共享实现与往返约定
 

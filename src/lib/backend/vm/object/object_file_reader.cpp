@@ -1,6 +1,8 @@
 #include "ink/backend/vm/object/object_file_reader.h"
 
 #include "ink/core/support/version.h"
+#include "ink/core/name/name_pool.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/backend/vm/object/object_file.h"
 #include "ink/backend/vm/object/object_file_io_error.h"
 #include "ink/backend/vm/object/object_file_validator.h"
@@ -14,6 +16,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -24,8 +27,9 @@ namespace ink::vm
     class ObjectInput final
     {
       public:
-        explicit ObjectInput(std::span<const std::uint8_t> Bytes) noexcept
-            : Bytes(Bytes)
+        explicit ObjectInput(std::span<const std::uint8_t> Bytes, const core::DiagnosticEngine &Diagnostics) noexcept
+            : Bytes(Bytes),
+              Diagnostics(Diagnostics)
         {
         }
 
@@ -157,7 +161,7 @@ namespace ink::vm
         }
 
         template <typename Container>
-        bool readCount(std::uint64_t &Count, std::size_t MinimumRecordSize, const Container &Values, bool Indexed) noexcept
+        bool readCount(std::uint64_t &Count, std::size_t MinimumRecordSize, const Container &Values, bool Indexed, std::string_view Context) noexcept
         {
           const auto Start = Cursor;
           if (!readInteger(Count))
@@ -166,8 +170,7 @@ namespace ink::vm
           }
           if (Indexed && Count > static_cast<std::uint64_t>(std::numeric_limits<std::uint32_t>::max()) + 1)
           {
-            Failure = ObjectFileIOError{ObjectFileIOErrorKind::InvalidObject, 0, ObjectValidationError{ObjectValidationErrorKind::TooManyRecords, 0}};
-            return false;
+            Diagnostics.reportICE<core::DiagnosticKind::VMObjectValidationFailed>({}, Context, "record count exceeds the u32 index range");
           }
           if (Count > remaining() / MinimumRecordSize)
           {
@@ -183,20 +186,21 @@ namespace ink::vm
       private:
         bool fail(ObjectFileIOErrorKind Kind, std::size_t Offset) noexcept
         {
-          Failure = ObjectFileIOError{Kind, static_cast<std::uint64_t>(Offset), std::nullopt};
+          Failure = ObjectFileIOError{Kind, static_cast<std::uint64_t>(Offset)};
           return false;
         }
 
         std::span<const std::uint8_t> Bytes;
+        const core::DiagnosticEngine &Diagnostics;
         std::size_t Cursor = 0;
         ObjectByteOrder ByteOrder = ObjectByteOrder::Little;
         std::optional<ObjectFileIOError> Failure;
     };
   } // namespace
 
-  std::expected<ObjectFile, ObjectFileIOError> ObjectFileReader::read(std::span<const std::uint8_t> Bytes)
+  std::expected<ObjectFile, ObjectFileIOError> ObjectFileReader::read(std::span<const std::uint8_t> Bytes, const core::DiagnosticEngine &Diagnostics)
   {
-    ObjectInput Input(Bytes);
+    ObjectInput Input(Bytes, Diagnostics);
     ObjectFile Object;
     auto &Header = Object.getHeader();
     for (auto &Byte : Header.getMagic())
@@ -208,7 +212,7 @@ namespace ink::vm
     }
     if (Header.getMagic() != ObjectFileMagic)
     {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::InvalidObject, 0, ObjectValidationError{ObjectValidationErrorKind::InvalidHeader, 0}});
+      ObjectFileValidator::validate(Object, Diagnostics);
     }
     if (!Input.readEnum(Header.getByteOrder(), 1))
     {
@@ -219,10 +223,7 @@ namespace ink::vm
     {
       return std::unexpected(Input.error());
     }
-    if (const auto Error = ObjectFileValidator::validate(Object))
-    {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::InvalidObject, 0, Error});
-    }
+    ObjectFileValidator::validate(Object, Diagnostics);
 
     if (!Input.readBytes(Object.getCode().getBytes()) || !Input.readInteger(Object.getConstants().getAlignment()) || !Input.readBytes(Object.getConstants().getBytes()) || !Input.readInteger(Object.getGlobalStorage().getAlignment()) || !Input.readInteger(Object.getGlobalStorage().getByteSize()) || !Input.readBytes(Object.getGlobalStorage().getInitialBytes()))
     {
@@ -231,18 +232,20 @@ namespace ink::vm
 
     auto &Symbols = Object.getSymbols().getEntries();
     std::uint64_t SymbolCount = 0;
-    if (!Input.readCount(SymbolCount, 10, Symbols, true))
+    if (!Input.readCount(SymbolCount, 10, Symbols, true, "symbol table"))
     {
       return std::unexpected(Input.error());
     }
     Symbols.resize(static_cast<std::size_t>(SymbolCount));
     for (auto &Symbol : Symbols)
     {
+      std::string SymbolName;
       bool HasDefinition = false;
-      if (!Input.readString(Symbol.Name) || !Input.readEnum(Symbol.Linkage, 2) || !Input.readMarker(HasDefinition))
+      if (!Input.readString(SymbolName) || !Input.readEnum(Symbol.Linkage, 2) || !Input.readMarker(HasDefinition))
       {
         return std::unexpected(Input.error());
       }
+      Symbol.Name = core::NamePool::instance().intern(SymbolName);
       if (HasDefinition)
       {
         ObjectSymbolDefinition Definition;
@@ -256,7 +259,7 @@ namespace ink::vm
 
     auto &BaseReferences = Object.getBaseReferences().getEntries();
     std::uint64_t BaseReferenceCount = 0;
-    if (!Input.readCount(BaseReferenceCount, 4, BaseReferences, true))
+    if (!Input.readCount(BaseReferenceCount, 4, BaseReferences, true, "base reference table"))
     {
       return std::unexpected(Input.error());
     }
@@ -279,7 +282,7 @@ namespace ink::vm
       auto &DebugInfo = Object.getDebugInfo().emplace();
       auto &SourceFiles = DebugInfo.getSourceFiles();
       std::uint64_t SourceFileCount = 0;
-      if (!Input.readCount(SourceFileCount, 8, SourceFiles, true))
+      if (!Input.readCount(SourceFileCount, 8, SourceFiles, true, "debug source file table"))
       {
         return std::unexpected(Input.error());
       }
@@ -294,7 +297,7 @@ namespace ink::vm
 
       auto &Lines = DebugInfo.getLines();
       std::uint64_t LineCount = 0;
-      if (!Input.readCount(LineCount, 20, Lines, false))
+      if (!Input.readCount(LineCount, 20, Lines, false, "debug lines"))
       {
         return std::unexpected(Input.error());
       }
@@ -309,42 +312,39 @@ namespace ink::vm
     }
     if (Input.remaining() != 0)
     {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::TrailingData, static_cast<std::uint64_t>(Input.offset()), std::nullopt});
+      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::TrailingData, static_cast<std::uint64_t>(Input.offset())});
     }
-    if (const auto Error = ObjectFileValidator::validate(Object))
-    {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::InvalidObject, 0, Error});
-    }
+    ObjectFileValidator::validate(Object, Diagnostics);
     return std::move(Object);
   }
 
-  std::expected<ObjectFile, ObjectFileIOError> ObjectFileReader::readFile(const std::filesystem::path &Path)
+  std::expected<ObjectFile, ObjectFileIOError> ObjectFileReader::readFile(const std::filesystem::path &Path, const core::DiagnosticEngine &Diagnostics)
   {
     std::ifstream Stream(Path, std::ios::binary | std::ios::ate);
     if (!Stream.is_open())
     {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileOpenFailed, 0, std::nullopt});
+      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileOpenFailed, 0});
     }
     const auto End = Stream.tellg();
     if (End == std::ifstream::pos_type(-1))
     {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileReadFailed, 0, std::nullopt});
+      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileReadFailed, 0});
     }
     const auto Length = End - std::ifstream::pos_type(0);
     if (Length < 0)
     {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileReadFailed, 0, std::nullopt});
+      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileReadFailed, 0});
     }
     const auto Size = static_cast<std::uint64_t>(Length);
     std::vector<std::uint8_t> FileBytes;
     if (Size > FileBytes.max_size() || Size > std::numeric_limits<std::size_t>::max())
     {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::SizeOverflow, 0, std::nullopt});
+      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::SizeOverflow, 0});
     }
     Stream.seekg(0, std::ios::beg);
     if (!Stream)
     {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileReadFailed, 0, std::nullopt});
+      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileReadFailed, 0});
     }
     FileBytes.resize(static_cast<std::size_t>(Size));
     std::size_t Cursor = 0;
@@ -356,10 +356,10 @@ namespace ink::vm
       if (!Stream || ReadCount != static_cast<std::streamsize>(Chunk))
       {
         const auto Offset = static_cast<std::uint64_t>(Cursor) + (ReadCount > 0 ? static_cast<std::uint64_t>(ReadCount) : 0);
-        return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileReadFailed, Offset, std::nullopt});
+        return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileReadFailed, Offset});
       }
       Cursor += static_cast<std::size_t>(Chunk);
     }
-    return read(FileBytes);
+    return read(FileBytes, Diagnostics);
   }
 } // namespace ink::vm

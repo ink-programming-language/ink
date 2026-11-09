@@ -674,6 +674,174 @@ namespace ink::ir::test
     verifyModule(Parsed->module(), core::DiagnosticEngine{});
   }
 
+  // Forward function declarations, void calls, and C variadic calls retain callee and argument identities across owning deserialization.
+  TEST(IRModuleTextTest, RoundTripsDirectVoidAndVariadicCalls)
+  {
+    TypePool Types;
+    const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
+    const IntegerType &Int64 = Types.getIntegerType(IntegerType::Width::Bits64, IntegerType::Signedness::Signed);
+    IntegerConstant Seven(Int32, 7);
+    IntegerConstant Extra(Int64, 9);
+    Module Original;
+    Function &Caller = Original.createFunction(Types.getFunctionType(Int32));
+    Function &Echo = Original.createFunction(Types.getFunctionType(Int32, std::array{Parameter(Int32)}));
+    Function &Sink = Original.createFunction(Types.getFunctionType(Types.getVoidType()));
+    Function &Variadic = Original.createFunction(Types.getFunctionType(Int32, std::array{Parameter(Int32)}, {ABIKind::C, CallingConvention::CDecl}, true));
+    InstructionBuilder Builder(Types);
+    Builder.setInsertPoint(Caller.createBasicBlock());
+    CallInstruction &First = Builder.createCall(Echo, std::array<ValueRef, 1>{Seven});
+    static_cast<void>(Builder.createCall(Sink));
+    CallInstruction &Last = Builder.createCall(Variadic, std::array<ValueRef, 2>{First, Extra});
+    static_cast<void>(Builder.createReturn(Last));
+    std::string Text;
+    auto Parsed = roundTrip(Original, &Text);
+    ASSERT_NE(Parsed, nullptr);
+    EXPECT_NE(Text.find("call @f2(): void;"), std::string::npos);
+    auto FunctionPosition = Parsed->module().functions().begin();
+    const Function &CallerCopy = *FunctionPosition++;
+    const Function &EchoCopy = *FunctionPosition++;
+    const Function &SinkCopy = *FunctionPosition++;
+    const Function &VariadicCopy = *FunctionPosition++;
+    const BasicBlock &Block = *CallerCopy.basicBlocks().begin();
+    ASSERT_EQ(Block.instructionCount(), 4U);
+    auto Position = Block.instructions().begin();
+    const auto &FirstCopy = static_cast<const CallInstruction &>(*Position++);
+    const auto &VoidCopy = static_cast<const CallInstruction &>(*Position++);
+    const auto &LastCopy = static_cast<const CallInstruction &>(*Position++);
+    EXPECT_EQ(&FirstCopy.getCallee(), &EchoCopy);
+    EXPECT_EQ(FirstCopy.argumentCount(), 1U);
+    EXPECT_EQ(static_cast<const IntegerConstant &>(FirstCopy.argument(0)).bits(), 7U);
+    EXPECT_EQ(&VoidCopy.getCallee(), &SinkCopy);
+    EXPECT_EQ(VoidCopy.argumentCount(), 0U);
+    EXPECT_TRUE(VoidType::classof(&VoidCopy.getType()));
+    EXPECT_EQ(&LastCopy.getCallee(), &VariadicCopy);
+    EXPECT_TRUE(LastCopy.signature().isVariadic());
+    EXPECT_EQ(LastCopy.argumentCount(), 2U);
+    EXPECT_EQ(&LastCopy.argument(0), &FirstCopy);
+    EXPECT_EQ(static_cast<const IntegerConstant &>(LastCopy.argument(1)).bits(), 9U);
+    EXPECT_EQ(static_cast<const ReturnInstruction &>(*Position).getReturnValue(), &LastCopy);
+    verifyModule(Parsed->module(), core::DiagnosticEngine{});
+  }
+
+  // Direct method calls and function-valued arguments preserve the same explicit object receiver without inserting an extra argument.
+  TEST(IRModuleTextTest, RoundTripsMethodAndIndirectCallsWithExplicitReceivers)
+  {
+    TypePool Types;
+    const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
+    ObjectType &Object = Types.createObjectType();
+    const FunctionType &MethodSignature = Types.getFunctionType(Int32, std::array{Parameter(Object), Parameter(Int32)});
+    Function &MethodFunction = Object.addMethod(MethodSignature, core::NamePool::instance().intern("apply"), MemberKind::Instance, SymbolVisibility::Public).function();
+    Module Original;
+    Original.addObjectType(Object);
+    Function &Caller = Original.createFunction(Types.getFunctionType(Int32, std::array{Parameter(Object), Parameter(MethodSignature), Parameter(Int32)}));
+    InstructionBuilder Builder(Types);
+    Builder.setInsertPoint(Caller.createBasicBlock());
+    CallInstruction &Direct = Builder.createCall(MethodFunction, std::array<ValueRef, 2>{Caller.argument(0), Caller.argument(2)});
+    CallInstruction &Indirect = Builder.createCall(Caller.argument(1), std::array<ValueRef, 2>{Caller.argument(0), Direct});
+    static_cast<void>(Builder.createReturn(Indirect));
+    auto Parsed = roundTrip(Original);
+    ASSERT_NE(Parsed, nullptr);
+    const ObjectType &ObjectCopy = *Parsed->module().objectTypes().begin();
+    const Function &CallerCopy = *Parsed->module().functions().begin();
+    auto Position = CallerCopy.basicBlocks().begin()->instructions().begin();
+    const auto &DirectCopy = static_cast<const CallInstruction &>(*Position++);
+    const auto &IndirectCopy = static_cast<const CallInstruction &>(*Position++);
+    EXPECT_EQ(&DirectCopy.getCallee(), &ObjectCopy.methods()[0].function());
+    EXPECT_EQ(DirectCopy.argumentCount(), 2U);
+    EXPECT_EQ(&DirectCopy.argument(0), &CallerCopy.argument(0));
+    EXPECT_EQ(&DirectCopy.argument(0).getType(), &ObjectCopy);
+    EXPECT_EQ(&IndirectCopy.getCallee(), &CallerCopy.argument(1));
+    EXPECT_EQ(&IndirectCopy.argument(0), &CallerCopy.argument(0));
+    EXPECT_EQ(&IndirectCopy.argument(1), &DirectCopy);
+    verifyModule(Parsed->module(), core::DiagnosticEngine{});
+  }
+
+  // Self calls can return type-valued results that later instructions use as allocation metadata.
+  TEST(IRModuleTextTest, RoundTripsRecursiveCallsAndTypeValuedResults)
+  {
+    TypePool Types;
+    Module Original;
+    Function &Recursive = Original.createFunction(Types.getFunctionType(Types.getMetaType()));
+    InstructionBuilder Builder(Types);
+    Builder.setInsertPoint(Recursive.createBasicBlock());
+    CallInstruction &T = Builder.createCall(Recursive);
+    static_cast<void>(Builder.createAlloca(T));
+    static_cast<void>(Builder.createReturn(T));
+    auto Parsed = roundTrip(Original);
+    ASSERT_NE(Parsed, nullptr);
+    const Function &Copy = *Parsed->module().functions().begin();
+    auto Position = Copy.basicBlocks().begin()->instructions().begin();
+    const auto &Call = static_cast<const CallInstruction &>(*Position++);
+    const auto &Allocation = static_cast<const AllocaInstruction &>(*Position++);
+    EXPECT_EQ(&Call.getCallee(), &Copy);
+    EXPECT_TRUE(Call.isTypeValue());
+    EXPECT_EQ(&Allocation.getAllocatedType(), &Call);
+    EXPECT_EQ(static_cast<const ReturnInstruction &>(*Position).getReturnValue(), &Call);
+    verifyModule(Parsed->module(), core::DiagnosticEngine{});
+  }
+
+  // A function-valued call result remains a valid callee when its dominating producer block appears later in textual block order.
+  TEST(IRModuleTextTest, ResolvesInstructionCalleesAcrossBlockOrder)
+  {
+    TypePool Types;
+    const IntegerType &Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
+    const FunctionType &CallbackSignature = Types.getFunctionType(Int32);
+    Module Original;
+    Function &Factory = Original.createFunction(Types.getFunctionType(CallbackSignature));
+    Function &Caller = Original.createFunction(CallbackSignature);
+    BasicBlock &Entry = Caller.createBasicBlock();
+    BasicBlock &Consumer = Caller.createBasicBlock();
+    BasicBlock &Producer = Caller.createBasicBlock();
+    InstructionBuilder Builder(Types);
+    Builder.setInsertPoint(Entry);
+    static_cast<void>(Builder.createBranch(Producer));
+    Builder.setInsertPoint(Producer);
+    CallInstruction &Callback = Builder.createCall(Factory);
+    static_cast<void>(Builder.createBranch(Consumer));
+    Builder.setInsertPoint(Consumer);
+    CallInstruction &Result = Builder.createCall(Callback);
+    static_cast<void>(Builder.createReturn(Result));
+    auto Parsed = roundTrip(Original);
+    ASSERT_NE(Parsed, nullptr);
+    const Function &CallerCopy = *std::next(Parsed->module().functions().begin());
+    auto BlockPosition = CallerCopy.basicBlocks().begin();
+    const BasicBlock &ConsumerCopy = *++BlockPosition;
+    const BasicBlock &ProducerCopy = *++BlockPosition;
+    const auto &ResultCopy = static_cast<const CallInstruction &>(*ConsumerCopy.instructions().begin());
+    const auto &CallbackCopy = static_cast<const CallInstruction &>(*ProducerCopy.instructions().begin());
+    EXPECT_EQ(&ResultCopy.getCallee(), &CallbackCopy);
+    verifyModule(Parsed->module(), core::DiagnosticEngine{});
+  }
+
+  // Invalid callable types, fixed/variadic arguments, return annotations, result IDs, and list syntax produce recoverable diagnostics.
+  TEST(IRModuleTextTest, RejectsInvalidCallSignaturesAndArgumentLists)
+  {
+    constexpr std::string_view InvalidTexts[] = {
+        R"(module "" { define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call int<i32>(0)(): void; return; } })",
+        R"(module "" { define private none void @f0 name ""(positional ptr<fn<ink default fixed>() -> void> %a0 name "") abi ink cc default fixed { %bb0 name "": call %a0(): void; return; } })",
+        R"(module "" { declare private none i32 @callee name ""() abi ink cc default fixed; define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call @callee(): i32; return; } })",
+        R"(module "" { declare private none void @callee name ""() abi ink cc default fixed; define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": %v0 = call @callee(): void; return; } })",
+        R"(module "" { declare private none i32 @callee name ""() abi ink cc default fixed; define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": %v0 = call @callee(): i64; return; } })",
+        R"(module "" { declare private none void @callee name ""(positional i32 %a0 name "") abi ink cc default fixed; define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call @callee(): void; return; } })",
+        R"(module "" { declare private none void @callee name ""() abi ink cc default fixed; define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call @callee(int<i32>(0)): void; return; } })",
+        R"(module "" { declare private none void @callee name ""(positional i32 %a0 name "") abi ink cc default fixed; define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call @callee(int<i64>(0)): void; return; } })",
+        R"(module "" { declare private none void @callee name ""(positional i32 %a0 name "") abi c cc cdecl variadic; define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call @callee(): void; return; } })",
+        R"(module "" { declare private none void @callee name ""(positional i32 %a0 name "") abi c cc cdecl variadic; define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call @callee(int<i64>(0)): void; return; } })",
+        R"(module "" { define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call @missing(): void; return; } })",
+        R"(module "" { define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call (): void; return; } })",
+        R"(module "" { define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call @f0: void; return; } })",
+        R"(module "" { declare private none void @callee name ""(positional i32 %a0 name "") abi ink cc default fixed; define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call @callee(int<i32>(0),): void; return; } })",
+        R"(module "" { declare private none void @callee name ""(positional i32 %a0 name "", positional i32 %a1 name "") abi ink cc default fixed; define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call @callee(int<i32>(0) int<i32>(1)): void; return; } })",
+        R"(module "" { define private none void @f0 name ""(positional fn<ink default fixed>() -> void %a0 name "") abi ink cc default fixed { %bb0 name "": return; } define private none void @f1 name ""() abi ink cc default fixed { %bb1 name "": call %a0(): void; return; } })",
+        R"(module "" { declare private none fn<ink default fixed>() -> void @factory name ""() abi ink cc default fixed; define private none void @f0 name ""() abi ink cc default fixed { %bb0 name "": call %v0(): void; %v0 = call @factory(): fn<ink default fixed>() -> void; return; } })",
+    };
+    for (std::string_view Text : InvalidTexts)
+    {
+      SCOPED_TRACE(Text);
+      expectReadError(Text);
+    }
+  }
+
   // Truncation, trailing tokens, malformed strings, and unknown instruction keywords return ordinary Core diagnostics.
   TEST(IRModuleTextTest, RejectsMalformedTextWithoutFatalVerification)
   {

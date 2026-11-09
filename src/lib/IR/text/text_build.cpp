@@ -771,6 +771,49 @@ namespace ink::ir::text
             }
             return &Instructions.createStore(*Destination, *Source);
           }
+          case InstructionKind::Call:
+          {
+            if (Node.Operands.empty() || !shape(Node, Node.Operands.size(), 0))
+            {
+              fail(Node.Offset, "call requires a callee and an argument list");
+              return nullptr;
+            }
+            const Value *Callee = operand(Node.Operands.front());
+            if (!Callee)
+            {
+              return nullptr;
+            }
+            if (!FunctionType::classof(&Callee->getType()))
+            {
+              fail(Node.Offset, "call callee must have a function type");
+              return nullptr;
+            }
+            const auto &Signature = static_cast<const FunctionType &>(Callee->getType());
+            const auto Parameters = Signature.parameters();
+            const std::size_t ArgumentCount = Node.Operands.size() - 1;
+            if (&Signature.returnType() != ResultType || ArgumentCount < Parameters.size() || (!Signature.isVariadic() && ArgumentCount != Parameters.size()))
+            {
+              fail(Node.Offset, "call result type or argument count does not match its callee signature");
+              return nullptr;
+            }
+            std::vector<ValueRef> Arguments;
+            Arguments.reserve(ArgumentCount);
+            for (std::size_t Index = 0; Index < ArgumentCount; ++Index)
+            {
+              const Value *Argument = operand(Node.Operands[Index + 1]);
+              if (!Argument)
+              {
+                return nullptr;
+              }
+              if (VoidType::classof(&Argument->getType()) || (Index < Parameters.size() && &Argument->getType() != &Parameters[Index].type()))
+              {
+                fail(Node.Offset, "call arguments must be non-void and match the fixed parameter types");
+                return nullptr;
+              }
+              Arguments.emplace_back(*Argument);
+            }
+            return &Instructions.createCall(*Callee, Arguments);
+          }
           case InstructionKind::Phi:
             if (!shape(Node, 0, 0, true))
             {

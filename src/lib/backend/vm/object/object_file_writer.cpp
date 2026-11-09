@@ -2,6 +2,8 @@
 
 #include "ink/backend/vm/object/object_file.h"
 #include "ink/backend/vm/object/object_file_validator.h"
+#include "ink/core/name/name_pool.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 
 #include <cstddef>
 #include <cstring>
@@ -68,7 +70,7 @@ namespace ink::vm
 
         std::unexpected<ObjectFileIOError> sizeOverflow() const noexcept
         {
-          return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::SizeOverflow, static_cast<std::uint64_t>(Bytes.size()), std::nullopt});
+          return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::SizeOverflow, static_cast<std::uint64_t>(Bytes.size())});
         }
 
         std::vector<std::uint8_t> takeBytes() && noexcept
@@ -92,12 +94,9 @@ namespace ink::vm
     };
   } // namespace
 
-  std::expected<std::vector<std::uint8_t>, ObjectFileIOError> ObjectFileWriter::write(const ObjectFile &Object)
+  std::expected<std::vector<std::uint8_t>, ObjectFileIOError> ObjectFileWriter::write(const ObjectFile &Object, const core::DiagnosticEngine &Diagnostics)
   {
-    if (const auto Error = ObjectFileValidator::validate(Object))
-    {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::InvalidObject, 0, Error});
-    }
+    ObjectFileValidator::validate(Object, Diagnostics);
 
     const auto &Header = Object.getHeader();
     ObjectWriteBuffer Buffer(Header.getByteOrder());
@@ -136,7 +135,7 @@ namespace ink::vm
     }
     for (const auto &Symbol : Symbols)
     {
-      if (!Buffer.appendString(Symbol.Name) || !Buffer.appendUnsigned(static_cast<std::uint8_t>(Symbol.Linkage), 1) || !Buffer.appendUnsigned(Symbol.Definition.has_value() ? 1 : 0, 1))
+      if (!Buffer.appendString(core::NamePool::instance().text(Symbol.Name)) || !Buffer.appendUnsigned(static_cast<std::uint8_t>(Symbol.Linkage), 1) || !Buffer.appendUnsigned(Symbol.Definition.has_value() ? 1 : 0, 1))
       {
         return Buffer.sizeOverflow();
       }
@@ -198,9 +197,9 @@ namespace ink::vm
     return std::move(Buffer).takeBytes();
   }
 
-  std::expected<void, ObjectFileIOError> ObjectFileWriter::writeFile(const ObjectFile &Object, const std::filesystem::path &Path)
+  std::expected<void, ObjectFileIOError> ObjectFileWriter::writeFile(const ObjectFile &Object, const std::filesystem::path &Path, const core::DiagnosticEngine &Diagnostics)
   {
-    auto Encoded = write(Object);
+    auto Encoded = write(Object, Diagnostics);
     if (!Encoded)
     {
       return std::unexpected(Encoded.error());
@@ -209,7 +208,7 @@ namespace ink::vm
     std::ofstream Stream(Path, std::ios::binary | std::ios::out | std::ios::trunc);
     if (!Stream.is_open() || !Stream)
     {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileOpenFailed, 0, std::nullopt});
+      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileOpenFailed, 0});
     }
     const auto &Bytes = *Encoded;
     std::size_t Offset = 0;
@@ -221,14 +220,14 @@ namespace ink::vm
       if (!Stream)
       {
         Stream.close();
-        return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileWriteFailed, static_cast<std::uint64_t>(Offset), std::nullopt});
+        return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileWriteFailed, static_cast<std::uint64_t>(Offset)});
       }
       Offset += Chunk;
     }
     Stream.close();
     if (!Stream)
     {
-      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileWriteFailed, static_cast<std::uint64_t>(Offset), std::nullopt});
+      return std::unexpected(ObjectFileIOError{ObjectFileIOErrorKind::FileWriteFailed, static_cast<std::uint64_t>(Offset)});
     }
     return {};
   }
