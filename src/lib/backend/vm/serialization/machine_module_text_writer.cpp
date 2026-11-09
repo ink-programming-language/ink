@@ -1,6 +1,7 @@
 #include "ink/backend/vm/serialization/machine_module_text.h"
 
 #include "ink/backend/vm/instruction/address_operand.h"
+#include "ink/backend/vm/instruction/basic_block_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
 #include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/backend/vm/module/machine_module.h"
@@ -171,9 +172,14 @@ namespace ink::vm
               BlockLabels.reserve(Block.name());
             }
             std::size_t BlockIndex = 0;
+            FunctionBlockLabels.clear();
             for (const MachineBasicBlock &Block : Function.basicBlocks())
             {
-              if (!writeLabel(BlockLabels, Block.name(), ".L", BlockIndex, true))
+              FunctionBlockLabels.emplace(&Block, BlockLabels.allocate(Block.name(), ".L", BlockIndex));
+            }
+            for (const MachineBasicBlock &Block : Function.basicBlocks())
+            {
+              if (!writeAllocatedLabel(FunctionBlockLabels.find(&Block)->second, Block.name(), true))
               {
                 return failure();
               }
@@ -202,6 +208,11 @@ namespace ink::vm
         bool writeLabel(LabelScope &Scope, core::Name Name, std::string_view Prefix, std::size_t &NextIndex, bool IsBlock = false)
         {
           const std::string Label = Scope.allocate(Name, Prefix, NextIndex);
+          return writeAllocatedLabel(Label, Name, IsBlock);
+        }
+
+        bool writeAllocatedLabel(std::string_view Label, core::Name Name, bool IsBlock)
+        {
           Text += Label;
           if (IsBlock)
           {
@@ -273,9 +284,9 @@ namespace ink::vm
         bool writeRegister(RegisterId Register)
         {
           const std::string_view Name = getRegisterName(Register);
-          if (Name == "InvalidRegister")
+          if (!isArithmeticRegister(Register))
           {
-            Error = "instruction contains an unknown register ID";
+            Error = Name == "InvalidRegister" ? "instruction contains an unknown register ID" : "EFLAGS is only accessed implicitly by instructions";
             return false;
           }
           Text += Name;
@@ -292,6 +303,18 @@ namespace ink::vm
             Text += "0x";
             writeUnsigned(static_cast<const ImmediateOperand &>(Value).bits(), 16);
             return true;
+          case OperandKind::BasicBlock:
+          {
+            const MachineBasicBlock *Target = static_cast<const BasicBlockOperand &>(Value).getBlock();
+            const auto Label = FunctionBlockLabels.find(Target);
+            if (Label == FunctionBlockLabels.end())
+            {
+              Error = "a branch target must belong to its function";
+              return false;
+            }
+            Text += Label->second;
+            return true;
+          }
           case OperandKind::Address:
           {
             const AddressOperand &Address = static_cast<const AddressOperand &>(Value);
@@ -334,6 +357,7 @@ namespace ink::vm
 
         std::string Text;
         std::string Error;
+        std::unordered_map<const MachineBasicBlock *, std::string> FunctionBlockLabels;
     };
   } // namespace
 

@@ -14,7 +14,8 @@ namespace ink::vm
     Symbol,
   };
 
-  // Models a memory operand's address before loading; it contains no runtime address or host pointer.
+  // Describes a relative address; the opcode determines memory access or control transfer.
+  // Contains only a logical base and byte displacement, never a runtime address or host pointer.
   class AddressOperand final : public Operand
   {
     public:

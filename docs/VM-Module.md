@@ -37,11 +37,46 @@ namespace ink::vm
 
 `setInsertPoint(Block)` 选择块尾；`setInsertPoint(Before)` 选择一条已归属指令之前的位置。后者返回 `bool`，未归属的指令会被拒绝，原有插入位置保持不变。连续在同一锚点前创建指令时，新指令按照创建顺序排列，锚点保持不变。
 
-`getInsertBlock()` 返回所选基本块；`getInsertBefore()` 返回锚点，块尾或未设置插入点时返回 `nullptr`。`clearInsertPoint()` 清除所选位置。`tryCreate<Opcode>()` 在没有插入点时返回 `nullptr`；`create<Opcode>()` 要求已设置有效插入点，违反此前提会报告致命错误。
+`getInsertBlock()` 返回所选基本块；`getInsertBefore()` 返回锚点，块尾或未设置插入点时返回 `nullptr`。`clearInsertPoint()` 清除所选位置。`tryCreate<Opcode>()` 在没有插入点，或跳转目标为空、未归属函数、属于其他函数时返回 `nullptr`；`create<Opcode>()` 要求已设置有效插入点，且跳转目标与插入块属于同一非空函数，违反此前提会报告致命错误。
 
 当前接口不提供删除或转移指令、基本块和函数的操作。追加函数、追加基本块和插入指令保留现有对象地址。Builder、父指针和遍历范围均借用所属对象，使用期间相应容器必须继续存活。模块、函数和基本块禁止复制和移动，避免父指针和借用引用失效。
 
 基类 `MachineInstruction` 没有虚析构函数；基本块通过记录具体类型的删除器释放指令。调用方使用 Builder 返回的引用或指针进行访问，由所属基本块负责销毁。`parent()` 从指令到基本块、从基本块到函数、从函数到模块提供归属关系；常量对象访问会传播为常量父对象指针。脱离所属容器单独构造的对象，其父指针为空。
+
+## 比较、跳转与隐式状态
+
+`Cmp8mm`、`Cmp8mi` 至 `Cmp64mm`、`Cmp64mi`，以及 `Cmp64rr`、`Cmp64rm`、`Cmp64ri`、`Cmp64mr` 持有两个来源，不产生显式结果；它们的 `getLHS()`、`getRHS()` 分别访问索引 0、1。`getDestination()` 仅用于 Load、Store、Add，零操作数 `Ret` 不提供目标或来源访问器。
+
+跳转在内存中保存目标基本块指针。`BasicBlockOperand` 是持有 `const MachineBasicBlock *` 的操作数包装，`getTarget()` 直接返回该指针，`getTargetOperand()` 返回 `const BasicBlockOperand &` 以便统一遍历。Builder 可直接接收基本块指针，要求目标非空，且源块与目标块属于同一函数；允许前向、后向和自跳转。目标指针借用所属函数中的稳定块对象，函数必须覆盖跳转指令的使用期。
+
+```cpp
+#include "ink/backend/vm/module/machine_instruction_builder.h"
+#include "ink/backend/vm/module/machine_module.h"
+
+namespace ink::vm
+{
+  void buildBranchExample(MachineModule &ModuleValue)
+  {
+    MachineFunction &FunctionValue = ModuleValue.createFunction();
+    MachineBasicBlock &Entry = FunctionValue.createBasicBlock();
+    MachineBasicBlock &Failure = FunctionValue.createBasicBlock();
+    MachineBasicBlock &Done = FunctionValue.createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Entry);
+    Builder.create<Opcode::Cmp32mi>(AddressOperand(RegisterId::BP, 20), ImmediateOperand(42));
+    Builder.create<Opcode::Jne>(&Failure);
+    Builder.create<Opcode::Jmp>(&Done);
+    Builder.setInsertPoint(Failure);
+    Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP, 20), ImmediateOperand(0));
+    Builder.setInsertPoint(Done);
+    Builder.create<Opcode::Ret>();
+  }
+} // namespace ink::vm
+```
+
+内存模型不保存 PC 相对位移，因此追加指令或调整块布局不会改变目标身份。后续 `ObjectEmitter` 完成函数和块布局后，根据目标块指针查找代码位置，再计算、编码 PC 相对位移；宿主指针不会写入对象文件。当前尚未实现该发射器。
+
+`isBranch()`、`isConditionalBranch()`、`isReturn()`、`isTerminator()` 提供控制流分类；条件跳转只有一个显式目标块，未跳转时继续执行下一条指令。`readEFlagsMask()` 和 `writtenEFlagsMask()` 描述隐式标志依赖：所有 ADD、CMP 改写 CF、ZF、SF、OF，条件跳转读取各自所需的子集。EFLAGS 不作为它们的显式操作数，也不能用作普通寄存器值或地址基址。`eflags.h` 只提供标志定义、掩码及条件依赖元数据；标志生成和条件判断由后续执行器实现，当前模型不执行指令。
 
 ## 常量、全局数据与栈帧
 
@@ -68,8 +103,8 @@ namespace ink::vm
 
 ## 对象文件边界
 
-`serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
+`serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；跳转使用 `jne failure`、`jmp done`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
 
 `vm::MachineModule` 是可编辑逻辑代码模型。现有 `vm::ObjectFile` 保存已经编码的 Code 字节、常量区、全局存储、符号、基址引用和调试记录，`ObjectFileReader`、`ObjectFileWriter` 继续负责文件容器的读取与写出。
 
-后续的 `ObjectEmitter` 应当完成模块布局、标签解析、符号偏移、指令编码与对象内容生成。当前尚未实现该发射器、指令编解码器、lowering pass 或 VM 执行器；创建一个 `vm::MachineModule` 不会自动产生可执行字节。指令字节布局见 [VM 指令编码格式](VM-Instruction-Format.md)，执行状态与调用约定的讨论见 [VM 运行时设计](VM-Runtime.md)。
+后续的 `ObjectEmitter` 应当完成模块布局、符号偏移、基本块目标到 PC 相对位移的转换、指令编码与对象内容生成。当前尚未实现该发射器、指令编解码器、lowering pass 或 VM 执行器；创建一个 `vm::MachineModule` 不会自动产生可执行字节。指令字节布局见 [VM 指令编码格式](VM-Instruction-Format.md)，执行状态与调用约定的讨论见 [VM 运行时设计](VM-Runtime.md)。

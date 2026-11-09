@@ -16,12 +16,19 @@
 #include <string_view>
 #include <tuple>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 
 namespace ink::vm::test
 {
   namespace
   {
+    constexpr Opcode RegisteredOpcodes[] = {
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) Opcode::Kind,
+#include "ink/backend/vm/instruction/opcode.def"
+#undef OPCODE
+    };
+
     template <typename OperandType>
     OperandType exampleOperand(std::size_t Index)
     {
@@ -41,13 +48,20 @@ namespace ink::vm::test
     }
 
     template <Opcode Operation, std::size_t... Indices>
-    void appendExampleInstruction(MachineInstructionBuilder &Builder, std::index_sequence<Indices...>)
+    void appendExampleInstruction(MachineInstructionBuilder &Builder, const MachineBasicBlock *Target, std::index_sequence<Indices...>)
     {
       using Operands = typename OpcodeTraits<Operation>::OperandTuple;
-      Builder.create<Operation>(exampleOperand<std::tuple_element_t<Indices, Operands>>(Indices)...);
+      if constexpr (OpcodeTraits<Operation>::Category == InstructionCategory::Branch)
+      {
+        Builder.create<Operation>(Target);
+      }
+      else
+      {
+        Builder.create<Operation>(exampleOperand<std::tuple_element_t<Indices, Operands>>(Indices)...);
+      }
     }
 
-    void expectEqualOperands(const Operand &Expected, const Operand &Actual)
+    void expectEqualOperands(const Operand &Expected, const Operand &Actual, const std::unordered_map<const MachineBasicBlock *, const MachineBasicBlock *> &BlockMap)
     {
       ASSERT_EQ(Actual.getKind(), Expected.getKind());
       switch (Expected.getKind())
@@ -68,6 +82,13 @@ namespace ink::vm::test
       case OperandKind::Immediate:
         EXPECT_EQ(static_cast<const ImmediateOperand &>(Actual).bits(), static_cast<const ImmediateOperand &>(Expected).bits());
         break;
+      case OperandKind::BasicBlock:
+      {
+        const auto Target = BlockMap.find(static_cast<const BasicBlockOperand &>(Expected).getBlock());
+        ASSERT_NE(Target, BlockMap.end());
+        EXPECT_EQ(static_cast<const BasicBlockOperand &>(Actual).getBlock(), Target->second);
+        break;
+      }
       }
     }
 
@@ -116,6 +137,12 @@ namespace ink::vm::test
           ++ActualSlot;
         }
         ASSERT_EQ(ActualFunction->basicBlockCount(), ExpectedFunction.basicBlockCount());
+        std::unordered_map<const MachineBasicBlock *, const MachineBasicBlock *> BlockMap;
+        auto MappedBlock = ActualFunction->basicBlocks().begin();
+        for (const auto &ExpectedBlock : ExpectedFunction.basicBlocks())
+        {
+          BlockMap.emplace(&ExpectedBlock, &*MappedBlock++);
+        }
         auto ActualBlock = ActualFunction->basicBlocks().begin();
         for (const auto &ExpectedBlock : ExpectedFunction.basicBlocks())
         {
@@ -133,7 +160,7 @@ namespace ink::vm::test
             for (std::size_t Index = 0; Index < ExpectedInstruction.operandCount(); ++Index)
             {
               ASSERT_NE(ActualValue.getOperand(Index), nullptr);
-              expectEqualOperands(*ExpectedInstruction.getOperand(Index), *ActualValue.getOperand(Index));
+              expectEqualOperands(*ExpectedInstruction.getOperand(Index), *ActualValue.getOperand(Index), BlockMap);
             }
             ++ActualInstruction;
           }
@@ -166,12 +193,12 @@ namespace ink::vm::test
     ASSERT_TRUE(Function.frameInfo().createStackSlot(8, 8).has_value());
     ASSERT_TRUE(Function.frameInfo().layout(17).has_value());
     auto &Block = Function.createBasicBlock(SharedName);
+    auto &Target = Function.createBasicBlock();
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Block);
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount) appendExampleInstruction<Opcode::Kind>(Builder, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{});
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) appendExampleInstruction<Opcode::Kind>(Builder, &Target, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{});
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
-    Function.createBasicBlock();
     auto &UnlaidFunction = Module.createFunction(SharedName);
     ASSERT_TRUE(UnlaidFunction.frameInfo().createStackSlot(7, 16).has_value());
     auto &EmptyLaidFunction = Module.createFunction();
@@ -184,7 +211,7 @@ namespace ink::vm::test
     const auto Rewritten = writeMachineModuleText(**Parsed);
     ASSERT_TRUE(Rewritten.has_value());
     EXPECT_EQ(*Rewritten, *Text);
-    EXPECT_EQ((*Parsed)->functions().begin()->basicBlocks().begin()->instructionCount(), 30U);
+    EXPECT_EQ((*Parsed)->functions().begin()->basicBlocks().begin()->instructionCount(), std::size(RegisteredOpcodes));
     EXPECT_LT(Text->size(), 10000U);
   }
 
@@ -469,6 +496,170 @@ store64i [bp], 0XFF
       ASSERT_TRUE(Parsed.error().Span.isValid());
       EXPECT_LE(Parsed.error().Span.getBegin().getByteOffset(), Text.size());
     }
+  }
+
+  // Forward, backward, and self branches resolve within their function without changing source instruction order.
+  TEST(VMMachineModuleTextTest, ResolvesBlockTargetsWithoutChangingInstructionOrder)
+  {
+    constexpr std::string_view Text = R"(.module "control-flow"
+.section .text
+.function sum
+entry:
+    store32i [bp], 20
+    cmp32mi [bp], 20
+    je done
+    add32mmi [bp + 4], [bp], 22
+    jmp bp
+bp:
+    cmp64ri sp, 0
+    jne entry
+    jmp .frame
+.frame:
+    jmp eflags
+eflags:
+    jmp eflags
+done:
+    ret
+.endfunction
+.function another
+entry:
+    ret
+.endfunction
+)";
+    const auto Parsed = readMachineModuleText(Text);
+    ASSERT_TRUE(Parsed.has_value());
+    const auto &Function = *(*Parsed)->functions().begin();
+    ASSERT_EQ(Function.basicBlockCount(), 5U);
+    const auto Blocks = Function.basicBlocks();
+    const auto &Entry = *Blocks.begin();
+    const auto &BP = *std::next(Blocks.begin());
+    const auto &Frame = *std::next(Blocks.begin(), 2);
+    const auto &Flags = *std::next(Blocks.begin(), 3);
+    const auto &Done = *std::next(Blocks.begin(), 4);
+    const auto EntryInstructions = Entry.instructions();
+    ASSERT_EQ(Entry.instructionCount(), 5U);
+    EXPECT_EQ((*EntryInstructions.begin()).getOpcode(), Opcode::Store32i);
+    EXPECT_EQ((*std::next(EntryInstructions.begin())).getOpcode(), Opcode::Cmp32mi);
+    EXPECT_EQ(static_cast<const BasicBlockOperand &>(*(*std::next(EntryInstructions.begin(), 2)).getOperand(0)).getBlock(), &Done);
+    EXPECT_EQ((*std::next(EntryInstructions.begin(), 3)).getOpcode(), Opcode::Add32mmi);
+    EXPECT_EQ(static_cast<const BasicBlockOperand &>(*(*std::next(EntryInstructions.begin(), 4)).getOperand(0)).getBlock(), &BP);
+    const auto BPInstructions = BP.instructions();
+    EXPECT_EQ(static_cast<const BasicBlockOperand &>(*(*std::next(BPInstructions.begin())).getOperand(0)).getBlock(), &Entry);
+    EXPECT_EQ(static_cast<const BasicBlockOperand &>(*(*std::next(BPInstructions.begin(), 2)).getOperand(0)).getBlock(), &Frame);
+    EXPECT_EQ(static_cast<const BasicBlockOperand &>(*(*Frame.instructions().begin()).getOperand(0)).getBlock(), &Flags);
+    EXPECT_EQ(static_cast<const BasicBlockOperand &>(*(*Flags.instructions().begin()).getOperand(0)).getBlock(), &Flags);
+    EXPECT_EQ((*Done.instructions().begin()).getOpcode(), Opcode::Ret);
+    const auto Rewritten = writeMachineModuleText(**Parsed);
+    ASSERT_TRUE(Rewritten.has_value());
+    const auto Reparsed = readMachineModuleText(*Rewritten);
+    ASSERT_TRUE(Reparsed.has_value());
+    expectEqualModules(**Parsed, **Reparsed);
+  }
+
+  // Branch aliases preserve exact target objects even when names are duplicated, anonymous, or reserved for another block.
+  TEST(VMMachineModuleTextTest, RoundTripsBranchTargetsWithDuplicateAndAnonymousNames)
+  {
+    auto &Names = core::NamePool::instance();
+    MachineModule Module;
+    auto &Function = Module.createFunction(Names.intern("sum"));
+    auto &First = Function.createBasicBlock(Names.intern("entry"));
+    auto &Second = Function.createBasicBlock(Names.intern("entry"));
+    auto &Anonymous = Function.createBasicBlock();
+    auto &Reserved = Function.createBasicBlock(Names.intern(".L0"));
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(First);
+    Builder.create<Opcode::Je>(&Second);
+    Builder.create<Opcode::Jmp>(&Anonymous);
+    Builder.setInsertPoint(Second);
+    Builder.create<Opcode::Jne>(&First);
+    Builder.create<Opcode::Jmp>(&Reserved);
+    Builder.setInsertPoint(Anonymous);
+    Builder.create<Opcode::Ret>();
+    Builder.setInsertPoint(Reserved);
+    Builder.create<Opcode::Ret>();
+    const auto Text = writeMachineModuleText(Module);
+    ASSERT_TRUE(Text.has_value());
+    EXPECT_NE(Text->find("je entry.1\n"), std::string::npos);
+    EXPECT_NE(Text->find("jmp .L1\n"), std::string::npos);
+    EXPECT_NE(Text->find("jne entry\n"), std::string::npos);
+    EXPECT_NE(Text->find("jmp .L0\n"), std::string::npos);
+    const auto Parsed = readMachineModuleText(*Text);
+    ASSERT_TRUE(Parsed.has_value());
+    expectEqualModules(Module, **Parsed);
+    const auto Rewritten = writeMachineModuleText(**Parsed);
+    ASSERT_TRUE(Rewritten.has_value());
+    EXPECT_EQ(*Rewritten, *Text);
+  }
+
+  // Control-transfer arity, function-local target labels, comparison operand kinds, and implicit EFLAGS access are checked before returning a module.
+  TEST(VMMachineModuleTextTest, RejectsInvalidControlFlowAndExplicitEFlagsOperands)
+  {
+    constexpr std::string_view InvalidBodies[] = {
+        "jmp",
+        "je",
+        "jmp 0",
+        "jmp [bp]",
+        "jmp [sp]",
+        "jmp [eflags]",
+        "jmp [ref0]",
+        "je [bp + 4]",
+        "jmp [pc + 9223372036854775808]",
+        "jmp [pc - 9223372036854775809]",
+        "jmp [pc]",
+        "jmp [pc + 1], [pc]",
+        "jmp entry, entry",
+        "je entry,",
+        "ret 1",
+        "cmp32mi [bp]",
+        "cmp32mi [bp], 1, 2",
+        "cmp32mi bp, 1",
+        "cmp64rr bp, [sp]",
+        "add64rri eflags, sp, 1",
+        "add64rri sp, eflags, 1",
+        "cmp64ri eflags, 0",
+        "store32i [eflags], 1",
+        "cmp32mi [eflags + 4], 0",
+        "jmp missing",
+    };
+    for (const auto Body : InvalidBodies)
+    {
+      SCOPED_TRACE(Body);
+      const std::string Text = ".module \"\"\n.section .text\n.function F\nentry:\n    " + std::string(Body) + "\n.endfunction\n";
+      const auto Parsed = readMachineModuleText(Text);
+      ASSERT_FALSE(Parsed.has_value());
+      EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+    }
+    constexpr std::string_view CrossFunctionTexts[] = {
+        ".module \"\"\n.section .text\n.function F\nentry:\n    jmp target\n.endfunction\n.function G\ntarget:\n    ret\n.endfunction\n",
+        ".module \"\"\n.section .text\n.function G\ntarget:\n    ret\n.endfunction\n.function F\nentry:\n    jmp target\n.endfunction\n",
+    };
+    for (const auto Text : CrossFunctionTexts)
+    {
+      const auto Parsed = readMachineModuleText(Text);
+      ASSERT_FALSE(Parsed.has_value());
+      ASSERT_TRUE(Parsed.error().Span.isValid());
+      EXPECT_EQ(Parsed.error().Span.getBegin().getByteOffset(), Text.find("jmp target") + 4);
+    }
+  }
+
+  // Explicit EFLAGS registers are rejected when writing either direct register values or memory bases.
+  TEST(VMMachineModuleTextTest, RejectsExplicitEFlagsWhenWriting)
+  {
+    MachineModule Module;
+    auto &Block = Module.createFunction().createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Block);
+    Builder.create<Opcode::Cmp64ri>(RegisterOperand(RegisterId::EFLAGS), ImmediateOperand(0));
+    const auto RegisterText = writeMachineModuleText(Module);
+    ASSERT_FALSE(RegisterText.has_value());
+    EXPECT_EQ(RegisterText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+    MachineModule AddressModule;
+    auto &AddressBlock = AddressModule.createFunction().createBasicBlock();
+    Builder.setInsertPoint(AddressBlock);
+    Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::EFLAGS), ImmediateOperand(1));
+    const auto AddressText = writeMachineModuleText(AddressModule);
+    ASSERT_FALSE(AddressText.has_value());
+    EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMTextInvalid);
   }
 
   // Unsupported register values fail serialization explicitly in direct register and memory-address operands.

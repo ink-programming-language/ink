@@ -1,6 +1,8 @@
 #include "ink/backend/vm/instruction/address_operand.h"
+#include "ink/backend/vm/instruction/basic_block_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
 #include "ink/backend/vm/instruction/register_operand.h"
+#include "ink/backend/vm/module/machine_basic_block.h"
 
 #include <gtest/gtest.h>
 
@@ -152,5 +154,27 @@ namespace ink::vm::test
     EXPECT_EQ(Immediate.bits(), std::numeric_limits<std::uint64_t>::max());
     EXPECT_EQ(ImmediateCopy.bits(), 0U);
     EXPECT_EQ(ImmediateCopy.getKind(), OperandKind::Immediate);
+  }
+
+  // Block operands retain borrowed identity through copying, including a null raw value before builder validation.
+  TEST(VMOperandTest, PreservesBorrowedBasicBlockTargets)
+  {
+    MachineBasicBlock First;
+    MachineBasicBlock Second;
+    const BasicBlockOperand Target(&First);
+    const Operand &Base = Target;
+    EXPECT_EQ(Base.getKind(), OperandKind::BasicBlock);
+    EXPECT_EQ(Target.getBlock(), &First);
+    auto Copy = Target;
+    Copy = BasicBlockOperand(&Second);
+    EXPECT_EQ(Copy.getBlock(), &Second);
+    EXPECT_EQ(Target.getBlock(), &First);
+    EXPECT_EQ(Copy.getKind(), OperandKind::BasicBlock);
+    constexpr BasicBlockOperand NullTarget(nullptr);
+    static_assert(NullTarget.getBlock() == nullptr);
+    static_assert(NullTarget.getKind() == OperandKind::BasicBlock);
+    static_assert(!std::is_default_constructible_v<BasicBlockOperand>);
+    static_assert(std::is_copy_constructible_v<BasicBlockOperand> && std::is_copy_assignable_v<BasicBlockOperand>);
+    static_assert(std::is_same_v<decltype(Target.getBlock()), const MachineBasicBlock *>);
   }
 } // namespace ink::vm::test

@@ -1,4 +1,4 @@
-; MachineModule text example: compute 20 + 22 in two stack slots.
+; MachineModule text example: compute and check 20 + 22 in local stack slots.
 .module "sum_example"
 
 .section .rodata
@@ -13,13 +13,19 @@
 
 .section .text
 .function sum
-    .stackslot 4, 4 ; input: offset 0
-    .stackslot 4, 4 ; result: offset 4
-    .frame 0
+    .stackslot 4, 4 ; input: offset 16
+    .stackslot 4, 4 ; result: offset 20
+    .frame 16
 entry:
-    ; Assume BP and SP initially point to the start of this local area.
+    ; Assume the call frame saved BP and PC, with SP initially equal to BP + 16.
     add64rri sp, sp, 8
-    store32i [bp], 20
-    add32mmi [bp + 4], [bp], 22 ; result = 42
-    add64rri sp, sp, -8
+    store32i [bp + 16], 20
+    add32mmi [bp + 20], [bp + 16], 22 ; result = 42
+    cmp32mi [bp + 20], 42
+    jne failure
+    jmp done
+failure:
+    store32i [bp + 20], 0
+done:
+    ret
 .endfunction

@@ -1,8 +1,8 @@
 # Ink object binary format
 
-This format serializes the logical contents of `ink::vm::ObjectFile`. Its default object format version is `2.0.0`, and its default instruction-set version remains `1.0.0`; the supported versions are read through `ConfigManager`.
+This format serializes the logical contents of `ink::vm::ObjectFile`. Its default object format version is `2.0.0`, and its default instruction-set version is `1.1.0`; the supported versions are read through `ConfigManager`.
 
-Object format `2.0.0` removes the reserved BP/SP/PC base-reference entries and the optional-symbol flag from each base-reference record. This is a breaking container-format change. Readers using the defaults reject objects declaring format `1.0.0`; no legacy decoder or automatic migration is provided. Overriding the configured version does not restore the old record encoding. The first operand encoding specification retains instruction-set version `1.0.0`; see [VM instruction encoding](VM-Instruction-Format.md). Instruction codecs are not yet implemented.
+Object format `2.0.0` removes the reserved BP/SP/PC base-reference entries and the optional-symbol flag from each base-reference record. This is a breaking container-format change. Readers using the defaults reject objects declaring format `1.0.0`; no legacy decoder or automatic migration is provided. Overriding the configured version does not restore the old record encoding. Instruction-set version `1.1.0` adds the EFLAGS register, comparisons, branches and return instruction while retaining existing opcode encodings; see [VM instruction encoding](VM-Instruction-Format.md). Header validation requires the configured instruction-set version to match exactly. Instruction codecs are not yet implemented.
 
 Fields appear in the order below. There is no implicit padding, native pointer, C++ object layout, or terminating byte after a string. All sizes and offsets are byte counts. Section alignment describes loaded storage and does not insert padding into the file.
 

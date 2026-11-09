@@ -4,6 +4,11 @@
 
 namespace ink::vm
 {
+  void MachineInstructionBuilder::invalidBranchTarget() noexcept
+  {
+    panic("VM branch target must belong to the insertion block's function");
+  }
+
   void MachineInstructionBuilder::setInsertPoint(MachineBasicBlock &Block) noexcept
   {
     InsertBlock = &Block;

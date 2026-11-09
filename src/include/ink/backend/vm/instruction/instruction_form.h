@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ink/backend/vm/instruction/address_operand.h"
+#include "ink/backend/vm/instruction/basic_block_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
 #include "ink/backend/vm/instruction/register_operand.h"
 
@@ -31,6 +32,7 @@ namespace ink::vm
         static constexpr std::size_t RegisterCount = (std::size_t{0} + ... + static_cast<std::size_t>(std::is_same_v<ValueTypes, RegisterOperand>));
         static constexpr std::size_t AddressCount = (std::size_t{0} + ... + static_cast<std::size_t>(std::is_same_v<ValueTypes, AddressOperand>));
         static constexpr std::size_t ImmediateCount = (std::size_t{0} + ... + static_cast<std::size_t>(std::is_same_v<ValueTypes, ImmediateOperand>));
+        static constexpr std::size_t BlockCount = (std::size_t{0} + ... + static_cast<std::size_t>(std::is_same_v<ValueTypes, BasicBlockOperand>));
     };
   } // namespace detail
 

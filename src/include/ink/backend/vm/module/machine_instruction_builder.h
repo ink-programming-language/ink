@@ -28,21 +28,44 @@ namespace ink::vm
       MachineBasicBlock *getInsertBlock() const noexcept;
       MachineInstruction *getInsertBefore() const noexcept;
 
-      // Requires an insertion point in every build mode; use tryCreate when its absence is recoverable.
+      // Requires an insertion point and, for branches, a nonnull target in the insertion block's function.
       template <Opcode Operation, typename... ValueTypes>
       MachineInstructionImpl<Operation> &create(ValueTypes &&...Values) requires(std::is_constructible_v<MachineInstructionImpl<Operation>, ValueTypes && ...>)
       {
         checkInsertPoint();
-        return *tryCreate<Operation>(std::forward<ValueTypes>(Values)...);
+        auto *Created = tryCreate<Operation>(std::forward<ValueTypes>(Values)...);
+        if (!Created)
+        {
+          invalidBranchTarget();
+        }
+        return *Created;
       }
 
-      // Returns nullptr without allocating or modifying a block when no insertion point is selected.
+      // Returns nullptr without allocation or mutation if the insertion point or branch target ownership is invalid.
       template <Opcode Operation, typename... ValueTypes>
       [[nodiscard]] MachineInstructionImpl<Operation> *tryCreate(ValueTypes &&...Values) requires(std::is_constructible_v<MachineInstructionImpl<Operation>, ValueTypes && ...>)
       {
         if (!InsertBlock)
         {
           return nullptr;
+        }
+        if constexpr (OpcodeTraits<Operation>::Category == InstructionCategory::Branch)
+        {
+          const auto Operands = std::forward_as_tuple(Values...);
+          const auto &TargetValue = std::get<0>(Operands);
+          const MachineBasicBlock *Target = nullptr;
+          if constexpr (std::is_same_v<std::remove_cvref_t<decltype(TargetValue)>, BasicBlockOperand>)
+          {
+            Target = TargetValue.getBlock();
+          }
+          else
+          {
+            Target = TargetValue;
+          }
+          if (!Target || !InsertBlock->parent() || Target->parent() != InsertBlock->parent())
+          {
+            return nullptr;
+          }
         }
         const auto Destroy = [](MachineInstruction *Value) noexcept
         {
@@ -57,6 +80,7 @@ namespace ink::vm
 
     private:
       void checkInsertPoint() const noexcept;
+      [[noreturn]] static void invalidBranchTarget() noexcept;
 
       MachineBasicBlock *InsertBlock = nullptr;
       MachineBasicBlock::InstructionStorage::iterator InsertPosition;

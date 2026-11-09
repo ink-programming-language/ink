@@ -100,9 +100,9 @@ namespace ink::core::test
     ASSERT_TRUE(FormatEnvironment.set(nullptr));
     ASSERT_TRUE(InstructionSetEnvironment.set(nullptr));
     EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectFormatVersion>(), "2.0.0");
-    EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectInstructionSetVersion>(), "1.0.0");
+    EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectInstructionSetVersion>(), "1.1.0");
     EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(2, 0, 0));
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 0, 0));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 1, 0));
   }
 
   // Each version read observes the current environment while earlier values and copies remain independent.
@@ -127,7 +127,7 @@ namespace ink::core::test
     ASSERT_TRUE(FormatEnvironment.set(nullptr));
     ASSERT_TRUE(InstructionSetEnvironment.set(nullptr));
     EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(2, 0, 0));
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 0, 0));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 1, 0));
   }
 
   // Version conversion accepts zero and the full unsigned 32-bit range in all three components.
@@ -174,7 +174,7 @@ namespace ink::core::test
       EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectFormatVersion>(), Value);
       EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectInstructionSetVersion>(), Value);
       EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(2, 0, 0));
-      EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 0, 0));
+      EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 1, 0));
     }
   }
 
@@ -198,7 +198,7 @@ namespace ink::core::test
     EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectFormatVersion>(), "");
     EXPECT_EQ(ConfigManager::get<ConfigKind::ObjectInstructionSetVersion>(), "");
     EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectFormatVersion>(), Version(2, 0, 0));
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 0, 0));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::ObjectInstructionSetVersion>(), Version(1, 1, 0));
   }
 #endif
 } // namespace ink::core::test

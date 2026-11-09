@@ -8,8 +8,8 @@ namespace ink::vm
   {
     switch (Operation)
     {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount) \
-  case Opcode::Kind:                                                                               \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) \
+  case Opcode::Kind:                                                                                                    \
     return static_cast<const MachineInstructionImpl<Opcode::Kind> &>(*this).getOperand(Index);
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE

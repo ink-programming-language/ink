@@ -24,4 +24,20 @@ namespace ink::vm
     }
     return "InvalidRegister";
   }
+
+  constexpr bool isAddressRegister(RegisterId Register) noexcept
+  {
+    return Register == RegisterId::BP || Register == RegisterId::SP || Register == RegisterId::PC;
+  }
+
+  constexpr bool isWritableAddressRegister(RegisterId Register) noexcept
+  {
+    return Register == RegisterId::BP || Register == RegisterId::SP;
+  }
+
+  // EFLAGS is implicit status, never an ordinary arithmetic source or destination.
+  constexpr bool isArithmeticRegister(RegisterId Register) noexcept
+  {
+    return isAddressRegister(Register);
+  }
 } // namespace ink::vm

@@ -11,6 +11,7 @@
 #include <optional>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <variant>
@@ -266,7 +267,7 @@ namespace ink::vm
       return std::nullopt;
     }
 
-    using ParsedOperand = std::variant<std::monostate, RegisterOperand, AddressOperand, ImmediateOperand>;
+    using ParsedOperand = std::variant<std::monostate, RegisterOperand, AddressOperand, ImmediateOperand, BasicBlockOperand>;
 
     bool parseOperand(LineParser &Line, ParsedOperand &Result)
     {
@@ -278,6 +279,10 @@ namespace ink::vm
           return false;
         }
         std::optional<RegisterId> Register = parseRegister(Base->Text);
+        if (Register && !isAddressRegister(*Register))
+        {
+          return false;
+        }
         std::uint32_t Reference = 0;
         if (!Register)
         {
@@ -318,7 +323,7 @@ namespace ink::vm
       if (Line.peek() && Line.peek()->Kind == TokenKind::Identifier)
       {
         const auto Register = parseRegister(Line.take(TokenKind::Identifier)->Text);
-        if (!Register)
+        if (!Register || !isArithmeticRegister(*Register))
         {
           return false;
         }
@@ -340,15 +345,32 @@ namespace ink::vm
     }
 
     template <Opcode Operation, std::size_t... Indices>
-    bool appendInstruction(MachineInstructionBuilder &Builder, const std::array<ParsedOperand, 3> &Operands, std::index_sequence<Indices...>)
+    bool operandTypesMatch(const std::array<ParsedOperand, 3> &Operands, std::index_sequence<Indices...>)
     {
       using Tuple = typename OpcodeTraits<Operation>::OperandTuple;
-      if (!(std::get_if<std::tuple_element_t<Indices, Tuple>>(&Operands[Indices]) && ...))
+      return (static_cast<bool>(std::get_if<std::tuple_element_t<Indices, Tuple>>(&Operands[Indices])) && ...);
+    }
+
+    template <Opcode Operation, std::size_t... Indices>
+    bool appendInstruction(MachineInstructionBuilder &Builder, const std::array<ParsedOperand, 3> &Operands, std::index_sequence<Indices...> IndicesValue)
+    {
+      using Tuple = typename OpcodeTraits<Operation>::OperandTuple;
+      if (!operandTypesMatch<Operation>(Operands, IndicesValue))
       {
         return false;
       }
       return Builder.tryCreate<Operation>(*std::get_if<std::tuple_element_t<Indices, Tuple>>(&Operands[Indices])...) != nullptr;
     }
+
+    struct PendingInstruction
+    {
+        MachineBasicBlock *Block;
+        Opcode Operation;
+        std::array<ParsedOperand, 3> Operands;
+        std::string TargetLabel;
+        std::size_t Offset;
+        std::size_t TargetOffset = 0;
+    };
 
     enum class Section
     {
@@ -439,6 +461,10 @@ namespace ink::vm
             {
               return std::unexpected(textError(Offset, "unexpected or malformed .endfunction"));
             }
+            if (const auto Result = appendFunctionInstructions(); !Result)
+            {
+              return Result;
+            }
             Function = nullptr;
             Builder.clearInsertPoint();
             return {};
@@ -514,7 +540,7 @@ namespace ink::vm
           {
             return std::unexpected(textError(Label.Offset, "a block label must appear inside a function with at most one quoted original name"));
           }
-          if (!BlockLabels.insert(Label.Text).second)
+          if (BlockLabels.contains(Label.Text))
           {
             return std::unexpected(textError(Label.Offset, "duplicate block label in the function"));
           }
@@ -524,7 +550,9 @@ namespace ink::vm
             return std::unexpected(Name.error());
           }
           HasBlock = true;
-          Builder.setInsertPoint(Function->createBasicBlock(*Name));
+          MachineBasicBlock &Block = Function->createBasicBlock(*Name);
+          BlockLabels.emplace(Label.Text, &Block);
+          Builder.setInsertPoint(Block);
           return {};
         }
 
@@ -660,42 +688,100 @@ namespace ink::vm
           return {};
         }
 
+        template <Opcode Operation>
+        std::expected<void, core::Diagnostic> readKnownInstruction(const Token &Mnemonic, LineParser &Line)
+        {
+          PendingInstruction Pending{Builder.getInsertBlock(), Operation, {}, {}, Mnemonic.Offset};
+          if constexpr (OpcodeTraits<Operation>::Category == InstructionCategory::Branch)
+          {
+            const Token *Target = Line.take(TokenKind::Identifier);
+            if (!Target || Line.peek())
+            {
+              return std::unexpected(textError(Line.offset(), "a branch requires exactly one basic block label"));
+            }
+            Pending.TargetLabel = Target->Text;
+            Pending.TargetOffset = Target->Offset;
+          }
+          else
+          {
+            std::size_t Count = 0;
+            if (Line.peek())
+            {
+              do
+              {
+                const std::size_t Offset = Line.offset();
+                if (Count == Pending.Operands.size() || !parseOperand(Line, Pending.Operands[Count++]))
+                {
+                  return std::unexpected(textError(Offset, "invalid instruction operand"));
+                }
+              } while (Line.consume(TokenKind::Comma));
+            }
+            if (Line.peek())
+            {
+              return std::unexpected(textError(Line.offset(), "expected a comma between instruction operands"));
+            }
+            if (Count != OpcodeTraits<Operation>::OperandCount || !operandTypesMatch<Operation>(Pending.Operands, std::make_index_sequence<OpcodeTraits<Operation>::OperandCount>{}))
+            {
+              return std::unexpected(textError(Mnemonic.Offset, "instruction operands do not match the opcode form"));
+            }
+          }
+          PendingInstructions.push_back(std::move(Pending));
+          return {};
+        }
+
         std::expected<void, core::Diagnostic> readInstruction(const Token &Mnemonic, LineParser &Line)
         {
-          std::array<ParsedOperand, 3> Operands;
-          std::size_t Count = 0;
-          if (Line.peek())
-          {
-            do
-            {
-              const std::size_t Offset = Line.offset();
-              if (Count == Operands.size() || !parseOperand(Line, Operands[Count++]))
-              {
-                return std::unexpected(textError(Offset, "invalid instruction operand"));
-              }
-            } while (Line.consume(TokenKind::Comma));
-          }
-          if (Line.peek())
-          {
-            return std::unexpected(textError(Line.offset(), "expected a comma between instruction operands"));
-          }
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount)                                                                                      \
-  if (Mnemonic.Text == Spelling)                                                                                                                                                        \
-  {                                                                                                                                                                                     \
-    if (Count != OpcodeTraits<Opcode::Kind>::OperandCount || !appendInstruction<Opcode::Kind>(Builder, Operands, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{})) \
-    {                                                                                                                                                                                   \
-      return std::unexpected(textError(Mnemonic.Offset, "instruction operands do not match the opcode form"));                                                                          \
-    }                                                                                                                                                                                   \
-    return {};                                                                                                                                                                          \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) \
+  if (Mnemonic.Text == Spelling)                                                                                        \
+  {                                                                                                                     \
+    return readKnownInstruction<Opcode::Kind>(Mnemonic, Line);                                                          \
   }
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
           return std::unexpected(textError(Mnemonic.Offset, "unknown instruction mnemonic"));
         }
 
+        std::expected<void, core::Diagnostic> appendFunctionInstructions()
+        {
+          // Resolve all targets before inserting instructions so forward branches cannot reorder a block's code.
+          for (PendingInstruction &Pending : PendingInstructions)
+          {
+            if (!Pending.TargetLabel.empty())
+            {
+              const auto Target = BlockLabels.find(Pending.TargetLabel);
+              if (Target == BlockLabels.end())
+              {
+                return std::unexpected(textError(Pending.TargetOffset, "unknown basic block label in this function"));
+              }
+              Pending.Operands[0].emplace<BasicBlockOperand>(Target->second);
+            }
+          }
+          for (const PendingInstruction &Pending : PendingInstructions)
+          {
+            Builder.setInsertPoint(*Pending.Block);
+            bool Appended = false;
+            switch (Pending.Operation)
+            {
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition)                          \
+  case Opcode::Kind:                                                                                                                             \
+    Appended = appendInstruction<Opcode::Kind>(Builder, Pending.Operands, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{}); \
+    break;
+#include "ink/backend/vm/instruction/opcode.def"
+#undef OPCODE
+            }
+            if (!Appended)
+            {
+              return std::unexpected(textError(Pending.Offset, "instruction operands cannot be inserted into their function"));
+            }
+          }
+          PendingInstructions.clear();
+          return {};
+        }
+
         std::unique_ptr<MachineModule> Module;
         std::unordered_set<std::string> ModuleLabels;
-        std::unordered_set<std::string> BlockLabels;
+        std::unordered_map<std::string, MachineBasicBlock *> BlockLabels;
+        std::vector<PendingInstruction> PendingInstructions;
         MachineInstructionBuilder Builder;
         MachineFunction *Function = nullptr;
         Section CurrentSection = Section::None;

@@ -96,8 +96,8 @@ namespace ink::vm::test
     EXPECT_EQ(Object.getHeader().getMagic(), ObjectFileMagic);
     EXPECT_EQ(Object.getHeader().getFormatVersion(), core::Version(2, 0, 0));
     EXPECT_EQ(Object.getHeader().getFormatVersion().toString(), "2.0.0");
-    EXPECT_EQ(Object.getHeader().getInstructionSetVersion(), core::Version(1, 0, 0));
-    EXPECT_EQ(Object.getHeader().getInstructionSetVersion().toString(), "1.0.0");
+    EXPECT_EQ(Object.getHeader().getInstructionSetVersion(), core::Version(1, 1, 0));
+    EXPECT_EQ(Object.getHeader().getInstructionSetVersion().toString(), "1.1.0");
     EXPECT_EQ(Object.getHeader().getAddressBitWidth(), 64U);
     EXPECT_EQ(Object.getHeader().getByteOrder(), ObjectByteOrder::Little);
     EXPECT_TRUE(Object.getConstants().getBytes().empty());
@@ -178,8 +178,9 @@ namespace ink::vm::test
     }
     const core::Version InvalidInstructionSetVersions[] = {
         core::Version(2, 0, 0),
-        core::Version(1, 1, 0),
-        core::Version(1, 0, 1),
+        core::Version(1, 0, 0),
+        core::Version(1, 2, 0),
+        core::Version(1, 1, 1),
     };
     for (const auto &Version : InvalidInstructionSetVersions)
     {

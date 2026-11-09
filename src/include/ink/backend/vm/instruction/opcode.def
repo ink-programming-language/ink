@@ -1,7 +1,7 @@
-// OPCODE_FORM(Kind, ...): concrete operand types in semantic order, including the destination.
-// OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount).
+// OPCODE_FORM(Kind, ...): explicit operand types in semantic order, including a destination when present.
+// OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition).
 // Intentionally has no include guard: callers define OPCODE and optionally OPCODE_FORM before inclusion.
-// Opcode values occupy 16 bits. Operand counts include destinations; see docs/VM-Instruction-Format.md for byte encodings.
+// Opcode values occupy 16 bits. Counts include explicit destinations but exclude implicit flags; see docs/VM-Instruction-Format.md for byte encodings.
 // 0x0000 is unassigned after removal of the dedicated stack-allocation opcode.
 
 #ifndef OPCODE_FORM
@@ -10,6 +10,12 @@
 #endif
 
 // Forms describe only ordered operand kinds; opcodes supply the operation and width.
+OPCODE_FORM(None)
+OPCODE_FORM(B, BasicBlockOperand)
+OPCODE_FORM(Rr, RegisterOperand, RegisterOperand)
+OPCODE_FORM(Rm, RegisterOperand, AddressOperand)
+OPCODE_FORM(Ri, RegisterOperand, ImmediateOperand)
+OPCODE_FORM(Mr, AddressOperand, RegisterOperand)
 OPCODE_FORM(Mm, AddressOperand, AddressOperand)
 OPCODE_FORM(Mi, AddressOperand, ImmediateOperand)
 OPCODE_FORM(Mmm, AddressOperand, AddressOperand, AddressOperand)
@@ -22,58 +28,93 @@ OPCODE_FORM(Mrr, AddressOperand, RegisterOperand, RegisterOperand)
 OPCODE_FORM(Mrm, AddressOperand, RegisterOperand, AddressOperand)
 OPCODE_FORM(Mri, AddressOperand, RegisterOperand, ImmediateOperand)
 
+// ADD and CMP implicitly write CF, ZF, SF and OF; other instructions preserve EFLAGS.
+// Conditional branches implicitly read the flags selected by Condition.
 // Loads read a value of the specified bit width from memory.
-OPCODE(Load8, 0x0001, "load8", Mm, 8, 0, 2, 0)
-OPCODE(Load16, 0x0002, "load16", Mm, 16, 0, 2, 0)
-OPCODE(Load32, 0x0003, "load32", Mm, 32, 0, 2, 0)
-OPCODE(Load64, 0x0004, "load64", Mm, 64, 0, 2, 0)
+OPCODE(Load8, 0x0001, "load8", Mm, 8, 0, 2, 0, Load, None)
+OPCODE(Load16, 0x0002, "load16", Mm, 16, 0, 2, 0, Load, None)
+OPCODE(Load32, 0x0003, "load32", Mm, 32, 0, 2, 0, Load, None)
+OPCODE(Load64, 0x0004, "load64", Mm, 64, 0, 2, 0, Load, None)
 
 // Stores write to memory; the suffix describes the source: m reads memory, i supplies an immediate.
-OPCODE(Store8m, 0x0005, "store8m", Mm, 8, 0, 2, 0)
-OPCODE(Store8i, 0x0006, "store8i", Mi, 8, 0, 1, 1)
+OPCODE(Store8m, 0x0005, "store8m", Mm, 8, 0, 2, 0, Store, None)
+OPCODE(Store8i, 0x0006, "store8i", Mi, 8, 0, 1, 1, Store, None)
 
-OPCODE(Store16m, 0x0007, "store16m", Mm, 16, 0, 2, 0)
-OPCODE(Store16i, 0x0008, "store16i", Mi, 16, 0, 1, 1)
+OPCODE(Store16m, 0x0007, "store16m", Mm, 16, 0, 2, 0, Store, None)
+OPCODE(Store16i, 0x0008, "store16i", Mi, 16, 0, 1, 1, Store, None)
 
-OPCODE(Store32m, 0x0009, "store32m", Mm, 32, 0, 2, 0)
-OPCODE(Store32i, 0x000A, "store32i", Mi, 32, 0, 1, 1)
+OPCODE(Store32m, 0x0009, "store32m", Mm, 32, 0, 2, 0, Store, None)
+OPCODE(Store32i, 0x000A, "store32i", Mi, 32, 0, 1, 1, Store, None)
 
-OPCODE(Store64m, 0x000B, "store64m", Mm, 64, 0, 2, 0)
-OPCODE(Store64i, 0x000C, "store64i", Mi, 64, 0, 1, 1)
+OPCODE(Store64m, 0x000B, "store64m", Mm, 64, 0, 2, 0, Store, None)
+OPCODE(Store64i, 0x000C, "store64i", Mi, 64, 0, 1, 1, Store, None)
 
 // Add suffixes describe destination, LHS, RHS: r is a logical register, m is memory, i is an immediate.
 // Register operands use the independent RegisterId values from register.def, never BaseReferences slots.
 // Memory operands encode a register ID or the 0x80 symbol-reference prefix, followed by the fields defined in docs/VM-Instruction-Format.md.
 // For memory destinations, addition wraps to Width bits and interchangeable sources use r before m before i.
-OPCODE(Add8mmm, 0x000D, "add8mmm", Mmm, 8, 0, 3, 0)
-OPCODE(Add8mmi, 0x000E, "add8mmi", Mmi, 8, 0, 2, 1)
-OPCODE(Add8mii, 0x000F, "add8mii", Mii, 8, 0, 1, 2)
+OPCODE(Add8mmm, 0x000D, "add8mmm", Mmm, 8, 0, 3, 0, Add, None)
+OPCODE(Add8mmi, 0x000E, "add8mmi", Mmi, 8, 0, 2, 1, Add, None)
+OPCODE(Add8mii, 0x000F, "add8mii", Mii, 8, 0, 1, 2, Add, None)
 
-OPCODE(Add16mmm, 0x0010, "add16mmm", Mmm, 16, 0, 3, 0)
-OPCODE(Add16mmi, 0x0011, "add16mmi", Mmi, 16, 0, 2, 1)
-OPCODE(Add16mii, 0x0012, "add16mii", Mii, 16, 0, 1, 2)
+OPCODE(Add16mmm, 0x0010, "add16mmm", Mmm, 16, 0, 3, 0, Add, None)
+OPCODE(Add16mmi, 0x0011, "add16mmi", Mmi, 16, 0, 2, 1, Add, None)
+OPCODE(Add16mii, 0x0012, "add16mii", Mii, 16, 0, 1, 2, Add, None)
 
-OPCODE(Add32mmm, 0x0013, "add32mmm", Mmm, 32, 0, 3, 0)
-OPCODE(Add32mmi, 0x0014, "add32mmi", Mmi, 32, 0, 2, 1)
-OPCODE(Add32mii, 0x0015, "add32mii", Mii, 32, 0, 1, 2)
+OPCODE(Add32mmm, 0x0013, "add32mmm", Mmm, 32, 0, 3, 0, Add, None)
+OPCODE(Add32mmi, 0x0014, "add32mmi", Mmi, 32, 0, 2, 1, Add, None)
+OPCODE(Add32mii, 0x0015, "add32mii", Mii, 32, 0, 1, 2, Add, None)
 
-OPCODE(Add64mmm, 0x0016, "add64mmm", Mmm, 64, 0, 3, 0)
-OPCODE(Add64mmi, 0x0017, "add64mmi", Mmi, 64, 0, 2, 1)
-OPCODE(Add64mii, 0x0018, "add64mii", Mii, 64, 0, 1, 2)
+OPCODE(Add64mmm, 0x0016, "add64mmm", Mmm, 64, 0, 3, 0, Add, None)
+OPCODE(Add64mmi, 0x0017, "add64mmi", Mmi, 64, 0, 2, 1, Add, None)
+OPCODE(Add64mii, 0x0018, "add64mii", Mii, 64, 0, 1, 2, Add, None)
 
-// Logical registers have 64-bit address width; arithmetic destinations may be BP or SP, never PC.
+// Address registers have 64-bit address width; arithmetic destinations may be BP or SP, never PC.
 // For register destinations, LHS is an address and RHS is a signed 64-bit byte displacement.
 // These sources retain their address/displacement roles and must not be exchanged.
 // Address arithmetic is checked before updating the register; SP updates must also satisfy stack bounds and frame rules.
 // add64rri sp, sp, ByteCount reserves stack space; a negative displacement reclaims it.
-OPCODE(Add64rrr, 0x0019, "add64rrr", Rrr, 64, 3, 0, 0)
-OPCODE(Add64rrm, 0x001A, "add64rrm", Rrm, 64, 2, 1, 0)
-OPCODE(Add64rri, 0x001B, "add64rri", Rri, 64, 2, 0, 1)
+OPCODE(Add64rrr, 0x0019, "add64rrr", Rrr, 64, 3, 0, 0, Add, None)
+OPCODE(Add64rrm, 0x001A, "add64rrm", Rrm, 64, 2, 1, 0, Add, None)
+OPCODE(Add64rri, 0x001B, "add64rri", Rri, 64, 2, 0, 1, Add, None)
 
 // These forms consume logical register values and write ordinary integer results to memory.
-OPCODE(Add64mrr, 0x001C, "add64mrr", Mrr, 64, 2, 1, 0)
-OPCODE(Add64mrm, 0x001D, "add64mrm", Mrm, 64, 1, 2, 0)
-OPCODE(Add64mri, 0x001E, "add64mri", Mri, 64, 1, 1, 1)
+OPCODE(Add64mrr, 0x001C, "add64mrr", Mrr, 64, 2, 1, 0, Add, None)
+OPCODE(Add64mrm, 0x001D, "add64mrm", Mrm, 64, 1, 2, 0, Add, None)
+OPCODE(Add64mri, 0x001E, "add64mri", Mri, 64, 1, 1, 1, Add, None)
+
+// CMP computes LHS - RHS at Width bits and updates EFLAGS without writing either source.
+OPCODE(Cmp8mm, 0x001F, "cmp8mm", Mm, 8, 0, 2, 0, Compare, None)
+OPCODE(Cmp8mi, 0x0020, "cmp8mi", Mi, 8, 0, 1, 1, Compare, None)
+OPCODE(Cmp16mm, 0x0021, "cmp16mm", Mm, 16, 0, 2, 0, Compare, None)
+OPCODE(Cmp16mi, 0x0022, "cmp16mi", Mi, 16, 0, 1, 1, Compare, None)
+OPCODE(Cmp32mm, 0x0023, "cmp32mm", Mm, 32, 0, 2, 0, Compare, None)
+OPCODE(Cmp32mi, 0x0024, "cmp32mi", Mi, 32, 0, 1, 1, Compare, None)
+OPCODE(Cmp64mm, 0x0025, "cmp64mm", Mm, 64, 0, 2, 0, Compare, None)
+OPCODE(Cmp64mi, 0x0026, "cmp64mi", Mi, 64, 0, 1, 1, Compare, None)
+OPCODE(Cmp64rr, 0x0027, "cmp64rr", Rr, 64, 2, 0, 0, Compare, None)
+OPCODE(Cmp64rm, 0x0028, "cmp64rm", Rm, 64, 1, 1, 0, Compare, None)
+OPCODE(Cmp64ri, 0x0029, "cmp64ri", Ri, 64, 1, 0, 1, Compare, None)
+OPCODE(Cmp64mr, 0x002A, "cmp64mr", Mr, 64, 1, 1, 0, Compare, None)
+
+// Branches borrow logical block targets; object emission resolves their PC-relative wire addresses.
+OPCODE(Jmp, 0x002B, "jmp", B, 0, 0, 0, 0, Branch, Always)
+OPCODE(Je, 0x002C, "je", B, 0, 0, 0, 0, Branch, Equal)
+OPCODE(Jne, 0x002D, "jne", B, 0, 0, 0, 0, Branch, NotEqual)
+OPCODE(Jb, 0x002E, "jb", B, 0, 0, 0, 0, Branch, Below)
+OPCODE(Jbe, 0x002F, "jbe", B, 0, 0, 0, 0, Branch, BelowOrEqual)
+OPCODE(Ja, 0x0030, "ja", B, 0, 0, 0, 0, Branch, Above)
+OPCODE(Jae, 0x0031, "jae", B, 0, 0, 0, 0, Branch, AboveOrEqual)
+OPCODE(Jl, 0x0032, "jl", B, 0, 0, 0, 0, Branch, Less)
+OPCODE(Jle, 0x0033, "jle", B, 0, 0, 0, 0, Branch, LessOrEqual)
+OPCODE(Jg, 0x0034, "jg", B, 0, 0, 0, 0, Branch, Greater)
+OPCODE(Jge, 0x0035, "jge", B, 0, 0, 0, 0, Branch, GreaterOrEqual)
+OPCODE(Jo, 0x0036, "jo", B, 0, 0, 0, 0, Branch, Overflow)
+OPCODE(Jno, 0x0037, "jno", B, 0, 0, 0, 0, Branch, NotOverflow)
+OPCODE(Js, 0x0038, "js", B, 0, 0, 0, 0, Branch, Sign)
+OPCODE(Jns, 0x0039, "jns", B, 0, 0, 0, 0, Branch, NotSign)
+
+OPCODE(Ret, 0x003A, "ret", None, 0, 0, 0, 0, Return, None)
 
 #ifdef INK_VM_OPCODE_DEF_UNDEF_FORM
 #undef INK_VM_OPCODE_DEF_UNDEF_FORM
