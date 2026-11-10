@@ -45,6 +45,50 @@ namespace ink::vm
       return Provider == NativeSymbolProvider::Native || Provider == NativeSymbolProvider::SystemApi;
     }
 
+    void validateSections(const ExecutableFile &Executable, const core::DiagnosticEngine &Diagnostics)
+    {
+      const auto &Sections = Executable.getSections();
+      if (Sections.empty())
+      {
+        return;
+      }
+      std::uint64_t NextOffset = 0;
+      bool EntryInCode = false;
+      for (std::size_t Index = 0; Index < Sections.size(); ++Index)
+      {
+        const ExecutableSection &Section = Sections[Index];
+        if (Section.Kind != ExecutableSectionKind::Code && Section.Kind != ExecutableSectionKind::ReadOnlyData && Section.Kind != ExecutableSectionKind::WritableData)
+        {
+          failRecord(Diagnostics, "section", Index, "kind is invalid");
+        }
+        if (Section.ByteSize == 0)
+        {
+          failRecord(Diagnostics, "section", Index, "section is empty");
+        }
+        if (Section.ImageOffset != NextOffset)
+        {
+          failRecord(Diagnostics, "section", Index, "sections must be ordered, contiguous, and nonoverlapping");
+        }
+        if (Section.ImageOffset > Executable.byteSize() || Section.ByteSize > Executable.byteSize() - Section.ImageOffset)
+        {
+          failRecord(Diagnostics, "section", Index, "section is outside the image");
+        }
+        NextOffset = Section.ImageOffset + Section.ByteSize;
+        if (Section.Kind == ExecutableSectionKind::Code && Executable.getEntryOffset() >= Section.ImageOffset && Executable.getEntryOffset() < NextOffset)
+        {
+          EntryInCode = true;
+        }
+      }
+      if (NextOffset != Executable.byteSize())
+      {
+        failValidation(Diagnostics, "section table", "sections do not cover the complete image");
+      }
+      if (!EntryInCode)
+      {
+        failValidation(Diagnostics, "image", "entry offset is outside code sections");
+      }
+    }
+
     void validateImports(const std::vector<NativeFunctionImport> &Imports, const core::DiagnosticEngine &Diagnostics)
     {
       const core::NamePool &Names = core::NamePool::instance();
@@ -100,6 +144,11 @@ namespace ink::vm
     {
       failValidation(Diagnostics, "image", "entry offset is outside the image");
     }
+    if (Executable.getByteOrder() != ByteOrder::Little && Executable.getByteOrder() != ByteOrder::Big)
+    {
+      failValidation(Diagnostics, "image", "byte order is invalid");
+    }
+    validateSections(Executable, Diagnostics);
     if (hasTooManyRecords(Functions.size()))
     {
       failValidation(Diagnostics, "native function table", "import count exceeds the u32 index range");

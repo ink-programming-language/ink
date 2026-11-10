@@ -74,7 +74,7 @@ namespace ink::vm
 } // namespace ink::vm
 ```
 
-内存模型不保存 PC 相对位移，因此追加指令或调整块布局不会改变目标身份。后续 `ExecutableEmitter` 完成函数和块布局后，根据目标块指针查找代码位置，再计算、编码 PC 相对位移；宿主指针不会写入可执行镜像。当前尚未实现该发射器。
+内存模型不保存 PC 相对位移，因此追加指令或调整块布局不会改变目标身份。[ExecutableEmitter](VM-Emitter.md) 完成函数和块布局后，根据目标块指针查找代码位置，再计算、编码 PC 相对位移；宿主指针不会写入可执行镜像。
 
 `isBranch()`、`isConditionalBranch()`、`isReturn()`、`isTerminator()` 提供控制流分类；条件跳转只有一个显式目标块，未跳转时继续执行下一条指令。`readEFlagsMask()` 和 `writtenEFlagsMask()` 描述隐式标志依赖：所有 ADD、CMP 改写 CF、ZF、SF、OF，条件跳转读取各自所需的子集。EFLAGS 不作为它们的显式操作数，也不能用作普通寄存器值或地址基址。`eflags.h` 只提供标志定义、掩码及条件依赖元数据；标志生成和条件判断由后续执行器实现，当前模型不执行指令。
 
@@ -93,7 +93,7 @@ Builder.create<Opcode::CallNativem>(AddressOperand(PointerSlotName, 8));
 
 `Calli` 的数值目标为相对当前 PC 的有符号 i64 位模式，符号目标绑定 VM 函数定义；`CallNativei` 的数值目标为 u32 native 导入索引，符号目标绑定显式 Native 函数声明。直接调用的符号 addend 必须为零。`Callm` 和 `CallNativem` 分别从有效地址读取 64 位 VM 函数地址和 native 可调用指针，后者不是导入索引。间接目标中的符号只定位存放指针的内存，按普通地址符号规则解析。
 
-Builder 不解析名称或校验调用签名。当前已提供逻辑指令及其文本和链接接入，参数与返回槽布局、字节生成和调用执行尚未实现；native 可调用指针的 adapter 与宿主 ABI 协议也仍待确定。
+Builder 不解析名称或校验调用签名。逻辑指令、文本和链接接入以及调用字节编解码均已实现；参数与返回槽的布局约定见 [VM 调用约定](VM-Calling-Convention.md)，其自动代码生成和调用执行尚未实现。native 可调用指针的 adapter 与宿主 ABI 协议也仍待确定。
 
 ## 全局数据与栈帧
 
@@ -145,8 +145,8 @@ Builder 不解析名称或校验调用签名。当前已提供逻辑指令及其
 
 ## 链接与可执行镜像边界
 
-流水线为 `MachineModule × N → ModuleLinker → MachineModule → ExecutableEmitter → ExecutableFile`。`linker` 目录的 `ModuleLinker` 已实现强符号、Local/External、显式 Native、严格解析和深克隆，具体接口与冲突规则见 [VM 模块链接器](VM-Linker.md)。链接阶段负责逻辑模块合并与符号解析；发射阶段负责代码和数据布局、符号地址计算、基本块目标到 PC 相对位移的转换以及指令编码。符号相对内存地址和符号地址立即数的最终编码方式仍需由发射器约定，不能直接写出进程内的 Name 句柄。
+流水线为 `MachineModule × N → ModuleLinker → MachineModule → ExecutableEmitter → ExecutableFile`。`linker` 目录的 `ModuleLinker` 已实现强符号、Local/External、显式 Native、严格解析和深克隆，具体接口与冲突规则见 [VM 模块链接器](VM-Linker.md)。`emitter` 目录的 [ExecutableEmitter](VM-Emitter.md) 接收已完整链接并通过独立 validator 的模块和入口函数，完成代码和数据布局、符号地址计算、基本块目标到 PC 相对位移的转换以及指令编码，不重复校验模块结构、符号和操作数合法性。VM 符号内存地址编码为 PC 相对地址，普通 VM 符号立即数保存相对镜像开头的字节偏移；进程内的 Name 句柄不进入字节流。
 
-`executable` 目录提供链接后可执行镜像的内存模型 `ExecutableFile`，统一保存镜像字节、入口偏移、按索引引用的宿主函数导入、宿主数据导入和数据地址重定位记录，并提供结构校验；接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。ModuleLinker 输出仍是逻辑模块，不生成该镜像、磁盘格式或宿主绑定。
+`executable` 目录提供链接后可执行镜像的内存模型 `ExecutableFile`，统一保存镜像字节、入口偏移、字节序、代码与数据段、按索引引用的宿主函数导入、宿主数据导入和数据地址重定位记录，并提供结构校验；接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。ModuleLinker 输出仍是逻辑模块，由发射器进一步生成镜像。发射器按函数和基本块原顺序从偏移零布局代码，随后依次布局只读和可写全局数据；各数据组保留原有相对顺序，按对象对齐并将间隙及未初始化尾部填零。
 
-当前尚未实现可执行镜像发射器、指令编解码器、lowering pass 或 VM 执行器；创建或链接 `vm::MachineModule` 不会自动产生可执行字节。指令字节布局见 [VM 指令编码格式](VM-Instruction-Format.md)，执行状态见 [VM 运行时设计](VM-Runtime.md)，参数、返回槽和可变参数调用预留区布局见 [VM 调用约定](VM-Calling-Convention.md)。
+`bytecode` 目录的 `InstructionCodec` 编解码已解析的 `BytecodeInstruction`，不重建逻辑模块或 `MachineInstruction` 节点。当前尚未实现 lowering pass、镜像磁盘读写、加载器、native adapter 或 VM 执行器；创建或链接 `vm::MachineModule` 后须显式调用发射器才会得到镜像字节。指令字节布局见 [VM 指令编码格式](VM-Instruction-Format.md)，执行状态见 [VM 运行时设计](VM-Runtime.md)，参数、返回槽和可变参数调用预留区布局见 [VM 调用约定](VM-Calling-Convention.md)。

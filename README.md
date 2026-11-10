@@ -1,6 +1,6 @@
 # ink
 
-`main` 提供 Core、目标平台描述、tokenizer、parser、AST、IR 类型、函数与基础指令，以及 VM 逻辑模块、指令和可执行镜像模型及对应测试。semantic 和 VM 执行器尚未实现；`inkc` 仅检查输入文件的词法和语法，`ink-tokenize` 和 `ink-parse` 分别提供 token 流和 AST 输出。
+`main` 提供 Core、目标平台描述、tokenizer、parser、AST、IR 类型、函数与基础指令，以及 VM 逻辑模块、链接器、可执行镜像发射器和指令编解码器及对应测试。semantic、IR 到 VM lowering 和 VM 执行器尚未实现；`inkc` 仅检查输入文件的词法和语法，`ink-tokenize` 和 `ink-parse` 分别提供 token 流和 AST 输出。
 
 精简前的完整主干保存在 [`saved-execution`](https://github.com/ink-programming-language/ink/tree/saved-execution) 分支，快照提交为 `22c3946c4737a7942fc28ab7cfa6f78e6fa3bd31`。原有 semantic 实现、IR、execution、ABI、LLVM backend、inkc 及其测试和文档可在该分支查看。
 
@@ -100,7 +100,9 @@ IR 指令位于 `ink/ir/instruction`，`Instruction` 继承 `Value`，通过 `ge
 
 常量池使用三个 `std::unordered_set` 直接持有常量对象，不额外保存一份 key 或使用 `unique_ptr`。常量及公开的数字查询键 `IntegerConstant::Key` 和 `FloatConstant::Key` 提供 `hash()` 成员，三个池分别使用 `core::Hash<IntegerConstant>`、`core::Hash<FloatConstant>` 和 `core::Hash<StringConstant>`，模板参数均为容器自身的 `key_type`。对象及数字查询键优先调用自身的 `hash()`，`StringConstant::hash(std::string_view)` 静态重载将字符串查询统一为字节视图。相等判断通过各类型的成员 `operator==` 和 `std::equal_to<>` 完成。整数使用位宽、符号属性和完整的 64 位位模式，浮点使用位宽和完整的 64 位位模式，字符串使用 `std::string_view` 的完整字节内容；哈希与相等判断使用相同字段，命中时无需构造常量或复制字符串。三个常量类型的构造函数公开，调用方可直接构造，并负责保证所借用的类型比常量存活更久。常量仍不可复制或移动，池在节点内原地构造常量；rehash 不使已返回的常量指针、引用或字符串视图失效。
 
-VM 后端由独立的 `ink::vm` 库提供，仅依赖 `ink::core`，命名空间为 `ink::vm`。头文件、实现和测试分别位于 `src/include/ink/backend/vm`、`src/lib/backend/vm` 和 `src/testcase/backend/vm`。`module` 目录提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 的所有权结构，`MachineInstructionBuilder` 按操作数类型创建并插入具体 VM 指令；模块与函数还提供常量、全局数据和栈帧布局描述，详见 [VM 内存模型与指令构建](docs/VM-Module.md)。`serialization` 目录提供模块文本序列化和反序列化，目前为临时实现，后续需要迭代为正式版，见 [TODO](docs/todo.md)。`opcode.def` 统一定义操作码、`r/m/i/b` 逻辑操作数形式、指令类别和条件码，`register.def` 为 BP、SP、PC、EFLAGS 定义独立编号。强类型指令模型提供 ADD、CMP、条件和无条件跳转及 RET，EFLAGS 的 CF、ZF、SF、OF 由 ADD/CMP 隐式改写、条件跳转隐式读取；跳转在内存中引用同一函数的目标基本块，文本使用块标签。`AddressOperand` 支持寄存器或符号相对内存地址，`ImmediateOperand` 支持数值或符号地址加偏移；文本用 `[@name]` 表示内存访问，用 `@name` 表示地址值。`linker` 目录的 `ModuleLinker` 已实现强符号、Local/External、显式 Native、严格符号解析和深克隆，将多个 `MachineModule` 合并为一个独立拥有全部节点的逻辑模块，详见 [VM 模块链接器](docs/VM-Linker.md)。后续由 `ExecutableEmitter` 完成布局、符号地址计算和指令编码并直接生成 `ExecutableFile`。现有可执行镜像模型及结构校验见 [VM 可执行镜像模型](docs/VM-Executable.md)；镜像发射器、指令编解码器和 VM 执行器尚未实现。已约定的字节布局见 [VM 指令编码格式](docs/VM-Instruction-Format.md)，运行时约定见 [VM 运行时设计讨论稿](docs/VM-Runtime.md)。
+VM 后端由独立的 `ink::vm` 库提供，仅依赖 `ink::core`，命名空间为 `ink::vm`。头文件、实现和测试分别位于 `src/include/ink/backend/vm`、`src/lib/backend/vm` 和 `src/testcase/backend/vm`。`module` 目录提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 的所有权结构，`MachineInstructionBuilder` 按操作数类型创建并插入具体 VM 指令；模块与函数还提供常量、全局数据和栈帧布局描述，详见 [VM 内存模型与指令构建](docs/VM-Module.md)。`serialization` 目录提供模块文本序列化和反序列化，目前为临时实现，后续需要迭代为正式版，见 [TODO](docs/todo.md)。`opcode.def` 统一定义操作码、`r/m/i/b` 逻辑操作数形式、指令类别和条件码，`register.def` 为 BP、SP、PC、EFLAGS 定义独立编号。强类型指令模型提供 ADD、CMP、条件和无条件跳转、CALL 及 RET，EFLAGS 的 CF、ZF、SF、OF 由 ADD/CMP 隐式改写、条件跳转隐式读取；跳转在内存中引用同一函数的目标基本块，文本使用块标签。`AddressOperand` 支持寄存器或符号相对内存地址，`ImmediateOperand` 支持数值或符号地址加偏移；文本用 `[@name]` 表示内存访问，用 `@name` 表示地址值。`linker` 目录的 `ModuleLinker` 已实现强符号、Local/External、显式 Native、严格符号解析和深克隆，将多个 `MachineModule` 合并为一个独立拥有全部节点的逻辑模块，详见 [VM 模块链接器](docs/VM-Linker.md)。
+
+`emitter` 目录的 `ExecutableEmitter` 接收已链接模块和入口函数，完成代码、只读及可写数据布局、符号地址计算和指令编码，直接生成 `ExecutableFile`；`bytecode` 目录的 `InstructionCodec` 提供全部当前操作码的大小端编解码，使用独立的已解析值模型，不重建逻辑指令节点。镜像保存字节序和代码、数据段信息，native 函数按导入索引引用，native 数据通过八字节字段重定位。发射接口与边界见 [VM 可执行镜像发射器](docs/VM-Emitter.md)，镜像结构和校验见 [VM 可执行镜像模型](docs/VM-Executable.md)，字节布局与 codec 接口见 [VM 指令编码格式](docs/VM-Instruction-Format.md)。磁盘读写、加载器、native adapter、lowering 和 VM 执行器仍未实现，运行时约定见 [VM 运行时设计讨论稿](docs/VM-Runtime.md)。
 
 VM 函数的参数槽、返回槽、可变参数调用预留区和 CALL/RET 流程见 [VM 调用约定](docs/VM-Calling-Convention.md)。
 
