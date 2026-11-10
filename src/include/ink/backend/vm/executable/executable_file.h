@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ink/backend/vm/bytecode/byte_order.h"
+#include "ink/backend/vm/executable/byte_order.h"
 #include "ink/backend/vm/executable/executable_section.h"
 #include "ink/backend/vm/executable/native_data_import.h"
 #include "ink/backend/vm/executable/native_data_relocation.h"

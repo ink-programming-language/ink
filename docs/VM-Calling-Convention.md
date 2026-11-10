@@ -1,6 +1,6 @@
 # VM 调用约定
 
-本文定义 Ink VM 函数的调用布局；执行器尚未实现。宿主 C ABI 由 native adapter 单独处理。
+本文定义 Ink VM 函数的调用布局约定；调用区代码生成和执行器尚未实现。宿主 C ABI 留待后续 native adapter 单独处理。
 
 ## 基本规则
 

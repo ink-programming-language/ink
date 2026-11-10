@@ -2,4 +2,5 @@
 
 1. IR Module 序列化为临时实现，后续需要迭代为正式版。
 2. VM Module 序列化为临时实现，后续需要迭代为正式版。
-3. VM Linker, emmiter, 各个validator都为临时实现，后续需要迭代为正式版。
+3. VM Linker 和已有 validator 都为临时实现，后续需要迭代为正式版。
+4. VM 指令编码与解码、镜像布局与发射、加载及执行尚未实现。
