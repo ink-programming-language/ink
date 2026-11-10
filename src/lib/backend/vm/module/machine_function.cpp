@@ -2,8 +2,9 @@
 
 namespace ink::vm
 {
-  MachineFunction::MachineFunction(core::Name Name) noexcept
-      : Name(Name)
+  MachineFunction::MachineFunction(core::Name Name, MachineSymbolLinkage Linkage) noexcept
+      : Name(Name),
+        Linkage(Linkage)
   {
   }
 

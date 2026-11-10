@@ -102,21 +102,34 @@ namespace ink::vm::test
     void expectEqualModules(const MachineModule &Expected, const MachineModule &Actual)
     {
       EXPECT_EQ(Actual.name(), Expected.name());
-      ASSERT_EQ(Actual.constantCount(), Expected.constantCount());
-      auto ActualConstant = Actual.constants().begin();
-      for (const auto &ExpectedConstant : Expected.constants())
+      ASSERT_EQ(Actual.symbolDeclarations().size(), Expected.symbolDeclarations().size());
+      for (std::size_t Index = 0; Index != Expected.symbolDeclarations().size(); ++Index)
       {
-        EXPECT_EQ(ActualConstant->name(), ExpectedConstant.name());
-        EXPECT_EQ(ActualConstant->alignment(), ExpectedConstant.alignment());
-        EXPECT_TRUE(std::ranges::equal(ActualConstant->bytes(), ExpectedConstant.bytes()));
-        EXPECT_EQ(ActualConstant->parent(), &Actual);
-        ++ActualConstant;
+        EXPECT_EQ(Actual.symbolDeclarations()[Index].Name, Expected.symbolDeclarations()[Index].Name);
+        EXPECT_EQ(Actual.symbolDeclarations()[Index].Kind, Expected.symbolDeclarations()[Index].Kind);
+        EXPECT_EQ(Actual.symbolDeclarations()[Index].IsConstant, Expected.symbolDeclarations()[Index].IsConstant);
+      }
+      ASSERT_EQ(Actual.nativeFunctions().size(), Expected.nativeFunctions().size());
+      for (std::size_t Index = 0; Index != Expected.nativeFunctions().size(); ++Index)
+      {
+        EXPECT_EQ(Actual.nativeFunctions()[Index].Name, Expected.nativeFunctions()[Index].Name);
+        EXPECT_EQ(Actual.nativeFunctions()[Index].Import.Provider, Expected.nativeFunctions()[Index].Import.Provider);
+        EXPECT_EQ(Actual.nativeFunctions()[Index].Import.Name, Expected.nativeFunctions()[Index].Import.Name);
+        EXPECT_EQ(Actual.nativeFunctions()[Index].Import.CallKind, Expected.nativeFunctions()[Index].Import.CallKind);
+      }
+      ASSERT_EQ(Actual.nativeData().size(), Expected.nativeData().size());
+      for (std::size_t Index = 0; Index != Expected.nativeData().size(); ++Index)
+      {
+        EXPECT_EQ(Actual.nativeData()[Index].Name, Expected.nativeData()[Index].Name);
+        EXPECT_EQ(Actual.nativeData()[Index].Import.Name, Expected.nativeData()[Index].Import.Name);
       }
       ASSERT_EQ(Actual.globalVariableCount(), Expected.globalVariableCount());
       auto ActualGlobal = Actual.globalVariables().begin();
       for (const auto &ExpectedGlobal : Expected.globalVariables())
       {
         EXPECT_EQ(ActualGlobal->name(), ExpectedGlobal.name());
+        EXPECT_EQ(ActualGlobal->linkage(), ExpectedGlobal.linkage());
+        EXPECT_EQ(ActualGlobal->isConstant(), ExpectedGlobal.isConstant());
         EXPECT_EQ(ActualGlobal->byteSize(), ExpectedGlobal.byteSize());
         EXPECT_EQ(ActualGlobal->alignment(), ExpectedGlobal.alignment());
         EXPECT_TRUE(std::ranges::equal(ActualGlobal->initialBytes(), ExpectedGlobal.initialBytes()));
@@ -128,6 +141,7 @@ namespace ink::vm::test
       for (const auto &ExpectedFunction : Expected.functions())
       {
         EXPECT_EQ(ActualFunction->name(), ExpectedFunction.name());
+        EXPECT_EQ(ActualFunction->linkage(), ExpectedFunction.linkage());
         EXPECT_EQ(ActualFunction->parent(), &Actual);
         const auto &ExpectedFrame = ExpectedFunction.frameInfo();
         const auto &ActualFrame = ActualFunction->frameInfo();
@@ -191,8 +205,8 @@ namespace ink::vm::test
     {
       Bytes[Index] = static_cast<std::uint8_t>(Index * 7);
     }
-    ASSERT_TRUE(Module.createConstant(Bytes, 16, SharedName).has_value());
-    ASSERT_TRUE(Module.createConstant({}, 1, SharedName).has_value());
+    ASSERT_TRUE(Module.createGlobalVariable(Bytes.size(), 16, Bytes, SharedName, MachineSymbolLinkage::Local, true).has_value());
+    ASSERT_TRUE(Module.createGlobalVariable(0, 1, {}, SharedName, MachineSymbolLinkage::Local, true).has_value());
     ASSERT_TRUE(Module.createGlobalVariable(std::numeric_limits<std::uint64_t>::max(), 8, Bytes, SharedName).has_value());
     ASSERT_TRUE(Module.createGlobalVariable(0).has_value());
     auto &Function = Module.createFunction(SharedName);
@@ -239,7 +253,7 @@ namespace ink::vm::test
   {
     auto &Names = core::NamePool::instance();
     MachineModule Module;
-    ASSERT_TRUE(Module.createConstant({}, 1, Names.intern("message")).has_value());
+    ASSERT_TRUE(Module.createGlobalVariable(0, 1, {}, Names.intern("message"), MachineSymbolLinkage::Local, true).has_value());
     ASSERT_TRUE(Module.createGlobalVariable(16, 8, {}, Names.intern("scratch")).has_value());
     auto &Sum = Module.createFunction(Names.intern("sum"));
     Sum.createBasicBlock(Names.intern("entry"));
@@ -247,7 +261,7 @@ namespace ink::vm::test
     Module.createFunction(Names.intern("another")).createBasicBlock(Names.intern("entry"));
     const auto Text = writeMachineModuleText(Module);
     ASSERT_TRUE(Text.has_value());
-    EXPECT_NE(Text->find(".constant message, 1\n"), std::string::npos);
+    EXPECT_NE(Text->find(".global message, 0, 1 readonly\n"), std::string::npos);
     EXPECT_NE(Text->find(".global scratch, 16, 8\n"), std::string::npos);
     EXPECT_NE(Text->find(".function sum\nentry:\nsum:\n.endfunction\n"), std::string::npos);
     EXPECT_NE(Text->find(".function another\nentry:\n.endfunction\n"), std::string::npos);
@@ -263,10 +277,10 @@ namespace ink::vm::test
   {
     auto &Names = core::NamePool::instance();
     MachineModule Module;
-    ASSERT_TRUE(Module.createConstant({}).has_value());
-    ASSERT_TRUE(Module.createConstant({}, 1, Names.intern(".C0")).has_value());
+    ASSERT_TRUE(Module.createGlobalVariable(0, 1, {}, core::NAME_None, MachineSymbolLinkage::Local, true).has_value());
+    ASSERT_TRUE(Module.createGlobalVariable(0, 1, {}, Names.intern(".G0"), MachineSymbolLinkage::Local, true).has_value());
     ASSERT_TRUE(Module.createGlobalVariable(0).has_value());
-    ASSERT_TRUE(Module.createGlobalVariable(0, 1, {}, Names.intern(".G0")).has_value());
+    ASSERT_TRUE(Module.createGlobalVariable(0, 1, {}, Names.intern(".G2")).has_value());
     Module.createFunction();
     Module.createFunction(Names.intern(".F0"));
     auto &Sum = Module.createFunction(Names.intern("sum"));
@@ -279,15 +293,15 @@ namespace ink::vm::test
     Module.createFunction(Names.intern("sum.1"));
     const std::string UnusualName("space name\0\xff", 12);
     const auto Unusual = Names.intern(UnusualName);
-    ASSERT_TRUE(Module.createConstant({}, 1, Unusual).has_value());
+    ASSERT_TRUE(Module.createGlobalVariable(0, 1, {}, Unusual, MachineSymbolLinkage::Local, true).has_value());
     ASSERT_TRUE(Module.createGlobalVariable(0, 1, {}, Unusual).has_value());
     Module.createFunction(Unusual).createBasicBlock(Unusual);
     const auto Text = writeMachineModuleText(Module);
     ASSERT_TRUE(Text.has_value());
-    EXPECT_NE(Text->find(".constant .C1, \"\", 1\n"), std::string::npos);
-    EXPECT_NE(Text->find(".constant .C0, 1\n"), std::string::npos);
-    EXPECT_NE(Text->find(".global .G1, \"\", 0, 1\n"), std::string::npos);
-    EXPECT_NE(Text->find(".global .G0, 0, 1\n"), std::string::npos);
+    EXPECT_NE(Text->find(".global .G1, \"\", 0, 1 readonly\n"), std::string::npos);
+    EXPECT_NE(Text->find(".global .G0, 0, 1 readonly\n"), std::string::npos);
+    EXPECT_NE(Text->find(".global .G3, \"\", 0, 1\n"), std::string::npos);
+    EXPECT_NE(Text->find(".global .G2, 0, 1\n"), std::string::npos);
     EXPECT_NE(Text->find(".function .F1, \"\"\n"), std::string::npos);
     EXPECT_NE(Text->find(".function .F0\n"), std::string::npos);
     EXPECT_NE(Text->find(".function sum.2, \"sum\"\n"), std::string::npos);
@@ -308,10 +322,9 @@ namespace ink::vm::test
   TEST(VMMachineModuleTextTest, ReadsOriginalNameOverridesInEachDeclarationKind)
   {
     constexpr std::string_view Text = R"(.module "aliases"
-.section .rodata
-.constant C, "shared", 1
-.endconstant
 .section .data
+.global C, "shared", 0, 1 readonly
+.endglobal
 .global G, "shared", 8, 8
 .endglobal
 .section .text
@@ -328,8 +341,10 @@ entry:
     ASSERT_TRUE(Parsed.has_value());
     const auto &Module = **Parsed;
     auto &Names = core::NamePool::instance();
-    EXPECT_EQ(Module.constants().begin()->name(), Names.intern("shared"));
     EXPECT_EQ(Module.globalVariables().begin()->name(), Names.intern("shared"));
+    EXPECT_TRUE(Module.globalVariables().begin()->isConstant());
+    EXPECT_EQ(std::next(Module.globalVariables().begin())->name(), Names.intern("shared"));
+    EXPECT_FALSE(std::next(Module.globalVariables().begin())->isConstant());
     const auto &Function = *Module.functions().begin();
     EXPECT_EQ(Function.name(), Names.intern("shared"));
     ASSERT_EQ(Function.basicBlockCount(), 3U);
@@ -344,11 +359,10 @@ entry:
   TEST(VMMachineModuleTextTest, ReadsAssemblySyntaxAndOwnsParsedPayloads)
   {
     std::string Text = R"(.module "demo;name" ; a semicolon within the string remains part of its name
-.section .rodata
-.constant message, "A\00\FF\"\\", 4
-    .byte 0x48, 105
-.endconstant
 .section .data
+.global message, "A\00\FF\"\\", 2, 4 readonly
+    .byte 0x48, 105
+.endglobal
 .global buffer, "", 64, 8
     .byte 1
 .endglobal
@@ -372,12 +386,13 @@ entry: ""
     Text.assign(Text.size(), 'x');
     const auto &Module = **Parsed;
     EXPECT_EQ(core::NamePool::instance().text(Module.name()), "demo;name");
-    ASSERT_EQ(Module.constantCount(), 1U);
-    const auto &Constant = *Module.constants().begin();
+    ASSERT_EQ(Module.globalVariableCount(), 2U);
+    const auto &Global = *Module.globalVariables().begin();
     const std::array<std::uint8_t, 2> ExpectedBytes{0x48, 105};
-    EXPECT_TRUE(std::ranges::equal(Constant.bytes(), ExpectedBytes));
+    EXPECT_TRUE(std::ranges::equal(Global.initialBytes(), ExpectedBytes));
+    EXPECT_TRUE(Global.isConstant());
     const std::string ExpectedName("A\0\xff\"\\", 5);
-    EXPECT_EQ(core::NamePool::instance().text(Constant.name()), ExpectedName);
+    EXPECT_EQ(core::NamePool::instance().text(Global.name()), ExpectedName);
     const auto &Function = *Module.functions().begin();
     EXPECT_EQ(Function.frameInfo().baseOffset(), 16U);
     EXPECT_EQ(Function.frameInfo().byteSize(), 16U);
@@ -571,13 +586,14 @@ entry:
         ".module \"bad\\G0\"\n",
         ".module \"\" trailing\n",
         ".module \"\"\n.section .unknown\n",
-        ".module \"\"\n.section .rodata\n.constant C, 3\n.endconstant\n",
-        ".module \"\"\n.section .rodata\n.constant C, 1\n.byte 256\n.endconstant\n",
-        ".module \"\"\n.section .rodata\n.constant C, 1\n.byte\n.endconstant\n",
-        ".module \"\"\n.section .rodata\n.constant C, 1\n.byte 1,\n.endconstant\n",
-        ".module \"\"\n.section .rodata\n.constant C, 1\n.section .data\n.endconstant\n",
-        ".module \"\"\n.section .rodata\n.constant C, 1\n.endglobal\n",
-        ".module \"\"\n.section .rodata\n.constant C, 1\n",
+        ".module \"\"\n.section .data\n.global G, 0, 3 readonly\n.endglobal\n",
+        ".module \"\"\n.section .data\n.global G, 1, 1 readonly\n.byte 256\n.endglobal\n",
+        ".module \"\"\n.section .data\n.global G, 1, 1 readonly\n.byte\n.endglobal\n",
+        ".module \"\"\n.section .data\n.global G, 1, 1 readonly\n.byte 1,\n.endglobal\n",
+        ".module \"\"\n.section .data\n.global G, 0, 1 readonly\n.section .data\n.endglobal\n",
+        ".module \"\"\n.section .data\n.global G, 0, 1 readonly\n.endconstant\n",
+        ".module \"\"\n.section .data\n.global G, 0, 1 readonly\n",
+        ".module \"\"\n.section .data\n.constant G, 1\n.endconstant\n",
         ".module \"\"\n.section .data\n.global G, 0, 1\n.byte 1\n.endglobal\n",
         ".module \"\"\n.section .data\n.global G, 18446744073709551616, 1\n.endglobal\n",
         ".module \"\"\n.section .text\n.endfunction\n",
@@ -609,8 +625,8 @@ entry:
         ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp + -1], 1\n.endfunction\n",
         ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp], 1,\n.endfunction\n",
         ".module \"\"\n.section .text\n.function F\n.endfunction\n.function F\n.endfunction\n",
-        ".module \"\"\n.section .rodata\n.constant shared, 1\n.endconstant\n.section .data\n.global shared, 0, 1\n.endglobal\n",
-        ".module \"\"\n.section .rodata\n.constant shared, 1\n.endconstant\n.section .text\n.function shared\n.endfunction\n",
+        ".module \"\"\n.section .data\n.global shared, 0, 1 readonly\n.endglobal\n.global shared, 0, 1\n.endglobal\n",
+        ".module \"\"\n.section .data\n.global shared, 0, 1 readonly\n.endglobal\n.section .text\n.function shared\n.endfunction\n",
         ".module \"\"\n.section .text\n.function F\nentry:\nentry:\n.endfunction\n",
         ".module \"\"\n.section .text\n.function F\nentry: \"first\"\nentry: \"second\"\n.endfunction\n",
         ".module \"\"\n.section .text\n.function F\nentry: extra\n.endfunction\n",
@@ -796,6 +812,137 @@ entry:
     const auto AddressText = writeMachineModuleText(AddressModule);
     ASSERT_FALSE(AddressText.has_value());
     EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+  }
+
+  // Definition linkage, typed declarations, and distinct VM and host native names survive deterministic text round trips.
+  TEST(VMMachineModuleTextTest, RoundTripsLinkageAndNativeDeclarations)
+  {
+    auto &Names = core::NamePool::instance();
+    MachineModule Module(Names.intern("link-input"));
+    Module.declareSymbol(Names.intern("other.function"), MachineSymbolKind::Function);
+    Module.declareSymbol(Names.intern("other.readonly"), MachineSymbolKind::GlobalVariable, true);
+    Module.declareSymbol(Names.intern("other global"), MachineSymbolKind::GlobalVariable);
+    Module.declareNativeFunction(Names.intern("bridge.c"), NativeFunctionImport{NativeSymbolProvider::Native, Names.intern("host c"), NativeCallKind::C});
+    Module.declareNativeFunction(Names.intern("bridge.ink"), NativeFunctionImport{NativeSymbolProvider::SystemApi, Names.intern("host.ink"), NativeCallKind::InkNative});
+    Module.declareNativeData(Names.intern("native.buffer"), NativeDataImport{Names.intern("host.buffer")});
+    const std::array<std::uint8_t, 2> Bytes{1, 2};
+    ASSERT_TRUE(Module.createGlobalVariable(Bytes.size(), 2, Bytes, Names.intern("readonly"), MachineSymbolLinkage::External, true));
+    ASSERT_TRUE(Module.createGlobalVariable(0, 1, {}, core::NAME_None, MachineSymbolLinkage::Local, true));
+    ASSERT_TRUE(Module.createGlobalVariable(8, 4, Bytes, Names.intern("global"), MachineSymbolLinkage::External));
+    Module.createFunction(Names.intern("entry point"), MachineSymbolLinkage::External);
+    Module.createFunction(Names.intern("entry point"));
+    const auto Text = writeMachineModuleText(Module);
+    ASSERT_TRUE(Text.has_value());
+    EXPECT_NE(Text->find(".global readonly, 2, 2 readonly external\n"), std::string::npos);
+    EXPECT_NE(Text->find(".global global, 8, 4 external\n"), std::string::npos);
+    EXPECT_NE(Text->find(".declare global @\"other global\"\n"), std::string::npos);
+    EXPECT_NE(Text->find(".declare global @other.readonly readonly\n"), std::string::npos);
+    EXPECT_NE(Text->find(".native_function @bridge.c, native, c, @\"host c\"\n"), std::string::npos);
+    EXPECT_NE(Text->find(".native_function @bridge.ink, system_api, ink_native, @host.ink\n"), std::string::npos);
+    EXPECT_NE(Text->find(".native_data @native.buffer, @host.buffer\n"), std::string::npos);
+    const auto Parsed = readMachineModuleText(*Text);
+    ASSERT_TRUE(Parsed.has_value());
+    expectEqualModules(Module, **Parsed);
+    const auto Rewritten = writeMachineModuleText(**Parsed);
+    ASSERT_TRUE(Rewritten.has_value());
+    EXPECT_EQ(*Rewritten, *Text);
+  }
+
+  // Read-only and writable globals retain one insertion order and independent payloads through serialization.
+  TEST(VMMachineModuleTextTest, PreservesInterleavedGlobalMutabilityAndOrder)
+  {
+    auto &Names = core::NamePool::instance();
+    MachineModule Module;
+    const std::array<std::uint8_t, 1> Bytes{42};
+    ASSERT_TRUE(Module.createGlobalVariable(8, 8, Bytes, Names.intern("first")));
+    ASSERT_TRUE(Module.createGlobalVariable(4, 4, Bytes, Names.intern("middle"), MachineSymbolLinkage::Local, true));
+    ASSERT_TRUE(Module.createGlobalVariable(16, 16, {}, Names.intern("last")));
+    const auto Text = writeMachineModuleText(Module);
+    ASSERT_TRUE(Text.has_value());
+    const auto First = Text->find(".global first, 8, 8\n");
+    const auto Middle = Text->find(".global middle, 4, 4 readonly\n");
+    const auto Last = Text->find(".global last, 16, 16\n");
+    ASSERT_NE(First, std::string::npos);
+    ASSERT_NE(Middle, std::string::npos);
+    ASSERT_NE(Last, std::string::npos);
+    EXPECT_LT(First, Middle);
+    EXPECT_LT(Middle, Last);
+    EXPECT_EQ(Text->find(".rodata"), std::string::npos);
+    EXPECT_EQ(Text->find(".constant"), std::string::npos);
+    const auto Parsed = readMachineModuleText(*Text);
+    ASSERT_TRUE(Parsed.has_value());
+    expectEqualModules(Module, **Parsed);
+  }
+
+  // Explicit local linkage remains compatible with the default, while malformed link declarations cannot produce a module.
+  TEST(VMMachineModuleTextTest, RejectsMalformedLinkageAndNativeDeclarations)
+  {
+    const auto Local = readMachineModuleText(".module \"\"\n.section .text\n.function F local\n.endfunction\n");
+    ASSERT_TRUE(Local.has_value());
+    EXPECT_EQ((*Local)->functions().begin()->linkage(), MachineSymbolLinkage::Local);
+    constexpr std::string_view InvalidBodies[] = {
+        ".declare function",
+        ".declare unknown @name",
+        ".declare constant @name",
+        ".declare function @\"\"",
+        ".declare function @name readonly",
+        ".declare global @name readonly readonly",
+        ".declare global @name trailing",
+        ".native_data @name",
+        ".native_data @name, @\"\"",
+        ".native_data @name, native, @host",
+        ".native_data @name, @host trailing",
+        ".native_function @name, @host",
+        ".native_function @name, invalid, c, @host",
+        ".native_function @name, native, invalid, @host",
+        ".native_function @name, native, c, @\"\"",
+        ".native_function @name, native, c, @host,",
+        ".section .text\n.function F invalid\n.endfunction",
+        ".section .text\n.function F readonly\n.endfunction",
+        ".section .text\n.function F external local\n.endfunction",
+        ".section .text\n.function F, \"\" external\n.endfunction",
+        ".section .text\n.function F\n.declare function @name\n.endfunction",
+        ".section .text\n.function F\n.native_data @name, @host\n.endfunction",
+        ".section .rodata\n.constant C, \"\", 1 external\n.endconstant",
+        ".section .data\n.global G, 0, 1 weak\n.endglobal",
+        ".section .data\n.global G, 0, 1 external readonly\n.endglobal",
+        ".section .data\n.global G, 0, 1 readonly readonly\n.endglobal",
+    };
+    for (const std::string_view Body : InvalidBodies)
+    {
+      SCOPED_TRACE(Body);
+      const auto Parsed = readMachineModuleText(".module \"\"\n" + std::string(Body) + "\n");
+      ASSERT_FALSE(Parsed.has_value());
+      EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+    }
+  }
+
+  // Writing rejects invalid link enums, empty native identities, and anonymous external definitions before losing metadata.
+  TEST(VMMachineModuleTextTest, RejectsInvalidLinkMetadataWhenWriting)
+  {
+    auto &Names = core::NamePool::instance();
+    const auto Name = Names.intern("symbol");
+    MachineModule Anonymous;
+    Anonymous.createFunction(core::NAME_None, MachineSymbolLinkage::External);
+    EXPECT_FALSE(writeMachineModuleText(Anonymous).has_value());
+    MachineModule InvalidLinkage;
+    InvalidLinkage.createFunction(Name, static_cast<MachineSymbolLinkage>(255));
+    EXPECT_FALSE(writeMachineModuleText(InvalidLinkage).has_value());
+    MachineModule InvalidKind;
+    InvalidKind.declareSymbol(Name, static_cast<MachineSymbolKind>(255));
+    EXPECT_FALSE(writeMachineModuleText(InvalidKind).has_value());
+    MachineModule ReadOnlyFunction;
+    ReadOnlyFunction.declareSymbol(Name, MachineSymbolKind::Function, true);
+    EXPECT_FALSE(writeMachineModuleText(ReadOnlyFunction).has_value());
+    MachineModule EmptyData;
+    EmptyData.declareNativeData(Name, NativeDataImport{});
+    EXPECT_FALSE(writeMachineModuleText(EmptyData).has_value());
+    MachineModule InvalidProvider;
+    InvalidProvider.declareNativeFunction(Name, NativeFunctionImport{static_cast<NativeSymbolProvider>(255), Name, NativeCallKind::C});
+    EXPECT_FALSE(writeMachineModuleText(InvalidProvider).has_value());
+    MachineModule InvalidCallKind;
+    InvalidCallKind.declareNativeFunction(Name, NativeFunctionImport{NativeSymbolProvider::Native, Name, static_cast<NativeCallKind>(255)});
+    EXPECT_FALSE(writeMachineModuleText(InvalidCallKind).has_value());
   }
 
   // Unsupported register values fail serialization explicitly in direct register and memory-address operands.

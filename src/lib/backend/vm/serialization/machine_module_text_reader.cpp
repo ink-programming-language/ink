@@ -404,7 +404,6 @@ namespace ink::vm
     enum class Section
     {
       None,
-      Constants,
       Globals,
       Text,
     };
@@ -412,7 +411,6 @@ namespace ink::vm
     enum class DataKind
     {
       None,
-      Constant,
       Global,
     };
 
@@ -455,7 +453,11 @@ namespace ink::vm
           {
             return readBlock(*First, Line);
           }
-          if (First->Text == ".function" || First->Text == ".constant" || First->Text == ".global")
+          if (First->Text == ".declare" || First->Text == ".native_function" || First->Text == ".native_data")
+          {
+            return readSymbolDeclaration(*First, Line);
+          }
+          if (First->Text == ".function" || First->Text == ".global")
           {
             return readDeclaration(*First, Line);
           }
@@ -466,11 +468,7 @@ namespace ink::vm
             {
               return std::unexpected(textError(Offset, "section directive requires one section name outside a function"));
             }
-            if (Name->Text == ".rodata")
-            {
-              CurrentSection = Section::Constants;
-            }
-            else if (Name->Text == ".data")
+            if (Name->Text == ".data")
             {
               CurrentSection = Section::Globals;
             }
@@ -527,6 +525,126 @@ namespace ink::vm
         }
 
       private:
+        std::expected<MachineSymbolLinkage, core::Diagnostic> readLinkage(LineParser &Line, core::Name Name)
+        {
+          MachineSymbolLinkage Linkage = MachineSymbolLinkage::Local;
+          if (const Token *Keyword = Line.take(TokenKind::Identifier))
+          {
+            if (Keyword->Text == "external")
+            {
+              Linkage = MachineSymbolLinkage::External;
+            }
+            else if (Keyword->Text != "local")
+            {
+              return std::unexpected(textError(Keyword->Offset, "expected local or external linkage"));
+            }
+          }
+          if (Line.peek() || (Linkage == MachineSymbolLinkage::External && !Name.valid()))
+          {
+            return std::unexpected(textError(Line.offset(), "external definitions require a nonempty name and linkage must end the declaration"));
+          }
+          return Linkage;
+        }
+
+        std::expected<void, core::Diagnostic> readSymbolDeclaration(const Token &Directive, LineParser &Line)
+        {
+          if (Function)
+          {
+            return std::unexpected(textError(Directive.Offset, "symbol declarations must appear outside a function"));
+          }
+          if (Directive.Text == ".declare")
+          {
+            const Token *Kind = Line.take(TokenKind::Identifier);
+            core::Name Name;
+            if (!Kind || !parseSymbol(Line, Name))
+            {
+              return std::unexpected(textError(Directive.Offset, "expected a symbol kind and nonempty symbol name"));
+            }
+            MachineSymbolKind SymbolKind;
+            if (Kind->Text == "function")
+            {
+              SymbolKind = MachineSymbolKind::Function;
+            }
+            else if (Kind->Text == "global")
+            {
+              SymbolKind = MachineSymbolKind::GlobalVariable;
+            }
+            else
+            {
+              return std::unexpected(textError(Kind->Offset, "unknown symbol declaration kind"));
+            }
+            bool IsConstant = false;
+            if (const Token *Attribute = Line.take(TokenKind::Identifier))
+            {
+              if (SymbolKind != MachineSymbolKind::GlobalVariable || Attribute->Text != "readonly")
+              {
+                return std::unexpected(textError(Attribute->Offset, "only global declarations accept the readonly attribute"));
+              }
+              IsConstant = true;
+            }
+            if (Line.peek())
+            {
+              return std::unexpected(textError(Line.offset(), "unexpected token after the symbol declaration"));
+            }
+            Module->declareSymbol(Name, SymbolKind, IsConstant);
+            return {};
+          }
+          core::Name Name;
+          if (!parseSymbol(Line, Name) || !Line.consume(TokenKind::Comma))
+          {
+            return std::unexpected(textError(Directive.Offset, "expected a nonempty native link name followed by a comma"));
+          }
+          if (Directive.Text == ".native_data")
+          {
+            core::Name HostName;
+            if (!parseSymbol(Line, HostName) || Line.peek())
+            {
+              return std::unexpected(textError(Line.offset(), "expected exactly one nonempty host data name"));
+            }
+            Module->declareNativeData(Name, NativeDataImport{HostName});
+            return {};
+          }
+          const Token *Provider = Line.take(TokenKind::Identifier);
+          if (!Provider || !Line.consume(TokenKind::Comma))
+          {
+            return std::unexpected(textError(Line.offset(), "expected a native function provider followed by a comma"));
+          }
+          const Token *CallKind = Line.take(TokenKind::Identifier);
+          core::Name HostName;
+          if (!CallKind || !Line.consume(TokenKind::Comma) || !parseSymbol(Line, HostName) || Line.peek())
+          {
+            return std::unexpected(textError(Line.offset(), "expected a native call kind and nonempty host function name"));
+          }
+          NativeFunctionImport Import;
+          Import.Name = HostName;
+          if (Provider->Text == "native")
+          {
+            Import.Provider = NativeSymbolProvider::Native;
+          }
+          else if (Provider->Text == "system_api")
+          {
+            Import.Provider = NativeSymbolProvider::SystemApi;
+          }
+          else
+          {
+            return std::unexpected(textError(Provider->Offset, "unknown native function provider"));
+          }
+          if (CallKind->Text == "c")
+          {
+            Import.CallKind = NativeCallKind::C;
+          }
+          else if (CallKind->Text == "ink_native")
+          {
+            Import.CallKind = NativeCallKind::InkNative;
+          }
+          else
+          {
+            return std::unexpected(textError(CallKind->Offset, "unknown native call kind"));
+          }
+          Module->declareNativeFunction(Name, Import);
+          return {};
+        }
+
         std::expected<core::Name, core::Diagnostic> internName(const Token &TokenValue)
         {
           const auto Name = core::NamePool::instance().intern(TokenValue.Text);
@@ -588,15 +706,10 @@ namespace ink::vm
         std::expected<void, core::Diagnostic> readDeclaration(const Token &Directive, LineParser &Line)
         {
           const bool FunctionDeclaration = Directive.Text == ".function";
-          const bool Constant = Directive.Text == ".constant";
           Section RequiredSection = Section::Globals;
           if (FunctionDeclaration)
           {
             RequiredSection = Section::Text;
-          }
-          else if (Constant)
-          {
-            RequiredSection = Section::Constants;
           }
           if (Function || CurrentSection != RequiredSection)
           {
@@ -618,11 +731,12 @@ namespace ink::vm
           }
           if (FunctionDeclaration)
           {
-            if (Line.peek())
+            const auto Linkage = readLinkage(Line, *Name);
+            if (!Linkage)
             {
-              return std::unexpected(textError(Line.offset(), "unexpected token after the function name"));
+              return std::unexpected(Linkage.error());
             }
-            Function = &Module->createFunction(*Name);
+            Function = &Module->createFunction(*Name, *Linkage);
             BlockLabels.clear();
             HasFrame = false;
             HasBlock = false;
@@ -630,19 +744,31 @@ namespace ink::vm
           }
           std::uint64_t FirstValue = 0;
           std::uint64_t SecondValue = 0;
-          if (!Line.unsignedInteger(FirstValue) || (!Constant && (!Line.consume(TokenKind::Comma) || !Line.unsignedInteger(SecondValue))) || Line.peek())
+          if (!Line.unsignedInteger(FirstValue) || !Line.consume(TokenKind::Comma) || !Line.unsignedInteger(SecondValue))
           {
-            return std::unexpected(textError(Directive.Offset, "expected constant alignment or global size and alignment"));
+            return std::unexpected(textError(Directive.Offset, "expected global size and alignment"));
           }
-          DataAlignment = Constant ? FirstValue : SecondValue;
+          DataIsConstant = false;
+          if (Line.peek() && Line.peek()->Kind == TokenKind::Identifier && Line.peek()->Text == "readonly")
+          {
+            Line.take(TokenKind::Identifier);
+            DataIsConstant = true;
+          }
+          const auto Linkage = readLinkage(Line, *Name);
+          if (!Linkage)
+          {
+            return std::unexpected(Linkage.error());
+          }
+          DataLinkage = *Linkage;
+          DataAlignment = SecondValue;
           if (DataAlignment == 0 || (DataAlignment & (DataAlignment - 1)) != 0)
           {
             return std::unexpected(textError(Directive.Offset, "data alignment must be a nonzero power of two"));
           }
           DataName = *Name;
-          DataSize = Constant ? 0 : FirstValue;
+          DataSize = FirstValue;
           DataBytes.clear();
-          CurrentData = Constant ? DataKind::Constant : DataKind::Global;
+          CurrentData = DataKind::Global;
           return {};
         }
 
@@ -658,7 +784,7 @@ namespace ink::vm
               {
                 return std::unexpected(textError(Offset, "expected a byte value in the range 0 through 255"));
               }
-              if (CurrentData == DataKind::Global && DataBytes.size() >= DataSize)
+              if (DataBytes.size() >= DataSize)
               {
                 return std::unexpected(textError(Offset, "global initializer exceeds its declared byte size"));
               }
@@ -670,18 +796,11 @@ namespace ink::vm
             }
             return {};
           }
-          if (Directive.Text != (CurrentData == DataKind::Constant ? ".endconstant" : ".endglobal") || Line.peek())
+          if (Directive.Text != ".endglobal" || Line.peek())
           {
             return std::unexpected(textError(Directive.Offset, "expected .byte or the matching end directive"));
           }
-          if (CurrentData == DataKind::Constant)
-          {
-            if (!Module->createConstant(DataBytes, DataAlignment, DataName))
-            {
-              return std::unexpected(textError(Directive.Offset, "invalid constant data layout"));
-            }
-          }
-          else if (!Module->createGlobalVariable(DataSize, DataAlignment, DataBytes, DataName))
+          if (!Module->createGlobalVariable(DataSize, DataAlignment, DataBytes, DataName, DataLinkage, DataIsConstant))
           {
             return std::unexpected(textError(Directive.Offset, "invalid global data layout"));
           }
@@ -816,6 +935,8 @@ namespace ink::vm
         Section CurrentSection = Section::None;
         DataKind CurrentData = DataKind::None;
         core::Name DataName;
+        MachineSymbolLinkage DataLinkage = MachineSymbolLinkage::Local;
+        bool DataIsConstant = false;
         std::uint64_t DataSize = 0;
         std::uint64_t DataAlignment = 1;
         std::vector<std::uint8_t> DataBytes;

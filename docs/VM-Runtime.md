@@ -10,7 +10,7 @@
 
 逻辑寄存器属于 VM 的可见执行状态，与宿主 CPU 的寄存器分配无关。解释器计算有效地址、解码操作数时使用的宿主临时变量不增加 VM 的逻辑寄存器。
 
-[VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录常量、全局数据和栈帧描述。规划中的模块链接器合并逻辑模块，再由可执行镜像发射器生成 `ExecutableFile`；这些阶段以及执行器仍待实现，本文后续的调用约定建议也不等同于已实现的执行行为。
+[VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录可写或只读全局数据和栈帧描述。[模块链接器](VM-Linker.md) 已实现逻辑模块合并与严格符号解析；后续可执行镜像发射器生成 `ExecutableFile`，该阶段以及执行器仍待实现，本文后续的调用约定建议也不等同于已实现的执行行为。
 
 ## 寄存器与符号操作数
 

@@ -1,10 +1,10 @@
 # VM 内存模型与指令构建
 
-`src/include/ink/backend/vm/module` 提供 lowering 使用的 VM 内存模型。它保存函数、基本块、逻辑指令、常量与全局数据，以及函数的栈帧描述；这些对象不借用上层 IR 节点。
+`src/include/ink/backend/vm/module` 提供 lowering 使用的 VM 内存模型。它保存函数、基本块、逻辑指令和全局数据，以及函数的栈帧描述；这些对象不借用上层 IR 节点。只读数据由全局变量的常量属性表示。
 
 ```text
 vm::MachineModule
- ├─ 常量与全局数据
+ ├─ 全局数据（可写或只读）
  └─ vm::MachineFunction
      ├─ MachineFrameInfo
      └─ vm::MachineBasicBlock
@@ -78,9 +78,9 @@ namespace ink::vm
 
 `isBranch()`、`isConditionalBranch()`、`isReturn()`、`isTerminator()` 提供控制流分类；条件跳转只有一个显式目标块，未跳转时继续执行下一条指令。`readEFlagsMask()` 和 `writtenEFlagsMask()` 描述隐式标志依赖：所有 ADD、CMP 改写 CF、ZF、SF、OF，条件跳转读取各自所需的子集。EFLAGS 不作为它们的显式操作数，也不能用作普通寄存器值或地址基址。`eflags.h` 只提供标志定义、掩码及条件依赖元数据；标志生成和条件判断由后续执行器实现，当前模型不执行指令。
 
-## 常量、全局数据与栈帧
+## 全局数据与栈帧
 
-模块通过 `createConstant(Bytes, Alignment, Name)` 创建 `MachineConstant`，通过 `createGlobalVariable(ByteSize, Alignment, InitialBytes, Name)` 创建 `MachineGlobalVariable`。两个数据类型分别定义在 `machine_constant.h` 和 `machine_global_variable.h`，创建接口使用的 `MachineModuleDataError` 定义在 `machine_module.h`。两者返回 `std::expected<std::reference_wrapper<具体类型>, MachineModuleDataError>`，成功后的引用由模块持有。`constants()`、`globalVariables()` 提供保留插入顺序的遍历，数据节点提供只读字节、大小、对齐、名称和父模块查询。
+模块通过 `createGlobalVariable(ByteSize, Alignment, InitialBytes, Name, Linkage, IsConstant)` 创建 `MachineGlobalVariable`，类型定义在 `machine_global_variable.h`。最后两个参数默认分别为 `MachineSymbolLinkage::Local` 和 `false`，`IsConstant = true` 表示只读全局变量，通过 `isConstant()` 查询。创建接口返回 `std::expected<std::reference_wrapper<MachineGlobalVariable>, MachineModuleDataError>`，成功后的引用由模块持有。`globalVariables()` 按创建顺序统一遍历可写与只读全局变量，不按常量属性重新排列；数据节点提供初始化字节、大小、对齐、名称和父模块查询。
 
 创建时复制调用方提供的数据，不保留输入 span 的借用。对齐必须是非零的二次幂，全局数据的初始化长度不能超过声明大小；无效对齐、初始化过长和不能表示的大小通过 `MachineModuleDataError` 报告。全局对象声明大小可以大于初始化字节数，模块不会为了表示未初始化尾部而分配相同大小的宿主内存。
 
@@ -105,16 +105,29 @@ namespace ink::vm
 
 `AddressOperand(core::Name Symbol, std::int64_t ByteOffset)` 表示符号相对的内存地址，ADD、CMP、Load、Store 的 `m` 来源读取该地址处的值。`ImmediateOperand(core::Name Symbol, std::int64_t ByteOffset)` 则表示符号地址本身加上偏移，作为 `i` 值参与指令；它与 `ImmediateOperand(std::uint64_t Bits)` 的数值形式由 `ImmediateValueKind::Symbol` 和 `ImmediateValueKind::Numeric` 区分。`getValueKind()` 返回该分类，数值形式的 `bits()` 返回 `std::optional<std::uint64_t>`，符号形式的 `getSymbol()` 和 `getByteOffset()` 分别返回名称与有符号偏移；不匹配的访问器返回空值。
 
-符号名称通过 `core::Name` 保存链接名，不借用输入文本，也不是宿主指针。当前模块尚未拥有声明、定义、可见性或导入导出符号表，操作数也不解析这些名称。未在当前模块定义的符号可以作为后续链接输入保留；完整的符号解析和 ABI 检查仍待实现。
+符号名称通过 `core::Name` 保存链接名，不借用输入文本，也不是宿主指针。函数和全局变量分别保存 `MachineSymbolLinkage::Local` 或 `External`，创建接口的 Linkage 参数指定该属性，默认 Local。`MachineModule::declareSymbol(Name, Kind, IsConstant)` 保存带种类的外部声明，Kind 为 Function 或 GlobalVariable，IsConstant 默认 false，只能在全局变量声明上设为 true。链接时全局声明与定义的常量属性必须精确一致。`declareNativeFunction(Name, Import)` 和 `declareNativeData(Name, Import)` 保存显式 Native 声明，其中 Name 是 VM 链接名，Import.Name 是宿主查找名。上述声明可以通过 `symbolDeclarations()`、`nativeFunctions()`、`nativeData()` 的只读视图遍历，模块内存模型本身不执行链接校验。
 
 `serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；跳转使用 `jne failure`、`jmp done`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
 
 符号操作数使用 `@name` 或带转义名称的 `@"name"`，以区分寄存器、数值和函数内块标签。`[@counter + 8]` 表示读取或写入符号相对地址的内存，`@counter + 8` 表示地址值。例如 `add64mmi [bp + 16], [@counter], 1` 使用 counter 内存中的值，`add64mii [bp + 16], @counter, 1` 使用 counter 的地址值。符号偏移完整保留为 `i64`，文本读写不会根据指令位宽截断符号偏移；名称必须在 NamePool 中有效且非空。
 
+定义行末尾的 `external` 保留外部链接属性，例如 `.function sum external` 和 `.global counter, 8, 8 external`。全局变量的格式为 `.global name, size, alignment [readonly] [local|external]`，`readonly` 表示 IsConstant，例如 `.global message, 3, 1 readonly external`。全部全局变量统一写在 `.section .data` 中，文本不再提供 `.rodata`、`.constant` 或 `.endconstant`。省略链接属性或使用 `local` 表示 Local；写出器省略 Local 属性。External 定义必须具有非空原始名称，自动显示标签不替代链接名。顶层声明语法如下，名称同样支持带转义的 `@"name"`：
+
+```text
+.declare function @other_function
+.declare global @other_global
+.declare global @other_readonly_global readonly
+.native_function @vm_function, native, c, @host_function
+.native_function @system_function, system_api, ink_native, @host_bridge
+.native_data @vm_buffer, @host_buffer
+```
+
+函数 Provider 只接受 `native/system_api`，调用类别只接受 `c/ink_native`，数据声明没有 Provider。文本读取只检查字段、名称和结构，不把未解析符号自动归类为 Native，也不执行模块链接。
+
 ## 链接与可执行镜像边界
 
-规划中的流水线为 `MachineModule × N → ModuleLinker → MachineModule → ExecutableEmitter → ExecutableFile`。链接阶段负责逻辑模块合并与符号解析；发射阶段负责代码和数据布局、符号地址计算、基本块目标到 PC 相对位移的转换以及指令编码。符号相对内存地址和符号地址立即数的最终编码方式仍需由发射器约定，不能直接写出进程内的 Name 句柄。
+流水线为 `MachineModule × N → ModuleLinker → MachineModule → ExecutableEmitter → ExecutableFile`。`linker` 目录的 `ModuleLinker` 已实现强符号、Local/External、显式 Native、严格解析和深克隆，具体接口与冲突规则见 [VM 模块链接器](VM-Linker.md)。链接阶段负责逻辑模块合并与符号解析；发射阶段负责代码和数据布局、符号地址计算、基本块目标到 PC 相对位移的转换以及指令编码。符号相对内存地址和符号地址立即数的最终编码方式仍需由发射器约定，不能直接写出进程内的 Name 句柄。
 
-`executable` 目录提供链接后可执行镜像的内存模型 `ExecutableFile`，统一保存镜像字节、入口偏移、按索引引用的宿主函数导入、宿主数据导入和数据地址重定位记录，并提供结构校验；接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。该模型尚未实现链接、磁盘读写或宿主绑定。
+`executable` 目录提供链接后可执行镜像的内存模型 `ExecutableFile`，统一保存镜像字节、入口偏移、按索引引用的宿主函数导入、宿主数据导入和数据地址重定位记录，并提供结构校验；接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。ModuleLinker 输出仍是逻辑模块，不生成该镜像、磁盘格式或宿主绑定。
 
-当前尚未实现模块链接器、可执行镜像发射器、指令编解码器、lowering pass 或 VM 执行器；创建一个 `vm::MachineModule` 不会自动产生可执行字节。指令字节布局见 [VM 指令编码格式](VM-Instruction-Format.md)，执行状态与调用约定的讨论见 [VM 运行时设计](VM-Runtime.md)。
+当前尚未实现可执行镜像发射器、指令编解码器、lowering pass 或 VM 执行器；创建或链接 `vm::MachineModule` 不会自动产生可执行字节。指令字节布局见 [VM 指令编码格式](VM-Instruction-Format.md)，执行状态与调用约定的讨论见 [VM 运行时设计](VM-Runtime.md)。

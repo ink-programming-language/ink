@@ -97,11 +97,11 @@ namespace ink::vm
           {
             return failure();
           }
-          LabelScope ModuleLabels;
-          for (const MachineConstant &Constant : Module.constants())
+          if (!writeSymbolDeclarations(Module))
           {
-            ModuleLabels.reserve(Constant.name());
+            return failure();
           }
+          LabelScope ModuleLabels;
           for (const MachineGlobalVariable &Global : Module.globalVariables())
           {
             ModuleLabels.reserve(Global.name());
@@ -110,22 +110,7 @@ namespace ink::vm
           {
             ModuleLabels.reserve(Function.name());
           }
-          Text += "\n\n.section .rodata\n";
-          std::size_t ConstantIndex = 0;
-          for (const MachineConstant &Constant : Module.constants())
-          {
-            Text += ".constant ";
-            if (!writeLabel(ModuleLabels, Constant.name(), ".C", ConstantIndex))
-            {
-              return failure();
-            }
-            Text += ", ";
-            writeUnsigned(Constant.alignment());
-            Text += '\n';
-            writeBytes(Constant.bytes());
-            Text += ".endconstant\n";
-          }
-          Text += "\n.section .data\n";
+          Text += "\n\n.section .data\n";
           std::size_t GlobalIndex = 0;
           for (const MachineGlobalVariable &Global : Module.globalVariables())
           {
@@ -138,6 +123,14 @@ namespace ink::vm
             writeUnsigned(Global.byteSize());
             Text += ", ";
             writeUnsigned(Global.alignment());
+            if (Global.isConstant())
+            {
+              Text += " readonly";
+            }
+            if (!writeLinkage(Global.linkage(), Global.name()))
+            {
+              return failure();
+            }
             Text += '\n';
             writeBytes(Global.initialBytes());
             Text += ".endglobal\n";
@@ -148,6 +141,10 @@ namespace ink::vm
           {
             Text += ".function ";
             if (!writeLabel(ModuleLabels, Function.name(), ".F", FunctionIndex))
+            {
+              return failure();
+            }
+            if (!writeLinkage(Function.linkage(), Function.name()))
             {
               return failure();
             }
@@ -205,6 +202,104 @@ namespace ink::vm
         }
 
       private:
+        bool writeLinkage(MachineSymbolLinkage Linkage, core::Name Name)
+        {
+          if (Linkage == MachineSymbolLinkage::Local)
+          {
+            return true;
+          }
+          if (Linkage != MachineSymbolLinkage::External || !Name.valid() || core::NamePool::instance().text(Name).empty())
+          {
+            Error = "definition linkage must be local or external, and external definitions require a nonempty name";
+            return false;
+          }
+          Text += " external";
+          return true;
+        }
+
+        bool writeSymbolDeclarations(const MachineModule &Module)
+        {
+          for (const MachineSymbolDeclaration &Declaration : Module.symbolDeclarations())
+          {
+            Text += "\n.declare ";
+            switch (Declaration.Kind)
+            {
+            case MachineSymbolKind::Function:
+              Text += "function ";
+              break;
+            case MachineSymbolKind::GlobalVariable:
+              Text += "global ";
+              break;
+            default:
+              Error = "unknown symbol declaration kind";
+              return false;
+            }
+            if (!writeSymbol(Declaration.Name))
+            {
+              return false;
+            }
+            if (Declaration.IsConstant)
+            {
+              if (Declaration.Kind != MachineSymbolKind::GlobalVariable)
+              {
+                Error = "only global declarations accept the readonly attribute";
+                return false;
+              }
+              Text += " readonly";
+            }
+          }
+          for (const MachineNativeFunctionDeclaration &Declaration : Module.nativeFunctions())
+          {
+            Text += "\n.native_function ";
+            if (!writeSymbol(Declaration.Name))
+            {
+              return false;
+            }
+            switch (Declaration.Import.Provider)
+            {
+            case NativeSymbolProvider::Native:
+              Text += ", native, ";
+              break;
+            case NativeSymbolProvider::SystemApi:
+              Text += ", system_api, ";
+              break;
+            default:
+              Error = "unknown native function provider";
+              return false;
+            }
+            switch (Declaration.Import.CallKind)
+            {
+            case NativeCallKind::C:
+              Text += "c, ";
+              break;
+            case NativeCallKind::InkNative:
+              Text += "ink_native, ";
+              break;
+            default:
+              Error = "unknown native call kind";
+              return false;
+            }
+            if (!writeSymbol(Declaration.Import.Name))
+            {
+              return false;
+            }
+          }
+          for (const MachineNativeDataDeclaration &Declaration : Module.nativeData())
+          {
+            Text += "\n.native_data ";
+            if (!writeSymbol(Declaration.Name))
+            {
+              return false;
+            }
+            Text += ", ";
+            if (!writeSymbol(Declaration.Import.Name))
+            {
+              return false;
+            }
+          }
+          return true;
+        }
+
         bool writeLabel(LabelScope &Scope, core::Name Name, std::string_view Prefix, std::size_t &NextIndex, bool IsBlock = false)
         {
           const std::string Label = Scope.allocate(Name, Prefix, NextIndex);

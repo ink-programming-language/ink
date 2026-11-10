@@ -1,12 +1,11 @@
 ; MachineModule text example: compute and check 20 + 22 in local stack slots.
 .module "sum_example"
 
-.section .rodata
-.constant message, 1
-    .byte 0x48, 0x69, 0x00 ; "Hi\0"
-.endconstant
-
 .section .data
+.global message, 3, 1 readonly
+    .byte 0x48, 0x69, 0x00 ; "Hi\0"
+.endglobal
+
 .global scratch, 16, 8
     .byte 0x00, 0x00, 0x00, 0x00
 .endglobal

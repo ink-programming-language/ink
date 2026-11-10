@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <functional>
-#include <limits>
 #include <utility>
 #include <vector>
 
@@ -21,37 +20,14 @@ namespace ink::vm
   {
   }
 
-  MachineFunction &MachineModule::createFunction(core::Name FunctionName)
+  MachineFunction &MachineModule::createFunction(core::Name FunctionName, MachineSymbolLinkage Linkage)
   {
-    MachineFunction &Created = Functions.emplace_back(FunctionName);
+    MachineFunction &Created = Functions.emplace_back(FunctionName, Linkage);
     Created.Parent = this;
     return Created;
   }
 
-  std::expected<std::reference_wrapper<MachineConstant>, MachineModuleDataError> MachineModule::createConstant(std::span<const std::uint8_t> Bytes, std::uint64_t Alignment, core::Name ConstantName)
-  {
-    if (!isValidAlignment(Alignment))
-    {
-      return std::unexpected(MachineModuleDataError::InvalidAlignment);
-    }
-    std::vector<std::uint8_t> OwnedBytes;
-    if (Bytes.size() > OwnedBytes.max_size() || std::cmp_greater(Bytes.size(), std::numeric_limits<std::uint64_t>::max()))
-    {
-      return std::unexpected(MachineModuleDataError::SizeOverflow);
-    }
-    if (!Bytes.empty())
-    {
-      OwnedBytes.assign(Bytes.begin(), Bytes.end());
-    }
-    MachineConstant &Created = Constants.emplace_back();
-    Created.Name = ConstantName;
-    Created.Parent = this;
-    Created.Alignment = Alignment;
-    Created.Bytes = std::move(OwnedBytes);
-    return std::ref(Created);
-  }
-
-  std::expected<std::reference_wrapper<MachineGlobalVariable>, MachineModuleDataError> MachineModule::createGlobalVariable(std::uint64_t ByteSize, std::uint64_t Alignment, std::span<const std::uint8_t> InitialBytes, core::Name GlobalName)
+  std::expected<std::reference_wrapper<MachineGlobalVariable>, MachineModuleDataError> MachineModule::createGlobalVariable(std::uint64_t ByteSize, std::uint64_t Alignment, std::span<const std::uint8_t> InitialBytes, core::Name GlobalName, MachineSymbolLinkage Linkage, bool IsConstant)
   {
     if (!isValidAlignment(Alignment))
     {
@@ -70,12 +46,27 @@ namespace ink::vm
     {
       OwnedBytes.assign(InitialBytes.begin(), InitialBytes.end());
     }
-    MachineGlobalVariable &Created = Globals.emplace_back();
+    MachineGlobalVariable &Created = Globals.emplace_back(Linkage, IsConstant);
     Created.Name = GlobalName;
     Created.Parent = this;
     Created.ByteSize = ByteSize;
     Created.Alignment = Alignment;
     Created.InitialBytes = std::move(OwnedBytes);
     return std::ref(Created);
+  }
+
+  void MachineModule::declareSymbol(core::Name SymbolName, MachineSymbolKind Kind, bool IsConstant)
+  {
+    SymbolDeclarations.push_back({SymbolName, Kind, IsConstant});
+  }
+
+  void MachineModule::declareNativeFunction(core::Name SymbolName, NativeFunctionImport Import)
+  {
+    NativeFunctions.push_back({SymbolName, Import});
+  }
+
+  void MachineModule::declareNativeData(core::Name SymbolName, NativeDataImport Import)
+  {
+    NativeData.push_back({SymbolName, Import});
   }
 } // namespace ink::vm

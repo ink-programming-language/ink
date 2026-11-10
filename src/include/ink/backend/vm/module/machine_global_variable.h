@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ink/core/name/name.h"
+#include "ink/backend/vm/module/machine_symbol.h"
 
 #include <cstdint>
 #include <span>
@@ -11,11 +12,16 @@ namespace ink::vm
 {
   class MachineModule;
 
-  // MachineModule-owned writable storage; the uninitialized suffix is zero-filled when loaded.
+  // MachineModule-owned global storage; writable and read-only data both zero-fill an uninitialized suffix when loaded.
   class MachineGlobalVariable final
   {
     public:
-      MachineGlobalVariable() noexcept = default;
+      explicit MachineGlobalVariable(MachineSymbolLinkage Linkage = MachineSymbolLinkage::Local, bool IsConstant = false) noexcept
+          : Linkage(Linkage),
+            IsConstant(IsConstant)
+      {
+      }
+
       MachineGlobalVariable(const MachineGlobalVariable &) = delete;
       MachineGlobalVariable &operator=(const MachineGlobalVariable &) = delete;
       MachineGlobalVariable(MachineGlobalVariable &&) = delete;
@@ -24,6 +30,21 @@ namespace ink::vm
       core::Name name() const noexcept
       {
         return Name;
+      }
+
+      MachineSymbolLinkage linkage() const noexcept
+      {
+        return Linkage;
+      }
+
+      void setLinkage(MachineSymbolLinkage Value) noexcept
+      {
+        Linkage = Value;
+      }
+
+      bool isConstant() const noexcept
+      {
+        return IsConstant;
       }
 
       auto *parent(this auto &&Self) noexcept
@@ -50,6 +71,8 @@ namespace ink::vm
       friend class MachineModule;
 
       core::Name Name = core::NAME_None;
+      MachineSymbolLinkage Linkage;
+      bool IsConstant;
       MachineModule *Parent = nullptr;
       std::uint64_t ByteSize = 0;
       std::uint64_t Alignment = 1;

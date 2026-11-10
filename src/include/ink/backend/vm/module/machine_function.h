@@ -3,6 +3,7 @@
 #include "ink/core/name/name.h"
 #include "ink/backend/vm/module/machine_basic_block.h"
 #include "ink/backend/vm/module/machine_frame_info.h"
+#include "ink/backend/vm/module/machine_symbol.h"
 
 #include <cstddef>
 #include <list>
@@ -17,7 +18,7 @@ namespace ink::vm
   class MachineFunction final
   {
     public:
-      explicit MachineFunction(core::Name Name = core::NAME_None) noexcept;
+      explicit MachineFunction(core::Name Name = core::NAME_None, MachineSymbolLinkage Linkage = MachineSymbolLinkage::Local) noexcept;
 
       MachineFunction(const MachineFunction &) = delete;
       MachineFunction &operator=(const MachineFunction &) = delete;
@@ -27,6 +28,16 @@ namespace ink::vm
       core::Name name() const noexcept
       {
         return Name;
+      }
+
+      MachineSymbolLinkage linkage() const noexcept
+      {
+        return Linkage;
+      }
+
+      void setLinkage(MachineSymbolLinkage Value) noexcept
+      {
+        Linkage = Value;
       }
 
       auto *parent(this auto &&Self) noexcept
@@ -55,6 +66,7 @@ namespace ink::vm
       friend class MachineModule;
 
       core::Name Name;
+      MachineSymbolLinkage Linkage;
       MachineModule *Parent = nullptr;
       MachineFrameInfo Frame;
       std::list<MachineBasicBlock> Blocks;
