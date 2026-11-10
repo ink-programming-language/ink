@@ -194,7 +194,7 @@ callNative [@native_pointer_slot]
 
 `Calli` 的目标为 `PC + TargetOffset`，后继地址为 `NextPC = PC + 10`；`CallNativei` 的后继地址为 `NextPC = PC + 6`。上述寄存器相对间接形式的后继地址为 `PC + 11`；符号相对内存地址的最终编码仍待发射器约定。函数名称不进入字节编码，按索引导入的 native 函数地址不回填到镜像，也不使用数据地址重定位表。符号调用目标随 Local 重命名和 Native 别名合并一并改写，文本读取只恢复逻辑操作数，不代替链接检查。
 
-四条指令的类别都是 `InstructionCategory::Call`，都没有显式结果目标，也不是基本块终结指令。`isCall()` 识别全部调用，`isNativeCall()` 识别两种 `callNative` 形式。它们都不读取 EFLAGS，并通过 `writtenEFlagsMask() == ArithmeticEFlagsMask` 表达 CF、ZF、SF、OF 在调用后不可依赖；这不规定返回后的具体标志值。当前只实现逻辑指令、构建、遍历、文本读写和链接接入；编码字节生成、执行状态转换、调用区布局及宿主 ABI adapter 尚未实现，调用约定建议见 [VM 运行时设计](VM-Runtime.md)。
+四条指令的类别都是 `InstructionCategory::Call`，都没有显式结果目标，也不是基本块终结指令。`isCall()` 识别全部调用，`isNativeCall()` 识别两种 `callNative` 形式。它们都不读取 EFLAGS，并通过 `writtenEFlagsMask() == ArithmeticEFlagsMask` 表达 CF、ZF、SF、OF 在调用后不可依赖；这不规定返回后的具体标志值。当前只实现逻辑指令、构建、遍历、文本读写和链接接入；编码字节生成、执行状态转换、调用区布局及宿主 ABI adapter 尚未实现。参数、返回槽和可变参数调用预留区布局见 [VM 调用约定](VM-Calling-Convention.md)。
 
 ## C++ 指令模型
 

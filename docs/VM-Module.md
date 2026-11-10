@@ -149,4 +149,4 @@ Builder 不解析名称或校验调用签名。当前已提供逻辑指令及其
 
 `executable` 目录提供链接后可执行镜像的内存模型 `ExecutableFile`，统一保存镜像字节、入口偏移、按索引引用的宿主函数导入、宿主数据导入和数据地址重定位记录，并提供结构校验；接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。ModuleLinker 输出仍是逻辑模块，不生成该镜像、磁盘格式或宿主绑定。
 
-当前尚未实现可执行镜像发射器、指令编解码器、lowering pass 或 VM 执行器；创建或链接 `vm::MachineModule` 不会自动产生可执行字节。指令字节布局见 [VM 指令编码格式](VM-Instruction-Format.md)，执行状态与调用约定的讨论见 [VM 运行时设计](VM-Runtime.md)。
+当前尚未实现可执行镜像发射器、指令编解码器、lowering pass 或 VM 执行器；创建或链接 `vm::MachineModule` 不会自动产生可执行字节。指令字节布局见 [VM 指令编码格式](VM-Instruction-Format.md)，执行状态见 [VM 运行时设计](VM-Runtime.md)，参数、返回槽和可变参数调用预留区布局见 [VM 调用约定](VM-Calling-Convention.md)。
