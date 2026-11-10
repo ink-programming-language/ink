@@ -2,7 +2,7 @@
 
 本文记录 Ink VM 已约定的指令及操作数字节布局。操作码来自 `src/include/ink/backend/vm/instruction/opcode.def`，寄存器编号来自同目录的 `register.def`。`VMInstructionSetVersion` 的默认值为 `1.1.0`，可通过 `INK_VM_INSTRUCTION_SET_VERSION` 配置；EFLAGS、比较、跳转和返回指令沿用这一版本。符号操作数在逻辑模型中保留链接名和偏移，其最终可执行编码尚待发射器约定。
 
-当前实现提供 `Operand` 基类以及 `RegisterOperand`、`AddressOperand`、`ImmediateOperand`、`BasicBlockOperand` 四种逻辑操作数，并通过强类型指令布局将操作数接入 `MachineInstruction`。基本块操作数在内存中持有目标块指针，直到可执行镜像发射阶段才转换成 PC 相对地址字段。[VM 内存模型与指令构建](VM-Module.md) 提供模块、函数、基本块的所有权结构和 `MachineInstructionBuilder`，供 lowering 构建逻辑指令。模块链接器、可执行镜像发射器、指令字节编码器、解码器、预解码器和执行器仍待后续实现。
+当前实现提供 `Operand` 基类以及 `RegisterOperand`、`AddressOperand`、`ImmediateOperand`、`BasicBlockOperand` 四种逻辑操作数，并通过强类型指令布局将操作数接入 `MachineInstruction`。基本块操作数在内存中持有目标块指针，直到可执行镜像发射阶段才转换成 PC 相对地址字段。[VM 内存模型与指令构建](VM-Module.md) 提供模块、函数、基本块的所有权结构和 `MachineInstructionBuilder`，供 lowering 构建逻辑指令。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号解析和深克隆；可执行镜像发射器、指令字节编码器、解码器、预解码器和执行器仍待后续实现。
 
 ## 通用布局
 
@@ -63,7 +63,7 @@ RegisterId:u8
 
 寄存器地址只接受 BP、SP、PC，EFLAGS 和未知编号必须拒绝。`ByteOffset` 在这一形式中占八字节，表示相对寄存器基址的有符号字节位移。
 
-符号地址目前仅有逻辑形式 `Symbol + ByteOffset`。后续链接器需要解析名称，发射器再按最终布局将其转换为合适的 VM 地址形式；该路径的最终字节编码尚未固定。进程内的 `core::Name` 索引不属于指令编码，也不能直接写入文件。
+符号地址目前仅有逻辑形式 `Symbol + ByteOffset`。链接器已实现名称绑定和符号引用改写，后续发射器再按最终布局计算符号地址并将其转换为合适的 VM 地址形式；该路径的最终字节编码尚未固定。进程内的 `core::Name` 索引不属于指令编码，也不能直接写入文件。
 
 下面的竖线只用于说明字段边界，不属于字节流：
 
@@ -85,7 +85,7 @@ RegisterId:u8
 
 `ImmediateOperand::getValueKind()` 区分两种形式。`bits()` 只在数值形式返回位模式；`getSymbol()` 和 `getByteOffset()` 只在符号形式返回名称与偏移，各访问器用 `std::optional` 表示不适用的情况。负数值按相应位宽的二进制补码表示。当前寄存器目标的 64 位加法将右来源解释为有符号 64 位字节位移；普通整数结果的加法仍遵循操作码规定的位宽回绕语义。
 
-符号立即数表示 `AddressOf(Symbol) + ByteOffset`，不读取该地址处的内存。文本采用 `@name` 或 `@"escaped name"`，并可附加 `+ Offset` 或 `- Offset`。例如 `add64mii [bp + 16], @counter + 8, 1` 的左来源是 counter 地址加 8。文本读写保留完整的名称和 `i64` 偏移，不按指令 `Width` 截断；发射器必须在解析符号和完成地址计算后，检查结果是否能按对应指令的立即数字段及地址语义表示。符号地址的解析和最终编码尚未实现，宿主地址也不能混同为普通 VM 地址。
+符号立即数表示 `AddressOf(Symbol) + ByteOffset`，不读取该地址处的内存。文本采用 `@name` 或 `@"escaped name"`，并可附加 `+ Offset` 或 `- Offset`。例如 `add64mii [bp + 16], @counter + 8, 1` 的左来源是 counter 地址加 8。文本读写保留完整的名称和 `i64` 偏移，不按指令 `Width` 截断；链接器完成名称绑定后，发射器必须按最终布局完成地址计算，并检查结果是否能按对应指令的立即数字段及地址语义表示。符号地址的最终地址计算和编码尚未实现，宿主地址也不能混同为普通 VM 地址。
 
 ## 完整指令示例
 
