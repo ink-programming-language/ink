@@ -23,6 +23,10 @@ auto Linked = ModuleLinker::link(Inputs, Diagnostics, OutputName);
 
 第一版为严格最终链接：所有普通声明和指令中的 VM 符号必须解析成功。即使声明没有被指令使用，也不能留下未定义的普通声明。链接成功后已经解析的普通声明不再作为未解析依赖保留。
 
+直接调用的符号 `ImmediateOperand` 按原输入模块的作用域解析，addend 必须为零。`Calli` 的符号目标只能绑定到 VM 函数定义，支持同模块 Local 目标、跨模块 External 目标和递归引用；`CallNativei` 的符号目标只能绑定到该输入显式声明的 Native 函数。直接符号调用指向全局数据、Native 数据或另一类函数时会报错。
+
+数值直接目标不参与符号绑定：`Calli` 保存 PC 相对 i64 位模式，`CallNativei` 保存 u32 导入索引。`Callm`、`CallNativem` 的 `AddressOperand` 定位存放 64 位可调用目标的内存；其中的符号按普通地址符号规则解析，不将指针槽误认成直接函数目标。链接器不检查内存中的实际指针值，也不校验参数和返回值的 ABI 兼容性。
+
 ## Native 声明
 
 `declareNativeFunction(LinkName, Import)` 和 `declareNativeData(LinkName, Import)` 分别声明宿主函数和宿主数据。LinkName 是 VM 名称，`Import.Name` 是宿主查找名，两者可以不同；未定义的普通符号不会自动变成 Native。
@@ -39,11 +43,11 @@ auto Linked = ModuleLinker::link(Inputs, Diagnostics, OutputName);
 
 克隆阶段创建新函数和全部新基本块，再通过旧基本块对象到新基本块对象的映射重建指令。前向、后向和自跳转均保留目标身份；匿名或重名的基本块不依靠名称匹配。输出的 parent 指针和跳转目标只指向输出对象。
 
-全局变量保留声明大小、初始化字节、对齐、常量属性和插入顺序，未初始化尾部不展开为宿主缓冲区。各函数保留栈槽顺序、大小、对齐以及已布局或未布局状态。符号内存地址和符号立即数都会改写名称，`i64` addend 完整保留，不因指令位宽截断。
+全局变量保留声明大小、初始化字节、对齐、常量属性和插入顺序，未初始化尾部不展开为宿主缓冲区。各函数保留栈槽顺序、大小、对齐以及已布局或未布局状态。符号内存地址和符号立即数都会改写名称，包括直接调用目标与间接调用的指针槽地址。普通地址和立即数的 `i64` addend 完整保留，不因指令位宽截断；直接调用符号的 addend 必须为零。
 
 函数结构校验由内部 `visitFunctionReferences` 遍历负责，检查基本块和指令归属、寄存器和分支目标；遇到符号操作数时，在该操作数的语义位置调用符号解析器。结构校验与名字绑定在同一遍历中按语义顺序处理。指令遍历和重建通过统一的指令 visitor 与 `tryCloneInstruction` 操作数改写接口分发，避免链接器再次维护一套 opcode switch。操作数按目标、来源等语义顺序处理；一旦某个操作数失败，就停止处理该指令剩余操作数，链接调用只报告首个错误。
 
-局部名称改写先在 LinkBindings 中记录原模块的符号绑定，再为 Local 符号生成无冲突输出名称。克隆阶段的操作数改写重载从绑定结果查询目标输出名称，构造新的 AddressOperand 或符号 ImmediateOperand；基本块操作数通过块映射重建，最后由 MachineInstructionBuilder 插入输出指令。源节点及源操作数保持原值，没有通过原位修改输入实现链接。
+局部名称改写先在 LinkBindings 中记录原模块的符号绑定，再为 Local 符号生成无冲突输出名称。克隆阶段的操作数改写重载从绑定结果查询目标输出名称，构造新的 AddressOperand 或符号 ImmediateOperand；基本块操作数通过块映射重建，最后由 MachineInstructionBuilder 插入输出指令。调用复用同一套操作数改写接口，数值目标保持原始位模式。源节点及源操作数保持原值，没有通过原位修改输入实现链接。
 
 链接器不决定最终代码或数据地址，不计算基本块跳转的 PC 相对位移，也不选择镜像入口。后续流水线为：
 
@@ -51,7 +55,7 @@ auto Linked = ModuleLinker::link(Inputs, Diagnostics, OutputName);
 MachineModule × N → ModuleLinker → MachineModule → ExecutableEmitter → ExecutableFile
 ```
 
-当前尚未提供 VM CALL、机器级函数签名和完整 ABI 校验，也未提供全局初始化字节内部的符号地址记录。跨模块函数调用、全局指针和函数指针表需要后续补充；第一版链接不会推测某段原始字节是否表示地址。所有输入由调用方保证采用兼容的 VM 与 ABI 配置。weak、COMDAT、部分链接、归档提取和不可达代码剔除也不在第一版范围内。
+当前已支持直接调用的函数种类检查及间接调用指针槽的普通符号绑定，但尚未提供机器级函数签名、完整 ABI 校验及全局初始化字节内部的符号地址记录。可执行调用字节、调用执行、全局指针和函数指针表的初始化仍需要后续补充；第一版链接不会推测某段原始字节是否表示地址。所有输入由调用方保证采用兼容的 VM 与 ABI 配置。weak、COMDAT、部分链接、归档提取和不可达代码剔除也不在第一版范围内。
 
 ## 文本格式
 

@@ -3,6 +3,8 @@
 #include "ink/backend/vm/instruction/machine_instruction_visitor.h"
 #include "ink/core/name/name_pool.h"
 
+#include <cstdint>
+#include <limits>
 #include <optional>
 #include <tuple>
 #include <unordered_set>
@@ -30,14 +32,14 @@ namespace ink::vm::detail
             }
             Blocks.insert(&Block);
           }
-          const auto VisitOperands = [&](const auto &...Operands)
-          {
-            std::expected<void, std::string> Result;
-            static_cast<void>(((Result = visitOperand(Operands)).has_value() && ...));
-            return Result;
-          };
           const auto VisitInstruction = [&](const auto &Typed) -> std::optional<std::expected<void, std::string>>
           {
+            const auto VisitOperands = [&](const auto &...Operands)
+            {
+              std::expected<void, std::string> Result;
+              static_cast<void>(((Result = visitOperand(Operands, Typed.getOpcode())).has_value() && ...));
+              return Result;
+            };
             return std::apply(VisitOperands, Typed.operands());
           };
           for (const auto &Block : Function.basicBlocks())
@@ -63,7 +65,7 @@ namespace ink::vm::detail
         }
 
       private:
-        std::expected<void, std::string> visitOperand(const RegisterOperand &Value) const
+        std::expected<void, std::string> visitOperand(const RegisterOperand &Value, Opcode) const
         {
           if (!isArithmeticRegister(Value.getRegister()))
           {
@@ -72,7 +74,7 @@ namespace ink::vm::detail
           return {};
         }
 
-        std::expected<void, std::string> visitOperand(const AddressOperand &Value) const
+        std::expected<void, std::string> visitOperand(const AddressOperand &Value, Opcode) const
         {
           if (const auto Register = Value.getRegister())
           {
@@ -82,19 +84,31 @@ namespace ink::vm::detail
             }
             return {};
           }
-          return VisitReference(*Value.getSymbol());
+          return VisitReference(*Value.getSymbol(), SymbolReferenceTarget::Any);
         }
 
-        std::expected<void, std::string> visitOperand(const ImmediateOperand &Value) const
+        std::expected<void, std::string> visitOperand(const ImmediateOperand &Value, Opcode Operation) const
         {
-          if (Value.bits())
+          if (const auto Bits = Value.bits())
           {
+            if (Operation == Opcode::CallNativei && *Bits > std::numeric_limits<std::uint32_t>::max())
+            {
+              return std::unexpected("callNativei import index exceeds u32 range");
+            }
             return {};
           }
-          return VisitReference(*Value.getSymbol());
+          if (Operation == Opcode::Calli || Operation == Opcode::CallNativei)
+          {
+            if (*Value.getByteOffset() != 0)
+            {
+              return std::unexpected("direct call symbol target must have a zero byte offset");
+            }
+            return VisitReference(*Value.getSymbol(), Operation == Opcode::CallNativei ? SymbolReferenceTarget::NativeFunction : SymbolReferenceTarget::VMFunction);
+          }
+          return VisitReference(*Value.getSymbol(), SymbolReferenceTarget::Any);
         }
 
-        std::expected<void, std::string> visitOperand(const BasicBlockOperand &Value) const
+        std::expected<void, std::string> visitOperand(const BasicBlockOperand &Value, Opcode) const
         {
           if (!Blocks.contains(Value.getBlock()))
           {

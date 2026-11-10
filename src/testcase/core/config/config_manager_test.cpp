@@ -96,8 +96,8 @@ namespace ink::core::test
   {
     ScopedEnvironmentVariable Environment("INK_VM_INSTRUCTION_SET_VERSION");
     ASSERT_TRUE(Environment.set(nullptr));
-    EXPECT_EQ(ConfigManager::get<ConfigKind::VMInstructionSetVersion>(), "1.1.0");
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 1, 0));
+    EXPECT_EQ(ConfigManager::get<ConfigKind::VMInstructionSetVersion>(), "1.2.0");
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 2, 0));
   }
 
   // Each version read observes the current environment while earlier values and copies remain independent.
@@ -114,7 +114,7 @@ namespace ink::core::test
     EXPECT_EQ(Copy, Version(2, 3, 4));
     EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(9, 8, 7));
     ASSERT_TRUE(Environment.set(nullptr));
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 1, 0));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 2, 0));
   }
 
   // Version conversion accepts zero and the full unsigned 32-bit range in all three components.
@@ -157,7 +157,7 @@ namespace ink::core::test
       SCOPED_TRACE(Value);
       ASSERT_TRUE(Environment.set(Value));
       EXPECT_EQ(ConfigManager::get<ConfigKind::VMInstructionSetVersion>(), Value);
-      EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 1, 0));
+      EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 2, 0));
     }
   }
 
@@ -177,7 +177,7 @@ namespace ink::core::test
     ScopedEnvironmentVariable Environment("INK_VM_INSTRUCTION_SET_VERSION");
     ASSERT_TRUE(Environment.set(""));
     EXPECT_EQ(ConfigManager::get<ConfigKind::VMInstructionSetVersion>(), "");
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 1, 0));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 2, 0));
   }
 #endif
 } // namespace ink::core::test

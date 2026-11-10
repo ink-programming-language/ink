@@ -60,7 +60,7 @@ namespace ink::vm::test
       EXPECT_FALSE(Diagnostic.Arguments.empty());
     }
 
-    template <typename OperandType>
+    template <Opcode Operation, typename OperandType>
     OperandType registeredOperand(std::size_t Index, const MachineBasicBlock &Target)
     {
       if constexpr (std::is_same_v<OperandType, RegisterOperand>)
@@ -78,7 +78,14 @@ namespace ink::vm::test
       else
       {
         static_assert(std::is_same_v<OperandType, ImmediateOperand>);
-        return ImmediateOperand(std::numeric_limits<std::uint64_t>::max() - Index);
+        if constexpr (Operation == Opcode::Calli || Operation == Opcode::CallNativei)
+        {
+          return ImmediateOperand(linkName(Operation == Opcode::CallNativei ? "link.registered.native" : "link.registered.function"));
+        }
+        else
+        {
+          return ImmediateOperand(std::numeric_limits<std::uint64_t>::max() - Index);
+        }
       }
     }
 
@@ -86,7 +93,7 @@ namespace ink::vm::test
     void appendRegisteredInstruction(MachineInstructionBuilder &Builder, const MachineBasicBlock &Target, std::index_sequence<Indices...>)
     {
       using Tuple = typename OpcodeTraits<Operation>::OperandTuple;
-      Builder.create<Operation>(registeredOperand<std::tuple_element_t<Indices, Tuple>>(Indices, Target)...);
+      Builder.create<Operation>(registeredOperand<Operation, std::tuple_element_t<Indices, Tuple>>(Indices, Target)...);
     }
 
     void expectSameOperand(const Operand &Input, const Operand &Output, const MachineBasicBlock &OutputTarget)
@@ -269,11 +276,13 @@ namespace ink::vm::test
     EXPECT_EQ(static_cast<const MachineJneInstruction &>(instructionAt(Entry, 0)).getTarget(), &Later);
   }
 
-  // Every registered opcode survives linking with its numeric operands and output-owned block references intact.
+  // Every registered opcode survives linking with its operands, function symbols and output-owned block references intact.
   TEST(VMModuleLinkerTest, ClonesEveryRegisteredOpcode)
   {
     MachineModule Input;
     auto &Block = Input.createFunction().createBasicBlock();
+    Input.createFunction(linkName("link.registered.function"), MachineSymbolLinkage::External);
+    Input.declareNativeFunction(linkName("link.registered.native"), NativeFunctionImport{NativeSymbolProvider::Native, linkName("host.registered.native"), NativeCallKind::C});
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Block);
 #define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) appendRegisteredInstruction<Opcode::Kind>(Builder, Block, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{});

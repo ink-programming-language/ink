@@ -9,6 +9,7 @@
 #include "ink/core/name/name_pool.h"
 
 #include <charconv>
+#include <limits>
 #include <span>
 #include <unordered_map>
 #include <unordered_set>
@@ -183,6 +184,10 @@ namespace ink::vm
               Text += '\n';
               for (const MachineInstruction &Instruction : Block.instructions())
               {
+                if (!validateCallTarget(Instruction))
+                {
+                  return failure();
+                }
                 Text += "    ";
                 Text += Instruction.getName();
                 for (std::size_t Index = 0; Index != Instruction.operandCount(); ++Index)
@@ -202,6 +207,26 @@ namespace ink::vm
         }
 
       private:
+        bool validateCallTarget(const MachineInstruction &Instruction)
+        {
+          if (!Instruction.isCall() || Instruction.getOperand(0)->getKind() != OperandKind::Immediate)
+          {
+            return true;
+          }
+          const auto &Target = static_cast<const ImmediateOperand &>(*Instruction.getOperand(0));
+          if (Target.getSymbol() && *Target.getByteOffset() != 0)
+          {
+            Error = "a direct function symbol cannot have a nonzero displacement";
+            return false;
+          }
+          if (Instruction.getOpcode() == Opcode::CallNativei && Target.bits() && *Target.bits() > std::numeric_limits<std::uint32_t>::max())
+          {
+            Error = "a native function import index must fit in u32";
+            return false;
+          }
+          return true;
+        }
+
         bool writeLinkage(MachineSymbolLinkage Linkage, core::Name Name)
         {
           if (Linkage == MachineSymbolLinkage::Local)

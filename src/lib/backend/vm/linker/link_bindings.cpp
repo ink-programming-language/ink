@@ -327,32 +327,42 @@ namespace ink::vm::detail
         return true;
       }
 
-      std::expected<void, std::string> bindReference(std::size_t Index, core::Name Name)
+      std::expected<void, std::string> bindReference(std::size_t Index, core::Name Name, SymbolReferenceTarget ExpectedTarget)
       {
         if (!validName(Name))
         {
           return std::unexpected("symbol operand requires a nonempty name registered in the name pool");
         }
         auto &Scope = Bindings.Scopes[Index];
-        if (Scope.contains(Name))
+        auto Resolved = lookup(Scope, Name);
+        if (!Resolved)
         {
-          return {};
+          Resolved = lookup(ExternalDefinitions, Name);
+          if (!Resolved)
+          {
+            return std::unexpected(fmt::format("undefined symbol '{}'; native symbols require an explicit declaration in the referencing module", spelling(Name)));
+          }
+          Scope.emplace(Name, *Resolved);
         }
-        if (const auto External = lookup(ExternalDefinitions, Name))
+        const auto &Target = Bindings.Symbols[Resolved->Index].Target;
+        if (ExpectedTarget == SymbolReferenceTarget::VMFunction && !std::holds_alternative<const MachineFunction *>(Target))
         {
-          Scope.emplace(Name, *External);
-          return {};
+          return std::unexpected(fmt::format("calli target '{}' must resolve to a VM function definition", spelling(Name)));
         }
-        return std::unexpected(fmt::format("undefined symbol '{}'; native symbols require an explicit declaration in the referencing module", spelling(Name)));
+        if (ExpectedTarget == SymbolReferenceTarget::NativeFunction && !std::holds_alternative<NativeFunctionImport>(Target))
+        {
+          return std::unexpected(fmt::format("callNativei target '{}' must resolve to an explicitly declared native function", spelling(Name)));
+        }
+        return {};
       }
 
       bool bindReferences()
       {
         for (std::size_t Index = 0; Index < Inputs.size(); ++Index)
         {
-          const auto BindReference = [&](core::Name Name)
+          const auto BindReference = [&](core::Name Name, SymbolReferenceTarget ExpectedTarget)
           {
-            return bindReference(Index, Name);
+            return bindReference(Index, Name, ExpectedTarget);
           };
           for (const auto &Function : Inputs[Index]->functions())
           {

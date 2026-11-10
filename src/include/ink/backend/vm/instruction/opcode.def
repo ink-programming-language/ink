@@ -12,6 +12,8 @@
 // Forms describe only ordered operand kinds; opcodes supply the operation and width.
 OPCODE_FORM(None)
 OPCODE_FORM(B, BasicBlockOperand)
+OPCODE_FORM(I, ImmediateOperand)
+OPCODE_FORM(M, AddressOperand)
 OPCODE_FORM(Rr, RegisterOperand, RegisterOperand)
 OPCODE_FORM(Rm, RegisterOperand, AddressOperand)
 OPCODE_FORM(Ri, RegisterOperand, ImmediateOperand)
@@ -28,7 +30,7 @@ OPCODE_FORM(Mrr, AddressOperand, RegisterOperand, RegisterOperand)
 OPCODE_FORM(Mrm, AddressOperand, RegisterOperand, AddressOperand)
 OPCODE_FORM(Mri, AddressOperand, RegisterOperand, ImmediateOperand)
 
-// ADD and CMP implicitly write CF, ZF, SF and OF; other instructions preserve EFLAGS.
+// ADD and CMP implicitly write CF, ZF, SF and OF; calls clobber them, and other instructions preserve EFLAGS.
 // Conditional branches implicitly read the flags selected by Condition.
 // Loads read a value of the specified bit width from memory.
 OPCODE(Load8, 0x0001, "load8", Mm, 8, 0, 2, 0, Load, None)
@@ -115,6 +117,13 @@ OPCODE(Js, 0x0038, "js", B, 0, 0, 0, 0, Branch, Sign)
 OPCODE(Jns, 0x0039, "jns", B, 0, 0, 0, 0, Branch, NotSign)
 
 OPCODE(Ret, 0x003A, "ret", None, 0, 0, 0, 0, Return, None)
+
+// Immediate calls supply a VM PC-relative displacement or native import index; memory calls read a 64-bit callable pointer.
+// The text form selects the opcode from the immediate or address operand while preserving the shared mnemonic.
+OPCODE(Calli, 0x003B, "call", I, 64, 0, 0, 1, Call, None)
+OPCODE(CallNativei, 0x003C, "callNative", I, 32, 0, 0, 1, Call, None)
+OPCODE(Callm, 0x003D, "call", M, 64, 0, 1, 0, Call, None)
+OPCODE(CallNativem, 0x003E, "callNative", M, 64, 0, 1, 0, Call, None)
 
 #ifdef INK_VM_OPCODE_DEF_UNDEF_FORM
 #undef INK_VM_OPCODE_DEF_UNDEF_FORM

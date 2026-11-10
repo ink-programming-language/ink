@@ -23,7 +23,7 @@ namespace ink::vm
       static constexpr ConditionCode Condition = ConditionCode::ConditionValue;                                                                                       \
       static constexpr bool HasDestination = Category == InstructionCategory::Load || Category == InstructionCategory::Store || Category == InstructionCategory::Add; \
       static constexpr EFlags ReadEFlagsMask = Category == InstructionCategory::Branch ? conditionEFlagsMask(Condition) : 0;                                          \
-      static constexpr EFlags WrittenEFlagsMask = Category == InstructionCategory::Add || Category == InstructionCategory::Compare ? ArithmeticEFlagsMask : 0;        \
+      static constexpr EFlags WrittenEFlagsMask = Category == InstructionCategory::Add || Category == InstructionCategory::Compare || Category == InstructionCategory::Call ? ArithmeticEFlagsMask : 0; \
       static constexpr std::uint32_t BitWidth = WidthValue;                                                                                                           \
       static_assert(RegisterCount == RegisterCountValue && AddressCount == AddressCountValue && ImmediateCount == ImmediateCountValue);                               \
   };
@@ -84,7 +84,12 @@ namespace ink::vm
         return std::get<0>(Operands).getBlock();
       }
 
-      constexpr const BasicBlockOperand &getTargetOperand() const noexcept requires(Traits::Category == InstructionCategory::Branch)
+      constexpr const auto &getTarget() const noexcept requires(Traits::Category == InstructionCategory::Call)
+      {
+        return std::get<0>(Operands);
+      }
+
+      constexpr const auto &getTargetOperand() const noexcept requires(Traits::Category == InstructionCategory::Branch || Traits::Category == InstructionCategory::Call)
       {
         return std::get<0>(Operands);
       }

@@ -78,6 +78,23 @@ namespace ink::vm
 
 `isBranch()`、`isConditionalBranch()`、`isReturn()`、`isTerminator()` 提供控制流分类；条件跳转只有一个显式目标块，未跳转时继续执行下一条指令。`readEFlagsMask()` 和 `writtenEFlagsMask()` 描述隐式标志依赖：所有 ADD、CMP 改写 CF、ZF、SF、OF，条件跳转读取各自所需的子集。EFLAGS 不作为它们的显式操作数，也不能用作普通寄存器值或地址基址。`eflags.h` 只提供标志定义、掩码及条件依赖元数据；标志生成和条件判断由后续执行器实现，当前模型不执行指令。
 
+## 函数调用指令
+
+`Calli`、`CallNativei` 使用持有单个 `ImmediateOperand` 的 `I` 形式；`Callm`、`CallNativem` 使用持有单个 `AddressOperand` 的 `M` 形式。四者均属于 `InstructionCategory::Call`，复用现有操作数类型。`getTarget()` 和 `getTargetOperand()` 都返回具体目标操作数的常量引用。
+
+```cpp
+Builder.create<Opcode::Calli>(ImmediateOperand(FunctionName));
+Builder.create<Opcode::CallNativei>(ImmediateOperand(NativeFunctionName));
+Builder.create<Opcode::Callm>(AddressOperand(RegisterId::BP, 16));
+Builder.create<Opcode::CallNativem>(AddressOperand(PointerSlotName, 8));
+```
+
+`isCall()` 识别全部调用，`isNativeCall()` 识别两种 Native 调用。调用没有显式结果目标或参数操作数，也不是终结指令；返回后继续执行后继指令。四者的 `readEFlagsMask()` 为零，`writtenEFlagsMask()` 为 `ArithmeticEFlagsMask`，表示调用后不能依赖原先的算术标志。
+
+`Calli` 的数值目标为相对当前 PC 的有符号 i64 位模式，符号目标绑定 VM 函数定义；`CallNativei` 的数值目标为 u32 native 导入索引，符号目标绑定显式 Native 函数声明。直接调用的符号 addend 必须为零。`Callm` 和 `CallNativem` 分别从有效地址读取 64 位 VM 函数地址和 native 可调用指针，后者不是导入索引。间接目标中的符号只定位存放指针的内存，按普通地址符号规则解析。
+
+Builder 不解析名称或校验调用签名。当前已提供逻辑指令及其文本和链接接入，参数与返回槽布局、字节生成和调用执行尚未实现；native 可调用指针的 adapter 与宿主 ABI 协议也仍待确定。
+
 ## 全局数据与栈帧
 
 模块通过 `createGlobalVariable(ByteSize, Alignment, InitialBytes, Name, Linkage, IsConstant)` 创建 `MachineGlobalVariable`，类型定义在 `machine_global_variable.h`。最后两个参数默认分别为 `MachineSymbolLinkage::Local` 和 `false`，`IsConstant = true` 表示只读全局变量，通过 `isConstant()` 查询。创建接口返回 `std::expected<std::reference_wrapper<MachineGlobalVariable>, MachineModuleDataError>`，成功后的引用由模块持有。`globalVariables()` 按创建顺序统一遍历可写与只读全局变量，不按常量属性重新排列；数据节点提供初始化字节、大小、对齐、名称和父模块查询。
@@ -110,6 +127,8 @@ namespace ink::vm
 `serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；跳转使用 `jne failure`、`jmp done`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
 
 符号操作数使用 `@name` 或带转义名称的 `@"name"`，以区分寄存器、数值和函数内块标签。`[@counter + 8]` 表示读取或写入符号相对地址的内存，`@counter + 8` 表示地址值。例如 `add64mmi [bp + 16], [@counter], 1` 使用 counter 内存中的值，`add64mii [bp + 16], @counter, 1` 使用 counter 的地址值。符号偏移完整保留为 `i64`，文本读写不会根据指令位宽截断符号偏移；名称必须在 NamePool 中有效且非空。
+
+调用文本共用 `call` 和 `callNative` 名称，由操作数决定具体形式。例如 `call @function_name` 和 `callNative 0` 分别是符号直接调用和按 native 导入索引调用；`call [bp + 16]` 和 `callNative [@pointer_slot + 8]` 则从内存读取可调用目标。名称支持转义，直接调用拒绝 `call @function_name + 8` 等非零符号偏移；符号是否存在、直接调用是否属于正确类别由链接器检查。
 
 定义行末尾的 `external` 保留外部链接属性，例如 `.function sum external` 和 `.global counter, 8, 8 external`。全局变量的格式为 `.global name, size, alignment [readonly] [local|external]`，`readonly` 表示 IsConstant，例如 `.global message, 3, 1 readonly external`。全部全局变量统一写在 `.section .data` 中，文本不再提供 `.rodata`、`.constant` 或 `.endconstant`。省略链接属性或使用 `local` 表示 Local；写出器省略 Local 属性。External 定义必须具有非空原始名称，自动显示标签不替代链接名。顶层声明语法如下，名称同样支持带转义的 `@"name"`：
 

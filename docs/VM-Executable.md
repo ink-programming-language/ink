@@ -24,9 +24,11 @@
 
 `native_function_import.h` 定义 `NativeFunctionImport`，保存 `Provider`、`Name` 和 `CallKind`。`NativeCallKind` 包含 `C` 和 `InkNative`，默认值为 C；Provider 与 CallKind 独立，前者选择符号解析来源，后者描述宿主函数入口的调用类别。同一 Provider、Name 的函数即使 CallKind 不同，也属于重复导入。
 
-函数在 `NativeFunctions` 中的位置就是其 u32 导入索引，供未来的 `callNative` 指令引用。后续加载器解析函数并按 CallKind 绑定到统一的运行时 adapter；宿主函数地址不回填到 `Image`，函数调用也不使用数据重定位表。
+函数在 `NativeFunctions` 中的位置就是其 u32 导入索引，供 `CallNativei` 的最终编码引用。该逻辑指令复用 `ImmediateOperand`，接受 u32 数值索引或零 addend 的 VM 链接名；模块链接器检查符号形式指向显式 Native 函数并统一别名。后续发射器生成导入索引，加载器解析函数并按 CallKind 绑定到统一的运行时 adapter。按索引导入的宿主函数地址不回填到 `Image`，函数绑定也不使用数据重定位表。
 
-CallKind 目前只区分 C 与 InkNative，不包含完整的 C ABI 签名、参数和返回值布局或调用区描述。函数导入通过结构校验不代表已完成调用兼容性校验，也不表示加载器、adapter 或 `callNative` 指令已经实现。
+`CallNativem` 复用 `AddressOperand`，从其有效地址处读取 64 位 native 可调用指针，而不是读取 u32 导入索引。符号地址引用的是存放指针的内存位置，按普通地址符号规则链接。该指针的运行时构造、有效性验证及 adapter/宿主 ABI 协议尚未实现，不能仅凭现有导入表把任意 C 函数地址当作可调用值。
+
+CallKind 目前只区分 C 与 InkNative，不包含完整的 C ABI 签名、参数和返回值布局或调用区描述。`callNative` 的直接和间接形式已提供逻辑指令、文本读写和链接接入；函数导入通过结构校验不代表已完成调用兼容性校验，指令字节生成、加载器、adapter 和调用执行仍未实现。
 
 ## 数据导入和重定位
 

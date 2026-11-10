@@ -877,8 +877,45 @@ namespace ink::vm
           return {};
         }
 
+        std::expected<void, core::Diagnostic> readCallInstruction(const Token &Mnemonic, LineParser &Line)
+        {
+          const bool Native = Mnemonic.Text == "callNative";
+          PendingInstruction Pending{Builder.getInsertBlock(), Opcode::Calli, {}, {}, Mnemonic.Offset};
+          const std::size_t Offset = Line.offset();
+          if (!parseOperand(Line, Pending.Operands[0]) || Line.peek())
+          {
+            return std::unexpected(textError(Offset, "a call requires exactly one immediate or memory target"));
+          }
+          if (const auto *Immediate = std::get_if<ImmediateOperand>(&Pending.Operands[0]))
+          {
+            if (Immediate->getSymbol() && *Immediate->getByteOffset() != 0)
+            {
+              return std::unexpected(textError(Offset, "a direct function symbol cannot have a nonzero displacement"));
+            }
+            if (Native && Immediate->bits() && *Immediate->bits() > std::numeric_limits<std::uint32_t>::max())
+            {
+              return std::unexpected(textError(Offset, "a native function import index must fit in u32"));
+            }
+            Pending.Operation = Native ? Opcode::CallNativei : Opcode::Calli;
+          }
+          else if (std::holds_alternative<AddressOperand>(Pending.Operands[0]))
+          {
+            Pending.Operation = Native ? Opcode::CallNativem : Opcode::Callm;
+          }
+          else
+          {
+            return std::unexpected(textError(Offset, "a call target must be an immediate or memory operand"));
+          }
+          PendingInstructions.push_back(std::move(Pending));
+          return {};
+        }
+
         std::expected<void, core::Diagnostic> readInstruction(const Token &Mnemonic, LineParser &Line)
         {
+          if (Mnemonic.Text == "call" || Mnemonic.Text == "callNative")
+          {
+            return readCallInstruction(Mnemonic, Line);
+          }
 #define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) \
   if (Mnemonic.Text == Spelling)                                                                                        \
   {                                                                                                                     \

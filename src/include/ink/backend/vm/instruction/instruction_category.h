@@ -12,5 +12,6 @@ namespace ink::vm
     Compare,
     Branch,
     Return,
+    Call,
   };
 } // namespace ink::vm

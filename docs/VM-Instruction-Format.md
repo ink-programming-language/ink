@@ -1,8 +1,8 @@
 # VM 指令编码格式
 
-本文记录 Ink VM 已约定的指令及操作数字节布局。操作码来自 `src/include/ink/backend/vm/instruction/opcode.def`，寄存器编号来自同目录的 `register.def`。`VMInstructionSetVersion` 的默认值为 `1.1.0`，可通过 `INK_VM_INSTRUCTION_SET_VERSION` 配置；EFLAGS、比较、跳转和返回指令沿用这一版本。符号操作数在逻辑模型中保留链接名和偏移，其最终可执行编码尚待发射器约定。
+本文记录 Ink VM 已约定的指令及操作数字节布局。操作码来自 `src/include/ink/backend/vm/instruction/opcode.def`，寄存器编号来自同目录的 `register.def`。`VMInstructionSetVersion` 的默认值为 `1.2.0`，可通过 `INK_VM_INSTRUCTION_SET_VERSION` 配置；这一版本新增 `call` 和 `callNative` 操作码。符号地址操作数在逻辑模型中保留链接名和偏移，其最终可执行编码尚待发射器约定。
 
-当前实现提供 `Operand` 基类以及 `RegisterOperand`、`AddressOperand`、`ImmediateOperand`、`BasicBlockOperand` 四种逻辑操作数，并通过强类型指令布局将操作数接入 `MachineInstruction`。基本块操作数在内存中持有目标块指针，直到可执行镜像发射阶段才转换成 PC 相对地址字段。[VM 内存模型与指令构建](VM-Module.md) 提供模块、函数、基本块的所有权结构和 `MachineInstructionBuilder`，供 lowering 构建逻辑指令。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号解析和深克隆；可执行镜像发射器、指令字节编码器、解码器、预解码器和执行器仍待后续实现。
+当前实现提供 `Operand` 基类以及 `RegisterOperand`、`AddressOperand`、`ImmediateOperand`、`BasicBlockOperand` 四种逻辑操作数，并通过强类型指令布局将操作数接入 `MachineInstruction`。基本块操作数在内存中持有目标块指针；调用复用立即数和地址操作数，分别表达直接目标和存放间接目标的内存位置。[VM 内存模型与指令构建](VM-Module.md) 提供模块、函数、基本块的所有权结构和 `MachineInstructionBuilder`，供 lowering 构建逻辑指令。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号解析和深克隆；可执行镜像发射器、指令字节编码器、解码器、预解码器和执行器仍待后续实现。
 
 ## 通用布局
 
@@ -12,7 +12,7 @@ Opcode:u16 | Operand0 | Operand1 | ...
 
 `u8`、`u16`、`u32`、`u64` 分别表示相应位宽的无符号整数，`i64` 表示 64 位二进制补码。下文的字节序列、操作码和寄存器编号均以十六进制表示，位宽及长度以十进制表示。每个多字节字段都须遵循发射器所选的字节序，包括操作码、偏移和立即数。最终可执行文件如何记录这一选择仍待磁盘格式约定。字段连续排列，没有隐式填充、对齐字节、单条指令长度字段或操作数长度字段。编码器必须逐字段写出，不能直接写入 C++ 类或结构体的宿主内存布局。
 
-操作码唯一确定操作数的顺序、种类和立即数位宽。有显式结果目标的指令将目标放在最前；加法随后依次是左来源和右来源。比较只有左、右来源，跳转只有目标基本块，返回没有显式操作数。`r`、`m`、`i` 分别表示寄存器值、内存地址和立即数；`b` 表示内存模型中的目标基本块，在生成可执行代码时转换成 PC 相对地址。已约定的字节布局不附加逻辑操作数的种类标签，也不保存基本块宿主指针。
+操作码唯一确定操作数的顺序、种类和立即数位宽。有显式结果目标的指令将目标放在最前；加法随后依次是左来源和右来源。比较只有左、右来源，跳转只有目标基本块，调用只有目标来源，返回没有显式操作数。`r`、`m`、`i` 分别表示寄存器值、内存地址和立即数；`b` 表示内存模型中的目标基本块。已约定的字节布局不附加逻辑操作数的种类标签，也不保存基本块宿主指针或进程内的名称句柄。
 
 | `opcode.def` 中的形式 | 操作数顺序 |
 | --- | --- |
@@ -32,6 +32,8 @@ Opcode:u16 | Operand0 | Operand1 | ...
 | `Ri` | `r, i` |
 | `Mr` | `m, r` |
 | `B` | `b`，内存模型中的目标基本块 |
+| `I` | `i`，直接调用目标 |
+| `M` | `m`，存放间接调用目标的内存地址 |
 | `None` | 无显式操作数 |
 
 操作数计数包含所有显式操作数；EFLAGS 等隐式读写不计入其中。使用已约定寄存器地址和数值立即数的指令，其长度由操作码与各字段宽度计算；符号操作数须先完成解析与最终地址表示选择。
@@ -55,7 +57,7 @@ RegisterId:u8
 
 ## 地址操作数 `m`
 
-地址操作数保存寄存器或符号链接名，以及有符号字节偏移。加载、存储、加法和比较使用它定位内存中的值，访问位宽由操作码决定。符号形式通过 `core::Name` 保存名称，例如文本 `[@counter + 8]`。读取符号地址本身时使用立即数形式 `@counter + 8`。跳转的内存模型保存基本块指针，可执行镜像发射器才将其转换为 PC 相对地址字段；该编码地址用于控制转移，不读取该地址处的内存内容。
+地址操作数保存寄存器或符号链接名，以及有符号字节偏移。加载、存储、加法、比较和间接调用使用它定位内存中的值，访问位宽由操作码决定。符号形式通过 `core::Name` 保存名称，例如文本 `[@counter + 8]`。读取符号地址本身时使用立即数形式 `@counter + 8`。跳转的内存模型保存基本块指针，可执行镜像发射器才将其转换为 PC 相对地址字段；该编码地址用于控制转移，不读取该地址处的内存内容。
 
 | 基址来源 | 字节布局 | 长度 |
 | --- | --- | --- |
@@ -86,6 +88,8 @@ RegisterId:u8
 `ImmediateOperand::getValueKind()` 区分两种形式。`bits()` 只在数值形式返回位模式；`getSymbol()` 和 `getByteOffset()` 只在符号形式返回名称与偏移，各访问器用 `std::optional` 表示不适用的情况。负数值按相应位宽的二进制补码表示。当前寄存器目标的 64 位加法将右来源解释为有符号 64 位字节位移；普通整数结果的加法仍遵循操作码规定的位宽回绕语义。
 
 符号立即数表示 `AddressOf(Symbol) + ByteOffset`，不读取该地址处的内存。文本采用 `@name` 或 `@"escaped name"`，并可附加 `+ Offset` 或 `- Offset`。例如 `add64mii [bp + 16], @counter + 8, 1` 的左来源是 counter 地址加 8。文本读写保留完整的名称和 `i64` 偏移，不按指令 `Width` 截断；链接器完成名称绑定后，发射器必须按最终布局完成地址计算，并检查结果是否能按对应指令的立即数字段及地址语义表示。符号地址的最终地址计算和编码尚未实现，宿主地址也不能混同为普通 VM 地址。
+
+直接调用复用 `ImmediateOperand`，但按调用操作码解释目标：`Calli` 的立即数是 PC 相对位移或待解析的 VM 函数名，`CallNativei` 的立即数是 u32 导入索引或待解析的 Native 函数名。调用符号不允许非零 addend，具体规则见下文。
 
 ## 完整指令示例
 
@@ -156,17 +160,51 @@ TargetPC = PC + ByteOffset
 
 `jb/jbe/ja/jae` 用于无符号比较；`jl/jle/jg/jge` 用于有符号比较。当前没有基于 PF 的跳转，也不额外提供 `jz/jnz` 等拼写别名。
 
-`ret` 的操作码是 `003a`，没有显式操作数，仅占两个字节。执行约定从 `[bp]`、`[bp + 8]` 读取保存的 BP、返回 PC，将 SP 恢复为返回前的 BP，再恢复 BP、PC；参数和结果区仍由调用方回收。执行前须完成全部保存区和返回目标检查，失败时不提交部分状态。当前没有立即数清栈形式的 `ret`，CALL 和执行器仍待实现。
+`ret` 的操作码是 `003a`，没有显式操作数，仅占两个字节。执行约定从 `[bp]`、`[bp + 8]` 读取保存的 BP、返回 PC，将 SP 恢复为返回前的 BP，再恢复 BP、PC；参数和结果区仍由调用方回收。执行前须完成全部保存区和返回目标检查，失败时不提交部分状态。当前没有立即数清栈形式的 `ret`，执行器仍待实现。
+
+## 函数调用目标与编码
+
+`call` 和 `callNative` 指令族各有立即数与内存两种形式，共用文本名称，由操作数种类选择具体操作码。直接调用使用 `I` 形式的 `ImmediateOperand`，间接调用使用 `M` 形式的 `AddressOperand`；参数和结果不作为显式指令操作数。文本示例：
+
+```text
+call @sum
+call 16
+call [bp + 16]
+call [@function_pointer_slot]
+callNative @vm_log
+callNative 0
+callNative [sp - 8]
+callNative [@native_pointer_slot]
+```
+
+`Calli` 的数值立即数保存相对当前指令起始 PC 的有符号 i64 位模式；符号立即数表示 VM 函数入口，发射时根据最终布局计算该位移。`CallNativei` 的数值立即数必须可表示为 u32，作为 native 导入索引；符号立即数表示显式 Native 函数声明的链接名，发射时转换为导入索引。两种直接调用都不接受符号的非零 addend。名称支持 `@"escaped name"` 转义形式。
+
+链接时，直接 `call @name` 的目标必须是 VM 函数定义，支持本模块 Local 函数以及跨模块 External 函数；直接 `callNative @name` 的目标必须是当前输入显式声明的 Native 函数。全局数据、Native 数据和错误调用类别都会被拒绝。数值目标不参与符号绑定，其位移、指令边界或导入索引有效性需要后续发射、加载或执行阶段检查。
+
+`Callm` 从有效地址处读取一个 64 位 VM 函数地址，再转移至该地址；`CallNativem` 从有效地址处读取一个 64 位 native 可调用指针，该值不是 u32 导入索引。`[@pointer_slot]` 中的符号定位存放指针的内存，链接时按普通地址符号规则解析，不要求它是函数定义或 Native 函数声明。内存地址允许有符号字节偏移，目标值及其可调用性仍须由运行时校验。native 指针的 adapter 与宿主 ABI 协议尚未实现，当前指令模型不表示任意 C 函数指针都可直接调用。
+
+后续发射器采用以下编码约定：
+
+| C++ 操作码 | 文本名称 | 编码 | 操作数字段 | 总长度 |
+| --- | --- | --- | --- | --- |
+| `Calli` | `call` | `003b` | `TargetOffset:i64`，相对当前指令起始 PC 的有符号字节位移 | 10 字节 |
+| `CallNativei` | `callNative` | `003c` | `NativeFunctionIndex:u32`，引用 `ExecutableFile::NativeFunctions` | 6 字节 |
+| `Callm` | `call` | `003d` | 寄存器相对 `m`：`RegisterId:u8, ByteOffset:i64`，读取 64 位 VM 函数地址 | 11 字节 |
+| `CallNativem` | `callNative` | `003e` | 寄存器相对 `m`：`RegisterId:u8, ByteOffset:i64`，读取 64 位 native 可调用指针 | 11 字节 |
+
+`Calli` 的目标为 `PC + TargetOffset`，后继地址为 `NextPC = PC + 10`；`CallNativei` 的后继地址为 `NextPC = PC + 6`。上述寄存器相对间接形式的后继地址为 `PC + 11`；符号相对内存地址的最终编码仍待发射器约定。函数名称不进入字节编码，按索引导入的 native 函数地址不回填到镜像，也不使用数据地址重定位表。符号调用目标随 Local 重命名和 Native 别名合并一并改写，文本读取只恢复逻辑操作数，不代替链接检查。
+
+四条指令的类别都是 `InstructionCategory::Call`，都没有显式结果目标，也不是基本块终结指令。`isCall()` 识别全部调用，`isNativeCall()` 识别两种 `callNative` 形式。它们都不读取 EFLAGS，并通过 `writtenEFlagsMask() == ArithmeticEFlagsMask` 表达 CF、ZF、SF、OF 在调用后不可依赖；这不规定返回后的具体标志值。当前只实现逻辑指令、构建、遍历、文本读写和链接接入；编码字节生成、执行状态转换、调用区布局及宿主 ABI adapter 尚未实现，调用约定建议见 [VM 运行时设计](VM-Runtime.md)。
 
 ## C++ 指令模型
 
 `MachineModule` 的临时文本读写由 `backend/vm/serialization` 提供。文本保留数值立即数的完整 `u64` 位模式，或符号立即数的名称和完整 `i64` 偏移；本节的数值字节格式则由操作码位宽决定立即数字段的长度。
 
-`opcode.def` 通过 `OPCODE_FORM(Kind, ...)` 集中定义操作数签名，`OPCODE` 记录引用其中的签名、指令类别和条件码。形式名称仅描述操作数类型及顺序，不包含指令语义或位宽，例如 `Add64rri` 引用 `Rri`，`Load64`、`Store64m` 和 `Cmp64mm` 共同引用 `Mm`。`instruction_form.h` 直接从同一份 `opcode.def` 生成 `InstructionForm` 枚举和 `FormTraits` 特化，每种签名只展开一次。每种形式提供 `OperandTuple` 和寄存器、地址、立即数、基本块的计数，包括 `BlockCount`；`None` 对应空元组，`B` 对应单个 `BasicBlockOperand`。顺序来自签名定义；操作数计数用于一致性校验，不能单独推导顺序，例如 `Rrm` 和 `Mrr` 的计数相同而顺序不同。
+`opcode.def` 通过 `OPCODE_FORM(Kind, ...)` 集中定义操作数签名，`OPCODE` 记录引用其中的签名、指令类别和条件码。形式名称仅描述操作数类型及顺序，不包含指令语义或位宽，例如 `Add64rri` 引用 `Rri`，`Load64`、`Store64m` 和 `Cmp64mm` 共同引用 `Mm`。`instruction_form.h` 直接从同一份 `opcode.def` 生成 `InstructionForm` 枚举和 `FormTraits` 特化，每种签名只展开一次。每种形式提供 `OperandTuple` 和寄存器、地址、立即数、基本块的计数，包括 `BlockCount`；`None` 对应空元组，`B` 对应单个 `BasicBlockOperand`，`I` 和 `M` 分别对应单个 `ImmediateOperand` 和 `AddressOperand`。顺序来自签名定义；操作数计数用于一致性校验，不能单独推导顺序，例如 `Rrm` 和 `Mrr` 的计数相同而顺序不同。
 
 `machine_instructions.h` 根据 `opcode.def` 为每个操作码生成 `OpcodeTraits`，将操作码绑定到对应的 `Form`、`BitWidth` 和操作数布局。`MachineInstructionImpl<Opcode>` 按值持有该布局的 `std::tuple`，并为每个现有操作码提供对应的指令别名，例如 `MachineAdd64rriInstruction`。构造函数要求操作数的数量和具体类型匹配布局，操作数存储随指令对象一起分配。
 
-只有 Load、Store、Add 提供 `getDestination()`；具有目标和单个来源的形式提供 `getSource()`。Add 的 `getLHS()`、`getRHS()` 分别访问索引 1、2，Cmp 的同名访问器访问索引 0、1；跳转的 `getTarget()` 返回目标基本块指针，`getTargetOperand()` 返回基本块操作数包装的常量引用，Ret 没有这些访问器。其余操作数访问器返回具体操作数类型的常量引用，调用者可以直接使用对应的操作数接口：
+只有 Load、Store、Add 提供 `getDestination()`；具有目标和单个来源的形式提供 `getSource()`。Add 的 `getLHS()`、`getRHS()` 分别访问索引 1、2，Cmp 的同名访问器访问索引 0、1；跳转的 `getTarget()` 返回目标基本块指针，`getTargetOperand()` 返回基本块操作数的常量引用。调用的这两个访问器都返回 `const ImmediateOperand &` 或 `const AddressOperand &`，由具体调用形式决定。Ret 没有这些访问器。其余操作数访问器返回具体操作数类型的常量引用，调用者可以直接使用对应的操作数接口：
 
 ```cpp
 #include "ink/backend/vm/instruction/machine_instructions.h"
@@ -186,7 +224,7 @@ namespace ink::vm
 
 `MachineInstruction::operandCount()` 返回包含目标在内的操作数数量；`getOperand(Index)` 按相同的语义顺序返回 `const Operand *`，越界返回 `nullptr`。统一访问在实现文件中通过操作码分派到对应的具体指令布局；这是一层供编码器、打印器和校验器使用的模型遍历接口，不规定未来执行器的热路径。
 
-`category()`、`branchCondition()`、`hasDestination()`、`isCompare()`、`isBranch()`、`isConditionalBranch()`、`isReturn()`、`isTerminator()` 描述指令语义。`readEFlagsMask()`、`writtenEFlagsMask()` 表达隐式标志依赖，调度和 lowering 必须保持这些依赖；例如不能在 `cmp` 和依赖它的条件跳转之间插入另一条改写标志的 `add`。
+`category()`、`branchCondition()`、`hasDestination()`、`isCompare()`、`isBranch()`、`isConditionalBranch()`、`isCall()`、`isNativeCall()`、`isReturn()`、`isTerminator()` 描述指令语义。`readEFlagsMask()`、`writtenEFlagsMask()` 表达隐式标志依赖，调度和 lowering 必须保持这些依赖；例如不能在 `cmp` 和依赖它的条件跳转之间插入另一条改写标志的 `add` 或调用。
 
 具体指令通过 `MachineInstructionImpl` 构造函数绑定操作码与布局，该模板为 `final`，保证用于分派的具体类型一致。`MachineInstructionBuilder` 在将新指令交给基本块后设置其 `parent()`。指令对象禁止复制，使用具体类型销毁；基类没有虚函数或虚析构函数。构造函数在编译期约束操作数种类和数量，PC 写入限制、寄存器编号有效性、立即数范围等语义约束仍须由后续指令校验处理。
 

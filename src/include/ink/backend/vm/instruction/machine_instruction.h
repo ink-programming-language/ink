@@ -123,6 +123,16 @@ namespace ink::vm
         return category() == InstructionCategory::Return;
       }
 
+      constexpr bool isCall() const noexcept
+      {
+        return category() == InstructionCategory::Call;
+      }
+
+      constexpr bool isNativeCall() const noexcept
+      {
+        return Operation == Opcode::CallNativei || Operation == Opcode::CallNativem;
+      }
+
       constexpr bool isTerminator() const noexcept
       {
         return isBranch() || isReturn();
@@ -135,7 +145,7 @@ namespace ink::vm
 
       constexpr EFlags writtenEFlagsMask() const noexcept
       {
-        return category() == InstructionCategory::Add || isCompare() ? ArithmeticEFlagsMask : 0;
+        return category() == InstructionCategory::Add || isCompare() || isCall() ? ArithmeticEFlagsMask : 0;
       }
 
       // Borrows an operand in semantic order; an index outside operandCount() returns nullptr.

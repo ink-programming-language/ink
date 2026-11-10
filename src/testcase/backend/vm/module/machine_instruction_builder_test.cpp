@@ -367,6 +367,48 @@ namespace ink::vm::test
     EXPECT_EQ(Return.writtenEFlagsMask(), 0U);
   }
 
+  // Calls copy direct targets and pointer-slot addresses independently while preserving the insertion anchor for following instructions.
+  TEST(VMMachineInstructionBuilderTest, BuildsImmediateAndIndirectCallsWithCopiedTargets)
+  {
+    MachineBasicBlock Block;
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Block);
+    auto &Return = Builder.create<Opcode::Ret>();
+    ASSERT_TRUE(Builder.setInsertPoint(Return));
+    const core::Name VMTarget = core::NamePool::instance().intern("builder.vm.target");
+    const core::Name NativeTarget = core::NamePool::instance().intern("builder.native.target");
+    ImmediateOperand Target(VMTarget);
+    const auto &Call = Builder.create<Opcode::Calli>(Target);
+    Target = ImmediateOperand(NativeTarget);
+    const auto *NativeCall = Builder.tryCreate<Opcode::CallNativei>(Target);
+    ASSERT_NE(NativeCall, nullptr);
+    AddressOperand PointerSlot(RegisterId::SP);
+    const auto &Indirect = Builder.create<Opcode::Callm>(PointerSlot);
+    PointerSlot = AddressOperand(RegisterId::BP, 24);
+    const auto &NativeIndirect = Builder.create<Opcode::CallNativem>(PointerSlot);
+    EXPECT_EQ(Call.getTarget().getSymbol(), VMTarget);
+    EXPECT_EQ(NativeCall->getTarget().getSymbol(), NativeTarget);
+    EXPECT_EQ(Indirect.getTarget().getRegister(), RegisterId::SP);
+    EXPECT_EQ(Indirect.getTarget().getByteOffset(), 0);
+    EXPECT_EQ(NativeIndirect.getTarget().getRegister(), RegisterId::BP);
+    EXPECT_EQ(NativeIndirect.getTarget().getByteOffset(), 24);
+    EXPECT_EQ(Call.parent(), &Block);
+    EXPECT_EQ(NativeCall->parent(), &Block);
+    EXPECT_EQ(Builder.getInsertBefore(), &Return);
+    const std::vector<const MachineInstruction *> Expected{&Call, NativeCall, &Indirect, &NativeIndirect, &Return};
+    EXPECT_EQ(blockInstructionAddresses(Block), Expected);
+    Builder.clearInsertPoint();
+    EXPECT_EQ(Builder.tryCreate<Opcode::Calli>(ImmediateOperand(VMTarget)), nullptr);
+    EXPECT_EQ(Builder.tryCreate<Opcode::CallNativem>(PointerSlot), nullptr);
+    EXPECT_EQ(Block.instructionCount(), 5U);
+    static_assert(CanBuildVMInstruction<Opcode::Calli, ImmediateOperand>);
+    static_assert(CanBuildVMInstruction<Opcode::CallNativei, ImmediateOperand>);
+    static_assert(CanBuildVMInstruction<Opcode::Callm, AddressOperand>);
+    static_assert(CanBuildVMInstruction<Opcode::CallNativem, AddressOperand>);
+    static_assert(!CanBuildVMInstruction<Opcode::Calli, AddressOperand>);
+    static_assert(!CanBuildVMInstruction<Opcode::CallNativem, ImmediateOperand>);
+  }
+
   // Null, foreign, and detached block targets fail without changing the instruction list or insertion anchor.
   TEST(VMMachineInstructionBuilderTest, RejectsInvalidBlockPointerTargets)
   {
