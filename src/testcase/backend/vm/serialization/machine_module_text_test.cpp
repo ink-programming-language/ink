@@ -39,11 +39,11 @@ namespace ink::vm::test
       }
       else if constexpr (std::is_same_v<OperandType, AddressOperand>)
       {
-        return Index == 1 ? AddressOperand(std::numeric_limits<std::uint32_t>::max(), std::numeric_limits<std::int64_t>::max()) : AddressOperand(RegisterId::BP, std::numeric_limits<std::int64_t>::min());
+        return Index == 1 ? AddressOperand(core::NamePool::instance().intern("external.data"), std::numeric_limits<std::int64_t>::max()) : AddressOperand(RegisterId::BP, std::numeric_limits<std::int64_t>::min());
       }
       else
       {
-        return ImmediateOperand(std::numeric_limits<std::uint64_t>::max() - Index);
+        return Index == 1 ? ImmediateOperand(core::NamePool::instance().intern("external.address"), std::numeric_limits<std::int64_t>::min()) : ImmediateOperand(std::numeric_limits<std::uint64_t>::max() - Index);
       }
     }
 
@@ -75,13 +75,20 @@ namespace ink::vm::test
         const auto &ActualAddress = static_cast<const AddressOperand &>(Actual);
         EXPECT_EQ(ActualAddress.getBaseKind(), ExpectedAddress.getBaseKind());
         EXPECT_EQ(ActualAddress.getRegister(), ExpectedAddress.getRegister());
-        EXPECT_EQ(ActualAddress.getBaseReferenceIndex(), ExpectedAddress.getBaseReferenceIndex());
+        EXPECT_EQ(ActualAddress.getSymbol(), ExpectedAddress.getSymbol());
         EXPECT_EQ(ActualAddress.getByteOffset(), ExpectedAddress.getByteOffset());
         break;
       }
       case OperandKind::Immediate:
-        EXPECT_EQ(static_cast<const ImmediateOperand &>(Actual).bits(), static_cast<const ImmediateOperand &>(Expected).bits());
+      {
+        const auto &ExpectedImmediate = static_cast<const ImmediateOperand &>(Expected);
+        const auto &ActualImmediate = static_cast<const ImmediateOperand &>(Actual);
+        EXPECT_EQ(ActualImmediate.getValueKind(), ExpectedImmediate.getValueKind());
+        EXPECT_EQ(ActualImmediate.bits(), ExpectedImmediate.bits());
+        EXPECT_EQ(ActualImmediate.getSymbol(), ExpectedImmediate.getSymbol());
+        EXPECT_EQ(ActualImmediate.getByteOffset(), ExpectedImmediate.getByteOffset());
         break;
+      }
       case OperandKind::BasicBlock:
       {
         const auto Target = BlockMap.find(static_cast<const BasicBlockOperand &>(Expected).getBlock());
@@ -171,7 +178,7 @@ namespace ink::vm::test
     }
   } // namespace
 
-  // Every opcode retains its exact ordered operand types, signed offsets, reference indices, and raw immediate bits.
+  // Every opcode retains its exact ordered operand types, symbolic addresses, signed offsets, and raw immediate bits.
   TEST(VMMachineModuleTextTest, RoundTripsEveryOpcodeAndCompleteModuleState)
   {
     const auto SharedName = core::NamePool::instance().intern("same name");
@@ -333,7 +340,7 @@ entry:
     EXPECT_EQ(std::next(Module.functions().begin())->basicBlocks().begin()->name(), Names.intern("entry"));
   }
 
-  // Handwritten Intel-style text accepts comments, CRLF, byte escapes, signed immediates, and explicit symbol-reference indices.
+  // Handwritten Intel-style text accepts comments, CRLF, byte escapes, signed immediates, and unresolved named symbols.
   TEST(VMMachineModuleTextTest, ReadsAssemblySyntaxAndOwnsParsedPayloads)
   {
     std::string Text = R"(.module "demo;name" ; a semicolon within the string remains part of its name
@@ -353,7 +360,7 @@ entry:
 entry: ""
     store32i [bp + 16], 20
     add64rri sp, sp, -16
-    add64rrm bp, pc, [ref4294967295 - 9223372036854775808]
+    add64rrm bp, pc, [@external.data - 9223372036854775808]
 .endfunction
 )";
     for (std::size_t Position = 0; (Position = Text.find('\n', Position)) != std::string::npos; Position += 2)
@@ -378,7 +385,7 @@ entry: ""
     const auto &Add = *std::next(Instructions.begin());
     EXPECT_EQ(static_cast<const ImmediateOperand &>(*Add.getOperand(2)).bits(), std::uint64_t(0) - 16);
     const auto &Address = static_cast<const AddressOperand &>(*(*std::next(Instructions.begin(), 2)).getOperand(2));
-    EXPECT_EQ(Address.getBaseReferenceIndex(), std::numeric_limits<std::uint32_t>::max());
+    EXPECT_EQ(Address.getSymbol(), core::NamePool::instance().intern("external.data"));
     EXPECT_EQ(Address.getByteOffset(), std::numeric_limits<std::int64_t>::min());
   }
 
@@ -412,6 +419,135 @@ store64i [bp], 0XFF
       EXPECT_EQ(static_cast<const ImmediateOperand &>(*Instruction.getOperand(1)).bits(), ExpectedBits[Index]);
       ++Index;
     }
+  }
+
+  // Symbolic immediates preserve address values separately from memory reads, including unusual names and signed offset limits.
+  TEST(VMMachineModuleTextTest, RoundTripsSymbolAddressValuesAndMemoryReads)
+  {
+    auto &Names = core::NamePool::instance();
+    const std::string UnusualName("quote\";slash\\\0\xff", 15);
+    const core::Name Symbols[] = {
+        Names.intern("bp"),
+        Names.intern("1000"),
+        Names.intern("external.data"),
+        Names.intern("space name"),
+        Names.intern(UnusualName),
+    };
+    constexpr std::int64_t Offsets[] = {
+        0,
+        std::numeric_limits<std::int64_t>::min(),
+        std::numeric_limits<std::int64_t>::max(),
+        -8,
+        8,
+    };
+    MachineModule Module;
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Module.createFunction().createBasicBlock());
+    for (std::size_t Index = 0; Index < std::size(Symbols); ++Index)
+    {
+      Builder.create<Opcode::Add64mii>(AddressOperand(RegisterId::BP), ImmediateOperand(Symbols[Index], Offsets[Index]), ImmediateOperand(1));
+      Builder.create<Opcode::Add64mmi>(AddressOperand(RegisterId::BP), AddressOperand(Symbols[Index], Offsets[Index]), ImmediateOperand(1));
+    }
+    const auto Text = writeMachineModuleText(Module);
+    ASSERT_TRUE(Text.has_value());
+    EXPECT_NE(Text->find("add64mii [bp], @bp, 0x1"), std::string::npos);
+    EXPECT_NE(Text->find("add64mmi [bp], [@bp], 0x1"), std::string::npos);
+    EXPECT_NE(Text->find("@\"1000\" - 9223372036854775808"), std::string::npos);
+    EXPECT_NE(Text->find("@external.data + 9223372036854775807"), std::string::npos);
+    const auto Parsed = readMachineModuleText(*Text);
+    ASSERT_TRUE(Parsed.has_value());
+    expectEqualModules(Module, **Parsed);
+    const auto Rewritten = writeMachineModuleText(**Parsed);
+    ASSERT_TRUE(Rewritten.has_value());
+    EXPECT_EQ(*Rewritten, *Text);
+  }
+
+  // Bare and quoted symbol spellings remain unresolved and preserve signed decimal and hexadecimal addends.
+  TEST(VMMachineModuleTextTest, ReadsUnresolvedSymbolsAndAddressAddends)
+  {
+    constexpr std::string_view Text = R"(.module ""
+.section .text
+.function F
+entry:
+    store64i [@external + 0x10], @eflags - 0x8
+    add64mii [bp], @"123" + 0, @"quoted\00symbol" - 9223372036854775808
+.endfunction
+)";
+    const auto Parsed = readMachineModuleText(Text);
+    ASSERT_TRUE(Parsed.has_value());
+    auto &Names = core::NamePool::instance();
+    const auto Instructions = (*Parsed)->functions().begin()->basicBlocks().begin()->instructions();
+    const auto &Store = static_cast<const MachineStore64iInstruction &>(*Instructions.begin());
+    EXPECT_EQ(Store.getDestination().getSymbol(), Names.intern("external"));
+    EXPECT_EQ(Store.getDestination().getByteOffset(), 16);
+    EXPECT_EQ(Store.getSource().getSymbol(), Names.intern("eflags"));
+    EXPECT_EQ(Store.getSource().getByteOffset(), -8);
+    EXPECT_FALSE(Store.getSource().bits().has_value());
+    const auto &Add = static_cast<const MachineAdd64miiInstruction &>(*std::next(Instructions.begin()));
+    EXPECT_EQ(Add.getLHS().getSymbol(), Names.intern("123"));
+    EXPECT_EQ(Add.getLHS().getByteOffset(), 0);
+    EXPECT_EQ(Add.getRHS().getSymbol(), Names.intern(std::string_view("quoted\0symbol", 13)));
+    EXPECT_EQ(Add.getRHS().getByteOffset(), std::numeric_limits<std::int64_t>::min());
+  }
+
+  // Missing symbol names, malformed addends, overflowing displacements, and removed reference-index syntax return diagnostics.
+  TEST(VMMachineModuleTextTest, RejectsMalformedSymbolExpressions)
+  {
+    constexpr std::string_view InvalidOperands[] = {
+        "@",
+        "@\"\"",
+        "@123",
+        "external",
+        "@external +",
+        "@external -",
+        "@external + -1",
+        "@external - +1",
+        "@external + 9223372036854775808",
+        "@external - 9223372036854775809",
+        "@external + 18446744073709551616",
+        "@external + 1 + 2",
+    };
+    for (const auto OperandText : InvalidOperands)
+    {
+      SCOPED_TRACE(OperandText);
+      const std::string Text = ".module \"\"\n.section .text\n.function F\nentry:\n    store64i [bp], " + std::string(OperandText) + "\n.endfunction\n";
+      const auto Parsed = readMachineModuleText(Text);
+      ASSERT_FALSE(Parsed.has_value());
+      EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+    }
+    constexpr std::string_view InvalidAddresses[] = {
+        "[ref0]",
+        "[@]",
+        "[@\"\"]",
+        "[external]",
+        "[@external + 9223372036854775808]",
+        "[@external - 9223372036854775809]",
+        "[@external + -1]",
+    };
+    for (const auto AddressText : InvalidAddresses)
+    {
+      SCOPED_TRACE(AddressText);
+      const std::string Text = ".module \"\"\n.section .text\n.function F\nentry:\n    store64i " + std::string(AddressText) + ", 0\n.endfunction\n";
+      EXPECT_FALSE(readMachineModuleText(Text).has_value());
+    }
+  }
+
+  // Empty symbol identities are rejected in both immediate values and memory addresses before writing assembly.
+  TEST(VMMachineModuleTextTest, RejectsEmptySymbolNamesWhenWriting)
+  {
+    MachineModule ImmediateModule;
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(ImmediateModule.createFunction().createBasicBlock());
+    Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP), ImmediateOperand(core::NAME_None));
+    const auto ImmediateText = writeMachineModuleText(ImmediateModule);
+    ASSERT_FALSE(ImmediateText.has_value());
+    EXPECT_EQ(ImmediateText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+    MachineModule AddressModule;
+    Builder.setInsertPoint(AddressModule.createFunction().createBasicBlock());
+    Builder.create<Opcode::Store64i>(AddressOperand(core::NAME_None), ImmediateOperand(0));
+    const auto AddressText = writeMachineModuleText(AddressModule);
+    ASSERT_FALSE(AddressText.has_value());
+    EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMTextInvalid);
   }
 
   // An instruction error reports its position in the original source including preceding lines and indentation.

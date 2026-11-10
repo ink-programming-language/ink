@@ -50,8 +50,8 @@ OPCODE(Store64m, 0x000B, "store64m", Mm, 64, 0, 2, 0, Store, None)
 OPCODE(Store64i, 0x000C, "store64i", Mi, 64, 0, 1, 1, Store, None)
 
 // Add suffixes describe destination, LHS, RHS: r is a logical register, m is memory, i is an immediate.
-// Register operands use the independent RegisterId values from register.def, never BaseReferences slots.
-// Memory operands encode a register ID or the 0x80 symbol-reference prefix, followed by the fields defined in docs/VM-Instruction-Format.md.
+// Register operands use the RegisterId values from register.def.
+// Logical memory operands retain register-relative or named-symbol-relative addresses until executable emission.
 // For memory destinations, addition wraps to Width bits and interchangeable sources use r before m before i.
 OPCODE(Add8mmm, 0x000D, "add8mmm", Mmm, 8, 0, 3, 0, Add, None)
 OPCODE(Add8mmi, 0x000E, "add8mmi", Mmi, 8, 0, 2, 1, Add, None)
@@ -97,7 +97,7 @@ OPCODE(Cmp64rm, 0x0028, "cmp64rm", Rm, 64, 1, 1, 0, Compare, None)
 OPCODE(Cmp64ri, 0x0029, "cmp64ri", Ri, 64, 1, 0, 1, Compare, None)
 OPCODE(Cmp64mr, 0x002A, "cmp64mr", Mr, 64, 1, 1, 0, Compare, None)
 
-// Branches borrow logical block targets; object emission resolves their PC-relative wire addresses.
+// Branches borrow logical block targets; executable emission resolves their PC-relative wire addresses.
 OPCODE(Jmp, 0x002B, "jmp", B, 0, 0, 0, 0, Branch, Always)
 OPCODE(Je, 0x002C, "je", B, 0, 0, 0, 0, Branch, Equal)
 OPCODE(Jne, 0x002D, "jne", B, 0, 0, 0, 0, Branch, NotEqual)

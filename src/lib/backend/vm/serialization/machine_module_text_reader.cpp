@@ -64,6 +64,7 @@ namespace ink::vm
       RightBracket,
       Plus,
       Minus,
+      At,
     };
 
     struct Token
@@ -167,6 +168,9 @@ namespace ink::vm
         case '-':
           Kind = TokenKind::Minus;
           break;
+        case '@':
+          Kind = TokenKind::At;
+          break;
         default:
           return std::unexpected(textError(LineOffset + Start, "unexpected character"));
         }
@@ -269,44 +273,58 @@ namespace ink::vm
 
     using ParsedOperand = std::variant<std::monostate, RegisterOperand, AddressOperand, ImmediateOperand, BasicBlockOperand>;
 
+    bool parseSymbol(LineParser &Line, core::Name &Symbol)
+    {
+      if (!Line.consume(TokenKind::At))
+      {
+        return false;
+      }
+      const Token *Name = Line.take(TokenKind::Identifier);
+      if (!Name)
+      {
+        Name = Line.take(TokenKind::String);
+      }
+      if (!Name || Name->Text.empty())
+      {
+        return false;
+      }
+      Symbol = core::NamePool::instance().intern(Name->Text);
+      return Symbol.valid();
+    }
+
+    bool parseOptionalDisplacement(LineParser &Line, std::int64_t &Offset) noexcept
+    {
+      return !Line.peek() || (Line.peek()->Kind != TokenKind::Plus && Line.peek()->Kind != TokenKind::Minus) || Line.displacement(Offset);
+    }
+
     bool parseOperand(LineParser &Line, ParsedOperand &Result)
     {
       if (Line.consume(TokenKind::LeftBracket))
       {
-        const Token *Base = Line.take(TokenKind::Identifier);
-        if (!Base)
+        std::optional<RegisterId> Register;
+        core::Name Symbol;
+        if (Line.peek() && Line.peek()->Kind == TokenKind::At)
         {
-          return false;
-        }
-        std::optional<RegisterId> Register = parseRegister(Base->Text);
-        if (Register && !isAddressRegister(*Register))
-        {
-          return false;
-        }
-        std::uint32_t Reference = 0;
-        if (!Register)
-        {
-          std::string_view Digits = Base->Text;
-          if (!Digits.starts_with("ref"))
+          if (!parseSymbol(Line, Symbol))
           {
             return false;
           }
-          Digits.remove_prefix(3);
-          const auto Conversion = std::from_chars(Digits.data(), Digits.data() + Digits.size(), Reference);
-          if (Digits.empty() || Conversion.ec != std::errc{} || Conversion.ptr != Digits.data() + Digits.size())
+        }
+        else
+        {
+          const Token *Base = Line.take(TokenKind::Identifier);
+          if (!Base)
+          {
+            return false;
+          }
+          Register = parseRegister(Base->Text);
+          if (!Register || !isAddressRegister(*Register))
           {
             return false;
           }
         }
         std::int64_t Offset = 0;
-        if (Line.peek() && (Line.peek()->Kind == TokenKind::Plus || Line.peek()->Kind == TokenKind::Minus))
-        {
-          if (!Line.displacement(Offset))
-          {
-            return false;
-          }
-        }
-        if (!Line.consume(TokenKind::RightBracket))
+        if (!parseOptionalDisplacement(Line, Offset) || !Line.consume(TokenKind::RightBracket))
         {
           return false;
         }
@@ -316,8 +334,19 @@ namespace ink::vm
         }
         else
         {
-          Result.emplace<AddressOperand>(Reference, Offset);
+          Result.emplace<AddressOperand>(Symbol, Offset);
         }
+        return true;
+      }
+      if (Line.peek() && Line.peek()->Kind == TokenKind::At)
+      {
+        core::Name Symbol;
+        std::int64_t Offset = 0;
+        if (!parseSymbol(Line, Symbol) || !parseOptionalDisplacement(Line, Offset))
+        {
+          return false;
+        }
+        Result.emplace<ImmediateOperand>(Symbol, Offset);
         return true;
       }
       if (Line.peek() && Line.peek()->Kind == TokenKind::Identifier)

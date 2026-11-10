@@ -1,5 +1,6 @@
 #include "ink/backend/vm/instruction/machine_instructions.h"
 #include "ink/backend/vm/module/machine_basic_block.h"
+#include "ink/core/name/name_pool.h"
 
 #include <gtest/gtest.h>
 
@@ -208,17 +209,19 @@ namespace ink::vm::test
   // Equal register/address counts cannot exchange the rrm and mrr destination or source positions.
   TEST(VMMachineInstructionTest, DistinguishesOperandOrderForEqualKindCounts)
   {
-    const MachineAdd64rrmInstruction RegisterDestination(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::BP), AddressOperand(std::uint32_t{5}, -8));
-    const MachineAdd64mrrInstruction MemoryDestination(AddressOperand(std::uint32_t{7}, 16), RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::SP));
+    const core::Name SourceSymbol = core::NamePool::instance().intern("instruction.source");
+    const core::Name DestinationSymbol = core::NamePool::instance().intern("instruction.destination");
+    const MachineAdd64rrmInstruction RegisterDestination(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::BP), AddressOperand(SourceSymbol, -8));
+    const MachineAdd64mrrInstruction MemoryDestination(AddressOperand(DestinationSymbol, 16), RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::SP));
     const MachineInstruction &RegisterBase = RegisterDestination;
     const MachineInstruction &MemoryBase = MemoryDestination;
     EXPECT_EQ(RegisterBase.getOperand(0)->getKind(), OperandKind::Register);
     EXPECT_EQ(RegisterBase.getOperand(2)->getKind(), OperandKind::Address);
     EXPECT_EQ(MemoryBase.getOperand(0)->getKind(), OperandKind::Address);
     EXPECT_EQ(MemoryBase.getOperand(2)->getKind(), OperandKind::Register);
-    EXPECT_EQ(RegisterDestination.getRHS().getBaseReferenceIndex(), 5U);
+    EXPECT_EQ(RegisterDestination.getRHS().getSymbol(), SourceSymbol);
     EXPECT_EQ(RegisterDestination.getRHS().getByteOffset(), -8);
-    EXPECT_EQ(MemoryDestination.getDestination().getBaseReferenceIndex(), 7U);
+    EXPECT_EQ(MemoryDestination.getDestination().getSymbol(), DestinationSymbol);
     EXPECT_EQ(MemoryDestination.getRHS().getRegister(), RegisterId::SP);
     EXPECT_FALSE(MachineAdd64rrmInstruction::classof(&MemoryBase));
     EXPECT_FALSE(MachineAdd64mrrInstruction::classof(&RegisterBase));
@@ -312,17 +315,36 @@ namespace ink::vm::test
     EXPECT_EQ(Ternary.getOperand(std::numeric_limits<std::size_t>::max()), nullptr);
   }
 
-  // Inline operand storage preserves full symbol indices, signed displacements, and high immediate bits together.
+  // Inline operand storage preserves symbol names, signed displacement boundaries, and high immediate bits together.
   TEST(VMMachineInstructionTest, PreservesFullOperandPayloadBoundaries)
   {
-    const MachineAdd64miiInstruction Value(AddressOperand(std::numeric_limits<std::uint32_t>::max(), std::numeric_limits<std::int64_t>::min()), ImmediateOperand(std::uint64_t{1} << 63), ImmediateOperand(std::numeric_limits<std::uint64_t>::max()));
-    EXPECT_EQ(Value.getDestination().getBaseReferenceIndex(), std::numeric_limits<std::uint32_t>::max());
+    const core::Name Symbol = core::NamePool::instance().intern("instruction.boundaries");
+    const MachineAdd64miiInstruction Value(AddressOperand(Symbol, std::numeric_limits<std::int64_t>::min()), ImmediateOperand(std::uint64_t{1} << 63), ImmediateOperand(std::numeric_limits<std::uint64_t>::max()));
+    EXPECT_EQ(Value.getDestination().getSymbol(), Symbol);
     EXPECT_EQ(Value.getDestination().getByteOffset(), std::numeric_limits<std::int64_t>::min());
     EXPECT_EQ(Value.getLHS().bits(), std::uint64_t{1} << 63);
     EXPECT_EQ(Value.getRHS().bits(), std::numeric_limits<std::uint64_t>::max());
     const MachineInstruction &Base = Value;
-    EXPECT_EQ(static_cast<const AddressOperand *>(Base.getOperand(0))->getBaseReferenceIndex(), std::numeric_limits<std::uint32_t>::max());
+    EXPECT_EQ(static_cast<const AddressOperand *>(Base.getOperand(0))->getSymbol(), Symbol);
     EXPECT_EQ(static_cast<const ImmediateOperand *>(Base.getOperand(2))->bits(), std::numeric_limits<std::uint64_t>::max());
+  }
+
+  // ADD distinguishes reading symbol-relative memory from adding the same symbol's address as an immediate value.
+  TEST(VMMachineInstructionTest, DistinguishesSymbolAddressesFromMemoryReads)
+  {
+    const core::Name Symbol = core::NamePool::instance().intern("instruction.counter");
+    const AddressOperand Destination(RegisterId::BP, 16);
+    const MachineAdd64mmiInstruction ReadValue(Destination, AddressOperand(Symbol, 8), ImmediateOperand(1));
+    const MachineAdd64miiInstruction UseAddress(Destination, ImmediateOperand(Symbol, 8), ImmediateOperand(1));
+    EXPECT_EQ(ReadValue.getLHS().getKind(), OperandKind::Address);
+    EXPECT_EQ(ReadValue.getLHS().getSymbol(), Symbol);
+    EXPECT_EQ(ReadValue.getLHS().getByteOffset(), 8);
+    EXPECT_EQ(UseAddress.getLHS().getKind(), OperandKind::Immediate);
+    EXPECT_EQ(UseAddress.getLHS().getValueKind(), ImmediateValueKind::Symbol);
+    EXPECT_EQ(UseAddress.getLHS().getSymbol(), Symbol);
+    EXPECT_EQ(UseAddress.getLHS().getByteOffset(), 8);
+    EXPECT_FALSE(UseAddress.getLHS().bits().has_value());
+    EXPECT_EQ(UseAddress.getRHS().bits(), 1U);
   }
   // Compare operands are ordered sources rather than a writable destination, and their full width controls flags.
   TEST(VMMachineInstructionTest, ModelsCompareAsTwoSourcesAndImplicitFlags)

@@ -11,7 +11,7 @@ namespace ink::vm
 {
   class MachineModule;
 
-  // MachineModule-owned read-only data. The payload has no file offset before object emission.
+  // MachineModule-owned read-only data. The payload has no image offset before executable emission.
   class MachineConstant final
   {
     public:

@@ -1,6 +1,6 @@
 # ink
 
-`main` 保留 Core、目标平台描述、tokenizer、parser、AST、IR 类型、函数与基础指令、VM 对象文件及对应测试。semantic、执行与后端实现已移除；`inkc` 仅检查输入文件的词法和语法，`ink-tokenize` 和 `ink-parse` 分别提供 token 流和 AST 输出。
+`main` 提供 Core、目标平台描述、tokenizer、parser、AST、IR 类型、函数与基础指令，以及 VM 逻辑模块、指令和可执行镜像模型及对应测试。semantic 和 VM 执行器尚未实现；`inkc` 仅检查输入文件的词法和语法，`ink-tokenize` 和 `ink-parse` 分别提供 token 流和 AST 输出。
 
 精简前的完整主干保存在 [`saved-execution`](https://github.com/ink-programming-language/ink/tree/saved-execution) 分支，快照提交为 `22c3946c4737a7942fc28ab7cfa6f78e6fa3bd31`。原有 semantic 实现、IR、execution、ABI、LLVM backend、inkc 及其测试和文档可在该分支查看。
 
@@ -40,7 +40,7 @@ ctest --test-dir build -C Release --output-on-failure
 
 `core_define.h` 的 `INK_ENABLE_ASSERTIONS` 统一控制八个断言宏：`check`、`checkMsgf`、`checkAlways`、`checkAlwaysMsgf`、`ensure`、`ensureMsgf`、`ensureAlways`、`ensureAlwaysMsgf`。check 和 ensure 采用对称的 `xxx`、`xxxMsgf`、`xxxAlways`、`xxxAlwaysMsgf` 命名。Debug 和 Development 开启，Shipping 关闭。失败时先输出并刷新日志，再在附加了调试器时触发断点；继续执行后，check 终止进程，ensure 返回 `false`。普通 ensure 每个调用点仅报告和中断一次，`ensureAlways` 和 `ensureAlwaysMsgf` 每次失败都报告和中断；check 每次失败都会终止，因此它的 Always 版本与对应普通版本行为相同。Shipping 中 check 不求值，ensure 保留条件求值，所有断言消息参数均不求值。`panic` 始终终止。Ink 模式独立于 `CMAKE_BUILD_TYPE`、`--config` 和 `NDEBUG`，不改变编译器优化或调试信息选项；例如 `cmake -S . -B build -DINK_BUILD_MODE=shipping` 配合 `cmake --build build --config Release` 选择 Shipping 行为和 Release 编译选项。多配置生成器的同一构建目录共用所选 Ink 模式，不同模式请使用不同构建目录。
 
-`ink_tests` 包含 Core、tokenizer、parser/AST、IR 类型和 VM 指令及对象文件的单元测试，构建时同时构建 `inkc`、`ink-tokenize` 和 `ink-parse`。CTest 还运行三个工具的 CLI 进程测试和 parser 对抗输入测试。单独构建并运行全部启用测试可使用 `cmake --build build --config Release --target run_all_tests`。
+`ink_tests` 包含 Core、tokenizer、parser/AST、IR 类型和 VM 模块、指令、文本序列化及可执行镜像的单元测试，构建时同时构建 `inkc`、`ink-tokenize` 和 `ink-parse`。CTest 还运行三个工具的 CLI 进程测试和 parser 对抗输入测试。单独构建并运行全部启用测试可使用 `cmake --build build --config Release --target run_all_tests`。
 
 启用 `BUILD_TESTING` 时，配置阶段检查 Frontend/Core 的 CMake 目标依赖，CTest 的 `FrontendDependencyBoundaryTest` 检查对应源码和头文件，禁止引入 IR、VM 或 Semantic。源码检查使用轻量文本匹配，覆盖 include 和命名空间引用；可单独运行 `ctest --test-dir build -C Release -R FrontendDependencyBoundaryTest --output-on-failure`。
 
@@ -100,7 +100,7 @@ IR 指令位于 `ink/ir/instruction`，`Instruction` 继承 `Value`，通过 `ge
 
 常量池使用三个 `std::unordered_set` 直接持有常量对象，不额外保存一份 key 或使用 `unique_ptr`。常量及公开的数字查询键 `IntegerConstant::Key` 和 `FloatConstant::Key` 提供 `hash()` 成员，三个池分别使用 `core::Hash<IntegerConstant>`、`core::Hash<FloatConstant>` 和 `core::Hash<StringConstant>`，模板参数均为容器自身的 `key_type`。对象及数字查询键优先调用自身的 `hash()`，`StringConstant::hash(std::string_view)` 静态重载将字符串查询统一为字节视图。相等判断通过各类型的成员 `operator==` 和 `std::equal_to<>` 完成。整数使用位宽、符号属性和完整的 64 位位模式，浮点使用位宽和完整的 64 位位模式，字符串使用 `std::string_view` 的完整字节内容；哈希与相等判断使用相同字段，命中时无需构造常量或复制字符串。三个常量类型的构造函数公开，调用方可直接构造，并负责保证所借用的类型比常量存活更久。常量仍不可复制或移动，池在节点内原地构造常量；rehash 不使已返回的常量指针、引用或字符串视图失效。
 
-VM 后端由独立的 `ink::vm` 库提供，仅依赖 `ink::core`，命名空间为 `ink::vm`。头文件、实现和测试分别位于 `src/include/ink/backend/vm`、`src/lib/backend/vm` 和 `src/testcase/backend/vm`。`module` 目录提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 的所有权结构，`MachineInstructionBuilder` 按操作数类型创建并插入具体 VM 指令；模块与函数还提供常量、全局数据和栈帧布局描述，详见 [VM 内存模型与指令构建](docs/VM-Module.md)。`serialization` 目录提供模块文本序列化和反序列化，目前为临时实现，后续需要迭代为正式版，见 [TODO](docs/todo.md)。`opcode.def` 统一定义操作码、`r/m/i/b` 逻辑操作数形式、指令类别和条件码，`register.def` 为 BP、SP、PC、EFLAGS 定义独立编号。强类型指令模型提供 ADD、CMP、条件和无条件跳转及 RET，EFLAGS 的 CF、ZF、SF、OF 由 ADD/CMP 隐式改写、条件跳转隐式读取；跳转在内存中引用同一函数的目标基本块，文本使用块标签，后续对象发射器完成布局后才将块指针转换为 PC 相对地址，字节布局见 [VM 指令编码格式](docs/VM-Instruction-Format.md)。对象文件 API 位于 `src/include/ink/backend/vm/object`，提供对象结构验证、二进制读写和显式错误报告，默认对象格式版本为 `2.0.0`，详见 [对象文件格式](docs/Ink-Object-Format.md)。现有对象文件读写器搬运原始 Code 字节，`ObjectEmitter`、指令编解码器和 VM 执行器尚未实现；运行时约定见 [VM 运行时设计讨论稿](docs/VM-Runtime.md)。
+VM 后端由独立的 `ink::vm` 库提供，仅依赖 `ink::core`，命名空间为 `ink::vm`。头文件、实现和测试分别位于 `src/include/ink/backend/vm`、`src/lib/backend/vm` 和 `src/testcase/backend/vm`。`module` 目录提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 的所有权结构，`MachineInstructionBuilder` 按操作数类型创建并插入具体 VM 指令；模块与函数还提供常量、全局数据和栈帧布局描述，详见 [VM 内存模型与指令构建](docs/VM-Module.md)。`serialization` 目录提供模块文本序列化和反序列化，目前为临时实现，后续需要迭代为正式版，见 [TODO](docs/todo.md)。`opcode.def` 统一定义操作码、`r/m/i/b` 逻辑操作数形式、指令类别和条件码，`register.def` 为 BP、SP、PC、EFLAGS 定义独立编号。强类型指令模型提供 ADD、CMP、条件和无条件跳转及 RET，EFLAGS 的 CF、ZF、SF、OF 由 ADD/CMP 隐式改写、条件跳转隐式读取；跳转在内存中引用同一函数的目标基本块，文本使用块标签。`AddressOperand` 支持寄存器或符号相对内存地址，`ImmediateOperand` 支持数值或符号地址加偏移；文本用 `[@name]` 表示内存访问，用 `@name` 表示地址值。规划中的模块链接器将多个 `MachineModule` 合并为一个模块，再由 `ExecutableEmitter` 完成布局并直接生成 `ExecutableFile`。现有可执行镜像模型及结构校验见 [VM 可执行镜像模型](docs/VM-Executable.md)；模块链接器、镜像发射器、指令编解码器和 VM 执行器尚未实现。已约定的字节布局见 [VM 指令编码格式](docs/VM-Instruction-Format.md)，运行时约定见 [VM 运行时设计讨论稿](docs/VM-Runtime.md)。
 
 成对的 const／非 const 访问器使用 C++23 显式对象参数合并定义，保持原来的引用、指针和只读节点数组返回类型。值成员直接通过 `Self` 访问；借用引用和指针指向的对象使用 `std::forward_like<decltype(Self) &>` 传播只读属性，并保持右值调用仍返回借用的左值引用或指针。所有借用结果仍受原对象及底层存储的生命周期约束。
 

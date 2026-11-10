@@ -9,6 +9,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
@@ -72,6 +73,24 @@ namespace ink::vm::test
       }
     }
   } // namespace
+
+  // Built instructions own symbolic immediate values independently of later operand reassignment.
+  TEST(VMMachineInstructionBuilderTest, CopiesSymbolImmediateValuesIntoInstructions)
+  {
+    MachineModule Module;
+    auto &Block = Module.createFunction().createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Block);
+    const core::Name Symbol = core::NamePool::instance().intern("builder.symbol");
+    ImmediateOperand Source(Symbol, std::numeric_limits<std::int64_t>::min());
+    const auto &Instruction = Builder.create<Opcode::Add64mii>(AddressOperand(RegisterId::BP, 16), Source, ImmediateOperand(1));
+    Source = ImmediateOperand(42);
+    EXPECT_EQ(Instruction.parent(), &Block);
+    EXPECT_EQ(Instruction.getLHS().getSymbol(), Symbol);
+    EXPECT_EQ(Instruction.getLHS().getByteOffset(), std::numeric_limits<std::int64_t>::min());
+    EXPECT_FALSE(Instruction.getLHS().bits().has_value());
+    EXPECT_EQ(Instruction.getRHS().bits(), 1U);
+  }
 
   // A detached block preserves its name and exposes an empty instruction sequence without an owning function.
   TEST(VMMachineBasicBlockTest, PreservesDetachedIdentityAndConstRangeTypes)

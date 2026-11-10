@@ -2,6 +2,7 @@
 
 #include "ink/backend/vm/instruction/operand.h"
 #include "ink/backend/vm/instruction/register.h"
+#include "ink/core/name/name.h"
 
 #include <cstdint>
 #include <optional>
@@ -22,15 +23,15 @@ namespace ink::vm
       constexpr AddressOperand(RegisterId Register, std::int64_t ByteOffset = 0) noexcept
           : Operand(OperandKind::Address),
             BaseKind(AddressBaseKind::Register),
-            BaseIndex(static_cast<std::uint32_t>(Register)),
+            Register(Register),
             ByteOffset(ByteOffset)
       {
       }
 
-      constexpr AddressOperand(std::uint32_t BaseReferenceIndex, std::int64_t ByteOffset = 0) noexcept
+      constexpr explicit AddressOperand(core::Name Symbol, std::int64_t ByteOffset = 0) noexcept
           : Operand(OperandKind::Address),
             BaseKind(AddressBaseKind::Symbol),
-            BaseIndex(BaseReferenceIndex),
+            Symbol(Symbol),
             ByteOffset(ByteOffset)
       {
       }
@@ -46,16 +47,16 @@ namespace ink::vm
         {
           return std::nullopt;
         }
-        return static_cast<RegisterId>(BaseIndex);
+        return Register;
       }
 
-      constexpr std::optional<std::uint32_t> getBaseReferenceIndex() const noexcept
+      constexpr std::optional<core::Name> getSymbol() const noexcept
       {
         if (BaseKind != AddressBaseKind::Symbol)
         {
           return std::nullopt;
         }
-        return BaseIndex;
+        return Symbol;
       }
 
       constexpr std::int64_t getByteOffset() const noexcept
@@ -65,7 +66,8 @@ namespace ink::vm
 
     private:
       AddressBaseKind BaseKind;
-      std::uint32_t BaseIndex;
+      RegisterId Register = RegisterId::BP;
+      core::Name Symbol;
       std::int64_t ByteOffset;
   };
 } // namespace ink::vm

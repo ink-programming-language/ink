@@ -47,7 +47,7 @@ namespace ink::vm
       {
       }
 
-      // Logical branch targets remain block pointers until the object layout is known.
+      // Logical branch targets remain block pointers until the executable layout is known.
       constexpr explicit MachineInstructionImpl(const MachineBasicBlock *Target) noexcept requires(Traits::Category == InstructionCategory::Branch)
           : MachineInstruction(OperationValue),
             Operands(BasicBlockOperand(Target))

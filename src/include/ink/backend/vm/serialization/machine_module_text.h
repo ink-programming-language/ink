@@ -12,7 +12,7 @@ namespace ink::vm
 {
   // Writes deterministic assembly text, preserving names, data, instructions and frame layout state.
   // Uses names directly when possible; generated labels carry an original name only when an alias is needed.
-  // Numeric refN addresses retain their existing BaseReferenceIndex without resolving object symbols.
+  // Symbol addresses use @name or @"quoted name" with an optional signed byte offset and remain unresolved.
   [[nodiscard]] std::expected<std::string, core::Diagnostic> writeMachineModuleText(const MachineModule &ModuleValue);
 
   // Returns an independent owning module. No input text or temporary parser storage is borrowed.

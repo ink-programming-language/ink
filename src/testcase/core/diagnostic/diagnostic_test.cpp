@@ -21,9 +21,6 @@ namespace ink::core::test
   static_assert(static_cast<std::uint8_t>(DiagnosticDomain::VM) == 0x04U);
   static_assert(std::is_same_v<DiagnosticTraits<DiagnosticKind::VMExecutableValidationFailed>::Arguments, VMExecutableValidationArguments>);
   static_assert(DiagnosticTraits<DiagnosticKind::VMExecutableValidationFailed>::Classification == DiagnosticClass::InternalCompilerError);
-  using VMObjectValidationArguments = DiagnosticArgumentSchema<DiagnosticArgumentSpecification<DiagnosticArgumentName::Context, DiagnosticArgumentType::String>, DiagnosticArgumentSpecification<DiagnosticArgumentName::Description, DiagnosticArgumentType::String>>;
-  static_assert(std::is_same_v<DiagnosticTraits<DiagnosticKind::VMObjectValidationFailed>::Arguments, VMObjectValidationArguments>);
-  static_assert(DiagnosticTraits<DiagnosticKind::VMObjectValidationFailed>::Classification == DiagnosticClass::InternalCompilerError);
 
   // panic flushes its message and call-site location before terminating, even when normal logging is disabled.
   TEST(DiagnosticDeathTest, PanicWritesBeforeTerminating)
@@ -63,13 +60,6 @@ namespace ink::core::test
   {
     const DiagnosticEngine Engine;
     EXPECT_DEATH(Engine.reportICE<DiagnosticKind::VMExecutableValidationFailed>({}, "native data relocation #2", "patch field extends past image"), "internal compiler error\\[INK-V0002\\]: invalid VM executable in native data relocation #2: patch field extends past image");
-  }
-
-  // VM object validation prints its context and reason with the stable ICE code even without a diagnostic consumer.
-  TEST(DiagnosticDeathTest, ExplicitICEEntryPrintsVMObjectValidationContextAndDescription)
-  {
-    const DiagnosticEngine Engine;
-    EXPECT_DEATH(Engine.reportICE<DiagnosticKind::VMObjectValidationFailed>({}, "symbol #2", "definition extends past its section"), "internal compiler error\\[INK-V0003\\]: invalid VM object in symbol #2: definition extends past its section");
   }
 
   // Explicit fatal reporting retains the selected source and excerpt and bypasses a suppressing consumer.
@@ -244,36 +234,6 @@ namespace ink::core::test
     const FormattedDiagnostic Formatted = DiagnosticFormatter{}.format(Entry);
     EXPECT_EQ(Formatted.Severity, DiagnosticSeverity::Error);
     EXPECT_EQ(Formatted.Message, "invalid VM executable in native data relocation #2: patch field extends past image");
-  }
-
-  // VM object validation keeps its VM identity and owns both schema-ordered string arguments before formatting.
-  TEST(DiagnosticTest, RegistersVMObjectValidationMetadataAndCopiesTypedArguments)
-  {
-    constexpr DiagnosticKind Kind = DiagnosticKind::VMObjectValidationFailed;
-    EXPECT_EQ(diagnosticNumber(Kind), 0x04000003U);
-    EXPECT_STREQ(diagnosticCode(Kind), "INK-V0003");
-    EXPECT_STREQ(diagnosticKindName(Kind), "VMObjectValidationFailed");
-    EXPECT_EQ(diagnosticDomain(Kind), DiagnosticDomain::VM);
-    EXPECT_EQ(diagnosticClass(Kind), DiagnosticClass::InternalCompilerError);
-    EXPECT_EQ(diagnosticDefaultSeverity(Kind), DiagnosticSeverity::Error);
-    EXPECT_STREQ(diagnosticDefaultMessage(Kind), "VM object validation failed");
-    EXPECT_STREQ(diagnosticFormatPattern(Kind), "invalid VM object in {Context}: {Description}");
-    std::string Context = "symbol #2";
-    std::string Description = "definition extends past its section";
-    const Diagnostic Entry = makeDiagnostic<Kind>({}, Context, Description);
-    Context.clear();
-    Description.clear();
-    EXPECT_EQ(Entry.number(), 0x04000003U);
-    EXPECT_STREQ(Entry.code(), "INK-V0003");
-    EXPECT_EQ(Entry.classification(), DiagnosticClass::InternalCompilerError);
-    ASSERT_EQ(Entry.Arguments.size(), 2U);
-    EXPECT_EQ(Entry.Arguments[0].Name, DiagnosticArgumentName::Context);
-    EXPECT_EQ(std::get<std::string>(Entry.Arguments[0].Value), "symbol #2");
-    EXPECT_EQ(Entry.Arguments[1].Name, DiagnosticArgumentName::Description);
-    EXPECT_EQ(std::get<std::string>(Entry.Arguments[1].Value), "definition extends past its section");
-    const FormattedDiagnostic Formatted = DiagnosticFormatter{}.format(Entry);
-    EXPECT_EQ(Formatted.Severity, DiagnosticSeverity::Error);
-    EXPECT_EQ(Formatted.Message, "invalid VM object in symbol #2: definition extends past its section");
   }
 
   // User errors return to their caller, while ICE values can be inspected and formatted before reporting.

@@ -1,6 +1,6 @@
 // REGISTER(Kind, Encoding, Spelling).
 // Intentionally has no include guard: callers define REGISTER before inclusion.
-// Register IDs occupy 8 bits and are independent of object-local symbol reference indices.
+// Register IDs occupy 8 bits and are independent of named VM symbols.
 REGISTER(BP, 0x00, "bp")
 REGISTER(SP, 0x01, "sp")
 REGISTER(PC, 0x02, "pc")

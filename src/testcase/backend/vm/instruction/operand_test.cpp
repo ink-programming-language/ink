@@ -3,6 +3,7 @@
 #include "ink/backend/vm/instruction/immediate_operand.h"
 #include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/backend/vm/module/machine_basic_block.h"
+#include "ink/core/name/name_pool.h"
 
 #include <gtest/gtest.h>
 
@@ -43,39 +44,37 @@ namespace ink::vm::test
     }
   }
 
-  // Register BP and symbol-reference zero remain distinguishable even though their numeric identifiers are equal.
-  TEST(VMOperandTest, DistinguishesRegisterAndSymbolBasesAtZero)
+  // Register-relative addresses and named VM symbols retain distinct base kinds and expose only their own payload.
+  TEST(VMOperandTest, DistinguishesRegisterAndSymbolBases)
   {
     constexpr AddressOperand RegisterAddress(RegisterId::BP);
-    constexpr AddressOperand SymbolAddress(std::uint32_t{0});
+    const core::Name Symbol = core::NamePool::instance().intern("operand.symbol");
+    const AddressOperand SymbolAddress(Symbol);
     static_assert(RegisterAddress.getBaseKind() == AddressBaseKind::Register);
-    static_assert(SymbolAddress.getBaseKind() == AddressBaseKind::Symbol);
     static_assert(RegisterAddress.getRegister() == RegisterId::BP);
-    static_assert(SymbolAddress.getBaseReferenceIndex() == 0U);
-    static_assert(RegisterAddress.getByteOffset() == 0 && SymbolAddress.getByteOffset() == 0);
+    static_assert(RegisterAddress.getByteOffset() == 0);
     EXPECT_EQ(RegisterAddress.getBaseKind(), AddressBaseKind::Register);
     EXPECT_EQ(RegisterAddress.getRegister(), RegisterId::BP);
-    EXPECT_FALSE(RegisterAddress.getBaseReferenceIndex().has_value());
+    EXPECT_FALSE(RegisterAddress.getSymbol().has_value());
     EXPECT_EQ(SymbolAddress.getBaseKind(), AddressBaseKind::Symbol);
-    EXPECT_EQ(SymbolAddress.getBaseReferenceIndex(), 0U);
+    EXPECT_EQ(SymbolAddress.getSymbol(), Symbol);
+    EXPECT_EQ(SymbolAddress.getByteOffset(), 0);
     EXPECT_FALSE(SymbolAddress.getRegister().has_value());
   }
 
-  // Symbol-relative operands preserve the full u32 reference-index range without reserving high bits for registers.
-  TEST(VMOperandTest, PreservesFullSymbolReferenceIndexRange)
+  // Symbol names retain their identity even when their spelling resembles a register or a number.
+  TEST(VMOperandTest, PreservesNamedSymbolIdentity)
   {
-    const std::uint32_t Indices[] = {
-        0,
-        255,
-        256,
-        std::numeric_limits<std::uint32_t>::max(),
+    const core::Name Symbols[] = {
+        core::NamePool::instance().intern("bp"),
+        core::NamePool::instance().intern("255"),
+        core::NamePool::instance().intern("operand.external"),
     };
-    for (const auto Index : Indices)
+    for (const auto Symbol : Symbols)
     {
-      SCOPED_TRACE(Index);
-      const AddressOperand Address(Index, 8);
+      const AddressOperand Address(Symbol, 8);
       EXPECT_EQ(Address.getBaseKind(), AddressBaseKind::Symbol);
-      EXPECT_EQ(Address.getBaseReferenceIndex(), Index);
+      EXPECT_EQ(Address.getSymbol(), Symbol);
       EXPECT_EQ(Address.getByteOffset(), 8);
       EXPECT_FALSE(Address.getRegister().has_value());
     }
@@ -84,6 +83,7 @@ namespace ink::vm::test
   // Both address forms retain negative displacements and both signed 64-bit offset boundaries exactly.
   TEST(VMOperandTest, PreservesSignedAddressOffsetBoundaries)
   {
+    const core::Name Symbol = core::NamePool::instance().intern("operand.offset");
     const std::int64_t Offsets[] = {
         std::numeric_limits<std::int64_t>::min(),
         -1,
@@ -95,11 +95,11 @@ namespace ink::vm::test
     {
       SCOPED_TRACE(Offset);
       const AddressOperand RegisterAddress(RegisterId::SP, Offset);
-      const AddressOperand SymbolAddress(std::uint32_t{5}, Offset);
+      const AddressOperand SymbolAddress(Symbol, Offset);
       EXPECT_EQ(RegisterAddress.getByteOffset(), Offset);
       EXPECT_EQ(SymbolAddress.getByteOffset(), Offset);
       EXPECT_EQ(RegisterAddress.getRegister(), RegisterId::SP);
-      EXPECT_EQ(SymbolAddress.getBaseReferenceIndex(), 5U);
+      EXPECT_EQ(SymbolAddress.getSymbol(), Symbol);
     }
     const AddressOperand ProgramCounterAddress(RegisterId::PC, -8);
     EXPECT_EQ(ProgramCounterAddress.getRegister(), RegisterId::PC);
@@ -111,6 +111,8 @@ namespace ink::vm::test
   {
     constexpr ImmediateOperand Maximum(std::numeric_limits<std::uint64_t>::max());
     static_assert(Maximum.bits() == std::numeric_limits<std::uint64_t>::max());
+    static_assert(Maximum.getValueKind() == ImmediateValueKind::Numeric);
+    static_assert(!Maximum.getSymbol().has_value() && !Maximum.getByteOffset().has_value());
     const std::uint64_t Values[] = {
         0,
         1,
@@ -122,8 +124,53 @@ namespace ink::vm::test
       SCOPED_TRACE(Value);
       const ImmediateOperand Immediate(Value);
       EXPECT_EQ(Immediate.getKind(), OperandKind::Immediate);
+      EXPECT_EQ(Immediate.getValueKind(), ImmediateValueKind::Numeric);
       EXPECT_EQ(Immediate.bits(), Value);
+      EXPECT_FALSE(Immediate.getSymbol().has_value());
+      EXPECT_FALSE(Immediate.getByteOffset().has_value());
     }
+  }
+
+  // Unresolved address immediates preserve a symbol and the entire signed offset range without exposing numeric bits.
+  TEST(VMOperandTest, PreservesSymbolImmediateOffsetBoundaries)
+  {
+    const core::Name Symbol = core::NamePool::instance().intern("operand.immediate");
+    const std::int64_t Offsets[] = {
+        std::numeric_limits<std::int64_t>::min(),
+        -1,
+        0,
+        1,
+        std::numeric_limits<std::int64_t>::max(),
+    };
+    for (const auto Offset : Offsets)
+    {
+      const ImmediateOperand Immediate(Symbol, Offset);
+      EXPECT_EQ(Immediate.getKind(), OperandKind::Immediate);
+      EXPECT_EQ(Immediate.getValueKind(), ImmediateValueKind::Symbol);
+      EXPECT_EQ(Immediate.getSymbol(), Symbol);
+      EXPECT_EQ(Immediate.getByteOffset(), Offset);
+      EXPECT_FALSE(Immediate.bits().has_value());
+    }
+    const ImmediateOperand ZeroOffset(Symbol);
+    EXPECT_EQ(ZeroOffset.getByteOffset(), 0);
+  }
+
+  // Copy assignment can switch between numeric and symbolic forms without leaking an inactive payload through accessors.
+  TEST(VMOperandTest, ReassignsNumericAndSymbolicImmediatesIndependently)
+  {
+    const core::Name Symbol = core::NamePool::instance().intern("operand.copy");
+    const ImmediateOperand Original(Symbol, -8);
+    auto Copy = Original;
+    Copy = ImmediateOperand(std::numeric_limits<std::uint64_t>::max());
+    EXPECT_EQ(Original.getSymbol(), Symbol);
+    EXPECT_EQ(Original.getByteOffset(), -8);
+    EXPECT_FALSE(Original.bits().has_value());
+    EXPECT_EQ(Copy.bits(), std::numeric_limits<std::uint64_t>::max());
+    EXPECT_FALSE(Copy.getSymbol().has_value());
+    Copy = Original;
+    EXPECT_EQ(Copy.getSymbol(), Symbol);
+    EXPECT_EQ(Copy.getByteOffset(), -8);
+    EXPECT_FALSE(Copy.bits().has_value());
   }
 
   // Concrete value copies preserve their payloads, while base assignment cannot overwrite a concrete operand's kind.
@@ -141,10 +188,11 @@ namespace ink::vm::test
     EXPECT_EQ(RegisterCopy.getKind(), OperandKind::Register);
     const AddressOperand Address(RegisterId::BP, -16);
     auto AddressCopy = Address;
-    AddressCopy = AddressOperand(std::uint32_t{7}, 32);
+    const core::Name Symbol = core::NamePool::instance().intern("operand.address.copy");
+    AddressCopy = AddressOperand(Symbol, 32);
     EXPECT_EQ(Address.getRegister(), RegisterId::BP);
     EXPECT_EQ(Address.getByteOffset(), -16);
-    EXPECT_EQ(AddressCopy.getBaseReferenceIndex(), 7U);
+    EXPECT_EQ(AddressCopy.getSymbol(), Symbol);
     EXPECT_EQ(AddressCopy.getByteOffset(), 32);
     EXPECT_FALSE(AddressCopy.getRegister().has_value());
     EXPECT_EQ(AddressCopy.getKind(), OperandKind::Address);

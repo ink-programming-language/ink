@@ -19,7 +19,7 @@ namespace ink::ir
   };
 
   // Describes native symbol exposure for function and global variable declarations.
-  // Independent of Ink visibility and object-file linkage.
+  // Independent of Ink visibility and VM symbol linkage.
   enum class NativeLinkage : std::uint8_t
   {
     None,

@@ -6,7 +6,7 @@ namespace ink::vm
 {
   class MachineBasicBlock;
 
-  // Borrows a logical target block; object emission resolves its final PC-relative displacement.
+  // Borrows a logical target block; executable emission resolves its final PC-relative displacement.
   // The target's owning function must outlive every instruction that references it.
   class BasicBlockOperand final : public Operand
   {

@@ -22,7 +22,7 @@ namespace ink::vm
     SizeOverflow,
   };
 
-  // Owns editable VM code and data independently of IR nodes or an encoded ObjectFile.
+  // Owns editable VM code and data independently of IR nodes or an encoded executable image.
   class MachineModule final
   {
     public:

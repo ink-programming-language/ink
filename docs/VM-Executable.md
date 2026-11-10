@@ -1,6 +1,6 @@
 # VM 可执行镜像模型
 
-`ink/backend/vm/executable` 定义 `ExecutableFile` 的扁平内存模型。镜像将指令、常量及全局数据放在同一个 `std::vector<std::uint8_t>` 中，不再分别持有 ObjectFile 的常量节和全局存储对象。镜像布局由后续链接器确定，`EntryOffset` 相对 `Image` 开头，不是宿主地址或序列化文件偏移。
+`ink/backend/vm/executable` 定义 `ExecutableFile` 的扁平内存模型。镜像将指令、常量及全局数据放在同一个 `std::vector<std::uint8_t>` 中。规划中的 `ModuleLinker` 将多个 `MachineModule` 合并为一个模块，再由 `ExecutableEmitter` 统一布局并生成镜像；这两个阶段尚未实现。`EntryOffset` 相对 `Image` 开头，不是宿主地址或序列化文件偏移。
 
 ## 成员和接口
 

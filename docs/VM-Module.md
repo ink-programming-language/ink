@@ -74,7 +74,7 @@ namespace ink::vm
 } // namespace ink::vm
 ```
 
-内存模型不保存 PC 相对位移，因此追加指令或调整块布局不会改变目标身份。后续 `ObjectEmitter` 完成函数和块布局后，根据目标块指针查找代码位置，再计算、编码 PC 相对位移；宿主指针不会写入对象文件。当前尚未实现该发射器。
+内存模型不保存 PC 相对位移，因此追加指令或调整块布局不会改变目标身份。后续 `ExecutableEmitter` 完成函数和块布局后，根据目标块指针查找代码位置，再计算、编码 PC 相对位移；宿主指针不会写入可执行镜像。当前尚未实现该发射器。
 
 `isBranch()`、`isConditionalBranch()`、`isReturn()`、`isTerminator()` 提供控制流分类；条件跳转只有一个显式目标块，未跳转时继续执行下一条指令。`readEFlagsMask()` 和 `writtenEFlagsMask()` 描述隐式标志依赖：所有 ADD、CMP 改写 CF、ZF、SF、OF，条件跳转读取各自所需的子集。EFLAGS 不作为它们的显式操作数，也不能用作普通寄存器值或地址基址。`eflags.h` 只提供标志定义、掩码及条件依赖元数据；标志生成和条件判断由后续执行器实现，当前模型不执行指令。
 
@@ -101,12 +101,20 @@ namespace ink::vm
 
 本模型不固定调用保存区大小，也不隐式预留 BP/PC 保存项。布局得到的是无符号字节偏移；将其用于指令的有符号 `ByteOffset` 时，上层仍须检查能否表示为 `i64`，并明确该布局基点与 BP 的关系。
 
-## 对象文件边界
+## 符号操作数与文本序列化
+
+`AddressOperand(core::Name Symbol, std::int64_t ByteOffset)` 表示符号相对的内存地址，ADD、CMP、Load、Store 的 `m` 来源读取该地址处的值。`ImmediateOperand(core::Name Symbol, std::int64_t ByteOffset)` 则表示符号地址本身加上偏移，作为 `i` 值参与指令；它与 `ImmediateOperand(std::uint64_t Bits)` 的数值形式由 `ImmediateValueKind::Symbol` 和 `ImmediateValueKind::Numeric` 区分。`getValueKind()` 返回该分类，数值形式的 `bits()` 返回 `std::optional<std::uint64_t>`，符号形式的 `getSymbol()` 和 `getByteOffset()` 分别返回名称与有符号偏移；不匹配的访问器返回空值。
+
+符号名称通过 `core::Name` 保存链接名，不借用输入文本，也不是宿主指针。当前模块尚未拥有声明、定义、可见性或导入导出符号表，操作数也不解析这些名称。未在当前模块定义的符号可以作为后续链接输入保留；完整的符号解析和 ABI 检查仍待实现。
 
 `serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；跳转使用 `jne failure`、`jmp done`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
 
-`vm::MachineModule` 是可编辑逻辑代码模型。现有 `vm::ObjectFile` 保存已经编码的 Code 字节、常量区、全局存储、符号、基址引用和调试记录，`ObjectFileReader`、`ObjectFileWriter` 继续负责文件容器的读取与写出。
+符号操作数使用 `@name` 或带转义名称的 `@"name"`，以区分寄存器、数值和函数内块标签。`[@counter + 8]` 表示读取或写入符号相对地址的内存，`@counter + 8` 表示地址值。例如 `add64mmi [bp + 16], [@counter], 1` 使用 counter 内存中的值，`add64mii [bp + 16], @counter, 1` 使用 counter 的地址值。符号偏移完整保留为 `i64`，文本读写不会根据指令位宽截断符号偏移；名称必须在 NamePool 中有效且非空。
+
+## 链接与可执行镜像边界
+
+规划中的流水线为 `MachineModule × N → ModuleLinker → MachineModule → ExecutableEmitter → ExecutableFile`。链接阶段负责逻辑模块合并与符号解析；发射阶段负责代码和数据布局、符号地址计算、基本块目标到 PC 相对位移的转换以及指令编码。符号相对内存地址和符号地址立即数的最终编码方式仍需由发射器约定，不能直接写出进程内的 Name 句柄。
 
 `executable` 目录提供链接后可执行镜像的内存模型 `ExecutableFile`，统一保存镜像字节、入口偏移、按索引引用的宿主函数导入、宿主数据导入和数据地址重定位记录，并提供结构校验；接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。该模型尚未实现链接、磁盘读写或宿主绑定。
 
-后续的 `ObjectEmitter` 应当完成模块布局、符号偏移、基本块目标到 PC 相对位移的转换、指令编码与对象内容生成。当前尚未实现该发射器、指令编解码器、lowering pass 或 VM 执行器；创建一个 `vm::MachineModule` 不会自动产生可执行字节。指令字节布局见 [VM 指令编码格式](VM-Instruction-Format.md)，执行状态与调用约定的讨论见 [VM 运行时设计](VM-Runtime.md)。
+当前尚未实现模块链接器、可执行镜像发射器、指令编解码器、lowering pass 或 VM 执行器；创建一个 `vm::MachineModule` 不会自动产生可执行字节。指令字节布局见 [VM 指令编码格式](VM-Instruction-Format.md)，执行状态与调用约定的讨论见 [VM 运行时设计](VM-Runtime.md)。

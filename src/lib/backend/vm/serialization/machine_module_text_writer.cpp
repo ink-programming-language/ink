@@ -293,6 +293,38 @@ namespace ink::vm
           return true;
         }
 
+        bool writeSymbol(core::Name Symbol)
+        {
+          const core::NamePool &Pool = core::NamePool::instance();
+          if (!Symbol.valid() || !Pool.contains(Symbol) || Pool.text(Symbol).empty())
+          {
+            Error = "symbol name must be nonempty and present in the process name pool";
+            return false;
+          }
+          Text += '@';
+          const std::string_view Name = Pool.text(Symbol);
+          if (isLabelIdentifier(Name))
+          {
+            Text += Name;
+            return true;
+          }
+          return writeName(Symbol);
+        }
+
+        void writeDisplacement(std::int64_t Offset)
+        {
+          if (Offset > 0)
+          {
+            Text += " + ";
+            writeUnsigned(static_cast<std::uint64_t>(Offset));
+          }
+          else if (Offset < 0)
+          {
+            Text += " - ";
+            writeUnsigned(std::uint64_t{0} - static_cast<std::uint64_t>(Offset));
+          }
+        }
+
         bool writeOperand(const Operand &Value)
         {
           switch (Value.getKind())
@@ -300,9 +332,23 @@ namespace ink::vm
           case OperandKind::Register:
             return writeRegister(static_cast<const RegisterOperand &>(Value).getRegister());
           case OperandKind::Immediate:
-            Text += "0x";
-            writeUnsigned(static_cast<const ImmediateOperand &>(Value).bits(), 16);
+          {
+            const ImmediateOperand &Immediate = static_cast<const ImmediateOperand &>(Value);
+            if (const auto Bits = Immediate.bits())
+            {
+              Text += "0x";
+              writeUnsigned(*Bits, 16);
+            }
+            else
+            {
+              if (!writeSymbol(*Immediate.getSymbol()))
+              {
+                return false;
+              }
+              writeDisplacement(*Immediate.getByteOffset());
+            }
             return true;
+          }
           case OperandKind::BasicBlock:
           {
             const MachineBasicBlock *Target = static_cast<const BasicBlockOperand &>(Value).getBlock();
@@ -328,20 +374,12 @@ namespace ink::vm
             }
             else
             {
-              Text += "ref";
-              writeUnsigned(*Address.getBaseReferenceIndex());
+              if (!writeSymbol(*Address.getSymbol()))
+              {
+                return false;
+              }
             }
-            const std::int64_t Offset = Address.getByteOffset();
-            if (Offset > 0)
-            {
-              Text += " + ";
-              writeUnsigned(static_cast<std::uint64_t>(Offset));
-            }
-            else if (Offset < 0)
-            {
-              Text += " - ";
-              writeUnsigned(std::uint64_t{0} - static_cast<std::uint64_t>(Offset));
-            }
+            writeDisplacement(Address.getByteOffset());
             Text += ']';
             return true;
           }
