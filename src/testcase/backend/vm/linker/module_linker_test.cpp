@@ -16,6 +16,7 @@
 #include <memory>
 #include <ranges>
 #include <span>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
@@ -475,6 +476,44 @@ namespace ink::vm::test
     }
   }
 
+  // Several invalid operands produce only the first error in semantic operand order and leave the source instruction unchanged.
+  TEST(VMModuleLinkerTest, ReportsFirstInvalidOperandOnly)
+  {
+    const std::array<core::Name, 3> Missing{linkName("link.first.error.destination"), linkName("link.first.error.source"), linkName("link.first.error.immediate")};
+    for (std::size_t FirstInvalid = 0; FirstInvalid < Missing.size(); ++FirstInvalid)
+    {
+      SCOPED_TRACE(FirstInvalid);
+      MachineModule Input;
+      auto &Block = Input.createFunction().createBasicBlock();
+      MachineInstructionBuilder Builder;
+      Builder.setInsertPoint(Block);
+      const AddressOperand Destination = FirstInvalid == 0 ? AddressOperand(Missing[0]) : AddressOperand(RegisterId::BP);
+      const AddressOperand Source = FirstInvalid <= 1 ? AddressOperand(Missing[1]) : AddressOperand(RegisterId::SP);
+      Builder.create<Opcode::Add64mmi>(Destination, Source, ImmediateOperand(Missing[2]));
+      core::CollectingDiagnosticConsumer Consumer;
+      core::DiagnosticEngine Diagnostics;
+      Diagnostics.addConsumer(Consumer);
+      const std::array<const MachineModule *, 1> Inputs{&Input};
+      EXPECT_EQ(ModuleLinker::link(Inputs, Diagnostics), nullptr);
+      ASSERT_EQ(Consumer.diagnostics().size(), 1U);
+      const auto &Diagnostic = Consumer.diagnostics().front();
+      EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::VMModuleLinkFailed);
+      const auto Description = std::ranges::find(Diagnostic.Arguments, core::DiagnosticArgumentName::Description, &core::DiagnosticArgument::Name);
+      ASSERT_NE(Description, Diagnostic.Arguments.end());
+      const auto &Text = std::get<std::string>(Description->Value);
+      EXPECT_NE(Text.find(core::NamePool::instance().text(Missing[FirstInvalid])), std::string::npos);
+      for (std::size_t Index = FirstInvalid + 1; Index < Missing.size(); ++Index)
+      {
+        EXPECT_EQ(Text.find(core::NamePool::instance().text(Missing[Index])), std::string::npos);
+      }
+      ASSERT_EQ(Block.instructionCount(), 1U);
+      const auto &Original = static_cast<const MachineAdd64mmiInstruction &>(instructionAt(Block, 0));
+      EXPECT_EQ(Original.getDestination().getSymbol(), Destination.getSymbol());
+      EXPECT_EQ(Original.getLHS().getSymbol(), Source.getSymbol());
+      EXPECT_EQ(Original.getRHS().getSymbol(), Missing[2]);
+    }
+  }
+
   // Named definitions share one namespace within each input and external definitions cannot be repeated across inputs.
   TEST(VMModuleLinkerTest, RejectsDuplicateDefinitionsWithoutChangingInputs)
   {
@@ -521,6 +560,7 @@ namespace ink::vm::test
     Private.createFunction(Symbol);
     Private.declareSymbol(Symbol, MachineSymbolKind::Function);
     expectLinkFailure({&Private});
+    expectLinkFailure({&Private, &Exported});
     MachineModule Native;
     Native.declareSymbol(Symbol, MachineSymbolKind::Function);
     Native.declareNativeFunction(Symbol, NativeFunctionImport{NativeSymbolProvider::Native, linkName("host.declaration"), NativeCallKind::C});
@@ -667,7 +707,7 @@ namespace ink::vm::test
     expectLinkFailure({&First, &Definition});
   }
 
-  // A native alias is available only to the input that explicitly declares it, rather than satisfying arbitrary external references.
+  // Native aliases remain scoped to declaring inputs while other inputs can bind the same spelling to their own Local definition.
   TEST(VMModuleLinkerTest, KeepsNativeAliasesScopedToDeclaringInputs)
   {
     const auto Alias = linkName("link.native.scoped");
@@ -681,5 +721,24 @@ namespace ink::vm::test
     expectLinkFailure({&Provider, &Consumer});
     Consumer.declareNativeData(Alias, NativeDataImport{linkName("host.scoped")});
     EXPECT_NE(link({&Provider, &Consumer}), nullptr);
+    MachineModule PrivateConsumer;
+    ASSERT_TRUE(PrivateConsumer.createGlobalVariable(8, 8, {}, Alias).has_value());
+    auto &PrivateBlock = PrivateConsumer.createFunction().createBasicBlock();
+    Builder.setInsertPoint(PrivateBlock);
+    Builder.create<Opcode::Store64i>(AddressOperand(Alias, -4), ImmediateOperand(Alias, 8));
+    const auto Result = link({&Provider, &PrivateConsumer});
+    ASSERT_NE(Result, nullptr);
+    ASSERT_EQ(Result->nativeData().size(), 1U);
+    EXPECT_EQ(Result->nativeData()[0].Name, Alias);
+    const auto PrivateName = Result->globalVariables().begin()->name();
+    EXPECT_NE(PrivateName, Alias);
+    const auto &Reference = static_cast<const MachineStore64iInstruction &>(instructionAt(*Result->functions().begin()->basicBlocks().begin(), 0));
+    EXPECT_EQ(Reference.getDestination().getSymbol(), PrivateName);
+    EXPECT_EQ(Reference.getDestination().getByteOffset(), -4);
+    EXPECT_EQ(Reference.getSource().getSymbol(), PrivateName);
+    EXPECT_EQ(Reference.getSource().getByteOffset(), 8);
+    const auto &Original = static_cast<const MachineStore64iInstruction &>(instructionAt(PrivateBlock, 0));
+    EXPECT_EQ(Original.getDestination().getSymbol(), Alias);
+    EXPECT_EQ(Original.getSource().getSymbol(), Alias);
   }
 } // namespace ink::vm::test

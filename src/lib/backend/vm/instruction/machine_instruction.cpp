@@ -1,4 +1,4 @@
-#include "ink/backend/vm/instruction/machine_instructions.h"
+#include "ink/backend/vm/instruction/machine_instruction_visitor.h"
 
 #include <cstddef>
 
@@ -6,14 +6,10 @@ namespace ink::vm
 {
   const Operand *MachineInstruction::getOperand(std::size_t Index) const noexcept
   {
-    switch (Operation)
+    const auto Lookup = [Index](const auto &Instruction) noexcept -> const Operand *
     {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) \
-  case Opcode::Kind:                                                                                                    \
-    return static_cast<const MachineInstructionImpl<Opcode::Kind> &>(*this).getOperand(Index);
-#include "ink/backend/vm/instruction/opcode.def"
-#undef OPCODE
-    }
-    return nullptr;
+      return Instruction.getOperand(Index);
+    };
+    return visitInstruction(*this, Lookup);
   }
 } // namespace ink::vm

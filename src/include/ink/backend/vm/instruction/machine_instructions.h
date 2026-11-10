@@ -94,6 +94,12 @@ namespace ink::vm
         return getOperandImpl<0>(Index);
       }
 
+      // Borrows the concrete operand values in semantic order without exposing mutable instruction storage.
+      constexpr const OperandTuple &operands() const noexcept
+      {
+        return Operands;
+      }
+
     private:
       template <std::size_t OperandIndex>
       constexpr const Operand *getOperandImpl(std::size_t Index) const noexcept

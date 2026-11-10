@@ -5,11 +5,14 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <string>
 #include <string_view>
+#include <variant>
 
 namespace ink::vm::test
 {
@@ -65,6 +68,156 @@ namespace ink::vm::test
     ASSERT_EQ(Collector.diagnostics().size(), 1U);
     EXPECT_EQ(Collector.diagnostics()[0].Kind, core::DiagnosticKind::VMModuleLinkFailed);
     EXPECT_EQ(Collector.diagnostics()[0].classification(), core::DiagnosticClass::User);
+  }
+
+  // Undefined symbols and invalid registers compete in semantic operand order instead of separate validation passes.
+  TEST(VMModuleLinkerSymbolTest, ReportsMixedOperandFailuresInSemanticOrder)
+  {
+    const auto Missing = symbolName("symbol.mixed.failure.missing");
+    for (const bool SymbolFirst : {false, true})
+    {
+      SCOPED_TRACE(SymbolFirst);
+      MachineModule Input;
+      auto &Block = Input.createFunction().createBasicBlock();
+      const AddressOperand Symbol(Missing);
+      const AddressOperand Register(static_cast<RegisterId>(255));
+      const AddressOperand Destination = SymbolFirst ? Symbol : Register;
+      const AddressOperand Source = SymbolFirst ? Register : Symbol;
+      MachineInstructionBuilder Builder;
+      Builder.setInsertPoint(Block);
+      Builder.create<Opcode::Add64mmi>(Destination, Source, ImmediateOperand(1));
+      const std::array<const MachineModule *, 1> Inputs{&Input};
+      core::CollectingDiagnosticConsumer Collector;
+      core::DiagnosticEngine Diagnostics;
+      Diagnostics.addConsumer(Collector);
+      EXPECT_EQ(ModuleLinker::link(Inputs, Diagnostics), nullptr);
+      ASSERT_EQ(Collector.diagnostics().size(), 1U);
+      const auto &Diagnostic = Collector.diagnostics().front();
+      EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::VMModuleLinkFailed);
+      const auto Description = std::ranges::find(Diagnostic.Arguments, core::DiagnosticArgumentName::Description, &core::DiagnosticArgument::Name);
+      ASSERT_NE(Description, Diagnostic.Arguments.end());
+      const auto &Text = std::get<std::string>(Description->Value);
+      if (SymbolFirst)
+      {
+        EXPECT_NE(Text.find(core::NamePool::instance().text(Missing)), std::string::npos);
+        EXPECT_EQ(Text.find("invalid base register"), std::string::npos);
+      }
+      else
+      {
+        EXPECT_NE(Text.find("invalid base register"), std::string::npos);
+        EXPECT_EQ(Text.find(core::NamePool::instance().text(Missing)), std::string::npos);
+      }
+      ASSERT_EQ(Block.instructionCount(), 1U);
+      const auto &Original = static_cast<const MachineAdd64mmiInstruction &>(symbolInstructionAt(Block, 0));
+      EXPECT_EQ(Original.getDestination().getSymbol(), Destination.getSymbol());
+      EXPECT_EQ(Original.getDestination().getRegister(), Destination.getRegister());
+      EXPECT_EQ(Original.getLHS().getSymbol(), Source.getSymbol());
+      EXPECT_EQ(Original.getLHS().getRegister(), Source.getRegister());
+    }
+  }
+
+  // Duplicate definitions are diagnosed before invalid operands even when malformed code occurs in an earlier input.
+  TEST(VMModuleLinkerSymbolTest, ReportsDefinitionConflictsBeforeMalformedCode)
+  {
+    const auto Name = symbolName("symbol.phase.failure.duplicate");
+    MachineModule First;
+    MachineModule Second;
+    auto &Block = First.createFunction(Name, MachineSymbolLinkage::External).createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Block);
+    Builder.create<Opcode::Load64>(AddressOperand(RegisterId::BP), AddressOperand(static_cast<RegisterId>(255)));
+    Second.createFunction(Name, MachineSymbolLinkage::External);
+    const std::array<const MachineModule *, 2> Inputs{&First, &Second};
+    core::CollectingDiagnosticConsumer Collector;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Collector);
+    EXPECT_EQ(ModuleLinker::link(Inputs, Diagnostics), nullptr);
+    ASSERT_EQ(Collector.diagnostics().size(), 1U);
+    const auto &Diagnostic = Collector.diagnostics().front();
+    EXPECT_EQ(Diagnostic.Kind, core::DiagnosticKind::VMModuleLinkFailed);
+    const auto Description = std::ranges::find(Diagnostic.Arguments, core::DiagnosticArgumentName::Description, &core::DiagnosticArgument::Name);
+    ASSERT_NE(Description, Diagnostic.Arguments.end());
+    const auto &Text = std::get<std::string>(Description->Value);
+    EXPECT_NE(Text.find("duplicate External definition"), std::string::npos);
+    EXPECT_NE(Text.find(core::NamePool::instance().text(Name)), std::string::npos);
+    EXPECT_EQ(Text.find("invalid base register"), std::string::npos);
+  }
+
+  // Multiple inputs preserve node order, anonymous nodes, per-input Local naming and first-seen native aliases.
+  TEST(VMModuleLinkerSymbolTest, PreservesInputNodeAndCanonicalImportOrder)
+  {
+    const std::array<core::Name, 2> GlobalNames{symbolName("symbol.order.first.global"), symbolName("symbol.order.second.global")};
+    const std::array<core::Name, 2> FunctionNames{symbolName("symbol.order.first.function"), symbolName("symbol.order.second.function")};
+    const std::array<core::Name, 2> FunctionAliases{symbolName(".__ink_link_local_0"), symbolName("symbol.order.second.native.function")};
+    const std::array<core::Name, 2> DataAliases{symbolName("symbol.order.first.native.data"), symbolName("symbol.order.second.native.data")};
+    const std::array<core::Name, 2> UniqueFunctionAliases{symbolName("symbol.order.first.unique.function"), symbolName("symbol.order.second.unique.function")};
+    const std::array<core::Name, 2> UniqueFunctionHosts{symbolName("host.order.first.unique.function"), symbolName("host.order.second.unique.function")};
+    const auto SharedFunctionHost = symbolName("host.order.shared.function");
+    const auto SharedDataHost = symbolName("host.order.shared.data");
+    MachineModule First;
+    MachineModule Second;
+    const std::array<MachineModule *, 2> Modules{&First, &Second};
+    for (std::size_t Index = 0; Index < Modules.size(); ++Index)
+    {
+      auto &Module = *Modules[Index];
+      const std::size_t Size = (Index + 1) * 8;
+      ASSERT_TRUE(Module.createGlobalVariable(Size, 8, {}, GlobalNames[Index]).has_value());
+      ASSERT_TRUE(Module.createGlobalVariable(Size + 1, 1).has_value());
+      auto &Block = Module.createFunction(FunctionNames[Index]).createBasicBlock();
+      Module.createFunction();
+      Module.declareNativeFunction(FunctionAliases[Index], NativeFunctionImport{NativeSymbolProvider::Native, SharedFunctionHost, NativeCallKind::C});
+      Module.declareNativeFunction(UniqueFunctionAliases[Index], NativeFunctionImport{NativeSymbolProvider::Native, UniqueFunctionHosts[Index], NativeCallKind::C});
+      Module.declareNativeData(DataAliases[Index], NativeDataImport{SharedDataHost});
+      MachineInstructionBuilder Builder;
+      Builder.setInsertPoint(Block);
+      Builder.create<Opcode::Store64i>(AddressOperand(DataAliases[Index]), ImmediateOperand(FunctionAliases[Index]));
+    }
+    const std::array<const MachineModule *, 2> Inputs{&First, &Second};
+    core::CollectingDiagnosticConsumer Collector;
+    core::DiagnosticEngine Diagnostics;
+    Diagnostics.addConsumer(Collector);
+    const auto Result = ModuleLinker::link(Inputs, Diagnostics);
+    EXPECT_TRUE(Collector.diagnostics().empty());
+    ASSERT_NE(Result, nullptr);
+    ASSERT_EQ(Result->globalVariableCount(), 4U);
+    ASSERT_EQ(Result->functionCount(), 4U);
+    const std::array<core::Name, 4> ExpectedGlobalNames{symbolName(".__ink_link_local_1"), core::NAME_None, symbolName(".__ink_link_local_3"), core::NAME_None};
+    const std::array<std::size_t, 4> ExpectedSizes{8, 9, 16, 17};
+    std::size_t Index = 0;
+    for (const auto &Global : Result->globalVariables())
+    {
+      EXPECT_EQ(Global.name(), ExpectedGlobalNames[Index]);
+      EXPECT_EQ(Global.byteSize(), ExpectedSizes[Index]);
+      ++Index;
+    }
+    const std::array<core::Name, 4> ExpectedFunctionNames{symbolName(".__ink_link_local_2"), core::NAME_None, symbolName(".__ink_link_local_4"), core::NAME_None};
+    Index = 0;
+    for (const auto &Function : Result->functions())
+    {
+      EXPECT_EQ(Function.name(), ExpectedFunctionNames[Index]);
+      if (Index % 2 == 0)
+      {
+        ASSERT_EQ(Function.basicBlockCount(), 1U);
+        const auto &Instruction = static_cast<const MachineStore64iInstruction &>(symbolInstructionAt(*Function.basicBlocks().begin(), 0));
+        EXPECT_EQ(Instruction.getDestination().getSymbol(), DataAliases[0]);
+        EXPECT_EQ(Instruction.getSource().getSymbol(), FunctionAliases[0]);
+      }
+      else
+      {
+        EXPECT_EQ(Function.basicBlockCount(), 0U);
+      }
+      ++Index;
+    }
+    ASSERT_EQ(Result->nativeFunctions().size(), 3U);
+    EXPECT_EQ(Result->nativeFunctions()[0].Name, FunctionAliases[0]);
+    EXPECT_EQ(Result->nativeFunctions()[0].Import.Name, SharedFunctionHost);
+    EXPECT_EQ(Result->nativeFunctions()[1].Name, UniqueFunctionAliases[0]);
+    EXPECT_EQ(Result->nativeFunctions()[1].Import.Name, UniqueFunctionHosts[0]);
+    EXPECT_EQ(Result->nativeFunctions()[2].Name, UniqueFunctionAliases[1]);
+    EXPECT_EQ(Result->nativeFunctions()[2].Import.Name, UniqueFunctionHosts[1]);
+    ASSERT_EQ(Result->nativeData().size(), 1U);
+    EXPECT_EQ(Result->nativeData()[0].Name, DataAliases[0]);
+    EXPECT_EQ(Result->nativeData()[0].Import.Name, SharedDataHost);
   }
 
   // Relinking a linked module preserves private bindings when new private definitions collide with its names and native alias.
