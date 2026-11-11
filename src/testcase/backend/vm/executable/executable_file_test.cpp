@@ -22,9 +22,9 @@ namespace ink::vm::test
       Executable.getImage().resize(24, 0xFF);
       Executable.getEntryOffset() = 23;
       Executable.getDynamicImportSymbols() = {
-          {NativeSymbolProvider::Native, Names.intern("counter")},
-          {NativeSymbolProvider::SystemApi, Names.intern("counter")},
-          {NativeSymbolProvider::Native, Names.intern("buffer")},
+          {Names.intern("counter")},
+          {Names.intern("callback")},
+          {Names.intern("buffer")},
       };
       Executable.getDynamicImportSymbolRelocations() = {
           {16, 2, 0},
@@ -86,16 +86,16 @@ namespace ink::vm::test
     expectExecutableICE(Executable, "INK-V0002.*image.*entry offset is outside the image");
   }
 
-  // Imports need no relocation records, and equal names in distinct provider domains remain separate symbols.
-  TEST(VMExecutableFileTest, AcceptsImportsWithoutRelocationsFromBothProviders)
+  // Distinct host names remain valid imports even when no address relocation uses them.
+  TEST(VMExecutableFileTest, AcceptsDistinctImportsWithoutRelocations)
   {
     const core::DiagnosticEngine Diagnostics;
     core::NamePool &Names = core::NamePool::instance();
     ExecutableFile Executable;
     Executable.getImage().push_back(0xFF);
     Executable.getDynamicImportSymbols() = {
-        {NativeSymbolProvider::Native, Names.intern("shared")},
-        {NativeSymbolProvider::SystemApi, Names.intern("shared")},
+        {Names.intern("first")},
+        {Names.intern("second")},
     };
     EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
     EXPECT_TRUE(Executable.getExportSymbols().empty());
@@ -109,7 +109,7 @@ namespace ink::vm::test
     ExecutableFile Executable = makeValidExecutableFile();
     ExecutableFileValidator::validate(Executable, Diagnostics);
     EXPECT_EQ(Executable.getEntryOffset(), Executable.byteSize() - 1);
-    EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, Executable.getDynamicImportSymbols()[1].Name);
+    EXPECT_NE(Executable.getDynamicImportSymbols()[0].Name, Executable.getDynamicImportSymbols()[1].Name);
     EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 16U);
     EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].SymbolIndex, Executable.getDynamicImportSymbolRelocations()[2].SymbolIndex);
     EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].Addend, std::numeric_limits<std::int64_t>::max());
@@ -141,7 +141,6 @@ namespace ink::vm::test
     const ExecutableFile Copy = Original;
     Original.getImage()[0] = 0;
     Original.getEntryOffset() = 0;
-    Original.getDynamicImportSymbols()[0].Provider = NativeSymbolProvider::SystemApi;
     Original.getDynamicImportSymbols()[0].Name = Names.intern("changed_import");
     Original.getDynamicImportSymbolRelocations()[0].ImageOffset = 0;
     Original.getDynamicImportSymbolRelocations()[0].SymbolIndex = 0;
@@ -151,7 +150,6 @@ namespace ink::vm::test
 
     EXPECT_EQ(Copy.getImage()[0], 0xFF);
     EXPECT_EQ(Copy.getEntryOffset(), 23U);
-    EXPECT_EQ(Copy.getDynamicImportSymbols()[0].Provider, NativeSymbolProvider::Native);
     EXPECT_EQ(Copy.getDynamicImportSymbols()[0].Name, Names.intern("counter"));
     EXPECT_EQ(Copy.getDynamicImportSymbolRelocations()[0].ImageOffset, 16U);
     EXPECT_EQ(Copy.getDynamicImportSymbolRelocations()[0].SymbolIndex, 2U);
@@ -161,7 +159,7 @@ namespace ink::vm::test
     ExecutableFileValidator::validate(Copy, Diagnostics);
   }
 
-  // Unified import records reject missing name handles and unknown providers while identifying the original record index.
+  // Unified import records reject missing name handles while identifying the original record index.
   TEST(VMExecutableFileDeathTest, RejectsInvalidDynamicImportSymbols)
   {
     const core::DiagnosticEngine Diagnostics;
@@ -169,19 +167,16 @@ namespace ink::vm::test
     ExecutableFile Executable = makeValidExecutableFile();
     Executable.getDynamicImportSymbols()[1].Name = core::NAME_None;
     expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol #1.*name is not registered in the name pool");
-    Executable.getDynamicImportSymbols()[1].Name = Names.intern("counter");
-    Executable.getDynamicImportSymbols()[1].Provider = static_cast<NativeSymbolProvider>(255);
-    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol #1.*provider is invalid");
-    Executable.getDynamicImportSymbols()[1].Provider = NativeSymbolProvider::SystemApi;
+    Executable.getDynamicImportSymbols()[1].Name = Names.intern("callback");
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
-  // Reusing a provider/name pair is rejected even though the same name in a different provider is valid.
-  TEST(VMExecutableFileDeathTest, RejectsDuplicateDynamicImportIdentities)
+  // The import table rejects duplicate host names regardless of how many logical aliases reference them.
+  TEST(VMExecutableFileDeathTest, RejectsDuplicateDynamicImportNames)
   {
     ExecutableFile Executable = makeValidExecutableFile();
     Executable.getDynamicImportSymbols().push_back(Executable.getDynamicImportSymbols()[0]);
-    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol #3.*provider and name are duplicated");
+    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol #3.*name is duplicated");
   }
 
   // Export names must be registered and unique even when duplicate names refer to different image offsets.
@@ -216,8 +211,8 @@ namespace ink::vm::test
     ExecutableFile Executable;
     Executable.getImage().resize(16);
     Executable.getDynamicImportSymbols() = {
-        {NativeSymbolProvider::Native, Names.intern("first")},
-        {NativeSymbolProvider::SystemApi, Names.intern("second")},
+        {Names.intern("first")},
+        {Names.intern("second")},
     };
     Executable.getDynamicImportSymbolRelocations().push_back({8, 1, -1});
     ExecutableFileValidator::validate(Executable, Diagnostics);
@@ -243,7 +238,7 @@ namespace ink::vm::test
     const core::DiagnosticEngine Diagnostics;
     ExecutableFile Executable;
     Executable.getImage().resize(48);
-    Executable.getDynamicImportSymbols().push_back({NativeSymbolProvider::Native, core::NamePool::instance().intern("shared")});
+    Executable.getDynamicImportSymbols().push_back({core::NamePool::instance().intern("shared")});
     Executable.getDynamicImportSymbolRelocations() = {
         {16, 0, 0},
         {40, 0, 0},

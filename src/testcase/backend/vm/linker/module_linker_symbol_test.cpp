@@ -29,15 +29,16 @@ namespace ink::vm::test
     }
   } // namespace
 
-  // A shared VM alias cannot identify two host function providers even when their lookup names are equal.
-  TEST(VMModuleLinkerSymbolTest, RejectsSameNativeFunctionAliasAcrossDifferentProviders)
+  // A shared VM alias cannot identify two different host function names.
+  TEST(VMModuleLinkerSymbolTest, RejectsSameNativeFunctionAliasAcrossDifferentHostNames)
   {
     const auto Alias = symbolName("symbol.native.alias");
-    const auto HostName = symbolName("symbol.host.function");
+    const auto FirstHostName = symbolName("symbol.host.function.first");
+    const auto SecondHostName = symbolName("symbol.host.function.second");
     MachineModule First;
     MachineModule Second;
-    First.declareNativeFunction(Alias, NativeFunctionImport{NativeSymbolProvider::Native, HostName, NativeCallKind::C});
-    Second.declareNativeFunction(Alias, NativeFunctionImport{NativeSymbolProvider::SystemApi, HostName, NativeCallKind::C});
+    First.declareNativeFunction(Alias, NativeFunctionImport{FirstHostName});
+    Second.declareNativeFunction(Alias, NativeFunctionImport{SecondHostName});
     const std::array<const MachineModule *, 2> Inputs{&First, &Second};
     core::CollectingDiagnosticConsumer Collector;
     core::DiagnosticEngine Diagnostics;
@@ -165,8 +166,8 @@ namespace ink::vm::test
       ASSERT_TRUE(Module.createGlobalVariable(Size + 1, 1).has_value());
       auto &Block = Module.createFunction(FunctionNames[Index]).createBasicBlock();
       Module.createFunction();
-      Module.declareNativeFunction(FunctionAliases[Index], NativeFunctionImport{NativeSymbolProvider::Native, SharedFunctionHost, NativeCallKind::C});
-      Module.declareNativeFunction(UniqueFunctionAliases[Index], NativeFunctionImport{NativeSymbolProvider::Native, UniqueFunctionHosts[Index], NativeCallKind::C});
+      Module.declareNativeFunction(FunctionAliases[Index], NativeFunctionImport{SharedFunctionHost});
+      Module.declareNativeFunction(UniqueFunctionAliases[Index], NativeFunctionImport{UniqueFunctionHosts[Index]});
       Module.declareNativeData(DataAliases[Index], NativeDataImport{SharedDataHost});
       MachineInstructionBuilder Builder;
       Builder.setInsertPoint(Block);

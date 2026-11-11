@@ -280,30 +280,7 @@ namespace ink::vm
             {
               return false;
             }
-            switch (Declaration.Import.Provider)
-            {
-            case NativeSymbolProvider::Native:
-              Text += ", native, ";
-              break;
-            case NativeSymbolProvider::SystemApi:
-              Text += ", system_api, ";
-              break;
-            default:
-              Error = "unknown native function provider";
-              return false;
-            }
-            switch (Declaration.Import.CallKind)
-            {
-            case NativeCallKind::C:
-              Text += "c, ";
-              break;
-            case NativeCallKind::InkNative:
-              Text += "ink_native, ";
-              break;
-            default:
-              Error = "unknown native call kind";
-              return false;
-            }
+            Text += ", ";
             if (!writeSymbol(Declaration.Import.Name))
             {
               return false;

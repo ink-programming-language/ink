@@ -136,12 +136,12 @@ Builder 不解析名称或校验调用签名。逻辑指令、文本和链接接
 .declare function @other_function
 .declare global @other_global
 .declare global @other_readonly_global readonly
-.native_function @vm_function, native, c, @host_function
-.native_function @system_function, system_api, ink_native, @host_bridge
+.native_function @vm_function, @host_function
+.native_function @system_function, @host_bridge
 .native_data @vm_buffer, @host_buffer
 ```
 
-函数 Provider 只接受 `native/system_api`，调用类别只接受 `c/ink_native`，数据声明没有 Provider。对应的 `NativeFunctionImport`、`NativeCallKind` 和 `NativeDataImport` 定义在 `module/native_function_import.h`、`module/native_data_import.h`，保留逻辑模块的种类和调用类别检查。镜像中的 `DynamicImportSymbols` 统一表示函数和数据，只保存解析身份；逻辑调用类别到执行描述或 adapter 的传递尚未实现。文本读取只检查字段、名称和结构，不把未解析符号自动归类为 Native，也不执行模块链接。
+Native 函数和数据声明都只指定 VM 链接名与宿主名称。对应的 `NativeFunctionImport` 和 `NativeDataImport` 定义在 `module/native_function_import.h`、`module/native_data_import.h`，各自只保存宿主 `Name`；声明类别保留给逻辑链接的种类检查。镜像中的 `DynamicImportSymbols` 统一表示函数和数据，每项只保存宿主 `Name` 并按名称去重；完整宿主 ABI 调用描述及 adapter 协议仍待实现。文本读取只检查字段、名称和结构，不把未解析符号自动归类为 Native，也不执行模块链接。
 
 ## 链接与可执行镜像边界
 

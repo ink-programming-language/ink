@@ -10,7 +10,6 @@
 #include <cstddef>
 #include <limits>
 #include <string_view>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -40,15 +39,10 @@ namespace ink::vm
       return Count != 0 && Count - 1 > std::numeric_limits<std::uint32_t>::max();
     }
 
-    constexpr bool hasValidProvider(NativeSymbolProvider Provider) noexcept
-    {
-      return Provider == NativeSymbolProvider::Native || Provider == NativeSymbolProvider::SystemApi;
-    }
-
     void validateImports(const std::vector<DynamicImportSymbol> &Imports, const core::DiagnosticEngine &Diagnostics)
     {
       const core::NamePool &Names = core::NamePool::instance();
-      std::unordered_map<NativeSymbolProvider, std::unordered_set<core::Name>> NamesByProvider;
+      std::unordered_set<core::Name> ImportedNames;
       for (std::size_t Index = 0; Index < Imports.size(); ++Index)
       {
         const DynamicImportSymbol &Import = Imports[Index];
@@ -56,13 +50,9 @@ namespace ink::vm
         {
           failRecord(Diagnostics, "dynamic import symbol", Index, "name is not registered in the name pool");
         }
-        if (!hasValidProvider(Import.Provider))
+        if (!ImportedNames.insert(Import.Name).second)
         {
-          failRecord(Diagnostics, "dynamic import symbol", Index, "provider is invalid");
-        }
-        if (!NamesByProvider[Import.Provider].insert(Import.Name).second)
-        {
-          failRecord(Diagnostics, "dynamic import symbol", Index, "provider and name are duplicated");
+          failRecord(Diagnostics, "dynamic import symbol", Index, "name is duplicated");
         }
       }
     }

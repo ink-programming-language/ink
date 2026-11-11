@@ -8,7 +8,6 @@
 
 #include <cassert>
 #include <expected>
-#include <functional>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -57,22 +56,6 @@ namespace ink::vm::detail
 
   namespace
   {
-    struct NativeFunctionKey
-    {
-        NativeSymbolProvider Provider;
-        core::Name Name;
-
-        bool operator==(const NativeFunctionKey &) const = default;
-    };
-
-    struct NativeFunctionKeyHash
-    {
-        std::size_t operator()(const NativeFunctionKey &Key) const noexcept
-        {
-          return std::hash<core::Name>{}(Key.Name) ^ (std::hash<NativeSymbolProvider>{}(Key.Provider) << 1);
-        }
-    };
-
     bool validName(core::Name Name, bool AllowAnonymous = false)
     {
       return (AllowAnonymous && Name == core::NAME_None) || core::NamePool::instance().contains(Name);
@@ -226,20 +209,10 @@ namespace ink::vm::detail
         {
           return fail(Index, "native function requires nonempty VM and host names registered in the name pool");
         }
-        if ((Import.Provider != NativeSymbolProvider::Native && Import.Provider != NativeSymbolProvider::SystemApi) || (Import.CallKind != NativeCallKind::C && Import.CallKind != NativeCallKind::InkNative))
-        {
-          return fail(Index, fmt::format("native function '{}' has an invalid provider or call kind", spelling(Declaration.Name)));
-        }
-        const NativeFunctionKey Key{Import.Provider, Import.Name};
-        auto Position = NativeFunctions.find(Key);
+        auto Position = NativeFunctions.find(Import.Name);
         if (Position == NativeFunctions.end())
         {
-          Position = NativeFunctions.emplace(Key, addSymbol(Index, Declaration.Name, Import)).first;
-        }
-        const auto &Canonical = std::get<NativeFunctionImport>(Bindings.Symbols[Position->second.Index].Target);
-        if (Canonical.CallKind != Import.CallKind)
-        {
-          return fail(Index, fmt::format("native function '{}' has incompatible call kinds for host symbol '{}'", spelling(Declaration.Name), spelling(Import.Name)));
+          Position = NativeFunctions.emplace(Import.Name, addSymbol(Index, Declaration.Name, Import)).first;
         }
         return bindNative(Index, Declaration.Name, Position->second);
       }
@@ -403,7 +376,7 @@ namespace ink::vm::detail
       LinkBindings Bindings;
       SymbolTable ExternalDefinitions;
       SymbolTable NativeAliases;
-      std::unordered_map<NativeFunctionKey, SymbolId, NativeFunctionKeyHash> NativeFunctions;
+      SymbolTable NativeFunctions;
       SymbolTable NativeData;
       std::unordered_set<core::Name> ReservedNames;
   };

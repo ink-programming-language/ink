@@ -282,7 +282,7 @@ namespace ink::vm::test
     MachineModule Input;
     auto &Block = Input.createFunction().createBasicBlock();
     Input.createFunction(linkName("link.registered.function"), MachineSymbolLinkage::External);
-    Input.declareNativeFunction(linkName("link.registered.native"), NativeFunctionImport{NativeSymbolProvider::Native, linkName("host.registered.native"), NativeCallKind::C});
+    Input.declareNativeFunction(linkName("link.registered.native"), NativeFunctionImport{linkName("host.registered.native")});
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Block);
 #define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) appendRegisteredInstruction<Opcode::Kind>(Builder, Block, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{});
@@ -572,7 +572,7 @@ namespace ink::vm::test
     expectLinkFailure({&Private, &Exported});
     MachineModule Native;
     Native.declareSymbol(Symbol, MachineSymbolKind::Function);
-    Native.declareNativeFunction(Symbol, NativeFunctionImport{NativeSymbolProvider::Native, linkName("host.declaration"), NativeCallKind::C});
+    Native.declareNativeFunction(Symbol, NativeFunctionImport{linkName("host.declaration")});
     expectLinkFailure({&Native});
     MachineModule PrivateNative;
     ASSERT_TRUE(PrivateNative.createGlobalVariable(8, 8, {}, Symbol).has_value());
@@ -598,12 +598,12 @@ namespace ink::vm::test
     MachineModule Data;
     Data.declareNativeData(linkName("link.invalid.native.data"), NativeDataImport{});
     expectLinkFailure({&Data});
-    MachineModule Provider;
-    Provider.declareNativeFunction(linkName("link.invalid.native.provider"), NativeFunctionImport{static_cast<NativeSymbolProvider>(255), linkName("host.invalid.provider"), NativeCallKind::C});
-    expectLinkFailure({&Provider});
-    MachineModule CallKind;
-    CallKind.declareNativeFunction(linkName("link.invalid.native.call.kind"), NativeFunctionImport{NativeSymbolProvider::Native, linkName("host.invalid.call.kind"), static_cast<NativeCallKind>(255)});
-    expectLinkFailure({&CallKind});
+    MachineModule UnnamedFunction;
+    UnnamedFunction.declareNativeFunction(core::NAME_None, NativeFunctionImport{linkName("host.invalid.function.alias")});
+    expectLinkFailure({&UnnamedFunction});
+    MachineModule UnnamedData;
+    UnnamedData.declareNativeData(core::NAME_None, NativeDataImport{linkName("host.invalid.data.alias")});
+    expectLinkFailure({&UnnamedData});
   }
 
   // Local definitions may share external spellings while each reference keeps the correct binding.
@@ -643,7 +643,7 @@ namespace ink::vm::test
     for (std::size_t Index = 0; Index < Modules.size(); ++Index)
     {
       auto &Module = *Modules[Index];
-      Module.declareNativeFunction(Functions[Index], NativeFunctionImport{NativeSymbolProvider::Native, HostFunction, NativeCallKind::InkNative});
+      Module.declareNativeFunction(Functions[Index], NativeFunctionImport{HostFunction});
       Module.declareNativeData(Data[Index], NativeDataImport{HostData});
       auto &Block = Module.createFunction().createBasicBlock();
       MachineInstructionBuilder Builder;
@@ -660,8 +660,6 @@ namespace ink::vm::test
     EXPECT_EQ(FunctionBinding.Name, Functions[0]);
     EXPECT_EQ(DataBinding.Name, Data[0]);
     EXPECT_EQ(FunctionBinding.Import.Name, HostFunction);
-    EXPECT_EQ(FunctionBinding.Import.Provider, NativeSymbolProvider::Native);
-    EXPECT_EQ(FunctionBinding.Import.CallKind, NativeCallKind::InkNative);
     EXPECT_EQ(DataBinding.Import.Name, HostData);
     for (const auto &Function : Result->functions())
     {
@@ -677,29 +675,36 @@ namespace ink::vm::test
     EXPECT_EQ(Second.nativeData()[0].Name, Data[1]);
   }
 
-  // The provider forms part of a native function's identity, and host function/data namespaces remain independent.
-  TEST(VMModuleLinkerTest, PreservesNativeProviderAndFunctionDataIdentity)
+  // Equal host names merge native function aliases while function and data declarations retain their distinct categories.
+  TEST(VMModuleLinkerTest, CoalescesFunctionNamesWhileKeepingFunctionAndDataDeclarationsDistinct)
   {
     const auto Host = linkName("host.shared.spelling");
     MachineModule Input;
-    Input.declareNativeFunction(linkName("link.native.native"), NativeFunctionImport{NativeSymbolProvider::Native, Host, NativeCallKind::C});
-    Input.declareNativeFunction(linkName("link.native.system"), NativeFunctionImport{NativeSymbolProvider::SystemApi, Host, NativeCallKind::C});
+    Input.declareNativeFunction(linkName("link.native.shared.first"), NativeFunctionImport{Host});
+    Input.declareNativeFunction(linkName("link.native.shared.second"), NativeFunctionImport{Host});
     Input.declareNativeData(linkName("link.native.data"), NativeDataImport{Host});
     const auto Result = link({&Input});
     ASSERT_NE(Result, nullptr);
-    EXPECT_EQ(Result->nativeFunctions().size(), 2U);
-    EXPECT_EQ(Result->nativeData().size(), 1U);
+    ASSERT_EQ(Result->nativeFunctions().size(), 1U);
+    ASSERT_EQ(Result->nativeData().size(), 1U);
+    EXPECT_EQ(Result->nativeFunctions()[0].Import.Name, Host);
+    EXPECT_EQ(Result->nativeData()[0].Import.Name, Host);
   }
 
-  // Incompatible call kinds for the same host function are rejected even when the VM aliases differ.
-  TEST(VMModuleLinkerTest, RejectsIncompatibleNativeFunctionContracts)
+  // Different host names preserve distinct native function bindings even when declarations arrive from separate modules.
+  TEST(VMModuleLinkerTest, PreservesDistinctNativeFunctionHostNames)
   {
-    const auto Host = linkName("host.contract");
+    const auto FirstHost = linkName("host.function.first");
+    const auto SecondHost = linkName("host.function.second");
     MachineModule First;
     MachineModule Second;
-    First.declareNativeFunction(linkName("link.native.contract.first"), NativeFunctionImport{NativeSymbolProvider::Native, Host, NativeCallKind::C});
-    Second.declareNativeFunction(linkName("link.native.contract.second"), NativeFunctionImport{NativeSymbolProvider::Native, Host, NativeCallKind::InkNative});
-    expectLinkFailure({&First, &Second});
+    First.declareNativeFunction(linkName("link.native.distinct.first"), NativeFunctionImport{FirstHost});
+    Second.declareNativeFunction(linkName("link.native.distinct.second"), NativeFunctionImport{SecondHost});
+    const auto Result = link({&First, &Second});
+    ASSERT_NE(Result, nullptr);
+    ASSERT_EQ(Result->nativeFunctions().size(), 2U);
+    EXPECT_EQ(Result->nativeFunctions()[0].Import.Name, FirstHost);
+    EXPECT_EQ(Result->nativeFunctions()[1].Import.Name, SecondHost);
   }
 
   // A native declaration cannot silently change the meaning of a conflicting VM definition or native alias.

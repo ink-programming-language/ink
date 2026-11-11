@@ -117,9 +117,7 @@ namespace ink::vm::test
       for (std::size_t Index = 0; Index != Expected.nativeFunctions().size(); ++Index)
       {
         EXPECT_EQ(Actual.nativeFunctions()[Index].Name, Expected.nativeFunctions()[Index].Name);
-        EXPECT_EQ(Actual.nativeFunctions()[Index].Import.Provider, Expected.nativeFunctions()[Index].Import.Provider);
         EXPECT_EQ(Actual.nativeFunctions()[Index].Import.Name, Expected.nativeFunctions()[Index].Import.Name);
-        EXPECT_EQ(Actual.nativeFunctions()[Index].Import.CallKind, Expected.nativeFunctions()[Index].Import.CallKind);
       }
       ASSERT_EQ(Actual.nativeData().size(), Expected.nativeData().size());
       for (std::size_t Index = 0; Index != Expected.nativeData().size(); ++Index)
@@ -1047,8 +1045,8 @@ entry:
     Module.declareSymbol(Names.intern("other.function"), MachineSymbolKind::Function);
     Module.declareSymbol(Names.intern("other.readonly"), MachineSymbolKind::GlobalVariable, true);
     Module.declareSymbol(Names.intern("other global"), MachineSymbolKind::GlobalVariable);
-    Module.declareNativeFunction(Names.intern("bridge.c"), NativeFunctionImport{NativeSymbolProvider::Native, Names.intern("host c"), NativeCallKind::C});
-    Module.declareNativeFunction(Names.intern("bridge.ink"), NativeFunctionImport{NativeSymbolProvider::SystemApi, Names.intern("host.ink"), NativeCallKind::InkNative});
+    Module.declareNativeFunction(Names.intern("bridge.first"), NativeFunctionImport{Names.intern("host function")});
+    Module.declareNativeFunction(Names.intern("bridge.second"), NativeFunctionImport{Names.intern("host.second")});
     Module.declareNativeData(Names.intern("native.buffer"), NativeDataImport{Names.intern("host.buffer")});
     const std::array<std::uint8_t, 2> Bytes{1, 2};
     ASSERT_TRUE(Module.createGlobalVariable(Bytes.size(), 2, Bytes, Names.intern("readonly"), MachineSymbolLinkage::External, true));
@@ -1062,8 +1060,8 @@ entry:
     EXPECT_NE(Text->find(".global global, 8, 4 external\n"), std::string::npos);
     EXPECT_NE(Text->find(".declare global @\"other global\"\n"), std::string::npos);
     EXPECT_NE(Text->find(".declare global @other.readonly readonly\n"), std::string::npos);
-    EXPECT_NE(Text->find(".native_function @bridge.c, native, c, @\"host c\"\n"), std::string::npos);
-    EXPECT_NE(Text->find(".native_function @bridge.ink, system_api, ink_native, @host.ink\n"), std::string::npos);
+    EXPECT_NE(Text->find(".native_function @bridge.first, @\"host function\"\n"), std::string::npos);
+    EXPECT_NE(Text->find(".native_function @bridge.second, @host.second\n"), std::string::npos);
     EXPECT_NE(Text->find(".native_data @native.buffer, @host.buffer\n"), std::string::npos);
     const auto Parsed = readMachineModuleText(*Text);
     ASSERT_TRUE(Parsed.has_value());
@@ -1117,11 +1115,12 @@ entry:
         ".native_data @name, @\"\"",
         ".native_data @name, native, @host",
         ".native_data @name, @host trailing",
-        ".native_function @name, @host",
-        ".native_function @name, invalid, c, @host",
-        ".native_function @name, native, invalid, @host",
-        ".native_function @name, native, c, @\"\"",
-        ".native_function @name, native, c, @host,",
+        ".native_function @name",
+        ".native_function @name,",
+        ".native_function @name, @\"\"",
+        ".native_function @name, @host, @other",
+        ".native_function @name, @host,",
+        ".native_function @name, native, c, @host",
         ".section .text\n.function F invalid\n.endfunction",
         ".section .text\n.function F readonly\n.endfunction",
         ".section .text\n.function F external local\n.endfunction",
@@ -1162,12 +1161,12 @@ entry:
     MachineModule EmptyData;
     EmptyData.declareNativeData(Name, NativeDataImport{});
     EXPECT_FALSE(writeMachineModuleText(EmptyData).has_value());
-    MachineModule InvalidProvider;
-    InvalidProvider.declareNativeFunction(Name, NativeFunctionImport{static_cast<NativeSymbolProvider>(255), Name, NativeCallKind::C});
-    EXPECT_FALSE(writeMachineModuleText(InvalidProvider).has_value());
-    MachineModule InvalidCallKind;
-    InvalidCallKind.declareNativeFunction(Name, NativeFunctionImport{NativeSymbolProvider::Native, Name, static_cast<NativeCallKind>(255)});
-    EXPECT_FALSE(writeMachineModuleText(InvalidCallKind).has_value());
+    MachineModule EmptyFunctionHost;
+    EmptyFunctionHost.declareNativeFunction(Name, NativeFunctionImport{});
+    EXPECT_FALSE(writeMachineModuleText(EmptyFunctionHost).has_value());
+    MachineModule EmptyFunctionAlias;
+    EmptyFunctionAlias.declareNativeFunction(core::NAME_None, NativeFunctionImport{Name});
+    EXPECT_FALSE(writeMachineModuleText(EmptyFunctionAlias).has_value());
   }
 
   // Unsupported register values fail serialization explicitly in direct register and memory-address operands.

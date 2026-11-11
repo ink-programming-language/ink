@@ -145,7 +145,7 @@ namespace ink::vm::test
       for (std::size_t Index = 0; Index < Inputs.size(); ++Index)
       {
         auto &Input = *Inputs[Index];
-        Input.declareNativeFunction(Aliases[Index], NativeFunctionImport{NativeSymbolProvider::Native, Host, NativeCallKind::InkNative});
+        Input.declareNativeFunction(Aliases[Index], NativeFunctionImport{Host});
         auto &Block = Input.createFunction().createBasicBlock();
         Builder.setInsertPoint(Block);
         Builder.create<Opcode::CallNativei>(ImmediateOperand(Aliases[Index]));
@@ -164,7 +164,6 @@ namespace ink::vm::test
     ASSERT_EQ(Output->nativeFunctions().size(), 1U);
     EXPECT_EQ(Output->nativeFunctions()[0].Name, Aliases[0]);
     EXPECT_EQ(Output->nativeFunctions()[0].Import.Name, Host);
-    EXPECT_EQ(Output->nativeFunctions()[0].Import.CallKind, NativeCallKind::InkNative);
     for (const auto &Function : Output->functions())
     {
       const auto &Call = static_cast<const MachineCallNativeiInstruction &>(callInstructionAt(Function));
@@ -194,7 +193,7 @@ namespace ink::vm::test
         }
         else if (Kind == 1)
         {
-          Input.declareNativeFunction(Target, NativeFunctionImport{NativeSymbolProvider::Native, Target, NativeCallKind::C});
+          Input.declareNativeFunction(Target, NativeFunctionImport{Target});
         }
         else if (Kind == 2)
         {
@@ -261,7 +260,7 @@ namespace ink::vm::test
   TEST(VMModuleLinkerCallTest, RequiresNativeDeclarationsInReferencingModules)
   {
     const auto Alias = callName("call.native.scoped.alias");
-    const NativeFunctionImport Import{NativeSymbolProvider::SystemApi, callName("host.call.native.scoped"), NativeCallKind::C};
+    const NativeFunctionImport Import{callName("host.call.native.scoped")};
     MachineModule Provider;
     MachineModule Caller;
     Provider.declareNativeFunction(Alias, Import);
@@ -323,7 +322,7 @@ namespace ink::vm::test
         MachineModule Input;
         if (Native)
         {
-          Input.declareNativeFunction(Target, NativeFunctionImport{NativeSymbolProvider::Native, Target, NativeCallKind::C});
+          Input.declareNativeFunction(Target, NativeFunctionImport{Target});
         }
         else
         {

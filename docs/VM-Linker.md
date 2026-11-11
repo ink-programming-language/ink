@@ -31,11 +31,11 @@ auto Linked = ModuleLinker::link(Inputs, Diagnostics, OutputName);
 
 `declareNativeFunction(LinkName, Import)` 和 `declareNativeData(LinkName, Import)` 分别声明宿主函数和宿主数据。LinkName 是 VM 名称，`Import.Name` 是宿主查找名，两者可以不同；未定义的普通符号不会自动变成 Native。
 
-函数的宿主身份按 `Provider + Import.Name` 区分，数据按 `Import.Name` 区分。函数 Provider 使用 `Native/SystemApi`，调用类别使用 `C/InkNative`，数据没有 Provider。宿主函数和宿主数据可以同名，不同函数 Provider 也可以使用相同宿主名称；VM 链接名仍必须能无歧义解析。
+`NativeFunctionImport` 和 `NativeDataImport` 都只保存宿主 `Name`。链接器分别按 `Import.Name` 合并函数声明和数据声明，保留两种逻辑类别以检查调用目标。宿主函数和宿主数据可以通过不同的 VM 链接名引用同一宿主名称；VM 链接名仍必须能无歧义解析。
 
-各输入必须显式声明自己引用的 Native 符号。兼容的重复声明会合并；多个 VM 名称引用同一宿主身份时，输出选择统一的 VM 链接名并重写引用。同一宿主函数身份的 CallKind 不一致会报错；同一 VM 名称指向不同宿主身份、Native 函数和数据重名、Native 名称与 External 定义冲突也会报错。普通外部声明不能同时充当 Native 声明。
+各输入必须显式声明自己引用的 Native 符号。兼容的重复声明会合并；多个 VM 名称引用同种类的同一宿主名称时，输出选择统一的 VM 链接名并重写引用。同一 VM 名称指向不同宿主名称、同时声明为 Native 函数和数据、或与 External 定义冲突时会报错。普通外部声明不能同时充当 Native 声明。
 
-输出保留合并后的 Native 声明及逻辑符号引用。`NativeFunctionImport`、`NativeCallKind` 和 `NativeDataImport` 位于 `module/native_function_import.h`、`module/native_data_import.h`，用于逻辑链接的种类及调用类别检查。可执行镜像使用统一的 `DynamicImportSymbols`，只保存 `Provider + Name` 解析身份，不保留两套导入表；调用类别到执行描述或 adapter 的传递尚未实现。链接器不解析宿主地址，不生成动态导入索引、动态导入符号地址重定位或导出表，不为普通 VM 内存访问自动增加宿主访存能力。
+输出保留合并后的 Native 声明及逻辑符号引用。`NativeFunctionImport` 和 `NativeDataImport` 位于 `module/native_function_import.h`、`module/native_data_import.h`，声明类别用于逻辑链接的种类检查。可执行镜像使用统一的 `DynamicImportSymbols`，每项只保存宿主 `Name`，函数和数据的同名引用共用导入记录。链接器不解析宿主地址，不生成动态导入索引、动态导入符号地址重定位或导出表，不为普通 VM 内存访问自动增加宿主访存能力；宿主 ABI 调用描述和 adapter 协议仍待实现。
 
 ## 深克隆与执行镜像边界
 
@@ -82,8 +82,8 @@ entry:
 Native 声明使用独立的 VM 名称和宿主名称：
 
 ```text
-.native_function @vm_log, native, c, @host_log
-.native_function @vm_api, system_api, ink_native, @host_api
+.native_function @vm_log, @host_log
+.native_function @vm_api, @host_api
 .native_data @vm_buffer, @host_buffer
 ```
 

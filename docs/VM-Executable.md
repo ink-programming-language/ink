@@ -22,15 +22,15 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及动态导入�
 
 ## 动态导入符号
 
-`dynamic_import_symbol.h` 定义 `DynamicImportSymbol`，只保存 `NativeSymbolProvider Provider` 和 `core::Name Name`，不区分函数与数据，也不保存调用约定。`native_symbol_provider.h` 定义 `NativeSymbolProvider` 枚举：`Native` 表示宿主注册的 native 符号解析域，`SystemApi` 表示操作系统 API 解析域，默认值为 Native。Provider 只选择解析来源类别，不表示调用约定或 DLL、共享库名称。
+`dynamic_import_symbol.h` 定义 `DynamicImportSymbol`，只保存 `core::Name Name`，表示待解析的宿主符号名称。记录不区分函数与数据，也不保存解析来源、调用约定或 DLL、共享库名称。
 
-导入表内的 `Provider + Name` 必须唯一；不同 Provider 可以使用相同名称。同一身份供调用和取地址共同引用，无需因用途不同重复导入。Name 默认为无效的 `core::NAME_None`，必须通过进程共享的 `core::NamePool` 登记非空拼写后使用。导入记录保存待解析身份，不保存宿主指针或已绑定的运行时对象。
+导入表内的 `Name` 必须唯一。同一宿主名称供调用和取地址共同引用，也供函数和数据引用共用，无需因用途不同重复导入。Name 默认为无效的 `core::NAME_None`，必须通过进程共享的 `core::NamePool` 登记非空拼写后使用。导入记录保存待解析名称，不保存宿主指针或已绑定的运行时对象。
 
 符号在 `DynamicImportSymbols` 中的位置就是其 u32 导入索引，供 `CallNativei` 的最终编码及地址重定位引用。该逻辑指令复用 `ImmediateOperand`，接受 u32 数值索引或零 addend 的 VM 链接名；模块链接器仍在逻辑模块层检查符号形式指向显式 Native 函数并统一别名。VM 链接名到镜像导入索引的分配尚未实现。直接调用按索引使用符号，不要求把调用目标地址填写到指令中；同一符号另有取地址用途时，可以生成地址重定位。
 
 `CallNativem` 复用 `AddressOperand`，从其有效地址处读取 64 位 native 可调用指针，而不是读取 u32 导入索引。符号地址引用的是存放指针的内存位置，按普通地址符号规则链接。该指针的运行时构造、有效性验证及 adapter/宿主 ABI 协议尚未实现，不能仅凭现有导入表把任意 C 函数地址当作可调用值。
 
-逻辑模块继续通过 `module/native_function_import.h` 中的 `NativeFunctionImport` 和 `NativeCallKind` 保存宿主函数声明及 `C/InkNative` 调用类别，通过 `module/native_data_import.h` 中的 `NativeDataImport` 保存数据声明。它们用于逻辑链接检查，不构成镜像中的两套导入表。CallKind 不包含完整的 C ABI 签名、参数和返回值布局或调用区描述；后续镜像生成与加载流程如何将调用类别传递给调用描述或 adapter 仍待实现，统一符号表本身不提供这些信息。
+逻辑模块通过 `module/native_function_import.h` 中的 `NativeFunctionImport` 保存宿主函数名称，通过 `module/native_data_import.h` 中的 `NativeDataImport` 保存宿主数据名称，两个导入类型都只包含 `Name`。模块声明仍区分函数和数据，供逻辑链接检查调用目标种类；镜像中的统一导入表只按宿主名称去重。完整调用签名、参数和返回值布局、调用区描述及宿主 ABI adapter 协议仍待设计，导入记录不提供这些信息。
 
 ## 动态导入符号重定位
 
@@ -38,7 +38,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及动态导入�
 
 `ImageOffset` 指向待填写字段的第一个字节，而不是所在指令的起点，该字段可以位于代码或数据中。`SymbolIndex` 是 `DynamicImportSymbols` 的 u32 下标，可以引用函数或数据符号。`Addend` 是解析符号地址后施加的有符号字节偏移，最终填写值为 `ResolvedSymbolAddress + Addend`；例如引用宿主 buffer 的第 8 字节可以使用 `Addend = 8`，只引用符号本身时 Addend 为零。记录存入 vector，不要求按地址排序。
 
-本表记录加载时才能确定的动态导入符号地址，不记录镜像内部 VM 地址。按既有编码约定，宿主内存地址操作数使用 `ff` 地址基址标记和八字节重定位字段，宿主符号地址立即数同样需要八字节字段和重定位，不能将 u32 字段作为地址重定位目标。逻辑符号到上述字段及重定位记录的生成尚未实现。VM 符号内存地址采用 PC 相对形式，普通寄存器地址不会因某个数值看似宿主指针而自动切换地址空间。函数地址的重定位只负责填写地址，其可调用表示及 adapter 协议仍须单独确定。
+本表记录加载时才能确定的动态导入符号地址，不记录镜像内部 VM 地址。宿主内存地址操作数使用 `ff` 地址基址标记和八字节重定位字段，`ExecutableEmitter::padOperand` 已实现这一地址字段及其重定位记录的生成；导入按宿主 `Name` 复用，地址字段先追加八字节零占位。宿主符号地址立即数同样需要八字节字段和重定位，不能将 u32 字段作为地址重定位目标，其发射仍待实现。VM 符号内存地址采用 PC 相对形式，普通寄存器地址不会因某个数值看似宿主指针而自动切换地址空间。函数地址的重定位只负责填写地址，其可调用表示及 adapter 协议仍须单独确定。
 
 加载器尚未实现，仍须验证目标平台的地址表示能够写入字段，并检查解析地址与 Addend 相加后的结果，再按小端序填写。执行器也须明确处理宿主地址访问及权限；现有模型不执行宿主访存。
 
@@ -54,7 +54,7 @@ Offset 必须小于镜像字节数，不能指向镜像末尾之后的位置。�
 
 错误上下文区分 `image`、`dynamic import symbol table`、`dynamic import symbol #Index`、`dynamic import symbol relocation #Index` 和 `export symbol #Index`，并附带具体原因。记录编号对应原始 vector 下标；重叠错误定位所发现冲突记录对中原始下标较大的记录。
 
-校验检查入口位于非空镜像内、动态导入表可用 u32 下标引用、Provider 枚举有效、导入与导出的 Name 均在 NamePool 中有效且非空、导入表内 `Provider + Name` 唯一、导出表内 Name 唯一且 Offset 位于镜像内，以及每条重定位引用有效、完整的 8 字节字段位于镜像内、所有修补范围互不重叠。相邻重定位字段有效，字段无需对齐。
+校验检查入口位于非空镜像内、动态导入表可用 u32 下标引用、导入与导出的 Name 均在 NamePool 中有效且非空、导入表内 Name 唯一、导出表内 Name 唯一且 Offset 位于镜像内，以及每条重定位引用有效、完整的 8 字节字段位于镜像内、所有修补范围互不重叠。相邻重定位字段有效，字段无需对齐。
 
 校验不改写或重排镜像和记录，不解析宿主符号，不解码指令，不校验入口或导出偏移的指令边界、调用兼容性或字节码中的动态导入索引，也不根据未知运行时绑定检查最终地址与 Addend 的运算结果。调用方显式调用本镜像校验器；对外部字节码的验证及运行时访存、栈和权限检查仍需由后续加载器、执行器完成。
 

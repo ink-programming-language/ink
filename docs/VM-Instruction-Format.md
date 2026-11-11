@@ -66,7 +66,9 @@ RegisterId:u8
 
 寄存器地址只接受 BP、SP、PC，EFLAGS 和未知编号必须拒绝。`ByteOffset` 在这一形式中占八字节，表示相对寄存器基址的有符号字节位移。
 
-按本文方案，VM 符号内存地址 `Symbol + ByteOffset` 需转换为相对当前指令起始 PC 的有符号位移，使用 `PC = 02` 基址及八字节偏移编码。宿主符号使用 `ff` 地址基址标记；后续八字节字段由 `DynamicImportSymbolRelocation` 记录其位置、统一导入表 `DynamicImportSymbols` 的索引及 addend，留待加载器绑定。函数和数据取地址共用此表。上述编码、逻辑符号转换和重定位记录生成尚未实现。`ff` 是方案中的地址基址标记，不是普通寄存器编号。Native 函数地址的可调用表示及 adapter 协议尚未确定。进程内的 `core::Name` 索引不能进入指令字节。
+VM 符号内存地址 `Symbol + ByteOffset` 转换为相对当前指令起始 PC 的有符号位移，使用 `PC = 02` 基址及八字节偏移编码。宿主符号使用 `ff` 地址基址标记；后续八字节字段由 `DynamicImportSymbolRelocation` 记录其位置、统一导入表 `DynamicImportSymbols` 的索引及 addend，留待加载器绑定。函数和数据取地址共用此表。`ff` 是地址基址标记，不是普通寄存器编号。Native 函数地址的可调用表示及 adapter 协议尚未确定。进程内的 `core::Name` 索引不能进入指令字节。
+
+`ExecutableEmitter::padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset)` 已实现本节两种地址字段的顺序追加。`InstructionOffset` 必须是当前指令起点。VM 符号已完成布局时直接写入 PC 相对位移；已登记在 `UnresolvedSymbol` 但尚未布局时，追加 PC 基址标记和八字节零占位，并在 `PendingStaticRelocationSymbol` 中记录位移字段的 `ImageOffset`、符号 `Name`、指令起点 `InstructionOffset` 和符号偏移 `Addend`，供后续回填。同一符号的多次引用分别记录；每次 `emit` 清空旧记录，回填步骤尚未实现。`scanUnResolvedSymbol` 缓存模块中显式 Native 声明的链接别名及宿主名称；地址操作数使用这些声明时，按宿主 `Name` 复用或添加导入，追加 `ff` 和八字节零占位，并为地址字段生成重定位。完整指令及函数发射仍待实现。
 
 下面的竖线只用于说明字段边界，不属于字节流：
 

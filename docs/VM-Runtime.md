@@ -77,7 +77,7 @@ add64rri sp, sp, -16    // 回收 16 字节
 
 当前已提供 `call`、`callNative` 指令族和零操作数 `ret` 的指令模型。直接调用复用 `ImmediateOperand`：`Calli` 保存 PC 相对 i64 位模式或 VM 函数符号，`CallNativei` 保存统一动态导入表 `DynamicImportSymbols` 的 u32 索引或显式 Native 函数符号；调用符号的 addend 必须为零。间接调用复用 `AddressOperand`：`Callm` 读取 64 位 VM 函数地址，`CallNativem` 读取 64 位 native 可调用指针；间接地址中的符号定位存放指针的内存，不要求它是函数符号。这些指令不包含参数、结果槽或签名描述。文本读写和链接已实现，指令编码与解码、镜像发射及执行器尚未实现。
 
-间接 native 目标不是 u32 导入索引，其可调用指针的 adapter 与宿主 ABI 协议仍待确定。统一动态导入表只保存解析来源和名称；逻辑模块保留的 `C/InkNative` 调用类别如何传递给执行描述或 adapter 尚未实现。函数和数据的取地址用途共用 `DynamicImportSymbolRelocations`，地址重定位本身不赋予地址可调用性。增加间接指令模型不表示已经实现任意 C 函数指针调用。
+间接 native 目标不是 u32 导入索引，其可调用指针的 adapter 与宿主 ABI 协议仍待确定。`NativeFunctionImport` 和统一动态导入表的记录都只保存宿主名称，完整调用签名与执行描述仍待实现。函数和数据的取地址用途共用 `DynamicImportSymbolRelocations`，地址重定位本身不赋予地址可调用性。增加间接指令模型不表示已经实现任意 C 函数指针调用。
 
 参数与返回槽的 8 字节对齐、仅可变参数调用包含的 24 字节预留区、CALL/RET 状态转换及完整示例统一见 [VM 调用约定](VM-Calling-Convention.md)。`ret` 从 `[bp]`、`[bp + 8]` 恢复旧 BP 和返回 PC，将 SP 恢复为返回前的 BP；调用区由调用方回收。RET 保持 EFLAGS 不变。
 

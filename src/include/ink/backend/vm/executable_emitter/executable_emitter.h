@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
+#include <vector>
 
 namespace ink::core
 {
@@ -15,6 +16,7 @@ namespace ink::core
 namespace ink::vm
 {
   class MachineModule;
+  class AddressOperand;
 
   class ExecutableEmitter
   {
@@ -36,12 +38,25 @@ namespace ink::vm
       // Appends aligned global storage, zero-fills padding and uninitialized tails, and resolves each global to its image offset.
       void padGlobals(const MachineModule &Module);
 
+      // Appends a nine-byte address operand; unresolved VM symbols reserve a zero displacement and queue a static relocation.
+      void padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset);
+
     private:
+      struct StaticRelocationSymbol
+      {
+          std::uint64_t ImageOffset = 0;
+          core::Name Name = core::NAME_None;
+          std::uint64_t InstructionOffset = 0;
+          std::int64_t Addend = 0;
+      };
+
       void padInteger(std::uint64_t Bits, std::uint32_t Width);
 
       const core::DiagnosticEngine &Diagnostics;
       ExecutableFile Executable;
       std::unordered_map<core::Name, std::uint64_t> UnresolvedSymbol;
       std::unordered_map<core::Name, std::uint64_t> ResolvedSymbol;
+      std::unordered_map<core::Name, DynamicImportSymbol> NativeSymbols;
+      std::vector<StaticRelocationSymbol> PendingStaticRelocationSymbol;
   };
 } // namespace ink::vm

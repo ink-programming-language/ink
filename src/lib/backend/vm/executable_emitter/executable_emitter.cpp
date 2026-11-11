@@ -1,10 +1,13 @@
 #include "ink/backend/vm/executable_emitter/executable_emitter.h"
 
+#include "ink/backend/vm/instruction/address_operand.h"
 #include "ink/backend/vm/module/machine_module.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/name/name_pool.h"
 #include "ink/core/support/core_define.h"
 
 #include <bit>
+#include <limits>
 #include <utility>
 
 namespace ink::vm
@@ -19,6 +22,7 @@ namespace ink::vm
     static_assert(std::endian::native == std::endian::little, "VM integer emission requires a little-endian host");
     Executable = ExecutableFile{};
     ResolvedSymbol.clear();
+    PendingStaticRelocationSymbol.clear();
     scanUnResolvedSymbol(Module);
     padGlobals(Module);
     return std::move(Executable);
@@ -27,13 +31,33 @@ namespace ink::vm
   void ExecutableEmitter::scanUnResolvedSymbol(const MachineModule &Module)
   {
     UnresolvedSymbol.clear();
+    NativeSymbols.clear();
+    const auto AddUnResolvedSymbol = [&](core::Name Name)
+    {
+      const auto [Position, Inserted] = UnresolvedSymbol.try_emplace(Name, 0);
+      REPORT_ICE_IF(!Inserted && Position->first != core::NAME_None, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "scanUnResolvedSymbol", "VM symbol name has multiple definitions");
+    };
+    const auto AddNativeSymbol = [&](core::Name Name, DynamicImportSymbol Import)
+    {
+      const auto [Position, Inserted] = NativeSymbols.try_emplace(Name, Import);
+      REPORT_ICE_IF(!Inserted && Position->second.Name != Import.Name, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "scanUnResolvedSymbol", "native alias has conflicting import identities");
+    };
+
     for (const MachineFunction &Function : Module.functions())
     {
-      UnresolvedSymbol.try_emplace(Function.name(), 0);
+      AddUnResolvedSymbol(Function.name());
     }
     for (const MachineGlobalVariable &Global : Module.globalVariables())
     {
-      UnresolvedSymbol.try_emplace(Global.name(), 0);
+      AddUnResolvedSymbol(Global.name());
+    }
+    for (const auto &Declaration : Module.nativeFunctions())
+    {
+      AddNativeSymbol(Declaration.Name, DynamicImportSymbol{Declaration.Import.Name});
+    }
+    for (const auto &Declaration : Module.nativeData())
+    {
+      AddNativeSymbol(Declaration.Name, DynamicImportSymbol{Declaration.Import.Name});
     }
   }
 
@@ -75,5 +99,72 @@ namespace ink::vm
       ResolvedSymbol.insert_or_assign(Global.name(), Offset);
       UnresolvedSymbol.erase(Global.name());
     }
+  }
+
+  void ExecutableEmitter::padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset)
+  {
+    if (const auto Register = Operand.getRegister())
+    {
+      REPORT_ICE_IF(!isAddressRegister(*Register), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "base register must be BP, SP, or PC");
+      padInteger(static_cast<std::uint8_t>(*Register), 8);
+      padInteger(static_cast<std::uint64_t>(Operand.getByteOffset()), 64);
+      return;
+    }
+
+    const auto Symbol = Operand.getSymbol();
+    REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "symbol name must be registered and nonempty");
+    const auto Position = ResolvedSymbol.find(*Symbol);
+    const auto Native = NativeSymbols.find(*Symbol);
+    REPORT_ICE_IF(Native != NativeSymbols.end() && (Position != ResolvedSymbol.end() || UnresolvedSymbol.contains(*Symbol)), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "symbol has both VM and native definitions");
+    if (Position != ResolvedSymbol.end())
+    {
+      std::uint64_t Target = Position->second;
+      const auto Addend = Operand.getByteOffset();
+      if (Addend >= 0)
+      {
+        const auto Increment = static_cast<std::uint64_t>(Addend);
+        REPORT_ICE_IF(Increment > std::numeric_limits<std::uint64_t>::max() - Target, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "VM symbol address addition overflows");
+        Target += Increment;
+      }
+      else
+      {
+        const auto Decrement = std::uint64_t{0} - static_cast<std::uint64_t>(Addend);
+        REPORT_ICE_IF(Decrement > Target, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "VM symbol address addition underflows");
+        Target -= Decrement;
+      }
+      const bool Forward = Target >= InstructionOffset;
+      const auto Distance = Forward ? Target - InstructionOffset : InstructionOffset - Target;
+      const auto Limit = Forward ? static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) : (std::uint64_t{1} << 63);
+      REPORT_ICE_IF(Distance > Limit, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "PC-relative displacement exceeds i64 range");
+      padInteger(static_cast<std::uint8_t>(RegisterId::PC), 8);
+      padInteger(Forward ? Distance : std::uint64_t{0} - Distance, 64);
+      return;
+    }
+
+    if (UnresolvedSymbol.contains(*Symbol))
+    {
+      padInteger(static_cast<std::uint8_t>(RegisterId::PC), 8);
+      PendingStaticRelocationSymbol.push_back({Executable.byteSize(), *Symbol, InstructionOffset, Operand.getByteOffset()});
+      padZero(8);
+      return;
+    }
+
+    REPORT_ICE_IF(Native == NativeSymbols.end(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "symbol has no resolved VM offset or explicit native declaration");
+    const auto &Import = Native->second;
+    REPORT_ICE_IF(!core::NamePool::instance().contains(Import.Name), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "native import has an invalid host name");
+    auto &Imports = Executable.getDynamicImportSymbols();
+    std::size_t Index = 0;
+    while (Index < Imports.size() && Imports[Index].Name != Import.Name)
+    {
+      ++Index;
+    }
+    REPORT_ICE_IF(Index > std::numeric_limits<std::uint32_t>::max(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "native import index exceeds u32 range");
+    if (Index == Imports.size())
+    {
+      Imports.push_back(Import);
+    }
+    padInteger(0xFF, 8);
+    Executable.getDynamicImportSymbolRelocations().push_back({Executable.byteSize(), static_cast<std::uint32_t>(Index), Operand.getByteOffset()});
+    padZero(8);
   }
 } // namespace ink::vm

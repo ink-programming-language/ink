@@ -604,44 +604,12 @@ namespace ink::vm
             Module->declareNativeData(Name, NativeDataImport{HostName});
             return {};
           }
-          const Token *Provider = Line.take(TokenKind::Identifier);
-          if (!Provider || !Line.consume(TokenKind::Comma))
-          {
-            return std::unexpected(textError(Line.offset(), "expected a native function provider followed by a comma"));
-          }
-          const Token *CallKind = Line.take(TokenKind::Identifier);
           core::Name HostName;
-          if (!CallKind || !Line.consume(TokenKind::Comma) || !parseSymbol(Line, HostName) || Line.peek())
+          if (!parseSymbol(Line, HostName) || Line.peek())
           {
-            return std::unexpected(textError(Line.offset(), "expected a native call kind and nonempty host function name"));
+            return std::unexpected(textError(Line.offset(), "expected exactly one nonempty host function name"));
           }
-          NativeFunctionImport Import;
-          Import.Name = HostName;
-          if (Provider->Text == "native")
-          {
-            Import.Provider = NativeSymbolProvider::Native;
-          }
-          else if (Provider->Text == "system_api")
-          {
-            Import.Provider = NativeSymbolProvider::SystemApi;
-          }
-          else
-          {
-            return std::unexpected(textError(Provider->Offset, "unknown native function provider"));
-          }
-          if (CallKind->Text == "c")
-          {
-            Import.CallKind = NativeCallKind::C;
-          }
-          else if (CallKind->Text == "ink_native")
-          {
-            Import.CallKind = NativeCallKind::InkNative;
-          }
-          else
-          {
-            return std::unexpected(textError(CallKind->Offset, "unknown native call kind"));
-          }
-          Module->declareNativeFunction(Name, Import);
+          Module->declareNativeFunction(Name, NativeFunctionImport{HostName});
           return {};
         }
 
