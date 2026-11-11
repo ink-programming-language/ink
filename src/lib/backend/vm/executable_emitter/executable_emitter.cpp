@@ -1,18 +1,22 @@
-#include "ink/backend/vm/executable_emiter/executable_emiter.h"
+#include "ink/backend/vm/executable_emitter/executable_emitter.h"
 
 #include "ink/backend/vm/module/machine_module.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/support/core_define.h"
 
+#include <bit>
 #include <utility>
 
 namespace ink::vm
 {
-  ExecutableEmiter::ExecutableEmiter(const core::DiagnosticEngine &Diagnostics) noexcept
+  ExecutableEmitter::ExecutableEmitter(const core::DiagnosticEngine &Diagnostics) noexcept
       : Diagnostics(Diagnostics)
   {
   }
 
-  ExecutableFile ExecutableEmiter::emit(const MachineModule &Module)
+  ExecutableFile ExecutableEmitter::emit(const MachineModule &Module)
   {
+    static_assert(std::endian::native == std::endian::little, "VM integer emission requires a little-endian host");
     Executable = ExecutableFile{};
     ResolvedSymbol.clear();
     scanUnResolvedSymbol(Module);
@@ -20,7 +24,7 @@ namespace ink::vm
     return std::move(Executable);
   }
 
-  void ExecutableEmiter::scanUnResolvedSymbol(const MachineModule &Module)
+  void ExecutableEmitter::scanUnResolvedSymbol(const MachineModule &Module)
   {
     UnresolvedSymbol.clear();
     for (const MachineFunction &Function : Module.functions())
@@ -33,7 +37,7 @@ namespace ink::vm
     }
   }
 
-  void ExecutableEmiter::pad(const void *Src, std::size_t Count)
+  void ExecutableEmitter::pad(const void *Src, std::size_t Count)
   {
     if (Count == 0)
     {
@@ -44,13 +48,20 @@ namespace ink::vm
     Image.insert(Image.end(), Bytes, Bytes + Count);
   }
 
-  void ExecutableEmiter::padZero(std::size_t Count)
+  void ExecutableEmitter::padZero(std::size_t Count)
   {
     auto &Image = Executable.getImage();
     Image.insert(Image.end(), Count, std::uint8_t{0});
   }
 
-  void ExecutableEmiter::padGlobals(const MachineModule &Module)
+  void ExecutableEmitter::padInteger(std::uint64_t Bits, std::uint32_t Width)
+  {
+    REPORT_ICE_IF(Width != 8 && Width != 16 && Width != 32 && Width != 64, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "executable emission", "integer encoding requires a supported width");
+    const std::size_t Count = Width / 8;
+    pad(&Bits, Count);
+  }
+
+  void ExecutableEmitter::padGlobals(const MachineModule &Module)
   {
     for (const MachineGlobalVariable &Global : Module.globalVariables())
     {

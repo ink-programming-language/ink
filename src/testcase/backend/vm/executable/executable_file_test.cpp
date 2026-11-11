@@ -50,8 +50,6 @@ namespace ink::vm::test
   static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getImage()), const std::vector<std::uint8_t> &>);
   static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getEntryOffset()), std::uint64_t &>);
   static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getEntryOffset()), const std::uint64_t &>);
-  static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getByteOrder()), ByteOrder &>);
-  static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getByteOrder()), const ByteOrder &>);
   static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getDynamicImportSymbols()), std::vector<DynamicImportSymbol> &>);
   static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getDynamicImportSymbols()), const std::vector<DynamicImportSymbol> &>);
   static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getDynamicImportSymbolRelocations()), std::vector<DynamicImportSymbolRelocation> &>);
@@ -74,7 +72,6 @@ namespace ink::vm::test
     ExecutableFile Executable;
     EXPECT_EQ(Executable.byteSize(), 0U);
     EXPECT_EQ(Executable.getEntryOffset(), 0U);
-    EXPECT_EQ(Executable.getByteOrder(), ByteOrder::Little);
     EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
     EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
     EXPECT_TRUE(Executable.getExportSymbols().empty());
@@ -105,13 +102,11 @@ namespace ink::vm::test
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
-  // A unified symbol may serve multiple unsorted adjacent address fields with arbitrary signed addends in either byte order.
+  // A unified symbol may serve multiple unsorted adjacent address fields with arbitrary signed addends.
   TEST(VMExecutableFileTest, AcceptsSharedImportSymbolsAndAdjacentRelocations)
   {
     const core::DiagnosticEngine Diagnostics;
     ExecutableFile Executable = makeValidExecutableFile();
-    ExecutableFileValidator::validate(Executable, Diagnostics);
-    Executable.getByteOrder() = ByteOrder::Big;
     ExecutableFileValidator::validate(Executable, Diagnostics);
     EXPECT_EQ(Executable.getEntryOffset(), Executable.byteSize() - 1);
     EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, Executable.getDynamicImportSymbols()[1].Name);
@@ -137,17 +132,15 @@ namespace ink::vm::test
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
-  // Copies independently own image bytes, byte order, entry metadata, imports, address relocations, and exports.
+  // Copies independently own image bytes, entry metadata, imports, address relocations, and exports.
   TEST(VMExecutableFileTest, OwnsCopiedContentsIndependently)
   {
     const core::DiagnosticEngine Diagnostics;
     core::NamePool &Names = core::NamePool::instance();
     ExecutableFile Original = makeValidExecutableFile();
-    Original.getByteOrder() = ByteOrder::Big;
     const ExecutableFile Copy = Original;
     Original.getImage()[0] = 0;
     Original.getEntryOffset() = 0;
-    Original.getByteOrder() = ByteOrder::Little;
     Original.getDynamicImportSymbols()[0].Provider = NativeSymbolProvider::SystemApi;
     Original.getDynamicImportSymbols()[0].Name = Names.intern("changed_import");
     Original.getDynamicImportSymbolRelocations()[0].ImageOffset = 0;
@@ -158,7 +151,6 @@ namespace ink::vm::test
 
     EXPECT_EQ(Copy.getImage()[0], 0xFF);
     EXPECT_EQ(Copy.getEntryOffset(), 23U);
-    EXPECT_EQ(Copy.getByteOrder(), ByteOrder::Big);
     EXPECT_EQ(Copy.getDynamicImportSymbols()[0].Provider, NativeSymbolProvider::Native);
     EXPECT_EQ(Copy.getDynamicImportSymbols()[0].Name, Names.intern("counter"));
     EXPECT_EQ(Copy.getDynamicImportSymbolRelocations()[0].ImageOffset, 16U);
@@ -263,14 +255,5 @@ namespace ink::vm::test
     expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #2.*address field overlaps dynamic import symbol relocation #0");
     Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = 0;
     expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #2.*address field overlaps dynamic import symbol relocation #0");
-  }
-
-  // Unknown byte-order values are rejected independently of symbol-table contents.
-  TEST(VMExecutableFileDeathTest, RejectsUnknownByteOrder)
-  {
-    ExecutableFile Executable;
-    Executable.getImage().push_back(0);
-    Executable.getByteOrder() = static_cast<ByteOrder>(255);
-    expectExecutableICE(Executable, "INK-V0002.*image.*byte order is invalid");
   }
 } // namespace ink::vm::test

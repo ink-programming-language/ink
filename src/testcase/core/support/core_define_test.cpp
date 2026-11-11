@@ -1,4 +1,5 @@
 #include "ink/core/support/core_define.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
@@ -99,6 +100,18 @@ namespace ink::core::test
       return ensureMsgf(false, "template {}", Tag);
     }
 
+    template <typename EngineType>
+    void reportConditionalDiagnostic(EngineType &Engine, SourceId Source, SourceRange Range)
+    {
+      REPORT_IF(true, Engine, DiagnosticKind::InvalidUtf8, Source, Range);
+    }
+
+    template <typename EngineType>
+    void reportConditionalICE(bool ShouldReport, EngineType &Engine)
+    {
+      REPORT_ICE_IF(ShouldReport, Engine, DiagnosticKind::VMExecutableValidationFailed, {}, "conditional report test", "typed ICE report");
+    }
+
     static_assert(ensure(true));
     static_assert(ensureAlways(true));
     static_assert(ensureAlwaysMsgf(true, "always ensure"));
@@ -118,6 +131,93 @@ namespace ink::core::test
     EXPECT_FALSE(std::string_view(INK_PLATFORM_NAME).empty());
     EXPECT_FALSE(std::string_view(INK_COMPILER_ID).empty());
     EXPECT_FALSE(std::string_view(INK_COMPILER_VERSION).empty());
+  }
+
+  // Conditional reporting evaluates its condition once and skips the engine and diagnostic arguments when false.
+  TEST(CoreDefineTest, ReportIfEvaluatesReportsAndArgumentsOnlyWhenTriggered)
+  {
+    DiagnosticEngine Engine;
+    CollectingDiagnosticConsumer Consumer;
+    Engine.addConsumer(Consumer);
+    int Conditions = 0;
+    int Engines = 0;
+    int Arguments = 0;
+    const auto GetEngine = [&]() -> DiagnosticEngine &
+    {
+      ++Engines;
+      return Engine;
+    };
+    REPORT_IF(++Conditions == 0, GetEngine(), DiagnosticKind::VMTextInvalid, {}, std::to_string(++Arguments));
+    EXPECT_EQ(Conditions, 1);
+    EXPECT_EQ(Engines, 0);
+    EXPECT_EQ(Arguments, 0);
+    EXPECT_TRUE(Consumer.diagnostics().empty());
+    REPORT_IF(++Conditions > 0, GetEngine(), DiagnosticKind::VMTextInvalid, {}, std::to_string(++Arguments));
+    EXPECT_EQ(Conditions, 2);
+    EXPECT_EQ(Engines, 1);
+    EXPECT_EQ(Arguments, 1);
+    ASSERT_EQ(Consumer.diagnostics().size(), 1U);
+    EXPECT_EQ(Consumer.diagnostics().front().Kind, DiagnosticKind::VMTextInvalid);
+  }
+
+  // Conditional reporting supports explicit bool conversions and remains one statement inside an unbraced if/else.
+  TEST(CoreDefineTest, ReportIfSupportsExplicitConditionsAndDoesNotCaptureOuterElse)
+  {
+    DiagnosticEngine Engine;
+    CollectingDiagnosticConsumer Consumer;
+    Engine.addConsumer(Consumer);
+    int Conversions = 0;
+    int UnexpectedBranches = 0;
+    ExplicitCondition Condition{false, &Conversions};
+    if (true)
+      REPORT_IF(Condition, Engine, DiagnosticKind::VMTextInvalid, {}, "explicit condition");
+    else
+      ++UnexpectedBranches;
+    Condition.Value = true;
+    if (true)
+      REPORT_IF(Condition, Engine, DiagnosticKind::VMTextInvalid, {}, "explicit condition");
+    else
+      ++UnexpectedBranches;
+    EXPECT_EQ(Conversions, 2);
+    EXPECT_EQ(Consumer.diagnostics().size(), 1U);
+    EXPECT_EQ(UnexpectedBranches, 0);
+  }
+
+  // Reporting through a dependent const engine forwards source metadata and accepts diagnostics with no formatting arguments.
+  TEST(CoreDefineTest, ReportIfForwardsSourceMetadataThroughDependentEngines)
+  {
+    DiagnosticEngine Engine;
+    CollectingDiagnosticConsumer Consumer;
+    Engine.addConsumer(Consumer);
+    const DiagnosticEngine &View = Engine;
+    const SourceId Source{42};
+    const auto Range = SourceRange::fromByteOffsets(3, 7);
+    reportConditionalDiagnostic(View, Source, Range);
+    ASSERT_EQ(Consumer.diagnostics().size(), 1U);
+    const auto &DiagnosticEntry = Consumer.diagnostics().front();
+    EXPECT_EQ(DiagnosticEntry.Kind, DiagnosticKind::InvalidUtf8);
+    EXPECT_EQ(DiagnosticEntry.Source, Source);
+    EXPECT_EQ(DiagnosticEntry.Span, Range);
+    EXPECT_TRUE(DiagnosticEntry.Arguments.empty());
+  }
+
+  // Conditional ICE reporting skips false-branch side effects and forwards a triggered report to the fatal diagnostic API.
+  TEST(CoreDefineDeathTest, ReportICEIfSkipsFalseBranchesAndTerminatesWhenTriggered)
+  {
+    DiagnosticEngine Engine;
+    int Conditions = 0;
+    int Engines = 0;
+    int Arguments = 0;
+    const auto GetEngine = [&]() -> DiagnosticEngine &
+    {
+      ++Engines;
+      return Engine;
+    };
+    REPORT_ICE_IF(++Conditions == 0, GetEngine(), DiagnosticKind::VMExecutableValidationFailed, {}, "conditional report test", std::to_string(++Arguments));
+    EXPECT_EQ(Conditions, 1);
+    EXPECT_EQ(Engines, 0);
+    EXPECT_EQ(Arguments, 0);
+    EXPECT_DEATH(reportConditionalICE(true, Engine), "INK-V0002.*typed ICE report");
   }
 
   // All check variants evaluate successful conditions once when enabled and skip formatting arguments.

@@ -16,11 +16,11 @@ namespace ink::vm
 {
   class MachineModule;
 
-  class ExecutableEmiter
+  class ExecutableEmitter
   {
     public:
       // The borrowed diagnostic engine must outlive this emitter.
-      explicit ExecutableEmiter(const core::DiagnosticEngine &Diagnostics) noexcept;
+      explicit ExecutableEmitter(const core::DiagnosticEngine &Diagnostics) noexcept;
 
       [[nodiscard]] ExecutableFile emit(const MachineModule &Module);
 
@@ -37,6 +37,8 @@ namespace ink::vm
       void padGlobals(const MachineModule &Module);
 
     private:
+      void padInteger(std::uint64_t Bits, std::uint32_t Width);
+
       const core::DiagnosticEngine &Diagnostics;
       ExecutableFile Executable;
       std::unordered_map<core::Name, std::uint64_t> UnresolvedSymbol;

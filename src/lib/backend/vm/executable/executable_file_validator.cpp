@@ -100,10 +100,6 @@ namespace ink::vm
     {
       failValidation(Diagnostics, "image", "entry offset is outside the image");
     }
-    if (Executable.getByteOrder() != ByteOrder::Little && Executable.getByteOrder() != ByteOrder::Big)
-    {
-      failValidation(Diagnostics, "image", "byte order is invalid");
-    }
     if (hasTooManyRecords(Imports.size()))
     {
       failValidation(Diagnostics, "dynamic import symbol table", "import count exceeds the u32 index range");

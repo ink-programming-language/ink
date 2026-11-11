@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ink/backend/vm/executable/byte_order.h"
 #include "ink/backend/vm/executable/dynamic_import_symbol.h"
 #include "ink/backend/vm/executable/dynamic_import_symbol_relocation.h"
 #include "ink/backend/vm/executable/export_symbol.h"
@@ -10,7 +9,7 @@
 
 namespace ink::vm
 {
-  // Owns a flat, unbound VM executable image, unified dynamic imports, address relocations, and named image exports.
+  // Owns a flat, little-endian, unbound VM executable image, unified dynamic imports, address relocations, and named image exports.
   // EntryOffset and exported symbol offsets are relative to Image, never host pointers or bound runtime addresses.
   // File I/O, loading, bound addresses, execution state, and native ABI/call layouts are outside this model.
   class ExecutableFile final
@@ -24,11 +23,6 @@ namespace ink::vm
       auto &getEntryOffset(this auto &&Self) noexcept
       {
         return Self.EntryOffset;
-      }
-
-      auto &getByteOrder(this auto &&Self) noexcept
-      {
-        return Self.Order;
       }
 
       auto &getDynamicImportSymbols(this auto &&Self) noexcept
@@ -54,7 +48,6 @@ namespace ink::vm
     private:
       std::vector<std::uint8_t> Image;
       std::uint64_t EntryOffset = 0;
-      ByteOrder Order = ByteOrder::Little;
       std::vector<DynamicImportSymbol> DynamicImportSymbols;
       std::vector<DynamicImportSymbolRelocation> DynamicImportSymbolRelocations;
       std::vector<ExportSymbol> ExportSymbols;

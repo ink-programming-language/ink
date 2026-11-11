@@ -100,6 +100,25 @@
     InkPanicLogger.flush(); \
   }((Message)), INK_DETAIL_DEBUG_BREAK_IF_ATTACHED(), INK_DETAIL_ABORT())
 
+// Evaluates the condition once; the engine and diagnostic arguments are evaluated only when true, in every build mode.
+#define REPORT_IF(Expression, Engine, Kind, ...) \
+  do \
+  { \
+    if (static_cast<bool>(Expression)) \
+    { \
+      (Engine).template report<Kind>(__VA_ARGS__); \
+    } \
+  } while (false)
+
+#define REPORT_ICE_IF(Expression, Engine, Kind, ...) \
+  do \
+  { \
+    if (static_cast<bool>(Expression)) \
+    { \
+      (Engine).template reportICE<Kind>(__VA_ARGS__); \
+    } \
+  } while (false)
+
 // One switch controls check and ensure reporting and debugger breaks, independently of NDEBUG.
 #define INK_ENABLE_ASSERTIONS (INK_BUILD_DEBUG || INK_BUILD_DEVELOPMENT)
 

@@ -102,7 +102,7 @@ IR 指令位于 `ink/ir/instruction`，`Instruction` 继承 `Value`，通过 `ge
 
 VM 后端由独立的 `ink::vm` 库提供，仅依赖 `ink::core`，命名空间为 `ink::vm`。头文件、实现和测试分别位于 `src/include/ink/backend/vm`、`src/lib/backend/vm` 和 `src/testcase/backend/vm`。`module` 目录提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 的所有权结构，`MachineInstructionBuilder` 按操作数类型创建并插入具体 VM 指令；模块与函数还提供常量、全局数据和栈帧布局描述，详见 [VM 内存模型与指令构建](docs/VM-Module.md)。`serialization` 目录提供模块文本序列化和反序列化，目前为临时实现，后续需要迭代为正式版，见 [TODO](docs/todo.md)。`opcode.def` 统一定义操作码、`r/m/i/b` 逻辑操作数形式、指令类别和条件码，`register.def` 为 BP、SP、PC、EFLAGS 定义独立编号。强类型指令模型提供 ADD、CMP、条件和无条件跳转、CALL 及 RET，EFLAGS 的 CF、ZF、SF、OF 由 ADD/CMP 隐式改写、条件跳转隐式读取；跳转在内存中引用同一函数的目标基本块，文本使用块标签。`AddressOperand` 支持寄存器或符号相对内存地址，`ImmediateOperand` 支持数值或符号地址加偏移；文本用 `[@name]` 表示内存访问，用 `@name` 表示地址值。`linker` 目录的 `ModuleLinker` 已实现强符号、Local/External、显式 Native、严格符号解析和深克隆，将多个 `MachineModule` 合并为一个独立拥有全部节点的逻辑模块，详见 [VM 模块链接器](docs/VM-Linker.md)。
 
-`executable` 目录保存镜像字节、入口、字节序、代码和数据段、native 函数导入、native 数据导入与八字节地址重定位记录，并提供结构校验。`vm::ByteOrder` 定义于 `ink/backend/vm/executable/byte_order.h`。镜像结构和校验见 [VM 可执行镜像模型](docs/VM-Executable.md)，编码方案见 [VM 指令编码格式讨论稿](docs/VM-Instruction-Format.md)。指令编码与解码、镜像布局与发射、磁盘读写、加载器、native adapter、lowering 和 VM 执行器仍未实现，运行时约定见 [VM 运行时设计讨论稿](docs/VM-Runtime.md)。
+`executable` 目录保存镜像字节、入口、统一动态导入符号、导出符号与八字节地址重定位记录，并提供结构校验。VM 镜像固定使用小端序。镜像结构和校验见 [VM 可执行镜像模型](docs/VM-Executable.md)，编码方案见 [VM 指令编码格式讨论稿](docs/VM-Instruction-Format.md)。指令编码与解码、镜像布局与发射、磁盘读写、加载器、native adapter、lowering 和 VM 执行器仍未实现，运行时约定见 [VM 运行时设计讨论稿](docs/VM-Runtime.md)。
 
 VM 函数的参数槽、返回槽、可变参数调用预留区和 CALL/RET 流程见 [VM 调用约定](docs/VM-Calling-Convention.md)。
 
