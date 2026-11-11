@@ -70,7 +70,7 @@ RegisterId:u8 | ByteOffset:i64
 
 VM 符号内存地址 `Symbol + ByteOffset` 转换为相对当前指令起始 PC 的有符号位移，使用 `PC = 02` 基址及八字节偏移编码。宿主符号使用 `ff` 地址基址标记；后续八字节字段由 `DynamicImportSymbolRelocation` 记录其位置、统一导入表 `DynamicImportSymbols` 的索引及 addend，留待加载器绑定。函数和数据取地址共用此表。`ff` 是地址基址标记，不是普通寄存器编号。Native 函数地址的可调用表示及 adapter 协议尚未确定。进程内的 `core::Name` 索引不能进入指令字节。
 
-`ExecutableEmitter::padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset)` 已实现本节两种地址字段的顺序追加。`InstructionOffset` 必须是当前指令起点。VM 符号已完成布局时直接写入 PC 相对位移；已登记在 `UnresolvedSymbol` 但尚未布局时，追加 PC 基址标记和八字节零占位，并在 `PendingStaticRelocationSymbol` 中记录位移字段的 `ImageOffset`、符号 `Name`、指令起点 `InstructionOffset` 和符号偏移 `Addend`，供后续回填。同一符号的多次引用分别记录；每次 `emit` 清空旧记录，回填步骤尚未实现。`scanUnResolvedSymbol` 缓存模块中显式 Native 声明的链接别名及宿主名称；地址操作数使用这些声明时，按宿主 `Name` 复用或添加导入，追加 `ff` 和八字节零占位，并为地址字段生成重定位。完整指令及函数发射仍待实现。
+`ExecutableEmitter::padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset)` 已实现本节两种地址字段的顺序追加。`InstructionOffset` 必须是当前指令起点。VM 符号已完成布局时直接写入 PC 相对位移；已登记在 `UnresolvedSymbol` 但尚未布局时，追加 PC 基址标记和八字节零占位，并在 `PendingStaticRelocationSymbol` 中记录位移字段的 `ImageOffset`、符号 `Name`、指令起点 `InstructionOffset` 和符号偏移 `Addend`，重定位 `Kind` 为 `PCRelative`、`Width` 为 64，供后续回填。同一符号的多次引用分别记录；每次 `emit` 清空旧记录，回填步骤尚未实现。`scanUnResolvedSymbol` 缓存模块中显式 Native 声明的链接别名及宿主名称；地址操作数使用这些声明时，按宿主 `Name` 复用或添加导入，追加 `ff` 和八字节零占位，并为地址字段生成重定位。完整指令及函数发射仍待实现。
 
 下面的竖线只用于说明字段边界，不属于字节流：
 
@@ -92,11 +92,11 @@ VM 符号内存地址 `Symbol + ByteOffset` 转换为相对当前指令起始 PC
 
 `ImmediateOperand::getValueKind()` 区分两种形式。`bits()` 只在数值形式返回位模式；`getSymbol()` 和 `getByteOffset()` 只在符号形式返回名称与偏移，各访问器用 `std::optional` 表示不适用的情况。负数值按相应位宽的二进制补码表示。当前寄存器目标的 64 位加法将右来源解释为有符号 64 位字节位移；普通整数结果的加法仍遵循操作码规定的位宽回绕语义。
 
-符号立即数表示 `AddressOf(Symbol) + ByteOffset`，不读取该地址处的内存。文本采用 `@name` 或 `@"escaped name"`，并可附加 `+ Offset` 或 `- Offset`。例如 `add64mii [bp + 16], @counter + 8, 1` 的左来源是 counter 地址加 8。文本读写保留完整的名称和 `i64` 偏移。后续镜像生成阶段需要将普通 VM 符号地址转换为相对镜像开头的无符号字节偏移，并检查 addend 运算及立即数字段范围，不能通过截断保留地址低位。宿主符号地址立即数需要使用 64 位字段及动态导入符号地址重定位，不能自动作为普通 VM 地址使用；Native 函数地址的可调用表示及 adapter 协议尚未确定。
+符号立即数表示 `AddressOf(Symbol) + ByteOffset`，不读取该地址处的内存。文本采用 `@name` 或 `@"escaped name"`，并可附加 `+ Offset` 或 `- Offset`。例如 `add64mii [bp + 16], @counter + 8, 1` 的左来源是 counter 地址加 8。文本读写保留完整的名称和 `i64` 偏移。普通 VM 符号地址编码为相对镜像开头的无符号字节偏移，必须检查 addend 运算及立即数字段范围，不能通过截断保留地址低位。宿主符号地址立即数使用 64 位字段及动态导入符号地址重定位；Native 函数地址的可调用表示及 adapter 协议尚未确定。
 
-按本文方案，普通数值立即数保留目标位宽的低位，负数按相应位宽的补码编码；`CallNativei` 的数值索引必须适合 u32 字段。符号地址的范围检查依赖最终镜像布局，不沿用普通数值截断规则。这些编码和范围检查尚未实现。
+`ExecutableEmitter::padOperand(const ImmediateOperand &Operand, std::uint32_t Width)` 已实现普通立即数字段的顺序追加，Width 仅接受 8、16、32、64。数值形式保留目标位宽的低位，负数按相应位宽的补码编码。已布局的 VM 符号先计算镜像偏移加有符号 addend，检查结果可表示为 `u64` 且适合目标字段后写入；未布局的 VM 符号追加 `Width / 8` 字节零，并在 `PendingStaticRelocationSymbol` 中保存字段起点、名称、addend、`Kind = ImageRelative` 和 Width，等待后续回填。宿主符号只允许 Width 为 64，追加八字节零及 `DynamicImportSymbolRelocation`，按宿主 Name 复用导入；这一立即数字段前没有 `ff` 标记。未知符号、VM 与 Native 定义冲突、非法位宽或符号地址越界均报告内部编译错误。静态回填及完整指令发射尚未实现。
 
-直接调用复用 `ImmediateOperand`，但按调用操作码解释目标：`Calli` 的立即数是 PC 相对位移或待解析的 VM 函数名，`CallNativei` 的立即数是 u32 导入索引或待解析的 Native 函数名。调用符号不允许非零 addend，具体规则见下文。
+直接调用复用 `ImmediateOperand`，但按调用操作码解释目标：`Calli` 的立即数是 PC 相对位移或待解析的 VM 函数名，`CallNativei` 的立即数是 u32 导入索引或待解析的 Native 函数名。调用符号不允许非零 addend，且 `CallNativei` 的数值索引必须适合 u32 字段；这些调用专用编码仍待指令发射层实现，不能直接沿用普通立即数的符号地址编码，具体规则见下文。
 
 ## 完整指令示例
 

@@ -18,6 +18,7 @@ namespace ink::vm
   class MachineModule;
   class AddressOperand;
   class RegisterOperand;
+  class ImmediateOperand;
   enum class RegisterId : std::uint8_t;
 
   class ExecutableEmitter
@@ -43,20 +44,33 @@ namespace ink::vm
       // Appends a register identifier and its signed byte offset without dereferencing memory.
       void padOperand(const RegisterOperand &Operand);
 
+      // Appends an ordinary immediate field; direct-call targets require opcode-specific encoding.
+      void padOperand(const ImmediateOperand &Operand, std::uint32_t Width);
+
       // Appends a nine-byte address operand; unresolved VM symbols reserve a zero displacement and queue a static relocation.
       void padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset);
 
     private:
+      enum class StaticRelocationKind : std::uint8_t
+      {
+        PCRelative,
+        ImageRelative,
+      };
+
       struct StaticRelocationSymbol
       {
           std::uint64_t ImageOffset = 0;
           core::Name Name = core::NAME_None;
           std::uint64_t InstructionOffset = 0;
           std::int64_t Addend = 0;
+          StaticRelocationKind Kind = StaticRelocationKind::PCRelative;
+          std::uint32_t Width = 64;
       };
 
       void padInteger(std::uint64_t Bits, std::uint32_t Width);
       void padRegister(RegisterId Register, std::int64_t ByteOffset);
+      std::uint64_t resolveSymbolOffset(std::uint64_t SymbolOffset, std::int64_t Addend) const;
+      std::uint32_t getOrAddNativeSymbol(const DynamicImportSymbol &Import);
       void padUnresolvedSymbol(core::Name Symbol, std::int64_t Addend, std::uint64_t InstructionOffset);
       void padResolvedSymbol(std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset);
       void padNativeSymbol(const DynamicImportSymbol &Import, std::int64_t Addend);
