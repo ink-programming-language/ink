@@ -66,7 +66,7 @@ RegisterId:u8
 
 寄存器地址只接受 BP、SP、PC，EFLAGS 和未知编号必须拒绝。`ByteOffset` 在这一形式中占八字节，表示相对寄存器基址的有符号字节位移。
 
-按本文方案，VM 符号内存地址 `Symbol + ByteOffset` 需转换为相对当前指令起始 PC 的有符号位移，使用 `PC = 02` 基址及八字节偏移编码。宿主数据符号使用 `ff` 地址基址标记；后续八字节字段由 `NativeDataRelocation` 记录其位置、导入索引及 addend，留待加载器绑定。上述编码、逻辑符号转换和重定位记录生成尚未实现。`ff` 是方案中的地址基址标记，不是普通寄存器编号。Native 函数符号作为内存地址时的可调用 adapter 指针协议尚未确定。进程内的 `core::Name` 索引不能进入指令字节。
+按本文方案，VM 符号内存地址 `Symbol + ByteOffset` 需转换为相对当前指令起始 PC 的有符号位移，使用 `PC = 02` 基址及八字节偏移编码。宿主符号使用 `ff` 地址基址标记；后续八字节字段由 `DynamicImportSymbolRelocation` 记录其位置、统一导入表 `DynamicImportSymbols` 的索引及 addend，留待加载器绑定。函数和数据取地址共用此表。上述编码、逻辑符号转换和重定位记录生成尚未实现。`ff` 是方案中的地址基址标记，不是普通寄存器编号。Native 函数地址的可调用表示及 adapter 协议尚未确定。进程内的 `core::Name` 索引不能进入指令字节。
 
 下面的竖线只用于说明字段边界，不属于字节流：
 
@@ -88,7 +88,7 @@ RegisterId:u8
 
 `ImmediateOperand::getValueKind()` 区分两种形式。`bits()` 只在数值形式返回位模式；`getSymbol()` 和 `getByteOffset()` 只在符号形式返回名称与偏移，各访问器用 `std::optional` 表示不适用的情况。负数值按相应位宽的二进制补码表示。当前寄存器目标的 64 位加法将右来源解释为有符号 64 位字节位移；普通整数结果的加法仍遵循操作码规定的位宽回绕语义。
 
-符号立即数表示 `AddressOf(Symbol) + ByteOffset`，不读取该地址处的内存。文本采用 `@name` 或 `@"escaped name"`，并可附加 `+ Offset` 或 `- Offset`。例如 `add64mii [bp + 16], @counter + 8, 1` 的左来源是 counter 地址加 8。文本读写保留完整的名称和 `i64` 偏移。后续镜像生成阶段需要将普通 VM 符号地址转换为相对镜像开头的无符号字节偏移，并检查 addend 运算及立即数字段范围，不能通过截断保留地址低位。宿主数据地址立即数需要使用 64 位字段及数据地址重定位，不能自动作为普通 VM 地址使用；Native 函数地址的 adapter 指针协议尚未确定。
+符号立即数表示 `AddressOf(Symbol) + ByteOffset`，不读取该地址处的内存。文本采用 `@name` 或 `@"escaped name"`，并可附加 `+ Offset` 或 `- Offset`。例如 `add64mii [bp + 16], @counter + 8, 1` 的左来源是 counter 地址加 8。文本读写保留完整的名称和 `i64` 偏移。后续镜像生成阶段需要将普通 VM 符号地址转换为相对镜像开头的无符号字节偏移，并检查 addend 运算及立即数字段范围，不能通过截断保留地址低位。宿主符号地址立即数需要使用 64 位字段及动态导入符号地址重定位，不能自动作为普通 VM 地址使用；Native 函数地址的可调用表示及 adapter 协议尚未确定。
 
 按本文方案，普通数值立即数保留目标位宽的低位，负数按相应位宽的补码编码；`CallNativei` 的数值索引必须适合 u32 字段。符号地址的范围检查依赖最终镜像布局，不沿用普通数值截断规则。这些编码和范围检查尚未实现。
 
@@ -180,7 +180,7 @@ callNative [sp - 8]
 callNative [@native_pointer_slot]
 ```
 
-`Calli` 的数值立即数保存相对当前指令起始 PC 的有符号 i64 位模式；符号立即数表示 VM 函数入口，后续镜像生成阶段需要根据最终布局计算该位移。`CallNativei` 的数值立即数必须可表示为 u32，作为 native 导入索引；符号立即数表示显式 Native 函数声明的链接名，后续需转换为导入索引。两种直接调用都不接受符号的非零 addend。名称支持 `@"escaped name"` 转义形式。
+`Calli` 的数值立即数保存相对当前指令起始 PC 的有符号 i64 位模式；符号立即数表示 VM 函数入口，后续镜像生成阶段需要根据最终布局计算该位移。`CallNativei` 的数值立即数必须可表示为 u32，作为统一动态导入表 `DynamicImportSymbols` 的索引；符号立即数表示显式 Native 函数声明的链接名，后续需转换为导入索引。两种直接调用都不接受符号的非零 addend。名称支持 `@"escaped name"` 转义形式。
 
 链接时，直接 `call @name` 的目标必须是 VM 函数定义，支持本模块 Local 函数以及跨模块 External 函数；直接 `callNative @name` 的目标必须是当前输入显式声明的 Native 函数。全局数据、Native 数据和错误调用类别都会被拒绝。数值目标不参与符号绑定；数值字段编码、镜像中的指令边界及实际导入表范围检查仍需由后续编码、镜像校验、加载及执行阶段完成。
 
@@ -191,11 +191,11 @@ callNative [@native_pointer_slot]
 | C++ 操作码 | 文本名称 | 编码 | 操作数字段 | 总长度 |
 | --- | --- | --- | --- | --- |
 | `Calli` | `call` | `003b` | `TargetOffset:i64`，相对当前指令起始 PC 的有符号字节位移 | 10 字节 |
-| `CallNativei` | `callNative` | `003c` | `NativeFunctionIndex:u32`，引用 `ExecutableFile::NativeFunctions` | 6 字节 |
+| `CallNativei` | `callNative` | `003c` | `DynamicImportSymbolIndex:u32`，引用 `ExecutableFile::DynamicImportSymbols` | 6 字节 |
 | `Callm` | `call` | `003d` | 寄存器相对 `m`：`RegisterId:u8, ByteOffset:i64`，读取 64 位 VM 函数地址 | 11 字节 |
 | `CallNativem` | `callNative` | `003e` | 寄存器相对 `m`：`RegisterId:u8, ByteOffset:i64`，读取 64 位 native 可调用指针 | 11 字节 |
 
-`Calli` 的目标为 `PC + TargetOffset`，后继地址为 `NextPC = PC + 10`；`CallNativei` 的后继地址为 `NextPC = PC + 6`。间接形式的后继地址为 `PC + 11`，符号内存地址按上文转换为 PC 相对或宿主地址形式。函数名称不进入字节编码，按索引导入的 native 函数地址不回填到镜像，也不使用数据地址重定位表。符号调用目标随 Local 重命名和 Native 别名合并一并改写，文本读取只恢复逻辑操作数，不代替链接检查。
+`Calli` 的目标为 `PC + TargetOffset`，后继地址为 `NextPC = PC + 10`；`CallNativei` 的后继地址为 `NextPC = PC + 6`。间接形式的后继地址为 `PC + 11`，符号内存地址按上文转换为 PC 相对或宿主地址形式。函数名称不进入字节编码，直接 native 调用使用统一符号表索引，无需在调用指令中回填地址；同一符号的取地址用途则通过动态导入符号重定位填写地址。统一导入表不保存调用约定，调用描述及 adapter 协议仍待实现。符号调用目标随 Local 重命名和 Native 别名合并一并改写，文本读取只恢复逻辑操作数，不代替链接检查。
 
 四条指令的类别都是 `InstructionCategory::Call`，都没有显式结果目标，也不是基本块终结指令。`isCall()` 识别全部调用，`isNativeCall()` 识别两种 `callNative` 形式。它们都不读取 EFLAGS，并通过 `writtenEFlagsMask() == ArithmeticEFlagsMask` 表达 CF、ZF、SF、OF 在调用后不可依赖；这不规定返回后的具体标志值。逻辑指令、构建、遍历、文本读写和链接接入均已实现；指令编码与解码、执行状态转换、调用区自动生成及宿主 ABI adapter 尚未实现。参数、返回槽和可变参数调用预留区布局见 [VM 调用约定](VM-Calling-Convention.md)。
 
@@ -237,4 +237,4 @@ namespace ink::vm
 
 指令编码有效与运行时可执行是不同层次的检查。VM 符号须由链接阶段解析，宿主导入由加载阶段绑定；寄存器写权限、指令边界、有效地址计算、访存范围和栈规则也须按执行语义检查。当前操作数构造函数不完成这些检查。
 
-镜像布局与发射、加载和预解码阶段仍待实现。现有 `ExecutableFile::Sections` 模型区分代码、只读数据和可写数据；后续预解码应只遍历 Code 范围。运行时表示必须与逻辑符号名称、指令字节编码和宿主绑定保持清晰边界；任何宿主地址缓存均不得作为进程无关的可执行文件内容保存。
+镜像布局与发射、加载和预解码阶段仍待实现。`ExecutableFile` 保存扁平镜像，不携带代码与数据的段范围；后续预解码如何识别代码范围及建立指令边界仍待确定。运行时表示必须与逻辑符号名称、指令字节编码和宿主绑定保持清晰边界；任何宿主地址缓存均不得作为进程无关的可执行文件内容保存。

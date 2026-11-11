@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ink/backend/vm/executable/native_data_import.h"
-#include "ink/backend/vm/executable/native_function_import.h"
+#include "ink/backend/vm/module/native_data_import.h"
+#include "ink/backend/vm/module/native_function_import.h"
 #include "ink/core/name/name.h"
 
 #include <cstdint>

@@ -45,90 +45,47 @@ namespace ink::vm
       return Provider == NativeSymbolProvider::Native || Provider == NativeSymbolProvider::SystemApi;
     }
 
-    void validateSections(const ExecutableFile &Executable, const core::DiagnosticEngine &Diagnostics)
-    {
-      const auto &Sections = Executable.getSections();
-      if (Sections.empty())
-      {
-        return;
-      }
-      std::uint64_t NextOffset = 0;
-      bool EntryInCode = false;
-      for (std::size_t Index = 0; Index < Sections.size(); ++Index)
-      {
-        const ExecutableSection &Section = Sections[Index];
-        if (Section.Kind != ExecutableSectionKind::Code && Section.Kind != ExecutableSectionKind::ReadOnlyData && Section.Kind != ExecutableSectionKind::WritableData)
-        {
-          failRecord(Diagnostics, "section", Index, "kind is invalid");
-        }
-        if (Section.ByteSize == 0)
-        {
-          failRecord(Diagnostics, "section", Index, "section is empty");
-        }
-        if (Section.ImageOffset != NextOffset)
-        {
-          failRecord(Diagnostics, "section", Index, "sections must be ordered, contiguous, and nonoverlapping");
-        }
-        if (Section.ImageOffset > Executable.byteSize() || Section.ByteSize > Executable.byteSize() - Section.ImageOffset)
-        {
-          failRecord(Diagnostics, "section", Index, "section is outside the image");
-        }
-        NextOffset = Section.ImageOffset + Section.ByteSize;
-        if (Section.Kind == ExecutableSectionKind::Code && Executable.getEntryOffset() >= Section.ImageOffset && Executable.getEntryOffset() < NextOffset)
-        {
-          EntryInCode = true;
-        }
-      }
-      if (NextOffset != Executable.byteSize())
-      {
-        failValidation(Diagnostics, "section table", "sections do not cover the complete image");
-      }
-      if (!EntryInCode)
-      {
-        failValidation(Diagnostics, "image", "entry offset is outside code sections");
-      }
-    }
-
-    void validateImports(const std::vector<NativeFunctionImport> &Imports, const core::DiagnosticEngine &Diagnostics)
+    void validateImports(const std::vector<DynamicImportSymbol> &Imports, const core::DiagnosticEngine &Diagnostics)
     {
       const core::NamePool &Names = core::NamePool::instance();
       std::unordered_map<NativeSymbolProvider, std::unordered_set<core::Name>> NamesByProvider;
       for (std::size_t Index = 0; Index < Imports.size(); ++Index)
       {
-        const NativeFunctionImport &Import = Imports[Index];
+        const DynamicImportSymbol &Import = Imports[Index];
         if (!Names.contains(Import.Name))
         {
-          failRecord(Diagnostics, "native function import", Index, "name is not registered in the name pool");
+          failRecord(Diagnostics, "dynamic import symbol", Index, "name is not registered in the name pool");
         }
         if (!hasValidProvider(Import.Provider))
         {
-          failRecord(Diagnostics, "native function import", Index, "provider is invalid");
-        }
-        if (Import.CallKind != NativeCallKind::C && Import.CallKind != NativeCallKind::InkNative)
-        {
-          failRecord(Diagnostics, "native function import", Index, "call kind is invalid");
+          failRecord(Diagnostics, "dynamic import symbol", Index, "provider is invalid");
         }
         if (!NamesByProvider[Import.Provider].insert(Import.Name).second)
         {
-          failRecord(Diagnostics, "native function import", Index, "provider and name are duplicated");
+          failRecord(Diagnostics, "dynamic import symbol", Index, "provider and name are duplicated");
         }
       }
     }
 
-    void validateImports(const std::vector<NativeDataImport> &Imports, const core::DiagnosticEngine &Diagnostics)
+    void validateExports(const ExecutableFile &Executable, const core::DiagnosticEngine &Diagnostics)
     {
       const core::NamePool &Names = core::NamePool::instance();
-      std::unordered_set<core::Name> ImportedNames;
-      for (std::size_t Index = 0; Index < Imports.size(); ++Index)
+      std::unordered_set<core::Name> ExportedNames;
+      const auto &Exports = Executable.getExportSymbols();
+      for (std::size_t Index = 0; Index < Exports.size(); ++Index)
       {
-        const NativeDataImport &Import = Imports[Index];
-        if (!Names.contains(Import.Name))
+        const ExportSymbol &Export = Exports[Index];
+        if (!Names.contains(Export.Name))
         {
-          failRecord(Diagnostics, "native data import", Index, "name is not registered in the name pool");
+          failRecord(Diagnostics, "export symbol", Index, "name is not registered in the name pool");
         }
-        if (!ImportedNames.insert(Import.Name).second)
+        if (!ExportedNames.insert(Export.Name).second)
         {
-          failRecord(Diagnostics, "native data import", Index, "name is duplicated");
+          failRecord(Diagnostics, "export symbol", Index, "name is duplicated");
+        }
+        if (Export.Offset >= Executable.byteSize())
+        {
+          failRecord(Diagnostics, "export symbol", Index, "offset is outside the image");
         }
       }
     }
@@ -136,9 +93,8 @@ namespace ink::vm
 
   void ExecutableFileValidator::validate(const ExecutableFile &Executable, const core::DiagnosticEngine &Diagnostics) noexcept
   {
-    const auto &Functions = Executable.getNativeFunctions();
-    const auto &Data = Executable.getNativeData();
-    const auto &Relocations = Executable.getNativeDataRelocations();
+    const auto &Imports = Executable.getDynamicImportSymbols();
+    const auto &Relocations = Executable.getDynamicImportSymbolRelocations();
     const std::uint64_t ImageSize = static_cast<std::uint64_t>(Executable.getImage().size());
     if (Executable.getEntryOffset() >= ImageSize)
     {
@@ -148,33 +104,28 @@ namespace ink::vm
     {
       failValidation(Diagnostics, "image", "byte order is invalid");
     }
-    validateSections(Executable, Diagnostics);
-    if (hasTooManyRecords(Functions.size()))
+    if (hasTooManyRecords(Imports.size()))
     {
-      failValidation(Diagnostics, "native function table", "import count exceeds the u32 index range");
-    }
-    if (hasTooManyRecords(Data.size()))
-    {
-      failValidation(Diagnostics, "native data table", "import count exceeds the u32 index range");
+      failValidation(Diagnostics, "dynamic import symbol table", "import count exceeds the u32 index range");
     }
 
-    validateImports(Functions, Diagnostics);
-    validateImports(Data, Diagnostics);
+    validateImports(Imports, Diagnostics);
+    validateExports(Executable, Diagnostics);
 
     std::vector<RelocationRange> Ranges;
     Ranges.reserve(Relocations.size());
     for (std::size_t Index = 0; Index < Relocations.size(); ++Index)
     {
-      const NativeDataRelocation &Relocation = Relocations[Index];
-      if (Relocation.SymbolIndex >= Data.size())
+      const DynamicImportSymbolRelocation &Relocation = Relocations[Index];
+      if (Relocation.SymbolIndex >= Imports.size())
       {
-        failRecord(Diagnostics, "native data relocation", Index, "symbol index does not name a native data import");
+        failRecord(Diagnostics, "dynamic import symbol relocation", Index, "symbol index does not name a dynamic import symbol");
       }
-      if (Relocation.ImageOffset > ImageSize || NativeDataRelocation::ByteSize > ImageSize - Relocation.ImageOffset)
+      if (Relocation.ImageOffset > ImageSize || DynamicImportSymbolRelocation::ByteSize > ImageSize - Relocation.ImageOffset)
       {
-        failRecord(Diagnostics, "native data relocation", Index, "address field is outside the image");
+        failRecord(Diagnostics, "dynamic import symbol relocation", Index, "address field is outside the image");
       }
-      Ranges.push_back({Relocation.ImageOffset, Relocation.ImageOffset + NativeDataRelocation::ByteSize, Index});
+      Ranges.push_back({Relocation.ImageOffset, Relocation.ImageOffset + DynamicImportSymbolRelocation::ByteSize, Index});
     }
     const auto ByOffset = [](const RelocationRange &LHS, const RelocationRange &RHS)
     {
@@ -187,7 +138,7 @@ namespace ink::vm
       {
         const std::uint64_t RecordIndex = std::max(Ranges[Index - 1].RecordIndex, Ranges[Index].RecordIndex);
         const std::uint64_t OtherIndex = std::min(Ranges[Index - 1].RecordIndex, Ranges[Index].RecordIndex);
-        failRecord(Diagnostics, "native data relocation", RecordIndex, fmt::format("address field overlaps native data relocation #{}", OtherIndex));
+        failRecord(Diagnostics, "dynamic import symbol relocation", RecordIndex, fmt::format("address field overlaps dynamic import symbol relocation #{}", OtherIndex));
       }
     }
   }

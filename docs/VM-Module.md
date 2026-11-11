@@ -91,7 +91,7 @@ Builder.create<Opcode::CallNativem>(AddressOperand(PointerSlotName, 8));
 
 `isCall()` 识别全部调用，`isNativeCall()` 识别两种 Native 调用。调用没有显式结果目标或参数操作数，也不是终结指令；返回后继续执行后继指令。四者的 `readEFlagsMask()` 为零，`writtenEFlagsMask()` 为 `ArithmeticEFlagsMask`，表示调用后不能依赖原先的算术标志。
 
-`Calli` 的数值目标为相对当前 PC 的有符号 i64 位模式，符号目标绑定 VM 函数定义；`CallNativei` 的数值目标为 u32 native 导入索引，符号目标绑定显式 Native 函数声明。直接调用的符号 addend 必须为零。`Callm` 和 `CallNativem` 分别从有效地址读取 64 位 VM 函数地址和 native 可调用指针，后者不是导入索引。间接目标中的符号只定位存放指针的内存，按普通地址符号规则解析。
+`Calli` 的数值目标为相对当前 PC 的有符号 i64 位模式，符号目标绑定 VM 函数定义；`CallNativei` 的数值目标为统一动态导入表 `DynamicImportSymbols` 的 u32 索引，符号目标绑定显式 Native 函数声明。直接调用的符号 addend 必须为零。`Callm` 和 `CallNativem` 分别从有效地址读取 64 位 VM 函数地址和 native 可调用指针，后者不是导入索引。间接目标中的符号只定位存放指针的内存，按普通地址符号规则解析。
 
 Builder 不解析名称或校验调用签名。逻辑指令、文本和链接接入均已实现；指令编码与解码尚未实现。参数与返回槽的布局约定见 [VM 调用约定](VM-Calling-Convention.md)，其自动代码生成和调用执行尚未实现。native 可调用指针的 adapter 与宿主 ABI 协议也仍待确定。
 
@@ -141,12 +141,12 @@ Builder 不解析名称或校验调用签名。逻辑指令、文本和链接接
 .native_data @vm_buffer, @host_buffer
 ```
 
-函数 Provider 只接受 `native/system_api`，调用类别只接受 `c/ink_native`，数据声明没有 Provider。文本读取只检查字段、名称和结构，不把未解析符号自动归类为 Native，也不执行模块链接。
+函数 Provider 只接受 `native/system_api`，调用类别只接受 `c/ink_native`，数据声明没有 Provider。对应的 `NativeFunctionImport`、`NativeCallKind` 和 `NativeDataImport` 定义在 `module/native_function_import.h`、`module/native_data_import.h`，保留逻辑模块的种类和调用类别检查。镜像中的 `DynamicImportSymbols` 统一表示函数和数据，只保存解析身份；逻辑调用类别到执行描述或 adapter 的传递尚未实现。文本读取只检查字段、名称和结构，不把未解析符号自动归类为 Native，也不执行模块链接。
 
 ## 链接与可执行镜像边界
 
 已实现的模块链接流水线为 `MachineModule × N → ModuleLinker → MachineModule`。`linker` 目录的 `ModuleLinker` 支持强符号、Local/External、显式 Native、严格解析和深克隆，具体接口与冲突规则见 [VM 模块链接器](VM-Linker.md)。代码和数据的最终布局、符号地址计算、基本块目标到 PC 相对位移的转换及镜像发射尚未实现。按既有编码约定，VM 符号内存地址使用 PC 相对地址，普通 VM 符号立即数使用相对镜像开头的字节偏移；进程内的 Name 句柄不能进入字节流。
 
-`executable` 目录提供可执行镜像的内存模型 `ExecutableFile`，统一保存镜像字节、入口偏移、字节序、代码与数据段、按索引引用的宿主函数导入、宿主数据导入和数据地址重定位记录，并提供结构校验；接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。`ModuleLinker` 输出仍是逻辑模块，不生成上述镜像内容。
+`executable` 目录提供可执行镜像的内存模型 `ExecutableFile`，保存镜像字节、入口偏移、字节序、统一动态导入符号表 `DynamicImportSymbols`、动态导入符号地址重定位 `DynamicImportSymbolRelocations`，以及记录导出名称和镜像内偏移的 `ExportSymbols`，并提供结构校验；模型不保存段表，接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。`ModuleLinker` 输出仍是逻辑模块，不生成上述镜像内容。
 
 当前尚未实现 lowering pass、指令编码与解码、镜像布局与发射、镜像磁盘读写、加载器、native adapter 或 VM 执行器；创建和链接逻辑模块不会生成指令字节。编码方案见 [VM 指令编码格式讨论稿](VM-Instruction-Format.md)，运行时规划见 [VM 运行时设计](VM-Runtime.md)，参数、返回槽和可变参数调用预留区布局约定见 [VM 调用约定](VM-Calling-Convention.md)。

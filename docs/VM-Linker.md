@@ -25,7 +25,7 @@ auto Linked = ModuleLinker::link(Inputs, Diagnostics, OutputName);
 
 直接调用的符号 `ImmediateOperand` 按原输入模块的作用域解析，addend 必须为零。`Calli` 的符号目标只能绑定到 VM 函数定义，支持同模块 Local 目标、跨模块 External 目标和递归引用；`CallNativei` 的符号目标只能绑定到该输入显式声明的 Native 函数。直接符号调用指向全局数据、Native 数据或另一类函数时会报错。
 
-数值直接目标不参与符号绑定：`Calli` 保存 PC 相对 i64 位模式，`CallNativei` 保存 u32 导入索引。`Callm`、`CallNativem` 的 `AddressOperand` 定位存放 64 位可调用目标的内存；其中的符号按普通地址符号规则解析，不将指针槽误认成直接函数目标。链接器不检查内存中的实际指针值，也不校验参数和返回值的 ABI 兼容性。
+数值直接目标不参与符号绑定：`Calli` 保存 PC 相对 i64 位模式，`CallNativei` 保存统一动态导入表 `DynamicImportSymbols` 的 u32 索引。`Callm`、`CallNativem` 的 `AddressOperand` 定位存放 64 位可调用目标的内存；其中的符号按普通地址符号规则解析，不将指针槽误认成直接函数目标。链接器不检查内存中的实际指针值，也不校验参数和返回值的 ABI 兼容性。
 
 ## Native 声明
 
@@ -35,7 +35,7 @@ auto Linked = ModuleLinker::link(Inputs, Diagnostics, OutputName);
 
 各输入必须显式声明自己引用的 Native 符号。兼容的重复声明会合并；多个 VM 名称引用同一宿主身份时，输出选择统一的 VM 链接名并重写引用。同一宿主函数身份的 CallKind 不一致会报错；同一 VM 名称指向不同宿主身份、Native 函数和数据重名、Native 名称与 External 定义冲突也会报错。普通外部声明不能同时充当 Native 声明。
 
-输出保留合并后的 Native 声明及逻辑符号引用。链接器不解析宿主地址，不生成函数导入索引或数据地址重定位，不为普通 VM 内存访问自动增加宿主访存能力。
+输出保留合并后的 Native 声明及逻辑符号引用。`NativeFunctionImport`、`NativeCallKind` 和 `NativeDataImport` 位于 `module/native_function_import.h`、`module/native_data_import.h`，用于逻辑链接的种类及调用类别检查。可执行镜像使用统一的 `DynamicImportSymbols`，只保存 `Provider + Name` 解析身份，不保留两套导入表；调用类别到执行描述或 adapter 的传递尚未实现。链接器不解析宿主地址，不生成动态导入索引、动态导入符号地址重定位或导出表，不为普通 VM 内存访问自动增加宿主访存能力。
 
 ## 深克隆与执行镜像边界
 
@@ -55,7 +55,7 @@ auto Linked = ModuleLinker::link(Inputs, Diagnostics, OutputName);
 MachineModule × N → ModuleLinker → MachineModule
 ```
 
-当前已支持直接调用的函数种类检查及间接调用指针槽的普通符号绑定。普通 VM 符号地址计算、native 函数导入索引分配、数据地址重定位记录生成以及指令编码与解码尚未实现。机器级函数签名、完整 ABI 校验、调用执行及全局初始化字节内部的符号地址记录仍待补充。全局指针和函数指针表不能仅凭原始初始化字节自动建立符号引用；链接器不会推测某段原始字节是否表示地址。所有输入由调用方保证采用兼容的 VM 与 ABI 配置。weak、COMDAT、部分链接、归档提取和不可达代码剔除也不在第一版范围内。
+当前已支持直接调用的函数种类检查及间接调用指针槽的普通符号绑定。普通 VM 符号地址计算、动态导入符号索引分配、地址重定位记录生成、导出选择及偏移计算，以及指令编码与解码尚未实现。机器级函数签名、完整 ABI 校验、调用执行及全局初始化字节内部的符号地址记录仍待补充。全局指针和函数指针表不能仅凭原始初始化字节自动建立符号引用；链接器不会推测某段原始字节是否表示地址。所有输入由调用方保证采用兼容的 VM 与 ABI 配置。weak、COMDAT、部分链接、归档提取和不可达代码剔除也不在第一版范围内。
 
 ## 文本格式
 

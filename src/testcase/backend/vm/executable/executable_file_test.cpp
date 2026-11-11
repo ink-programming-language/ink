@@ -21,19 +21,20 @@ namespace ink::vm::test
       ExecutableFile Executable;
       Executable.getImage().resize(24, 0xFF);
       Executable.getEntryOffset() = 23;
-      Executable.getNativeFunctions() = {
-          {NativeSymbolProvider::Native, Names.intern("counter"), NativeCallKind::C},
-          {NativeSymbolProvider::SystemApi, Names.intern("counter"), NativeCallKind::InkNative},
+      Executable.getDynamicImportSymbols() = {
+          {NativeSymbolProvider::Native, Names.intern("counter")},
+          {NativeSymbolProvider::SystemApi, Names.intern("counter")},
+          {NativeSymbolProvider::Native, Names.intern("buffer")},
       };
-      Executable.getNativeData() = {
-          {Names.intern("counter")},
-          {Names.intern("second_counter")},
-          {Names.intern("buffer")},
-      };
-      Executable.getNativeDataRelocations() = {
+      Executable.getDynamicImportSymbolRelocations() = {
           {16, 2, 0},
-          {8, 1, std::numeric_limits<std::int64_t>::max()},
+          {8, 0, std::numeric_limits<std::int64_t>::max()},
           {0, 0, std::numeric_limits<std::int64_t>::min()},
+      };
+      Executable.getExportSymbols() = {
+          {Names.intern("counter"), 0},
+          {Names.intern("entry"), 23},
+          {Names.intern("entry_alias"), 23},
       };
       return Executable;
     }
@@ -45,30 +46,26 @@ namespace ink::vm::test
     }
   } // namespace
 
-  template <typename ImportType>
-  concept HasProvider = requires(ImportType Import)
-  {
-    Import.Provider;
-  };
-
   static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getImage()), std::vector<std::uint8_t> &>);
   static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getImage()), const std::vector<std::uint8_t> &>);
   static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getEntryOffset()), std::uint64_t &>);
   static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getEntryOffset()), const std::uint64_t &>);
-  static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getNativeFunctions()), std::vector<NativeFunctionImport> &>);
-  static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getNativeFunctions()), const std::vector<NativeFunctionImport> &>);
-  static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getNativeData()), std::vector<NativeDataImport> &>);
-  static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getNativeData()), const std::vector<NativeDataImport> &>);
-  static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getNativeDataRelocations()), std::vector<NativeDataRelocation> &>);
-  static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getNativeDataRelocations()), const std::vector<NativeDataRelocation> &>);
+  static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getByteOrder()), ByteOrder &>);
+  static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getByteOrder()), const ByteOrder &>);
+  static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getDynamicImportSymbols()), std::vector<DynamicImportSymbol> &>);
+  static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getDynamicImportSymbols()), const std::vector<DynamicImportSymbol> &>);
+  static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getDynamicImportSymbolRelocations()), std::vector<DynamicImportSymbolRelocation> &>);
+  static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getDynamicImportSymbolRelocations()), const std::vector<DynamicImportSymbolRelocation> &>);
+  static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getExportSymbols()), std::vector<ExportSymbol> &>);
+  static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getExportSymbols()), const std::vector<ExportSymbol> &>);
   static_assert(std::is_same_v<decltype(ExecutableFileValidator::validate(std::declval<const ExecutableFile &>(), std::declval<const core::DiagnosticEngine &>())), void>);
   static_assert(noexcept(ExecutableFileValidator::validate(std::declval<const ExecutableFile &>(), std::declval<const core::DiagnosticEngine &>())));
   static_assert(std::is_copy_constructible_v<ExecutableFile> && std::is_copy_assignable_v<ExecutableFile>);
   static_assert(std::is_move_constructible_v<ExecutableFile> && std::is_move_assignable_v<ExecutableFile>);
-  static_assert(std::is_same_v<decltype(NativeFunctionImport{}.Name), core::Name>);
-  static_assert(std::is_same_v<decltype(NativeDataImport{}.Name), core::Name>);
-  static_assert(HasProvider<NativeFunctionImport> && !HasProvider<NativeDataImport>);
-  static_assert(NativeDataRelocation::ByteSize == 8);
+  static_assert(std::is_same_v<decltype(DynamicImportSymbol{}.Name), core::Name>);
+  static_assert(std::is_same_v<decltype(ExportSymbol{}.Name), core::Name>);
+  static_assert(std::is_same_v<decltype(ExportSymbol{}.Offset), std::uint64_t>);
+  static_assert(DynamicImportSymbolRelocation::ByteSize == 8);
 
   // Empty images have no entry, and nonempty images reject offsets at their end or at uint64 maximum.
   TEST(VMExecutableFileDeathTest, RequiresTheEntryToIdentifyAnExistingImageByte)
@@ -77,9 +74,10 @@ namespace ink::vm::test
     ExecutableFile Executable;
     EXPECT_EQ(Executable.byteSize(), 0U);
     EXPECT_EQ(Executable.getEntryOffset(), 0U);
-    EXPECT_TRUE(Executable.getNativeFunctions().empty());
-    EXPECT_TRUE(Executable.getNativeData().empty());
-    EXPECT_TRUE(Executable.getNativeDataRelocations().empty());
+    EXPECT_EQ(Executable.getByteOrder(), ByteOrder::Little);
+    EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
+    EXPECT_TRUE(Executable.getExportSymbols().empty());
     expectExecutableICE(Executable, "INK-V0002.*image.*entry offset is outside the image");
 
     Executable.getImage().push_back(0xFF);
@@ -91,155 +89,188 @@ namespace ink::vm::test
     expectExecutableICE(Executable, "INK-V0002.*image.*entry offset is outside the image");
   }
 
-  // Function imports need no data relocations, and either provider category may use C or InkNative calls.
-  TEST(VMExecutableFileTest, AcceptsFunctionImportsWithIndependentProvidersAndCallKinds)
+  // Imports need no relocation records, and equal names in distinct provider domains remain separate symbols.
+  TEST(VMExecutableFileTest, AcceptsImportsWithoutRelocationsFromBothProviders)
   {
     const core::DiagnosticEngine Diagnostics;
     core::NamePool &Names = core::NamePool::instance();
     ExecutableFile Executable;
     Executable.getImage().push_back(0xFF);
-    Executable.getNativeFunctions() = {
-        {NativeSymbolProvider::Native, Names.intern("c"), NativeCallKind::C},
-        {NativeSymbolProvider::Native, Names.intern("ink"), NativeCallKind::InkNative},
-        {NativeSymbolProvider::SystemApi, Names.intern("c"), NativeCallKind::C},
-        {NativeSymbolProvider::SystemApi, Names.intern("ink"), NativeCallKind::InkNative},
+    Executable.getDynamicImportSymbols() = {
+        {NativeSymbolProvider::Native, Names.intern("shared")},
+        {NativeSymbolProvider::SystemApi, Names.intern("shared")},
     };
-    EXPECT_TRUE(Executable.getNativeData().empty());
-    EXPECT_TRUE(Executable.getNativeDataRelocations().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
+    EXPECT_TRUE(Executable.getExportSymbols().empty());
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
-  // Opaque images accept a last-byte entry, reverse-ordered adjacent data patches, and the same name in both import tables.
-  TEST(VMExecutableFileTest, AcceptsIndependentImportTablesAndAdjacentDataRelocations)
+  // A unified symbol may serve multiple unsorted adjacent address fields with arbitrary signed addends in either byte order.
+  TEST(VMExecutableFileTest, AcceptsSharedImportSymbolsAndAdjacentRelocations)
   {
     const core::DiagnosticEngine Diagnostics;
-    const ExecutableFile Executable = makeValidExecutableFile();
+    ExecutableFile Executable = makeValidExecutableFile();
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+    Executable.getByteOrder() = ByteOrder::Big;
     ExecutableFileValidator::validate(Executable, Diagnostics);
     EXPECT_EQ(Executable.getEntryOffset(), Executable.byteSize() - 1);
-    EXPECT_EQ(Executable.getNativeFunctions()[0].Name, Executable.getNativeData()[0].Name);
-    EXPECT_NE(Executable.getNativeData()[0].Name, Executable.getNativeData()[1].Name);
-    EXPECT_EQ(Executable.getNativeDataRelocations()[0].ImageOffset, 16U);
-    EXPECT_EQ(Executable.getNativeDataRelocations()[1].Addend, std::numeric_limits<std::int64_t>::max());
-    EXPECT_EQ(Executable.getNativeDataRelocations()[2].Addend, std::numeric_limits<std::int64_t>::min());
+    EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, Executable.getDynamicImportSymbols()[1].Name);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 16U);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].SymbolIndex, Executable.getDynamicImportSymbolRelocations()[2].SymbolIndex);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].Addend, std::numeric_limits<std::int64_t>::max());
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[2].Addend, std::numeric_limits<std::int64_t>::min());
   }
 
-  // Copies independently own image bytes, entry metadata, both import tables and their name handles, and data relocations.
+  // Exports accept first-byte and last-byte offsets, multiple names for one address, and names also used by imports.
+  TEST(VMExecutableFileTest, AcceptsExportAliasesAndIndependentImportNames)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    ExecutableFile Executable = makeValidExecutableFile();
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+    EXPECT_EQ(Executable.getExportSymbols()[0].Name, Executable.getDynamicImportSymbols()[0].Name);
+    EXPECT_EQ(Executable.getExportSymbols()[0].Offset, 0U);
+    EXPECT_EQ(Executable.getExportSymbols()[1].Offset, Executable.byteSize() - 1);
+    EXPECT_EQ(Executable.getExportSymbols()[1].Offset, Executable.getExportSymbols()[2].Offset);
+    EXPECT_NE(Executable.getExportSymbols()[1].Name, Executable.getExportSymbols()[2].Name);
+    Executable.getDynamicImportSymbolRelocations().clear();
+    Executable.getDynamicImportSymbols().clear();
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+  }
+
+  // Copies independently own image bytes, byte order, entry metadata, imports, address relocations, and exports.
   TEST(VMExecutableFileTest, OwnsCopiedContentsIndependently)
   {
     const core::DiagnosticEngine Diagnostics;
     core::NamePool &Names = core::NamePool::instance();
     ExecutableFile Original = makeValidExecutableFile();
+    Original.getByteOrder() = ByteOrder::Big;
     const ExecutableFile Copy = Original;
     Original.getImage()[0] = 0;
     Original.getEntryOffset() = 0;
-    Original.getNativeFunctions()[0].Provider = NativeSymbolProvider::SystemApi;
-    Original.getNativeFunctions()[0].Name = Names.intern("changed_function");
-    Original.getNativeFunctions()[0].CallKind = NativeCallKind::InkNative;
-    Original.getNativeData()[0].Name = Names.intern("changed_data");
-    Original.getNativeDataRelocations()[0].ImageOffset = 0;
-    Original.getNativeDataRelocations()[0].SymbolIndex = 0;
-    Original.getNativeDataRelocations()[0].Addend = 99;
+    Original.getByteOrder() = ByteOrder::Little;
+    Original.getDynamicImportSymbols()[0].Provider = NativeSymbolProvider::SystemApi;
+    Original.getDynamicImportSymbols()[0].Name = Names.intern("changed_import");
+    Original.getDynamicImportSymbolRelocations()[0].ImageOffset = 0;
+    Original.getDynamicImportSymbolRelocations()[0].SymbolIndex = 0;
+    Original.getDynamicImportSymbolRelocations()[0].Addend = 99;
+    Original.getExportSymbols()[0].Name = Names.intern("changed_export");
+    Original.getExportSymbols()[0].Offset = 1;
 
     EXPECT_EQ(Copy.getImage()[0], 0xFF);
     EXPECT_EQ(Copy.getEntryOffset(), 23U);
-    EXPECT_EQ(Copy.getNativeFunctions()[0].Provider, NativeSymbolProvider::Native);
-    EXPECT_EQ(Copy.getNativeFunctions()[0].Name, Names.intern("counter"));
-    EXPECT_EQ(Copy.getNativeFunctions()[0].CallKind, NativeCallKind::C);
-    EXPECT_EQ(Copy.getNativeData()[0].Name, Names.intern("counter"));
-    EXPECT_EQ(Copy.getNativeDataRelocations()[0].ImageOffset, 16U);
-    EXPECT_EQ(Copy.getNativeDataRelocations()[0].SymbolIndex, 2U);
-    EXPECT_EQ(Copy.getNativeDataRelocations()[0].Addend, 0);
+    EXPECT_EQ(Copy.getByteOrder(), ByteOrder::Big);
+    EXPECT_EQ(Copy.getDynamicImportSymbols()[0].Provider, NativeSymbolProvider::Native);
+    EXPECT_EQ(Copy.getDynamicImportSymbols()[0].Name, Names.intern("counter"));
+    EXPECT_EQ(Copy.getDynamicImportSymbolRelocations()[0].ImageOffset, 16U);
+    EXPECT_EQ(Copy.getDynamicImportSymbolRelocations()[0].SymbolIndex, 2U);
+    EXPECT_EQ(Copy.getDynamicImportSymbolRelocations()[0].Addend, 0);
+    EXPECT_EQ(Copy.getExportSymbols()[0].Name, Names.intern("counter"));
+    EXPECT_EQ(Copy.getExportSymbols()[0].Offset, 0U);
     ExecutableFileValidator::validate(Copy, Diagnostics);
   }
 
-  // Function imports reject missing name handles, unknown providers, and unknown call kinds with function-table indices.
-  TEST(VMExecutableFileDeathTest, RejectsInvalidNativeFunctionImports)
+  // Unified import records reject missing name handles and unknown providers while identifying the original record index.
+  TEST(VMExecutableFileDeathTest, RejectsInvalidDynamicImportSymbols)
   {
     const core::DiagnosticEngine Diagnostics;
     core::NamePool &Names = core::NamePool::instance();
     ExecutableFile Executable = makeValidExecutableFile();
-    Executable.getNativeFunctions()[1].Name = core::NAME_None;
-    expectExecutableICE(Executable, "INK-V0002.*native function import #1.*name is not registered in the name pool");
-    Executable.getNativeFunctions()[1].Name = Names.intern("counter");
-    Executable.getNativeFunctions()[1].Provider = static_cast<NativeSymbolProvider>(255);
-    expectExecutableICE(Executable, "INK-V0002.*native function import #1.*provider is invalid");
-    Executable.getNativeFunctions()[1].Provider = NativeSymbolProvider::SystemApi;
-    Executable.getNativeFunctions()[1].CallKind = static_cast<NativeCallKind>(255);
-    expectExecutableICE(Executable, "INK-V0002.*native function import #1.*call kind is invalid");
-    Executable.getNativeFunctions()[1].CallKind = NativeCallKind::InkNative;
+    Executable.getDynamicImportSymbols()[1].Name = core::NAME_None;
+    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol #1.*name is not registered in the name pool");
+    Executable.getDynamicImportSymbols()[1].Name = Names.intern("counter");
+    Executable.getDynamicImportSymbols()[1].Provider = static_cast<NativeSymbolProvider>(255);
+    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol #1.*provider is invalid");
+    Executable.getDynamicImportSymbols()[1].Provider = NativeSymbolProvider::SystemApi;
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
-  // Data imports reject missing name handles with data-table indices independent of the function table.
-  TEST(VMExecutableFileDeathTest, RejectsInvalidNativeDataImports)
+  // Reusing a provider/name pair is rejected even though the same name in a different provider is valid.
+  TEST(VMExecutableFileDeathTest, RejectsDuplicateDynamicImportIdentities)
+  {
+    ExecutableFile Executable = makeValidExecutableFile();
+    Executable.getDynamicImportSymbols().push_back(Executable.getDynamicImportSymbols()[0]);
+    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol #3.*provider and name are duplicated");
+  }
+
+  // Export names must be registered and unique even when duplicate names refer to different image offsets.
+  TEST(VMExecutableFileDeathTest, RejectsInvalidAndDuplicateExportNames)
   {
     const core::DiagnosticEngine Diagnostics;
+    core::NamePool &Names = core::NamePool::instance();
     ExecutableFile Executable = makeValidExecutableFile();
-    Executable.getNativeData()[2].Name = core::NAME_None;
-    expectExecutableICE(Executable, "INK-V0002.*native data import #2.*name is not registered in the name pool");
-    Executable.getNativeData()[2].Name = core::NamePool::instance().intern("buffer");
+    Executable.getExportSymbols()[1].Name = core::NAME_None;
+    expectExecutableICE(Executable, "INK-V0002.*export symbol #1.*name is not registered in the name pool");
+    Executable.getExportSymbols()[1].Name = Names.intern("counter");
+    expectExecutableICE(Executable, "INK-V0002.*export symbol #1.*name is duplicated");
+    Executable.getExportSymbols()[1].Name = Names.intern("entry");
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
-  // Functions reject duplicate provider/name pairs across call kinds, while data imports reject any repeated name.
-  TEST(VMExecutableFileDeathTest, RejectsDuplicateIdentitiesWithinEachImportTable)
+  // Exports may name existing image bytes but never the end offset or uint64 maximum.
+  TEST(VMExecutableFileDeathTest, RejectsExportOffsetsOutsideTheImage)
   {
-    core::NamePool &Names = core::NamePool::instance();
     ExecutableFile Executable = makeValidExecutableFile();
-    Executable.getNativeFunctions().push_back({NativeSymbolProvider::Native, Names.intern("counter"), NativeCallKind::InkNative});
-    expectExecutableICE(Executable, "INK-V0002.*native function import #2.*provider and name are duplicated");
-    Executable.getNativeFunctions().pop_back();
-    Executable.getNativeData().push_back({Names.intern("counter")});
-    expectExecutableICE(Executable, "INK-V0002.*native data import #3.*name is duplicated");
+    Executable.getExportSymbols()[1].Offset = Executable.byteSize();
+    expectExecutableICE(Executable, "INK-V0002.*export symbol #1.*offset is outside the image");
+    Executable.getExportSymbols()[1].Offset = std::numeric_limits<std::uint64_t>::max();
+    expectExecutableICE(Executable, "INK-V0002.*export symbol #1.*offset is outside the image");
   }
 
-  // Data patches accept unaligned exact-width fields but reject overruns, overflow, and indices found only in the function table.
-  TEST(VMExecutableFileDeathTest, ChecksDataRelocationBoundsAndDataOnlyIndices)
+  // Address patches accept exact-width unaligned fields and any import index, but reject overruns, overflow, and absent imports.
+  TEST(VMExecutableFileDeathTest, ChecksUnifiedRelocationBoundsAndSymbolIndices)
   {
     const core::DiagnosticEngine Diagnostics;
     core::NamePool &Names = core::NamePool::instance();
     ExecutableFile Executable;
     Executable.getImage().resize(16);
-    Executable.getNativeFunctions() = {
-        {NativeSymbolProvider::Native, Names.intern("first"), NativeCallKind::C},
-        {NativeSymbolProvider::Native, Names.intern("second"), NativeCallKind::InkNative},
+    Executable.getDynamicImportSymbols() = {
+        {NativeSymbolProvider::Native, Names.intern("first")},
+        {NativeSymbolProvider::SystemApi, Names.intern("second")},
     };
-    Executable.getNativeData().push_back({Names.intern("data")});
-    Executable.getNativeDataRelocations().push_back({8, 0, -1});
+    Executable.getDynamicImportSymbolRelocations().push_back({8, 1, -1});
     ExecutableFileValidator::validate(Executable, Diagnostics);
-    Executable.getNativeDataRelocations()[0].ImageOffset = 1;
+    Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = 1;
     ExecutableFileValidator::validate(Executable, Diagnostics);
-    Executable.getNativeDataRelocations()[0].ImageOffset = 9;
-    expectExecutableICE(Executable, "INK-V0002.*native data relocation #0.*address field is outside the image");
-    Executable.getNativeDataRelocations()[0].ImageOffset = std::numeric_limits<std::uint64_t>::max();
-    expectExecutableICE(Executable, "INK-V0002.*native data relocation #0.*address field is outside the image");
-    Executable.getNativeDataRelocations()[0].ImageOffset = 0;
-    Executable.getNativeDataRelocations()[0].SymbolIndex = 1;
-    expectExecutableICE(Executable, "INK-V0002.*native data relocation #0.*symbol index does not name a native data import");
-    Executable.getNativeDataRelocations()[0].SymbolIndex = std::numeric_limits<std::uint32_t>::max();
-    expectExecutableICE(Executable, "INK-V0002.*native data relocation #0.*symbol index does not name a native data import");
-    Executable.getNativeDataRelocations()[0].SymbolIndex = 0;
-    Executable.getNativeData().clear();
-    expectExecutableICE(Executable, "INK-V0002.*native data relocation #0.*symbol index does not name a native data import");
+    Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = 9;
+    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #0.*address field is outside the image");
+    Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = std::numeric_limits<std::uint64_t>::max();
+    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #0.*address field is outside the image");
+    Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = 0;
+    Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex = 2;
+    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #0.*symbol index does not name a dynamic import symbol");
+    Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex = std::numeric_limits<std::uint32_t>::max();
+    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #0.*symbol index does not name a dynamic import symbol");
+    Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex = 0;
+    Executable.getDynamicImportSymbols().clear();
+    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #0.*symbol index does not name a dynamic import symbol");
   }
 
-  // Unsorted data patch ranges report the larger original index of a conflicting pair, including duplicate patch locations.
+  // Unsorted patch ranges report the larger original index of a conflicting pair, including duplicate patch locations.
   TEST(VMExecutableFileDeathTest, RejectsOverlapsUsingOriginalRelocationIndices)
   {
     const core::DiagnosticEngine Diagnostics;
     ExecutableFile Executable;
     Executable.getImage().resize(48);
-    Executable.getNativeData().push_back({core::NamePool::instance().intern("data")});
-    Executable.getNativeDataRelocations() = {
+    Executable.getDynamicImportSymbols().push_back({NativeSymbolProvider::Native, core::NamePool::instance().intern("shared")});
+    Executable.getDynamicImportSymbolRelocations() = {
         {16, 0, 0},
         {40, 0, 0},
         {0, 0, 0},
     };
     ExecutableFileValidator::validate(Executable, Diagnostics);
 
-    Executable.getNativeDataRelocations()[0].ImageOffset = 7;
-    expectExecutableICE(Executable, "INK-V0002.*native data relocation #2.*address field overlaps native data relocation #0");
-    Executable.getNativeDataRelocations()[0].ImageOffset = 0;
-    expectExecutableICE(Executable, "INK-V0002.*native data relocation #2.*address field overlaps native data relocation #0");
+    Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = 7;
+    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #2.*address field overlaps dynamic import symbol relocation #0");
+    Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = 0;
+    expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #2.*address field overlaps dynamic import symbol relocation #0");
+  }
+
+  // Unknown byte-order values are rejected independently of symbol-table contents.
+  TEST(VMExecutableFileDeathTest, RejectsUnknownByteOrder)
+  {
+    ExecutableFile Executable;
+    Executable.getImage().push_back(0);
+    Executable.getByteOrder() = static_cast<ByteOrder>(255);
+    expectExecutableICE(Executable, "INK-V0002.*image.*byte order is invalid");
   }
 } // namespace ink::vm::test

@@ -15,8 +15,8 @@ namespace ink::vm
     InkNative,
   };
 
-  // Describes an unresolved host function, referenced by a u32 NativeFunctions index in future callNative instructions.
-  // Function bindings are not image address relocations. Complete C signatures and call-area layouts are outside this model.
+  // Preserves the logical native function declaration's lookup identity and call contract for module linking.
+  // ExecutableFile uses DynamicImportSymbol for both function and data imports; complete call layouts remain outside that record.
   struct NativeFunctionImport
   {
       NativeSymbolProvider Provider = NativeSymbolProvider::Native;
