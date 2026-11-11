@@ -52,7 +52,7 @@ OPCODE(Store64m, 0x000B, "store64m", Mm, 64, 0, 2, 0, Store, None)
 OPCODE(Store64i, 0x000C, "store64i", Mi, 64, 0, 1, 1, Store, None)
 
 // Add suffixes describe destination, LHS, RHS: r is a logical register, m is memory, i is an immediate.
-// Register operands use the RegisterId values from register.def.
+// Register sources use the RegisterId values from register.def plus a signed ByteOffset without reading memory.
 // Logical memory operands retain register-relative or named-symbol-relative addresses until executable emission.
 // For memory destinations, addition wraps to Width bits and interchangeable sources use r before m before i.
 OPCODE(Add8mmm, 0x000D, "add8mmm", Mmm, 8, 0, 3, 0, Add, None)
@@ -71,7 +71,7 @@ OPCODE(Add64mmm, 0x0016, "add64mmm", Mmm, 64, 0, 3, 0, Add, None)
 OPCODE(Add64mmi, 0x0017, "add64mmi", Mmi, 64, 0, 2, 1, Add, None)
 OPCODE(Add64mii, 0x0018, "add64mii", Mii, 64, 0, 1, 2, Add, None)
 
-// Address registers have 64-bit address width; arithmetic destinations may be BP or SP, never PC.
+// Address registers have 64-bit address width; arithmetic destinations may be BP or SP with zero ByteOffset, never PC.
 // For register destinations, LHS is an address and RHS is a signed 64-bit byte displacement.
 // These sources retain their address/displacement roles and must not be exchanged.
 // Address arithmetic is checked before updating the register; SP updates must also satisfy stack bounds and frame rules.

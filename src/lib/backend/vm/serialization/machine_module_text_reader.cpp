@@ -352,11 +352,12 @@ namespace ink::vm
       if (Line.peek() && Line.peek()->Kind == TokenKind::Identifier)
       {
         const auto Register = parseRegister(Line.take(TokenKind::Identifier)->Text);
-        if (!Register || !isArithmeticRegister(*Register))
+        std::int64_t Offset = 0;
+        if (!Register || !isArithmeticRegister(*Register) || !parseOptionalDisplacement(Line, Offset))
         {
           return false;
         }
-        Result.emplace<RegisterOperand>(*Register);
+        Result.emplace<RegisterOperand>(*Register, Offset);
         return true;
       }
       const bool Negative = Line.consume(TokenKind::Minus);
@@ -839,6 +840,14 @@ namespace ink::vm
             if (Count != OpcodeTraits<Operation>::OperandCount || !operandTypesMatch<Operation>(Pending.Operands, std::make_index_sequence<OpcodeTraits<Operation>::OperandCount>{}))
             {
               return std::unexpected(textError(Mnemonic.Offset, "instruction operands do not match the opcode form"));
+            }
+            if constexpr (OpcodeTraits<Operation>::HasDestination)
+            {
+              const auto *Destination = std::get_if<RegisterOperand>(&Pending.Operands[0]);
+              if (Destination && (!isWritableAddressRegister(Destination->getRegister()) || Destination->getByteOffset() != 0))
+              {
+                return std::unexpected(textError(Mnemonic.Offset, "a register destination must be BP or SP with zero displacement"));
+              }
             }
           }
           PendingInstructions.push_back(std::move(Pending));

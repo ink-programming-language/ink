@@ -17,6 +17,8 @@ namespace ink::vm
 {
   class MachineModule;
   class AddressOperand;
+  class RegisterOperand;
+  enum class RegisterId : std::uint8_t;
 
   class ExecutableEmitter
   {
@@ -38,6 +40,9 @@ namespace ink::vm
       // Appends aligned global storage, zero-fills padding and uninitialized tails, and resolves each global to its image offset.
       void padGlobals(const MachineModule &Module);
 
+      // Appends a register identifier and its signed byte offset without dereferencing memory.
+      void padOperand(const RegisterOperand &Operand);
+
       // Appends a nine-byte address operand; unresolved VM symbols reserve a zero displacement and queue a static relocation.
       void padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset);
 
@@ -51,6 +56,10 @@ namespace ink::vm
       };
 
       void padInteger(std::uint64_t Bits, std::uint32_t Width);
+      void padRegister(RegisterId Register, std::int64_t ByteOffset);
+      void padUnresolvedSymbol(core::Name Symbol, std::int64_t Addend, std::uint64_t InstructionOffset);
+      void padResolvedSymbol(std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset);
+      void padNativeSymbol(const DynamicImportSymbol &Import, std::int64_t Addend);
 
       const core::DiagnosticEngine &Diagnostics;
       ExecutableFile Executable;

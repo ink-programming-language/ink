@@ -1,6 +1,7 @@
 #include "ink/backend/vm/executable_emitter/executable_emitter.h"
 
 #include "ink/backend/vm/instruction/address_operand.h"
+#include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/backend/vm/module/machine_module.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/name/name_pool.h"
@@ -85,6 +86,62 @@ namespace ink::vm
     pad(&Bits, Count);
   }
 
+  void ExecutableEmitter::padRegister(RegisterId Register, std::int64_t ByteOffset)
+  {
+    REPORT_ICE_IF(!isAddressRegister(Register), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "register operand", "register must be BP, SP, or PC");
+    padInteger(static_cast<std::uint8_t>(Register), 8);
+    padInteger(static_cast<std::uint64_t>(ByteOffset), 64);
+  }
+
+  void ExecutableEmitter::padUnresolvedSymbol(core::Name Symbol, std::int64_t Addend, std::uint64_t InstructionOffset)
+  {
+    padInteger(static_cast<std::uint8_t>(RegisterId::PC), 8);
+    PendingStaticRelocationSymbol.push_back({Executable.byteSize(), Symbol, InstructionOffset, Addend});
+    padZero(8);
+  }
+
+  void ExecutableEmitter::padResolvedSymbol(std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset)
+  {
+    std::uint64_t Target = SymbolOffset;
+    if (Addend >= 0)
+    {
+      const auto Increment = static_cast<std::uint64_t>(Addend);
+      REPORT_ICE_IF(Increment > std::numeric_limits<std::uint64_t>::max() - Target, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "VM symbol address addition overflows");
+      Target += Increment;
+    }
+    else
+    {
+      const auto Decrement = std::uint64_t{0} - static_cast<std::uint64_t>(Addend);
+      REPORT_ICE_IF(Decrement > Target, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "VM symbol address addition underflows");
+      Target -= Decrement;
+    }
+    const bool Forward = Target >= InstructionOffset;
+    const auto Distance = Forward ? Target - InstructionOffset : InstructionOffset - Target;
+    const auto Limit = Forward ? static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) : (std::uint64_t{1} << 63);
+    REPORT_ICE_IF(Distance > Limit, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "PC-relative displacement exceeds i64 range");
+    padInteger(static_cast<std::uint8_t>(RegisterId::PC), 8);
+    padInteger(Forward ? Distance : std::uint64_t{0} - Distance, 64);
+  }
+
+  void ExecutableEmitter::padNativeSymbol(const DynamicImportSymbol &Import, std::int64_t Addend)
+  {
+    REPORT_ICE_IF(!core::NamePool::instance().contains(Import.Name), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "native import has an invalid host name");
+    auto &Imports = Executable.getDynamicImportSymbols();
+    std::size_t Index = 0;
+    while (Index < Imports.size() && Imports[Index].Name != Import.Name)
+    {
+      ++Index;
+    }
+    REPORT_ICE_IF(Index > std::numeric_limits<std::uint32_t>::max(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "native import index exceeds u32 range");
+    if (Index == Imports.size())
+    {
+      Imports.push_back(Import);
+    }
+    padInteger(0xFF, 8);
+    Executable.getDynamicImportSymbolRelocations().push_back({Executable.byteSize(), static_cast<std::uint32_t>(Index), Addend});
+    padZero(8);
+  }
+
   void ExecutableEmitter::padGlobals(const MachineModule &Module)
   {
     for (const MachineGlobalVariable &Global : Module.globalVariables())
@@ -101,70 +158,37 @@ namespace ink::vm
     }
   }
 
+  void ExecutableEmitter::padOperand(const RegisterOperand &Operand)
+  {
+    padRegister(Operand.getRegister(), Operand.getByteOffset());
+  }
+
   void ExecutableEmitter::padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset)
   {
     if (const auto Register = Operand.getRegister())
     {
-      REPORT_ICE_IF(!isAddressRegister(*Register), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "base register must be BP, SP, or PC");
-      padInteger(static_cast<std::uint8_t>(*Register), 8);
-      padInteger(static_cast<std::uint64_t>(Operand.getByteOffset()), 64);
+      padRegister(*Register, Operand.getByteOffset());
       return;
     }
 
     const auto Symbol = Operand.getSymbol();
-    REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "symbol name must be registered and nonempty");
+    REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol name must be registered and nonempty");
     const auto Position = ResolvedSymbol.find(*Symbol);
     const auto Native = NativeSymbols.find(*Symbol);
-    REPORT_ICE_IF(Native != NativeSymbols.end() && (Position != ResolvedSymbol.end() || UnresolvedSymbol.contains(*Symbol)), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "symbol has both VM and native definitions");
+    REPORT_ICE_IF(Native != NativeSymbols.end() && (Position != ResolvedSymbol.end() || UnresolvedSymbol.contains(*Symbol)), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has both VM and native definitions");
     if (Position != ResolvedSymbol.end())
     {
-      std::uint64_t Target = Position->second;
-      const auto Addend = Operand.getByteOffset();
-      if (Addend >= 0)
-      {
-        const auto Increment = static_cast<std::uint64_t>(Addend);
-        REPORT_ICE_IF(Increment > std::numeric_limits<std::uint64_t>::max() - Target, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "VM symbol address addition overflows");
-        Target += Increment;
-      }
-      else
-      {
-        const auto Decrement = std::uint64_t{0} - static_cast<std::uint64_t>(Addend);
-        REPORT_ICE_IF(Decrement > Target, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "VM symbol address addition underflows");
-        Target -= Decrement;
-      }
-      const bool Forward = Target >= InstructionOffset;
-      const auto Distance = Forward ? Target - InstructionOffset : InstructionOffset - Target;
-      const auto Limit = Forward ? static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) : (std::uint64_t{1} << 63);
-      REPORT_ICE_IF(Distance > Limit, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "PC-relative displacement exceeds i64 range");
-      padInteger(static_cast<std::uint8_t>(RegisterId::PC), 8);
-      padInteger(Forward ? Distance : std::uint64_t{0} - Distance, 64);
+      padResolvedSymbol(Position->second, Operand.getByteOffset(), InstructionOffset);
       return;
     }
 
     if (UnresolvedSymbol.contains(*Symbol))
     {
-      padInteger(static_cast<std::uint8_t>(RegisterId::PC), 8);
-      PendingStaticRelocationSymbol.push_back({Executable.byteSize(), *Symbol, InstructionOffset, Operand.getByteOffset()});
-      padZero(8);
+      padUnresolvedSymbol(*Symbol, Operand.getByteOffset(), InstructionOffset);
       return;
     }
 
-    REPORT_ICE_IF(Native == NativeSymbols.end(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "symbol has no resolved VM offset or explicit native declaration");
-    const auto &Import = Native->second;
-    REPORT_ICE_IF(!core::NamePool::instance().contains(Import.Name), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "native import has an invalid host name");
-    auto &Imports = Executable.getDynamicImportSymbols();
-    std::size_t Index = 0;
-    while (Index < Imports.size() && Imports[Index].Name != Import.Name)
-    {
-      ++Index;
-    }
-    REPORT_ICE_IF(Index > std::numeric_limits<std::uint32_t>::max(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "address operand", "native import index exceeds u32 range");
-    if (Index == Imports.size())
-    {
-      Imports.push_back(Import);
-    }
-    padInteger(0xFF, 8);
-    Executable.getDynamicImportSymbolRelocations().push_back({Executable.byteSize(), static_cast<std::uint32_t>(Index), Operand.getByteOffset()});
-    padZero(8);
+    REPORT_ICE_IF(Native == NativeSymbols.end(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has no resolved VM offset or explicit native declaration");
+    padNativeSymbol(Native->second, Operand.getByteOffset());
   }
 } // namespace ink::vm

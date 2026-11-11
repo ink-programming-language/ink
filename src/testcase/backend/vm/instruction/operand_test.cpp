@@ -22,6 +22,7 @@ namespace ink::vm::test
     constexpr AddressOperand Address(RegisterId::SP, 16);
     constexpr ImmediateOperand Immediate(42);
     static_assert(Register.getKind() == OperandKind::Register);
+    static_assert(Register.getByteOffset() == 0);
     static_assert(Address.getKind() == OperandKind::Address);
     static_assert(Immediate.getKind() == OperandKind::Immediate);
     const Operand *Operands[] = {&Register, &Address, &Immediate};
@@ -32,15 +33,26 @@ namespace ink::vm::test
     }
   }
 
-  // Register operands retain each independent logical register identifier, including PC as a source value.
-  TEST(VMOperandTest, PreservesDefinedRegisterIdentifiers)
+  // Register expressions retain every source register and the full signed 64-bit byte offset range.
+  TEST(VMOperandTest, PreservesRegisterIdentifiersAndSignedOffsetBoundaries)
   {
     const RegisterId Registers[] = {RegisterId::BP, RegisterId::SP, RegisterId::PC};
+    const std::int64_t Offsets[] = {
+        std::numeric_limits<std::int64_t>::min(),
+        -1,
+        0,
+        1,
+        std::numeric_limits<std::int64_t>::max(),
+    };
     for (const auto Register : Registers)
     {
-      const RegisterOperand Operand(Register);
-      EXPECT_EQ(Operand.getKind(), OperandKind::Register);
-      EXPECT_EQ(Operand.getRegister(), Register);
+      for (const auto Offset : Offsets)
+      {
+        const RegisterOperand Operand(Register, Offset);
+        EXPECT_EQ(Operand.getKind(), OperandKind::Register);
+        EXPECT_EQ(Operand.getRegister(), Register);
+        EXPECT_EQ(Operand.getByteOffset(), Offset);
+      }
     }
   }
 
@@ -180,11 +192,14 @@ namespace ink::vm::test
     static_assert(std::is_copy_constructible_v<RegisterOperand> && std::is_copy_assignable_v<RegisterOperand>);
     static_assert(std::is_copy_constructible_v<AddressOperand> && std::is_copy_assignable_v<AddressOperand>);
     static_assert(std::is_copy_constructible_v<ImmediateOperand> && std::is_copy_assignable_v<ImmediateOperand>);
-    const RegisterOperand Register(RegisterId::BP);
+    const RegisterOperand Register(RegisterId::BP, -8);
     auto RegisterCopy = Register;
-    RegisterCopy = RegisterOperand(RegisterId::SP);
+    EXPECT_EQ(RegisterCopy.getByteOffset(), -8);
+    RegisterCopy = RegisterOperand(RegisterId::SP, 16);
     EXPECT_EQ(Register.getRegister(), RegisterId::BP);
+    EXPECT_EQ(Register.getByteOffset(), -8);
     EXPECT_EQ(RegisterCopy.getRegister(), RegisterId::SP);
+    EXPECT_EQ(RegisterCopy.getByteOffset(), 16);
     EXPECT_EQ(RegisterCopy.getKind(), OperandKind::Register);
     const AddressOperand Address(RegisterId::BP, -16);
     auto AddressCopy = Address;

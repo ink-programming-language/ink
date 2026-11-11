@@ -184,7 +184,7 @@ namespace ink::vm
               Text += '\n';
               for (const MachineInstruction &Instruction : Block.instructions())
               {
-                if (!validateCallTarget(Instruction))
+                if (!validateInstruction(Instruction))
                 {
                   return failure();
                 }
@@ -207,8 +207,17 @@ namespace ink::vm
         }
 
       private:
-        bool validateCallTarget(const MachineInstruction &Instruction)
+        bool validateInstruction(const MachineInstruction &Instruction)
         {
+          if (Instruction.hasDestination() && Instruction.getOperand(0)->getKind() == OperandKind::Register)
+          {
+            const auto &Destination = static_cast<const RegisterOperand &>(*Instruction.getOperand(0));
+            if (!isWritableAddressRegister(Destination.getRegister()) || Destination.getByteOffset() != 0)
+            {
+              Error = "a register destination must be BP or SP with zero displacement";
+              return false;
+            }
+          }
           if (!Instruction.isCall() || Instruction.getOperand(0)->getKind() != OperandKind::Immediate)
           {
             return true;
@@ -427,7 +436,15 @@ namespace ink::vm
           switch (Value.getKind())
           {
           case OperandKind::Register:
-            return writeRegister(static_cast<const RegisterOperand &>(Value).getRegister());
+          {
+            const auto &Register = static_cast<const RegisterOperand &>(Value);
+            if (!writeRegister(Register.getRegister()))
+            {
+              return false;
+            }
+            writeDisplacement(Register.getByteOffset());
+            return true;
+          }
           case OperandKind::Immediate:
           {
             const ImmediateOperand &Immediate = static_cast<const ImmediateOperand &>(Value);

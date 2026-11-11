@@ -65,7 +65,11 @@ namespace ink::vm::test
     {
       if constexpr (std::is_same_v<OperandType, RegisterOperand>)
       {
-        return RegisterOperand(RegisterId::BP);
+        if (OpcodeTraits<Operation>::HasDestination && Index == 0)
+        {
+          return RegisterOperand(Operation == Opcode::Add64rrr ? RegisterId::SP : RegisterId::BP);
+        }
+        return RegisterOperand(Index % 2 == 0 ? RegisterId::SP : RegisterId::PC, Index % 2 == 0 ? std::numeric_limits<std::int64_t>::max() : std::numeric_limits<std::int64_t>::min());
       }
       else if constexpr (std::is_same_v<OperandType, AddressOperand>)
       {
@@ -103,6 +107,7 @@ namespace ink::vm::test
       {
       case OperandKind::Register:
         EXPECT_EQ(static_cast<const RegisterOperand &>(Input).getRegister(), static_cast<const RegisterOperand &>(Output).getRegister());
+        EXPECT_EQ(static_cast<const RegisterOperand &>(Input).getByteOffset(), static_cast<const RegisterOperand &>(Output).getByteOffset());
         break;
       case OperandKind::Address:
       {
@@ -305,6 +310,33 @@ namespace ink::vm::test
       {
         expectSameOperand(*Instruction.getOperand(Index), *OutputInstruction.getOperand(Index), OutputBlock);
       }
+    }
+  }
+
+  // Register destinations require plain BP/SP, while explicit sources reject EFLAGS and undefined identifiers.
+  TEST(VMModuleLinkerTest, RejectsInvalidRegisterDestinationsAndSources)
+  {
+    const std::array<std::pair<RegisterOperand, RegisterOperand>, 7> InvalidOperands = {{
+        {RegisterOperand(RegisterId::PC), RegisterOperand(RegisterId::SP, -8)},
+        {RegisterOperand(RegisterId::BP, std::numeric_limits<std::int64_t>::min()), RegisterOperand(RegisterId::PC, 8)},
+        {RegisterOperand(RegisterId::SP, std::numeric_limits<std::int64_t>::max()), RegisterOperand(RegisterId::BP, -8)},
+        {RegisterOperand(RegisterId::EFLAGS), RegisterOperand(RegisterId::PC, 8)},
+        {RegisterOperand(static_cast<RegisterId>(255)), RegisterOperand(RegisterId::SP, -8)},
+        {RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::EFLAGS, -8)},
+        {RegisterOperand(RegisterId::SP), RegisterOperand(static_cast<RegisterId>(255), 8)},
+    }};
+    for (const auto &[Destination, Source] : InvalidOperands)
+    {
+      MachineModule Input;
+      auto &Block = Input.createFunction().createBasicBlock();
+      MachineInstructionBuilder Builder;
+      Builder.setInsertPoint(Block);
+      const auto &Original = Builder.create<Opcode::Add64rri>(Destination, Source, ImmediateOperand(1));
+      expectLinkFailure({&Input});
+      EXPECT_EQ(Original.getDestination().getRegister(), Destination.getRegister());
+      EXPECT_EQ(Original.getDestination().getByteOffset(), Destination.getByteOffset());
+      EXPECT_EQ(Original.getLHS().getRegister(), Source.getRegister());
+      EXPECT_EQ(Original.getLHS().getByteOffset(), Source.getByteOffset());
     }
   }
 

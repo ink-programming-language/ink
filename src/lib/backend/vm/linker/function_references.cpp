@@ -7,6 +7,7 @@
 #include <limits>
 #include <optional>
 #include <tuple>
+#include <type_traits>
 #include <unordered_set>
 #include <utility>
 
@@ -34,6 +35,18 @@ namespace ink::vm::detail
           }
           const auto VisitInstruction = [&](const auto &Typed) -> std::optional<std::expected<void, std::string>>
           {
+            using InstructionType = std::remove_cvref_t<decltype(Typed)>;
+            if constexpr (OpcodeTraits<InstructionType::Operation>::HasDestination)
+            {
+              if constexpr (std::is_same_v<std::remove_cvref_t<decltype(Typed.getDestination())>, RegisterOperand>)
+              {
+                const auto &Destination = Typed.getDestination();
+                if (!isWritableAddressRegister(Destination.getRegister()) || Destination.getByteOffset() != 0)
+                {
+                  return std::expected<void, std::string>(std::unexpected("register destination must be BP or SP with zero byte offset"));
+                }
+              }
+            }
             const auto VisitOperands = [&](const auto &...Operands)
             {
               std::expected<void, std::string> Result;

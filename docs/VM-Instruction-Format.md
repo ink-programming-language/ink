@@ -41,10 +41,10 @@ Opcode:u16 | Operand0 | Operand1 | ...
 ## 寄存器操作数 `r`
 
 ```text
-RegisterId:u8
+RegisterId:u8 | ByteOffset:i64
 ```
 
-寄存器操作数恰好占一个字节，直接引用 VM 寄存器的值。
+寄存器操作数恰好占九个字节。作为来源时，其值为 `RegisterValue + ByteOffset`，不读取内存；`ByteOffset` 是有符号 64 位字节偏移，默认为零。文本 `pc + 2` 对应 `RegisterOperand(RegisterId::PC, 2)`，`sp - 8` 对应 `RegisterOperand(RegisterId::SP, -8)`。
 
 | 编码 | 寄存器 |
 | --- | --- |
@@ -53,7 +53,9 @@ RegisterId:u8
 | `02` | `PC` |
 | `03` | `EFLAGS`，仅用于标识隐式状态 |
 
-`r` 直接使用寄存器编号。当前普通寄存器来源仅接受 BP、SP、PC，寄存器加法的目标仅接受 BP、SP。EFLAGS 是单独的 32 位状态寄存器，由算术、比较及条件跳转隐式读写，不编码成这些指令的显式 `r` 操作数，也不能用作内存地址基址。
+当前普通寄存器来源仅接受 BP、SP、PC；寄存器加法的目标仅接受 BP、SP，目标的 `ByteOffset` 必须为零。例如 PC 为 2、SP 为 0 时，`add64rrr bp, sp, pc + 2` 将 BP 设为 `0 + (2 + 2) = 4`。EFLAGS 是单独的 32 位状态寄存器，由算术、比较及条件跳转隐式读写，不编码成这些指令的显式 `r` 操作数，也不能用作内存地址基址。
+
+`ExecutableEmitter::padOperand(const RegisterOperand &Operand)` 与寄存器形式的地址操作数共用 `padRegister`，顺序追加寄存器编号和偏移。两者的九字节字段布局相同；操作码及操作数位置决定取寄存器值加偏移，还是访问该地址处的内存。完整指令及函数发射仍待实现。
 
 ## 地址操作数 `m`
 
@@ -101,13 +103,13 @@ VM 符号内存地址 `Symbol + ByteOffset` 转换为相对当前指令起始 PC
 `add64rri sp, sp, 16` 的操作码是 `001b`，其布局为：
 
 ```text
-Opcode:u16 | Destination:RegisterId:u8 | LHS:RegisterId:u8 | RHS:i64
+Opcode:u16 | Destination:(RegisterId:u8, ByteOffset:i64) | LHS:(RegisterId:u8, ByteOffset:i64) | RHS:i64
 ```
 
-该指令总共占 12 字节：
+该指令总共占 28 字节；目标和左来源的偏移均为零：
 
 ```text
-1b 00 | 01 | 01 | 10 00 00 00 00 00 00 00
+1b 00 | 01 00 00 00 00 00 00 00 00 | 01 00 00 00 00 00 00 00 00 | 10 00 00 00 00 00 00 00
 ```
 
 将右来源改为 `-16` 时，立即数的小端字节为 `f0 ff ff ff ff ff ff ff`。
@@ -202,7 +204,7 @@ callNative [@native_pointer_slot]
 
 ## C++ 指令模型
 
-`MachineModule` 的临时文本读写由 `backend/vm/serialization` 提供。文本保留数值立即数的完整 `u64` 位模式，或符号立即数的名称和完整 `i64` 偏移；本节的数值字节格式则由操作码位宽决定立即数字段的长度。
+`MachineModule` 的临时文本读写由 `backend/vm/serialization` 提供。文本保留寄存器来源的完整 `i64` 偏移、数值立即数的完整 `u64` 位模式，或符号立即数的名称和完整 `i64` 偏移；本节的数值字节格式则由操作码位宽决定立即数字段的长度。
 
 `opcode.def` 通过 `OPCODE_FORM(Kind, ...)` 集中定义操作数签名，`OPCODE` 记录引用其中的签名、指令类别和条件码。形式名称仅描述操作数类型及顺序，不包含指令语义或位宽，例如 `Add64rri` 引用 `Rri`，`Load64`、`Store64m` 和 `Cmp64mm` 共同引用 `Mm`。`instruction_form.h` 直接从同一份 `opcode.def` 生成 `InstructionForm` 枚举和 `FormTraits` 特化，每种签名只展开一次。每种形式提供 `OperandTuple` 和寄存器、地址、立即数、基本块的计数，包括 `BlockCount`；`None` 对应空元组，`B` 对应单个 `BasicBlockOperand`，`I` 和 `M` 分别对应单个 `ImmediateOperand` 和 `AddressOperand`。顺序来自签名定义；操作数计数用于一致性校验，不能单独推导顺序，例如 `Rrm` 和 `Mrr` 的计数相同而顺序不同。
 

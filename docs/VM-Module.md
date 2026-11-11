@@ -126,6 +126,8 @@ Builder 不解析名称或校验调用签名。逻辑指令、文本和链接接
 
 `serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；跳转使用 `jne failure`、`jmp done`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
 
+`RegisterOperand(RegisterId Register, std::int64_t ByteOffset = 0)` 保存寄存器编号和有符号字节偏移，通过 `getRegister()` 和 `getByteOffset()` 查询。来源文本 `pc + 2` 表示寄存器值加 2，`[pc + 2]` 则表示该地址处的内存；文本读写和指令克隆保留完整的 `i64` 偏移。寄存器来源接受 BP、SP、PC，寄存器目标仅接受 BP、SP 且偏移必须为零。
+
 符号操作数使用 `@name` 或带转义名称的 `@"name"`，以区分寄存器、数值和函数内块标签。`[@counter + 8]` 表示读取或写入符号相对地址的内存，`@counter + 8` 表示地址值。例如 `add64mmi [bp + 16], [@counter], 1` 使用 counter 内存中的值，`add64mii [bp + 16], @counter, 1` 使用 counter 的地址值。符号偏移完整保留为 `i64`，文本读写不会根据指令位宽截断符号偏移；名称必须在 NamePool 中有效且非空。
 
 调用文本共用 `call` 和 `callNative` 名称，由操作数决定具体形式。例如 `call @function_name` 和 `callNative 0` 分别是符号直接调用和按 native 导入索引调用；`call [bp + 16]` 和 `callNative [@pointer_slot + 8]` 则从内存读取可调用目标。名称支持转义，直接调用拒绝 `call @function_name + 8` 等非零符号偏移；符号是否存在、直接调用是否属于正确类别由链接器检查。

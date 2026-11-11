@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <type_traits>
 #include <vector>
 
@@ -50,7 +51,7 @@ namespace ink::vm::test
   TEST(VMMachineInstructionCloneTest, RewritesOperandCopiesAndPreservesSource)
   {
     const auto Symbol = core::NamePool::instance().intern("clone.rewritten.symbol");
-    const MachineAdd64mriInstruction Source(AddressOperand(RegisterId::BP, 8), RegisterOperand(RegisterId::SP), ImmediateOperand(42));
+    const MachineAdd64mriInstruction Source(AddressOperand(RegisterId::BP, 8), RegisterOperand(RegisterId::SP, std::numeric_limits<std::int64_t>::min()), ImmediateOperand(42));
     MachineBasicBlock Destination;
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Destination);
@@ -65,7 +66,8 @@ namespace ink::vm::test
       }
       else if constexpr (std::is_same_v<OperandType, RegisterOperand>)
       {
-        Value = RegisterOperand(RegisterId::BP);
+        EXPECT_EQ(Value.getByteOffset(), std::numeric_limits<std::int64_t>::min());
+        Value = RegisterOperand(RegisterId::BP, std::numeric_limits<std::int64_t>::max());
       }
       else if constexpr (std::is_same_v<OperandType, ImmediateOperand>)
       {
@@ -84,12 +86,14 @@ namespace ink::vm::test
     EXPECT_EQ(TypedClone.getDestination().getSymbol(), Symbol);
     EXPECT_EQ(TypedClone.getDestination().getByteOffset(), -5);
     EXPECT_EQ(TypedClone.getLHS().getRegister(), RegisterId::BP);
+    EXPECT_EQ(TypedClone.getLHS().getByteOffset(), std::numeric_limits<std::int64_t>::max());
     EXPECT_EQ(TypedClone.getRHS().getSymbol(), Symbol);
     EXPECT_EQ(TypedClone.getRHS().getByteOffset(), 7);
     EXPECT_EQ(Source.parent(), nullptr);
     EXPECT_EQ(Source.getDestination().getRegister(), RegisterId::BP);
     EXPECT_EQ(Source.getDestination().getByteOffset(), 8);
     EXPECT_EQ(Source.getLHS().getRegister(), RegisterId::SP);
+    EXPECT_EQ(Source.getLHS().getByteOffset(), std::numeric_limits<std::int64_t>::min());
     EXPECT_EQ(Source.getRHS().bits(), 42U);
   }
 

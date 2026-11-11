@@ -35,7 +35,8 @@ namespace ink::vm::test
       if constexpr (std::is_same_v<OperandType, RegisterOperand>)
       {
         constexpr std::array Registers{RegisterId::BP, RegisterId::SP, RegisterId::PC};
-        return RegisterOperand(Registers[Index]);
+        constexpr std::array<std::int64_t, 3> Offsets{0, std::numeric_limits<std::int64_t>::min(), std::numeric_limits<std::int64_t>::max()};
+        return RegisterOperand(Registers[Index], Offsets[Index]);
       }
       else if constexpr (std::is_same_v<OperandType, AddressOperand>)
       {
@@ -72,6 +73,7 @@ namespace ink::vm::test
       {
       case OperandKind::Register:
         EXPECT_EQ(static_cast<const RegisterOperand &>(Actual).getRegister(), static_cast<const RegisterOperand &>(Expected).getRegister());
+        EXPECT_EQ(static_cast<const RegisterOperand &>(Actual).getByteOffset(), static_cast<const RegisterOperand &>(Expected).getByteOffset());
         break;
       case OperandKind::Address:
       {
@@ -435,6 +437,117 @@ store64i [bp], 0XFF
     {
       EXPECT_EQ(static_cast<const ImmediateOperand &>(*Instruction.getOperand(1)).bits(), ExpectedBits[Index]);
       ++Index;
+    }
+  }
+
+  // Register values retain signed byte offsets and remain distinct from dereferenced addresses with the same register and offset.
+  TEST(VMMachineModuleTextTest, RoundTripsRegisterValueDisplacementsAndMemoryReads)
+  {
+    MachineModule Module;
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Module.createFunction().createBasicBlock());
+    Builder.create<Opcode::Add64rrr>(RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::SP, -8), RegisterOperand(RegisterId::PC, 2));
+    Builder.create<Opcode::Add64rrm>(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::BP, std::numeric_limits<std::int64_t>::max()), AddressOperand(RegisterId::PC, 2));
+    Builder.create<Opcode::Add64mrr>(AddressOperand(RegisterId::BP), RegisterOperand(RegisterId::PC, std::numeric_limits<std::int64_t>::min()), RegisterOperand(RegisterId::SP));
+    Builder.create<Opcode::Cmp64rr>(RegisterOperand(RegisterId::PC, 2), RegisterOperand(RegisterId::SP, -8));
+    const auto Text = writeMachineModuleText(Module);
+    ASSERT_TRUE(Text.has_value());
+    EXPECT_NE(Text->find("add64rrr bp, sp - 8, pc + 2"), std::string::npos);
+    EXPECT_NE(Text->find("add64rrm sp, bp + 9223372036854775807, [pc + 2]"), std::string::npos);
+    EXPECT_NE(Text->find("add64mrr [bp], pc - 9223372036854775808, sp"), std::string::npos);
+    EXPECT_NE(Text->find("cmp64rr pc + 2, sp - 8"), std::string::npos);
+    const auto Parsed = readMachineModuleText(*Text);
+    ASSERT_TRUE(Parsed.has_value());
+    expectEqualModules(Module, **Parsed);
+    const auto Rewritten = writeMachineModuleText(**Parsed);
+    ASSERT_TRUE(Rewritten.has_value());
+    EXPECT_EQ(*Rewritten, *Text);
+  }
+
+  // Explicit zero displacements retain ordinary register syntax, while hexadecimal register offsets normalize to signed decimal.
+  TEST(VMMachineModuleTextTest, ReadsRegisterDisplacementsAndNormalizesZero)
+  {
+    constexpr std::string_view Text = R"(.module ""
+.section .text
+.function F
+entry:
+    add64rrr bp + 0, sp - 0, pc + 0
+    cmp64rr pc + 0x2, sp - 0x8
+.endfunction
+)";
+    const auto Parsed = readMachineModuleText(Text);
+    ASSERT_TRUE(Parsed.has_value());
+    const auto Instructions = (*Parsed)->functions().begin()->basicBlocks().begin()->instructions();
+    const auto &Add = static_cast<const MachineAdd64rrrInstruction &>(*Instructions.begin());
+    EXPECT_EQ(Add.getDestination().getByteOffset(), 0);
+    EXPECT_EQ(Add.getLHS().getByteOffset(), 0);
+    EXPECT_EQ(Add.getRHS().getByteOffset(), 0);
+    const auto &Compare = static_cast<const MachineCmp64rrInstruction &>(*std::next(Instructions.begin()));
+    EXPECT_EQ(Compare.getLHS().getRegister(), RegisterId::PC);
+    EXPECT_EQ(Compare.getLHS().getByteOffset(), 2);
+    EXPECT_EQ(Compare.getRHS().getByteOffset(), -8);
+    const auto Written = writeMachineModuleText(**Parsed);
+    ASSERT_TRUE(Written.has_value());
+    EXPECT_NE(Written->find("add64rrr bp, sp, pc\n"), std::string::npos);
+    EXPECT_NE(Written->find("cmp64rr pc + 2, sp - 8\n"), std::string::npos);
+  }
+
+  // Register expressions reject missing, repeated, or overflowing displacements and cannot name implicit EFLAGS.
+  TEST(VMMachineModuleTextTest, RejectsMalformedRegisterDisplacements)
+  {
+    constexpr std::string_view InvalidOperands[] = {
+        "pc +",
+        "pc -",
+        "pc + -1",
+        "pc - +1",
+        "pc + 9223372036854775808",
+        "pc - 9223372036854775809",
+        "pc + 18446744073709551616",
+        "pc + 1 + 2",
+        "eflags + 1",
+    };
+    for (const auto OperandText : InvalidOperands)
+    {
+      SCOPED_TRACE(OperandText);
+      const std::string Text = ".module \"\"\n.section .text\n.function F\nentry:\n    cmp64rr bp, " + std::string(OperandText) + "\n.endfunction\n";
+      const auto Parsed = readMachineModuleText(Text);
+      ASSERT_FALSE(Parsed.has_value());
+      EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+    }
+  }
+
+  // Register destinations accept BP and SP only without an offset, for both parsed assembly and directly constructed modules.
+  TEST(VMMachineModuleTextTest, RejectsNonzeroOrReadOnlyRegisterDestinations)
+  {
+    constexpr std::string_view InvalidDestinations[] = {
+        "bp + 1",
+        "sp - 8",
+        "pc",
+        "pc + 2",
+    };
+    for (const auto DestinationText : InvalidDestinations)
+    {
+      SCOPED_TRACE(DestinationText);
+      const std::string Text = ".module \"\"\n.section .text\n.function F\nentry:\n    add64rri " + std::string(DestinationText) + ", sp, 1\n.endfunction\n";
+      const auto Parsed = readMachineModuleText(Text);
+      ASSERT_FALSE(Parsed.has_value());
+      EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+    }
+    constexpr RegisterOperand Destinations[] = {
+        RegisterOperand(RegisterId::BP, 1),
+        RegisterOperand(RegisterId::SP, -8),
+        RegisterOperand(RegisterId::PC),
+        RegisterOperand(RegisterId::PC, 2),
+    };
+    for (const auto &Destination : Destinations)
+    {
+      MachineModule Module;
+      MachineInstructionBuilder Builder;
+      Builder.setInsertPoint(Module.createFunction().createBasicBlock());
+      Builder.create<Opcode::Add64rri>(Destination, RegisterOperand(RegisterId::SP), ImmediateOperand(1));
+      const auto Written = writeMachineModuleText(Module);
+      ASSERT_FALSE(Written.has_value());
+      EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMTextInvalid);
     }
   }
 
