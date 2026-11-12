@@ -9,7 +9,6 @@
 #include "ink/core/support/core_define.h"
 
 #include <bit>
-#include <cstring>
 #include <limits>
 #include <utility>
 
@@ -55,13 +54,13 @@ namespace ink::vm
     {
       AddUnResolvedSymbol(Global.name());
     }
-    for (const auto &Declaration : Module.nativeFunctions())
+    for (const auto &[Name, Import] : Module.nativeFunctions())
     {
-      AddNativeSymbol(Declaration.Name, DynamicImportSymbol{Declaration.Import.Name});
+      AddNativeSymbol(Name, DynamicImportSymbol{Import.Name});
     }
-    for (const auto &Declaration : Module.nativeData())
+    for (const auto &[Name, Import] : Module.nativeData())
     {
-      AddNativeSymbol(Declaration.Name, DynamicImportSymbol{Declaration.Import.Name});
+      AddNativeSymbol(Name, DynamicImportSymbol{Import.Name});
     }
   }
 
@@ -91,15 +90,15 @@ namespace ink::vm
 
   void ExecutableEmitter::padRegister(RegisterId Register, std::int64_t ByteOffset)
   {
-    REPORT_ICE_IF(!isAddressRegister(Register), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "register operand", "register must be BP, SP, or PC");
+    REPORT_ICE_IF(!isAddressRegister(Register), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "register operand", "register must be BP, SP, PC, or ZERO");
     padInteger(static_cast<std::uint8_t>(Register), 8);
     padInteger(static_cast<std::uint64_t>(ByteOffset), 64);
   }
 
-  void ExecutableEmitter::padUnresolvedSymbol(core::Name Symbol, std::int64_t Addend, std::uint64_t InstructionOffset)
+  void ExecutableEmitter::padUnresolvedSymbol(RegisterId Register, core::Name Symbol, std::int64_t Addend, std::uint64_t InstructionOffset)
   {
-    padInteger(static_cast<std::uint8_t>(RegisterId::PC), 8);
-    PendingStaticRelocationSymbol.push_back({Executable.byteSize(), Symbol, InstructionOffset, Addend});
+    padInteger(static_cast<std::uint8_t>(Register), 8);
+    PendingStaticRelocationSymbol.push_back({Executable.byteSize(), Symbol, InstructionOffset, Addend, Register});
     padZero(8);
   }
 
@@ -121,13 +120,17 @@ namespace ink::vm
     return Target;
   }
 
-  std::uint64_t ExecutableEmitter::resolvePCRelativeOffset(std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset) const
+  std::uint64_t ExecutableEmitter::resolveRegisterRelativeOffset(RegisterId Register, std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset) const
   {
     const auto Target = resolveSymbolOffset(SymbolOffset, Addend);
+    if (Register == RegisterId::ZERO)
+    {
+      return Target;
+    }
     const bool Forward = Target >= InstructionOffset;
     const auto Distance = Forward ? Target - InstructionOffset : InstructionOffset - Target;
     const auto Limit = Forward ? static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) : (std::uint64_t{1} << 63);
-    REPORT_ICE_IF(Distance > Limit, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "PC-relative displacement exceeds i64 range");
+    REPORT_ICE_IF(Distance > Limit, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "register-relative displacement exceeds i64 range");
     return Forward ? Distance : std::uint64_t{0} - Distance;
   }
 
@@ -138,23 +141,30 @@ namespace ink::vm
       const auto Position = ResolvedSymbol.find(Relocation.Name);
       REPORT_ICE_IF(Position == ResolvedSymbol.end(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "static relocation", "VM symbol has no image offset after layout");
 
-      if (Relocation.Kind == StaticRelocationKind::ImageBaseAddress)
+      if (Relocation.Register == RegisterId::ZERO)
       {
         Executable.getImageBaseAddressRelocations().push_back({Relocation.ImageOffset, Position->second, Relocation.Addend});
       }
       else
       {
-        const auto Bits = resolvePCRelativeOffset(Position->second, Relocation.Addend, Relocation.InstructionOffset);
+        const auto Bits = resolveRegisterRelativeOffset(Relocation.Register, Position->second, Relocation.Addend, Relocation.InstructionOffset);
         std::memcpy(Executable.getImage().data() + Relocation.ImageOffset, &Bits, sizeof(Bits));
       }
     }
     PendingStaticRelocationSymbol.clear();
   }
 
-  void ExecutableEmitter::padPCRelativeSymbol(std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset)
+  void ExecutableEmitter::padRegisterRelativeSymbol(RegisterId Register, std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset)
   {
-    const auto Bits = resolvePCRelativeOffset(SymbolOffset, Addend, InstructionOffset);
-    padInteger(static_cast<std::uint8_t>(RegisterId::PC), 8);
+    if (Register == RegisterId::ZERO)
+    {
+      padInteger(static_cast<std::uint8_t>(Register), 8);
+      Executable.getImageBaseAddressRelocations().push_back({Executable.byteSize(), SymbolOffset, Addend});
+      padZero(8);
+      return;
+    }
+    const auto Bits = resolveRegisterRelativeOffset(Register, SymbolOffset, Addend, InstructionOffset);
+    padInteger(static_cast<std::uint8_t>(Register), 8);
     padInteger(Bits, 64);
   }
 
@@ -178,7 +188,7 @@ namespace ink::vm
   void ExecutableEmitter::padNativeSymbol(const DynamicImportSymbol &Import, std::int64_t Addend)
   {
     const auto Index = getOrAddNativeSymbol(Import);
-    padInteger(0xFF, 8);
+    padInteger(static_cast<std::uint8_t>(RegisterId::ZERO), 8);
     Executable.getDynamicImportSymbolRelocations().push_back({Executable.byteSize(), Index, Addend});
     padZero(8);
   }
@@ -229,7 +239,7 @@ namespace ink::vm
 
     if (UnresolvedSymbol.contains(*Symbol))
     {
-      PendingStaticRelocationSymbol.push_back({Executable.byteSize(), *Symbol, 0, Addend, StaticRelocationKind::ImageBaseAddress});
+      PendingStaticRelocationSymbol.push_back({Executable.byteSize(), *Symbol, 0, Addend, RegisterId::ZERO});
       padZero(8);
       return;
     }
@@ -255,13 +265,13 @@ namespace ink::vm
     REPORT_ICE_IF(Native != NativeSymbols.end() && (Position != ResolvedSymbol.end() || UnresolvedSymbol.contains(*Symbol)), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has both VM and native definitions");
     if (Position != ResolvedSymbol.end())
     {
-      padPCRelativeSymbol(Position->second, Operand.getByteOffset(), InstructionOffset);
+      padRegisterRelativeSymbol(RegisterId::PC, Position->second, Operand.getByteOffset(), InstructionOffset);
       return;
     }
 
     if (UnresolvedSymbol.contains(*Symbol))
     {
-      padUnresolvedSymbol(*Symbol, Operand.getByteOffset(), InstructionOffset);
+      padUnresolvedSymbol(RegisterId::PC, *Symbol, Operand.getByteOffset(), InstructionOffset);
       return;
     }
 

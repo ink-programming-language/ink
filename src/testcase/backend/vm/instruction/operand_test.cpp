@@ -36,7 +36,7 @@ namespace ink::vm::test
   // Register expressions retain every source register and the full signed 64-bit byte offset range.
   TEST(VMOperandTest, PreservesRegisterIdentifiersAndSignedOffsetBoundaries)
   {
-    const RegisterId Registers[] = {RegisterId::BP, RegisterId::SP, RegisterId::PC};
+    const RegisterId Registers[] = {RegisterId::BP, RegisterId::SP, RegisterId::PC, RegisterId::ZERO};
     const std::int64_t Offsets[] = {
         std::numeric_limits<std::int64_t>::min(),
         -1,

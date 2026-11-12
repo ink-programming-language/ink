@@ -27,7 +27,7 @@ namespace ink::vm
 
   constexpr bool isAddressRegister(RegisterId Register) noexcept
   {
-    return Register == RegisterId::BP || Register == RegisterId::SP || Register == RegisterId::PC;
+    return Register == RegisterId::BP || Register == RegisterId::SP || Register == RegisterId::PC || Register == RegisterId::ZERO;
   }
 
   constexpr bool isWritableAddressRegister(RegisterId Register) noexcept

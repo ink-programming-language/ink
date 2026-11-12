@@ -316,8 +316,9 @@ namespace ink::vm::test
   // Register destinations require plain BP/SP, while explicit sources reject EFLAGS and undefined identifiers.
   TEST(VMModuleLinkerTest, RejectsInvalidRegisterDestinationsAndSources)
   {
-    const std::array<std::pair<RegisterOperand, RegisterOperand>, 7> InvalidOperands = {{
+    const std::array<std::pair<RegisterOperand, RegisterOperand>, 8> InvalidOperands = {{
         {RegisterOperand(RegisterId::PC), RegisterOperand(RegisterId::SP, -8)},
+        {RegisterOperand(RegisterId::ZERO), RegisterOperand(RegisterId::SP, -8)},
         {RegisterOperand(RegisterId::BP, std::numeric_limits<std::int64_t>::min()), RegisterOperand(RegisterId::PC, 8)},
         {RegisterOperand(RegisterId::SP, std::numeric_limits<std::int64_t>::max()), RegisterOperand(RegisterId::BP, -8)},
         {RegisterOperand(RegisterId::EFLAGS), RegisterOperand(RegisterId::PC, 8)},
@@ -338,6 +339,33 @@ namespace ink::vm::test
       EXPECT_EQ(Original.getLHS().getRegister(), Source.getRegister());
       EXPECT_EQ(Original.getLHS().getByteOffset(), Source.getByteOffset());
     }
+  }
+
+  // ZERO remains a valid read-only source and memory base when linking clones instruction operands.
+  TEST(VMModuleLinkerTest, AcceptsZeroRegisterSourcesAndAddressBases)
+  {
+    MachineModule Input;
+    auto &Block = Input.createFunction().createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Block);
+    Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::ZERO), ImmediateOperand(1));
+    Builder.create<Opcode::Store64m>(AddressOperand(RegisterId::ZERO, 4096), AddressOperand(RegisterId::ZERO, -8));
+    Builder.create<Opcode::Cmp64rr>(RegisterOperand(RegisterId::ZERO, 16), RegisterOperand(RegisterId::ZERO));
+    const auto Result = link({&Input});
+    ASSERT_NE(Result, nullptr);
+    const auto &OutputBlock = *Result->functions().begin()->basicBlocks().begin();
+    const auto &Add = static_cast<const MachineAdd64rriInstruction &>(instructionAt(OutputBlock, 0));
+    EXPECT_EQ(Add.getLHS().getRegister(), RegisterId::ZERO);
+    EXPECT_EQ(Add.getLHS().getByteOffset(), 0);
+    const auto &Store = static_cast<const MachineStore64mInstruction &>(instructionAt(OutputBlock, 1));
+    EXPECT_EQ(Store.getDestination().getRegister(), RegisterId::ZERO);
+    EXPECT_EQ(Store.getDestination().getByteOffset(), 4096);
+    EXPECT_EQ(Store.getSource().getRegister(), RegisterId::ZERO);
+    EXPECT_EQ(Store.getSource().getByteOffset(), -8);
+    const auto &Compare = static_cast<const MachineCmp64rrInstruction &>(instructionAt(OutputBlock, 2));
+    EXPECT_EQ(Compare.getLHS().getRegister(), RegisterId::ZERO);
+    EXPECT_EQ(Compare.getLHS().getByteOffset(), 16);
+    EXPECT_EQ(Compare.getRHS().getRegister(), RegisterId::ZERO);
   }
 
   // Repeated private names remain distinct and both symbol operand forms follow their own module's definition.

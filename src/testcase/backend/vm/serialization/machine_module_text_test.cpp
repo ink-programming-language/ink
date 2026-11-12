@@ -492,6 +492,41 @@ entry:
     EXPECT_NE(Written->find("cmp64rr pc + 2, sp - 8\n"), std::string::npos);
   }
 
+  // ZERO is accepted as a read-only value and memory base, and zero or hexadecimal offsets normalize like other registers.
+  TEST(VMMachineModuleTextTest, RoundTripsZeroRegisterSourcesAndAddressBases)
+  {
+    constexpr std::string_view Text = R"(.module ""
+.section .text
+.function F
+entry:
+    add64rrr bp, zero + 0, zero + 0x10
+    store64m [zero + 0], [zero - 0x8]
+    cmp64rr zero, zero - 8
+.endfunction
+)";
+    const auto Parsed = readMachineModuleText(Text);
+    ASSERT_TRUE(Parsed.has_value());
+    const auto Instructions = (*Parsed)->functions().begin()->basicBlocks().begin()->instructions();
+    const auto &Add = static_cast<const MachineAdd64rrrInstruction &>(*Instructions.begin());
+    EXPECT_EQ(Add.getLHS().getRegister(), RegisterId::ZERO);
+    EXPECT_EQ(Add.getLHS().getByteOffset(), 0);
+    EXPECT_EQ(Add.getRHS().getRegister(), RegisterId::ZERO);
+    EXPECT_EQ(Add.getRHS().getByteOffset(), 16);
+    const auto &Store = static_cast<const MachineStore64mInstruction &>(*std::next(Instructions.begin()));
+    EXPECT_EQ(Store.getDestination().getRegister(), RegisterId::ZERO);
+    EXPECT_EQ(Store.getDestination().getByteOffset(), 0);
+    EXPECT_EQ(Store.getSource().getRegister(), RegisterId::ZERO);
+    EXPECT_EQ(Store.getSource().getByteOffset(), -8);
+    const auto Written = writeMachineModuleText(**Parsed);
+    ASSERT_TRUE(Written.has_value());
+    EXPECT_NE(Written->find("add64rrr bp, zero, zero + 16\n"), std::string::npos);
+    EXPECT_NE(Written->find("store64m [zero], [zero - 8]\n"), std::string::npos);
+    EXPECT_NE(Written->find("cmp64rr zero, zero - 8\n"), std::string::npos);
+    const auto Reparsed = readMachineModuleText(*Written);
+    ASSERT_TRUE(Reparsed.has_value());
+    expectEqualModules(**Parsed, **Reparsed);
+  }
+
   // Register expressions reject missing, repeated, or overflowing displacements and cannot name implicit EFLAGS.
   TEST(VMMachineModuleTextTest, RejectsMalformedRegisterDisplacements)
   {
@@ -524,6 +559,8 @@ entry:
         "sp - 8",
         "pc",
         "pc + 2",
+        "zero",
+        "zero + 8",
     };
     for (const auto DestinationText : InvalidDestinations)
     {
@@ -538,6 +575,8 @@ entry:
         RegisterOperand(RegisterId::SP, -8),
         RegisterOperand(RegisterId::PC),
         RegisterOperand(RegisterId::PC, 2),
+        RegisterOperand(RegisterId::ZERO),
+        RegisterOperand(RegisterId::ZERO, 8),
     };
     for (const auto &Destination : Destinations)
     {

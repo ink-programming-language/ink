@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ink/backend/vm/executable/executable_file.h"
+#include "ink/backend/vm/instruction/register.h"
 #include "ink/core/name/name.h"
 
 #include <cstddef>
@@ -20,7 +21,6 @@ namespace ink::vm
   class AddressOperand;
   class RegisterOperand;
   class ImmediateOperand;
-  enum class RegisterId : std::uint8_t;
 
   class ExecutableEmitter
   {
@@ -63,28 +63,23 @@ namespace ink::vm
     private:
       friend class FunctionEmitter;
 
-      enum class StaticRelocationKind : std::uint8_t
-      {
-        PCRelative,
-        ImageBaseAddress,
-      };
-
       struct StaticRelocationSymbol
       {
           std::uint64_t ImageOffset = 0;
           core::Name Name = core::NAME_None;
           std::uint64_t InstructionOffset = 0;
           std::int64_t Addend = 0;
-          StaticRelocationKind Kind = StaticRelocationKind::PCRelative;
+          RegisterId Register = RegisterId::PC;
       };
 
       void padInteger(std::uint64_t Bits, std::uint32_t Width);
       void padRegister(RegisterId Register, std::int64_t ByteOffset);
       std::uint64_t resolveSymbolOffset(std::uint64_t SymbolOffset, std::int64_t Addend) const;
-      std::uint64_t resolvePCRelativeOffset(std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset) const;
+      // InstructionOffset is the current instruction's image offset for PC-relative references; ZERO ignores it.
+      std::uint64_t resolveRegisterRelativeOffset(RegisterId Register, std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset) const;
       std::uint32_t getOrAddNativeSymbol(const DynamicImportSymbol &Import);
-      void padUnresolvedSymbol(core::Name Symbol, std::int64_t Addend, std::uint64_t InstructionOffset);
-      void padPCRelativeSymbol(std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset);
+      void padUnresolvedSymbol(RegisterId Register, core::Name Symbol, std::int64_t Addend, std::uint64_t InstructionOffset);
+      void padRegisterRelativeSymbol(RegisterId Register, std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset);
       void padNativeSymbol(const DynamicImportSymbol &Import, std::int64_t Addend);
 
       const core::DiagnosticEngine &Diagnostics;

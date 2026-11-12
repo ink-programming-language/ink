@@ -126,7 +126,7 @@ Builder 不解析名称或校验调用签名。逻辑指令、文本和链接接
 
 `serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；跳转使用 `jne failure`、`jmp done`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
 
-`RegisterOperand(RegisterId Register, std::int64_t ByteOffset = 0)` 保存寄存器编号和有符号字节偏移，通过 `getRegister()` 和 `getByteOffset()` 查询。来源文本 `pc + 2` 表示寄存器值加 2，`[pc + 2]` 则表示该地址处的内存；文本读写和指令克隆保留完整的 `i64` 偏移。寄存器来源接受 BP、SP、PC，寄存器目标仅接受 BP、SP 且偏移必须为零。
+`RegisterOperand(RegisterId Register, std::int64_t ByteOffset = 0)` 保存寄存器编号和有符号字节偏移，通过 `getRegister()` 和 `getByteOffset()` 查询。来源文本 `pc + 2` 表示寄存器值加 2，`[pc + 2]` 则表示该地址处的内存；文本读写和指令克隆保留完整的 `i64` 偏移。寄存器来源和地址基址接受 BP、SP、PC、ZERO；ZERO 编码为 `04`、文本拼写为 `zero`，恒为零且不可写。寄存器目标仅接受 BP、SP 且偏移必须为零，PC 与 ZERO 均不能作为普通写入目标。
 
 符号操作数使用 `@name` 或带转义名称的 `@"name"`，以区分寄存器、数值和函数内块标签。`[@counter + 8]` 表示读取或写入符号相对地址的内存，`@counter + 8` 表示地址值。例如 `add64mmi [bp + 16], [@counter], 1` 使用 counter 内存中的值，`add64mii [bp + 16], @counter, 1` 使用 counter 的地址值。符号偏移完整保留为 `i64`，文本读写不会根据指令位宽截断符号偏移；名称必须在 NamePool 中有效且非空。
 
@@ -147,8 +147,8 @@ Native 函数和数据声明都只指定 VM 链接名与宿主名称。对应的
 
 ## 链接与可执行镜像边界
 
-已实现的模块链接流水线为 `MachineModule × N → ModuleLinker → MachineModule`。`linker` 目录的 `ModuleLinker` 支持强符号、Local/External、显式 Native、严格解析和深克隆，具体接口与冲突规则见 [VM 模块链接器](VM-Linker.md)。代码和数据的最终布局、符号地址计算、基本块目标到 PC 相对位移的转换及镜像发射尚未实现。按既有编码约定，VM 符号内存地址使用 PC 相对地址，普通 VM 符号立即数使用相对镜像开头的字节偏移；进程内的 Name 句柄不能进入字节流。
+已实现的模块链接流水线为 `MachineModule × N → ModuleLinker → MachineModule`。`linker` 目录的 `ModuleLinker` 支持强符号、Local/External、显式 Native、严格解析和深克隆，具体接口与冲突规则见 [VM 模块链接器](VM-Linker.md)。完整代码布局、基本块目标到 PC 相对位移的转换及指令发射尚未实现。现有发射器已提供全局布局、部分操作数字段和重定位处理。VM 符号内存地址选择 PC 基址，Native 符号内存地址选择恒零的 ZERO 基址，统一编码为寄存器编号与八字节偏移位模式；普通 VM 符号立即数通过镜像基址地址重定位在加载时生成完整地址。进程内的 Name 句柄不能进入字节流。
 
-`executable` 目录提供可执行镜像的内存模型 `ExecutableFile`，保存镜像字节、入口偏移、字节序、统一动态导入符号表 `DynamicImportSymbols`、动态导入符号地址重定位 `DynamicImportSymbolRelocations`，以及记录导出名称和镜像内偏移的 `ExportSymbols`，并提供结构校验；模型不保存段表，接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。`ModuleLinker` 输出仍是逻辑模块，不生成上述镜像内容。
+`executable` 目录提供可执行镜像的内存模型 `ExecutableFile`，保存小端镜像字节、入口偏移、统一动态导入符号表 `DynamicImportSymbols`、动态导入符号地址重定位 `DynamicImportSymbolRelocations`、镜像基址地址重定位 `ImageBaseAddressRelocations`，以及记录导出名称和镜像内偏移的 `ExportSymbols`，并提供结构校验；模型不保存段表或字节序配置，接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。`ModuleLinker` 输出仍是逻辑模块，不生成上述镜像内容。
 
 当前尚未实现 lowering pass、指令编码与解码、镜像布局与发射、镜像磁盘读写、加载器、native adapter 或 VM 执行器；创建和链接逻辑模块不会生成指令字节。编码方案见 [VM 指令编码格式讨论稿](VM-Instruction-Format.md)，运行时规划见 [VM 运行时设计](VM-Runtime.md)，参数、返回槽和可变参数调用预留区布局约定见 [VM 调用约定](VM-Calling-Convention.md)。

@@ -2,6 +2,7 @@
 #include "ink/backend/vm/executable_emitter/executable_emitter.h"
 #include "ink/backend/vm/instruction/address_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
+#include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/backend/vm/module/machine_module.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/name/name_pool.h"
@@ -12,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <limits>
 #include <type_traits>
 #include <utility>
 
@@ -52,6 +54,29 @@ namespace ink::vm::test
     EXPECT_EQ(readLittleEndian(Executable, 7), Bits);
     EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
     EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
+  }
+
+  // ZERO register values and memory addresses share the nine-byte register-relative layout and preserve every signed offset bit.
+  TEST(VMExecutableEmitterTest, EncodesZeroRelativeRegisterAndAddressOperands)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    const std::array<std::int64_t, 5> Offsets{0, 17, -17, std::numeric_limits<std::int64_t>::min(), std::numeric_limits<std::int64_t>::max()};
+    for (const auto Offset : Offsets)
+    {
+      SCOPED_TRACE(Offset);
+      ExecutableEmitter Emitter(Diagnostics);
+      Emitter.padOperand(RegisterOperand(RegisterId::ZERO, Offset));
+      Emitter.padOperand(AddressOperand(RegisterId::ZERO, Offset), 9);
+
+      const ExecutableFile &Executable = Emitter.getExecutable();
+      ASSERT_EQ(Executable.byteSize(), 18U);
+      EXPECT_EQ(Executable.getImage()[0], static_cast<std::uint8_t>(RegisterId::ZERO));
+      EXPECT_EQ(Executable.getImage()[9], static_cast<std::uint8_t>(RegisterId::ZERO));
+      EXPECT_EQ(readLittleEndian(Executable, 1), static_cast<std::uint64_t>(Offset));
+      EXPECT_EQ(readLittleEndian(Executable, 10), static_cast<std::uint64_t>(Offset));
+      EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+      EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
+    }
   }
 
   // Already laid-out VM symbols still require image-base binding and preserve signed addends outside the placeholder.
@@ -144,7 +169,7 @@ namespace ink::vm::test
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
-  // VM and Native pointers use equal-width zero placeholders while retaining their distinct loading-time binding records.
+  // VM and Native pointers retain separate loading records while their memory references share the same nine-byte register-relative format.
   TEST(VMExecutableEmitterTest, KeepsVMAndNativeAddressFieldsInSeparateLoadingTables)
   {
     const core::DiagnosticEngine Diagnostics;
@@ -160,25 +185,34 @@ namespace ink::vm::test
     Emitter.padGlobals(Module);
     Emitter.padOperand(ImmediateOperand(VMSymbol, 8), 64);
     Emitter.padOperand(ImmediateOperand(NativeSymbol, -8), 64);
+    Emitter.padOperand(AddressOperand(VMSymbol, 8), 32);
+    Emitter.padOperand(AddressOperand(NativeSymbol, 12), 41);
 
     const ExecutableFile &Executable = Emitter.getExecutable();
-    ASSERT_EQ(Executable.byteSize(), 32U);
+    ASSERT_EQ(Executable.byteSize(), 50U);
     ASSERT_EQ(Executable.getImageBaseAddressRelocations().size(), 1U);
     EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 16U);
     EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 0U);
     EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Addend, 8);
     ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
     EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, HostSymbol);
-    ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 1U);
+    ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 2U);
     EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 24U);
     EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
     EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].Addend, -8);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].ImageOffset, 42U);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].SymbolIndex, 0U);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].Addend, 12);
     EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
     EXPECT_EQ(readLittleEndian(Executable, 24), 0U);
+    EXPECT_EQ(Executable.getImage()[32], static_cast<std::uint8_t>(RegisterId::PC));
+    EXPECT_EQ(readLittleEndian(Executable, 33), static_cast<std::uint64_t>(-24));
+    EXPECT_EQ(Executable.getImage()[41], static_cast<std::uint8_t>(RegisterId::ZERO));
+    EXPECT_EQ(readLittleEndian(Executable, 42), 0U);
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
-  // Native aliases share one import even when one reference is a marked memory address and another is an ordinary immediate.
+  // Native aliases share one import across ZERO-relative memory addresses and ordinary address immediates without moving their relocation fields.
   TEST(VMExecutableEmitterTest, SharesNativeImportsAcrossImmediateAndMemoryAddressFields)
   {
     const core::DiagnosticEngine Diagnostics;
@@ -197,7 +231,7 @@ namespace ink::vm::test
 
     const ExecutableFile &Executable = Emitter.getExecutable();
     ASSERT_EQ(Executable.byteSize(), 18U);
-    EXPECT_EQ(Executable.getImage()[1], 0xFFU);
+    EXPECT_EQ(Executable.getImage()[1], static_cast<std::uint8_t>(RegisterId::ZERO));
     EXPECT_EQ(readLittleEndian(Executable, 2), 0U);
     EXPECT_EQ(readLittleEndian(Executable, 10), 0U);
     ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);

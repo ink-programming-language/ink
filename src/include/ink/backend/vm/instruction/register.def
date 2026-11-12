@@ -5,3 +5,5 @@ REGISTER(BP, 0x00, "bp")
 REGISTER(SP, 0x01, "sp")
 REGISTER(PC, 0x02, "pc")
 REGISTER(EFLAGS, 0x03, "eflags")
+// ZERO always reads as zero and is never a writable destination.
+REGISTER(ZERO, 0x04, "zero")
