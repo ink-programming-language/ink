@@ -185,6 +185,11 @@ namespace ink::vm
     Executable.getDynamicImportSymbolRelocations().push_back(Relocation);
   }
 
+  void ExecutableEmissionContext::addExportSymbol(ExportSymbol Symbol)
+  {
+    Executable.getExportSymbols().push_back(Symbol);
+  }
+
   void ExecutableEmissionContext::resolveStaticRelocations()
   {
     for (const auto &Relocation : PendingStaticRelocationSymbol)

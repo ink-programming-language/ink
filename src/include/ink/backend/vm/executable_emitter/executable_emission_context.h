@@ -45,6 +45,11 @@ namespace ink::vm
         return Executable;
       }
 
+      void setEntryOffset(std::uint64_t ImageOffset) noexcept
+      {
+        Executable.getEntryOffset() = ImageOffset;
+      }
+
       std::uint64_t byteSize() const noexcept
       {
         return Executable.byteSize();
@@ -76,6 +81,7 @@ namespace ink::vm
       void addStaticRelocation(StaticRelocationSymbol Relocation);
       void addImageBaseAddressRelocation(ImageBaseAddressRelocation Relocation);
       void addDynamicImportSymbolRelocation(DynamicImportSymbolRelocation Relocation);
+      void addExportSymbol(ExportSymbol Symbol);
 
       // Every referenced VM symbol must have an image offset after module layout.
       void resolveStaticRelocations();

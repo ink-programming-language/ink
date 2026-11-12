@@ -3,6 +3,8 @@
 #include "ink/backend/vm/executable_emitter/executable_emission_context.h"
 #include "ink/backend/vm/executable_emitter/function_emitter.h"
 
+#include <span>
+
 namespace ink::vm
 {
   class MachineModule;
@@ -18,7 +20,8 @@ namespace ink::vm
       ExecutableEmitter(ExecutableEmitter &&) = delete;
       ExecutableEmitter &operator=(ExecutableEmitter &&) = delete;
 
-      [[nodiscard]] ExecutableFile emit(const MachineModule &Module);
+      // EntryFunctionName selects a named VM function with instructions; only ExportNames are exported, in the supplied order.
+      [[nodiscard]] ExecutableFile emit(const MachineModule &Module, core::Name EntryFunctionName, std::span<const core::Name> ExportNames);
 
       // Borrows the current unbound image; further emission may change its contents.
       const ExecutableFile &getExecutable() const noexcept
@@ -44,6 +47,9 @@ namespace ink::vm
       void resolveStaticRelocations();
 
     private:
+      void resolveEntryOffset(const MachineModule &Module, core::Name EntryFunctionName);
+      void generateExportSymbols(std::span<const core::Name> ExportNames);
+
       ExecutableEmissionContext Context;
       vm::FunctionEmitter FunctionEmitter;
   };

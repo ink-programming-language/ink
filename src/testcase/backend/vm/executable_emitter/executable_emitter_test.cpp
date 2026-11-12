@@ -102,7 +102,7 @@ namespace ink::vm::test
     Builder.create<Opcode::Store64i>(AddressOperand(GlobalName, 16), ImmediateOperand(FirstName));
     Builder.create<Opcode::Ret>();
     ExecutableEmitter Emitter(Diagnostics);
-    const ExecutableFile Executable = Emitter.emit(Module);
+    const ExecutableFile Executable = Emitter.emit(Module, FirstName, {});
 
     ASSERT_EQ(Executable.byteSize(), 85U);
     EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 24U);
@@ -152,7 +152,7 @@ namespace ink::vm::test
     Builder.create<Opcode::Calli>(ImmediateOperand(FirstName));
     Builder.create<Opcode::Ret>();
     ExecutableEmitter Emitter(Diagnostics);
-    const ExecutableFile Executable = Emitter.emit(Module);
+    const ExecutableFile Executable = Emitter.emit(Module, FirstName, {});
 
     ASSERT_EQ(Executable.byteSize(), 39U);
     EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 5U);
@@ -586,14 +586,144 @@ namespace ink::vm::test
     MachineModule SecondModule;
     const std::array<std::uint8_t, 2> InitialBytes{0xAB, 0xCD};
     ASSERT_TRUE(SecondModule.createGlobalVariable(2, 1, InitialBytes, Names.intern("emitter-reset-next")).has_value());
-    const ExecutableFile Executable = Emitter.emit(SecondModule);
-    ASSERT_EQ(Executable.byteSize(), 2U);
+    const auto EntryName = Names.intern("emitter-reset-next-entry");
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(SecondModule.createFunction(EntryName).createBasicBlock());
+    Builder.create<Opcode::Ret>();
+    const ExecutableFile Executable = Emitter.emit(SecondModule, EntryName, {});
+    ASSERT_EQ(Executable.byteSize(), 4U);
+    EXPECT_EQ(Executable.getEntryOffset(), 2U);
     EXPECT_EQ(Executable.getImage()[0], 0xABU);
     EXPECT_EQ(Executable.getImage()[1], 0xCDU);
+    EXPECT_EQ(readLittleEndian(Executable, 2, 2), 0x003AU);
     EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
     EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
     EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
     ExecutableFileValidator::validate(Executable, Diagnostics);
+  }
+
+  // Explicit entry selection can skip the first function, and listed local code and data exports preserve caller order regardless of linkage.
+  TEST(VMExecutableEmitterTest, SelectsExplicitEntryAndOrderedMixedExports)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    core::NamePool &Names = core::NamePool::instance();
+    const auto GlobalName = Names.intern("emitter-selected-export-global");
+    const auto FirstName = Names.intern("emitter-unlisted-external-function");
+    const auto EntryName = Names.intern("emitter-selected-local-entry");
+    MachineModule Module;
+    ASSERT_TRUE(Module.createGlobalVariable(1, 1, {}, Names.intern("emitter-selected-entry-prefix")).has_value());
+    ASSERT_TRUE(Module.createGlobalVariable(8, 8, {}, GlobalName).has_value());
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Module.createFunction(FirstName, MachineSymbolLinkage::External).createBasicBlock());
+    Builder.create<Opcode::Ret>();
+    Builder.setInsertPoint(Module.createFunction(EntryName, MachineSymbolLinkage::Local).createBasicBlock());
+    Builder.create<Opcode::Ret>();
+    const std::array<core::Name, 2> ExportNames{EntryName, GlobalName};
+    ExecutableEmitter Emitter(Diagnostics);
+    const ExecutableFile Executable = Emitter.emit(Module, EntryName, ExportNames);
+
+    ASSERT_EQ(Executable.byteSize(), 20U);
+    EXPECT_EQ(Executable.getEntryOffset(), 18U);
+    EXPECT_EQ(readLittleEndian(Executable, 18, 2), 0x003AU);
+    ASSERT_EQ(Executable.getExportSymbols().size(), 2U);
+    EXPECT_EQ(Executable.getExportSymbols()[0].Name, EntryName);
+    EXPECT_EQ(Executable.getExportSymbols()[0].Offset, 18U);
+    EXPECT_EQ(Executable.getExportSymbols()[1].Name, GlobalName);
+    EXPECT_EQ(Executable.getExportSymbols()[1].Offset, 8U);
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+  }
+
+  // A reused emitter replaces a nonzero entry and populated exports with an explicitly selected zero-offset entry and an empty export list.
+  TEST(VMExecutableEmitterTest, ReplacesEntryAndExportsWhenEmittingAnotherModule)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    core::NamePool &Names = core::NamePool::instance();
+    const auto GlobalName = Names.intern("emitter-entry-reset-global");
+    const auto FirstEntryName = Names.intern("emitter-entry-reset-first");
+    const auto SecondEntryName = Names.intern("emitter-entry-reset-second");
+    MachineModule FirstModule;
+    ASSERT_TRUE(FirstModule.createGlobalVariable(4, 1, {}, GlobalName).has_value());
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(FirstModule.createFunction(FirstEntryName).createBasicBlock());
+    Builder.create<Opcode::Ret>();
+    const std::array<core::Name, 2> FirstExports{FirstEntryName, GlobalName};
+    ExecutableEmitter Emitter(Diagnostics);
+    const ExecutableFile First = Emitter.emit(FirstModule, FirstEntryName, FirstExports);
+    ASSERT_EQ(First.getEntryOffset(), 4U);
+    ASSERT_EQ(First.getExportSymbols().size(), 2U);
+
+    MachineModule SecondModule;
+    Builder.setInsertPoint(SecondModule.createFunction(SecondEntryName).createBasicBlock());
+    Builder.create<Opcode::Ret>();
+    const ExecutableFile Second = Emitter.emit(SecondModule, SecondEntryName, {});
+
+    ASSERT_EQ(Second.byteSize(), 2U);
+    EXPECT_EQ(Second.getEntryOffset(), 0U);
+    EXPECT_TRUE(Second.getExportSymbols().empty());
+    EXPECT_EQ(readLittleEndian(Second, 0, 2), 0x003AU);
+    EXPECT_EQ(First.getEntryOffset(), 4U);
+    EXPECT_EQ(First.getExportSymbols().size(), 2U);
+    ExecutableFileValidator::validate(Second, Diagnostics);
+  }
+
+  // An entry must be a registered VM function with instructions, even when an empty function shares its offset with later code.
+  TEST(VMExecutableEmitterDeathTest, RejectsInvalidEntrySelections)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    core::NamePool &Names = core::NamePool::instance();
+    const auto GlobalName = Names.intern("emitter-invalid-entry-global");
+    const auto EmptyName = Names.intern("emitter-invalid-entry-empty-function");
+    const auto ValidName = Names.intern("emitter-invalid-entry-valid-function");
+    const auto NativeName = Names.intern("emitter-invalid-entry-native");
+    const auto UnknownName = Names.intern("emitter-invalid-entry-unknown");
+    MachineModule Module;
+    ASSERT_TRUE(Module.createGlobalVariable(1, 1, {}, GlobalName).has_value());
+    Module.createFunction(EmptyName);
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Module.createFunction(ValidName).createBasicBlock());
+    Builder.create<Opcode::Ret>();
+    Module.declareNativeFunction(NativeName, NativeFunctionImport{Names.intern("emitter-invalid-entry-host")});
+    ExecutableEmitter Emitter(Diagnostics);
+
+    for (const auto EntryName : {UnknownName, GlobalName, NativeName})
+    {
+      SCOPED_TRACE(EntryName.index());
+      EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, EntryName, {})), "INK-V0002.*entry must name a defined VM function");
+    }
+    EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, core::NAME_None, {})), "INK-V0002.*entry function name must be registered and nonempty");
+    EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, EmptyName, {})), "INK-V0002.*entry function must contain at least one instruction");
+  }
+
+  // Exports reject duplicate or invalid names, missing VM offsets, and a trailing empty function whose offset equals the image size.
+  TEST(VMExecutableEmitterDeathTest, RejectsInvalidExportSelections)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    core::NamePool &Names = core::NamePool::instance();
+    const auto GlobalName = Names.intern("emitter-invalid-export-global");
+    const auto EntryName = Names.intern("emitter-invalid-export-entry");
+    const auto EmptyName = Names.intern("emitter-invalid-export-trailing-empty-function");
+    const auto NativeName = Names.intern("emitter-invalid-export-native");
+    const auto UnknownName = Names.intern("emitter-invalid-export-unknown");
+    MachineModule Module;
+    ASSERT_TRUE(Module.createGlobalVariable(1, 1, {}, GlobalName).has_value());
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Module.createFunction(EntryName).createBasicBlock());
+    Builder.create<Opcode::Ret>();
+    Module.createFunction(EmptyName);
+    Module.declareNativeFunction(NativeName, NativeFunctionImport{Names.intern("emitter-invalid-export-host")});
+    ExecutableEmitter Emitter(Diagnostics);
+    const std::array<core::Name, 2> Duplicated{GlobalName, GlobalName};
+    EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, EntryName, Duplicated)), "INK-V0002.*export symbol name is duplicated");
+    for (const auto Name : {UnknownName, NativeName})
+    {
+      SCOPED_TRACE(Name.index());
+      const std::array<core::Name, 1> ExportNames{Name};
+      EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, EntryName, ExportNames)), "INK-V0002.*export symbol has no VM image offset");
+    }
+    const std::array<core::Name, 1> InvalidNames{core::NAME_None};
+    EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, EntryName, InvalidNames)), "INK-V0002.*export symbol name must be registered and nonempty");
+    const std::array<core::Name, 1> TrailingEmptyFunction{EmptyName};
+    EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, EntryName, TrailingEmptyFunction)), "INK-V0002.*export symbol offset is outside the image");
   }
 
   // Finalization rejects a referenced function whose entry was never assigned an image offset.

@@ -15,6 +15,30 @@
 
 访问器传播 const；容器允许复制和移动，复制后的镜像、导入、重定位和导出记录相互独立。符号记录中的 `Name` 是 `core::Name` 句柄，复制后共享进程级 `core::NamePool` 中不可变的名称拼写；重新赋值某个记录的 Name 不会改变其他副本。`byteSize()` 返回镜像字节数。默认构造只创建空容器；空镜像没有有效入口，不能通过校验。
 
+## 显式入口与导出选择
+
+模块发射使用以下接口，入口名称和导出列表都必须显式提供：
+
+```cpp
+ExecutableFile emit(const MachineModule &Module, core::Name EntryFunctionName, std::span<const core::Name> ExportNames);
+```
+
+`EntryFunctionName` 必须是输入模块中有效、具名且包含至少一条指令的 VM 函数，不能指定全局变量、Native 声明或空函数。发射器先完成全局及函数布局和静态重定位，再将该函数的镜像偏移写入 `EntryOffset`。接口不默认查找 `main`。
+
+`ExportNames` 仅选择显式列出的 VM 函数或全局变量，按列表顺序生成 `ExportSymbols`；名称必须有效、唯一且能解析到输入模块中的目标，最终偏移须小于镜像字节数。列表中的名称同时作为目标名和导出名，没有额外别名。Local 定义也可以显式导出，未列出的 External 定义不会自动导出；传入空列表表示没有导出。
+
+例如，已构造的 `Module` 包含带指令的 `start` 函数和 `counter` 全局变量时：
+
+```cpp
+core::NamePool &Names = core::NamePool::instance();
+const auto EntryName = Names.intern("start");
+const std::array<core::Name, 2> ExportNames{EntryName, Names.intern("counter")};
+ExecutableEmitter Emitter(Diagnostics);
+ExecutableFile Executable = Emitter.emit(Module, EntryName, ExportNames);
+```
+
+每次 `emit` 先重置 `ExecutableEmissionContext` 中的镜像，旧的入口偏移和导出记录随之清空，随后按本次参数重新生成。
+
 ## 字节序和镜像范围
 
 VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址重定位字段均按小端序编码，不保存字节序配置。模型保存全局数据的原始字节；地址字段的加载绑定由重定位记录描述，指令字节编码已实现，解码尚未实现。
@@ -57,7 +81,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 普通 VM 符号立即数统一要求 Width 为 64。已布局符号也追加八字节零并生成本表记录，不能直接把镜像偏移当作完整指针值写入。未布局符号先进入发射器的 `PendingStaticRelocationSymbol`，通过 `Register` 决定最终处理方式。普通符号取地址立即数的临时记录使用 `Register = ZERO`，地址字段本身不追加寄存器编号；寄存器相对访存引用则记录实际基址寄存器及当前指令的镜像偏移 `InstructionOffset`。最终解析时，PC 引用按 `InstructionOffset` 求差并回填位移，ZERO 引用生成 `ImageBaseAddressRelocation`，由加载器填写 `ImageBase + TargetOffset + Addend`。当前普通 VM 符号访存选择 PC 基址。直接 `Calli` 的前向符号目标也复用 `PendingStaticRelocationSymbol`，记录 `Register = PC` 和当前 opcode 偏移，但指令只预留八字节位移字段，不追加寄存器字节、不生成加载地址重定位；最终回填 `FunctionOffset - InstructionOffset`。数值目标保留原 64 位位模式，整条指令十字节。
 
-`padGlobals` 只负责全局布局及符号偏移登记，不触发重定位解析。`ExecutableEmitter::emit` 依次执行 `padGlobals`、`padFunction` 后调用 `resolveStaticRelocations`，由 `ExecutableEmissionContext` 统一处理待解析符号记录；此时每个待解析 VM 符号都必须已有镜像偏移，缺少目标时报告内部编译错误，成功后清空临时队列。`padFunction` 在每个函数发射前调用 `Context.resolveSymbol(Function.name(), Context.byteSize())`，登记函数名的入口镜像偏移并移除其未解析符号记录，再按函数、基本块和指令顺序发射字节。该登记用于符号引用解析，`ExecutableFile::EntryOffset` 的入口选择与 `ExportSymbols` 生成仍未实现。
+`padGlobals` 只负责全局布局及符号偏移登记，不触发重定位解析。`ExecutableEmitter::emit` 依次执行 `padGlobals`、`padFunction` 后调用 `resolveStaticRelocations`，由 `ExecutableEmissionContext` 统一处理待解析符号记录；此时每个待解析 VM 符号都必须已有镜像偏移，缺少目标时报告内部编译错误，成功后清空临时队列。`padFunction` 在每个函数发射前调用 `Context.resolveSymbol(Function.name(), Context.byteSize())`，登记函数名的入口镜像偏移并移除其未解析符号记录，再按函数、基本块和指令顺序发射字节。布局与静态重定位完成后，`emit` 按显式入口名称及导出列表填写 `EntryOffset` 和 `ExportSymbols`。
 
 结构校验允许 `TargetOffset` 等于镜像字节数，以表达镜像末尾位置；这不表示该地址可解引用。最终地址与 Addend 的运算、对象边界和访问权限由后续加载及执行阶段检查。
 
@@ -65,7 +89,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 `export_symbol.h` 定义 `ExportSymbol`，保存 `core::Name Name` 和 `std::uint64_t Offset`。Name 是对外可查找的导出名称，Offset 是符号相对 `Image` 开头的字节偏移，不区分函数与数据。每个名称必须在 NamePool 中有效且非空，并在 `ExportSymbols` 内唯一；不同名称可以导出同一个偏移。导入与导出使用独立的身份规则，允许使用相同名称。
 
-Offset 必须小于镜像字节数，不能指向镜像末尾之后的位置。结构校验不检查导出偏移是否为指令入口或对象边界。导出表由调用方显式构造；逻辑模块的导出选择、布局后的偏移计算及运行时查找尚未实现。
+Offset 必须小于镜像字节数，不能指向镜像末尾之后的位置。结构校验不检查导出偏移是否为指令入口或对象边界。导出记录由 `emit` 按显式 `ExportNames` 列表生成，选择规则见 [显式入口与导出选择](#显式入口与导出选择)；运行时查找尚未实现。
 
 ## 结构校验
 
@@ -77,4 +101,4 @@ Offset 必须小于镜像字节数，不能指向镜像末尾之后的位置。�
 
 校验不改写或重排镜像和记录，不解析宿主符号，不解码指令，不校验入口或导出偏移的指令边界、调用兼容性或字节码中的动态导入索引，也不根据未知运行时绑定检查最终地址与 Addend 的运算结果。调用方显式调用本镜像校验器；对外部字节码的验证及运行时访存、栈和权限检查仍需由后续加载器、执行器完成。
 
-镜像内存模型、结构校验、逻辑模块链接、全局及函数布局和指令字节发射均已实现。入口选择、导出生成、解码、可执行文件的磁盘字节格式、Reader/Writer、Loader、运行时加载绑定、native adapter 和执行器仍待实现；`Image` 不是自动生成的自描述磁盘文件，不能直接写出 C++ 对象内存布局。
+镜像内存模型、结构校验、逻辑模块链接、全局及函数布局、指令字节发射、显式入口选择和导出生成均已实现。解码、可执行文件的磁盘字节格式、Reader/Writer、Loader、运行时加载绑定、native adapter 和执行器仍待实现；`Image` 不是自动生成的自描述磁盘文件，不能直接写出 C++ 对象内存布局。
