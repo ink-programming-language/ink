@@ -8,7 +8,7 @@
 #cmakedefine01 INK_BUILD_DEVELOPMENT
 #cmakedefine01 INK_BUILD_SHIPPING
 
-// Platform and pointer size describe the compiled target, not the machine running CMake.
+// Platform, pointer size, and byte order describe the compiled target, not the machine running CMake.
 #define INK_PLATFORM_NAME "@CMAKE_SYSTEM_NAME@"
 #define INK_PLATFORM_POINTER_SIZE @CMAKE_SIZEOF_VOID_P@
 #cmakedefine01 INK_PLATFORM_WINDOWS
@@ -16,6 +16,8 @@
 #cmakedefine01 INK_PLATFORM_MACOS
 #cmakedefine01 INK_PLATFORM_ANDROID
 #cmakedefine01 INK_PLATFORM_IOS
+#cmakedefine01 INK_PLATFORM_LITTLE_ENDIAN
+#cmakedefine01 INK_PLATFORM_BIG_ENDIAN
 
 #define INK_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@"
 #define INK_COMPILER_VERSION "@CMAKE_CXX_COMPILER_VERSION@"

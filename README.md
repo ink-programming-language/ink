@@ -36,7 +36,7 @@ ctest --test-dir build -C Release --output-on-failure
 
 项目自有 C++ 目标统一要求 C++23，编译器和标准库必须支持显式对象参数（deducing this）和 `std::forward_like`；配置阶段会编译探测这两个特性。语言标准通过目标级 `cxx_std_23` 声明，第三方目标保留各自的标准要求。CMake 会根据工具链选择标准选项；部分 CMake/MSVC 组合将 C++23 映射为 `/std:c++latest`。
 
-`-DINK_BUILD_MODE=debug|development|shipping` 选择 Ink 构建模式，默认 `debug`。CMake 将 `src/include/ink/core/config.in` 配置为构建目录下的 `include/ink/core/config.h`，提供目标平台、指针大小、编译器身份与版本，以及互斥的 `INK_BUILD_DEBUG`、`INK_BUILD_DEVELOPMENT`、`INK_BUILD_SHIPPING` 宏。所有布尔宏均定义为 `0` 或 `1`，使用 `#if` 判断。`ink::config` 将生成头目录传递给各模块；生成文件不写入源码树。
+`-DINK_BUILD_MODE=debug|development|shipping` 选择 Ink 构建模式，默认 `debug`。CMake 将 `src/include/ink/core/config.in` 配置为构建目录下的 `include/ink/core/config.h`，提供目标平台、指针大小、字节序、编译器身份与版本，以及互斥的 `INK_BUILD_DEBUG`、`INK_BUILD_DEVELOPMENT`、`INK_BUILD_SHIPPING` 宏。字节序由 `CMAKE_CXX_BYTE_ORDER` 自动检测，通过互斥的 `INK_PLATFORM_LITTLE_ENDIAN`、`INK_PLATFORM_BIG_ENDIAN` 表示；无法确定目标字节序时配置失败。所有布尔宏均定义为 `0` 或 `1`，使用 `#if` 判断。`ink::config` 将生成头目录传递给各模块；生成文件不写入源码树。
 
 `core_define.h` 的 `INK_ENABLE_ASSERTIONS` 统一控制八个断言宏：`check`、`checkMsgf`、`checkAlways`、`checkAlwaysMsgf`、`ensure`、`ensureMsgf`、`ensureAlways`、`ensureAlwaysMsgf`。check 和 ensure 采用对称的 `xxx`、`xxxMsgf`、`xxxAlways`、`xxxAlwaysMsgf` 命名。Debug 和 Development 开启，Shipping 关闭。失败时先输出并刷新日志，再在附加了调试器时触发断点；继续执行后，check 终止进程，ensure 返回 `false`。普通 ensure 每个调用点仅报告和中断一次，`ensureAlways` 和 `ensureAlwaysMsgf` 每次失败都报告和中断；check 每次失败都会终止，因此它的 Always 版本与对应普通版本行为相同。Shipping 中 check 不求值，ensure 保留条件求值，所有断言消息参数均不求值。`panic` 始终终止。Ink 模式独立于 `CMAKE_BUILD_TYPE`、`--config` 和 `NDEBUG`，不改变编译器优化或调试信息选项；例如 `cmake -S . -B build -DINK_BUILD_MODE=shipping` 配合 `cmake --build build --config Release` 选择 Shipping 行为和 Release 编译选项。多配置生成器的同一构建目录共用所选 Ink 模式，不同模式请使用不同构建目录。
 

@@ -6,6 +6,7 @@
 
 #include <array>
 #include <atomic>
+#include <bit>
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -22,6 +23,9 @@ namespace ink::core::test
     static_assert(INK_BUILD_DEBUG + INK_BUILD_DEVELOPMENT + INK_BUILD_SHIPPING == 1);
     static_assert(INK_ENABLE_ASSERTIONS == !INK_BUILD_SHIPPING);
     static_assert(INK_PLATFORM_POINTER_SIZE == sizeof(void *));
+    static_assert(INK_PLATFORM_LITTLE_ENDIAN + INK_PLATFORM_BIG_ENDIAN == 1);
+    static_assert(INK_PLATFORM_LITTLE_ENDIAN == (std::endian::native == std::endian::little));
+    static_assert(INK_PLATFORM_BIG_ENDIAN == (std::endian::native == std::endian::big));
 
 #if defined(_WIN32)
     static_assert(INK_PLATFORM_WINDOWS == 1);
