@@ -44,6 +44,7 @@ namespace ink::vm
   {
     for (const MachineFunction &Function : Module.functions())
     {
+        Context.resolveSymbol(Function.name(), Context.byteSize());
       FunctionEmitter.emit(Function);
     }
   }

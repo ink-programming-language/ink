@@ -7,12 +7,14 @@
 #include "ink/backend/vm/instruction/immediate_operand.h"
 #include "ink/backend/vm/instruction/machine_instructions.h"
 #include "ink/backend/vm/instruction/register_operand.h"
+#include "ink/backend/vm/module/machine_instruction_builder.h"
 #include "ink/backend/vm/module/machine_module.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/name/name_pool.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -38,6 +40,235 @@ namespace ink::vm::test
 
   static_assert(std::is_same_v<decltype(std::declval<ExecutableEmitter &>().getExecutable()), const ExecutableFile &>);
   static_assert(std::is_same_v<decltype(std::declval<const ExecutableEmitter &>().getExecutable()), const ExecutableFile &>);
+
+  // Function entries use their actual image positions after an existing prefix and aligned global storage, and leave the unresolved map.
+  TEST(VMExecutableEmitterTest, ResolvesFunctionEntriesAfterPrefixAndGlobalStorage)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    core::NamePool &Names = core::NamePool::instance();
+    const auto GlobalName = Names.intern("emitter-function-layout-global");
+    const auto FirstName = Names.intern("emitter-function-layout-first");
+    const auto SecondName = Names.intern("emitter-function-layout-second");
+    const std::array<std::uint8_t, 2> InitialBytes{0xA1, 0xB2};
+    MachineModule Module;
+    ASSERT_TRUE(Module.createGlobalVariable(4, 8, InitialBytes, GlobalName).has_value());
+    MachineBasicBlock &First = Module.createFunction(FirstName).createBasicBlock();
+    MachineBasicBlock &Second = Module.createFunction(SecondName).createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(First);
+    Builder.create<Opcode::Ret>();
+    Builder.setInsertPoint(Second);
+    Builder.create<Opcode::Ret>();
+    ExecutableEmitter Emitter(Diagnostics);
+    Emitter.scanUnResolvedSymbol(Module);
+    Emitter.getContext().padZero(3);
+    Emitter.padGlobals(Module);
+    ASSERT_TRUE(Emitter.getContext().hasUnResolvedSymbol(FirstName));
+    ASSERT_TRUE(Emitter.getContext().hasUnResolvedSymbol(SecondName));
+    Emitter.padFunction(Module);
+
+    const ExecutableFile &Executable = Emitter.getExecutable();
+    ASSERT_EQ(Executable.byteSize(), 16U);
+    EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(GlobalName), 8U);
+    EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 12U);
+    EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 14U);
+    EXPECT_FALSE(Emitter.getContext().hasUnResolvedSymbol(FirstName));
+    EXPECT_FALSE(Emitter.getContext().hasUnResolvedSymbol(SecondName));
+    EXPECT_EQ(Executable.getImage()[8], 0xA1U);
+    EXPECT_EQ(Executable.getImage()[9], 0xB2U);
+    EXPECT_EQ(readLittleEndian(Executable, 10, 2), 0U);
+    EXPECT_EQ(readLittleEndian(Executable, 12, 2), 0x003AU);
+    EXPECT_EQ(readLittleEndian(Executable, 14, 2), 0x003AU);
+  }
+
+  // Full module emission binds ordinary forward, self, and backward function-address immediates to their laid-out entries.
+  TEST(VMExecutableEmitterTest, EmitsFunctionAddressRelocationsAcrossFunctionBodies)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    core::NamePool &Names = core::NamePool::instance();
+    const auto GlobalName = Names.intern("emitter-function-address-slots");
+    const auto FirstName = Names.intern("emitter-function-address-first");
+    const auto SecondName = Names.intern("emitter-function-address-second");
+    MachineModule Module;
+    ASSERT_TRUE(Module.createGlobalVariable(24, 8, {}, GlobalName).has_value());
+    MachineBasicBlock &First = Module.createFunction(FirstName).createBasicBlock();
+    MachineBasicBlock &Second = Module.createFunction(SecondName).createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(First);
+    Builder.create<Opcode::Store64i>(AddressOperand(GlobalName), ImmediateOperand(SecondName));
+    Builder.create<Opcode::Store64i>(AddressOperand(GlobalName, 8), ImmediateOperand(FirstName));
+    Builder.create<Opcode::Ret>();
+    Builder.setInsertPoint(Second);
+    Builder.create<Opcode::Store64i>(AddressOperand(GlobalName, 16), ImmediateOperand(FirstName));
+    Builder.create<Opcode::Ret>();
+    ExecutableEmitter Emitter(Diagnostics);
+    const ExecutableFile Executable = Emitter.emit(Module);
+
+    ASSERT_EQ(Executable.byteSize(), 85U);
+    EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 24U);
+    EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 64U);
+    EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x000CU);
+    EXPECT_EQ(readLittleEndian(Executable, 27), static_cast<std::uint64_t>(-24));
+    EXPECT_EQ(readLittleEndian(Executable, 46), static_cast<std::uint64_t>(-35));
+    EXPECT_EQ(readLittleEndian(Executable, 64, 2), 0x000CU);
+    EXPECT_EQ(readLittleEndian(Executable, 67), static_cast<std::uint64_t>(-48));
+    const auto &Relocations = Executable.getImageBaseAddressRelocations();
+    ASSERT_EQ(Relocations.size(), 3U);
+    constexpr std::array<std::pair<std::uint64_t, std::uint64_t>, 3> ExpectedRelocations{{
+        {35, 64},
+        {54, 24},
+        {75, 24},
+    }};
+    for (const auto &[ImageOffset, TargetOffset] : ExpectedRelocations)
+    {
+      const auto Position = std::ranges::find(Relocations, ImageOffset, &ImageBaseAddressRelocation::ImageOffset);
+      ASSERT_NE(Position, Relocations.end());
+      EXPECT_EQ(Position->TargetOffset, TargetOffset);
+      EXPECT_EQ(Position->Addend, 0);
+      EXPECT_EQ(readLittleEndian(Executable, ImageOffset), 0U);
+    }
+    EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+  }
+
+  // Direct VM calls encode forward, self, and backward targets relative to each call opcode after global storage.
+  TEST(VMExecutableEmitterTest, EncodesDirectVMCallsAcrossFunctionBodies)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    core::NamePool &Names = core::NamePool::instance();
+    const auto FirstName = Names.intern("emitter-direct-call-first");
+    const auto SecondName = Names.intern("emitter-direct-call-second");
+    MachineModule Module;
+    ASSERT_TRUE(Module.createGlobalVariable(5, 1, {}, Names.intern("emitter-direct-call-prefix")).has_value());
+    MachineBasicBlock &First = Module.createFunction(FirstName).createBasicBlock();
+    MachineBasicBlock &Second = Module.createFunction(SecondName).createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(First);
+    Builder.create<Opcode::Calli>(ImmediateOperand(SecondName));
+    Builder.create<Opcode::Calli>(ImmediateOperand(FirstName));
+    Builder.create<Opcode::Ret>();
+    Builder.setInsertPoint(Second);
+    Builder.create<Opcode::Calli>(ImmediateOperand(FirstName));
+    Builder.create<Opcode::Ret>();
+    ExecutableEmitter Emitter(Diagnostics);
+    const ExecutableFile Executable = Emitter.emit(Module);
+
+    ASSERT_EQ(Executable.byteSize(), 39U);
+    EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 5U);
+    EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 27U);
+    EXPECT_EQ(readLittleEndian(Executable, 5, 2), 0x003BU);
+    EXPECT_EQ(readLittleEndian(Executable, 7), 22U);
+    EXPECT_EQ(readLittleEndian(Executable, 15, 2), 0x003BU);
+    EXPECT_EQ(readLittleEndian(Executable, 17), static_cast<std::uint64_t>(-10));
+    EXPECT_EQ(readLittleEndian(Executable, 25, 2), 0x003AU);
+    EXPECT_EQ(readLittleEndian(Executable, 27, 2), 0x003BU);
+    EXPECT_EQ(readLittleEndian(Executable, 29), static_cast<std::uint64_t>(-22));
+    EXPECT_EQ(readLittleEndian(Executable, 37, 2), 0x003AU);
+    EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+  }
+
+  // An unresolved direct VM call reserves exactly eight target bytes and patches them only during module finalization.
+  TEST(VMExecutableEmitterTest, DefersForwardDirectVMCallUntilModuleFinalization)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    const auto TargetName = core::NamePool::instance().intern("emitter-forward-direct-call-target");
+    MachineModule Module;
+    MachineBasicBlock &Target = Module.createFunction(TargetName).createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Target);
+    Builder.create<Opcode::Ret>();
+    ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
+    Emitter.scanUnResolvedSymbol(Module);
+    Emitter.getContext().padZero(3);
+    Instructions.padInstruction(MachineCalliInstruction(ImmediateOperand(TargetName)));
+
+    ASSERT_EQ(Emitter.getExecutable().byteSize(), 13U);
+    EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 3, 2), 0x003BU);
+    EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 5), 0U);
+    Emitter.padFunction(Module);
+    ASSERT_EQ(Emitter.getExecutable().byteSize(), 15U);
+    EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(TargetName), 13U);
+    EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 5), 0U);
+    Emitter.resolveStaticRelocations();
+
+    const ExecutableFile &Executable = Emitter.getExecutable();
+    EXPECT_EQ(readLittleEndian(Executable, 5), 10U);
+    EXPECT_EQ(readLittleEndian(Executable, 13, 2), 0x003AU);
+    EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
+  }
+
+  // Native direct-call aliases reuse address imports, and calls emit only four-byte indices without pointer relocations.
+  TEST(VMExecutableEmitterTest, SharesNativeImportsAcrossDirectCallsAndAddressFields)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    core::NamePool &Names = core::NamePool::instance();
+    const auto FirstAlias = Names.intern("emitter-native-call-first-alias");
+    const auto SecondAlias = Names.intern("emitter-native-call-second-alias");
+    const auto OtherAlias = Names.intern("emitter-native-call-other-alias");
+    const auto SharedHost = Names.intern("emitter-native-call-shared-host");
+    const auto OtherHost = Names.intern("emitter-native-call-other-host");
+    MachineModule Module;
+    Module.declareNativeFunction(FirstAlias, NativeFunctionImport{SharedHost});
+    Module.declareNativeFunction(SecondAlias, NativeFunctionImport{SharedHost});
+    Module.declareNativeFunction(OtherAlias, NativeFunctionImport{OtherHost});
+    ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
+    Emitter.scanUnResolvedSymbol(Module);
+    Instructions.padOperand(ImmediateOperand(FirstAlias), 64);
+    Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(SecondAlias)));
+    Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(OtherAlias)));
+    Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(FirstAlias)));
+
+    const ExecutableFile &Executable = Emitter.getExecutable();
+    ASSERT_EQ(Executable.byteSize(), 26U);
+    EXPECT_EQ(readLittleEndian(Executable, 0), 0U);
+    EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x003CU);
+    EXPECT_EQ(readLittleEndian(Executable, 10, 4), 0U);
+    EXPECT_EQ(readLittleEndian(Executable, 14, 2), 0x003CU);
+    EXPECT_EQ(readLittleEndian(Executable, 16, 4), 1U);
+    EXPECT_EQ(readLittleEndian(Executable, 20, 2), 0x003CU);
+    EXPECT_EQ(readLittleEndian(Executable, 22, 4), 0U);
+    ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 2U);
+    EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, SharedHost);
+    EXPECT_EQ(Executable.getDynamicImportSymbols()[1].Name, OtherHost);
+    ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 1U);
+    const auto &Relocation = Executable.getDynamicImportSymbolRelocations()[0];
+    EXPECT_EQ(Relocation.ImageOffset, 0U);
+    EXPECT_EQ(Relocation.SymbolIndex, 0U);
+    EXPECT_EQ(Relocation.Addend, 0);
+    EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+  }
+
+  // Numeric direct calls preserve signed VM displacement bits and the largest native u32 index at their opcode-specific widths.
+  TEST(VMExecutableEmitterTest, PreservesNumericDirectCallBoundaryValues)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
+    Instructions.padInstruction(MachineCalliInstruction(ImmediateOperand(static_cast<std::uint64_t>(-16))));
+    Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(std::numeric_limits<std::uint32_t>::max())));
+
+    const ExecutableFile &Executable = Emitter.getExecutable();
+    ASSERT_EQ(Executable.byteSize(), 16U);
+    EXPECT_EQ(readLittleEndian(Executable, 0, 2), 0x003BU);
+    EXPECT_EQ(readLittleEndian(Executable, 2), static_cast<std::uint64_t>(-16));
+    EXPECT_EQ(readLittleEndian(Executable, 10, 2), 0x003CU);
+    EXPECT_EQ(readLittleEndian(Executable, 12, 4), std::numeric_limits<std::uint32_t>::max());
+    EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
+  }
 
   // An add instruction writes its opcode before ordered register and immediate fields, followed immediately by a two-byte return.
   TEST(VMExecutableEmitterTest, EncodesOpcodeBeforeOrderedRegisterAndImmediateOperands)

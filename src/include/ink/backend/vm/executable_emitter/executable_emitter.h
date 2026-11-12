@@ -37,7 +37,7 @@ namespace ink::vm
       // Appends aligned global storage and resolves each global to its image offset.
       void padGlobals(const MachineModule &Module);
 
-      // Invokes the function emitter for each function in module order.
+      // Resolves each function to its entry image offset, then invokes the function emitter in module order.
       void padFunction(const MachineModule &Module);
 
       // Finalizes forward references after all globals and functions are laid out; every referenced VM symbol must have an image offset.

@@ -37,13 +37,62 @@ namespace ink::vm
         padOperand(static_cast<const AddressOperand &>(Operand), InstructionOffset);
         break;
       case OperandKind::Immediate:
-        padOperand(static_cast<const ImmediateOperand &>(Operand), Instruction.bitWidth());
+        if (Instruction.getOpcode() == Opcode::Calli)
+        {
+          padCallTarget(static_cast<const ImmediateOperand &>(Operand), InstructionOffset);
+        }
+        else if (Instruction.getOpcode() == Opcode::CallNativei)
+        {
+          padNativeCallTarget(static_cast<const ImmediateOperand &>(Operand));
+        }
+        else
+        {
+          padOperand(static_cast<const ImmediateOperand &>(Operand), Instruction.bitWidth());
+        }
         break;
       case OperandKind::BasicBlock:
         padOperand(static_cast<const BasicBlockOperand &>(Operand), InstructionOffset);
         break;
       }
     }
+  }
+
+  void InstructionEmitter::padCallTarget(const ImmediateOperand &Operand, std::uint64_t InstructionOffset)
+  {
+    if (const auto Bits = Operand.bits())
+    {
+      Context.padInteger(*Bits, 64);
+      return;
+    }
+
+    const auto Symbol = Operand.getSymbol();
+    REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "call", "VM call target name must be registered and nonempty");
+    if (const auto Position = Context.resolvedSymbolOffset(*Symbol))
+    {
+      const auto Bits = Context.resolveRegisterRelativeOffset(RegisterId::PC, *Position, 0, InstructionOffset);
+      Context.padInteger(Bits, 64);
+      return;
+    }
+
+    REPORT_ICE_IF(!Context.hasUnResolvedSymbol(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "call", "VM call target has no resolved image offset or declaration");
+    Context.addStaticRelocation({Context.byteSize(), *Symbol, InstructionOffset, 0, RegisterId::PC});
+    Context.padZero(8);
+  }
+
+  void InstructionEmitter::padNativeCallTarget(const ImmediateOperand &Operand)
+  {
+    if (const auto Bits = Operand.bits())
+    {
+      Context.padInteger(*Bits, 32);
+      return;
+    }
+
+    const auto Symbol = Operand.getSymbol();
+    REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "callNative", "native call target name must be registered and nonempty");
+    const auto *Import = Context.findNativeSymbol(*Symbol);
+    REPORT_ICE_IF(!Import, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "callNative", "native call target has no explicit native declaration");
+    const auto Index = Context.getOrAddNativeSymbol(*Import);
+    Context.padInteger(Index, 32);
   }
 
   void InstructionEmitter::padRegister(RegisterId Register, std::int64_t ByteOffset)
