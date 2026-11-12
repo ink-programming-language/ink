@@ -15,6 +15,7 @@ namespace ink::core
 
 namespace ink::vm
 {
+  class FunctionEmitter;
   class MachineModule;
   class AddressOperand;
   class RegisterOperand;
@@ -51,6 +52,8 @@ namespace ink::vm
       void padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset);
 
     private:
+      friend class FunctionEmitter;
+
       enum class StaticRelocationKind : std::uint8_t
       {
         PCRelative,
