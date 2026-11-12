@@ -2,6 +2,7 @@
 #include "ink/backend/vm/executable_emitter/executable_emitter.h"
 #include "ink/backend/vm/instruction/address_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
+#include "ink/backend/vm/instruction/machine_instructions.h"
 #include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/backend/vm/module/machine_module.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
@@ -34,6 +35,67 @@ namespace ink::vm::test
 
   static_assert(std::is_same_v<decltype(std::declval<ExecutableEmitter &>().getExecutable()), const ExecutableFile &>);
   static_assert(std::is_same_v<decltype(std::declval<const ExecutableEmitter &>().getExecutable()), const ExecutableFile &>);
+
+  // An add instruction writes its opcode before ordered register and immediate fields, followed immediately by a two-byte return.
+  TEST(VMExecutableEmitterTest, EncodesOpcodeBeforeOrderedRegisterAndImmediateOperands)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    ExecutableEmitter Emitter(Diagnostics);
+    Emitter.padInstruction(MachineAdd64rriInstruction(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::BP, -8), ImmediateOperand(16)));
+    Emitter.padInstruction(MachineRetInstruction());
+
+    const ExecutableFile &Executable = Emitter.getExecutable();
+    ASSERT_EQ(Executable.byteSize(), 30U);
+    EXPECT_EQ(readLittleEndian(Executable, 0, 2), 0x001BU);
+    EXPECT_EQ(Executable.getImage()[2], static_cast<std::uint8_t>(RegisterId::SP));
+    EXPECT_EQ(readLittleEndian(Executable, 3), 0U);
+    EXPECT_EQ(Executable.getImage()[11], static_cast<std::uint8_t>(RegisterId::BP));
+    EXPECT_EQ(readLittleEndian(Executable, 12), static_cast<std::uint64_t>(-8));
+    EXPECT_EQ(readLittleEndian(Executable, 20), 16U);
+    EXPECT_EQ(readLittleEndian(Executable, 28, 2), 0x003AU);
+  }
+
+  // A 16-bit store emits only the low two immediate bytes after its nine-byte address without tags or alignment padding.
+  TEST(VMExecutableEmitterTest, EncodesNarrowInstructionImmediateWithoutPadding)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    ExecutableEmitter Emitter(Diagnostics);
+    Emitter.padInstruction(MachineStore16iInstruction(AddressOperand(RegisterId::SP, -8), ImmediateOperand(0x1122334455667788)));
+
+    const ExecutableFile &Executable = Emitter.getExecutable();
+    ASSERT_EQ(Executable.byteSize(), 13U);
+    EXPECT_EQ(readLittleEndian(Executable, 0, 2), 0x0008U);
+    EXPECT_EQ(Executable.getImage()[2], static_cast<std::uint8_t>(RegisterId::SP));
+    EXPECT_EQ(readLittleEndian(Executable, 3), static_cast<std::uint64_t>(-8));
+    EXPECT_EQ(readLittleEndian(Executable, 11, 2), 0x7788U);
+  }
+
+  // Every forward symbol address in one instruction uses the opcode's image offset as its PC-relative origin.
+  TEST(VMExecutableEmitterTest, PreservesInstructionStartForForwardPCRelativeOperands)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    const auto Symbol = core::NamePool::instance().intern("emitter-instruction-forward-global");
+    MachineModule Module;
+    ASSERT_TRUE(Module.createGlobalVariable(8, 16, {}, Symbol).has_value());
+    ExecutableEmitter Emitter(Diagnostics);
+    Emitter.scanUnResolvedSymbol(Module);
+    Emitter.padZero(5);
+    Emitter.padInstruction(MachineLoad64Instruction(AddressOperand(Symbol, 1), AddressOperand(Symbol, 4)));
+    EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 8), 0U);
+    EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 17), 0U);
+    Emitter.padGlobals(Module);
+    Emitter.resolveStaticRelocations();
+
+    const ExecutableFile &Executable = Emitter.getExecutable();
+    ASSERT_EQ(Executable.byteSize(), 40U);
+    EXPECT_EQ(readLittleEndian(Executable, 5, 2), 0x0004U);
+    EXPECT_EQ(Executable.getImage()[7], static_cast<std::uint8_t>(RegisterId::PC));
+    EXPECT_EQ(readLittleEndian(Executable, 8), 28U);
+    EXPECT_EQ(Executable.getImage()[16], static_cast<std::uint8_t>(RegisterId::PC));
+    EXPECT_EQ(readLittleEndian(Executable, 17), 31U);
+    EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
+  }
 
   // Numeric immediates retain their low bits at every supported width without creating address relocations.
   TEST(VMExecutableEmitterTest, PreservesNumericImmediateWidths)

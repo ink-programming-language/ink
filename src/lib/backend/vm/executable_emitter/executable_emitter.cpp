@@ -1,7 +1,9 @@
 #include "ink/backend/vm/executable_emitter/executable_emitter.h"
 
 #include "ink/backend/vm/instruction/address_operand.h"
+#include "ink/backend/vm/instruction/basic_block_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
+#include "ink/backend/vm/instruction/machine_instruction.h"
 #include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/backend/vm/module/machine_module.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
@@ -15,7 +17,8 @@
 namespace ink::vm
 {
   ExecutableEmitter::ExecutableEmitter(const core::DiagnosticEngine &Diagnostics) noexcept
-      : Diagnostics(Diagnostics)
+      : Diagnostics(Diagnostics),
+        FunctionEmitter(*this)
   {
   }
 
@@ -27,6 +30,7 @@ namespace ink::vm
     PendingStaticRelocationSymbol.clear();
     scanUnResolvedSymbol(Module);
     padGlobals(Module);
+    padFunction(Module);
     resolveStaticRelocations();
     return std::move(Executable);
   }
@@ -209,6 +213,39 @@ namespace ink::vm
     }
   }
 
+  void ExecutableEmitter::padFunction(const MachineModule &Module)
+  {
+    for (const MachineFunction &Function : Module.functions())
+    {
+      FunctionEmitter.emit(Function);
+    }
+  }
+
+  void ExecutableEmitter::padInstruction(const MachineInstruction &Instruction)
+  {
+    const auto InstructionOffset = Executable.byteSize();
+    padInteger(static_cast<std::uint16_t>(Instruction.getOpcode()), 16);
+    for (std::size_t Index = 0; Index < Instruction.operandCount(); ++Index)
+    {
+      const Operand &Operand = *Instruction.getOperand(Index);
+      switch (Operand.getKind())
+      {
+      case OperandKind::Register:
+        padOperand(static_cast<const RegisterOperand &>(Operand));
+        break;
+      case OperandKind::Address:
+        padOperand(static_cast<const AddressOperand &>(Operand), InstructionOffset);
+        break;
+      case OperandKind::Immediate:
+        padOperand(static_cast<const ImmediateOperand &>(Operand), Instruction.bitWidth());
+        break;
+      case OperandKind::BasicBlock:
+        padOperand(static_cast<const BasicBlockOperand &>(Operand), InstructionOffset);
+        break;
+      }
+    }
+  }
+
   void ExecutableEmitter::padOperand(const RegisterOperand &Operand)
   {
     padRegister(Operand.getRegister(), Operand.getByteOffset());
@@ -277,5 +314,9 @@ namespace ink::vm
 
     REPORT_ICE_IF(Native == NativeSymbols.end(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has no resolved VM offset or explicit native declaration");
     padNativeSymbol(Native->second, Operand.getByteOffset());
+  }
+
+  void ExecutableEmitter::padOperand(const BasicBlockOperand &, std::uint64_t)
+  {
   }
 } // namespace ink::vm

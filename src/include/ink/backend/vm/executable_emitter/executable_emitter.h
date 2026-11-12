@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ink/backend/vm/executable/executable_file.h"
+#include "ink/backend/vm/executable_emitter/function_emitter.h"
 #include "ink/backend/vm/instruction/register.h"
 #include "ink/core/name/name.h"
 
@@ -18,15 +19,22 @@ namespace ink::vm
 {
   class FunctionEmitter;
   class MachineModule;
+  class MachineInstruction;
   class AddressOperand;
   class RegisterOperand;
   class ImmediateOperand;
+  class BasicBlockOperand;
 
   class ExecutableEmitter
   {
     public:
       // The borrowed diagnostic engine must outlive this emitter.
       explicit ExecutableEmitter(const core::DiagnosticEngine &Diagnostics) noexcept;
+
+      ExecutableEmitter(const ExecutableEmitter &) = delete;
+      ExecutableEmitter &operator=(const ExecutableEmitter &) = delete;
+      ExecutableEmitter(ExecutableEmitter &&) = delete;
+      ExecutableEmitter &operator=(ExecutableEmitter &&) = delete;
 
       [[nodiscard]] ExecutableFile emit(const MachineModule &Module);
 
@@ -48,6 +56,12 @@ namespace ink::vm
       // Appends aligned global storage and resolves each global to its image offset.
       void padGlobals(const MachineModule &Module);
 
+      // Invokes the function emitter for each function in module order.
+      void padFunction(const MachineModule &Module);
+
+      // Appends the opcode, then dispatches operands in semantic order to padOperand.
+      void padInstruction(const MachineInstruction &Instruction);
+
       // Finalizes forward references after all globals and functions are laid out; every referenced VM symbol must have an image offset.
       void resolveStaticRelocations();
 
@@ -59,6 +73,9 @@ namespace ink::vm
 
       // Appends a nine-byte address operand; unresolved VM symbols reserve a zero displacement and queue a static relocation.
       void padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset);
+
+      // Reserved for basic-block target encoding; currently leaves the image unchanged.
+      void padOperand(const BasicBlockOperand &Operand, std::uint64_t InstructionOffset);
 
     private:
       friend class FunctionEmitter;
@@ -83,6 +100,7 @@ namespace ink::vm
       void padNativeSymbol(const DynamicImportSymbol &Import, std::int64_t Addend);
 
       const core::DiagnosticEngine &Diagnostics;
+      vm::FunctionEmitter FunctionEmitter;
       ExecutableFile Executable;
       std::unordered_map<core::Name, std::uint64_t> UnresolvedSymbol;
       std::unordered_map<core::Name, std::uint64_t> ResolvedSymbol;
