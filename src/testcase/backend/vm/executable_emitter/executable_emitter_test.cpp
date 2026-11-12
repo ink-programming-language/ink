@@ -41,6 +41,42 @@ namespace ink::vm::test
   static_assert(std::is_same_v<decltype(std::declval<ExecutableEmitter &>().getExecutable()), const ExecutableFile &>);
   static_assert(std::is_same_v<decltype(std::declval<const ExecutableEmitter &>().getExecutable()), const ExecutableFile &>);
 
+  // Only declared names without VM definitions become Native symbols, including unused functions and read-only data.
+  TEST(VMExecutableEmitterTest, DerivesNativeSymbolsBySubtractingFunctionsAndGlobalsFromDeclarations)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    core::NamePool &Names = core::NamePool::instance();
+    const auto FunctionName = Names.intern("emitter-declared-vm-function");
+    const auto GlobalName = Names.intern("emitter-declared-vm-global");
+    const auto NativeFunction = Names.intern("emitter-declared-native-function");
+    const auto NativeData = Names.intern("emitter-declared-native-data");
+    const auto NativeConstant = Names.intern("emitter-declared-native-constant");
+    const auto UndeclaredName = Names.intern("emitter-undeclared-symbol");
+    MachineModule Module;
+    Module.declareSymbol(FunctionName, MachineSymbolKind::Function);
+    Module.declareSymbol(GlobalName, MachineSymbolKind::GlobalVariable);
+    Module.declareSymbol(NativeFunction, MachineSymbolKind::Function);
+    Module.declareSymbol(NativeFunction, MachineSymbolKind::Function);
+    Module.declareSymbol(NativeData, MachineSymbolKind::GlobalVariable);
+    Module.declareSymbol(NativeConstant, MachineSymbolKind::GlobalVariable, true);
+    Module.createFunction(FunctionName);
+    ASSERT_TRUE(Module.createGlobalVariable(8, 8, {}, GlobalName).has_value());
+    ExecutableEmitter Emitter(Diagnostics);
+    Emitter.scanUnResolvedSymbol(Module);
+
+    EXPECT_FALSE(Emitter.getContext().isNativeSymbol(FunctionName));
+    EXPECT_FALSE(Emitter.getContext().isNativeSymbol(GlobalName));
+    EXPECT_FALSE(Emitter.getContext().isNativeSymbol(UndeclaredName));
+    EXPECT_TRUE(Emitter.getContext().isNativeSymbol(NativeFunction));
+    EXPECT_TRUE(Emitter.getContext().isNativeSymbol(NativeData));
+    EXPECT_TRUE(Emitter.getContext().isNativeSymbol(NativeConstant));
+    EXPECT_TRUE(Emitter.getContext().hasUnResolvedSymbol(FunctionName));
+    EXPECT_TRUE(Emitter.getContext().hasUnResolvedSymbol(GlobalName));
+    EXPECT_FALSE(Emitter.getContext().hasUnResolvedSymbol(NativeFunction));
+    EXPECT_FALSE(Emitter.getContext().hasUnResolvedSymbol(NativeData));
+    EXPECT_TRUE(Emitter.getExecutable().getDynamicImportSymbols().empty());
+  }
+
   // Function entries use their actual image positions after an existing prefix and aligned global storage, and leave the unresolved map.
   TEST(VMExecutableEmitterTest, ResolvesFunctionEntriesAfterPrefixAndGlobalStorage)
   {
@@ -205,28 +241,25 @@ namespace ink::vm::test
     EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
   }
 
-  // Native direct-call aliases reuse address imports, and calls emit only four-byte indices without pointer relocations.
+  // Native direct calls reuse address imports by symbol name and emit four-byte indices without pointer relocations.
   TEST(VMExecutableEmitterTest, SharesNativeImportsAcrossDirectCallsAndAddressFields)
   {
     const core::DiagnosticEngine Diagnostics;
     core::NamePool &Names = core::NamePool::instance();
-    const auto FirstAlias = Names.intern("emitter-native-call-first-alias");
-    const auto SecondAlias = Names.intern("emitter-native-call-second-alias");
-    const auto OtherAlias = Names.intern("emitter-native-call-other-alias");
-    const auto SharedHost = Names.intern("emitter-native-call-shared-host");
-    const auto OtherHost = Names.intern("emitter-native-call-other-host");
+    const auto SharedSymbol = Names.intern("emitter-native-call-shared");
+    const auto OtherSymbol = Names.intern("emitter-native-call-other");
     MachineModule Module;
-    Module.declareNativeFunction(FirstAlias, NativeFunctionImport{SharedHost});
-    Module.declareNativeFunction(SecondAlias, NativeFunctionImport{SharedHost});
-    Module.declareNativeFunction(OtherAlias, NativeFunctionImport{OtherHost});
+    Module.declareSymbol(SharedSymbol, MachineSymbolKind::Function);
+    Module.declareSymbol(SharedSymbol, MachineSymbolKind::Function);
+    Module.declareSymbol(OtherSymbol, MachineSymbolKind::Function);
     ExecutableEmitter Emitter(Diagnostics);
     FunctionEmissionContext FunctionContext;
     InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Emitter.scanUnResolvedSymbol(Module);
-    Instructions.padOperand(ImmediateOperand(FirstAlias), 64);
-    Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(SecondAlias)));
-    Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(OtherAlias)));
-    Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(FirstAlias)));
+    Instructions.padOperand(ImmediateOperand(SharedSymbol), 64);
+    Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(SharedSymbol)));
+    Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(OtherSymbol)));
+    Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(SharedSymbol)));
 
     const ExecutableFile &Executable = Emitter.getExecutable();
     ASSERT_EQ(Executable.byteSize(), 26U);
@@ -238,8 +271,8 @@ namespace ink::vm::test
     EXPECT_EQ(readLittleEndian(Executable, 20, 2), 0x003CU);
     EXPECT_EQ(readLittleEndian(Executable, 22, 4), 0U);
     ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 2U);
-    EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, SharedHost);
-    EXPECT_EQ(Executable.getDynamicImportSymbols()[1].Name, OtherHost);
+    EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, SharedSymbol);
+    EXPECT_EQ(Executable.getDynamicImportSymbols()[1].Name, OtherSymbol);
     ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 1U);
     const auto &Relocation = Executable.getDynamicImportSymbolRelocations()[0];
     EXPECT_EQ(Relocation.ImageOffset, 0U);
@@ -488,10 +521,9 @@ namespace ink::vm::test
     core::NamePool &Names = core::NamePool::instance();
     const auto VMSymbol = Names.intern("emitter-mixed-vm");
     const auto NativeSymbol = Names.intern("emitter-mixed-native");
-    const auto HostSymbol = Names.intern("emitter-mixed-host");
     MachineModule Module;
     ASSERT_TRUE(Module.createGlobalVariable(16, 1, {}, VMSymbol).has_value());
-    Module.declareNativeData(NativeSymbol, NativeDataImport{HostSymbol});
+    Module.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
     ExecutableEmitter Emitter(Diagnostics);
     FunctionEmissionContext FunctionContext;
     InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
@@ -509,7 +541,7 @@ namespace ink::vm::test
     EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 0U);
     EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Addend, 8);
     ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
-    EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, HostSymbol);
+    EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, NativeSymbol);
     ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 2U);
     EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 24U);
     EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
@@ -526,24 +558,22 @@ namespace ink::vm::test
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
-  // Native aliases share one import across ZERO-relative memory addresses and ordinary address immediates without moving their relocation fields.
+  // Repeated Native declarations share one import across ZERO-relative memory addresses and ordinary address immediates.
   TEST(VMExecutableEmitterTest, SharesNativeImportsAcrossImmediateAndMemoryAddressFields)
   {
     const core::DiagnosticEngine Diagnostics;
     core::NamePool &Names = core::NamePool::instance();
-    const auto FirstAlias = Names.intern("emitter-native-memory");
-    const auto SecondAlias = Names.intern("emitter-native-immediate");
-    const auto HostSymbol = Names.intern("emitter-shared-host");
+    const auto NativeSymbol = Names.intern("emitter-shared-native");
     MachineModule Module;
-    Module.declareNativeData(FirstAlias, NativeDataImport{HostSymbol});
-    Module.declareNativeData(SecondAlias, NativeDataImport{HostSymbol});
+    Module.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
+    Module.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
     ExecutableEmitter Emitter(Diagnostics);
     FunctionEmissionContext FunctionContext;
     InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Emitter.scanUnResolvedSymbol(Module);
     Emitter.getContext().padZero(1);
-    Instructions.padOperand(AddressOperand(FirstAlias, 12), 0);
-    Instructions.padOperand(ImmediateOperand(SecondAlias, -4), 64);
+    Instructions.padOperand(AddressOperand(NativeSymbol, 12), 0);
+    Instructions.padOperand(ImmediateOperand(NativeSymbol, -4), 64);
 
     const ExecutableFile &Executable = Emitter.getExecutable();
     ASSERT_EQ(Executable.byteSize(), 18U);
@@ -551,7 +581,7 @@ namespace ink::vm::test
     EXPECT_EQ(readLittleEndian(Executable, 2), 0U);
     EXPECT_EQ(readLittleEndian(Executable, 10), 0U);
     ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
-    EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, HostSymbol);
+    EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, NativeSymbol);
     ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 2U);
     EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 2U);
     EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
@@ -572,7 +602,7 @@ namespace ink::vm::test
     const auto NativeSymbol = Names.intern("emitter-reset-native");
     MachineModule FirstModule;
     ASSERT_TRUE(FirstModule.createGlobalVariable(8, 1, {}, VMSymbol).has_value());
-    FirstModule.declareNativeData(NativeSymbol, NativeDataImport{Names.intern("emitter-reset-host")});
+    FirstModule.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
     ExecutableEmitter Emitter(Diagnostics);
     FunctionEmissionContext FunctionContext;
     InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
@@ -593,6 +623,7 @@ namespace ink::vm::test
     const ExecutableFile Executable = Emitter.emit(SecondModule, EntryName, {});
     ASSERT_EQ(Executable.byteSize(), 4U);
     EXPECT_EQ(Executable.getEntryOffset(), 2U);
+    EXPECT_FALSE(Emitter.getContext().isNativeSymbol(NativeSymbol));
     EXPECT_EQ(Executable.getImage()[0], 0xABU);
     EXPECT_EQ(Executable.getImage()[1], 0xCDU);
     EXPECT_EQ(readLittleEndian(Executable, 2, 2), 0x003AU);
@@ -682,7 +713,7 @@ namespace ink::vm::test
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Module.createFunction(ValidName).createBasicBlock());
     Builder.create<Opcode::Ret>();
-    Module.declareNativeFunction(NativeName, NativeFunctionImport{Names.intern("emitter-invalid-entry-host")});
+    Module.declareSymbol(NativeName, MachineSymbolKind::Function);
     ExecutableEmitter Emitter(Diagnostics);
 
     for (const auto EntryName : {UnknownName, GlobalName, NativeName})
@@ -710,7 +741,7 @@ namespace ink::vm::test
     Builder.setInsertPoint(Module.createFunction(EntryName).createBasicBlock());
     Builder.create<Opcode::Ret>();
     Module.createFunction(EmptyName);
-    Module.declareNativeFunction(NativeName, NativeFunctionImport{Names.intern("emitter-invalid-export-host")});
+    Module.declareSymbol(NativeName, MachineSymbolKind::Function);
     ExecutableEmitter Emitter(Diagnostics);
     const std::array<core::Name, 2> Duplicated{GlobalName, GlobalName};
     EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, EntryName, Duplicated)), "INK-V0002.*export symbol name is duplicated");
@@ -751,7 +782,7 @@ namespace ink::vm::test
     const auto NativeSymbol = Names.intern("emitter-narrow-native");
     MachineModule Module;
     ASSERT_TRUE(Module.createGlobalVariable(8, 1, {}, VMSymbol).has_value());
-    Module.declareNativeData(NativeSymbol, NativeDataImport{Names.intern("emitter-narrow-host")});
+    Module.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
     ExecutableEmitter Emitter(Diagnostics);
     FunctionEmissionContext FunctionContext;
     InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);

@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace ink::core
@@ -58,14 +59,14 @@ namespace ink::vm
       [[nodiscard]] ExecutableFile takeExecutable();
       void reset();
 
-      // Rebuilds unresolved and native declarations; resolved image offsets are retained until reset.
+      // Native symbols are declared names without a function or global definition in this module.
+      // Resolved image offsets are retained until reset.
       void scanUnResolvedSymbol(const MachineModule &Module);
       void resolveSymbol(core::Name Name, std::uint64_t ImageOffset);
       std::optional<std::uint64_t> resolvedSymbolOffset(core::Name Name) const noexcept;
       bool hasUnResolvedSymbol(core::Name Name) const noexcept;
 
-      // The borrowed import remains valid until native declarations are rebuilt.
-      const DynamicImportSymbol *findNativeSymbol(core::Name Name) const noexcept;
+      bool isNativeSymbol(core::Name Name) const noexcept;
 
       // Appends Count readable bytes from outside the image; zero Count permits a null source.
       void pad(const void *Src, std::size_t Count);
@@ -93,7 +94,7 @@ namespace ink::vm
       ExecutableFile Executable;
       std::unordered_map<core::Name, std::uint64_t> UnresolvedSymbol;
       std::unordered_map<core::Name, std::uint64_t> ResolvedSymbol;
-      std::unordered_map<core::Name, DynamicImportSymbol> NativeSymbols;
+      std::unordered_set<core::Name> NativeSymbols;
       std::vector<StaticRelocationSymbol> PendingStaticRelocationSymbol;
   };
 } // namespace ink::vm

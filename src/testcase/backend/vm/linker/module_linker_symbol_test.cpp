@@ -29,16 +29,14 @@ namespace ink::vm::test
     }
   } // namespace
 
-  // A shared VM alias cannot identify two different host function names.
-  TEST(VMModuleLinkerSymbolTest, RejectsSameNativeFunctionAliasAcrossDifferentHostNames)
+  // The same unresolved name cannot identify a function in one input and data in another.
+  TEST(VMModuleLinkerSymbolTest, RejectsSameUnresolvedNameAcrossDifferentKinds)
   {
     const auto Alias = symbolName("symbol.native.alias");
-    const auto FirstHostName = symbolName("symbol.host.function.first");
-    const auto SecondHostName = symbolName("symbol.host.function.second");
     MachineModule First;
     MachineModule Second;
-    First.declareNativeFunction(Alias, NativeFunctionImport{FirstHostName});
-    Second.declareNativeFunction(Alias, NativeFunctionImport{SecondHostName});
+    First.declareSymbol(Alias, MachineSymbolKind::Function);
+    Second.declareSymbol(Alias, MachineSymbolKind::GlobalVariable);
     const std::array<const MachineModule *, 2> Inputs{&First, &Second};
     core::CollectingDiagnosticConsumer Collector;
     core::DiagnosticEngine Diagnostics;
@@ -144,17 +142,14 @@ namespace ink::vm::test
     EXPECT_EQ(Text.find("invalid base register"), std::string::npos);
   }
 
-  // Multiple inputs preserve node order, anonymous nodes, per-input Local naming and first-seen native aliases.
+  // Multiple inputs preserve node order, anonymous nodes, per-input Local naming and first-seen unresolved declarations.
   TEST(VMModuleLinkerSymbolTest, PreservesInputNodeAndCanonicalImportOrder)
   {
     const std::array<core::Name, 2> GlobalNames{symbolName("symbol.order.first.global"), symbolName("symbol.order.second.global")};
     const std::array<core::Name, 2> FunctionNames{symbolName("symbol.order.first.function"), symbolName("symbol.order.second.function")};
-    const std::array<core::Name, 2> FunctionAliases{symbolName(".__ink_link_local_0"), symbolName("symbol.order.second.native.function")};
-    const std::array<core::Name, 2> DataAliases{symbolName("symbol.order.first.native.data"), symbolName("symbol.order.second.native.data")};
+    const auto SharedFunctionName = symbolName(".__ink_link_local_0");
+    const auto SharedDataName = symbolName("symbol.order.native.data");
     const std::array<core::Name, 2> UniqueFunctionAliases{symbolName("symbol.order.first.unique.function"), symbolName("symbol.order.second.unique.function")};
-    const std::array<core::Name, 2> UniqueFunctionHosts{symbolName("host.order.first.unique.function"), symbolName("host.order.second.unique.function")};
-    const auto SharedFunctionHost = symbolName("host.order.shared.function");
-    const auto SharedDataHost = symbolName("host.order.shared.data");
     MachineModule First;
     MachineModule Second;
     const std::array<MachineModule *, 2> Modules{&First, &Second};
@@ -166,12 +161,12 @@ namespace ink::vm::test
       ASSERT_TRUE(Module.createGlobalVariable(Size + 1, 1).has_value());
       auto &Block = Module.createFunction(FunctionNames[Index]).createBasicBlock();
       Module.createFunction();
-      Module.declareNativeFunction(FunctionAliases[Index], NativeFunctionImport{SharedFunctionHost});
-      Module.declareNativeFunction(UniqueFunctionAliases[Index], NativeFunctionImport{UniqueFunctionHosts[Index]});
-      Module.declareNativeData(DataAliases[Index], NativeDataImport{SharedDataHost});
+      Module.declareSymbol(SharedFunctionName, MachineSymbolKind::Function);
+      Module.declareSymbol(UniqueFunctionAliases[Index], MachineSymbolKind::Function);
+      Module.declareSymbol(SharedDataName, MachineSymbolKind::GlobalVariable);
       MachineInstructionBuilder Builder;
       Builder.setInsertPoint(Block);
-      Builder.create<Opcode::Store64i>(AddressOperand(DataAliases[Index]), ImmediateOperand(FunctionAliases[Index]));
+      Builder.create<Opcode::Store64i>(AddressOperand(SharedDataName), ImmediateOperand(SharedFunctionName));
     }
     const std::array<const MachineModule *, 2> Inputs{&First, &Second};
     core::CollectingDiagnosticConsumer Collector;
@@ -200,8 +195,8 @@ namespace ink::vm::test
       {
         ASSERT_EQ(Function.basicBlockCount(), 1U);
         const auto &Instruction = static_cast<const MachineStore64iInstruction &>(symbolInstructionAt(*Function.basicBlocks().begin(), 0));
-        EXPECT_EQ(Instruction.getDestination().getSymbol(), DataAliases[0]);
-        EXPECT_EQ(Instruction.getSource().getSymbol(), FunctionAliases[0]);
+        EXPECT_EQ(Instruction.getDestination().getSymbol(), SharedDataName);
+        EXPECT_EQ(Instruction.getSource().getSymbol(), SharedFunctionName);
       }
       else
       {
@@ -209,27 +204,23 @@ namespace ink::vm::test
       }
       ++Index;
     }
-    ASSERT_EQ(Result->nativeFunctions().size(), 3U);
-    EXPECT_EQ(Result->nativeFunctions()[0].Name, FunctionAliases[0]);
-    EXPECT_EQ(Result->nativeFunctions()[0].Import.Name, SharedFunctionHost);
-    EXPECT_EQ(Result->nativeFunctions()[1].Name, UniqueFunctionAliases[0]);
-    EXPECT_EQ(Result->nativeFunctions()[1].Import.Name, UniqueFunctionHosts[0]);
-    EXPECT_EQ(Result->nativeFunctions()[2].Name, UniqueFunctionAliases[1]);
-    EXPECT_EQ(Result->nativeFunctions()[2].Import.Name, UniqueFunctionHosts[1]);
-    ASSERT_EQ(Result->nativeData().size(), 1U);
-    EXPECT_EQ(Result->nativeData()[0].Name, DataAliases[0]);
-    EXPECT_EQ(Result->nativeData()[0].Import.Name, SharedDataHost);
+    ASSERT_EQ(Result->symbolDeclarations().size(), 4U);
+    EXPECT_EQ(Result->symbolDeclarations()[0].Name, SharedFunctionName);
+    EXPECT_EQ(Result->symbolDeclarations()[0].Kind, MachineSymbolKind::Function);
+    EXPECT_EQ(Result->symbolDeclarations()[1].Name, UniqueFunctionAliases[0]);
+    EXPECT_EQ(Result->symbolDeclarations()[2].Name, SharedDataName);
+    EXPECT_EQ(Result->symbolDeclarations()[2].Kind, MachineSymbolKind::GlobalVariable);
+    EXPECT_EQ(Result->symbolDeclarations()[3].Name, UniqueFunctionAliases[1]);
   }
 
-  // Relinking a linked module preserves private bindings when new private definitions collide with its names and native alias.
+  // Relinking preserves an unresolved import beside another input's Local definition and independently renames private bindings.
   TEST(VMModuleLinkerSymbolTest, RelinksOutputWithoutCapturingLocalOrNativeBindings)
   {
     const auto OriginalLocal = symbolName("symbol.relink.private");
     const auto NativeAlias = symbolName(".__ink_link_local_0");
-    const auto HostName = symbolName("symbol.relink.host.data");
     MachineModule First;
     ASSERT_TRUE(First.createGlobalVariable(0, 1, {}, OriginalLocal, MachineSymbolLinkage::Local, true).has_value());
-    First.declareNativeData(NativeAlias, NativeDataImport{HostName});
+    First.declareSymbol(NativeAlias, MachineSymbolKind::GlobalVariable);
     auto &FirstBlock = First.createFunction().createBasicBlock();
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(FirstBlock);
@@ -245,14 +236,13 @@ namespace ink::vm::test
     const auto LinkedLocal = FirstResult->globalVariables().begin()->name();
 
     MachineModule Additional;
-    const auto AdditionalAlias = symbolName("symbol.relink.additional.alias");
     ASSERT_TRUE(Additional.createGlobalVariable(0, 1, {}, LinkedLocal, MachineSymbolLinkage::Local, true).has_value());
     ASSERT_TRUE(Additional.createGlobalVariable(8, 8, {}, NativeAlias).has_value());
-    Additional.declareNativeData(AdditionalAlias, NativeDataImport{HostName});
+    Additional.declareSymbol(NativeAlias, MachineSymbolKind::GlobalVariable);
     auto &AdditionalBlock = Additional.createFunction().createBasicBlock();
     Builder.setInsertPoint(AdditionalBlock);
     Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP), ImmediateOperand(LinkedLocal, 7));
-    Builder.create<Opcode::Load64>(AddressOperand(RegisterId::BP), AddressOperand(AdditionalAlias, 11));
+    Builder.create<Opcode::Load64>(AddressOperand(RegisterId::BP), AddressOperand(NativeAlias, 11));
     Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP), ImmediateOperand(NativeAlias, 13));
     const std::array<const MachineModule *, 2> Inputs{FirstResult.get(), &Additional};
     const auto Result = ModuleLinker::link(Inputs, Diagnostics);
@@ -262,11 +252,11 @@ namespace ink::vm::test
     EXPECT_TRUE(Result->globalVariables().begin()->isConstant());
     EXPECT_TRUE(std::next(Result->globalVariables().begin())->isConstant());
     EXPECT_FALSE(std::next(Result->globalVariables().begin(), 2)->isConstant());
-    ASSERT_EQ(Result->nativeData().size(), 1U);
+    ASSERT_EQ(Result->symbolDeclarations().size(), 1U);
     const auto FirstLocalName = Result->globalVariables().begin()->name();
     const auto AdditionalLocalName = std::next(Result->globalVariables().begin())->name();
     const auto AdditionalGlobalName = std::next(Result->globalVariables().begin(), 2)->name();
-    const auto OutputNativeAlias = Result->nativeData()[0].Name;
+    const auto OutputNativeAlias = Result->symbolDeclarations()[0].Name;
     EXPECT_NE(FirstLocalName, AdditionalLocalName);
     EXPECT_NE(AdditionalGlobalName, OutputNativeAlias);
 
@@ -284,7 +274,7 @@ namespace ink::vm::test
     const auto &AdditionalGlobalReference = static_cast<const MachineStore64iInstruction &>(symbolInstructionAt(OutputAdditionalBlock, 2));
     EXPECT_EQ(AdditionalLocalReference.getSource().getSymbol(), AdditionalLocalName);
     EXPECT_EQ(AdditionalLocalReference.getSource().getByteOffset(), 7);
-    EXPECT_EQ(AdditionalNativeReference.getSource().getSymbol(), OutputNativeAlias);
+    EXPECT_EQ(AdditionalNativeReference.getSource().getSymbol(), AdditionalGlobalName);
     EXPECT_EQ(AdditionalNativeReference.getSource().getByteOffset(), 11);
     EXPECT_EQ(AdditionalGlobalReference.getSource().getSymbol(), AdditionalGlobalName);
     EXPECT_EQ(AdditionalGlobalReference.getSource().getByteOffset(), 13);

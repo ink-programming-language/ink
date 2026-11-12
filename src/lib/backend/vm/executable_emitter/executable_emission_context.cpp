@@ -39,12 +39,6 @@ namespace ink::vm
       const auto [Position, Inserted] = UnresolvedSymbol.try_emplace(Name, 0);
       REPORT_ICE_IF(!Inserted && Position->first != core::NAME_None, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "scanUnResolvedSymbol", "VM symbol name has multiple definitions");
     };
-    const auto AddNativeSymbol = [&](core::Name Name, DynamicImportSymbol Import)
-    {
-      const auto [Position, Inserted] = NativeSymbols.try_emplace(Name, Import);
-      REPORT_ICE_IF(!Inserted && Position->second.Name != Import.Name, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "scanUnResolvedSymbol", "native alias has conflicting import identities");
-    };
-
     for (const MachineFunction &Function : Module.functions())
     {
       AddUnResolvedSymbol(Function.name());
@@ -53,13 +47,12 @@ namespace ink::vm
     {
       AddUnResolvedSymbol(Global.name());
     }
-    for (const auto &[Name, Import] : Module.nativeFunctions())
+    for (const MachineSymbolDeclaration &Declaration : Module.symbolDeclarations())
     {
-      AddNativeSymbol(Name, DynamicImportSymbol{Import.Name});
-    }
-    for (const auto &[Name, Import] : Module.nativeData())
-    {
-      AddNativeSymbol(Name, DynamicImportSymbol{Import.Name});
+      if (!UnresolvedSymbol.contains(Declaration.Name))
+      {
+        NativeSymbols.insert(Declaration.Name);
+      }
     }
   }
 
@@ -84,10 +77,9 @@ namespace ink::vm
     return UnresolvedSymbol.contains(Name);
   }
 
-  const DynamicImportSymbol *ExecutableEmissionContext::findNativeSymbol(core::Name Name) const noexcept
+  bool ExecutableEmissionContext::isNativeSymbol(core::Name Name) const noexcept
   {
-    const auto Position = NativeSymbols.find(Name);
-    return Position == NativeSymbols.end() ? nullptr : &Position->second;
+    return NativeSymbols.contains(Name);
   }
 
   void ExecutableEmissionContext::pad(const void *Src, std::size_t Count)

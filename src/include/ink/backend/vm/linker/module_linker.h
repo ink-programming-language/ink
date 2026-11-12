@@ -8,7 +8,7 @@
 
 namespace ink::vm
 {
-  // Resolves strong VM symbols and explicit native declarations without laying out an executable image.
+  // Resolves VM definitions and retains unmatched symbol declarations as native imports without laying out an executable image.
   class ModuleLinker final
   {
     public:

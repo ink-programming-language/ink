@@ -71,13 +71,9 @@ namespace ink::vm::detail
           auto Output = std::make_unique<MachineModule>(OutputName);
           for (const auto &Symbol : Bindings.symbols())
           {
-            if (const auto *FunctionImport = std::get_if<NativeFunctionImport>(&Symbol.Target))
+            if (const auto *Declaration = std::get_if<MachineSymbolDeclaration>(&Symbol.Target))
             {
-              Output->declareNativeFunction(Symbol.OutputName, *FunctionImport);
-            }
-            else if (const auto *DataImport = std::get_if<NativeDataImport>(&Symbol.Target))
-            {
-              Output->declareNativeData(Symbol.OutputName, *DataImport);
+              Output->declareSymbol(Symbol.OutputName, Declaration->Kind, Declaration->IsConstant);
             }
           }
           for (std::size_t Index = 0; Index < Inputs.size(); ++Index)

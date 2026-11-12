@@ -45,7 +45,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 镜像字节可由调用方显式构造，或通过发射器当前提供的全局布局与操作数字段接口追加；镜像模型本身不执行布局。`ExecutableEmitter::getExecutable()` 借用当前构建中的未绑定镜像，只提供 const 访问；后续发射仍可能修改其内容。镜像模型不携带代码范围和数据权限信息；后续加载及执行阶段如何建立指令边界、区分代码与数据和实施权限检查仍待确定。结构校验只要求入口偏移指向镜像中的一个字节。
 
-`ExecutableEmitter` 拥有 `ExecutableEmissionContext`，上下文保存镜像、模块符号、Native 导入和待解析符号重定位，并提供字节追加及回填接口。`FunctionEmitter` 拥有保存基本块偏移状态的 `FunctionEmissionContext`；`InstructionEmitter` 借用两个上下文，负责指令和操作数字段编码。函数发射器重置和扫描基本块状态后，按函数内顺序调用 `padBasicBlock`；该接口在 `FunctionEmissionContext` 中登记当前镜像偏移并移除对应的未解析记录，再按块内顺序调用 `InstructionEmitter::padInstruction`。基本块 `padOperand` 已实现九字节 PC 相对目标字段，前向引用记录在 `FunctionEmissionContext::PendingStaticRelocationBasicBlock`，由函数发射结束后的 `FunctionEmitter::resolveBasicBlockStaticRelocations` 统一回填并清空；`reset` 也清空该队列。直接调用目标编码已实现，调用区生成、执行及 native adapter 仍待实现。
+`ExecutableEmitter` 拥有 `ExecutableEmissionContext`，上下文保存镜像、模块符号、统一的 `NativeSymbols` 和待解析符号重定位，并提供字节追加及回填接口。扫描时先登记模块中的函数与全局定义，再从 `SymbolDeclarations` 排除这些定义，得到 `NativeSymbols = SymbolDeclarations - (Functions + Globals)`；符号只有一个名称，同时作为逻辑引用名和宿主查找名。`FunctionEmitter` 拥有保存基本块偏移状态的 `FunctionEmissionContext`；`InstructionEmitter` 借用两个上下文，负责指令和操作数字段编码。函数发射器重置和扫描基本块状态后，按函数内顺序调用 `padBasicBlock`；该接口在 `FunctionEmissionContext` 中登记当前镜像偏移并移除对应的未解析记录，再按块内顺序调用 `InstructionEmitter::padInstruction`。基本块 `padOperand` 已实现九字节 PC 相对目标字段，前向引用记录在 `FunctionEmissionContext::PendingStaticRelocationBasicBlock`，由函数发射结束后的 `FunctionEmitter::resolveBasicBlockStaticRelocations` 统一回填并清空；`reset` 也清空该队列。直接调用目标编码已实现，调用区生成、执行及 native adapter 仍待实现。
 
 ## 运行时地址与未绑定镜像
 
@@ -57,13 +57,13 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 `dynamic_import_symbol.h` 定义 `DynamicImportSymbol`，只保存 `core::Name Name`，表示待解析的宿主符号名称。记录不区分函数与数据，也不保存解析来源、调用约定或 DLL、共享库名称。
 
-导入表内的 `Name` 必须唯一。同一宿主名称供调用和取地址共同引用，也供函数和数据引用共用，无需因用途不同重复导入。Name 默认为无效的 `core::NAME_None`，必须通过进程共享的 `core::NamePool` 登记非空拼写后使用。导入记录保存待解析名称，不保存宿主指针或已绑定的运行时对象。
+导入表内的 `Name` 必须唯一。同一名称供调用和取地址共同引用，无需因用途不同重复导入。导入表本身不区分函数和数据；逻辑模块中的同名声明仍须通过种类和只读属性的一致性检查。Name 默认为无效的 `core::NAME_None`，必须通过进程共享的 `core::NamePool` 登记非空拼写后使用。导入记录保存待解析名称，不保存宿主指针或已绑定的运行时对象。动态导入项按指令的实际使用生成，未使用的未定义声明不会自动加入此表。
 
-符号在 `DynamicImportSymbols` 中的位置就是其 u32 导入索引，供 `CallNativei` 及地址重定位引用。该逻辑指令复用 `ImmediateOperand`，接受 u32 数值索引或零 addend 的 VM 链接名；模块链接器仍在逻辑模块层检查符号形式指向显式 Native 函数并统一别名。`InstructionEmitter` 已按 VM 链接别名查出宿主名称，通过 `ExecutableEmissionContext::getOrAddNativeSymbol` 按宿主名称复用导入并写入 u32 索引，与普通地址取用共享导入；数值目标按原 32 位写入，u32 合法性由模块链接器检查。指令连同 opcode 共六字节，不生成动态地址重定位。直接调用按索引使用符号，不要求把调用目标地址填写到指令中；同一符号另有取地址用途时，可以生成地址重定位。
+符号在 `DynamicImportSymbols` 中的位置就是其 u32 导入索引，供 `CallNativei` 及地址重定位引用。该逻辑指令复用 `ImmediateOperand`，接受 u32 数值索引或零 addend 的符号名；模块链接器在逻辑模块层检查该符号是当前输入声明且未被 VM 定义满足的函数。`InstructionEmitter` 通过 `ExecutableEmissionContext::getOrAddNativeSymbol` 按同一名称复用导入并写入 u32 索引，与普通地址取用共享导入；数值目标按原 32 位写入，u32 合法性由模块链接器检查。指令连同 opcode 共六字节，不生成动态地址重定位。直接调用按索引使用符号，不要求把调用目标地址填写到指令中；同一符号另有取地址用途时，可以生成地址重定位。
 
 `CallNativem` 复用 `AddressOperand`，从其有效地址处读取 64 位 native 可调用指针，而不是读取 u32 导入索引。符号地址引用的是存放指针的内存位置，按普通地址符号规则链接。该指针的运行时构造、有效性验证及 adapter/宿主 ABI 协议尚未实现，不能仅凭现有导入表把任意 C 函数地址当作可调用值。
 
-逻辑模块通过 `module/native_function_import.h` 中的 `NativeFunctionImport` 保存宿主函数名称，通过 `module/native_data_import.h` 中的 `NativeDataImport` 保存宿主数据名称，两个导入类型都只包含 `Name`。模块声明仍区分函数和数据，供逻辑链接检查调用目标种类；镜像中的统一导入表只按宿主名称去重。完整调用签名、参数和返回值布局、调用区描述及宿主 ABI adapter 协议仍待设计，导入记录不提供这些信息。
+逻辑模块使用 `MachineSymbolDeclaration` 统一保存声明名称、函数或数据种类以及只读属性，不保存独立的 Native 函数或数据列表，也不提供不同的 VM 名与宿主名。未由 VM 定义满足的声明形成 Native 符号集合；镜像中的统一导入表只保存名称并按名称去重。完整调用签名、参数和返回值布局、调用区描述及宿主 ABI adapter 协议仍待设计，导入记录不提供这些信息。
 
 ## 动态导入符号重定位
 

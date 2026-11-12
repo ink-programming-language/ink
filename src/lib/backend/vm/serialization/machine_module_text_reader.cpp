@@ -454,7 +454,7 @@ namespace ink::vm
           {
             return readBlock(*First, Line);
           }
-          if (First->Text == ".declare" || First->Text == ".native_function" || First->Text == ".native_data")
+          if (First->Text == ".declare")
           {
             return readSymbolDeclaration(*First, Line);
           }
@@ -553,64 +553,39 @@ namespace ink::vm
           {
             return std::unexpected(textError(Directive.Offset, "symbol declarations must appear outside a function"));
           }
-          if (Directive.Text == ".declare")
-          {
-            const Token *Kind = Line.take(TokenKind::Identifier);
-            core::Name Name;
-            if (!Kind || !parseSymbol(Line, Name))
-            {
-              return std::unexpected(textError(Directive.Offset, "expected a symbol kind and nonempty symbol name"));
-            }
-            MachineSymbolKind SymbolKind;
-            if (Kind->Text == "function")
-            {
-              SymbolKind = MachineSymbolKind::Function;
-            }
-            else if (Kind->Text == "global")
-            {
-              SymbolKind = MachineSymbolKind::GlobalVariable;
-            }
-            else
-            {
-              return std::unexpected(textError(Kind->Offset, "unknown symbol declaration kind"));
-            }
-            bool IsConstant = false;
-            if (const Token *Attribute = Line.take(TokenKind::Identifier))
-            {
-              if (SymbolKind != MachineSymbolKind::GlobalVariable || Attribute->Text != "readonly")
-              {
-                return std::unexpected(textError(Attribute->Offset, "only global declarations accept the readonly attribute"));
-              }
-              IsConstant = true;
-            }
-            if (Line.peek())
-            {
-              return std::unexpected(textError(Line.offset(), "unexpected token after the symbol declaration"));
-            }
-            Module->declareSymbol(Name, SymbolKind, IsConstant);
-            return {};
-          }
+          const Token *Kind = Line.take(TokenKind::Identifier);
           core::Name Name;
-          if (!parseSymbol(Line, Name) || !Line.consume(TokenKind::Comma))
+          if (!Kind || !parseSymbol(Line, Name))
           {
-            return std::unexpected(textError(Directive.Offset, "expected a nonempty native link name followed by a comma"));
+            return std::unexpected(textError(Directive.Offset, "expected a symbol kind and nonempty symbol name"));
           }
-          if (Directive.Text == ".native_data")
+          MachineSymbolKind SymbolKind;
+          if (Kind->Text == "function")
           {
-            core::Name HostName;
-            if (!parseSymbol(Line, HostName) || Line.peek())
+            SymbolKind = MachineSymbolKind::Function;
+          }
+          else if (Kind->Text == "global")
+          {
+            SymbolKind = MachineSymbolKind::GlobalVariable;
+          }
+          else
+          {
+            return std::unexpected(textError(Kind->Offset, "unknown symbol declaration kind"));
+          }
+          bool IsConstant = false;
+          if (const Token *Attribute = Line.take(TokenKind::Identifier))
+          {
+            if (SymbolKind != MachineSymbolKind::GlobalVariable || Attribute->Text != "readonly")
             {
-              return std::unexpected(textError(Line.offset(), "expected exactly one nonempty host data name"));
+              return std::unexpected(textError(Attribute->Offset, "only global declarations accept the readonly attribute"));
             }
-            Module->declareNativeData(Name, NativeDataImport{HostName});
-            return {};
+            IsConstant = true;
           }
-          core::Name HostName;
-          if (!parseSymbol(Line, HostName) || Line.peek())
+          if (Line.peek())
           {
-            return std::unexpected(textError(Line.offset(), "expected exactly one nonempty host function name"));
+            return std::unexpected(textError(Line.offset(), "unexpected token after the symbol declaration"));
           }
-          Module->declareNativeFunction(Name, NativeFunctionImport{HostName});
+          Module->declareSymbol(Name, SymbolKind, IsConstant);
           return {};
         }
 

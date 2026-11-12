@@ -59,14 +59,4 @@ namespace ink::vm
   {
     SymbolDeclarations.push_back({SymbolName, Kind, IsConstant});
   }
-
-  void MachineModule::declareNativeFunction(core::Name SymbolName, NativeFunctionImport Import)
-  {
-    NativeFunctions.push_back({SymbolName, Import});
-  }
-
-  void MachineModule::declareNativeData(core::Name SymbolName, NativeDataImport Import)
-  {
-    NativeData.push_back({SymbolName, Import});
-  }
 } // namespace ink::vm

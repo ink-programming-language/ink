@@ -131,11 +131,10 @@ namespace ink::vm::test
     EXPECT_EQ(static_cast<const MachineCalliInstruction &>(callInstructionAt(*Second.functions().begin())).getTarget().getSymbol(), TargetName);
   }
 
-  // Native aliases collapse to the first host binding and cloned calls remain valid after both source modules die.
+  // Repeated unresolved function declarations coalesce and cloned native calls outlive both source modules.
   TEST(VMModuleLinkerCallTest, CanonicalizesNativeCallsWithIndependentOwnership)
   {
-    const std::array<core::Name, 2> Aliases{callName("call.native.first"), callName("call.native.second")};
-    const auto Host = callName("host.call.native.shared");
+    const auto Name = callName("call.native.shared");
     std::unique_ptr<MachineModule> Output;
     {
       MachineModule First;
@@ -145,10 +144,10 @@ namespace ink::vm::test
       for (std::size_t Index = 0; Index < Inputs.size(); ++Index)
       {
         auto &Input = *Inputs[Index];
-        Input.declareNativeFunction(Aliases[Index], NativeFunctionImport{Host});
+        Input.declareSymbol(Name, MachineSymbolKind::Function);
         auto &Block = Input.createFunction().createBasicBlock();
         Builder.setInsertPoint(Block);
-        Builder.create<Opcode::CallNativei>(ImmediateOperand(Aliases[Index]));
+        Builder.create<Opcode::CallNativei>(ImmediateOperand(Name));
       }
       Output = linkCallModules({&First, &Second});
       ASSERT_NE(Output, nullptr);
@@ -157,17 +156,16 @@ namespace ink::vm::test
         const auto &SourceFunction = *Inputs[Index]->functions().begin();
         const auto &LinkedFunction = *std::next(Output->functions().begin(), static_cast<std::ptrdiff_t>(Index));
         EXPECT_NE(&callInstructionAt(SourceFunction), &callInstructionAt(LinkedFunction));
-        EXPECT_EQ(static_cast<const MachineCallNativeiInstruction &>(callInstructionAt(SourceFunction)).getTarget().getSymbol(), Aliases[Index]);
+        EXPECT_EQ(static_cast<const MachineCallNativeiInstruction &>(callInstructionAt(SourceFunction)).getTarget().getSymbol(), Name);
       }
     }
     ASSERT_NE(Output, nullptr);
-    ASSERT_EQ(Output->nativeFunctions().size(), 1U);
-    EXPECT_EQ(Output->nativeFunctions()[0].Name, Aliases[0]);
-    EXPECT_EQ(Output->nativeFunctions()[0].Import.Name, Host);
+    ASSERT_EQ(Output->symbolDeclarations().size(), 1U);
+    EXPECT_EQ(Output->symbolDeclarations()[0].Name, Name);
     for (const auto &Function : Output->functions())
     {
       const auto &Call = static_cast<const MachineCallNativeiInstruction &>(callInstructionAt(Function));
-      EXPECT_EQ(Call.getTarget().getSymbol(), Aliases[0]);
+      EXPECT_EQ(Call.getTarget().getSymbol(), Name);
       EXPECT_EQ(Call.parent(), &*Function.basicBlocks().begin());
     }
   }
@@ -193,7 +191,7 @@ namespace ink::vm::test
         }
         else if (Kind == 1)
         {
-          Input.declareNativeFunction(Target, NativeFunctionImport{Target});
+          Input.declareSymbol(Target, MachineSymbolKind::Function);
         }
         else if (Kind == 2)
         {
@@ -201,7 +199,7 @@ namespace ink::vm::test
         }
         else
         {
-          Input.declareNativeData(Target, NativeDataImport{Target});
+          Input.declareSymbol(Target, MachineSymbolKind::GlobalVariable);
         }
         auto &Block = Input.createFunction().createBasicBlock();
         MachineInstructionBuilder Builder;
@@ -256,20 +254,19 @@ namespace ink::vm::test
     }
   }
 
-  // Native declarations in another input do not authorize callNative until the caller declares the same host import.
+  // Unresolved declarations in another input do not authorize callNative until the caller declares the same name.
   TEST(VMModuleLinkerCallTest, RequiresNativeDeclarationsInReferencingModules)
   {
     const auto Alias = callName("call.native.scoped.alias");
-    const NativeFunctionImport Import{callName("host.call.native.scoped")};
     MachineModule Provider;
     MachineModule Caller;
-    Provider.declareNativeFunction(Alias, Import);
+    Provider.declareSymbol(Alias, MachineSymbolKind::Function);
     auto &Block = Caller.createFunction().createBasicBlock();
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Block);
     Builder.create<Opcode::CallNativei>(ImmediateOperand(Alias));
     expectCallLinkFailure({&Provider, &Caller});
-    Caller.declareNativeFunction(Alias, Import);
+    Caller.declareSymbol(Alias, MachineSymbolKind::Function);
     EXPECT_NE(linkCallModules({&Provider, &Caller}), nullptr);
   }
 
@@ -322,7 +319,7 @@ namespace ink::vm::test
         MachineModule Input;
         if (Native)
         {
-          Input.declareNativeFunction(Target, NativeFunctionImport{Target});
+          Input.declareSymbol(Target, MachineSymbolKind::Function);
         }
         else
         {
@@ -351,7 +348,7 @@ namespace ink::vm::test
     const auto NativeSlotAlias = callName("call.memory.native.slot");
     MachineModule Input;
     ASSERT_TRUE(Input.createGlobalVariable(16, 8, {}, SlotName).has_value());
-    Input.declareNativeData(NativeSlotAlias, NativeDataImport{callName("host.call.memory.slot")});
+    Input.declareSymbol(NativeSlotAlias, MachineSymbolKind::GlobalVariable);
     auto &Block = Input.createFunction().createBasicBlock();
     const std::array<AddressOperand, 4> Targets{AddressOperand(RegisterId::SP), AddressOperand(RegisterId::BP, 24), AddressOperand(SlotName, 8), AddressOperand(NativeSlotAlias, -8)};
     MachineInstructionBuilder Builder;

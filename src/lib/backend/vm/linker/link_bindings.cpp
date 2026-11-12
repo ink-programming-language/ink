@@ -27,18 +27,21 @@ namespace ink::vm::detail
     return std::nullopt;
   }
 
-  bool SymbolRecord::isDefinition() const
-  {
-    return std::holds_alternative<const MachineFunction *>(Target) || std::holds_alternative<const MachineGlobalVariable *>(Target);
-  }
-
   MachineSymbolKind SymbolRecord::kind() const
   {
-    return std::holds_alternative<const MachineFunction *>(Target) || std::holds_alternative<NativeFunctionImport>(Target) ? MachineSymbolKind::Function : MachineSymbolKind::GlobalVariable;
+    if (const auto *Declaration = std::get_if<MachineSymbolDeclaration>(&Target))
+    {
+      return Declaration->Kind;
+    }
+    return std::holds_alternative<const MachineFunction *>(Target) ? MachineSymbolKind::Function : MachineSymbolKind::GlobalVariable;
   }
 
   bool SymbolRecord::isConstant() const
   {
+    if (const auto *Declaration = std::get_if<MachineSymbolDeclaration>(&Target))
+    {
+      return Declaration->IsConstant;
+    }
     const auto *Global = std::get_if<const MachineGlobalVariable *>(&Target);
     return Global && (*Global)->isConstant();
   }
@@ -84,7 +87,7 @@ namespace ink::vm::detail
 
       std::optional<LinkBindings> resolve()
       {
-        if (!checkInputs() || !collectDefinitions() || !collectNativeSymbols() || !bindDeclarations() || !bindReferences() || !assignOutputNames())
+        if (!checkInputs() || !collectDefinitions() || !bindDeclarations() || !bindReferences() || !assignOutputNames())
         {
           return std::nullopt;
         }
@@ -183,105 +186,38 @@ namespace ink::vm::detail
         return true;
       }
 
-      bool bindNative(std::size_t Index, core::Name Name, SymbolId Id)
-      {
-        const auto [Alias, NewAlias] = NativeAliases.emplace(Name, Id);
-        if (!NewAlias && Alias->second != Id)
-        {
-          return fail(Index, fmt::format("native declarations for '{}' have incompatible host identities", spelling(Name)));
-        }
-        auto &Scope = Bindings.Scopes[Index];
-        const auto Existing = lookup(Scope, Name);
-        const bool HasVMDefinition = Existing && Bindings.Symbols[Existing->Index].isDefinition();
-        if (ExternalDefinitions.contains(Name) || HasVMDefinition)
-        {
-          return fail(Index, fmt::format("native symbol '{}' conflicts with a VM definition", spelling(Name)));
-        }
-        Scope.emplace(Name, Id);
-        ReservedNames.insert(Name);
-        return true;
-      }
-
-      bool addNative(std::size_t Index, const MachineNativeFunctionDeclaration &Declaration)
-      {
-        const NativeFunctionImport &Import = Declaration.Import;
-        if (!validName(Declaration.Name) || !validName(Import.Name))
-        {
-          return fail(Index, "native function requires nonempty VM and host names registered in the name pool");
-        }
-        auto Position = NativeFunctions.find(Import.Name);
-        if (Position == NativeFunctions.end())
-        {
-          Position = NativeFunctions.emplace(Import.Name, addSymbol(Index, Declaration.Name, Import)).first;
-        }
-        return bindNative(Index, Declaration.Name, Position->second);
-      }
-
-      bool addNative(std::size_t Index, const MachineNativeDataDeclaration &Declaration)
-      {
-        if (!validName(Declaration.Name) || !validName(Declaration.Import.Name))
-        {
-          return fail(Index, "native data requires nonempty VM and host names registered in the name pool");
-        }
-        auto Position = NativeData.find(Declaration.Import.Name);
-        if (Position == NativeData.end())
-        {
-          Position = NativeData.emplace(Declaration.Import.Name, addSymbol(Index, Declaration.Name, Declaration.Import)).first;
-        }
-        return bindNative(Index, Declaration.Name, Position->second);
-      }
-
-      bool collectNativeSymbols()
-      {
-        for (std::size_t Index = 0; Index < Inputs.size(); ++Index)
-        {
-          for (const auto &Declaration : Inputs[Index]->nativeFunctions())
-          {
-            if (!addNative(Index, Declaration))
-            {
-              return false;
-            }
-          }
-          for (const auto &Declaration : Inputs[Index]->nativeData())
-          {
-            if (!addNative(Index, Declaration))
-            {
-              return false;
-            }
-          }
-        }
-        return true;
-      }
-
       bool bindDeclaration(std::size_t Index, const MachineSymbolDeclaration &Declaration)
       {
         if (!validName(Declaration.Name) || (Declaration.Kind != MachineSymbolKind::Function && Declaration.Kind != MachineSymbolKind::GlobalVariable) || (Declaration.Kind == MachineSymbolKind::Function && Declaration.IsConstant))
         {
-          return fail(Index, "External declaration has an invalid name, symbol kind, or read-only attribute");
+          return fail(Index, "symbol declaration has an invalid name, symbol kind, or read-only attribute");
         }
         ReservedNames.insert(Declaration.Name);
         auto &Scope = Bindings.Scopes[Index];
-        const auto Existing = lookup(Scope, Declaration.Name);
-        if (Existing && Bindings.Symbols[Existing->Index].linkage() != MachineSymbolLinkage::External)
+        auto Target = lookup(Scope, Declaration.Name);
+        if (!Target)
         {
-          return fail(Index, fmt::format("External declaration '{}' conflicts with a Local definition or native declaration", spelling(Declaration.Name)));
+          Target = lookup(ExternalDefinitions, Declaration.Name);
         }
-        const auto External = lookup(ExternalDefinitions, Declaration.Name);
-        if (!External)
+        if (!Target)
         {
-          return fail(Index, fmt::format("undefined External symbol '{}'", spelling(Declaration.Name)));
+          Target = lookup(NativeSymbols, Declaration.Name);
+          if (!Target)
+          {
+            Target = addSymbol(Index, Declaration.Name, Declaration);
+            NativeSymbols.emplace(Declaration.Name, *Target);
+          }
         }
-        const auto &Definition = Bindings.Symbols[External->Index];
-        if (Definition.kind() != Declaration.Kind)
+        const auto &Symbol = Bindings.Symbols[Target->Index];
+        if (Symbol.kind() != Declaration.Kind)
         {
-          return fail(Index, fmt::format("External declaration '{}' does not match the definition's symbol kind in input #{}", spelling(Declaration.Name), Definition.ModuleIndex));
+          return fail(Index, fmt::format("declaration '{}' does not match the symbol kind in input #{}", spelling(Declaration.Name), Symbol.ModuleIndex));
         }
-        if (Definition.isConstant() != Declaration.IsConstant)
+        if (Symbol.isConstant() != Declaration.IsConstant)
         {
-          return fail(Index, fmt::format("External declaration '{}' does not match the definition's read-only attribute in input #{}", spelling(Declaration.Name), Definition.ModuleIndex));
+          return fail(Index, fmt::format("declaration '{}' does not match the read-only attribute in input #{}", spelling(Declaration.Name), Symbol.ModuleIndex));
         }
-        // Each declaration matches the unique strong definition, including repeated declarations.
-        Scope.emplace(Declaration.Name, *External);
+        Scope.emplace(Declaration.Name, *Target);
         return true;
       }
 
@@ -322,7 +258,7 @@ namespace ink::vm::detail
         {
           return std::unexpected(fmt::format("calli target '{}' must resolve to a VM function definition", spelling(Name)));
         }
-        if (ExpectedTarget == SymbolReferenceTarget::NativeFunction && !std::holds_alternative<NativeFunctionImport>(Target))
+        if (ExpectedTarget == SymbolReferenceTarget::NativeFunction && (!std::holds_alternative<MachineSymbolDeclaration>(Target) || Bindings.Symbols[Resolved->Index].kind() != MachineSymbolKind::Function))
         {
           return std::unexpected(fmt::format("callNativei target '{}' must resolve to an explicitly declared native function", spelling(Name)));
         }
@@ -375,9 +311,7 @@ namespace ink::vm::detail
       const core::DiagnosticEngine &Diagnostics;
       LinkBindings Bindings;
       SymbolTable ExternalDefinitions;
-      SymbolTable NativeAliases;
-      SymbolTable NativeFunctions;
-      SymbolTable NativeData;
+      SymbolTable NativeSymbols;
       std::unordered_set<core::Name> ReservedNames;
   };
 

@@ -147,8 +147,6 @@ namespace ink::vm::test
     EXPECT_EQ(Result->functionCount(), 0U);
     EXPECT_EQ(Result->globalVariableCount(), 0U);
     EXPECT_TRUE(Result->symbolDeclarations().empty());
-    EXPECT_TRUE(Result->nativeFunctions().empty());
-    EXPECT_TRUE(Result->nativeData().empty());
   }
 
   // Null inputs return an explicit diagnostic instead of dereferencing an invalid module pointer.
@@ -287,7 +285,7 @@ namespace ink::vm::test
     MachineModule Input;
     auto &Block = Input.createFunction().createBasicBlock();
     Input.createFunction(linkName("link.registered.function"), MachineSymbolLinkage::External);
-    Input.declareNativeFunction(linkName("link.registered.native"), NativeFunctionImport{linkName("host.registered.native")});
+    Input.declareSymbol(linkName("link.registered.native"), MachineSymbolKind::Function);
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Block);
 #define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) appendRegisteredInstruction<Opcode::Kind>(Builder, Block, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{});
@@ -467,6 +465,36 @@ namespace ink::vm::test
     }
   }
 
+  // A linked unresolved declaration can be satisfied by a later External definition without changing its original input.
+  TEST(VMModuleLinkerTest, ResolvesRetainedDeclarationsWhenRelinkedWithDefinitions)
+  {
+    const auto Name = linkName("link.relink.resolved.data");
+    MachineModule Consumer;
+    Consumer.declareSymbol(Name, MachineSymbolKind::GlobalVariable, true);
+    auto &Block = Consumer.createFunction().createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Block);
+    Builder.create<Opcode::Load64>(AddressOperand(RegisterId::BP), AddressOperand(Name, 5));
+    const auto Partial = link({&Consumer});
+    ASSERT_NE(Partial, nullptr);
+    ASSERT_EQ(Partial->symbolDeclarations().size(), 1U);
+    MachineModule Producer;
+    ASSERT_TRUE(Producer.createGlobalVariable(16, 8, {}, Name, MachineSymbolLinkage::External, true).has_value());
+    for (const bool DefinitionFirst : {false, true})
+    {
+      const auto Result = DefinitionFirst ? link({&Producer, Partial.get()}) : link({Partial.get(), &Producer});
+      ASSERT_NE(Result, nullptr);
+      EXPECT_TRUE(Result->symbolDeclarations().empty());
+      ASSERT_EQ(Result->globalVariableCount(), 1U);
+      EXPECT_EQ(Result->globalVariables().begin()->name(), Name);
+      const auto &Reference = static_cast<const MachineLoad64Instruction &>(instructionAt(*Result->functions().begin()->basicBlocks().begin(), 0));
+      EXPECT_EQ(Reference.getSource().getSymbol(), Name);
+      EXPECT_EQ(Reference.getSource().getByteOffset(), 5);
+    }
+    EXPECT_EQ(Partial->symbolDeclarations().size(), 1U);
+    EXPECT_TRUE(Partial->globalVariables().empty());
+  }
+
   // Unused global declarations still require exact read-only compatibility with their external definitions in both directions.
   TEST(VMModuleLinkerTest, RejectsUnusedGlobalDeclarationsWithDifferentReadOnlyFlags)
   {
@@ -506,27 +534,36 @@ namespace ink::vm::test
     expectLinkFailure({&Input});
   }
 
-  // An ordinary declaration cannot bind another module's private definition or an external symbol of the wrong kind.
-  TEST(VMModuleLinkerTest, RejectsPrivateAndWrongKindDeclarationProviders)
+  // Another module's Local definition cannot satisfy a declaration, while an External definition must match its kind.
+  TEST(VMModuleLinkerTest, RetainsImportsBesidePrivateDefinitionsAndRejectsWrongKinds)
   {
     const auto Symbol = linkName("link.declaration.provider");
     MachineModule Consumer;
     Consumer.declareSymbol(Symbol, MachineSymbolKind::Function);
     MachineModule PrivateProvider;
     PrivateProvider.createFunction(Symbol);
-    expectLinkFailure({&Consumer, &PrivateProvider});
+    const auto Result = link({&Consumer, &PrivateProvider});
+    ASSERT_NE(Result, nullptr);
+    ASSERT_EQ(Result->symbolDeclarations().size(), 1U);
+    EXPECT_EQ(Result->symbolDeclarations()[0].Name, Symbol);
+    EXPECT_NE(Result->functions().begin()->name(), Symbol);
     MachineModule WrongKindProvider;
     ASSERT_TRUE(WrongKindProvider.createGlobalVariable(0, 1, {}, Symbol, MachineSymbolLinkage::External, true).has_value());
     expectLinkFailure({&Consumer, &WrongKindProvider});
   }
 
-  // Unresolved symbol operands and unused unresolved declarations both produce link diagnostics.
-  TEST(VMModuleLinkerTest, RejectsUnresolvedReferencesAndDeclarations)
+  // Unresolved declarations survive as host imports, but references without a declaration still fail linking.
+  TEST(VMModuleLinkerTest, RetainsUnresolvedDeclarationsAndRejectsUndeclaredReferences)
   {
     const auto Missing = linkName("link.missing");
     MachineModule Declaration;
-    Declaration.declareSymbol(Missing, MachineSymbolKind::GlobalVariable);
-    expectLinkFailure({&Declaration});
+    Declaration.declareSymbol(Missing, MachineSymbolKind::GlobalVariable, true);
+    const auto Result = link({&Declaration});
+    ASSERT_NE(Result, nullptr);
+    ASSERT_EQ(Result->symbolDeclarations().size(), 1U);
+    EXPECT_EQ(Result->symbolDeclarations()[0].Name, Missing);
+    EXPECT_EQ(Result->symbolDeclarations()[0].Kind, MachineSymbolKind::GlobalVariable);
+    EXPECT_TRUE(Result->symbolDeclarations()[0].IsConstant);
     for (const bool UseAddress : {false, true})
     {
       MachineModule Reference;
@@ -617,30 +654,31 @@ namespace ink::vm::test
     expectLinkFailure({&Global});
   }
 
-  // Ordinary declarations can accompany their own exported definition but cannot collide with private or native bindings.
-  TEST(VMModuleLinkerTest, ValidatesDeclarationAndDefinitionCollisionsWithinInputs)
+  // Declarations bind their own Local or External definition, and Local bindings take precedence over other inputs.
+  TEST(VMModuleLinkerTest, ResolvesDeclarationsToDefinitionsWithinInputs)
   {
     const auto Symbol = linkName("link.same.input.declaration");
     MachineModule Exported;
     Exported.createFunction(Symbol, MachineSymbolLinkage::External);
     Exported.declareSymbol(Symbol, MachineSymbolKind::Function);
-    EXPECT_NE(link({&Exported}), nullptr);
+    const auto ExportedResult = link({&Exported});
+    ASSERT_NE(ExportedResult, nullptr);
+    EXPECT_TRUE(ExportedResult->symbolDeclarations().empty());
     MachineModule Private;
     Private.createFunction(Symbol);
     Private.declareSymbol(Symbol, MachineSymbolKind::Function);
-    expectLinkFailure({&Private});
-    expectLinkFailure({&Private, &Exported});
-    MachineModule Native;
-    Native.declareSymbol(Symbol, MachineSymbolKind::Function);
-    Native.declareNativeFunction(Symbol, NativeFunctionImport{linkName("host.declaration")});
-    expectLinkFailure({&Native});
-    MachineModule PrivateNative;
-    ASSERT_TRUE(PrivateNative.createGlobalVariable(8, 8, {}, Symbol).has_value());
-    PrivateNative.declareNativeData(Symbol, NativeDataImport{linkName("host.private.declaration")});
-    expectLinkFailure({&PrivateNative});
+    const auto PrivateResult = link({&Private, &Exported});
+    ASSERT_NE(PrivateResult, nullptr);
+    EXPECT_TRUE(PrivateResult->symbolDeclarations().empty());
+    EXPECT_NE(PrivateResult->functions().begin()->name(), Symbol);
+    EXPECT_EQ(std::next(PrivateResult->functions().begin())->name(), Symbol);
+    MachineModule WrongKind;
+    ASSERT_TRUE(WrongKind.createGlobalVariable(8, 8, {}, Symbol).has_value());
+    WrongKind.declareSymbol(Symbol, MachineSymbolKind::Function);
+    expectLinkFailure({&WrongKind, &Exported});
   }
 
-  // Invalid names and enum values in link metadata return diagnostics before an output module is published.
+  // Invalid names, kinds, read-only function attributes and linkage values fail before an output module is published.
   TEST(VMModuleLinkerTest, RejectsInvalidSymbolMetadata)
   {
     MachineModule Declaration;
@@ -653,17 +691,11 @@ namespace ink::vm::test
     Linkage.createFunction(linkName("link.invalid.linkage"), static_cast<MachineSymbolLinkage>(255));
     expectLinkFailure({&Linkage});
     MachineModule Function;
-    Function.declareNativeFunction(linkName("link.invalid.native.function"), NativeFunctionImport{});
+    Function.declareSymbol(linkName("link.invalid.readonly.function"), MachineSymbolKind::Function, true);
     expectLinkFailure({&Function});
     MachineModule Data;
-    Data.declareNativeData(linkName("link.invalid.native.data"), NativeDataImport{});
+    Data.declareSymbol(core::NAME_None, MachineSymbolKind::GlobalVariable);
     expectLinkFailure({&Data});
-    MachineModule UnnamedFunction;
-    UnnamedFunction.declareNativeFunction(core::NAME_None, NativeFunctionImport{linkName("host.invalid.function.alias")});
-    expectLinkFailure({&UnnamedFunction});
-    MachineModule UnnamedData;
-    UnnamedData.declareNativeData(core::NAME_None, NativeDataImport{linkName("host.invalid.data.alias")});
-    expectLinkFailure({&UnnamedData});
   }
 
   // Local definitions may share external spellings while each reference keeps the correct binding.
@@ -690,110 +722,102 @@ namespace ink::vm::test
     EXPECT_EQ(Instruction.getSource().getSymbol(), Private.name());
   }
 
-  // Compatible native declarations coalesce by host identity and both VM aliases rewrite to the surviving binding.
-  TEST(VMModuleLinkerTest, CoalescesNativeAliasesAndRewritesReferences)
+  // Compatible unresolved declarations coalesce by their single name and retain each reference's byte offset.
+  TEST(VMModuleLinkerTest, CoalescesUnresolvedDeclarationsAndPreservesReferences)
   {
-    const auto HostFunction = linkName("host.function");
-    const auto HostData = linkName("host.data");
-    const std::array<core::Name, 2> Functions{linkName("link.native.function.first"), linkName("link.native.function.second")};
-    const std::array<core::Name, 2> Data{linkName("link.native.data.first"), linkName("link.native.data.second")};
+    const auto FunctionName = linkName("link.native.function");
+    const auto DataName = linkName("link.native.data");
     MachineModule First;
     MachineModule Second;
-    const std::array<MachineModule *, 2> Modules{&First, &Second};
-    for (std::size_t Index = 0; Index < Modules.size(); ++Index)
+    for (MachineModule *Module : {&First, &Second})
     {
-      auto &Module = *Modules[Index];
-      Module.declareNativeFunction(Functions[Index], NativeFunctionImport{HostFunction});
-      Module.declareNativeData(Data[Index], NativeDataImport{HostData});
-      auto &Block = Module.createFunction().createBasicBlock();
+      Module->declareSymbol(FunctionName, MachineSymbolKind::Function);
+      Module->declareSymbol(DataName, MachineSymbolKind::GlobalVariable, true);
+      auto &Block = Module->createFunction().createBasicBlock();
       MachineInstructionBuilder Builder;
       Builder.setInsertPoint(Block);
-      Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP), ImmediateOperand(Functions[Index], 13));
-      Builder.create<Opcode::Load64>(AddressOperand(RegisterId::BP), AddressOperand(Data[Index], -11));
+      Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP), ImmediateOperand(FunctionName, 13));
+      Builder.create<Opcode::Load64>(AddressOperand(RegisterId::BP), AddressOperand(DataName, -11));
     }
     const auto Result = link({&First, &Second});
     ASSERT_NE(Result, nullptr);
-    ASSERT_EQ(Result->nativeFunctions().size(), 1U);
-    ASSERT_EQ(Result->nativeData().size(), 1U);
-    const auto &FunctionBinding = Result->nativeFunctions()[0];
-    const auto &DataBinding = Result->nativeData()[0];
-    EXPECT_EQ(FunctionBinding.Name, Functions[0]);
-    EXPECT_EQ(DataBinding.Name, Data[0]);
-    EXPECT_EQ(FunctionBinding.Import.Name, HostFunction);
-    EXPECT_EQ(DataBinding.Import.Name, HostData);
+    ASSERT_EQ(Result->symbolDeclarations().size(), 2U);
+    EXPECT_EQ(Result->symbolDeclarations()[0].Name, FunctionName);
+    EXPECT_EQ(Result->symbolDeclarations()[1].Name, DataName);
+    EXPECT_TRUE(Result->symbolDeclarations()[1].IsConstant);
     for (const auto &Function : Result->functions())
     {
       const auto &Block = *Function.basicBlocks().begin();
       const auto &FunctionReference = static_cast<const MachineStore64iInstruction &>(instructionAt(Block, 0));
       const auto &DataReference = static_cast<const MachineLoad64Instruction &>(instructionAt(Block, 1));
-      EXPECT_EQ(FunctionReference.getSource().getSymbol(), FunctionBinding.Name);
+      EXPECT_EQ(FunctionReference.getSource().getSymbol(), FunctionName);
       EXPECT_EQ(FunctionReference.getSource().getByteOffset(), 13);
-      EXPECT_EQ(DataReference.getSource().getSymbol(), DataBinding.Name);
+      EXPECT_EQ(DataReference.getSource().getSymbol(), DataName);
       EXPECT_EQ(DataReference.getSource().getByteOffset(), -11);
     }
-    EXPECT_EQ(First.nativeFunctions()[0].Name, Functions[0]);
-    EXPECT_EQ(Second.nativeData()[0].Name, Data[1]);
+    EXPECT_EQ(First.symbolDeclarations().size(), 2U);
+    EXPECT_EQ(Second.symbolDeclarations().size(), 2U);
   }
 
-  // Equal host names merge native function aliases while function and data declarations retain their distinct categories.
-  TEST(VMModuleLinkerTest, CoalescesFunctionNamesWhileKeepingFunctionAndDataDeclarationsDistinct)
+  // Repeated imports require the same function or data kind, including when they occur in a single input.
+  TEST(VMModuleLinkerTest, RejectsUnresolvedDeclarationsWithConflictingKinds)
   {
-    const auto Host = linkName("host.shared.spelling");
-    MachineModule Input;
-    Input.declareNativeFunction(linkName("link.native.shared.first"), NativeFunctionImport{Host});
-    Input.declareNativeFunction(linkName("link.native.shared.second"), NativeFunctionImport{Host});
-    Input.declareNativeData(linkName("link.native.data"), NativeDataImport{Host});
-    const auto Result = link({&Input});
-    ASSERT_NE(Result, nullptr);
-    ASSERT_EQ(Result->nativeFunctions().size(), 1U);
-    ASSERT_EQ(Result->nativeData().size(), 1U);
-    EXPECT_EQ(Result->nativeFunctions()[0].Import.Name, Host);
-    EXPECT_EQ(Result->nativeData()[0].Import.Name, Host);
-  }
-
-  // Different host names preserve distinct native function bindings even when declarations arrive from separate modules.
-  TEST(VMModuleLinkerTest, PreservesDistinctNativeFunctionHostNames)
-  {
-    const auto FirstHost = linkName("host.function.first");
-    const auto SecondHost = linkName("host.function.second");
+    const auto Name = linkName("link.native.shared.spelling");
     MachineModule First;
     MachineModule Second;
-    First.declareNativeFunction(linkName("link.native.distinct.first"), NativeFunctionImport{FirstHost});
-    Second.declareNativeFunction(linkName("link.native.distinct.second"), NativeFunctionImport{SecondHost});
+    First.declareSymbol(Name, MachineSymbolKind::Function);
+    First.declareSymbol(Name, MachineSymbolKind::Function);
+    const auto Result = link({&First});
+    ASSERT_NE(Result, nullptr);
+    ASSERT_EQ(Result->symbolDeclarations().size(), 1U);
+    Second.declareSymbol(Name, MachineSymbolKind::GlobalVariable);
+    expectLinkFailure({&First, &Second});
+    First.declareSymbol(Name, MachineSymbolKind::GlobalVariable);
+    expectLinkFailure({&First});
+  }
+
+  // Distinct unresolved names remain separate host imports in their first declaration order.
+  TEST(VMModuleLinkerTest, PreservesDistinctUnresolvedNames)
+  {
+    const auto FirstName = linkName("link.native.function.first");
+    const auto SecondName = linkName("link.native.function.second");
+    MachineModule First;
+    MachineModule Second;
+    First.declareSymbol(FirstName, MachineSymbolKind::Function);
+    Second.declareSymbol(SecondName, MachineSymbolKind::Function);
     const auto Result = link({&First, &Second});
     ASSERT_NE(Result, nullptr);
-    ASSERT_EQ(Result->nativeFunctions().size(), 2U);
-    EXPECT_EQ(Result->nativeFunctions()[0].Import.Name, FirstHost);
-    EXPECT_EQ(Result->nativeFunctions()[1].Import.Name, SecondHost);
+    ASSERT_EQ(Result->symbolDeclarations().size(), 2U);
+    EXPECT_EQ(Result->symbolDeclarations()[0].Name, FirstName);
+    EXPECT_EQ(Result->symbolDeclarations()[1].Name, SecondName);
   }
 
-  // A native declaration cannot silently change the meaning of a conflicting VM definition or native alias.
-  TEST(VMModuleLinkerTest, RejectsConflictingNativeLinkNames)
+  // Repeated unresolved data declarations must agree on their read-only attribute.
+  TEST(VMModuleLinkerTest, RejectsUnresolvedDeclarationsWithConflictingReadOnlyFlags)
   {
-    const auto Alias = linkName("link.native.conflict");
+    const auto Name = linkName("link.native.conflict");
     MachineModule First;
     MachineModule Second;
-    First.declareNativeData(Alias, NativeDataImport{linkName("host.first")});
-    Second.declareNativeData(Alias, NativeDataImport{linkName("host.second")});
+    First.declareSymbol(Name, MachineSymbolKind::GlobalVariable, true);
+    Second.declareSymbol(Name, MachineSymbolKind::GlobalVariable, false);
     expectLinkFailure({&First, &Second});
-    MachineModule Definition;
-    ASSERT_TRUE(Definition.createGlobalVariable(8, 8, {}, Alias, MachineSymbolLinkage::External).has_value());
-    expectLinkFailure({&First, &Definition});
+    First.declareSymbol(Name, MachineSymbolKind::GlobalVariable, false);
+    expectLinkFailure({&First});
   }
 
-  // Native aliases remain scoped to declaring inputs while other inputs can bind the same spelling to their own Local definition.
-  TEST(VMModuleLinkerTest, KeepsNativeAliasesScopedToDeclaringInputs)
+  // Unresolved declarations remain scoped to declaring inputs while other inputs can bind the same name to their own Local definition.
+  TEST(VMModuleLinkerTest, KeepsUnresolvedDeclarationsScopedToDeclaringInputs)
   {
     const auto Alias = linkName("link.native.scoped");
     MachineModule Provider;
-    Provider.declareNativeData(Alias, NativeDataImport{linkName("host.scoped")});
+    Provider.declareSymbol(Alias, MachineSymbolKind::GlobalVariable);
     MachineModule Consumer;
     auto &Block = Consumer.createFunction().createBasicBlock();
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Block);
     Builder.create<Opcode::Load64>(AddressOperand(RegisterId::BP), AddressOperand(Alias));
     expectLinkFailure({&Provider, &Consumer});
-    Consumer.declareNativeData(Alias, NativeDataImport{linkName("host.scoped")});
+    Consumer.declareSymbol(Alias, MachineSymbolKind::GlobalVariable);
     EXPECT_NE(link({&Provider, &Consumer}), nullptr);
     MachineModule PrivateConsumer;
     ASSERT_TRUE(PrivateConsumer.createGlobalVariable(8, 8, {}, Alias).has_value());
@@ -802,8 +826,8 @@ namespace ink::vm::test
     Builder.create<Opcode::Store64i>(AddressOperand(Alias, -4), ImmediateOperand(Alias, 8));
     const auto Result = link({&Provider, &PrivateConsumer});
     ASSERT_NE(Result, nullptr);
-    ASSERT_EQ(Result->nativeData().size(), 1U);
-    EXPECT_EQ(Result->nativeData()[0].Name, Alias);
+    ASSERT_EQ(Result->symbolDeclarations().size(), 1U);
+    EXPECT_EQ(Result->symbolDeclarations()[0].Name, Alias);
     const auto PrivateName = Result->globalVariables().begin()->name();
     EXPECT_NE(PrivateName, Alias);
     const auto &Reference = static_cast<const MachineStore64iInstruction &>(instructionAt(*Result->functions().begin()->basicBlocks().begin(), 0));

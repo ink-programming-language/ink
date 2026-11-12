@@ -1,9 +1,10 @@
 # VM 内存模型与指令构建
 
-`src/include/ink/backend/vm/module` 提供 lowering 使用的 VM 内存模型。它保存函数、基本块、逻辑指令和全局数据，以及函数的栈帧描述；这些对象不借用上层 IR 节点。只读数据由全局变量的常量属性表示。
+`src/include/ink/backend/vm/module` 提供 lowering 使用的 VM 内存模型。它保存统一符号声明、函数、基本块、逻辑指令和全局数据，以及函数的栈帧描述；这些对象不借用上层 IR 节点。只读数据由全局变量的常量属性表示。
 
 ```text
 vm::MachineModule
+ ├─ SymbolDeclarations
  ├─ 全局数据（可写或只读）
  └─ vm::MachineFunction
      ├─ MachineFrameInfo
@@ -74,7 +75,7 @@ namespace ink::vm
 } // namespace ink::vm
 ```
 
-内存模型不保存 PC 相对位移，因此追加指令或调整块布局不会改变目标身份。后续镜像生成阶段需要完成函数和块布局，再根据目标块指针计算、编码 PC 相对位移；宿主指针不能写入可执行镜像。当前尚未实现镜像布局与发射。
+内存模型不保存 PC 相对位移，因此追加指令或调整块布局不会改变目标身份。镜像发射阶段完成函数和块布局，再根据目标块指针计算、编码 PC 相对位移；宿主指针不能写入可执行镜像。
 
 `isBranch()`、`isConditionalBranch()`、`isReturn()`、`isTerminator()` 提供控制流分类；条件跳转只有一个显式目标块，未跳转时继续执行下一条指令。`readEFlagsMask()` 和 `writtenEFlagsMask()` 描述隐式标志依赖：所有 ADD、CMP 改写 CF、ZF、SF、OF，条件跳转读取各自所需的子集。EFLAGS 不作为它们的显式操作数，也不能用作普通寄存器值或地址基址。`eflags.h` 只提供标志定义、掩码及条件依赖元数据；标志生成和条件判断由后续执行器实现，当前模型不执行指令。
 
@@ -91,9 +92,9 @@ Builder.create<Opcode::CallNativem>(AddressOperand(PointerSlotName, 8));
 
 `isCall()` 识别全部调用，`isNativeCall()` 识别两种 Native 调用。调用没有显式结果目标或参数操作数，也不是终结指令；返回后继续执行后继指令。四者的 `readEFlagsMask()` 为零，`writtenEFlagsMask()` 为 `ArithmeticEFlagsMask`，表示调用后不能依赖原先的算术标志。
 
-`Calli` 的数值目标为相对当前 PC 的有符号 i64 位模式，符号目标绑定 VM 函数定义；`CallNativei` 的数值目标为统一动态导入表 `DynamicImportSymbols` 的 u32 索引，符号目标绑定显式 Native 函数声明。直接调用的符号 addend 必须为零。`Callm` 和 `CallNativem` 分别从有效地址读取 64 位 VM 函数地址和 native 可调用指针，后者不是导入索引。间接目标中的符号只定位存放指针的内存，按普通地址符号规则解析。
+`Calli` 的数值目标为相对当前 PC 的有符号 i64 位模式，符号目标绑定 VM 函数定义；`CallNativei` 的数值目标为统一动态导入表 `DynamicImportSymbols` 的 u32 索引，符号目标必须是通过 `declareSymbol` 声明且未被 VM 定义满足的函数符号。直接调用的符号 addend 必须为零。`Callm` 和 `CallNativem` 分别从有效地址读取 64 位 VM 函数地址和 native 可调用指针，后者不是导入索引。间接目标中的符号只定位存放指针的内存，按普通地址符号规则解析。
 
-Builder 不解析名称或校验调用签名。逻辑指令、文本和链接接入均已实现；指令编码与解码尚未实现。参数与返回槽的布局约定见 [VM 调用约定](VM-Calling-Convention.md)，其自动代码生成和调用执行尚未实现。native 可调用指针的 adapter 与宿主 ABI 协议也仍待确定。
+Builder 不解析名称或校验调用签名。逻辑指令、文本、链接接入和指令编码均已实现；解码仍待实现。参数与返回槽的布局约定见 [VM 调用约定](VM-Calling-Convention.md)，其自动代码生成和调用执行尚未实现。native 可调用指针的 adapter 与宿主 ABI 协议也仍待确定。
 
 ## 全局数据与栈帧
 
@@ -122,7 +123,9 @@ Builder 不解析名称或校验调用签名。逻辑指令、文本和链接接
 
 `AddressOperand(core::Name Symbol, std::int64_t ByteOffset)` 表示符号相对的内存地址，ADD、CMP、Load、Store 的 `m` 来源读取该地址处的值。`ImmediateOperand(core::Name Symbol, std::int64_t ByteOffset)` 则表示符号地址本身加上偏移，作为 `i` 值参与指令；它与 `ImmediateOperand(std::uint64_t Bits)` 的数值形式由 `ImmediateValueKind::Symbol` 和 `ImmediateValueKind::Numeric` 区分。`getValueKind()` 返回该分类，数值形式的 `bits()` 返回 `std::optional<std::uint64_t>`，符号形式的 `getSymbol()` 和 `getByteOffset()` 分别返回名称与有符号偏移；不匹配的访问器返回空值。
 
-符号名称通过 `core::Name` 保存链接名，不借用输入文本，也不是宿主指针。函数和全局变量分别保存 `MachineSymbolLinkage::Local` 或 `External`，创建接口的 Linkage 参数指定该属性，默认 Local。`MachineModule::declareSymbol(Name, Kind, IsConstant)` 保存带种类的外部声明，Kind 为 Function 或 GlobalVariable，IsConstant 默认 false，只能在全局变量声明上设为 true。链接时全局声明与定义的常量属性必须精确一致。`declareNativeFunction(Name, Import)` 和 `declareNativeData(Name, Import)` 保存显式 Native 声明，其中 Name 是 VM 链接名，Import.Name 是宿主查找名。上述声明可以通过 `symbolDeclarations()`、`nativeFunctions()`、`nativeData()` 的只读视图遍历，模块内存模型本身不执行链接校验。
+符号名称通过 `core::Name` 保存链接名，不借用输入文本，也不是宿主指针。函数和全局变量分别保存 `MachineSymbolLinkage::Local` 或 `External`，创建接口的 Linkage 参数指定该属性，默认 Local。`MachineModule::declareSymbol(Name, Kind, IsConstant)` 统一保存符号声明，通过 `symbolDeclarations()` 只读遍历。Kind 为 Function 或 GlobalVariable，IsConstant 默认 false，只能在全局变量声明上设为 true；链接时声明与定义的种类和常量属性必须精确一致。模块内存模型本身不执行链接校验。
+
+Native 符号由 `NativeSymbols = SymbolDeclarations - (Functions + Globals)` 推导。链接器先查找声明所在模块的定义及其他输入中的 External 定义，只有未被这些定义满足的声明才作为 Native 符号保留；已有 VM 定义不会同时成为 Native 导入。函数和数据共用这一集合，模块不再保存独立的 Native 函数或 Native 数据成员。每个 Native 符号仅有一个名称，同时用于指令引用和宿主查找，不提供独立的宿主名称或别名。
 
 `serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；跳转使用 `jne failure`、`jmp done`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
 
@@ -138,17 +141,17 @@ Builder 不解析名称或校验调用签名。逻辑指令、文本和链接接
 .declare function @other_function
 .declare global @other_global
 .declare global @other_readonly_global readonly
-.native_function @vm_function, @host_function
-.native_function @system_function, @host_bridge
-.native_data @vm_buffer, @host_buffer
+.declare function @host_function
+.declare function @host_bridge
+.declare global @host_buffer
 ```
 
-Native 函数和数据声明都只指定 VM 链接名与宿主名称。对应的 `NativeFunctionImport` 和 `NativeDataImport` 定义在 `module/native_function_import.h`、`module/native_data_import.h`，各自只保存宿主 `Name`；声明类别保留给逻辑链接的种类检查。镜像中的 `DynamicImportSymbols` 统一表示函数和数据，每项只保存宿主 `Name` 并按名称去重；完整宿主 ABI 调用描述及 adapter 协议仍待实现。文本读取只检查字段、名称和结构，不把未解析符号自动归类为 Native，也不执行模块链接。
+全部声明都使用 `.declare`，不再提供独立的 Native 声明语法。声明中的种类和只读属性保留给逻辑链接检查。文本读取只恢复字段、名称和结构，不执行链接，也不决定哪些声明最终由 VM 定义满足。发射器从声明与定义的差集建立统一 Native 符号集合，被指令使用的符号按名称加入镜像的 `DynamicImportSymbols`；未使用的声明不会自动生成动态导入项。完整宿主 ABI 调用描述及 adapter 协议仍待实现。
 
 ## 链接与可执行镜像边界
 
-已实现的模块链接流水线为 `MachineModule × N → ModuleLinker → MachineModule`。`linker` 目录的 `ModuleLinker` 支持强符号、Local/External、显式 Native、严格解析和深克隆，具体接口与冲突规则见 [VM 模块链接器](VM-Linker.md)。完整代码布局、基本块目标到 PC 相对位移的转换及指令发射尚未实现。现有发射器已提供全局布局、部分操作数字段和重定位处理。VM 符号内存地址选择 PC 基址，Native 符号内存地址选择恒零的 ZERO 基址，统一编码为寄存器编号与八字节偏移位模式；普通 VM 符号立即数通过镜像基址地址重定位在加载时生成完整地址。进程内的 Name 句柄不能进入字节流。
+已实现的模块链接流水线为 `MachineModule × N → ModuleLinker → MachineModule`。`linker` 目录的 `ModuleLinker` 支持强符号、Local/External、统一声明、Native 符号推导、种类检查和深克隆，具体接口与冲突规则见 [VM 模块链接器](VM-Linker.md)。发射器已提供全局及函数布局、基本块目标到 PC 相对位移的转换、指令编码和重定位处理。VM 符号内存地址选择 PC 基址，Native 符号内存地址选择恒零的 ZERO 基址，统一编码为寄存器编号与八字节偏移位模式；普通 VM 符号立即数通过镜像基址地址重定位在加载时生成完整地址。进程内的 Name 句柄不能进入字节流。
 
 `executable` 目录提供可执行镜像的内存模型 `ExecutableFile`，保存小端镜像字节、入口偏移、统一动态导入符号表 `DynamicImportSymbols`、动态导入符号地址重定位 `DynamicImportSymbolRelocations`、镜像基址地址重定位 `ImageBaseAddressRelocations`，以及记录导出名称和镜像内偏移的 `ExportSymbols`，并提供结构校验；模型不保存段表或字节序配置，接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。`ModuleLinker` 输出仍是逻辑模块，不生成上述镜像内容。
 
-当前尚未实现 lowering pass、指令编码与解码、镜像布局与发射、镜像磁盘读写、加载器、native adapter 或 VM 执行器；创建和链接逻辑模块不会生成指令字节。编码方案见 [VM 指令编码格式讨论稿](VM-Instruction-Format.md)，运行时规划见 [VM 运行时设计](VM-Runtime.md)，参数、返回槽和可变参数调用预留区布局约定见 [VM 调用约定](VM-Calling-Convention.md)。
+当前尚未实现 lowering pass、指令解码、镜像磁盘读写、加载器、native adapter 或 VM 执行器；创建和链接逻辑模块不会自行生成指令字节，须显式调用发射器。编码方案见 [VM 指令编码格式讨论稿](VM-Instruction-Format.md)，运行时规划见 [VM 运行时设计](VM-Runtime.md)，参数、返回槽和可变参数调用预留区布局约定见 [VM 调用约定](VM-Calling-Convention.md)。

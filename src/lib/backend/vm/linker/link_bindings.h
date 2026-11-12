@@ -19,7 +19,7 @@ namespace ink::vm::detail
       bool operator==(const SymbolId &) const = default;
   };
 
-  using SymbolTarget = std::variant<const MachineFunction *, const MachineGlobalVariable *, NativeFunctionImport, NativeDataImport>;
+  using SymbolTarget = std::variant<const MachineFunction *, const MachineGlobalVariable *, MachineSymbolDeclaration>;
   using SymbolTable = std::unordered_map<core::Name, SymbolId>;
 
   // A canonical definition or host import. Index tables contain IDs, never copies of these facts.
@@ -31,7 +31,6 @@ namespace ink::vm::detail
 
       // Native imports have no VM definition linkage.
       std::optional<MachineSymbolLinkage> linkage() const;
-      bool isDefinition() const;
       MachineSymbolKind kind() const;
       bool isConstant() const;
   };

@@ -4,7 +4,7 @@
 
 当前实现提供 `Operand` 基类以及 `RegisterOperand`、`AddressOperand`、`ImmediateOperand`、`BasicBlockOperand` 四种逻辑操作数，并通过强类型指令布局将操作数接入 `MachineInstruction`。基本块操作数在内存中持有目标块指针；调用复用立即数和地址操作数，分别表达直接目标和存放间接目标的内存位置。[VM 内存模型与指令构建](VM-Module.md) 提供模块、函数、基本块的所有权结构和 `MachineInstructionBuilder`，供 lowering 构建逻辑指令。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号解析和深克隆，`executable` 目录提供镜像模型与结构校验。加载、预解码缓存和执行器仍待实现。
 
-发射代码分为 `ExecutableEmitter`、`FunctionEmitter` 和 `InstructionEmitter`。`ExecutableEmitter` 拥有 `ExecutableEmissionContext`，管理全局布局和模块发射流程；该上下文保存镜像、模块符号、Native 导入及待解析重定位，并提供字节追加和回填。`FunctionEmitter` 拥有 `FunctionEmissionContext`，保存当前函数的基本块偏移状态；`InstructionEmitter` 借用两个上下文，负责 opcode 和操作数字段编码。`padInstruction` 先写入两字节 opcode，再按语义顺序调用对应的 `padOperand`；`FunctionEmitter::emit` 重置和扫描基本块状态后，按函数内顺序调用 `padBasicBlock`；该接口在 `FunctionEmissionContext` 中登记当前镜像偏移并移除对应的未解析记录，再按块内顺序调用 `InstructionEmitter::padInstruction`。基本块操作数已编码为 PC 编号和相对位移，前向引用在当前函数的全部基本块发射后统一回填；直接调用已按操作码分别编码 PC 相对位移或 u32 导入索引。
+发射代码分为 `ExecutableEmitter`、`FunctionEmitter` 和 `InstructionEmitter`。`ExecutableEmitter` 拥有 `ExecutableEmissionContext`，管理全局布局和模块发射流程；该上下文保存镜像、模块符号、统一的 `NativeSymbols` 及待解析重定位，并提供字节追加和回填。Native 符号由 `SymbolDeclarations - (Functions + Globals)` 推导，与 VM 定义同名的声明不生成 Native 导入。`FunctionEmitter` 拥有 `FunctionEmissionContext`，保存当前函数的基本块偏移状态；`InstructionEmitter` 借用两个上下文，负责 opcode 和操作数字段编码。`padInstruction` 先写入两字节 opcode，再按语义顺序调用对应的 `padOperand`；`FunctionEmitter::emit` 重置和扫描基本块状态后，按函数内顺序调用 `padBasicBlock`；该接口在 `FunctionEmissionContext` 中登记当前镜像偏移并移除对应的未解析记录，再按块内顺序调用 `InstructionEmitter::padInstruction`。基本块操作数已编码为 PC 编号和相对位移，前向引用在当前函数的全部基本块发射后统一回填；直接调用已按操作码分别编码 PC 相对位移或 u32 导入索引。
 
 `ExecutableEmitter::emit` 必须显式传入模块、入口函数名和导出名称列表。入口必须是具名且包含指令的 VM 函数，导出仅选择列表中的 VM 函数或全局变量；发射器在布局和静态重定位完成后生成 `EntryOffset` 和 `ExportSymbols`，每次发射会清理旧元数据。调用示例与完整选择规则见 [VM 可执行镜像模型](VM-Executable.md#显式入口与导出选择)。
 
@@ -77,7 +77,7 @@ EffectiveAddress = Registers[RegisterId] + OffsetBits
 
 VM 符号内存地址 `Symbol + ByteOffset` 转换为相对当前指令起始 PC 的有符号位移，使用 `PC = 02` 基址及八字节偏移编码。若 `PC = ImageBase + InstructionOffset`，编码位移为 `SymbolOffset + ByteOffset - InstructionOffset`，计算出的有效地址就是 `ImageBase + SymbolOffset + ByteOffset`，无需加载时再修补位移。宿主符号使用 `ZERO = 04` 基址，后续八字节偏移字段由 `DynamicImportSymbolRelocation` 记录其位置、统一导入表 `DynamicImportSymbols` 的索引及 addend，加载时填写宿主地址加 addend。函数和数据取地址共用此表。ZERO 加该字段的值就是绑定后的绝对地址，执行阶段使用相同的寄存器相对计算。Native 函数地址的可调用表示及 adapter 协议尚未确定。进程内的 `core::Name` 索引不能进入指令字节。
 
-`InstructionEmitter::padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset)` 已实现上述寄存器相对地址字段的顺序追加。`InstructionOffset` 必须是当前指令起点。`ExecutableEmissionContext::resolveRegisterRelativeOffset` 和 `InstructionEmitter::padRegisterRelativeSymbol` 显式接收基址寄存器编号；VM 符号已完成布局时使用 PC 基址写入相对位移，ZERO 基址的 VM 符号地址则生成镜像基址地址重定位。已登记在 `UnresolvedSymbol` 但尚未布局时，追加基址寄存器编号和八字节零占位，并在上下文的 `PendingStaticRelocationSymbol` 中记录字段的 `ImageOffset`、符号 `Name`、基址寄存器 `Register`、当前指令的镜像偏移 `InstructionOffset` 和符号偏移 `Addend`。最终解析直接根据 `Register` 处理：PC 引用按 `InstructionOffset` 求差并回填位移，ZERO 引用生成 `ImageBaseAddressRelocation`，由加载器填写 `ImageBase + TargetOffset + Addend`。同一符号的多次引用分别记录；每次 `ExecutableEmitter::emit` 清空旧记录，依次调用 `padGlobals`、`padFunction` 后统一调用 `resolveStaticRelocations`。最终解析仍找不到目标偏移时报告内部编译错误，成功后清空临时队列。`scanUnResolvedSymbol` 缓存模块中显式 Native 声明的链接别名及宿主名称；地址操作数使用这些声明时，按宿主 `Name` 复用或添加导入，追加 ZERO 寄存器编号和八字节零占位，并为偏移字段生成重定位。
+`InstructionEmitter::padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset)` 已实现上述寄存器相对地址字段的顺序追加。`InstructionOffset` 必须是当前指令起点。`ExecutableEmissionContext::resolveRegisterRelativeOffset` 和 `InstructionEmitter::padRegisterRelativeSymbol` 显式接收基址寄存器编号；VM 符号已完成布局时使用 PC 基址写入相对位移，ZERO 基址的 VM 符号地址则生成镜像基址地址重定位。已登记在 `UnresolvedSymbol` 但尚未布局时，追加基址寄存器编号和八字节零占位，并在上下文的 `PendingStaticRelocationSymbol` 中记录字段的 `ImageOffset`、符号 `Name`、基址寄存器 `Register`、当前指令的镜像偏移 `InstructionOffset` 和符号偏移 `Addend`。最终解析直接根据 `Register` 处理：PC 引用按 `InstructionOffset` 求差并回填位移，ZERO 引用生成 `ImageBaseAddressRelocation`，由加载器填写 `ImageBase + TargetOffset + Addend`。同一符号的多次引用分别记录；每次 `ExecutableEmitter::emit` 清空旧记录，依次调用 `padGlobals`、`padFunction` 后统一调用 `resolveStaticRelocations`。最终解析仍找不到目标偏移时报告内部编译错误，成功后清空临时队列。`scanUnResolvedSymbol` 将模块中没有函数或全局定义的声明加入统一的 `NativeSymbols`；地址操作数使用这些名称时，按同一 `Name` 复用或添加导入，追加 ZERO 寄存器编号和八字节零占位，并为偏移字段生成重定位。
 
 下面的竖线只用于说明字段边界，不属于字节流：
 
@@ -187,15 +187,15 @@ call @sum
 call 16
 call [bp + 16]
 call [@function_pointer_slot]
-callNative @vm_log
+callNative @host_log
 callNative 0
 callNative [sp - 8]
 callNative [@native_pointer_slot]
 ```
 
-`Calli` 的数值立即数按 64 位位模式原样写入，表示相对当前 opcode 起点的有符号字节位移；符号立即数表示 VM 函数名，目标已布局时写入 `FunctionOffset - InstructionOffset`。前向引用在 `ExecutableEmissionContext::PendingStaticRelocationSymbol` 中登记位移字段偏移、函数名、opcode 起点、零 addend 和 `Register = PC`，追加八字节零，在模块发射结束时统一回填；字段前不写寄存器编号，也不生成加载地址重定位。`CallNativei` 的数值立即数按 32 位写入；符号立即数按 VM 链接别名查出宿主名称，通过 `ExecutableEmissionContext::getOrAddNativeSymbol` 按宿主名称复用导入并写入 u32 索引，不生成动态地址重定位，与普通地址取用共享导入表。两种直接调用的符号 addend 均须为零；名称支持 `@"escaped name"` 转义形式。
+`Calli` 的数值立即数按 64 位位模式原样写入，表示相对当前 opcode 起点的有符号字节位移；符号立即数表示 VM 函数名，目标已布局时写入 `FunctionOffset - InstructionOffset`。前向引用在 `ExecutableEmissionContext::PendingStaticRelocationSymbol` 中登记位移字段偏移、函数名、opcode 起点、零 addend 和 `Register = PC`，追加八字节零，在模块发射结束时统一回填；字段前不写寄存器编号，也不生成加载地址重定位。`CallNativei` 的数值立即数按 32 位写入；符号立即数必须在统一的 `NativeSymbols` 中，通过 `ExecutableEmissionContext::getOrAddNativeSymbol` 按该名称复用导入并写入 u32 索引，不生成动态地址重定位，与普通地址取用共享导入表。逻辑符号名与宿主查找名相同，不经过别名映射。两种直接调用的符号 addend 均须为零；名称支持 `@"escaped name"` 转义形式。
 
-链接时，直接 `call @name` 的目标必须是 VM 函数定义，支持本模块 Local 函数以及跨模块 External 函数；直接 `callNative @name` 的目标必须是当前输入显式声明的 Native 函数。全局数据、Native 数据和错误调用类别都会被拒绝。数值目标不参与符号绑定；`CallNativei` 数值索引的 u32 合法性及符号调用的零 addend 由模块链接器检查，镜像中的指令边界和实际导入表范围仍待后续校验与执行阶段检查。
+链接时，直接 `call @name` 的目标必须是 VM 函数定义，支持本模块 Local 函数以及跨模块 External 函数；直接 `callNative @name` 的目标必须是当前输入通过 `declareSymbol` 声明且未被可见 VM 定义满足的函数符号。全局数据和错误调用类别都会被拒绝；本次链接中得到 VM 函数定义的声明也不能继续作为直接 Native 调用目标。数值目标不参与符号绑定；`CallNativei` 数值索引的 u32 合法性及符号调用的零 addend 由模块链接器检查，镜像中的指令边界和实际导入表范围仍待后续校验与执行阶段检查。
 
 `Callm` 从有效地址处读取一个 64 位 VM 函数入口的宿主地址，再按 VM 调用协议转移至该地址；`CallNativem` 从有效地址处读取一个 64 位 native 可调用指针，该值不是 u32 导入索引。`[@pointer_slot]` 中的符号定位存放指针的内存，链接时按普通地址符号规则解析，不要求它是函数定义或 Native 函数声明；若该槽位于 VM 镜像内，定位槽的寻址仍可使用 PC 相对形式，槽内读出的目标值则是完整地址。内存地址允许有符号字节偏移，目标值及其可调用性仍须由运行时校验。统一地址表示不合并两种调用协议；native 指针的 adapter 与宿主 ABI 协议尚未实现，当前指令模型不表示任意 C 函数指针都可直接调用。
 
@@ -208,7 +208,7 @@ callNative [@native_pointer_slot]
 | `Callm` | `call` | `003d` | `m`：统一寄存器相对形式，ZERO 基址表示绝对地址，读取 64 位 VM 函数入口宿主地址 | 11 字节 |
 | `CallNativem` | `callNative` | `003e` | `m`：统一寄存器相对形式，ZERO 基址表示绝对地址，读取 64 位 native 可调用指针 | 11 字节 |
 
-`Calli` 的目标为 `PC + TargetOffset`，后继地址为 `NextPC = PC + 10`；`CallNativei` 的后继地址为 `NextPC = PC + 6`。间接形式的后继地址为 `PC + 11`，符号内存地址按上文分别选择 PC 或 ZERO 基址，使用同一寄存器相对字段格式。函数名称不进入字节编码，直接 native 调用使用统一符号表索引，无需在调用指令中回填地址；同一符号的取地址用途则通过动态导入符号重定位填写地址。统一导入表不保存调用约定，调用描述及 adapter 协议仍待实现。符号调用目标随 Local 重命名和 Native 别名合并一并改写，文本读取只恢复逻辑操作数，不代替链接检查。
+`Calli` 的目标为 `PC + TargetOffset`，后继地址为 `NextPC = PC + 10`；`CallNativei` 的后继地址为 `NextPC = PC + 6`。间接形式的后继地址为 `PC + 11`，符号内存地址按上文分别选择 PC 或 ZERO 基址，使用同一寄存器相对字段格式。函数名称不进入字节编码，直接 native 调用使用统一符号表索引，无需在调用指令中回填地址；同一符号的取地址用途则通过动态导入符号重定位填写地址。统一导入表不保存调用约定，调用描述及 adapter 协议仍待实现。符号调用目标随 Local 重命名一并改写，同名的兼容 Native 声明合并但不改写名称，文本读取只恢复逻辑操作数，不代替链接检查。
 
 四条指令的类别都是 `InstructionCategory::Call`，都没有显式结果目标，也不是基本块终结指令。`isCall()` 识别全部调用，`isNativeCall()` 识别两种 `callNative` 形式。它们都不读取 EFLAGS，并通过 `writtenEFlagsMask() == ArithmeticEFlagsMask` 表达 CF、ZF、SF、OF 在调用后不可依赖；这不规定返回后的具体标志值。逻辑指令、构建、遍历、文本读写、链接接入和指令编码均已实现；解码、执行状态转换、调用区自动生成及宿主 ABI adapter 尚未实现。参数、返回槽和可变参数调用预留区布局见 [VM 调用约定](VM-Calling-Convention.md)。
 

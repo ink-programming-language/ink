@@ -42,22 +42,10 @@ namespace ink::vm
       MachineFunction &createFunction(core::Name FunctionName = core::NAME_None, MachineSymbolLinkage Linkage = MachineSymbolLinkage::Local);
       [[nodiscard]] std::expected<std::reference_wrapper<MachineGlobalVariable>, MachineModuleDataError> createGlobalVariable(std::uint64_t ByteSize, std::uint64_t Alignment = 1, std::span<const std::uint8_t> InitialBytes = {}, core::Name GlobalName = core::NAME_None, MachineSymbolLinkage Linkage = MachineSymbolLinkage::Local, bool IsConstant = false);
       void declareSymbol(core::Name SymbolName, MachineSymbolKind Kind, bool IsConstant = false);
-      void declareNativeFunction(core::Name SymbolName, NativeFunctionImport Import);
-      void declareNativeData(core::Name SymbolName, NativeDataImport Import);
 
       std::span<const MachineSymbolDeclaration> symbolDeclarations() const noexcept
       {
         return SymbolDeclarations;
-      }
-
-      std::span<const MachineNativeFunctionDeclaration> nativeFunctions() const noexcept
-      {
-        return NativeFunctions;
-      }
-
-      std::span<const MachineNativeDataDeclaration> nativeData() const noexcept
-      {
-        return NativeData;
       }
 
       auto functions(this auto &&Self) noexcept
@@ -85,7 +73,5 @@ namespace ink::vm
       std::list<MachineFunction> Functions;
       std::list<MachineGlobalVariable> Globals;
       std::vector<MachineSymbolDeclaration> SymbolDeclarations;
-      std::vector<MachineNativeFunctionDeclaration> NativeFunctions;
-      std::vector<MachineNativeDataDeclaration> NativeData;
   };
 } // namespace ink::vm

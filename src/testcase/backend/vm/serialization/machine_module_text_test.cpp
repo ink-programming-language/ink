@@ -115,18 +115,6 @@ namespace ink::vm::test
         EXPECT_EQ(Actual.symbolDeclarations()[Index].Kind, Expected.symbolDeclarations()[Index].Kind);
         EXPECT_EQ(Actual.symbolDeclarations()[Index].IsConstant, Expected.symbolDeclarations()[Index].IsConstant);
       }
-      ASSERT_EQ(Actual.nativeFunctions().size(), Expected.nativeFunctions().size());
-      for (std::size_t Index = 0; Index != Expected.nativeFunctions().size(); ++Index)
-      {
-        EXPECT_EQ(Actual.nativeFunctions()[Index].Name, Expected.nativeFunctions()[Index].Name);
-        EXPECT_EQ(Actual.nativeFunctions()[Index].Import.Name, Expected.nativeFunctions()[Index].Import.Name);
-      }
-      ASSERT_EQ(Actual.nativeData().size(), Expected.nativeData().size());
-      for (std::size_t Index = 0; Index != Expected.nativeData().size(); ++Index)
-      {
-        EXPECT_EQ(Actual.nativeData()[Index].Name, Expected.nativeData()[Index].Name);
-        EXPECT_EQ(Actual.nativeData()[Index].Import.Name, Expected.nativeData()[Index].Import.Name);
-      }
       ASSERT_EQ(Actual.globalVariableCount(), Expected.globalVariableCount());
       auto ActualGlobal = Actual.globalVariables().begin();
       for (const auto &ExpectedGlobal : Expected.globalVariables())
@@ -887,7 +875,6 @@ entry:
     const auto Parsed = readMachineModuleText(*Text);
     ASSERT_TRUE(Parsed.has_value());
     EXPECT_TRUE((*Parsed)->symbolDeclarations().empty());
-    EXPECT_TRUE((*Parsed)->nativeFunctions().empty());
     expectEqualModules(Module, **Parsed);
     const auto Instructions = (*Parsed)->functions().begin()->basicBlocks().begin()->instructions();
     EXPECT_EQ(static_cast<const MachineCalliInstruction &>(*Instructions.begin()).getTarget().getSymbol(), VMTarget);
@@ -1189,17 +1176,19 @@ entry:
     EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMTextInvalid);
   }
 
-  // Definition linkage, typed declarations, and distinct VM and host native names survive deterministic text round trips.
-  TEST(VMMachineModuleTextTest, RoundTripsLinkageAndNativeDeclarations)
+  // Unresolved and defined symbol declarations retain their names, kinds, and mutability without text parsing deciding which are native.
+  TEST(VMMachineModuleTextTest, RoundTripsLinkageAndSymbolDeclarations)
   {
     auto &Names = core::NamePool::instance();
     MachineModule Module(Names.intern("link-input"));
     Module.declareSymbol(Names.intern("other.function"), MachineSymbolKind::Function);
     Module.declareSymbol(Names.intern("other.readonly"), MachineSymbolKind::GlobalVariable, true);
     Module.declareSymbol(Names.intern("other global"), MachineSymbolKind::GlobalVariable);
-    Module.declareNativeFunction(Names.intern("bridge.first"), NativeFunctionImport{Names.intern("host function")});
-    Module.declareNativeFunction(Names.intern("bridge.second"), NativeFunctionImport{Names.intern("host.second")});
-    Module.declareNativeData(Names.intern("native.buffer"), NativeDataImport{Names.intern("host.buffer")});
+    Module.declareSymbol(Names.intern("host function"), MachineSymbolKind::Function);
+    Module.declareSymbol(Names.intern("host.second"), MachineSymbolKind::Function);
+    Module.declareSymbol(Names.intern("host.buffer"), MachineSymbolKind::GlobalVariable);
+    Module.declareSymbol(Names.intern("readonly"), MachineSymbolKind::GlobalVariable, true);
+    Module.declareSymbol(Names.intern("entry point"), MachineSymbolKind::Function);
     const std::array<std::uint8_t, 2> Bytes{1, 2};
     ASSERT_TRUE(Module.createGlobalVariable(Bytes.size(), 2, Bytes, Names.intern("readonly"), MachineSymbolLinkage::External, true));
     ASSERT_TRUE(Module.createGlobalVariable(0, 1, {}, core::NAME_None, MachineSymbolLinkage::Local, true));
@@ -1212,9 +1201,12 @@ entry:
     EXPECT_NE(Text->find(".global global, 8, 4 external\n"), std::string::npos);
     EXPECT_NE(Text->find(".declare global @\"other global\"\n"), std::string::npos);
     EXPECT_NE(Text->find(".declare global @other.readonly readonly\n"), std::string::npos);
-    EXPECT_NE(Text->find(".native_function @bridge.first, @\"host function\"\n"), std::string::npos);
-    EXPECT_NE(Text->find(".native_function @bridge.second, @host.second\n"), std::string::npos);
-    EXPECT_NE(Text->find(".native_data @native.buffer, @host.buffer\n"), std::string::npos);
+    EXPECT_NE(Text->find(".declare function @\"host function\"\n"), std::string::npos);
+    EXPECT_NE(Text->find(".declare function @host.second\n"), std::string::npos);
+    EXPECT_NE(Text->find(".declare global @host.buffer\n"), std::string::npos);
+    EXPECT_NE(Text->find(".declare global @readonly readonly\n"), std::string::npos);
+    EXPECT_NE(Text->find(".declare function @\"entry point\"\n"), std::string::npos);
+    EXPECT_EQ(Text->find(".native_"), std::string::npos);
     const auto Parsed = readMachineModuleText(*Text);
     ASSERT_TRUE(Parsed.has_value());
     expectEqualModules(Module, **Parsed);
@@ -1249,8 +1241,8 @@ entry:
     expectEqualModules(Module, **Parsed);
   }
 
-  // Explicit local linkage remains compatible with the default, while malformed link declarations cannot produce a module.
-  TEST(VMMachineModuleTextTest, RejectsMalformedLinkageAndNativeDeclarations)
+  // Explicit local linkage remains compatible with the default, while malformed symbol declarations cannot produce a module.
+  TEST(VMMachineModuleTextTest, RejectsMalformedLinkageAndSymbolDeclarations)
   {
     const auto Local = readMachineModuleText(".module \"\"\n.section .text\n.function F local\n.endfunction\n");
     ASSERT_TRUE(Local.has_value());
@@ -1263,22 +1255,11 @@ entry:
         ".declare function @name readonly",
         ".declare global @name readonly readonly",
         ".declare global @name trailing",
-        ".native_data @name",
-        ".native_data @name, @\"\"",
-        ".native_data @name, native, @host",
-        ".native_data @name, @host trailing",
-        ".native_function @name",
-        ".native_function @name,",
-        ".native_function @name, @\"\"",
-        ".native_function @name, @host, @other",
-        ".native_function @name, @host,",
-        ".native_function @name, native, c, @host",
         ".section .text\n.function F invalid\n.endfunction",
         ".section .text\n.function F readonly\n.endfunction",
         ".section .text\n.function F external local\n.endfunction",
         ".section .text\n.function F, \"\" external\n.endfunction",
         ".section .text\n.function F\n.declare function @name\n.endfunction",
-        ".section .text\n.function F\n.native_data @name, @host\n.endfunction",
         ".section .rodata\n.constant C, \"\", 1 external\n.endconstant",
         ".section .data\n.global G, 0, 1 weak\n.endglobal",
         ".section .data\n.global G, 0, 1 external readonly\n.endglobal",
@@ -1293,7 +1274,23 @@ entry:
     }
   }
 
-  // Writing rejects invalid link enums, empty native identities, and anonymous external definitions before losing metadata.
+  // Removed native directives are rejected even when their former two-name declaration syntax is well formed.
+  TEST(VMMachineModuleTextTest, RejectsRemovedNativeDeclarationDirectives)
+  {
+    constexpr std::string_view Directives[] = {
+        ".native_function @name, @host",
+        ".native_data @name, @host",
+    };
+    for (const auto Directive : Directives)
+    {
+      SCOPED_TRACE(Directive);
+      const auto Parsed = readMachineModuleText(".module \"\"\n" + std::string(Directive) + "\n");
+      ASSERT_FALSE(Parsed.has_value());
+      EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+    }
+  }
+
+  // Writing rejects invalid symbol kinds, empty declaration names, and anonymous external definitions before losing metadata.
   TEST(VMMachineModuleTextTest, RejectsInvalidLinkMetadataWhenWriting)
   {
     auto &Names = core::NamePool::instance();
@@ -1310,15 +1307,12 @@ entry:
     MachineModule ReadOnlyFunction;
     ReadOnlyFunction.declareSymbol(Name, MachineSymbolKind::Function, true);
     EXPECT_FALSE(writeMachineModuleText(ReadOnlyFunction).has_value());
-    MachineModule EmptyData;
-    EmptyData.declareNativeData(Name, NativeDataImport{});
-    EXPECT_FALSE(writeMachineModuleText(EmptyData).has_value());
-    MachineModule EmptyFunctionHost;
-    EmptyFunctionHost.declareNativeFunction(Name, NativeFunctionImport{});
-    EXPECT_FALSE(writeMachineModuleText(EmptyFunctionHost).has_value());
-    MachineModule EmptyFunctionAlias;
-    EmptyFunctionAlias.declareNativeFunction(core::NAME_None, NativeFunctionImport{Name});
-    EXPECT_FALSE(writeMachineModuleText(EmptyFunctionAlias).has_value());
+    MachineModule EmptyGlobal;
+    EmptyGlobal.declareSymbol(core::NAME_None, MachineSymbolKind::GlobalVariable);
+    EXPECT_FALSE(writeMachineModuleText(EmptyGlobal).has_value());
+    MachineModule EmptyFunction;
+    EmptyFunction.declareSymbol(core::NAME_None, MachineSymbolKind::Function);
+    EXPECT_FALSE(writeMachineModuleText(EmptyFunction).has_value());
   }
 
   // Unsupported register values fail serialization explicitly in direct register and memory-address operands.

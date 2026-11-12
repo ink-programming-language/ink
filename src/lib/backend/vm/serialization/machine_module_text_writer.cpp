@@ -282,32 +282,6 @@ namespace ink::vm
               Text += " readonly";
             }
           }
-          for (const MachineNativeFunctionDeclaration &Declaration : Module.nativeFunctions())
-          {
-            Text += "\n.native_function ";
-            if (!writeSymbol(Declaration.Name))
-            {
-              return false;
-            }
-            Text += ", ";
-            if (!writeSymbol(Declaration.Import.Name))
-            {
-              return false;
-            }
-          }
-          for (const MachineNativeDataDeclaration &Declaration : Module.nativeData())
-          {
-            Text += "\n.native_data ";
-            if (!writeSymbol(Declaration.Name))
-            {
-              return false;
-            }
-            Text += ", ";
-            if (!writeSymbol(Declaration.Import.Name))
-            {
-              return false;
-            }
-          }
           return true;
         }
 
