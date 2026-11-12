@@ -1,5 +1,8 @@
 #include "ink/backend/vm/executable/executable_file_validator.h"
 #include "ink/backend/vm/executable_emitter/executable_emitter.h"
+#include "ink/backend/vm/executable_emitter/executable_emission_context.h"
+#include "ink/backend/vm/executable_emitter/function_emission_context.h"
+#include "ink/backend/vm/executable_emitter/instruction_emitter.h"
 #include "ink/backend/vm/instruction/address_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
 #include "ink/backend/vm/instruction/machine_instructions.h"
@@ -41,8 +44,10 @@ namespace ink::vm::test
   {
     const core::DiagnosticEngine Diagnostics;
     ExecutableEmitter Emitter(Diagnostics);
-    Emitter.padInstruction(MachineAdd64rriInstruction(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::BP, -8), ImmediateOperand(16)));
-    Emitter.padInstruction(MachineRetInstruction());
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
+    Instructions.padInstruction(MachineAdd64rriInstruction(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::BP, -8), ImmediateOperand(16)));
+    Instructions.padInstruction(MachineRetInstruction());
 
     const ExecutableFile &Executable = Emitter.getExecutable();
     ASSERT_EQ(Executable.byteSize(), 30U);
@@ -60,7 +65,9 @@ namespace ink::vm::test
   {
     const core::DiagnosticEngine Diagnostics;
     ExecutableEmitter Emitter(Diagnostics);
-    Emitter.padInstruction(MachineStore16iInstruction(AddressOperand(RegisterId::SP, -8), ImmediateOperand(0x1122334455667788)));
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
+    Instructions.padInstruction(MachineStore16iInstruction(AddressOperand(RegisterId::SP, -8), ImmediateOperand(0x1122334455667788)));
 
     const ExecutableFile &Executable = Emitter.getExecutable();
     ASSERT_EQ(Executable.byteSize(), 13U);
@@ -78,9 +85,11 @@ namespace ink::vm::test
     MachineModule Module;
     ASSERT_TRUE(Module.createGlobalVariable(8, 16, {}, Symbol).has_value());
     ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Emitter.scanUnResolvedSymbol(Module);
-    Emitter.padZero(5);
-    Emitter.padInstruction(MachineLoad64Instruction(AddressOperand(Symbol, 1), AddressOperand(Symbol, 4)));
+    Emitter.getContext().padZero(5);
+    Instructions.padInstruction(MachineLoad64Instruction(AddressOperand(Symbol, 1), AddressOperand(Symbol, 4)));
     EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 8), 0U);
     EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 17), 0U);
     Emitter.padGlobals(Module);
@@ -102,11 +111,13 @@ namespace ink::vm::test
   {
     const core::DiagnosticEngine Diagnostics;
     ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     constexpr std::uint64_t Bits = 0x1122334455667788;
-    Emitter.padOperand(ImmediateOperand(Bits), 8);
-    Emitter.padOperand(ImmediateOperand(Bits), 16);
-    Emitter.padOperand(ImmediateOperand(Bits), 32);
-    Emitter.padOperand(ImmediateOperand(Bits), 64);
+    Instructions.padOperand(ImmediateOperand(Bits), 8);
+    Instructions.padOperand(ImmediateOperand(Bits), 16);
+    Instructions.padOperand(ImmediateOperand(Bits), 32);
+    Instructions.padOperand(ImmediateOperand(Bits), 64);
 
     const ExecutableFile &Executable = Emitter.getExecutable();
     ASSERT_EQ(Executable.byteSize(), 15U);
@@ -127,8 +138,10 @@ namespace ink::vm::test
     {
       SCOPED_TRACE(Offset);
       ExecutableEmitter Emitter(Diagnostics);
-      Emitter.padOperand(RegisterOperand(RegisterId::ZERO, Offset));
-      Emitter.padOperand(AddressOperand(RegisterId::ZERO, Offset), 9);
+      FunctionEmissionContext FunctionContext;
+      InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
+      Instructions.padOperand(RegisterOperand(RegisterId::ZERO, Offset));
+      Instructions.padOperand(AddressOperand(RegisterId::ZERO, Offset), 9);
 
       const ExecutableFile &Executable = Emitter.getExecutable();
       ASSERT_EQ(Executable.byteSize(), 18U);
@@ -149,10 +162,12 @@ namespace ink::vm::test
     MachineModule Module;
     ASSERT_TRUE(Module.createGlobalVariable(16, 8, {}, Symbol).has_value());
     ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Emitter.scanUnResolvedSymbol(Module);
-    Emitter.padZero(3);
+    Emitter.getContext().padZero(3);
     Emitter.padGlobals(Module);
-    Emitter.padOperand(ImmediateOperand(Symbol, -3), 64);
+    Instructions.padOperand(ImmediateOperand(Symbol, -3), 64);
 
     const ExecutableFile &Executable = Emitter.getExecutable();
     ASSERT_EQ(Executable.byteSize(), 32U);
@@ -174,11 +189,13 @@ namespace ink::vm::test
     MachineModule Module;
     ASSERT_TRUE(Module.createGlobalVariable(16, 16, {}, Symbol).has_value());
     ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Emitter.scanUnResolvedSymbol(Module);
-    Emitter.padZero(1);
-    Emitter.padOperand(ImmediateOperand(Symbol, -1), 64);
-    Emitter.padOperand(ImmediateOperand(Symbol, 8), 64);
-    Emitter.padOperand(AddressOperand(Symbol, 4), 17);
+    Emitter.getContext().padZero(1);
+    Instructions.padOperand(ImmediateOperand(Symbol, -1), 64);
+    Instructions.padOperand(ImmediateOperand(Symbol, 8), 64);
+    Instructions.padOperand(AddressOperand(Symbol, 4), 17);
     EXPECT_TRUE(Emitter.getExecutable().getImageBaseAddressRelocations().empty());
     Emitter.padGlobals(Module);
     EXPECT_TRUE(Emitter.getExecutable().getImageBaseAddressRelocations().empty());
@@ -212,11 +229,13 @@ namespace ink::vm::test
     MachineModule Module;
     ASSERT_TRUE(Module.createGlobalVariable(8, 16, {}, Symbol).has_value());
     ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Emitter.scanUnResolvedSymbol(Module);
-    Emitter.padZero(3);
-    Emitter.padOperand(AddressOperand(Symbol, -2), 3);
+    Emitter.getContext().padZero(3);
+    Instructions.padOperand(AddressOperand(Symbol, -2), 3);
     Emitter.padGlobals(Module);
-    Emitter.padOperand(AddressOperand(Symbol, 4), 24);
+    Instructions.padOperand(AddressOperand(Symbol, 4), 24);
     EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 4), 0U);
     Emitter.resolveStaticRelocations();
 
@@ -243,12 +262,14 @@ namespace ink::vm::test
     ASSERT_TRUE(Module.createGlobalVariable(16, 1, {}, VMSymbol).has_value());
     Module.declareNativeData(NativeSymbol, NativeDataImport{HostSymbol});
     ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Emitter.scanUnResolvedSymbol(Module);
     Emitter.padGlobals(Module);
-    Emitter.padOperand(ImmediateOperand(VMSymbol, 8), 64);
-    Emitter.padOperand(ImmediateOperand(NativeSymbol, -8), 64);
-    Emitter.padOperand(AddressOperand(VMSymbol, 8), 32);
-    Emitter.padOperand(AddressOperand(NativeSymbol, 12), 41);
+    Instructions.padOperand(ImmediateOperand(VMSymbol, 8), 64);
+    Instructions.padOperand(ImmediateOperand(NativeSymbol, -8), 64);
+    Instructions.padOperand(AddressOperand(VMSymbol, 8), 32);
+    Instructions.padOperand(AddressOperand(NativeSymbol, 12), 41);
 
     const ExecutableFile &Executable = Emitter.getExecutable();
     ASSERT_EQ(Executable.byteSize(), 50U);
@@ -286,10 +307,12 @@ namespace ink::vm::test
     Module.declareNativeData(FirstAlias, NativeDataImport{HostSymbol});
     Module.declareNativeData(SecondAlias, NativeDataImport{HostSymbol});
     ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Emitter.scanUnResolvedSymbol(Module);
-    Emitter.padZero(1);
-    Emitter.padOperand(AddressOperand(FirstAlias, 12), 0);
-    Emitter.padOperand(ImmediateOperand(SecondAlias, -4), 64);
+    Emitter.getContext().padZero(1);
+    Instructions.padOperand(AddressOperand(FirstAlias, 12), 0);
+    Instructions.padOperand(ImmediateOperand(SecondAlias, -4), 64);
 
     const ExecutableFile &Executable = Emitter.getExecutable();
     ASSERT_EQ(Executable.byteSize(), 18U);
@@ -320,10 +343,12 @@ namespace ink::vm::test
     ASSERT_TRUE(FirstModule.createGlobalVariable(8, 1, {}, VMSymbol).has_value());
     FirstModule.declareNativeData(NativeSymbol, NativeDataImport{Names.intern("emitter-reset-host")});
     ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Emitter.scanUnResolvedSymbol(FirstModule);
     Emitter.padGlobals(FirstModule);
-    Emitter.padOperand(ImmediateOperand(VMSymbol), 64);
-    Emitter.padOperand(ImmediateOperand(NativeSymbol), 64);
+    Instructions.padOperand(ImmediateOperand(VMSymbol), 64);
+    Instructions.padOperand(ImmediateOperand(NativeSymbol), 64);
     ASSERT_EQ(Emitter.getExecutable().getImageBaseAddressRelocations().size(), 1U);
     ASSERT_EQ(Emitter.getExecutable().getDynamicImportSymbolRelocations().size(), 1U);
 
@@ -348,8 +373,10 @@ namespace ink::vm::test
     MachineModule Module;
     Module.createFunction(Symbol);
     ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Emitter.scanUnResolvedSymbol(Module);
-    Emitter.padOperand(ImmediateOperand(Symbol), 64);
+    Instructions.padOperand(ImmediateOperand(Symbol), 64);
     Emitter.padGlobals(Module);
     EXPECT_DEATH(Emitter.resolveStaticRelocations(), "INK-V0002.*VM symbol has no image offset after layout");
   }
@@ -365,13 +392,15 @@ namespace ink::vm::test
     ASSERT_TRUE(Module.createGlobalVariable(8, 1, {}, VMSymbol).has_value());
     Module.declareNativeData(NativeSymbol, NativeDataImport{Names.intern("emitter-narrow-host")});
     ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Emitter.scanUnResolvedSymbol(Module);
     Emitter.padGlobals(Module);
     for (const std::uint32_t Width : {8U, 16U, 32U})
     {
       SCOPED_TRACE(Width);
-      EXPECT_DEATH(Emitter.padOperand(ImmediateOperand(VMSymbol), Width), "INK-V0002.*64-bit immediate");
-      EXPECT_DEATH(Emitter.padOperand(ImmediateOperand(NativeSymbol), Width), "INK-V0002.*64-bit immediate");
+      EXPECT_DEATH(Instructions.padOperand(ImmediateOperand(VMSymbol), Width), "INK-V0002.*64-bit immediate");
+      EXPECT_DEATH(Instructions.padOperand(ImmediateOperand(NativeSymbol), Width), "INK-V0002.*64-bit immediate");
     }
   }
 } // namespace ink::vm::test

@@ -1,6 +1,6 @@
 # VM 可执行镜像模型
 
-`ink/backend/vm/executable` 定义 `ExecutableFile` 的扁平内存模型。镜像将指令及全局数据放在同一个 `std::vector<std::uint8_t>` 中，不保存代码和数据的段表。已实现的 [ModuleLinker](VM-Linker.md) 将多个 `MachineModule` 合并为一个逻辑模块；`ExecutableEmitter` 已提供全局布局、操作数字段追加和地址重定位记录，完整函数与指令发射仍待实现。`EntryOffset` 和导出符号的 `Offset` 均相对 `Image` 开头，不是宿主地址或序列化文件偏移。
+`ink/backend/vm/executable` 定义 `ExecutableFile` 的扁平内存模型。镜像将指令及全局数据放在同一个 `std::vector<std::uint8_t>` 中，不保存代码和数据的段表。已实现的 [ModuleLinker](VM-Linker.md) 将多个 `MachineModule` 合并为一个逻辑模块；`ExecutableEmitter` 负责全局布局和模块发射流程，`InstructionEmitter` 已提供 opcode 写入、操作数字段追加和地址重定位记录，完整函数与指令发射仍待实现。`EntryOffset` 和导出符号的 `Offset` 均相对 `Image` 开头，不是宿主地址或序列化文件偏移。
 
 ## 成员和接口
 
@@ -20,6 +20,8 @@
 VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址重定位字段均按小端序编码，不保存字节序配置。模型保存全局数据的原始字节；地址字段的加载绑定由重定位记录描述，完整指令编码与解码尚未实现。
 
 镜像字节可由调用方显式构造，或通过发射器当前提供的全局布局与操作数字段接口追加；镜像模型本身不执行布局。`ExecutableEmitter::getExecutable()` 借用当前构建中的未绑定镜像，只提供 const 访问；后续发射仍可能修改其内容。镜像模型不携带代码范围和数据权限信息；后续加载及执行阶段如何建立指令边界、区分代码与数据和实施权限检查仍待确定。结构校验只要求入口偏移指向镜像中的一个字节。
+
+`ExecutableEmitter` 拥有 `ExecutableEmissionContext`，上下文保存镜像、模块符号、Native 导入和待解析符号重定位，并提供字节追加及回填接口。`FunctionEmitter` 拥有保存基本块偏移状态的 `FunctionEmissionContext`；`InstructionEmitter` 借用两个上下文，负责指令和操作数字段编码。函数发射器当前只重置和扫描基本块状态，基本块 `padOperand` 仍为空实现；上下文拆分不补充函数布局或跳转编码。
 
 ## 运行时地址与未绑定镜像
 
@@ -45,7 +47,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 `ImageOffset` 指向待填写字段的第一个字节，而不是所在指令的起点，该字段可以位于代码或数据中。`SymbolIndex` 是 `DynamicImportSymbols` 的 u32 下标，可以引用函数或数据符号。`Addend` 是解析符号地址后施加的有符号字节偏移，最终填写值为 `ResolvedSymbolAddress + Addend`；例如引用宿主 buffer 的第 8 字节可以使用 `Addend = 8`，只引用符号本身时 Addend 为零。记录存入 vector，不要求按地址排序。
 
-本表记录加载时才能确定的动态导入符号地址，镜像内部 VM 地址使用下节的镜像基址地址重定位。`ExecutableEmitter::padOperand` 已实现宿主内存地址及普通宿主符号地址立即数的字段和重定位生成，二者按宿主 `Name` 复用同一导入。内存地址操作数先追加 ZERO 寄存器编码 `04`，再追加八字节零占位；普通符号地址立即数只允许 Width 为 64，直接追加八字节零，不带寄存器编号。加载后的内存地址字段保存完整 `u64` 地址位模式，与恒零基址相加即可访问；`ff` 不再是合法基址。两者的 `ImageOffset` 都指向八字节字段起点，不能将 u32 字段作为地址重定位目标。函数地址的重定位只负责填写地址，其可调用表示及 adapter 协议仍须单独确定；直接 native 调用的 u32 导入索引编码仍待指令发射层实现。
+本表记录加载时才能确定的动态导入符号地址，镜像内部 VM 地址使用下节的镜像基址地址重定位。`InstructionEmitter::padOperand` 已实现宿主内存地址及普通宿主符号地址立即数的字段和重定位生成，二者按宿主 `Name` 复用同一导入。内存地址操作数先追加 ZERO 寄存器编码 `04`，再追加八字节零占位；普通符号地址立即数只允许 Width 为 64，直接追加八字节零，不带寄存器编号。加载后的内存地址字段保存完整 `u64` 地址位模式，与恒零基址相加即可访问；`ff` 不再是合法基址。两者的 `ImageOffset` 都指向八字节字段起点，不能将 u32 字段作为地址重定位目标。函数地址的重定位只负责填写地址，其可调用表示及 adapter 协议仍须单独确定；直接 native 调用的 u32 导入索引编码仍待指令发射层实现。
 
 加载器尚未实现，仍须验证目标平台的地址表示能够写入字段，并检查解析地址与 Addend 相加后的结果，再按小端序填写。执行器也须明确处理宿主地址访问及权限；现有模型不执行宿主访存。
 
@@ -55,7 +57,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 普通 VM 符号立即数统一要求 Width 为 64。已布局符号也追加八字节零并生成本表记录，不能直接把镜像偏移当作完整指针值写入。未布局符号先进入发射器的 `PendingStaticRelocationSymbol`，通过 `Register` 决定最终处理方式。普通符号取地址立即数的临时记录使用 `Register = ZERO`，地址字段本身不追加寄存器编号；寄存器相对访存引用则记录实际基址寄存器及当前指令的镜像偏移 `InstructionOffset`。最终解析时，PC 引用按 `InstructionOffset` 求差并回填位移，ZERO 引用生成 `ImageBaseAddressRelocation`，由加载器填写 `ImageBase + TargetOffset + Addend`。当前普通 VM 符号访存选择 PC 基址。
 
-`padGlobals` 只负责全局布局及符号偏移登记，不触发重定位解析。`emit` 负责在全局和全部函数布局、发射完成后统一调用 `resolveStaticRelocations`；此时每个待解析 VM 符号都必须已有镜像偏移，缺少目标时报告内部编译错误，成功后清空临时队列。当前完整函数布局与发射尚未实现，因此 `emit` 目前在 `padGlobals` 返回后调用最终解析；后续函数发射步骤须插入两者之间。
+`padGlobals` 只负责全局布局及符号偏移登记，不触发重定位解析。`ExecutableEmitter::emit` 依次执行 `padGlobals`、`padFunction` 后调用 `resolveStaticRelocations`，由 `ExecutableEmissionContext` 统一处理待解析符号记录；此时每个待解析 VM 符号都必须已有镜像偏移，缺少目标时报告内部编译错误，成功后清空临时队列。当前 `padFunction` 调用的函数发射器只扫描基本块，完整函数布局与发射尚未实现。
 
 结构校验允许 `TargetOffset` 等于镜像字节数，以表达镜像末尾位置；这不表示该地址可解引用。最终地址与 Addend 的运算、对象边界和访问权限由后续加载及执行阶段检查。
 

@@ -1,19 +1,23 @@
 #pragma once
 
-#include <cstdint>
-#include <unordered_map>
+#include "ink/backend/vm/executable_emitter/function_emission_context.h"
+#include "ink/backend/vm/executable_emitter/instruction_emitter.h"
 
 namespace ink::vm
 {
-  class ExecutableEmitter;
-  class MachineBasicBlock;
+  class ExecutableEmissionContext;
   class MachineFunction;
 
   class FunctionEmitter
   {
     public:
-      // The borrowed executable emitter must outlive this emitter.
-      explicit FunctionEmitter(ExecutableEmitter &Emitter) noexcept;
+      // The borrowed executable context must outlive this emitter.
+      explicit FunctionEmitter(ExecutableEmissionContext &ExecutableContext) noexcept;
+
+      FunctionEmitter(const FunctionEmitter &) = delete;
+      FunctionEmitter &operator=(const FunctionEmitter &) = delete;
+      FunctionEmitter(FunctionEmitter &&) = delete;
+      FunctionEmitter &operator=(FunctionEmitter &&) = delete;
 
       // Borrows Function and its blocks until the next emission or scan replaces the block state.
       void emit(const MachineFunction &Function);
@@ -22,8 +26,8 @@ namespace ink::vm
       void scanUnResolvedBasicBlock(const MachineFunction &Function);
 
     private:
-      ExecutableEmitter &Emitter;
-      std::unordered_map<const MachineBasicBlock *, std::uint64_t> UnResolvedBasicBlock;
-      std::unordered_map<const MachineBasicBlock *, std::uint64_t> ResolvedBasicBlock;
+      ExecutableEmissionContext &ExecutableContext;
+      FunctionEmissionContext Context;
+      vm::InstructionEmitter InstructionEmitter;
   };
 } // namespace ink::vm
