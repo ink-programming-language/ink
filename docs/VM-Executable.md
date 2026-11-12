@@ -1,6 +1,6 @@
 # VM 可执行镜像模型
 
-`ink/backend/vm/executable` 定义 `ExecutableFile` 的扁平内存模型。镜像将指令及全局数据放在同一个 `std::vector<std::uint8_t>` 中，不保存代码和数据的段表。已实现的 [ModuleLinker](VM-Linker.md) 将多个 `MachineModule` 合并为一个逻辑模块；`ExecutableEmitter` 负责全局布局和模块发射流程，`InstructionEmitter` 已实现 opcode、操作数字段及直接调用目标编码，并在布局过程中记录待解析重定位。`EntryOffset` 和导出符号的 `Offset` 均相对 `Image` 开头，不是宿主地址或序列化文件偏移。
+`ink/backend/vm/executable/executable_file.h` 定义 `ExecutableFile`，动态导入、地址重定位和导出记录集中定义在同目录的 `executable_file_type.h` 中。镜像将指令及全局数据放在同一个 `std::vector<std::uint8_t>` 中，不保存代码和数据的段表。已实现的 [ModuleLinker](VM-Linker.md) 将多个 `MachineModule` 合并为一个逻辑模块；`ExecutableEmitter` 负责全局布局和模块发射流程，`InstructionEmitter` 已实现 opcode、操作数字段及直接调用目标编码，并在布局过程中记录待解析重定位。`EntryOffset` 和导出符号的 `Offset` 均相对 `Image` 开头，不是宿主地址或序列化文件偏移。
 
 ## 成员和接口
 
@@ -55,7 +55,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 ## 动态导入符号
 
-`dynamic_import_symbol.h` 定义 `DynamicImportSymbol`，只保存 `core::Name Name`，表示待解析的宿主符号名称。记录不区分函数与数据，也不保存解析来源、调用约定或 DLL、共享库名称。
+`executable_file_type.h` 中的 `DynamicImportSymbol` 只保存 `core::Name Name`，表示待解析的宿主符号名称。记录不区分函数与数据，也不保存解析来源、调用约定或 DLL、共享库名称。
 
 导入表内的 `Name` 必须唯一。同一名称供调用和取地址共同引用，无需因用途不同重复导入。导入表本身不区分函数和数据；逻辑模块中的同名声明仍须通过种类和只读属性的一致性检查。Name 默认为无效的 `core::NAME_None`，必须通过进程共享的 `core::NamePool` 登记非空拼写后使用。导入记录保存待解析名称，不保存宿主指针或已绑定的运行时对象。动态导入项按指令的实际使用生成，未使用的未定义声明不会自动加入此表。
 
@@ -67,7 +67,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 ## 动态导入符号重定位
 
-`dynamic_import_symbol_relocation.h` 定义 `DynamicImportSymbolRelocation`，保存 `ImageOffset`、`SymbolIndex` 和 `Addend`，没有重定位种类字段；其静态常量 `ByteSize` 为 8。
+`executable_file_type.h` 中的 `DynamicImportSymbolRelocation` 保存 `ImageOffset`、`SymbolIndex` 和 `Addend`，没有重定位种类字段；其静态常量 `ByteSize` 为 8。
 
 `ImageOffset` 指向待填写字段的第一个字节，而不是所在指令的起点，该字段可以位于代码或数据中。`SymbolIndex` 是 `DynamicImportSymbols` 的 u32 下标，可以引用函数或数据符号。`Addend` 是解析符号地址后施加的有符号字节偏移，最终填写值为 `ResolvedSymbolAddress + Addend`；例如引用宿主 buffer 的第 8 字节可以使用 `Addend = 8`，只引用符号本身时 Addend 为零。记录存入 vector，不要求按地址排序。
 
@@ -77,7 +77,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 ## 镜像基址地址重定位
 
-`image_base_address_relocation.h` 定义 `ImageBaseAddressRelocation`，保存 `ImageOffset`、`TargetOffset` 和 `Addend`，其静态常量 `ByteSize` 为 8。`ImageOffset` 是待填写八字节字段在镜像中的位置；`TargetOffset` 是目标符号相对镜像开头的偏移；`Addend` 是有符号字节偏移。加载器最终填写 `ImageBase + TargetOffset + Addend`。记录不保存符号名称或实际宿主指针，可用于代码或数据中的地址字段。
+`executable_file_type.h` 中的 `ImageBaseAddressRelocation` 保存 `ImageOffset`、`TargetOffset` 和 `Addend`，其静态常量 `ByteSize` 为 8。`ImageOffset` 是待填写八字节字段在镜像中的位置；`TargetOffset` 是目标符号相对镜像开头的偏移；`Addend` 是有符号字节偏移。加载器最终填写 `ImageBase + TargetOffset + Addend`。记录不保存符号名称或实际宿主指针，可用于代码或数据中的地址字段。
 
 普通 VM 符号立即数统一要求 Width 为 64。已布局符号也追加八字节零并生成本表记录，不能直接把镜像偏移当作完整指针值写入。未布局符号先进入发射器的 `PendingStaticRelocationSymbol`，通过 `Register` 决定最终处理方式。普通符号取地址立即数的临时记录使用 `Register = ZERO`，地址字段本身不追加寄存器编号；寄存器相对访存引用则记录实际基址寄存器及当前指令的镜像偏移 `InstructionOffset`。最终解析时，PC 引用按 `InstructionOffset` 求差并回填位移，ZERO 引用生成 `ImageBaseAddressRelocation`，由加载器填写 `ImageBase + TargetOffset + Addend`。当前普通 VM 符号访存选择 PC 基址。直接 `Calli` 的前向符号目标也复用 `PendingStaticRelocationSymbol`，记录 `Register = PC` 和当前 opcode 偏移，但指令只预留八字节位移字段，不追加寄存器字节、不生成加载地址重定位；最终回填 `FunctionOffset - InstructionOffset`。数值目标保留原 64 位位模式，整条指令十字节。
 
@@ -87,7 +87,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 ## 导出符号
 
-`export_symbol.h` 定义 `ExportSymbol`，保存 `core::Name Name` 和 `std::uint64_t Offset`。Name 是对外可查找的导出名称，Offset 是符号相对 `Image` 开头的字节偏移，不区分函数与数据。每个名称必须在 NamePool 中有效且非空，并在 `ExportSymbols` 内唯一；不同名称可以导出同一个偏移。导入与导出使用独立的身份规则，允许使用相同名称。
+`executable_file_type.h` 中的 `ExportSymbol` 保存 `core::Name Name` 和 `std::uint64_t Offset`。Name 是对外可查找的导出名称，Offset 是符号相对 `Image` 开头的字节偏移，不区分函数与数据。每个名称必须在 NamePool 中有效且非空，并在 `ExportSymbols` 内唯一；不同名称可以导出同一个偏移。导入与导出使用独立的身份规则，允许使用相同名称。
 
 Offset 必须小于镜像字节数，不能指向镜像末尾之后的位置。结构校验不检查导出偏移是否为指令入口或对象边界。导出记录由 `emit` 按显式 `ExportNames` 列表生成，选择规则见 [显式入口与导出选择](#显式入口与导出选择)；运行时查找尚未实现。
 

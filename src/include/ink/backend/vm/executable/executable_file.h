@@ -1,9 +1,6 @@
 #pragma once
 
-#include "ink/backend/vm/executable/dynamic_import_symbol.h"
-#include "ink/backend/vm/executable/dynamic_import_symbol_relocation.h"
-#include "ink/backend/vm/executable/export_symbol.h"
-#include "ink/backend/vm/executable/image_base_address_relocation.h"
+#include "ink/backend/vm/executable/executable_file_type.h"
 
 #include <cstdint>
 #include <vector>
