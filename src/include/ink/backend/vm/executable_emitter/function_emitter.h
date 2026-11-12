@@ -6,6 +6,7 @@
 namespace ink::vm
 {
   class ExecutableEmissionContext;
+  class MachineBasicBlock;
   class MachineFunction;
 
   class FunctionEmitter
@@ -22,8 +23,19 @@ namespace ink::vm
       // Borrows Function and its blocks until the next emission or scan replaces the block state.
       void emit(const MachineFunction &Function);
 
+      auto &getContext(this auto &&Self) noexcept
+      {
+        return Self.Context;
+      }
+
       // Rebuilds the block map with zero offsets until function layout is known.
       void scanUnResolvedBasicBlock(const MachineFunction &Function);
+
+      // Records the block's image offset, then appends its instructions in order.
+      void padBasicBlock(const MachineBasicBlock &Block);
+
+      // Resolves forward basic-block references after every block has an image offset.
+      void resolveBasicBlockStaticRelocations();
 
     private:
       ExecutableEmissionContext &ExecutableContext;

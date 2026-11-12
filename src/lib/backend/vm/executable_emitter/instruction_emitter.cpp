@@ -1,6 +1,7 @@
 #include "ink/backend/vm/executable_emitter/instruction_emitter.h"
 
 #include "ink/backend/vm/executable_emitter/executable_emission_context.h"
+#include "ink/backend/vm/executable_emitter/function_emission_context.h"
 #include "ink/backend/vm/instruction/address_operand.h"
 #include "ink/backend/vm/instruction/basic_block_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
@@ -151,7 +152,19 @@ namespace ink::vm
     padNativeSymbol(*Native, Operand.getByteOffset());
   }
 
-  void InstructionEmitter::padOperand(const BasicBlockOperand &, std::uint64_t)
+  void InstructionEmitter::padOperand(const BasicBlockOperand &Operand, std::uint64_t InstructionOffset)
   {
+    const auto *Block = Operand.getBlock();
+    REPORT_ICE_IF(!Block, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "basic block target must be nonnull");
+    if (const auto Position = FunctionContext.resolvedBasicBlockOffset(*Block))
+    {
+      padRegisterRelativeSymbol(RegisterId::PC, *Position, 0, InstructionOffset);
+      return;
+    }
+
+    REPORT_ICE_IF(!FunctionContext.hasUnResolvedBasicBlock(*Block), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "basic block target is not declared in the current function");
+    Context.padInteger(static_cast<std::uint8_t>(RegisterId::PC), 8);
+    FunctionContext.addBasicBlockStaticRelocation({Context.byteSize(), Block, InstructionOffset});
+    Context.padZero(8);
   }
 } // namespace ink::vm

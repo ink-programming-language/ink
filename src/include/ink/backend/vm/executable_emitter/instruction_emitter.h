@@ -34,7 +34,7 @@ namespace ink::vm
       // Appends a nine-byte address operand; unresolved VM symbols reserve a zero displacement and queue a static relocation.
       void padOperand(const AddressOperand &Operand, std::uint64_t InstructionOffset);
 
-      // Reserved for basic-block target encoding; currently leaves the image unchanged.
+      // Appends a PC-relative basic-block target; unresolved blocks reserve a zero displacement until function finalization.
       void padOperand(const BasicBlockOperand &Operand, std::uint64_t InstructionOffset);
 
     private:

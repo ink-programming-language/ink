@@ -21,7 +21,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 镜像字节可由调用方显式构造，或通过发射器当前提供的全局布局与操作数字段接口追加；镜像模型本身不执行布局。`ExecutableEmitter::getExecutable()` 借用当前构建中的未绑定镜像，只提供 const 访问；后续发射仍可能修改其内容。镜像模型不携带代码范围和数据权限信息；后续加载及执行阶段如何建立指令边界、区分代码与数据和实施权限检查仍待确定。结构校验只要求入口偏移指向镜像中的一个字节。
 
-`ExecutableEmitter` 拥有 `ExecutableEmissionContext`，上下文保存镜像、模块符号、Native 导入和待解析符号重定位，并提供字节追加及回填接口。`FunctionEmitter` 拥有保存基本块偏移状态的 `FunctionEmissionContext`；`InstructionEmitter` 借用两个上下文，负责指令和操作数字段编码。函数发射器当前只重置和扫描基本块状态，基本块 `padOperand` 仍为空实现；上下文拆分不补充函数布局或跳转编码。
+`ExecutableEmitter` 拥有 `ExecutableEmissionContext`，上下文保存镜像、模块符号、Native 导入和待解析符号重定位，并提供字节追加及回填接口。`FunctionEmitter` 拥有保存基本块偏移状态的 `FunctionEmissionContext`；`InstructionEmitter` 借用两个上下文，负责指令和操作数字段编码。函数发射器重置和扫描基本块状态后，按函数内顺序调用 `padBasicBlock`；该接口在 `FunctionEmissionContext` 中登记当前镜像偏移并移除对应的未解析记录，再按块内顺序调用 `InstructionEmitter::padInstruction`。基本块 `padOperand` 已实现九字节 PC 相对目标字段，前向引用记录在 `FunctionEmissionContext::PendingStaticRelocationBasicBlock`，由函数发射结束后的 `FunctionEmitter::resolveBasicBlockStaticRelocations` 统一回填并清空；`reset` 也清空该队列。函数入口符号登记与调用专用编码尚未实现。
 
 ## 运行时地址与未绑定镜像
 
@@ -57,7 +57,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 普通 VM 符号立即数统一要求 Width 为 64。已布局符号也追加八字节零并生成本表记录，不能直接把镜像偏移当作完整指针值写入。未布局符号先进入发射器的 `PendingStaticRelocationSymbol`，通过 `Register` 决定最终处理方式。普通符号取地址立即数的临时记录使用 `Register = ZERO`，地址字段本身不追加寄存器编号；寄存器相对访存引用则记录实际基址寄存器及当前指令的镜像偏移 `InstructionOffset`。最终解析时，PC 引用按 `InstructionOffset` 求差并回填位移，ZERO 引用生成 `ImageBaseAddressRelocation`，由加载器填写 `ImageBase + TargetOffset + Addend`。当前普通 VM 符号访存选择 PC 基址。
 
-`padGlobals` 只负责全局布局及符号偏移登记，不触发重定位解析。`ExecutableEmitter::emit` 依次执行 `padGlobals`、`padFunction` 后调用 `resolveStaticRelocations`，由 `ExecutableEmissionContext` 统一处理待解析符号记录；此时每个待解析 VM 符号都必须已有镜像偏移，缺少目标时报告内部编译错误，成功后清空临时队列。当前 `padFunction` 调用的函数发射器只扫描基本块，完整函数布局与发射尚未实现。
+`padGlobals` 只负责全局布局及符号偏移登记，不触发重定位解析。`ExecutableEmitter::emit` 依次执行 `padGlobals`、`padFunction` 后调用 `resolveStaticRelocations`，由 `ExecutableEmissionContext` 统一处理待解析符号记录；此时每个待解析 VM 符号都必须已有镜像偏移，缺少目标时报告内部编译错误，成功后清空临时队列。当前 `padFunction` 已按函数、基本块和指令顺序发射字节，但函数入口符号尚未登记，调用专用编码仍待实现。
 
 结构校验允许 `TargetOffset` 等于镜像字节数，以表达镜像末尾位置；这不表示该地址可解引用。最终地址与 Addend 的运算、对象边界和访问权限由后续加载及执行阶段检查。
 

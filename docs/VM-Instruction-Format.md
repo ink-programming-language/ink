@@ -4,7 +4,7 @@
 
 当前实现提供 `Operand` 基类以及 `RegisterOperand`、`AddressOperand`、`ImmediateOperand`、`BasicBlockOperand` 四种逻辑操作数，并通过强类型指令布局将操作数接入 `MachineInstruction`。基本块操作数在内存中持有目标块指针；调用复用立即数和地址操作数，分别表达直接目标和存放间接目标的内存位置。[VM 内存模型与指令构建](VM-Module.md) 提供模块、函数、基本块的所有权结构和 `MachineInstructionBuilder`，供 lowering 构建逻辑指令。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号解析和深克隆，`executable` 目录提供镜像模型与结构校验。完整镜像布局与发射、加载、预解码缓存和执行器仍待实现。
 
-发射代码分为 `ExecutableEmitter`、`FunctionEmitter` 和 `InstructionEmitter`。`ExecutableEmitter` 拥有 `ExecutableEmissionContext`，管理全局布局和模块发射流程；该上下文保存镜像、模块符号、Native 导入及待解析重定位，并提供字节追加和回填。`FunctionEmitter` 拥有 `FunctionEmissionContext`，保存当前函数的基本块偏移状态；`InstructionEmitter` 借用两个上下文，负责 opcode 和操作数字段编码。`padInstruction` 先写入两字节 opcode，再按语义顺序调用对应的 `padOperand`；基本块操作数重载仍为空实现，`FunctionEmitter::emit` 当前只重置和扫描基本块状态，不发射函数指令。
+发射代码分为 `ExecutableEmitter`、`FunctionEmitter` 和 `InstructionEmitter`。`ExecutableEmitter` 拥有 `ExecutableEmissionContext`，管理全局布局和模块发射流程；该上下文保存镜像、模块符号、Native 导入及待解析重定位，并提供字节追加和回填。`FunctionEmitter` 拥有 `FunctionEmissionContext`，保存当前函数的基本块偏移状态；`InstructionEmitter` 借用两个上下文，负责 opcode 和操作数字段编码。`padInstruction` 先写入两字节 opcode，再按语义顺序调用对应的 `padOperand`；`FunctionEmitter::emit` 重置和扫描基本块状态后，按函数内顺序调用 `padBasicBlock`；该接口在 `FunctionEmissionContext` 中登记当前镜像偏移并移除对应的未解析记录，再按块内顺序调用 `InstructionEmitter::padInstruction`。基本块操作数已编码为 PC 编号和相对位移，前向引用在当前函数的全部基本块发射后统一回填；函数入口符号登记与调用专用编码尚未实现。
 
 ## 通用布局
 
@@ -64,7 +64,7 @@ RegisterId:u8 | ByteOffset:i64
 
 ## 地址操作数 `m`
 
-地址操作数保存寄存器或符号链接名，以及有符号字节偏移。加载、存储、加法、比较和间接调用使用它定位内存中的值，访问位宽由操作码决定。符号形式通过 `core::Name` 保存名称，例如文本 `[@counter + 8]`。读取符号地址本身时使用立即数形式 `@counter + 8`。跳转的内存模型保存基本块指针，后续镜像生成阶段需要将其转换为 PC 相对地址字段；该编码地址用于控制转移，不读取该地址处的内存内容。
+地址操作数保存寄存器或符号链接名，以及有符号字节偏移。加载、存储、加法、比较和间接调用使用它定位内存中的值，访问位宽由操作码决定。符号形式通过 `core::Name` 保存名称，例如文本 `[@counter + 8]`。读取符号地址本身时使用立即数形式 `@counter + 8`。跳转的内存模型保存基本块指针，指令发射将其转换为 PC 相对地址字段；该编码地址用于控制转移，不读取该地址处的内存内容。
 
 ```text
 RegisterId:u8 | OffsetBits:u64
@@ -100,7 +100,7 @@ VM 符号内存地址 `Symbol + ByteOffset` 转换为相对当前指令起始 PC
 
 符号立即数表示 `AddressOf(Symbol) + ByteOffset`，不读取该地址处的内存。文本采用 `@name` 或 `@"escaped name"`，并可附加 `+ Offset` 或 `- Offset`。例如 `add64mii [bp + 16], @counter + 8, 1` 的左来源是 counter 地址加 8。文本读写保留完整的名称和 `i64` 偏移。普通符号取地址统一要求 64 位字段。VM 符号通过 `ImageBaseAddressRelocation` 在加载时填写 `ImageBase + TargetOffset + Addend`；宿主符号通过动态导入符号地址重定位填写绑定后的宿主地址加 Addend。两者在加载后都得到完整的运行时地址，不能截断保留地址低位。Native 函数地址的可调用表示及 adapter 协议尚未确定。
 
-`InstructionEmitter::padOperand(const ImmediateOperand &Operand, std::uint32_t Width)` 已实现普通立即数字段的顺序追加。数值形式接受 Width 为 8、16、32、64，保留目标位宽的低位，负数按相应位宽的补码编码。符号形式只接受 Width 为 64，统一追加八字节零。已布局的 VM 符号生成包含字段起点、目标符号镜像偏移及 addend 的 `ImageBaseAddressRelocation`；未布局的 VM 符号先在上下文的 `PendingStaticRelocationSymbol` 中保存字段起点、名称、addend 和 `Register = ZERO`，最终解析根据 ZERO 基址生成镜像基址地址重定位；这里的寄存器编号仅属于临时记录，不写入普通立即数字段。`padGlobals` 只负责布局与登记符号偏移，`ExecutableEmitter::emit` 依次执行 `padGlobals`、`padFunction` 后统一执行最终解析；当前 `padFunction` 调用的函数发射器只扫描基本块，完整函数布局与发射尚未实现。宿主符号生成 `DynamicImportSymbolRelocation`，按宿主 Name 复用导入；普通符号立即数字段前不追加寄存器编号。未知符号、VM 与 Native 定义冲突或非法位宽报告内部编译错误。加载器负责检查实际绑定地址与 addend 的运算并按小端序填写字段；加载和完整指令发射仍待实现。
+`InstructionEmitter::padOperand(const ImmediateOperand &Operand, std::uint32_t Width)` 已实现普通立即数字段的顺序追加。数值形式接受 Width 为 8、16、32、64，保留目标位宽的低位，负数按相应位宽的补码编码。符号形式只接受 Width 为 64，统一追加八字节零。已布局的 VM 符号生成包含字段起点、目标符号镜像偏移及 addend 的 `ImageBaseAddressRelocation`；未布局的 VM 符号先在上下文的 `PendingStaticRelocationSymbol` 中保存字段起点、名称、addend 和 `Register = ZERO`，最终解析根据 ZERO 基址生成镜像基址地址重定位；这里的寄存器编号仅属于临时记录，不写入普通立即数字段。`padGlobals` 只负责布局与登记符号偏移，`ExecutableEmitter::emit` 依次执行 `padGlobals`、`padFunction` 后统一执行最终解析；当前 `padFunction` 已按函数、基本块和指令顺序发射字节，但函数入口符号尚未登记，调用专用编码仍待实现。宿主符号生成 `DynamicImportSymbolRelocation`，按宿主 Name 复用导入；普通符号立即数字段前不追加寄存器编号。未知符号、VM 与 Native 定义冲突或非法位宽报告内部编译错误。加载器负责检查实际绑定地址与 addend 的运算并按小端序填写字段；加载和完整指令发射仍待实现。
 
 直接调用复用 `ImmediateOperand`，但按调用操作码解释目标：`Calli` 的立即数是 PC 相对位移或待解析的 VM 函数名，`CallNativei` 的立即数是 u32 导入索引或待解析的 Native 函数名。调用符号不允许非零 addend，且 `CallNativei` 的数值索引必须适合 u32 字段；这些调用专用编码仍待指令发射层实现，不能直接沿用普通立即数的符号地址编码，具体规则见下文。
 
@@ -141,14 +141,16 @@ Opcode:u16 | Destination:(RegisterId:u8, ByteOffset:i64) | LHS:(RegisterId:u8, B
 
 所有跳转的内存表示统一保存 `const MachineBasicBlock *`。`BasicBlockOperand` 提供操作数包装，`getTarget()` 直接返回目标指针，`getTargetOperand()` 返回包装引用。Builder 可直接接收目标块指针，要求目标非空，且源块、目标块属于同一函数。文本写为 `jne failure`、`jmp done`，支持函数内的前向、后向和自引用；数值 PC 相对地址不作为逻辑跳转操作数接受。
 
-后续镜像生成阶段需要先完成代码布局，再根据目标块指针计算代码位置，并将目标转换为相对当前指令起始 PC 的字节位移，沿用通用寄存器地址编码：
+`InstructionEmitter::padOperand(const BasicBlockOperand &Operand, std::uint64_t InstructionOffset)` 已实现基本块目标字段。目标块已有布局偏移时，直接计算并写入相对当前指令起始 PC 的字节位移；前向引用先写 PC 编号和八字节零占位，并在 `FunctionEmissionContext::PendingStaticRelocationBasicBlock` 中记录位移字段的 `ImageOffset`、目标 `Block` 和 opcode 起点 `InstructionOffset`：
 
 ```text
 Opcode:u16 | RegisterId:u8 = 02 | ByteOffset:i64
 TargetPC = PC + ByteOffset
 ```
 
-按本文方案，每条跳转编码占 11 字节，位移为按小端序编码的有符号 `i64` 字节数。执行约定为：条件不满足时继续执行 `NextPC = PC + 11`，满足时转移到 `TargetPC`；零位移表示跳回当前指令。条件跳转只读取所需标志，不修改标志。指令编码与解码、独立模块校验、镜像中的指令边界校验、最终位移计算及运行时控制转移检查仍待实现。
+基本块操作数字段占九字节，每条跳转连同 opcode 共占 11 字节，位移为按小端序编码的有符号 `i64` 字节数。执行约定为：条件不满足时继续执行 `NextPC = PC + 11`，满足时转移到 `TargetPC`；零位移表示跳回当前指令。条件跳转只读取所需标志，不修改标志。解码、独立模块校验、镜像中的指令边界校验及运行时控制转移检查仍待实现。
+
+`FunctionEmitter::emit` 在当前函数的全部基本块发射后统一调用 `FunctionEmitter::resolveBasicBlockStaticRelocations`，由 `FunctionEmissionContext::resolveStaticRelocations` 按目标块指针查找最终镜像偏移，回填 `BlockOffset - InstructionOffset`；没有布局偏移时报内部编译错误。成功后清空待处理记录，`reset` 也清空该队列。
 
 内存中的跳转目标随基本块对象保持稳定，指令插入或块布局变化不要求调用方手工维护位移。文本写出根据目标块对象身份选择标签，读取将函数内标签解析回对应指针；匿名和重名块通过独立标签保留精确身份。按本文方案，PC 相对位移只存在于生成的可执行代码中，宿主指针不进入文件；后续解码使用地址值，不重建基本块指针。
 
@@ -242,7 +244,7 @@ namespace ink::vm
 
 ## 编码、解码与预解码边界
 
-`InstructionEmitter::padInstruction` 已提供 opcode 写入与操作数字段分派；基本块目标和调用专用编码、完整函数发射与解码仍待实现，也没有已解析字节指令的公共 API。当前模块发射流程只完成全局布局、基本块扫描和重定位处理。`MachineInstruction` 及操作数属于逻辑内存模型，`MachineModule` 文本读写不等同于指令字节编码。独立模块 validator 尚未实现。
+`InstructionEmitter::padInstruction` 已提供 opcode 写入、操作数字段分派和基本块目标编码；调用专用编码与解码仍待实现，也没有已解析字节指令的公共 API。当前模块发射流程完成全局布局、基本块偏移登记、指令字节追加和重定位处理，函数入口符号登记仍待实现。`MachineInstruction` 及操作数属于逻辑内存模型，`MachineModule` 文本读写不等同于指令字节编码。独立模块 validator 尚未实现。
 
 指令编码有效与运行时可执行是不同层次的检查。VM 符号须由链接阶段解析，宿主导入由加载阶段绑定；寄存器写权限、指令边界、有效地址计算、访存范围和栈规则也须按执行语义检查。当前操作数构造函数不完成这些检查。
 
