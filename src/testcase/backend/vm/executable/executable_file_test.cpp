@@ -54,6 +54,8 @@ namespace ink::vm::test
   static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getDynamicImportSymbols()), const std::vector<DynamicImportSymbol> &>);
   static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getDynamicImportSymbolRelocations()), std::vector<DynamicImportSymbolRelocation> &>);
   static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getDynamicImportSymbolRelocations()), const std::vector<DynamicImportSymbolRelocation> &>);
+  static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getImageBaseAddressRelocations()), std::vector<ImageBaseAddressRelocation> &>);
+  static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getImageBaseAddressRelocations()), const std::vector<ImageBaseAddressRelocation> &>);
   static_assert(std::is_same_v<decltype(std::declval<ExecutableFile &>().getExportSymbols()), std::vector<ExportSymbol> &>);
   static_assert(std::is_same_v<decltype(std::declval<const ExecutableFile &>().getExportSymbols()), const std::vector<ExportSymbol> &>);
   static_assert(std::is_same_v<decltype(ExecutableFileValidator::validate(std::declval<const ExecutableFile &>(), std::declval<const core::DiagnosticEngine &>())), void>);
@@ -64,6 +66,10 @@ namespace ink::vm::test
   static_assert(std::is_same_v<decltype(ExportSymbol{}.Name), core::Name>);
   static_assert(std::is_same_v<decltype(ExportSymbol{}.Offset), std::uint64_t>);
   static_assert(DynamicImportSymbolRelocation::ByteSize == 8);
+  static_assert(ImageBaseAddressRelocation::ByteSize == 8);
+  static_assert(std::is_same_v<decltype(ImageBaseAddressRelocation{}.ImageOffset), std::uint64_t>);
+  static_assert(std::is_same_v<decltype(ImageBaseAddressRelocation{}.TargetOffset), std::uint64_t>);
+  static_assert(std::is_same_v<decltype(ImageBaseAddressRelocation{}.Addend), std::int64_t>);
 
   // Empty images have no entry, and nonempty images reject offsets at their end or at uint64 maximum.
   TEST(VMExecutableFileDeathTest, RequiresTheEntryToIdentifyAnExistingImageByte)
@@ -74,6 +80,7 @@ namespace ink::vm::test
     EXPECT_EQ(Executable.getEntryOffset(), 0U);
     EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
     EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
+    EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
     EXPECT_TRUE(Executable.getExportSymbols().empty());
     expectExecutableICE(Executable, "INK-V0002.*image.*entry offset is outside the image");
 
@@ -138,6 +145,8 @@ namespace ink::vm::test
     const core::DiagnosticEngine Diagnostics;
     core::NamePool &Names = core::NamePool::instance();
     ExecutableFile Original = makeValidExecutableFile();
+    Original.getImage().resize(32, 0xFF);
+    Original.getImageBaseAddressRelocations().push_back({24, 32, -2});
     const ExecutableFile Copy = Original;
     Original.getImage()[0] = 0;
     Original.getEntryOffset() = 0;
@@ -145,6 +154,9 @@ namespace ink::vm::test
     Original.getDynamicImportSymbolRelocations()[0].ImageOffset = 0;
     Original.getDynamicImportSymbolRelocations()[0].SymbolIndex = 0;
     Original.getDynamicImportSymbolRelocations()[0].Addend = 99;
+    Original.getImageBaseAddressRelocations()[0].ImageOffset = 0;
+    Original.getImageBaseAddressRelocations()[0].TargetOffset = 1;
+    Original.getImageBaseAddressRelocations()[0].Addend = 99;
     Original.getExportSymbols()[0].Name = Names.intern("changed_export");
     Original.getExportSymbols()[0].Offset = 1;
 
@@ -154,6 +166,9 @@ namespace ink::vm::test
     EXPECT_EQ(Copy.getDynamicImportSymbolRelocations()[0].ImageOffset, 16U);
     EXPECT_EQ(Copy.getDynamicImportSymbolRelocations()[0].SymbolIndex, 2U);
     EXPECT_EQ(Copy.getDynamicImportSymbolRelocations()[0].Addend, 0);
+    EXPECT_EQ(Copy.getImageBaseAddressRelocations()[0].ImageOffset, 24U);
+    EXPECT_EQ(Copy.getImageBaseAddressRelocations()[0].TargetOffset, 32U);
+    EXPECT_EQ(Copy.getImageBaseAddressRelocations()[0].Addend, -2);
     EXPECT_EQ(Copy.getExportSymbols()[0].Name, Names.intern("counter"));
     EXPECT_EQ(Copy.getExportSymbols()[0].Offset, 0U);
     ExecutableFileValidator::validate(Copy, Diagnostics);
@@ -250,5 +265,84 @@ namespace ink::vm::test
     expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #2.*address field overlaps dynamic import symbol relocation #0");
     Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = 0;
     expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #2.*address field overlaps dynamic import symbol relocation #0");
+  }
+
+  // Image-base address fields may be adjacent to import fields and preserve unsorted targets and signed addends until loading.
+  TEST(VMExecutableFileTest, AcceptsImageBaseRelocationsAndAdjacentImportFields)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    ExecutableFile Executable;
+    Executable.getImage().resize(32);
+    Executable.getDynamicImportSymbols().push_back({core::NamePool::instance().intern("host_buffer")});
+    Executable.getDynamicImportSymbolRelocations().push_back({8, 0, 1});
+    Executable.getImageBaseAddressRelocations() = {
+        {24, 32, std::numeric_limits<std::int64_t>::min()},
+        {0, 0, std::numeric_limits<std::int64_t>::max()},
+        {16, 31, -1},
+    };
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+    EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 24U);
+    EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 32U);
+    EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Addend, std::numeric_limits<std::int64_t>::min());
+    EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].Addend, std::numeric_limits<std::int64_t>::max());
+  }
+
+  // Image-base patches allow exact-width unaligned fields and one-past targets but reject field overruns and targets beyond the image.
+  TEST(VMExecutableFileDeathTest, ChecksImageBaseRelocationFieldBoundsAndTargets)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    ExecutableFile Executable;
+    Executable.getImage().resize(16);
+    Executable.getImageBaseAddressRelocations().push_back({8, 16, 1});
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+    auto &Relocation = Executable.getImageBaseAddressRelocations()[0];
+    Relocation.ImageOffset = 1;
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+    Relocation.ImageOffset = 9;
+    expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*address field is outside the image");
+    Relocation.ImageOffset = std::numeric_limits<std::uint64_t>::max();
+    expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*address field is outside the image");
+    Relocation.ImageOffset = 8;
+    Relocation.TargetOffset = 17;
+    expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*target offset exceeds the image end");
+    Relocation.TargetOffset = std::numeric_limits<std::uint64_t>::max();
+    expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*target offset exceeds the image end");
+  }
+
+  // Conflicting image-base fields retain their original table indices after sorting, including identical patch locations.
+  TEST(VMExecutableFileDeathTest, RejectsOverlappingImageBaseRelocations)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    ExecutableFile Executable;
+    Executable.getImage().resize(48);
+    Executable.getImageBaseAddressRelocations() = {
+        {16, 0, 0},
+        {40, 48, 0},
+        {0, 16, 0},
+    };
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+    Executable.getImageBaseAddressRelocations()[0].ImageOffset = 7;
+    expectExecutableICE(Executable, "INK-V0002.*image base address relocation #2.*address field overlaps image base address relocation #0");
+    Executable.getImageBaseAddressRelocations()[0].ImageOffset = 0;
+    expectExecutableICE(Executable, "INK-V0002.*image base address relocation #2.*address field overlaps image base address relocation #0");
+  }
+
+  // Import and image-base records share a patch namespace and reject cross-table overlap in either address order.
+  TEST(VMExecutableFileDeathTest, RejectsOverlappingImageBaseAndImportRelocations)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    ExecutableFile Executable;
+    Executable.getImage().resize(32);
+    Executable.getDynamicImportSymbols().push_back({core::NamePool::instance().intern("host_buffer")});
+    Executable.getDynamicImportSymbolRelocations().push_back({8, 0, 0});
+    Executable.getImageBaseAddressRelocations().push_back({16, 0, 0});
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+    auto &Relocation = Executable.getImageBaseAddressRelocations()[0];
+    Relocation.ImageOffset = 15;
+    expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*address field overlaps dynamic import symbol relocation #0");
+    Relocation.ImageOffset = 1;
+    expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*address field overlaps dynamic import symbol relocation #0");
+    Relocation.ImageOffset = 8;
+    expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*address field overlaps dynamic import symbol relocation #0");
   }
 } // namespace ink::vm::test

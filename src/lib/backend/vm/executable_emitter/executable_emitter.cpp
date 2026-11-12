@@ -9,6 +9,7 @@
 #include "ink/core/support/core_define.h"
 
 #include <bit>
+#include <cstring>
 #include <limits>
 #include <utility>
 
@@ -27,6 +28,7 @@ namespace ink::vm
     PendingStaticRelocationSymbol.clear();
     scanUnResolvedSymbol(Module);
     padGlobals(Module);
+    resolveStaticRelocations();
     return std::move(Executable);
   }
 
@@ -119,15 +121,41 @@ namespace ink::vm
     return Target;
   }
 
-  void ExecutableEmitter::padResolvedSymbol(std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset)
+  std::uint64_t ExecutableEmitter::resolvePCRelativeOffset(std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset) const
   {
     const auto Target = resolveSymbolOffset(SymbolOffset, Addend);
     const bool Forward = Target >= InstructionOffset;
     const auto Distance = Forward ? Target - InstructionOffset : InstructionOffset - Target;
     const auto Limit = Forward ? static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) : (std::uint64_t{1} << 63);
     REPORT_ICE_IF(Distance > Limit, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "PC-relative displacement exceeds i64 range");
+    return Forward ? Distance : std::uint64_t{0} - Distance;
+  }
+
+  void ExecutableEmitter::resolveStaticRelocations()
+  {
+    for (const auto &Relocation : PendingStaticRelocationSymbol)
+    {
+      const auto Position = ResolvedSymbol.find(Relocation.Name);
+      REPORT_ICE_IF(Position == ResolvedSymbol.end(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "static relocation", "VM symbol has no image offset after layout");
+
+      if (Relocation.Kind == StaticRelocationKind::ImageBaseAddress)
+      {
+        Executable.getImageBaseAddressRelocations().push_back({Relocation.ImageOffset, Position->second, Relocation.Addend});
+      }
+      else
+      {
+        const auto Bits = resolvePCRelativeOffset(Position->second, Relocation.Addend, Relocation.InstructionOffset);
+        std::memcpy(Executable.getImage().data() + Relocation.ImageOffset, &Bits, sizeof(Bits));
+      }
+    }
+    PendingStaticRelocationSymbol.clear();
+  }
+
+  void ExecutableEmitter::padPCRelativeSymbol(std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset)
+  {
+    const auto Bits = resolvePCRelativeOffset(SymbolOffset, Addend, InstructionOffset);
     padInteger(static_cast<std::uint8_t>(RegisterId::PC), 8);
-    padInteger(Forward ? Distance : std::uint64_t{0} - Distance, 64);
+    padInteger(Bits, 64);
   }
 
   std::uint32_t ExecutableEmitter::getOrAddNativeSymbol(const DynamicImportSymbol &Import)
@@ -185,6 +213,7 @@ namespace ink::vm
       return;
     }
 
+    REPORT_ICE_IF(Width != 64, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol address requires a 64-bit immediate field");
     const auto Symbol = Operand.getSymbol();
     REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol name must be registered and nonempty");
     const auto Addend = *Operand.getByteOffset();
@@ -193,21 +222,19 @@ namespace ink::vm
     REPORT_ICE_IF(Native != NativeSymbols.end() && (Position != ResolvedSymbol.end() || UnresolvedSymbol.contains(*Symbol)), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has both VM and native definitions");
     if (Position != ResolvedSymbol.end())
     {
-      const auto Target = resolveSymbolOffset(Position->second, Addend);
-      REPORT_ICE_IF(Width < 64 && Target >= (std::uint64_t{1} << Width), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "VM symbol address exceeds the immediate field width");
-      padInteger(Target, Width);
+      Executable.getImageBaseAddressRelocations().push_back({Executable.byteSize(), Position->second, Addend});
+      padZero(8);
       return;
     }
 
     if (UnresolvedSymbol.contains(*Symbol))
     {
-      PendingStaticRelocationSymbol.push_back({Executable.byteSize(), *Symbol, 0, Addend, StaticRelocationKind::ImageRelative, Width});
-      padZero(Width / 8);
+      PendingStaticRelocationSymbol.push_back({Executable.byteSize(), *Symbol, 0, Addend, StaticRelocationKind::ImageBaseAddress});
+      padZero(8);
       return;
     }
 
     REPORT_ICE_IF(Native == NativeSymbols.end(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has no resolved VM offset or explicit native declaration");
-    REPORT_ICE_IF(Width != 64, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "native symbol address requires a 64-bit immediate field");
     const auto Index = getOrAddNativeSymbol(Native->second);
     Executable.getDynamicImportSymbolRelocations().push_back({Executable.byteSize(), Index, Addend});
     padZero(8);
@@ -228,7 +255,7 @@ namespace ink::vm
     REPORT_ICE_IF(Native != NativeSymbols.end() && (Position != ResolvedSymbol.end() || UnresolvedSymbol.contains(*Symbol)), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has both VM and native definitions");
     if (Position != ResolvedSymbol.end())
     {
-      padResolvedSymbol(Position->second, Operand.getByteOffset(), InstructionOffset);
+      padPCRelativeSymbol(Position->second, Operand.getByteOffset(), InstructionOffset);
       return;
     }
 

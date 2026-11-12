@@ -22,6 +22,8 @@ namespace ink::vm
         std::uint64_t Begin;
         std::uint64_t End;
         std::uint64_t RecordIndex;
+        std::string_view Kind;
+        std::size_t RecordOrder;
     };
 
     [[noreturn]] void failValidation(const core::DiagnosticEngine &Diagnostics, std::string_view Context, std::string_view Description)
@@ -85,6 +87,7 @@ namespace ink::vm
   {
     const auto &Imports = Executable.getDynamicImportSymbols();
     const auto &Relocations = Executable.getDynamicImportSymbolRelocations();
+    const auto &ImageBaseRelocations = Executable.getImageBaseAddressRelocations();
     const std::uint64_t ImageSize = static_cast<std::uint64_t>(Executable.getImage().size());
     if (Executable.getEntryOffset() >= ImageSize)
     {
@@ -99,7 +102,7 @@ namespace ink::vm
     validateExports(Executable, Diagnostics);
 
     std::vector<RelocationRange> Ranges;
-    Ranges.reserve(Relocations.size());
+    Ranges.reserve(Relocations.size() + ImageBaseRelocations.size());
     for (std::size_t Index = 0; Index < Relocations.size(); ++Index)
     {
       const DynamicImportSymbolRelocation &Relocation = Relocations[Index];
@@ -111,7 +114,20 @@ namespace ink::vm
       {
         failRecord(Diagnostics, "dynamic import symbol relocation", Index, "address field is outside the image");
       }
-      Ranges.push_back({Relocation.ImageOffset, Relocation.ImageOffset + DynamicImportSymbolRelocation::ByteSize, Index});
+      Ranges.push_back({Relocation.ImageOffset, Relocation.ImageOffset + DynamicImportSymbolRelocation::ByteSize, Index, "dynamic import symbol relocation", Ranges.size()});
+    }
+    for (std::size_t Index = 0; Index < ImageBaseRelocations.size(); ++Index)
+    {
+      const ImageBaseAddressRelocation &Relocation = ImageBaseRelocations[Index];
+      if (Relocation.ImageOffset > ImageSize || ImageBaseAddressRelocation::ByteSize > ImageSize - Relocation.ImageOffset)
+      {
+        failRecord(Diagnostics, "image base address relocation", Index, "address field is outside the image");
+      }
+      if (Relocation.TargetOffset > ImageSize)
+      {
+        failRecord(Diagnostics, "image base address relocation", Index, "target offset exceeds the image end");
+      }
+      Ranges.push_back({Relocation.ImageOffset, Relocation.ImageOffset + ImageBaseAddressRelocation::ByteSize, Index, "image base address relocation", Ranges.size()});
     }
     const auto ByOffset = [](const RelocationRange &LHS, const RelocationRange &RHS)
     {
@@ -122,9 +138,11 @@ namespace ink::vm
     {
       if (Ranges[Index].Begin < Ranges[Index - 1].End)
       {
-        const std::uint64_t RecordIndex = std::max(Ranges[Index - 1].RecordIndex, Ranges[Index].RecordIndex);
-        const std::uint64_t OtherIndex = std::min(Ranges[Index - 1].RecordIndex, Ranges[Index].RecordIndex);
-        failRecord(Diagnostics, "dynamic import symbol relocation", RecordIndex, fmt::format("address field overlaps dynamic import symbol relocation #{}", OtherIndex));
+        const auto &First = Ranges[Index - 1];
+        const auto &Second = Ranges[Index];
+        const auto &Record = First.RecordOrder > Second.RecordOrder ? First : Second;
+        const auto &Other = First.RecordOrder > Second.RecordOrder ? Second : First;
+        failRecord(Diagnostics, Record.Kind, Record.RecordIndex, fmt::format("address field overlaps {} #{}", Other.Kind, Other.RecordIndex));
       }
     }
   }

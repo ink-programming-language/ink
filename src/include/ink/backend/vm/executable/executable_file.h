@@ -3,6 +3,7 @@
 #include "ink/backend/vm/executable/dynamic_import_symbol.h"
 #include "ink/backend/vm/executable/dynamic_import_symbol_relocation.h"
 #include "ink/backend/vm/executable/export_symbol.h"
+#include "ink/backend/vm/executable/image_base_address_relocation.h"
 
 #include <cstdint>
 #include <vector>
@@ -35,6 +36,11 @@ namespace ink::vm
         return Self.DynamicImportSymbolRelocations;
       }
 
+      auto &getImageBaseAddressRelocations(this auto &&Self) noexcept
+      {
+        return Self.ImageBaseAddressRelocations;
+      }
+
       auto &getExportSymbols(this auto &&Self) noexcept
       {
         return Self.ExportSymbols;
@@ -50,6 +56,7 @@ namespace ink::vm
       std::uint64_t EntryOffset = 0;
       std::vector<DynamicImportSymbol> DynamicImportSymbols;
       std::vector<DynamicImportSymbolRelocation> DynamicImportSymbolRelocations;
+      std::vector<ImageBaseAddressRelocation> ImageBaseAddressRelocations;
       std::vector<ExportSymbol> ExportSymbols;
   };
 } // namespace ink::vm
