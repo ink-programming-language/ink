@@ -4,7 +4,7 @@ add_library(ink::vm ALIAS ink_vm)
 
 target_compile_features(ink_vm PUBLIC cxx_std_23)
 target_include_directories(ink_vm PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>")
-target_link_libraries(ink_vm PUBLIC ink::core)
+target_link_libraries(ink_vm PUBLIC ink::core PRIVATE ink::runtime)
 ink_disable_exceptions(ink_vm)
 
 if(MSVC)
