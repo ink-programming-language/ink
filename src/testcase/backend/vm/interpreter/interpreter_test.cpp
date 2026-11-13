@@ -1,3 +1,5 @@
+#include "../../../core/support/environment_test_support.h"
+
 #include "ink/backend/vm/interpreter/interpreter.h"
 #include "ink/core/name/name_pool.h"
 
@@ -14,6 +16,61 @@ namespace ink::vm::test
   static_assert(!std::is_copy_constructible_v<Interpreter> && !std::is_copy_assignable_v<Interpreter>);
   static_assert(!std::is_move_constructible_v<Interpreter> && !std::is_move_assignable_v<Interpreter>);
   static_assert(std::is_same_v<decltype(std::declval<Interpreter &>().loadLibrary(std::declval<ExecutableFile>())), std::uint32_t>);
+
+  // The default code segment reserves one MiB without making unused storage part of its image bytes.
+  TEST(VMInterpreterTest, ReservesDefaultCodeSegmentStorageWithoutImageBytes)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_VM_INITIAL_CODE_SEGMENT_BYTES");
+    ASSERT_TRUE(Environment.set(nullptr));
+    const Interpreter VM;
+    EXPECT_TRUE(VM.getCodeSegment().empty());
+    EXPECT_GE(VM.getCodeSegment().capacity(), 1024U * 1024U);
+  }
+
+  // A small configured reserve grows for later images while empty loads preserve bytes and earlier executable references.
+  TEST(VMInterpreterTest, AppendsImagesAcrossConfiguredCodeSegmentGrowth)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_VM_INITIAL_CODE_SEGMENT_BYTES");
+    ASSERT_TRUE(Environment.set("4"));
+    Interpreter VM;
+    const auto InitialCapacity = VM.getCodeSegment().capacity();
+    ASSERT_GE(InitialCapacity, 4U);
+    ASSERT_LT(InitialCapacity, 1024U * 1024U);
+    EXPECT_TRUE(VM.getCodeSegment().empty());
+
+    const std::vector<std::uint8_t> FirstImage{0x11, 0x22, 0x33};
+    ExecutableFile First;
+    First.getImage() = FirstImage;
+    const auto FirstHandle = VM.loadLibrary(std::move(First));
+    ASSERT_NE(FirstHandle, Interpreter::InvalidLibraryHandle);
+    const auto *StoredFirst = VM.findExecutable(FirstHandle);
+    ASSERT_NE(StoredFirst, nullptr);
+    EXPECT_EQ(VM.getCodeSegment(), FirstImage);
+
+    const auto EmptyHandle = VM.loadLibrary(ExecutableFile{});
+    ASSERT_NE(EmptyHandle, Interpreter::InvalidLibraryHandle);
+    const auto *StoredEmpty = VM.findExecutable(EmptyHandle);
+    ASSERT_NE(StoredEmpty, nullptr);
+    EXPECT_TRUE(StoredEmpty->getImage().empty());
+    EXPECT_EQ(VM.getCodeSegment(), FirstImage);
+
+    const std::vector<std::uint8_t> SecondImage(InitialCapacity + 1, 0x44);
+    ExecutableFile Second;
+    Second.getImage() = SecondImage;
+    const auto SecondHandle = VM.loadLibrary(std::move(Second));
+    ASSERT_NE(SecondHandle, Interpreter::InvalidLibraryHandle);
+    auto ExpectedImage = FirstImage;
+    ExpectedImage.insert(ExpectedImage.end(), SecondImage.begin(), SecondImage.end());
+    EXPECT_EQ(VM.getCodeSegment(), ExpectedImage);
+    EXPECT_GT(VM.getCodeSegment().capacity(), InitialCapacity);
+    EXPECT_EQ(VM.findExecutable(FirstHandle), StoredFirst);
+    EXPECT_EQ(StoredFirst->getImage(), FirstImage);
+    EXPECT_EQ(VM.findExecutable(EmptyHandle), StoredEmpty);
+    EXPECT_TRUE(StoredEmpty->getImage().empty());
+    const auto *StoredSecond = VM.findExecutable(SecondHandle);
+    ASSERT_NE(StoredSecond, nullptr);
+    EXPECT_EQ(StoredSecond->getImage(), SecondImage);
+  }
 
   // An empty interpreter has no executable for invalid, unallocated, or maximum-valued handles.
   TEST(VMInterpreterTest, ReturnsNullForUnknownLibraryHandles)

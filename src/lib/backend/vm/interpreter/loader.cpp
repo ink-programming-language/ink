@@ -7,7 +7,7 @@ namespace ink::vm
   {
   }
 
-  void Loader::loadLibrary(ExecutableFile &)
+  void Loader::loadLibrary(std::vector<std::uint8_t> &, std::uint64_t, ExecutableFile &)
   {
   }
 } // namespace ink::vm

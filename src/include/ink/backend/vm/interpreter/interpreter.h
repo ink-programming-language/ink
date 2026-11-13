@@ -5,9 +5,17 @@
 
 #include <cstdint>
 #include <unordered_map>
+#include <vector>
 
 namespace ink::vm
 {
+  struct LibraryDesciptor
+  {
+      // The image's byte offset in CodeSegment, preserved when the vector reallocates.
+      std::uint64_t ImageBase = 0;
+      vm::ExecutableFile ExecutableFile;
+  };
+
   class Interpreter
   {
     public:
@@ -26,8 +34,14 @@ namespace ink::vm
       // The borrowed file remains valid until this interpreter is destroyed; an unknown handle returns nullptr.
       const ExecutableFile *findExecutable(std::uint32_t Handle) const noexcept;
 
+      const std::vector<std::uint8_t> &getCodeSegment() const noexcept
+      {
+        return CodeSegment;
+      }
+
     private:
-      std::unordered_map<std::uint32_t, ExecutableFile> Libraries;
+      std::unordered_map<std::uint32_t, LibraryDesciptor> Libraries;
+      std::vector<std::uint8_t> CodeSegment;
       vm::Loader Loader;
       std::uint32_t NextLibraryHandle = 1;
   };

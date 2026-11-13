@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <vector>
+
 namespace ink::vm
 {
   class ExecutableFile;
@@ -11,8 +14,8 @@ namespace ink::vm
       // The owning interpreter must outlive this loader.
       explicit Loader(vm::Interpreter &Interpreter) noexcept;
 
-      // Loading is not implemented yet; the executable is owned by the interpreter.
-      void loadLibrary(ExecutableFile &Executable);
+      // ImageBase is a byte offset in CodeSegment; relocation and symbol binding are not implemented yet.
+      void loadLibrary(std::vector<std::uint8_t> &CodeSegment, std::uint64_t ImageBase, ExecutableFile &Executable);
 
     private:
       vm::Interpreter &Interpreter;
