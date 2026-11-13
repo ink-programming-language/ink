@@ -7,6 +7,7 @@
 INK_DIAGNOSTIC(IRTextInvalid, 0x03000002U, IR, "INK-I0002", User, Error, "invalid IR text", "invalid IR text: {Description}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Description, String)))
 INK_DIAGNOSTIC(VMTextInvalid, 0x04000001U, VM, "INK-V0001", User, Error, "invalid VM text", "invalid VM text: {Description}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Description, String)))
 INK_DIAGNOSTIC(VMModuleLinkFailed, 0x04000003U, VM, "INK-V0003", User, Error, "VM module link failed", "VM module link failed in {Context}: {Description}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String), INK_DIAGNOSTIC_ARGUMENT(Description, String)))
+INK_DIAGNOSTIC(VMLibraryLinkFailed, 0x04000004U, VM, "INK-V0004", User, Error, "VM library link failed", "VM library link failed in {Context}: {Description}", INK_DIAGNOSTIC_ARGUMENTS(INK_DIAGNOSTIC_ARGUMENT(Context, String), INK_DIAGNOSTIC_ARGUMENT(Description, String)))
 
 INK_DIAGNOSTIC(InvalidUtf8, 0x01000001U, Tokenizer, "INK-T0001", User, Error, "source is not valid UTF-8", "source is not valid UTF-8", INK_DIAGNOSTIC_ARGUMENTS())
 INK_DIAGNOSTIC(UnexpectedBom, 0x01000002U, Tokenizer, "INK-T0002", User, Error, "a UTF-8 BOM is not permitted at the start of a source file", "a UTF-8 BOM is not permitted at the start of a source file", INK_DIAGNOSTIC_ARGUMENTS())

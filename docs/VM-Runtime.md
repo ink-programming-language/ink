@@ -10,13 +10,21 @@
 
 逻辑寄存器属于 VM 的可见执行状态，与宿主 CPU 的寄存器分配无关。解释器计算有效地址、解码操作数时使用的宿主临时变量不增加 VM 的逻辑寄存器。
 
-[VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录统一符号声明、可写或只读全局数据和栈帧描述。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号绑定和 Native 符号推导，`ExecutableFile` 提供镜像模型和结构校验。指令编码、镜像布局与发射已实现，解码、加载器及执行器仍待实现；下文描述运行时规划。
+[VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录统一符号声明、可写或只读全局数据和栈帧描述。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号绑定和 Native 符号推导，`ExecutableFile` 提供镜像模型和结构校验。指令编码、镜像布局与发射已实现，解码、完整加载绑定及执行器仍待实现；下文描述运行时规划。
 
-`interpreter` 目录中的 `Interpreter` 持有 `Loader`，后者借用所属解释器。`Interpreter::loadLibrary(ExecutableFile)` 创建 RAII 加载事务，在工作代码段中追加 `Image` 后调用 `Loader::loadLibrary(CodeSegment, ImageBase, ExecutableFile &)`，其中 `ImageBase` 保存追加前的代码段字节偏移。Loader 返回 `false` 时，事务恢复原代码段、导出表和 handle 计数，并删除事务期间新增的库记录，`loadLibrary` 返回 0；既有 `findExecutable` 借用指针保持有效。Loader 成功后才登记导出符号并提交事务。成功的 `uint32_t` handle 从 1 开始且不复用，失败尝试不消耗 handle；handle 空间耗尽也返回 0。handle 映射到包含 `ImageBase` 和 `ExecutableFile` 的 `LibraryDescriptor`，`findExecutable` 对未知 handle 返回 nullptr。
+`interpreter` 目录中的 `Interpreter` 持有 `DiagnosticEngine` 和 `Loader`，后者借用所属解释器；`getDiagnostics()` 提供诊断引擎访问，调用方可注册 consumer。构造函数自动调用公开的 `initialize()`，以 `try_emplace` 将 `NativeSymbolAddresses` 中的名称及宿主地址登记到统一的 `ExportSymbolMap`；重复初始化保留已有同名绑定。`Interpreter::resolveSymbolAddress(Name)` 只查询此表，找到时返回真实宿主地址，找不到时返回 nullptr，不再直接搜索 Native 表。`getExportSymbolMap()` 提供只读查询，表中 `uint64_t` 值同时保存 Native 和 VM 导出的真实宿主地址，不保存代码段偏移。
 
-当前 Loader 接收整个可写 `CodeSegment`，因此事务保留原容器并复制代码段与导出表作为工作状态，使失败能够恢复既有字节、原存储地址和容量。每次加载的额外复制开销与已有代码段及导出表大小成正比。`loadExportSymbol(const LibraryDescriptor &)` 遍历库的 `ExportSymbols`，以 `core::Name` 为键，将 `ImageBase + Export.Offset` 写入 `ExportSymbolMap`；同名记录直接覆盖，其他记录保留。当前表中地址是以 `CodeSegment` 开头为零点的绝对字节位置，代码段扩容不改变这些数值；`getExportSymbolMap` 提供只读查询。
+`CodeSegment` 使用 `malloc` 管理的 `std::uint8_t *`，由解释器记录有效字节数和容量，销毁时释放。`getCodeSegment()` 返回覆盖有效字节的 `std::span<const std::uint8_t>`，`getCodeSegmentCapacity()` 返回分配容量。容量不足时优先调用 `realloc`；失败后改用 `malloc` 分配新缓冲区，复制既有有效字节，再释放旧存储。`realloc` 成功也可能搬迁地址，不能只在 fallback 分支更新绑定。
 
-`tools/interpreter` 中的 `ink-interpreter` 工具持有解释器实例，将输入文件原始字节读入 `ExecutableFile::Image` 后调用 `loadLibrary`，输入为 `-` 时读取标准输入。可执行文件解码器尚未实现，此时不读取入口、导入或重定位元数据。Loader 当前检查镜像在代码段中的范围以及导出偏移是否位于镜像内，失败通过 `false` 报告；空镜像且没有导出时仍接受。重定位、导入绑定和执行尚未实现。
+只要代码段地址改变，解释器就将统一符号表中指向旧代码段的地址平移到新存储，并遍历既有库的全部动态重定位修补字段。从字段中读取原绑定值并逆向去掉 `Addend` 后，才能判断原符号基地址是否位于旧代码段；属于旧代码段时换算到新基址，再加回 `Addend`，Native 地址保持不变。该过程保留旧引用已经选择的目标，不按最新同名导出重新解析，因而后续符号覆盖不会改变旧库的绑定。原始 `ExecutableFile::Image` 和重定位记录不参与改写。
+
+`Interpreter::loadLibrary(ExecutableFile)` 先确保容量并完成必要的既有地址修补，再创建 RAII 加载事务。事务保存此时的符号表、有效字节数和下一个 handle，在代码段末尾追加原始 `Image`，调用接收可写 `std::span<std::uint8_t>` 的 `Loader::loadLibrary(CodeSegment, ImageBase, ExecutableFile &)`；`ImageBase` 是追加前的有效字节数，库间不自动插入对齐填充。Loader 先登记本库导出，再解析导入和修补地址，成功后提交事务。找不到符号地址时报告 `VMLibraryLinkFailed` 并返回 `false`，事务恢复符号表、有效字节数和 handle 计数，并删除新增库记录，解释器返回 0。已完成的容量增长和存储搬迁保留，既有有效字节中的非地址内容不变，内部符号地址及旧重定位字段与当前存储保持一致；失败不保证恢复原容量、原存储地址或地址字段的旧位模式。内部不变量失败会报告 ICE 并终止进程，不经过事务析构回滚。
+
+成功的 `uint32_t` handle 从 1 开始且不复用，普通链接失败不消耗 handle；handle 空间耗尽也返回 0。handle 映射到包含 `ImageBase` 和 `ExecutableFile` 的 `LibraryDescriptor`，`findExecutable` 对未知 handle 返回 nullptr，已有文件的借用指针保持有效。代码段 span 及通过符号表取得的裸地址可能在后续加载尝试扩容搬迁时失效，即使该次加载最终因缺少符号而失败；调用方应在加载尝试后重新取得 view 和查询地址。当前搬迁修补只维护解释器内部登记的地址，不更新调用方自行保存的指针。
+
+`tools/interpreter` 中的 `ink-interpreter` 工具持有解释器实例，将输入文件原始字节读入 `ExecutableFile::Image` 后调用 `loadLibrary`，输入为 `-` 时读取标准输入。可执行文件解码器尚未实现，此时不读取入口、导入或重定位元数据。Loader 在导出循环中检查偏移，将 `CodeSegment.data() + ImageBase + Export.Offset` 对应的宿主地址写入统一符号表；同名导出覆盖当前绑定，因此本库导入也能查到本库导出。随后为完整导入表中的每项调用一次 `Interpreter::resolveSymbolAddress(Name)` 并按索引缓存地址，再遍历 `DynamicImportSymbolRelocations`，加上有符号 `Addend` 后直接通过 `uint64_t *` 写入目标字段，不构造修补数组。
+
+直接地址写入要求小端宿主，Loader 通过平台字节序宏在编译时拒绝大端平台。每个实际修补字段的地址必须满足 8 字节对齐，使用 `check` 验证；关闭断言不放宽此前置条件。加载器不自动填充镜像，也不改变发射器紧排的操作数字段，因此通过结构校验的字段仍可能因不满足对齐前置条件而无法加载。镜像窗口、字段、导出偏移、导入索引或地址算术违反内部不变量时报告 `VMExecutableValidationFailed` ICE；重定位重叠由上游结构校验器检查。原始 `ExecutableFile` 的镜像和记录保持不变；空镜像且没有导出、导入或动态重定位时仍接受。镜像基址地址重定位、`CallNativei` 索引的执行绑定和执行器仍待实现。
 
 ## 寄存器与符号操作数
 
@@ -31,7 +39,7 @@
 
 寄存器值使用上述独立编号，符号引用则通过 `core::Name` 保存链接名。符号名称与寄存器编号属于不同的表示，文本用 `@name` 或 `@"escaped name"` 标识符号。EFLAGS 的编号用于识别隐式状态；当前不能将其作为普通 `r` 来源、算术目标或内存基址。
 
-指令中的寄存器来源保存寄存器编号和有符号 `ByteOffset`，使用 `RegisterValue + ByteOffset` 的值，不访问内存。例如 PC 为 2、SP 为 0 时，`add64rrr bp, sp, pc + 2` 得到 BP 为 4；寄存器目标必须为 BP 或 SP，且偏移为零。地址操作数用于定位内存中的值，例如 `[bp + 16]` 或 `[@counter + 8]`。立即数可以保存数值，也可以保存符号地址值，例如 `@counter + 8`。内存模型还提供持有目标基本块指针的 `BasicBlockOperand`，跳转构建时直接引用同一函数的目标块。[VM 指令编码格式讨论稿](VM-Instruction-Format.md) 约定 `r` 与寄存器形式的 `m` 共用九字节的寄存器编号和偏移字段，由指令语义区分寄存器值与内存访问；操作数字段发射共用 `padRegister`，完整指令发射与执行仍待实现。按该方案，后续镜像生成阶段需要将 VM 符号内存地址和基本块目标转换为 PC 相对字段，将 VM 符号地址立即数转换为镜像相对偏移；宿主数据内存地址使用独立的 `ff` 基址标记及八字节重定位字段。
+指令中的寄存器来源保存寄存器编号和有符号 `ByteOffset`，使用 `RegisterValue + ByteOffset` 的值，不访问内存。例如 PC 为 2、SP 为 0 时，`add64rrr bp, sp, pc + 2` 得到 BP 为 4；寄存器目标必须为 BP 或 SP，且偏移为零。地址操作数用于定位内存中的值，例如 `[bp + 16]` 或 `[@counter + 8]`。立即数可以保存数值，也可以保存符号地址值，例如 `@counter + 8`。内存模型还提供持有目标基本块指针的 `BasicBlockOperand`，跳转构建时直接引用同一函数的目标块。[VM 指令编码格式讨论稿](VM-Instruction-Format.md) 约定 `r` 与寄存器形式的 `m` 共用九字节的寄存器编号和偏移字段，由指令语义区分寄存器值与内存访问；操作数字段发射共用 `padRegister`，完整指令发射已实现，执行仍待实现。VM 符号内存地址和基本块目标使用 PC 相对字段，VM 符号地址立即数使用镜像基址重定位；宿主数据内存地址使用恒零的 ZERO 基址编码 `04` 及八字节动态重定位字段，`ff` 不是合法基址。
 
 VM 与其他 Ink 组件统一使用 `InkVersion`，默认值为 `0.0.1`，可通过 `INK_VERSION` 配置。当前指令集包含 EFLAGS、CMP、跳转、RET，以及 `call`、`callNative` 的立即数与内存操作数形式。函数调用的 PC 相对位移、native 导入索引和间接寻址编码见 [VM 指令编码格式](VM-Instruction-Format.md#函数调用目标与编码)。
 
@@ -56,7 +64,7 @@ EFLAGS 使用 32 位值，当前定义 CF（bit 0）、ZF（bit 6）、SF（bit 
 | `sp` | 当前有效栈空间的末端；有效区间为 `[StackBegin, sp)`，可用容量为 `[sp, StackEnd)`。 |
 | `eflags` | 最近一次算术或比较指令产生的 CF、ZF、SF、OF，由条件跳转隐式读取。 |
 
-现有地址偏移和地址寄存器运算使用 64 位宽度，初版运行时可以沿用这一宽度，`bp` 和 `sp` 使用完整的 64 位寄存器操作。`pc` 的写入仅由控制转移指令完成。VM 地址的数值表示不直接暴露宿主指针；宿主栈缓冲区增长或移动时，已经形成的 VM 栈地址仍应保持有效。
+现有地址偏移和地址寄存器运算使用 64 位宽度，`bp`、`sp`、`pc` 和数据指针采用统一的 64 位宿主地址表示。`pc` 的写入仅由控制转移指令完成。当前代码段搬迁会修补登记的 VM 符号地址及动态重定位字段；执行中的寄存器、活动栈及调用方保留指针的地址稳定性仍须由后续执行器设计保证。
 
 每次调用拥有独立的帧，因此递归调用不会覆盖上一层调用的参数和局部变量。函数内的长期槽位建议使用 `bp + 固定偏移` 访问，短期的调用准备区可以使用 `sp` 相对寻址。
 
