@@ -272,11 +272,13 @@ namespace ink::vm::test
         {8, 0, -24},
         {16, 1, 0},
     };
+    First.getImageBaseAddressRelocations().push_back({24, 32, -8});
     const auto FirstHandle = VM.loadLibrary(std::move(First));
     ASSERT_EQ(FirstHandle, 1U);
     EXPECT_EQ(readBoundAddress(VM, 0), codeAddress(VM, 24) + 1024);
     EXPECT_EQ(readBoundAddress(VM, 8), codeAddress(VM, 0));
     EXPECT_EQ(readBoundAddress(VM, 16), NativeAddress);
+    EXPECT_EQ(readBoundAddress(VM, 24), codeAddress(VM, 24));
     const auto FirstCapacity = VM.getCodeSegmentCapacity();
     ASSERT_LT(FirstCapacity, 1024U * 1024U);
 
@@ -289,6 +291,7 @@ namespace ink::vm::test
     };
     Second.getDynamicImportSymbols().push_back({StableName});
     Second.getDynamicImportSymbolRelocations().push_back({0, 0, 7});
+    Second.getImageBaseAddressRelocations().push_back({8, 0, 5});
     const auto SecondHandle = VM.loadLibrary(std::move(Second));
     ASSERT_EQ(SecondHandle, 2U);
     EXPECT_GT(VM.getCodeSegmentCapacity(), FirstCapacity);
@@ -296,6 +299,8 @@ namespace ink::vm::test
     EXPECT_EQ(readBoundAddress(VM, 8), codeAddress(VM, 0));
     EXPECT_EQ(readBoundAddress(VM, 16), NativeAddress);
     EXPECT_EQ(readBoundAddress(VM, 32), codeAddress(VM, 31));
+    EXPECT_EQ(readBoundAddress(VM, 24), codeAddress(VM, 24));
+    EXPECT_EQ(readBoundAddress(VM, 40), codeAddress(VM, 37));
     EXPECT_EQ(VM.resolveSymbolAddress(SharedName), static_cast<const void *>(VM.getCodeSegment().data() + 40));
     EXPECT_EQ(VM.resolveSymbolAddress(IdentityName), static_cast<const void *>(VM.getCodeSegment().data() + 48));
     EXPECT_EQ(VM.resolveSymbolAddress(StableName), static_cast<const void *>(VM.getCodeSegment().data() + 24));
@@ -314,6 +319,8 @@ namespace ink::vm::test
     storeExpectedAddress(ExpectedAfterFailedGrowth, 0, codeAddress(VM, 24) + 1024);
     storeExpectedAddress(ExpectedAfterFailedGrowth, 8, codeAddress(VM, 0));
     storeExpectedAddress(ExpectedAfterFailedGrowth, 32, codeAddress(VM, 31));
+    storeExpectedAddress(ExpectedAfterFailedGrowth, 24, codeAddress(VM, 24));
+    storeExpectedAddress(ExpectedAfterFailedGrowth, 40, codeAddress(VM, 37));
     expectCodeBytes(VM, ExpectedAfterFailedGrowth);
     ExpectedAfterFailedGrowthSymbols[SharedName] = codeAddress(VM, 40);
     ExpectedAfterFailedGrowthSymbols[IdentityName] = codeAddress(VM, 48);
@@ -347,6 +354,8 @@ namespace ink::vm::test
     EXPECT_EQ(readBoundAddress(VM, 8), codeAddress(VM, 0));
     EXPECT_EQ(readBoundAddress(VM, 16), NativeAddress);
     EXPECT_EQ(readBoundAddress(VM, 32), codeAddress(VM, 31));
+    EXPECT_EQ(readBoundAddress(VM, 24), codeAddress(VM, 24));
+    EXPECT_EQ(readBoundAddress(VM, 40), codeAddress(VM, 37));
     EXPECT_EQ(VM.resolveSymbolAddress(SharedName), static_cast<const void *>(VM.getCodeSegment().data() + 40));
     EXPECT_EQ(VM.resolveSymbolAddress(IdentityName), static_cast<const void *>(VM.getCodeSegment().data() + 48));
     VM.initialize();

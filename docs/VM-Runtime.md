@@ -16,15 +16,15 @@
 
 `CodeSegment` 使用 `malloc` 管理的 `std::uint8_t *`，由解释器记录有效字节数和容量，销毁时释放。`getCodeSegment()` 返回覆盖有效字节的 `std::span<const std::uint8_t>`，`getCodeSegmentCapacity()` 返回分配容量。容量不足时优先调用 `realloc`；失败后改用 `malloc` 分配新缓冲区，复制既有有效字节，再释放旧存储。`realloc` 成功也可能搬迁地址，不能只在 fallback 分支更新绑定。
 
-只要代码段地址改变，解释器就将统一符号表中指向旧代码段的地址平移到新存储，并遍历既有库的全部动态重定位修补字段。从字段中读取原绑定值并逆向去掉 `Addend` 后，才能判断原符号基地址是否位于旧代码段；属于旧代码段时换算到新基址，再加回 `Addend`，Native 地址保持不变。该过程保留旧引用已经选择的目标，不按最新同名导出重新解析，因而后续符号覆盖不会改变旧库的绑定。原始 `ExecutableFile::Image` 和重定位记录不参与改写。
+只要代码段地址改变，解释器就将统一符号表中指向旧代码段的地址平移到新存储，并遍历既有库的两类地址重定位修补字段。动态重定位从字段中读取原绑定值并逆向去掉 `Addend` 后，才能判断原符号基地址是否位于旧代码段；属于旧代码段时换算到新基址，再加回 `Addend`，Native 地址保持不变。该过程保留旧引用已经选择的目标，不按最新同名导出重新解析，因而后续符号覆盖不会改变旧库的绑定。镜像基址重定位则直接根据各库的新宿主基址、`TargetOffset` 和有符号 `Addend` 重算，不读取旧绑定值、不查询统一符号表。原始 `ExecutableFile::Image` 和重定位记录不参与改写。
 
 `Interpreter::loadLibrary(ExecutableFile)` 先确保容量并完成必要的既有地址修补，再创建 RAII 加载事务。事务保存此时的符号表、有效字节数和下一个 handle，在代码段末尾追加原始 `Image`，调用接收可写 `std::span<std::uint8_t>` 的 `Loader::loadLibrary(CodeSegment, ImageBase, ExecutableFile &)`；`ImageBase` 是追加前的有效字节数，库间不自动插入对齐填充。Loader 先登记本库导出，再解析导入和修补地址，成功后提交事务。找不到符号地址时报告 `VMLibraryLinkFailed` 并返回 `false`，事务恢复符号表、有效字节数和 handle 计数，并删除新增库记录，解释器返回 0。已完成的容量增长和存储搬迁保留，既有有效字节中的非地址内容不变，内部符号地址及旧重定位字段与当前存储保持一致；失败不保证恢复原容量、原存储地址或地址字段的旧位模式。内部不变量失败会报告 ICE 并终止进程，不经过事务析构回滚。
 
 成功的 `uint32_t` handle 从 1 开始且不复用，普通链接失败不消耗 handle；handle 空间耗尽也返回 0。handle 映射到包含 `ImageBase` 和 `ExecutableFile` 的 `LibraryDescriptor`，`findExecutable` 对未知 handle 返回 nullptr，已有文件的借用指针保持有效。代码段 span 及通过符号表取得的裸地址可能在后续加载尝试扩容搬迁时失效，即使该次加载最终因缺少符号而失败；调用方应在加载尝试后重新取得 view 和查询地址。当前搬迁修补只维护解释器内部登记的地址，不更新调用方自行保存的指针。
 
-`tools/interpreter` 中的 `ink-interpreter` 工具持有解释器实例，将输入文件原始字节读入 `ExecutableFile::Image` 后调用 `loadLibrary`，输入为 `-` 时读取标准输入。可执行文件解码器尚未实现，此时不读取入口、导入或重定位元数据。Loader 在导出循环中检查偏移，将 `CodeSegment.data() + ImageBase + Export.Offset` 对应的宿主地址写入统一符号表；同名导出覆盖当前绑定，因此本库导入也能查到本库导出。随后为完整导入表中的每项调用一次 `Interpreter::resolveSymbolAddress(Name)` 并按索引缓存地址，再遍历 `DynamicImportSymbolRelocations`，加上有符号 `Addend` 后直接通过 `uint64_t *` 写入目标字段，不构造修补数组。
+`tools/interpreter` 中的 `ink-interpreter` 工具持有解释器实例，将输入文件原始字节读入 `ExecutableFile::Image` 后调用 `loadLibrary`，输入为 `-` 时读取标准输入。可执行文件解码器尚未实现，此时不读取入口、导入或重定位元数据。Loader 在导出循环中检查偏移，将 `CodeSegment.data() + ImageBase + Export.Offset` 对应的宿主地址写入统一符号表；同名导出覆盖当前绑定，因此本库导入也能查到本库导出。随后为完整导入表中的每项调用一次 `Interpreter::resolveSymbolAddress(Name)` 并按索引缓存地址，再遍历 `DynamicImportSymbolRelocations`，加上有符号 `Addend` 后直接通过 `uint64_t *` 写入目标字段，不构造修补数组。同次加载也绑定 `ImageBaseAddressRelocations`：将 `CodeSegment.data() + ImageBase + TargetOffset` 的宿主地址加上有符号 `Addend` 后写入字段。本表固定引用当前镜像，不查询统一符号表，也不参与同名符号覆盖；`TargetOffset` 可等于镜像字节数，表示 one-past 位置，但字段本身必须完整位于镜像内。
 
-直接地址写入要求小端宿主，Loader 通过平台字节序宏在编译时拒绝大端平台。每个实际修补字段的地址必须满足 8 字节对齐，使用 `check` 验证；关闭断言不放宽此前置条件。加载器不自动填充镜像，也不改变发射器紧排的操作数字段，因此通过结构校验的字段仍可能因不满足对齐前置条件而无法加载。镜像窗口、字段、导出偏移、导入索引或地址算术违反内部不变量时报告 `VMExecutableValidationFailed` ICE；重定位重叠由上游结构校验器检查。原始 `ExecutableFile` 的镜像和记录保持不变；空镜像且没有导出、导入或动态重定位时仍接受。镜像基址地址重定位、`CallNativei` 索引的执行绑定和执行器仍待实现。
+直接地址写入要求小端宿主，Loader 通过平台字节序宏在编译时拒绝大端平台。两类重定位的每个实际修补字段都必须满足 8 字节对齐，使用 `check` 验证；关闭断言不放宽此前置条件。加载器不自动填充镜像，也不改变发射器紧排的操作数字段，因此通过结构校验的字段仍可能因不满足对齐前置条件而无法加载。镜像窗口、字段、导出偏移、导入索引、镜像基址目标偏移或地址算术违反内部不变量时报告 `VMExecutableValidationFailed` ICE；重定位重叠由上游结构校验器检查。`TargetOffset` 的 one-past 值或加上 Addend 后得到的镜像外地址不代表可解引用，访存边界和权限仍由后续执行器检查。原始 `ExecutableFile` 的镜像和记录保持不变；空镜像且没有导出、导入或任何重定位时仍接受。`CallNativei` 索引的执行绑定和执行器仍待实现。
 
 ## 寄存器与符号操作数
 
@@ -64,7 +64,7 @@ EFLAGS 使用 32 位值，当前定义 CF（bit 0）、ZF（bit 6）、SF（bit 
 | `sp` | 当前有效栈空间的末端；有效区间为 `[StackBegin, sp)`，可用容量为 `[sp, StackEnd)`。 |
 | `eflags` | 最近一次算术或比较指令产生的 CF、ZF、SF、OF，由条件跳转隐式读取。 |
 
-现有地址偏移和地址寄存器运算使用 64 位宽度，`bp`、`sp`、`pc` 和数据指针采用统一的 64 位宿主地址表示。`pc` 的写入仅由控制转移指令完成。当前代码段搬迁会修补登记的 VM 符号地址及动态重定位字段；执行中的寄存器、活动栈及调用方保留指针的地址稳定性仍须由后续执行器设计保证。
+现有地址偏移和地址寄存器运算使用 64 位宽度，`bp`、`sp`、`pc` 和数据指针采用统一的 64 位宿主地址表示。`pc` 的写入仅由控制转移指令完成。当前代码段搬迁会修补登记的 VM 符号地址及两类地址重定位字段；执行中的寄存器、活动栈及调用方保留指针的地址稳定性仍须由后续执行器设计保证。
 
 每次调用拥有独立的帧，因此递归调用不会覆盖上一层调用的参数和局部变量。函数内的长期槽位建议使用 `bp + 固定偏移` 访问，短期的调用准备区可以使用 `sp` 相对寻址。
 

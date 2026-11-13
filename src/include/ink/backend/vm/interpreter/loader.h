@@ -16,7 +16,8 @@ namespace ink::vm
 
       /**
        * Bind Executable's copied image at byte offset ImageBase within the writable CodeSegment span.
-       * Register exports, resolve every import once, then patch aligned eight-byte address fields.
+       * Register exports, resolve every import once, then patch dynamic and image-relative address fields.
+       * Both use aligned eight-byte stores; image-relative targets bypass symbol lookup.
        * Executable remains unbound. Missing imports return false; the caller owns rollback.
        * Invalid internal metadata reports an ICE. See the implementation for layout and patch details.
        */

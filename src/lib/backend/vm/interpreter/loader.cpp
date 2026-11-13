@@ -43,17 +43,20 @@ namespace ink::vm
    *   |--- ImageBase bytes ---|--- ImageOffset bytes ---| uint64_t field | ...
    *                          ^ image start             ^ patch destination
    * Destination = CodeSegment.data() + ImageBase + Relocation.ImageOffset
-   * *Destination = SymbolAddresses[Relocation.SymbolIndex] + Relocation.Addend
+   * Dynamic import: *Destination = SymbolAddresses[Relocation.SymbolIndex] + Relocation.Addend
+   * Image-relative: *Destination = host(CodeSegment.data() + ImageBase + Relocation.TargetOffset) + Relocation.Addend
    *
    * Register exports first so the image can import its own symbols; later registrations replace names.
    * Resolve the complete import table once and cache by SymbolIndex, including imports with no relocation.
-   * Each relocation reads that cache, applies its signed Addend, and writes directly without a patch array.
+   * Dynamic imports read that cache; image-relative references use TargetOffset within this image, without
+   * symbol lookup or interposition. TargetOffset may equal ImageSize to represent its one-past address.
+   * Both kinds apply their signed Addend and write directly without a patch array.
    * Addend changes the stored address, not the destination. The actual field must be eight-byte aligned;
    * the uint64_t store relies on a little-endian target, enforced at compile time. No padding is inserted.
    *
    * Missing imports report a link diagnostic and return false. The caller must roll back exports and code;
    * Interpreter provides that transaction. Invalid bounds, indices, or arithmetic report fatal ICEs.
-   * Overlaps are validated upstream; image-base address relocation binding remains unimplemented.
+   * Overlaps are validated upstream. Only the copied code is patched; Executable remains reusable.
    */
   bool Loader::loadLibrary(std::span<std::uint8_t> CodeSegment, std::uint64_t ImageBase, ExecutableFile &Executable)
   {
@@ -94,6 +97,16 @@ namespace ink::vm
       const auto CodeOffset = static_cast<std::size_t>(ImageBase + Relocation.ImageOffset);
       auto *Destination = CodeSegment.data() + CodeOffset;
       check(reinterpret_cast<std::uintptr_t>(Destination) % DynamicImportSymbolRelocation::ByteSize == 0);
+      *reinterpret_cast<std::uint64_t *>(Destination) = Address;
+    }
+    for (const auto &Relocation : Executable.getImageBaseAddressRelocations())
+    {
+      REPORT_ICE_IF(Relocation.ImageOffset > ImageSize || ImageBaseAddressRelocation::ByteSize > ImageSize - Relocation.ImageOffset, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "image-base address relocation", "address field is outside the image");
+      REPORT_ICE_IF(Relocation.TargetOffset > ImageSize, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "image-base address relocation", "target offset is outside the image");
+      const auto TargetAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment.data() + ImageBase + Relocation.TargetOffset));
+      const auto Address = detail::addAddressOffset(TargetAddress, Relocation.Addend, Diagnostics, "image-base address relocation");
+      auto *Destination = CodeSegment.data() + ImageBase + Relocation.ImageOffset;
+      check(reinterpret_cast<std::uintptr_t>(Destination) % ImageBaseAddressRelocation::ByteSize == 0);
       *reinterpret_cast<std::uint64_t *>(Destination) = Address;
     }
     return true;

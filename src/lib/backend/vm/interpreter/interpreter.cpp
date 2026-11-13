@@ -138,11 +138,16 @@ namespace ink::vm
    * Native host addresses lie outside that range and keep their values. Library bases and field positions
    * are already segment-relative offsets and do not move within the buffer.
    *
-   * For every existing relocation, undo Addend with unsigned subtraction to recover the selected symbol's
+   * For each dynamic import relocation, undo Addend with unsigned subtraction to recover the selected symbol's
    * original base, including when Addend is INT64_MIN. Test that base against the old range: the stored
    * address itself may lie outside the range because of Addend. Translate only code-segment targets,
    * then reapply the checked Addend and rewrite the field:
    *   OldAddress + Offset + Addend  ->  NewAddress + Offset + Addend
+   *
+   * Image-base address relocations are recomputed from each library's original TargetOffset and Addend:
+   *   NewAddress + Library.ImageBase + TargetOffset + Addend
+   * This also handles one-past targets and results displaced outside the image by Addend; no old-address
+   * range test is needed because the metadata already identifies the owning image.
    *
    * Do not resolve names again: later same-name exports must not rebind references that were already patched.
    * This repairs registered map entries and relocation fields, not pointers cached by external callers.
@@ -165,9 +170,11 @@ namespace ink::vm
     for (const auto &Entry : Libraries)
     {
       const auto &Library = Entry.second;
+      const auto ImageSize = Library.ExecutableFile.byteSize();
+      REPORT_ICE_IF(Library.ImageBase > OldSize || ImageSize > OldSize - Library.ImageBase, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing image", "loaded image is outside the code segment");
       for (const auto &Relocation : Library.ExecutableFile.getDynamicImportSymbolRelocations())
       {
-        REPORT_ICE_IF(Library.ImageBase > OldSize || Relocation.ImageOffset > OldSize - Library.ImageBase || DynamicImportSymbolRelocation::ByteSize > OldSize - Library.ImageBase - Relocation.ImageOffset, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing dynamic import relocation", "address field is outside the code segment");
+        REPORT_ICE_IF(Relocation.ImageOffset > ImageSize || DynamicImportSymbolRelocation::ByteSize > ImageSize - Relocation.ImageOffset, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing dynamic import relocation", "address field is outside the image");
         auto *Destination = CodeSegment + Library.ImageBase + Relocation.ImageOffset;
         check(reinterpret_cast<std::uintptr_t>(Destination) % DynamicImportSymbolRelocation::ByteSize == 0);
         auto SymbolAddress = *reinterpret_cast<const std::uint64_t *>(Destination) - static_cast<std::uint64_t>(Relocation.Addend);
@@ -176,6 +183,15 @@ namespace ink::vm
           SymbolAddress = NewAddress + (SymbolAddress - OldAddress);
         }
         *reinterpret_cast<std::uint64_t *>(Destination) = detail::addAddressOffset(SymbolAddress, Relocation.Addend, Diagnostics);
+      }
+      for (const auto &Relocation : Library.ExecutableFile.getImageBaseAddressRelocations())
+      {
+        REPORT_ICE_IF(Relocation.ImageOffset > ImageSize || ImageBaseAddressRelocation::ByteSize > ImageSize - Relocation.ImageOffset, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing image-base address relocation", "address field is outside the image");
+        REPORT_ICE_IF(Relocation.TargetOffset > ImageSize, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing image-base address relocation", "target offset is outside the image");
+        const auto TargetAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment + Library.ImageBase + Relocation.TargetOffset));
+        auto *Destination = CodeSegment + Library.ImageBase + Relocation.ImageOffset;
+        check(reinterpret_cast<std::uintptr_t>(Destination) % ImageBaseAddressRelocation::ByteSize == 0);
+        *reinterpret_cast<std::uint64_t *>(Destination) = detail::addAddressOffset(TargetAddress, Relocation.Addend, Diagnostics, "existing image-base address relocation");
       }
     }
   }

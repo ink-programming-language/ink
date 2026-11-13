@@ -174,7 +174,7 @@ namespace ink::vm::test
         {3, 0, -5},
         {27, 0, 0},
     };
-    Executable.getImageBaseAddressRelocations().push_back({40, 2, 3});
+    Executable.getImageBaseAddressRelocations().push_back({35, 2, 3});
     Executable.getExportSymbols().push_back({core::NamePool::instance().intern("loader-patched-export"), 2});
     const auto OriginalExecutable = Executable;
     auto CodeSegment = makeCodeSegment(Executable, 5);
@@ -186,8 +186,37 @@ namespace ink::vm::test
     storeLittleEndian(Expected, 8, Address - 5);
     storeLittleEndian(Expected, 16, Address + 7);
     storeLittleEndian(Expected, 32, Address);
+    storeLittleEndian(Expected, 40, static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment.data() + 10)));
 
     ASSERT_TRUE(LibraryLoader.loadLibrary(CodeSegment, 5, Executable));
+
+    EXPECT_EQ(CodeSegment, Expected);
+    expectExecutableUnchanged(Executable, OriginalExecutable);
+  }
+
+  // Local address fields use their loaded image base, accept an image-end target, and apply signed addends without changing the unbound file.
+  TEST(VMLoaderTest, PatchesImageBaseAddressesWithSignedAddendsAndOnePastTargets)
+  {
+    Interpreter VM;
+    Loader LibraryLoader(VM);
+    ExecutableFile Executable;
+    Executable.getImage().assign(40, 0xD6);
+    Executable.getEntryOffset() = 1;
+    Executable.getImageBaseAddressRelocations() = {
+        {16, 40, 0},
+        {0, 3, 5},
+        {8, 16, -9},
+    };
+    const auto OriginalExecutable = Executable;
+    auto CodeSegment = makeCodeSegment(Executable);
+    auto Expected = CodeSegment;
+    const auto CodeAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment.data()));
+    // The image begins at code byte eight: targets become code addresses 48, 16, and 15.
+    storeLittleEndian(Expected, 24, CodeAddress + 48);
+    storeLittleEndian(Expected, 8, CodeAddress + 16);
+    storeLittleEndian(Expected, 16, CodeAddress + 15);
+
+    ASSERT_TRUE(LibraryLoader.loadLibrary(CodeSegment, 8, Executable));
 
     EXPECT_EQ(CodeSegment, Expected);
     expectExecutableUnchanged(Executable, OriginalExecutable);
@@ -313,8 +342,38 @@ namespace ink::vm::test
     expectLoaderICE(LibraryLoader, CodeSegment, 8, Executable);
   }
 
+  // Local relocations require a complete in-image address field and a target no later than the image's one-past end.
+  TEST(VMLoaderDeathTest, RejectsInvalidImageBaseRelocationFieldsAndTargets)
+  {
+    Interpreter VM;
+    Loader LibraryLoader(VM);
+    ExecutableFile Executable;
+    Executable.getImage().assign(16, 0xD6);
+    Executable.getImageBaseAddressRelocations().push_back({0, 0, 0});
+    auto CodeSegment = makeCodeSegment(Executable);
+    const std::uint64_t InvalidFieldOffsets[] = {
+        9,
+        16,
+        std::numeric_limits<std::uint64_t>::max(),
+    };
+    for (const auto Offset : InvalidFieldOffsets)
+    {
+      SCOPED_TRACE(Offset);
+      Executable.getImageBaseAddressRelocations()[0].ImageOffset = Offset;
+      expectLoaderICE(LibraryLoader, CodeSegment, 8, Executable);
+    }
+    Executable.getImageBaseAddressRelocations()[0].ImageOffset = 0;
+    Executable.getImageBaseAddressRelocations()[0].TargetOffset = 17;
+    expectLoaderICE(LibraryLoader, CodeSegment, 8, Executable);
+    Executable.getImageBaseAddressRelocations()[0].TargetOffset = std::numeric_limits<std::uint64_t>::max();
+    expectLoaderICE(LibraryLoader, CodeSegment, 8, Executable);
+    Executable.getImageBaseAddressRelocations()[0].TargetOffset = 0;
+    Executable.getImage().resize(7);
+    expectLoaderICE(LibraryLoader, CodeSegment, 8, Executable);
+  }
+
 #if INK_BUILD_DEBUG || INK_BUILD_DEVELOPMENT
-  // Assertion-enabled builds reject an actual patch address that is misaligned even when the image base is aligned.
+  // Assertion-enabled builds reject misaligned dynamic and local address fields even when the image base is aligned.
   TEST(VMLoaderDeathTest, RejectsMisalignedActualPatchAddressWhenAssertionsAreEnabled)
   {
     Interpreter VM;
@@ -324,6 +383,9 @@ namespace ink::vm::test
     auto CodeSegment = makeCodeSegment(Executable);
     ASSERT_EQ(reinterpret_cast<std::uintptr_t>(CodeSegment.data() + 8) % 8, 0U);
 
+    EXPECT_DEATH(static_cast<void>(LibraryLoader.loadLibrary(CodeSegment, 8, Executable)), "check failed");
+    Executable.getDynamicImportSymbolRelocations().clear();
+    Executable.getImageBaseAddressRelocations().push_back({1, 0, 0});
     EXPECT_DEATH(static_cast<void>(LibraryLoader.loadLibrary(CodeSegment, 8, Executable)), "check failed");
   }
 #endif
@@ -341,6 +403,22 @@ namespace ink::vm::test
     auto CodeSegment = makeCodeSegment(Executable);
     expectLoaderICE(LibraryLoader, CodeSegment, 8, Executable);
     Executable.getDynamicImportSymbolRelocations()[0].Addend = -static_cast<std::int64_t>(Address) - 1;
+    expectLoaderICE(LibraryLoader, CodeSegment, 8, Executable);
+  }
+
+  // Local target arithmetic rejects underflow explicitly, including the signed minimum whose negation cannot be represented.
+  TEST(VMLoaderDeathTest, RejectsImageBaseAddressUnderflowIncludingMinimumSignedAddend)
+  {
+    Interpreter VM;
+    Loader LibraryLoader(VM);
+    ExecutableFile Executable;
+    Executable.getImage().assign(8, 0xD6);
+    Executable.getImageBaseAddressRelocations().push_back({0, 0, std::numeric_limits<std::int64_t>::min()});
+    auto CodeSegment = makeCodeSegment(Executable);
+    const auto TargetAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment.data() + 8));
+    ASSERT_LT(TargetAddress, static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()));
+    expectLoaderICE(LibraryLoader, CodeSegment, 8, Executable);
+    Executable.getImageBaseAddressRelocations()[0].Addend = -static_cast<std::int64_t>(TargetAddress) - 1;
     expectLoaderICE(LibraryLoader, CodeSegment, 8, Executable);
   }
 

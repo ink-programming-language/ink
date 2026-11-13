@@ -81,7 +81,7 @@ namespace ink::vm
 
       /** Ensure RequiredBytes total capacity without changing CodeSegmentSize; repatch if storage moves. */
       void reserveCodeSegment(std::size_t RequiredBytes);
-      /** Rebase internal bindings from the old valid range after CodeSegment has moved to new storage. */
+      /** Rebase symbol bindings and recompute image-relative address fields after CodeSegment moves. */
       void repatchCodeSegment(std::uint64_t OldAddress, std::size_t OldSize);
 
       std::unordered_map<std::uint32_t, LibraryDescriptor> Libraries;

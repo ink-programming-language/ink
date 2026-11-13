@@ -28,7 +28,7 @@ namespace ink::vm
 
   // ImageOffset identifies the first byte of an eight-byte address field in the image.
   // TargetOffset is relative to the beginning of Image and may identify its one-past end.
-  // Loading patches ImageBase + TargetOffset + Addend after validating the bound address arithmetic.
+  // Loading patches the runtime image's host base + TargetOffset + Addend after checking address arithmetic.
   struct ImageBaseAddressRelocation
   {
       static constexpr std::uint8_t ByteSize = 8;
