@@ -1,4 +1,4 @@
-#include "ink/backend/vm/runtime/runtime.h"
+#include "ink/backend/vm/vm_runtime/runtime.h"
 #include "ink/runtime/builtin.h"
 #include "ink/core/name/name_pool.h"
 
