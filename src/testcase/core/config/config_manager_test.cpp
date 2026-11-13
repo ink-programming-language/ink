@@ -11,7 +11,7 @@ namespace ink::core::test
   // Config readers return concrete values; callers do not handle a missing-value state.
   static_assert(std::is_same_v<decltype(ConfigManager::get<ConfigKind::ParserMaxNestingDepth>()), std::string>);
   static_assert(std::is_same_v<decltype(ConfigManager::getSize<ConfigKind::ParserMaxNestingDepth>()), std::size_t>);
-  static_assert(std::is_same_v<decltype(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>()), Version>);
+  static_assert(std::is_same_v<decltype(ConfigManager::getVersion<ConfigKind::InkVersion>()), Version>);
 
   // All readers print the missing key diagnostic and terminate for unregistered enum values.
   TEST(ConfigManagerDeathTest, MissingKeysReportICEAndPanic)
@@ -91,47 +91,47 @@ namespace ink::core::test
     }
   }
 
-  // The VM instruction-set version uses its registered triplet default when the environment variable is absent.
-  TEST(ConfigManagerTest, UsesDefaultVMInstructionSetVersionWhenEnvironmentIsAbsent)
+  // The Ink version uses its registered triplet default when the environment variable is absent.
+  TEST(ConfigManagerTest, UsesDefaultInkVersionWhenEnvironmentIsAbsent)
   {
-    ScopedEnvironmentVariable Environment("INK_VM_INSTRUCTION_SET_VERSION");
+    ScopedEnvironmentVariable Environment("INK_VERSION");
     ASSERT_TRUE(Environment.set(nullptr));
-    EXPECT_EQ(ConfigManager::get<ConfigKind::VMInstructionSetVersion>(), "1.2.0");
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 2, 0));
+    EXPECT_EQ(ConfigManager::get<ConfigKind::InkVersion>(), "0.0.1");
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::InkVersion>(), Version(0, 0, 1));
   }
 
   // Each version read observes the current environment while earlier values and copies remain independent.
   TEST(ConfigManagerTest, CopiesVersionOverridesAndReadsCurrentEnvironment)
   {
-    ScopedEnvironmentVariable Environment("INK_VM_INSTRUCTION_SET_VERSION");
+    ScopedEnvironmentVariable Environment("INK_VERSION");
     ASSERT_TRUE(Environment.set("2.3.4"));
-    auto First = ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>();
+    auto First = ConfigManager::getVersion<ConfigKind::InkVersion>();
     const auto Copy = First;
     ASSERT_TRUE(Environment.set("9.8.7"));
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(9, 8, 7));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::InkVersion>(), Version(9, 8, 7));
     EXPECT_EQ(First, Version(2, 3, 4));
     First = Version(10, 20, 30);
     EXPECT_EQ(Copy, Version(2, 3, 4));
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(9, 8, 7));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::InkVersion>(), Version(9, 8, 7));
     ASSERT_TRUE(Environment.set(nullptr));
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 2, 0));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::InkVersion>(), Version(0, 0, 1));
   }
 
   // Version conversion accepts zero and the full unsigned 32-bit range in all three components.
   TEST(ConfigManagerTest, AcceptsVersionComponentBoundaries)
   {
-    ScopedEnvironmentVariable Environment("INK_VM_INSTRUCTION_SET_VERSION");
+    ScopedEnvironmentVariable Environment("INK_VERSION");
     ASSERT_TRUE(Environment.set("0.0.0"));
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(0, 0, 0));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::InkVersion>(), Version(0, 0, 0));
     ASSERT_TRUE(Environment.set("4294967295.4294967295.4294967295"));
     constexpr auto Maximum = std::numeric_limits<std::uint32_t>::max();
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(Maximum, Maximum, Maximum));
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::InkVersion>(), Version(Maximum, Maximum, Maximum));
   }
 
-  // Invalid triplets and overflowing components preserve raw overrides but fall back to the VM version default.
+  // Invalid triplets and overflowing components preserve raw overrides but fall back to the Ink version default.
   TEST(ConfigManagerTest, FallsBackForInvalidVersionOverrides)
   {
-    ScopedEnvironmentVariable Environment("INK_VM_INSTRUCTION_SET_VERSION");
+    ScopedEnvironmentVariable Environment("INK_VERSION");
     const char *InvalidValues[] = {
         "invalid",
         "1",
@@ -156,8 +156,8 @@ namespace ink::core::test
     {
       SCOPED_TRACE(Value);
       ASSERT_TRUE(Environment.set(Value));
-      EXPECT_EQ(ConfigManager::get<ConfigKind::VMInstructionSetVersion>(), Value);
-      EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 2, 0));
+      EXPECT_EQ(ConfigManager::get<ConfigKind::InkVersion>(), Value);
+      EXPECT_EQ(ConfigManager::getVersion<ConfigKind::InkVersion>(), Version(0, 0, 1));
     }
   }
 
@@ -174,10 +174,10 @@ namespace ink::core::test
   // A present-but-empty override remains visible as text while typed version reads use their defaults.
   TEST(ConfigManagerTest, PreservesEmptyOverrideAndFallsBackForVersion)
   {
-    ScopedEnvironmentVariable Environment("INK_VM_INSTRUCTION_SET_VERSION");
+    ScopedEnvironmentVariable Environment("INK_VERSION");
     ASSERT_TRUE(Environment.set(""));
-    EXPECT_EQ(ConfigManager::get<ConfigKind::VMInstructionSetVersion>(), "");
-    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::VMInstructionSetVersion>(), Version(1, 2, 0));
+    EXPECT_EQ(ConfigManager::get<ConfigKind::InkVersion>(), "");
+    EXPECT_EQ(ConfigManager::getVersion<ConfigKind::InkVersion>(), Version(0, 0, 1));
   }
 #endif
 } // namespace ink::core::test

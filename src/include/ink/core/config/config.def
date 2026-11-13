@@ -11,7 +11,7 @@ INK_CONFIG(ParserMaxDiagnostics, "INK_PARSER_MAX_DIAGNOSTICS", "100")
 INK_CONFIG(ParserMaxWork, "INK_PARSER_MAX_WORK", "10000000")
 // Parser AST storage budget: 64 MiB = 64 * 1024 * 1024 bytes.
 INK_CONFIG(ParserMaxAllocationBytes, "INK_PARSER_MAX_ALLOCATION_BYTES", "67108864")
-// VM instruction-set version, expressed as major.minor.patch.
-INK_CONFIG(VMInstructionSetVersion, "INK_VM_INSTRUCTION_SET_VERSION", "1.2.0")
+// Ink version, expressed as major.minor.patch.
+INK_CONFIG(InkVersion, "INK_VERSION", "0.0.1")
 // VM code segment initial reserved capacity: 1 MiB = 1024 * 1024 bytes.
 INK_CONFIG(VMInitialCodeSegmentBytes, "INK_VM_INITIAL_CODE_SEGMENT_BYTES", "1048576")

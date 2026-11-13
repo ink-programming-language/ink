@@ -380,6 +380,7 @@
       <config projectName="ink" targetName="install-LLVMCGData" folderName="LLVM/Installation" />
       <config projectName="ink" targetName="install-cuda-resource-headers" folderName="Clang/Installation" />
       <config projectName="ink" targetName="ExperimentalStart" folderName="CTestDashboardTargets" />
+      <config projectName="ink" targetName="ink_interpreter" />
       <config projectName="ink" targetName="mips-resource-headers" folderName="Clang/Resources" />
       <config projectName="ink" targetName="ClangDiagnosticCommonCompatIDs" folderName="Clang/Tablegenning" />
       <config projectName="ink" targetName="install-clangAPINotes-stripped" folderName="Clang/Installation" />
@@ -1045,23 +1046,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a3da2618-4d78-4eee-9508-91a1cb52fc78" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake/InkBuildConfig.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/cmake/InkBuildConfig.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/VM-Calling-Convention.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/VM-Calling-Convention.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/VM-Executable.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/VM-Executable.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/VM-Instruction-Format.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/VM-Instruction-Format.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/VM-Module.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/VM-Module.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/backend/vm/executable_emitter/executable_emitter.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/backend/vm/executable_emitter/executable_emitter.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/backend/vm/instruction/register.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/backend/vm/instruction/register.def" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/backend/vm/instruction/register.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/backend/vm/instruction/register.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/core/config.in" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/config.in" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/backend/vm/executable_emitter/executable_emitter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/backend/vm/executable_emitter/executable_emitter.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/backend/vm/executable_emitter/executable_emitter_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/backend/vm/executable_emitter/executable_emitter_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/backend/vm/instruction/operand_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/backend/vm/instruction/operand_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/backend/vm/instruction/register_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/backend/vm/instruction/register_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/backend/vm/linker/module_linker_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/backend/vm/linker/module_linker_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/backend/vm/serialization/machine_module_text_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/backend/vm/serialization/machine_module_text_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/testcase/core/support/core_define_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/core/support/core_define_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/core/config/config.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/config/config.def" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tools/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/CMakeLists.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -1084,7 +1071,11 @@
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/executable/executable_file.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/executable/executable_file_validator.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/executable_emiter/executable_emiter.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/include/ink/backend/vm/executable_emitter/executable_emission_context.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/executable_emitter/executable_emitter.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/include/ink/backend/vm/executable_emitter/function_emission_context.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/include/ink/backend/vm/executable_emitter/function_emitter.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/include/ink/backend/vm/executable_emitter/instruction_emitter.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/instruction/address_operand.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/instruction/basic_block_operand.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/instruction/immediate_operand.h" root0="SKIP_HIGHLIGHTING" />
@@ -1094,11 +1085,14 @@
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/instruction/machine_instructions.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/instruction/operand.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/instruction/register.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/include/ink/backend/vm/interpreter/interpreter.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/include/ink/backend/vm/interpreter/loader.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/module/machine_constant.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/module/machine_function.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/module/machine_global_variable.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/module/machine_instruction_builder.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/module/machine_module.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/include/ink/backend/vm/module/machine_symbol.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/object/object_file_io_error.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/object/object_file_reader.h" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/include/ink/backend/vm/object/object_file_validator.h" root0="SKIP_HIGHLIGHTING" />
@@ -1152,10 +1146,16 @@
     <setting file="mock://D:/github/ink/src/lib/IR/type/function_type.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/backend/vm/emitter/executable_emitter.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/backend/vm/executable/executable_file_validator.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/lib/backend/vm/executable_emitter/executable_emission_context.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/backend/vm/executable_emitter/executable_emitter.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/lib/backend/vm/executable_emitter/function_emission_context.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/lib/backend/vm/executable_emitter/function_emitter.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/lib/backend/vm/executable_emitter/instruction_emitter.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/backend/vm/instruction/machine_instruction.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/lib/backend/vm/interpreter/interpreter.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/backend/vm/linker/link_bindings.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/backend/vm/module/machine_instruction_builder.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://D:/github/ink/src/lib/backend/vm/module/machine_module.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/backend/vm/object/object_file_reader.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/backend/vm/object/object_file_validator.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock://D:/github/ink/src/lib/backend/vm/object/object_file_writer.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -1188,6 +1188,7 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;CMake Application.ink_vm_run.executor&quot;: &quot;Run&quot;,
     &quot;CMake Application.inkc.executor&quot;: &quot;Run&quot;,
     &quot;CidrDebugProfileConversion&quot;: &quot;true&quot;,
     &quot;Google Test.ink_tests.executor&quot;: &quot;Run&quot;,
@@ -1207,7 +1208,7 @@
     &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;
   }
 }</component>
-  <component name="RunManager" selected="Google Test.ink_tests">
+  <component name="RunManager" selected="CMake Application.ink_interpreter">
     <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="CLION.EXTERNAL.BUILD" enabled="true" />
@@ -3394,6 +3395,11 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="ink_interpreter" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_interpreter" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ink" RUN_TARGET_NAME="ink_interpreter">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="ink_ir" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_ir" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -3419,7 +3425,12 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="ink_vm" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_vm" CONFIG_NAME="Debug">
+    <configuration name="ink_vm" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="$PROJECT_DIR$/examples/vm/hello_world_windows.asm" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_vm" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ink_vm_run" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="$PROJECT_DIR$/examples/vm/hello_world_windows.asm" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ink" TARGET_NAME="ink_vm_run" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ink" RUN_TARGET_NAME="ink_vm_run">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -7332,14 +7343,23 @@
       <item itemvalue="CMake Application.spdlog" />
       <item itemvalue="CMake Application.utf8proc" />
       <item itemvalue="CMake Application.inkc" />
+      <item itemvalue="CMake Application.ink_interpreter" />
       <item itemvalue="CMake Application.ink_parse" />
       <item itemvalue="CMake Application.ink_tokenize" />
+      <item itemvalue="CMake Application.ink_vm_run" />
       <item itemvalue="CTest Application.All CTest" />
       <item itemvalue="Google Test.ink_tests" />
     </list>
   </component>
   <component name="SelectedDebugProfileService">{
   &quot;profileIdByStamp&quot;: [
+    {
+      &quot;first&quot;: {
+        &quot;##RUN_CONFIGURATION##&quot;: &quot;CMake Application.ink_vm&quot;,
+        &quot;cmake&quot;: &quot;CMakeBuildProfile:Debug&quot;
+      },
+      &quot;second&quot;: &quot;6ba3a60f-6641-4a42-bf44-8724ba8fb72e&quot;
+    },
     {
       &quot;first&quot;: {
         &quot;##RUN_CONFIGURATION##&quot;: &quot;CMake Application.clang-check&quot;,
@@ -7362,7 +7382,7 @@
       &quot;second&quot;: &quot;6ba3a60f-6641-4a42-bf44-8724ba8fb72e&quot;
     }
   ],
-  &quot;modificationCount&quot;: 60
+  &quot;modificationCount&quot;: 64
 }</component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">

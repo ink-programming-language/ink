@@ -1,6 +1,6 @@
 # VM 指令编码格式讨论稿
 
-本文保留 Ink VM 指令及操作数的编码方案讨论。当前已实现逻辑指令、模块链接、可执行镜像模型与结构校验，以及全局布局、函数名偏移登记、指令字节发射、显式入口选择和导出生成；解码仍待实现。操作码来自 `src/include/ink/backend/vm/instruction/opcode.def`，寄存器编号来自同目录的 `register.def`。`VMInstructionSetVersion` 的默认值为 `1.2.0`，可通过 `INK_VM_INSTRUCTION_SET_VERSION` 配置；这一版本新增 `call` 和 `callNative` 逻辑操作码。符号地址操作数在逻辑模型中保留链接名和偏移，由布局、发射与后续加载绑定阶段转换为数值字段。
+本文保留 Ink VM 指令及操作数的编码方案讨论。当前已实现逻辑指令、模块链接、可执行镜像模型与结构校验，以及全局布局、函数名偏移登记、指令字节发射、显式入口选择和导出生成；解码仍待实现。操作码来自 `src/include/ink/backend/vm/instruction/opcode.def`，寄存器编号来自同目录的 `register.def`。VM 与其他 Ink 组件统一使用 `InkVersion`，默认值为 `0.0.1`，可通过 `INK_VERSION` 配置；当前指令集包含 `call` 和 `callNative` 逻辑操作码。符号地址操作数在逻辑模型中保留链接名和偏移，由布局、发射与后续加载绑定阶段转换为数值字段。
 
 当前实现提供 `Operand` 基类以及 `RegisterOperand`、`AddressOperand`、`ImmediateOperand`、`BasicBlockOperand` 四种逻辑操作数，并通过强类型指令布局将操作数接入 `MachineInstruction`。基本块操作数在内存中持有目标块指针；调用复用立即数和地址操作数，分别表达直接目标和存放间接目标的内存位置。[VM 内存模型与指令构建](VM-Module.md) 提供模块、函数、基本块的所有权结构和 `MachineInstructionBuilder`，供 lowering 构建逻辑指令。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号解析和深克隆，`executable` 目录提供镜像模型与结构校验。加载、预解码缓存和执行器仍待实现。
 
