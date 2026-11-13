@@ -1048,7 +1048,9 @@
     <list default="true" id="a3da2618-4d78-4eee-9508-91a1cb52fc78" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/docs/VM-Runtime.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/VM-Runtime.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/include/ink/backend/vm/interpreter/interpreter.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/backend/vm/interpreter/interpreter.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/include/ink/backend/vm/interpreter/loader.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/backend/vm/interpreter/loader.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib/backend/vm/interpreter/interpreter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/backend/vm/interpreter/interpreter.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/backend/vm/interpreter/loader.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/backend/vm/interpreter/loader.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/testcase/backend/vm/interpreter/interpreter_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase/backend/vm/interpreter/interpreter_test.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

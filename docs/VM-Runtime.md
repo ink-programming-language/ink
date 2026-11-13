@@ -12,7 +12,11 @@
 
 [VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录统一符号声明、可写或只读全局数据和栈帧描述。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号绑定和 Native 符号推导，`ExecutableFile` 提供镜像模型和结构校验。指令编码、镜像布局与发射已实现，解码、加载器及执行器仍待实现；下文描述运行时规划。
 
-`interpreter` 目录中的 `Interpreter` 持有 `Loader`，后者借用所属解释器。`Interpreter::loadLibrary(ExecutableFile)` 接收并持有镜像，将 `Image` 追加到 `CodeSegment` 后先调用 `loadExportSymbol(const LibraryDescriptor &)`，再调用 `Loader::loadLibrary(CodeSegment, ImageBase, ExecutableFile &)`，其中 `ImageBase` 保存追加前的代码段字节偏移。解释器分配从 1 开始且不复用的 `uint32_t` handle，并保存 handle 到 `LibraryDescriptor` 的映射；描述符包含 `ImageBase` 和 `ExecutableFile`，handle 空间耗尽时返回 0。`loadExportSymbol` 遍历库的 `ExportSymbols`，以 `core::Name` 为键，将 `ImageBase + Export.Offset` 写入 `ExportSymbolMap`；同名记录直接覆盖，其他记录保留。当前表中地址是以 `CodeSegment` 开头为零点的绝对字节位置，代码段扩容不改变这些数值；`getExportSymbolMap` 提供只读查询。`findExecutable` 提供只读查询，未知 handle 返回 nullptr。`tools/interpreter` 中的 `ink-interpreter` 工具持有解释器实例，将输入文件原始字节读入 `ExecutableFile::Image` 后调用 `loadLibrary`，输入为 `-` 时读取标准输入。可执行文件解码器尚未实现，此时不读取入口、导入或重定位元数据；Loader 的绑定接口目前为空，尚不进行重定位、导入绑定或执行。
+`interpreter` 目录中的 `Interpreter` 持有 `Loader`，后者借用所属解释器。`Interpreter::loadLibrary(ExecutableFile)` 创建 RAII 加载事务，在工作代码段中追加 `Image` 后调用 `Loader::loadLibrary(CodeSegment, ImageBase, ExecutableFile &)`，其中 `ImageBase` 保存追加前的代码段字节偏移。Loader 返回 `false` 时，事务恢复原代码段、导出表和 handle 计数，并删除事务期间新增的库记录，`loadLibrary` 返回 0；既有 `findExecutable` 借用指针保持有效。Loader 成功后才登记导出符号并提交事务。成功的 `uint32_t` handle 从 1 开始且不复用，失败尝试不消耗 handle；handle 空间耗尽也返回 0。handle 映射到包含 `ImageBase` 和 `ExecutableFile` 的 `LibraryDescriptor`，`findExecutable` 对未知 handle 返回 nullptr。
+
+当前 Loader 接收整个可写 `CodeSegment`，因此事务保留原容器并复制代码段与导出表作为工作状态，使失败能够恢复既有字节、原存储地址和容量。每次加载的额外复制开销与已有代码段及导出表大小成正比。`loadExportSymbol(const LibraryDescriptor &)` 遍历库的 `ExportSymbols`，以 `core::Name` 为键，将 `ImageBase + Export.Offset` 写入 `ExportSymbolMap`；同名记录直接覆盖，其他记录保留。当前表中地址是以 `CodeSegment` 开头为零点的绝对字节位置，代码段扩容不改变这些数值；`getExportSymbolMap` 提供只读查询。
+
+`tools/interpreter` 中的 `ink-interpreter` 工具持有解释器实例，将输入文件原始字节读入 `ExecutableFile::Image` 后调用 `loadLibrary`，输入为 `-` 时读取标准输入。可执行文件解码器尚未实现，此时不读取入口、导入或重定位元数据。Loader 当前检查镜像在代码段中的范围以及导出偏移是否位于镜像内，失败通过 `false` 报告；空镜像且没有导出时仍接受。重定位、导入绑定和执行尚未实现。
 
 ## 寄存器与符号操作数
 

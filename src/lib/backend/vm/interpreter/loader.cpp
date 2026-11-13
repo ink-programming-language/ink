@@ -1,4 +1,5 @@
 #include "ink/backend/vm/interpreter/loader.h"
+#include "ink/backend/vm/executable/executable_file.h"
 
 namespace ink::vm
 {
@@ -7,7 +8,8 @@ namespace ink::vm
   {
   }
 
-  void Loader::loadLibrary(std::vector<std::uint8_t> &, std::uint64_t, ExecutableFile &)
+  bool Loader::loadLibrary(std::vector<std::uint8_t> &CodeSegment, std::uint64_t ImageBase, ExecutableFile &Executable)
   {
+    return true;
   }
 } // namespace ink::vm

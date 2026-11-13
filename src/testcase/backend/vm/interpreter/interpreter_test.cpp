@@ -18,6 +18,98 @@ namespace ink::vm::test
   static_assert(!std::is_move_constructible_v<Interpreter> && !std::is_move_assignable_v<Interpreter>);
   static_assert(std::is_same_v<decltype(std::declval<Interpreter &>().loadLibrary(std::declval<ExecutableFile>())), std::uint32_t>);
 
+  // A failed first load removes its image, exports, and tentative handle so the first successful load still receives handle one.
+  TEST(VMInterpreterTest, RollsBackFailedFirstLibraryLoad)
+  {
+    const auto ExportName = core::NamePool::instance().intern("interpreter-failed-first-export");
+    Interpreter VM;
+    const auto *InitialData = VM.getCodeSegment().data();
+    const auto InitialCapacity = VM.getCodeSegment().capacity();
+    ExecutableFile Invalid;
+    Invalid.getImage() = {0x11};
+    Invalid.getExportSymbols().push_back({ExportName, 1});
+
+    EXPECT_EQ(VM.loadLibrary(std::move(Invalid)), Interpreter::InvalidLibraryHandle);
+    EXPECT_TRUE(VM.getCodeSegment().empty());
+    EXPECT_EQ(VM.getCodeSegment().data(), InitialData);
+    EXPECT_EQ(VM.getCodeSegment().capacity(), InitialCapacity);
+    EXPECT_TRUE(VM.getExportSymbolMap().empty());
+    EXPECT_EQ(VM.findExecutable(1), nullptr);
+
+    ExecutableFile Valid;
+    Valid.getImage() = {0x22};
+    Valid.getExportSymbols().push_back({ExportName, 0});
+    const auto Handle = VM.loadLibrary(std::move(Valid));
+    EXPECT_EQ(Handle, 1U);
+    const auto *Stored = VM.findExecutable(Handle);
+    ASSERT_NE(Stored, nullptr);
+    EXPECT_EQ(Stored->getImage(), (std::vector<std::uint8_t>{0x22}));
+    const std::unordered_map<core::Name, std::uint64_t> ExpectedSymbols = {
+        {ExportName, 0},
+    };
+    EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
+  }
+
+  // A later loader failure restores the original code storage and exports while preserving borrowed files and the next handle.
+  TEST(VMInterpreterTest, RollsBackFailedLibraryLoadAfterCodeSegmentGrowth)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_VM_INITIAL_CODE_SEGMENT_BYTES");
+    ASSERT_TRUE(Environment.set("4"));
+    const auto SharedName = core::NamePool::instance().intern("interpreter-rollback-shared-export");
+    const auto FirstOnlyName = core::NamePool::instance().intern("interpreter-rollback-first-export");
+    const auto NewName = core::NamePool::instance().intern("interpreter-rollback-new-export");
+    const std::vector<std::uint8_t> FirstImage{0x11, 0x22, 0x33};
+    Interpreter VM;
+    ExecutableFile First;
+    First.getImage() = FirstImage;
+    First.getExportSymbols().push_back({SharedName, 0});
+    First.getExportSymbols().push_back({FirstOnlyName, 2});
+    const auto FirstHandle = VM.loadLibrary(std::move(First));
+    ASSERT_EQ(FirstHandle, 1U);
+    const auto *StoredFirst = VM.findExecutable(FirstHandle);
+    ASSERT_NE(StoredFirst, nullptr);
+    const auto *OriginalData = VM.getCodeSegment().data();
+    const auto OriginalCapacity = VM.getCodeSegment().capacity();
+    ASSERT_GE(OriginalCapacity, 4U);
+    ASSERT_LT(OriginalCapacity, 1024U * 1024U);
+    const auto OriginalSymbols = VM.getExportSymbolMap();
+    const auto OriginalShared = VM.getExportSymbolMap().find(SharedName);
+    ASSERT_NE(OriginalShared, VM.getExportSymbolMap().end());
+    const auto *OriginalSharedAddress = &OriginalShared->second;
+
+    ExecutableFile Invalid;
+    Invalid.getImage().resize(OriginalCapacity + 1, 0x44);
+    Invalid.getExportSymbols().push_back({SharedName, 1});
+    Invalid.getExportSymbols().push_back({NewName, static_cast<std::uint64_t>(Invalid.getImage().size())});
+    EXPECT_EQ(VM.loadLibrary(std::move(Invalid)), Interpreter::InvalidLibraryHandle);
+
+    EXPECT_EQ(VM.getCodeSegment(), FirstImage);
+    EXPECT_EQ(VM.getCodeSegment().data(), OriginalData);
+    EXPECT_EQ(VM.getCodeSegment().capacity(), OriginalCapacity);
+    EXPECT_EQ(VM.getExportSymbolMap(), OriginalSymbols);
+    const auto RestoredShared = VM.getExportSymbolMap().find(SharedName);
+    ASSERT_NE(RestoredShared, VM.getExportSymbolMap().end());
+    EXPECT_EQ(&RestoredShared->second, OriginalSharedAddress);
+    EXPECT_EQ(VM.findExecutable(FirstHandle), StoredFirst);
+    EXPECT_EQ(StoredFirst->getImage(), FirstImage);
+    EXPECT_EQ(VM.findExecutable(2), nullptr);
+
+    ExecutableFile Next;
+    Next.getImage() = {0x55, 0x66};
+    Next.getExportSymbols().push_back({SharedName, 1});
+    Next.getExportSymbols().push_back({NewName, 0});
+    const auto NextHandle = VM.loadLibrary(std::move(Next));
+    EXPECT_EQ(NextHandle, 2U);
+    EXPECT_EQ(VM.findExecutable(FirstHandle), StoredFirst);
+    EXPECT_EQ(VM.getCodeSegment(), (std::vector<std::uint8_t>{0x11, 0x22, 0x33, 0x55, 0x66}));
+    const std::unordered_map<core::Name, std::uint64_t> ExpectedSymbols = {
+        {SharedName, 4},
+        {FirstOnlyName, 2},
+        {NewName, 3},
+    };
+    EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
+  }
+
   // Explicit library bases translate exported offsets, and later registrations overwrite only matching names.
   TEST(VMInterpreterTest, LoadsExportSymbolsFromLibraryDescriptors)
   {

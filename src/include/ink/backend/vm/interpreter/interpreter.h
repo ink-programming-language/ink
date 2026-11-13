@@ -29,7 +29,8 @@ namespace ink::vm
       Interpreter(Interpreter &&) = delete;
       Interpreter &operator=(Interpreter &&) = delete;
 
-      // Owns Executable and invokes the loader; handles are never reused, and exhaustion returns InvalidLibraryHandle.
+      // Owns Executable and invokes the loader; failed loads restore interpreter state and return InvalidLibraryHandle.
+      // Successful handles are never reused; handle exhaustion also returns InvalidLibraryHandle.
       [[nodiscard]] std::uint32_t loadLibrary(ExecutableFile Executable);
 
       // Registers CodeSegment-relative addresses; later entries replace existing names.
@@ -49,6 +50,8 @@ namespace ink::vm
       }
 
     private:
+      class LoadTransaction;
+
       std::unordered_map<std::uint32_t, LibraryDescriptor> Libraries;
       std::vector<std::uint8_t> CodeSegment;
       std::unordered_map<core::Name, std::uint64_t> ExportSymbolMap;
