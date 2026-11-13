@@ -1,14 +1,9 @@
 #pragma once
 
+#include "ink/core/support/extern_c.h"
+
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
+INK_EXTERN_C_BEGIN
   int64_t identity(int64_t Value);
-
-#ifdef __cplusplus
-}
-#endif
+INK_EXTERN_C_END

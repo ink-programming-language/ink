@@ -1,6 +1,7 @@
 #ifndef INK_CORE_CORE_DEFINE_H
 #define INK_CORE_CORE_DEFINE_H
 
+#include "ink/core/support/extern_c.h"
 #include "ink/core/config.h"
 
 #include <spdlog/fmt/fmt.h>
