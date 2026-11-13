@@ -2,15 +2,12 @@
 #include "ink/runtime/builtin.h"
 
 #include <cstdint>
-#include <cstring>
 
 namespace ink::vm
 {
   void identityStub(Frame *CallFrame) noexcept
   {
-    std::int64_t Value;
-    std::memcpy(&Value, CallFrame->SP - 8, sizeof(Value));
-    const std::int64_t Result = ::identity(Value);
-    std::memcpy(CallFrame->SP - 16, &Result, sizeof(Result));
+    const auto Value = CallFrame->getArgument<0, std::int64_t>();
+    CallFrame->setReturnValue<std::int64_t, std::int64_t>(::identity(Value));
   }
 } // namespace ink::vm

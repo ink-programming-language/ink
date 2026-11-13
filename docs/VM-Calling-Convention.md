@@ -131,6 +131,14 @@ VM 提供给 Native 函数符号的地址指向桩函数，桩统一接收 `Fram
 
 桩读取参数，调用共享 runtime，将结果写入返回槽后直接返回，不改变 `Frame::SP`、参数槽或调用区以外的字节。调用方读取结果并回收调用区。进入桩之前，调用方须保证 `Frame` 和 `SP` 有效、调用区满足 8 字节对齐，并完成地址范围与读写权限检查；当前仅保存 `SP` 的 `Frame` 无法自行验证这些条件。可变参数 Native 桩的封送协议另行约定。
 
+### Frame 栈访问模板
+
+非可变参数桩统一通过 `Frame::getArgument<Index, ArgumentTypes...>()` 读取参数，通过 `Frame::setReturnValue<ReturnType, ArgumentTypes...>(Value)` 写入返回值。`Index` 从 0 开始，`ArgumentTypes...` 必须包含完整的参数类型列表，顺序与声明一致；零参数函数使用空参数列表，返回 `void` 时不调用返回值写入方法。
+
+这些模板只处理宿主对象表示与 VM 值表示相同、可平凡复制且对齐要求不超过 8 字节的按值类型；不接受引用、原始 C 数组或 `volatile` 类型。槽大小使用 `SlotBytes(T) = alignUp(sizeof(T), 8)`，C++ 完整对象的 `sizeof(T)` 至少为 1，因此槽大小至少为 8 字节。读取参数 `Index` 时，从入口 `SP` 减去该参数及其后全部参数的槽大小；写入返回值时，从 `SP` 减去返回槽和全部参数槽的大小。复制仅涉及 `sizeof(T)` 字节，不读取或覆盖槽尾填充，也不改变 `SP`。
+
+例如 `identityStub` 使用 `getArgument<0, int64_t>()` 和 `setReturnValue<int64_t, int64_t>(Result)`，仍对应上述 `SP - 8` 参数槽和 `SP - 16` 返回槽，桩内不再直接计算栈地址。
+
 ## 普通调用和返回
 
 | 阶段 | 操作 |
