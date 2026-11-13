@@ -5,6 +5,6 @@
 namespace ink::vm
 {
   const std::array<NativeSymbolAddress, 1> NativeSymbolAddresses = {{
-      {core::NamePool::instance().intern("identity"), reinterpret_cast<void *>(&runtime::builtin::identity)},
+      {core::NamePool::instance().intern("identity"), reinterpret_cast<void *>(&::identity)},
   }};
 } // namespace ink::vm

@@ -1,8 +1,14 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
-namespace ink::runtime::builtin
+#ifdef __cplusplus
+extern "C"
 {
-  std::int64_t identity(std::int64_t Value) noexcept;
-} // namespace ink::runtime::builtin
+#endif
+
+  int64_t identity(int64_t Value);
+
+#ifdef __cplusplus
+}
+#endif
