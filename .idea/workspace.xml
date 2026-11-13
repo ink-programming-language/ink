@@ -1047,8 +1047,9 @@
   <component name="ChangeListManager">
     <list default="true" id="a3da2618-4d78-4eee-9508-91a1cb52fc78" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/include/ink/core/config/config.def" beforeDir="false" afterPath="$PROJECT_DIR$/src/include/ink/core/config/config.def" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tools/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/VM-Runtime.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/VM-Runtime.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tools/interpreter/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/interpreter/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tools/interpreter/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tools/interpreter/main.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -1188,6 +1189,7 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;CMake Application.ink_interpreter.executor&quot;: &quot;Run&quot;,
     &quot;CMake Application.ink_vm_run.executor&quot;: &quot;Run&quot;,
     &quot;CMake Application.inkc.executor&quot;: &quot;Run&quot;,
     &quot;CidrDebugProfileConversion&quot;: &quot;true&quot;,
@@ -7369,6 +7371,13 @@
     },
     {
       &quot;first&quot;: {
+        &quot;##RUN_CONFIGURATION##&quot;: &quot;CMake Application.ink_interpreter&quot;,
+        &quot;cmake&quot;: &quot;CMakeBuildProfile:Debug&quot;
+      },
+      &quot;second&quot;: &quot;6ba3a60f-6641-4a42-bf44-8724ba8fb72e&quot;
+    },
+    {
+      &quot;first&quot;: {
         &quot;##RUN_CONFIGURATION##&quot;: &quot;Google Test.ink_tests&quot;,
         &quot;cmake&quot;: &quot;CMakeBuildProfile:Debug&quot;
       },
@@ -7382,7 +7391,7 @@
       &quot;second&quot;: &quot;6ba3a60f-6641-4a42-bf44-8724ba8fb72e&quot;
     }
   ],
-  &quot;modificationCount&quot;: 64
+  &quot;modificationCount&quot;: 65
 }</component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
