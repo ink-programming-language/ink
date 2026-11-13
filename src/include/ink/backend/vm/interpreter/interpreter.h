@@ -2,6 +2,7 @@
 
 #include "ink/backend/vm/executable/executable_file.h"
 #include "ink/backend/vm/interpreter/loader.h"
+#include "ink/core/name/name.h"
 
 #include <cstdint>
 #include <unordered_map>
@@ -9,7 +10,7 @@
 
 namespace ink::vm
 {
-  struct LibraryDesciptor
+  struct LibraryDescriptor
   {
       // The image's byte offset in CodeSegment, preserved when the vector reallocates.
       std::uint64_t ImageBase = 0;
@@ -31,6 +32,9 @@ namespace ink::vm
       // Owns Executable and invokes the loader; handles are never reused, and exhaustion returns InvalidLibraryHandle.
       [[nodiscard]] std::uint32_t loadLibrary(ExecutableFile Executable);
 
+      // Registers CodeSegment-relative addresses; later entries replace existing names.
+      void loadExportSymbol(const LibraryDescriptor &Library);
+
       // The borrowed file remains valid until this interpreter is destroyed; an unknown handle returns nullptr.
       const ExecutableFile *findExecutable(std::uint32_t Handle) const noexcept;
 
@@ -39,9 +43,15 @@ namespace ink::vm
         return CodeSegment;
       }
 
+      const std::unordered_map<core::Name, std::uint64_t> &getExportSymbolMap() const noexcept
+      {
+        return ExportSymbolMap;
+      }
+
     private:
-      std::unordered_map<std::uint32_t, LibraryDesciptor> Libraries;
+      std::unordered_map<std::uint32_t, LibraryDescriptor> Libraries;
       std::vector<std::uint8_t> CodeSegment;
+      std::unordered_map<core::Name, std::uint64_t> ExportSymbolMap;
       vm::Loader Loader;
       std::uint32_t NextLibraryHandle = 1;
   };

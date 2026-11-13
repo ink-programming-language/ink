@@ -18,11 +18,20 @@ namespace ink::vm
       return InvalidLibraryHandle;
     }
     const std::uint32_t Handle = NextLibraryHandle++;
-    auto &Library = Libraries.try_emplace(Handle, LibraryDesciptor{static_cast<std::uint64_t>(CodeSegment.size()), std::move(Executable)}).first->second;
+    auto &Library = Libraries.try_emplace(Handle, LibraryDescriptor{static_cast<std::uint64_t>(CodeSegment.size()), std::move(Executable)}).first->second;
     const auto &Image = Library.ExecutableFile.getImage();
     CodeSegment.insert(CodeSegment.end(), Image.begin(), Image.end());
     Loader.loadLibrary(CodeSegment, Library.ImageBase, Library.ExecutableFile);
+    loadExportSymbol(Library);
     return Handle;
+  }
+
+  void Interpreter::loadExportSymbol(const LibraryDescriptor &Library)
+  {
+    for (const auto &Symbol : Library.ExecutableFile.getExportSymbols())
+    {
+      ExportSymbolMap.insert_or_assign(Symbol.Name, Library.ImageBase + Symbol.Offset);
+    }
   }
 
   const ExecutableFile *Interpreter::findExecutable(std::uint32_t Handle) const noexcept

@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <limits>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -16,6 +17,73 @@ namespace ink::vm::test
   static_assert(!std::is_copy_constructible_v<Interpreter> && !std::is_copy_assignable_v<Interpreter>);
   static_assert(!std::is_move_constructible_v<Interpreter> && !std::is_move_assignable_v<Interpreter>);
   static_assert(std::is_same_v<decltype(std::declval<Interpreter &>().loadLibrary(std::declval<ExecutableFile>())), std::uint32_t>);
+
+  // Explicit library bases translate exported offsets, and later registrations overwrite only matching names.
+  TEST(VMInterpreterTest, LoadsExportSymbolsFromLibraryDescriptors)
+  {
+    const auto FirstName = core::NamePool::instance().intern("interpreter-direct-first-export");
+    const auto SecondName = core::NamePool::instance().intern("interpreter-direct-second-export");
+    Interpreter VM;
+    EXPECT_TRUE(VM.getExportSymbolMap().empty());
+
+    LibraryDescriptor First;
+    First.ImageBase = 128;
+    First.ExecutableFile.getImage().resize(24);
+    First.ExecutableFile.getExportSymbols().push_back({FirstName, 3});
+    First.ExecutableFile.getExportSymbols().push_back({SecondName, 17});
+    VM.loadExportSymbol(First);
+    std::unordered_map<core::Name, std::uint64_t> ExpectedSymbols = {
+        {FirstName, 131},
+        {SecondName, 145},
+    };
+    EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
+
+    LibraryDescriptor Second;
+    Second.ImageBase = 256;
+    Second.ExecutableFile.getImage().resize(8);
+    Second.ExecutableFile.getExportSymbols().push_back({FirstName, 7});
+    VM.loadExportSymbol(Second);
+    ExpectedSymbols[FirstName] = 263;
+    EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
+  }
+
+  // Loading unequal images uses their accumulated bases, overwrites shared exports, and preserves other addresses through growth.
+  TEST(VMInterpreterTest, RegistersLibraryExportsAcrossCodeSegmentGrowth)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_VM_INITIAL_CODE_SEGMENT_BYTES");
+    ASSERT_TRUE(Environment.set("4"));
+    const auto SharedName = core::NamePool::instance().intern("interpreter-loaded-shared-export");
+    const auto FirstOnlyName = core::NamePool::instance().intern("interpreter-loaded-first-export");
+    const auto SecondOnlyName = core::NamePool::instance().intern("interpreter-loaded-second-export");
+    Interpreter VM;
+    const auto InitialCapacity = VM.getCodeSegment().capacity();
+    ASSERT_GE(InitialCapacity, 4U);
+    ASSERT_LT(InitialCapacity, 1024U * 1024U);
+
+    ExecutableFile First;
+    First.getImage() = {0x11, 0x22, 0x33};
+    First.getExportSymbols().push_back({SharedName, 0});
+    First.getExportSymbols().push_back({FirstOnlyName, 2});
+    const auto FirstHandle = VM.loadLibrary(std::move(First));
+    ASSERT_NE(FirstHandle, Interpreter::InvalidLibraryHandle);
+    std::unordered_map<core::Name, std::uint64_t> ExpectedSymbols = {
+        {SharedName, 0},
+        {FirstOnlyName, 2},
+    };
+    EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
+
+    ExecutableFile Second;
+    Second.getImage().resize(InitialCapacity + 1, 0x44);
+    Second.getExportSymbols().push_back({SharedName, 1});
+    Second.getExportSymbols().push_back({SecondOnlyName, 0});
+    const auto SecondHandle = VM.loadLibrary(std::move(Second));
+    ASSERT_NE(SecondHandle, Interpreter::InvalidLibraryHandle);
+    EXPECT_NE(FirstHandle, SecondHandle);
+    EXPECT_GT(VM.getCodeSegment().capacity(), InitialCapacity);
+    ExpectedSymbols[SharedName] = 4;
+    ExpectedSymbols[SecondOnlyName] = 3;
+    EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
+  }
 
   // The default code segment reserves one MiB without making unused storage part of its image bytes.
   TEST(VMInterpreterTest, ReservesDefaultCodeSegmentStorageWithoutImageBytes)
