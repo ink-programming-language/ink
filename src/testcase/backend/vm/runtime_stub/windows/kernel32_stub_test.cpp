@@ -230,6 +230,21 @@ namespace ink::vm::test
     EXPECT_EQ(Actual, Payload);
   }
 
+  // The shared ZERO address resides in committed memory with readable protection and no writable page mode.
+  TEST(VMWindowsStubTest, ZeroRegisterAddressResidesInReadOnlyCommittedMemory)
+  {
+    MEMORY_BASIC_INFORMATION Information{};
+    ASSERT_EQ(::VirtualQuery(&Frame::ZERO, &Information, sizeof(Information)), sizeof(Information));
+    EXPECT_EQ(Information.State, static_cast<DWORD>(MEM_COMMIT));
+    const DWORD Protection = Information.Protect & 0xFFU;
+    EXPECT_NE(Protection, static_cast<DWORD>(PAGE_READWRITE));
+    EXPECT_NE(Protection, static_cast<DWORD>(PAGE_WRITECOPY));
+    EXPECT_NE(Protection, static_cast<DWORD>(PAGE_EXECUTE_READWRITE));
+    EXPECT_NE(Protection, static_cast<DWORD>(PAGE_EXECUTE_WRITECOPY));
+    EXPECT_TRUE(Protection == PAGE_READONLY || Protection == PAGE_EXECUTE_READ);
+    EXPECT_EQ(Information.Protect & PAGE_GUARD, 0U);
+  }
+
   // Exact Windows import names appear once in the native registry and resolve to the matching Frame adapter addresses.
   TEST(VMWindowsStubTest, RegistersWindowsImportsAsFrameAdapters)
   {

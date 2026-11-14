@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ink/backend/vm/instruction/eflags.h"
+#include "ink/backend/vm/instruction/register.h"
 
 #include <array>
 #include <bit>
@@ -10,19 +11,66 @@
 #include <tuple>
 #include <type_traits>
 
+// Id must be a validated RegisterId; each expression argument is evaluated exactly once.
+#define GET_REGISTER(Id, FrameValue) (static_cast<const void *>((FrameValue).Register[static_cast<::std::size_t>(Id)]))
+#define SET_REGISTER(Id, FrameValue) (const_cast<void *>(static_cast<::ink::vm::Frame &>(FrameValue).Register[static_cast<::std::size_t>(Id)]))
+
 namespace ink::vm
 {
   // Native stubs receive the caller's validated call area without a VM BP/PC save area.
   struct Frame
   {
-      // The first free byte after the return and argument slots; stubs leave it unchanged.
+      // Native stubs leave SP unchanged; BP and PC are borrowed host addresses.
       std::uint8_t *SP = nullptr;
       std::uint8_t *BP = nullptr;
       std::uint8_t *PC = nullptr;
       vm::EFlags EFlags = 0;
+      inline static constexpr std::uint64_t ZERO = 0;
 
-      // ZERO has no mutable per-frame state and is never a writable register destination.
-      static constexpr std::uint64_t ZERO = 0;
+      // Address values in register-number order: BP, SP, PC, &EFlags, &ZERO.
+      std::array<const void *, static_cast<std::size_t>(RegisterId::ZERO) + 1> Register{};
+
+      Frame() noexcept
+      {
+        initializeRegisters();
+      }
+
+      explicit Frame(std::uint8_t *StackPointer) noexcept
+          : SP(StackPointer)
+      {
+        initializeRegisters();
+      }
+
+      Frame(const Frame &Other) noexcept
+          : SP(Other.SP),
+            BP(Other.BP),
+            PC(Other.PC),
+            EFlags(Other.EFlags)
+      {
+        initializeRegisters();
+      }
+
+      Frame &operator=(const Frame &Other) noexcept
+      {
+        SP = Other.SP;
+        BP = Other.BP;
+        PC = Other.PC;
+        EFlags = Other.EFlags;
+        initializeRegisters();
+        return *this;
+      }
+
+      // Refresh after changing BP, SP, or PC directly; scalar slots always address this frame's members.
+      void initializeRegisters() noexcept
+      {
+        Register = {
+            BP,
+            SP,
+            PC,
+            &EFlags,
+            &ZERO,
+        };
+      }
 
       // ArgumentTypes must list every parameter in declaration order, using types whose host and VM representations match.
       template <std::size_t Index, typename... ArgumentTypes>
