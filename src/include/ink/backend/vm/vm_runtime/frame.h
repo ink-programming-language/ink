@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ink/backend/vm/instruction/eflags.h"
+#include "ink/backend/vm/instruction/register.h"
 
 #include <array>
 #include <bit>
@@ -15,14 +16,59 @@ namespace ink::vm
   // Native stubs receive the caller's validated call area without a VM BP/PC save area.
   struct Frame
   {
-      // The first free byte after the return and argument slots; stubs leave it unchanged.
-      std::uint8_t *SP = nullptr;
-      std::uint8_t *BP = nullptr;
-      std::uint8_t *PC = nullptr;
-      vm::EFlags EFlags = 0;
+      Frame() noexcept = default;
 
-      // ZERO has no mutable per-frame state and is never a writable register destination.
-      static constexpr std::uint64_t ZERO = 0;
+      explicit Frame(std::uint8_t *StackPointer) noexcept
+      {
+        setSP(StackPointer);
+      }
+
+      // Index directly with RegisterId; the read-only view prevents writes to the ZERO slot.
+      const auto &getRegisters() const noexcept
+      {
+        return Register;
+      }
+
+      std::uint8_t *getBP() const noexcept
+      {
+        return reinterpret_cast<std::uint8_t *>(static_cast<std::uintptr_t>(Register[static_cast<std::size_t>(RegisterId::BP)]));
+      }
+
+      void setBP(std::uint8_t *Value) noexcept
+      {
+        Register[static_cast<std::size_t>(RegisterId::BP)] = reinterpret_cast<std::uintptr_t>(Value);
+      }
+
+      // The first free byte after the return and argument slots; native stubs leave it unchanged.
+      std::uint8_t *getSP() const noexcept
+      {
+        return reinterpret_cast<std::uint8_t *>(static_cast<std::uintptr_t>(Register[static_cast<std::size_t>(RegisterId::SP)]));
+      }
+
+      void setSP(std::uint8_t *Value) noexcept
+      {
+        Register[static_cast<std::size_t>(RegisterId::SP)] = reinterpret_cast<std::uintptr_t>(Value);
+      }
+
+      std::uint8_t *getPC() const noexcept
+      {
+        return reinterpret_cast<std::uint8_t *>(static_cast<std::uintptr_t>(Register[static_cast<std::size_t>(RegisterId::PC)]));
+      }
+
+      void setPC(std::uint8_t *Value) noexcept
+      {
+        Register[static_cast<std::size_t>(RegisterId::PC)] = reinterpret_cast<std::uintptr_t>(Value);
+      }
+
+      vm::EFlags getEFlags() const noexcept
+      {
+        return static_cast<vm::EFlags>(Register[static_cast<std::size_t>(RegisterId::EFLAGS)]);
+      }
+
+      void setEFlags(vm::EFlags Value) noexcept
+      {
+        Register[static_cast<std::size_t>(RegisterId::EFLAGS)] = Value;
+      }
 
       // ArgumentTypes must list every parameter in declaration order, using types whose host and VM representations match.
       template <std::size_t Index, typename... ArgumentTypes>
@@ -32,7 +78,7 @@ namespace ink::vm
         using ValueType = std::tuple_element_t<Index, std::tuple<ArgumentTypes...>>;
         constexpr std::size_t ByteOffset = getArgumentByteOffset<Index, ArgumentTypes...>();
         std::array<std::byte, sizeof(ValueType)> Bytes;
-        std::memcpy(Bytes.data(), SP - ByteOffset, sizeof(ValueType));
+        std::memcpy(Bytes.data(), getSP() - ByteOffset, sizeof(ValueType));
         return std::bit_cast<ValueType>(Bytes);
       }
 
@@ -41,10 +87,13 @@ namespace ink::vm
       void setReturnValue(const ReturnType &Value) const noexcept
       {
         constexpr std::size_t ByteOffset = getSlotByteSize<ReturnType>() + (getSlotByteSize<ArgumentTypes>() + ... + std::size_t{0});
-        std::memcpy(SP - ByteOffset, &Value, sizeof(ReturnType));
+        std::memcpy(getSP() - ByteOffset, &Value, sizeof(ReturnType));
       }
 
     private:
+      // Sole storage in register-number order: BP, SP, PC, EFLAGS, ZERO. ZERO has no write accessor.
+      std::array<std::uint64_t, static_cast<std::size_t>(RegisterId::ZERO) + 1> Register{};
+
       template <typename ValueType>
       static constexpr std::size_t getSlotByteSize() noexcept
       {
