@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
+#include <utility>
 
 namespace ink::vm::test
 {
@@ -44,9 +45,12 @@ namespace ink::vm::test
     static_assert(sizeof(NonDefaultConstructibleValue) == 8 && alignof(NonDefaultConstructibleValue) <= 8);
     static_assert(std::is_trivially_copyable_v<NonDefaultConstructibleValue> && !std::is_default_constructible_v<NonDefaultConstructibleValue>);
     static_assert(sizeof(const std::uint64_t *) == 8);
+    static_assert(std::is_same_v<decltype(Frame::SP), std::uint8_t *> && std::is_same_v<decltype(Frame::BP), std::uint8_t *> && std::is_same_v<decltype(Frame::PC), std::uint8_t *>);
+    static_assert(std::is_same_v<decltype(Frame::EFlags), EFlags>);
+    static_assert(Frame::ZERO == 0 && !std::is_assignable_v<decltype((std::declval<Frame &>().ZERO)), std::uint64_t>);
   }
 
-  // Mixed two-byte, twelve-byte, and pointer arguments retain declaration order, and a one-byte result leaves all slot padding intact.
+  // Mixed arguments and a one-byte result preserve the runtime registers, argument order, and all slot padding.
   TEST(VMFrameTest, ReadsMixedArgumentsAndWritesOnlySmallReturnValue)
   {
     alignas(8) std::array<std::uint8_t, 56> Stack;
@@ -55,12 +59,13 @@ namespace ink::vm::test
     const TwelveByteValue Aggregate{0x01234567, 0x89ABCDEF, 0x76543210};
     const std::uint64_t Pointee = 0xFEDCBA9876543210;
     const std::uint64_t *const Pointer = &Pointee;
+    std::array<std::uint8_t, 8> Code{};
     // The call area is return [8,16), small [16,24), aggregate [24,40), and pointer [40,48).
     std::memcpy(Stack.data() + 16, &Small, sizeof(Small));
     std::memcpy(Stack.data() + 24, &Aggregate, sizeof(Aggregate));
     std::memcpy(Stack.data() + 40, &Pointer, sizeof(Pointer));
     const auto InitialStack = Stack;
-    const Frame CallFrame{Stack.data() + 48};
+    const Frame CallFrame{.SP = Stack.data() + 48, .BP = Stack.data() + 16, .PC = Code.data(), .EFlags = ArithmeticEFlagsMask};
     auto *const InitialSP = CallFrame.SP;
 
     const auto ActualSmall = CallFrame.getArgument<0, std::int16_t, TwelveByteValue, const std::uint64_t *>();
@@ -72,6 +77,10 @@ namespace ink::vm::test
     EXPECT_EQ(ActualPointer, Pointer);
     EXPECT_EQ(Stack, InitialStack);
     EXPECT_EQ(CallFrame.SP, InitialSP);
+    EXPECT_EQ(CallFrame.BP, Stack.data() + 16);
+    EXPECT_EQ(CallFrame.PC, Code.data());
+    EXPECT_EQ(CallFrame.EFlags, ArithmeticEFlagsMask);
+    EXPECT_EQ(CallFrame.ZERO, 0U);
 
     const std::uint8_t Result = 0x3C;
     auto Expected = InitialStack;
@@ -80,6 +89,10 @@ namespace ink::vm::test
 
     EXPECT_EQ(Stack, Expected);
     EXPECT_EQ(CallFrame.SP, InitialSP);
+    EXPECT_EQ(CallFrame.BP, Stack.data() + 16);
+    EXPECT_EQ(CallFrame.PC, Code.data());
+    EXPECT_EQ(CallFrame.EFlags, ArithmeticEFlagsMask);
+    EXPECT_EQ(CallFrame.ZERO, 0U);
   }
 
   // A twenty-four-byte argument spans three slots, while a twelve-byte result preserves its four padding bytes and all argument bytes.

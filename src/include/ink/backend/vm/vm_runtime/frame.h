@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ink/backend/vm/instruction/eflags.h"
+
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -15,6 +17,12 @@ namespace ink::vm
   {
       // The first free byte after the return and argument slots; stubs leave it unchanged.
       std::uint8_t *SP = nullptr;
+      std::uint8_t *BP = nullptr;
+      std::uint8_t *PC = nullptr;
+      vm::EFlags EFlags = 0;
+
+      // ZERO has no mutable per-frame state and is never a writable register destination.
+      static constexpr std::uint64_t ZERO = 0;
 
       // ArgumentTypes must list every parameter in declaration order, using types whose host and VM representations match.
       template <std::size_t Index, typename... ArgumentTypes>

@@ -1,4 +1,5 @@
 #include "ink/backend/vm/interpreter/interpreter.h"
+#include "load_transaction.h"
 #include "relocation_address.h"
 #include "ink/backend/vm/vm_runtime/runtime.h"
 #include "ink/core/config/config_manager.h"
@@ -11,58 +12,6 @@
 
 namespace ink::vm
 {
-  class Interpreter::LoadTransaction
-  {
-    public:
-      explicit LoadTransaction(Interpreter &Owner)
-          : Owner(Owner),
-            SavedCodeSize(Owner.CodeSegmentSize),
-            SavedExportSymbolMap(std::move(Owner.ExportSymbolMap)),
-            SavedNextLibraryHandle(Owner.NextLibraryHandle)
-      {
-        Owner.ExportSymbolMap = SavedExportSymbolMap;
-      }
-
-      ~LoadTransaction()
-      {
-        if (Committed)
-        {
-          return;
-        }
-        Owner.CodeSegmentSize = SavedCodeSize;
-        Owner.ExportSymbolMap.swap(SavedExportSymbolMap);
-        for (auto Position = Owner.Libraries.begin(); Position != Owner.Libraries.end();)
-        {
-          if (Position->first >= SavedNextLibraryHandle)
-          {
-            Position = Owner.Libraries.erase(Position);
-          }
-          else
-          {
-            ++Position;
-          }
-        }
-        Owner.NextLibraryHandle = SavedNextLibraryHandle;
-      }
-
-      LoadTransaction(const LoadTransaction &) = delete;
-      LoadTransaction &operator=(const LoadTransaction &) = delete;
-      LoadTransaction(LoadTransaction &&) = delete;
-      LoadTransaction &operator=(LoadTransaction &&) = delete;
-
-      void commit() noexcept
-      {
-        Committed = true;
-      }
-
-    private:
-      Interpreter &Owner;
-      std::size_t SavedCodeSize;
-      std::unordered_map<core::Name, std::uint64_t> SavedExportSymbolMap;
-      std::uint32_t SavedNextLibraryHandle;
-      bool Committed = false;
-  };
-
   Interpreter::Interpreter() noexcept
       : Loader(*this)
   {
