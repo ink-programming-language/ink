@@ -242,12 +242,12 @@ namespace ink::vm::test
     auto Expected = Stack;
     std::memcpy(Expected.data() + 8, &Argument, sizeof(Argument));
     Frame CallFrame{Stack.data() + 24};
-    auto *const InitialSP = CallFrame.getSP();
+    auto *const InitialSP = CallFrame.SP;
 
     Stub(&CallFrame);
 
     EXPECT_EQ(Stack, Expected);
-    EXPECT_EQ(CallFrame.getSP(), InitialSP);
+    EXPECT_EQ(CallFrame.SP, InitialSP);
   }
 
   // Exports are registered before imports so a library can relocate a reference to its own host address.

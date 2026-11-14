@@ -120,9 +120,9 @@ Native 边界仍须由 adapter 处理参数、返回值、数据布局及宿主�
 
 VM 提供给 Native 函数符号的地址指向桩函数，桩统一接收 `Frame *`，通过栈上的返回槽回写结果，宿主函数返回类型为 `void`。桩内部按共享 runtime 的真实 C ABI 调用目标函数；例如符号名 `identity` 登记 `identityStub` 的地址，后者调用共享 runtime 的 `identity`。
 
-`Frame::getSP()` 返回字节指针，指向调用方准备完成的调用区末尾，也就是首个空闲字节。Native 桩不建立普通 VM `call` 使用的 16 字节旧 BP、返回 PC 保存区；调用区内部仍遵循先返回槽、后参数槽的布局。对于非可变参数桩，以入口 `SP` 代替上述布局公式中的 `bp` 计算调用区地址。
+`Frame::SP` 是字节指针，指向调用方准备完成的调用区末尾，也就是首个空闲字节。Native 桩不建立普通 VM `call` 使用的 16 字节旧 BP、返回 PC 保存区；调用区内部仍遵循先返回槽、后参数槽的布局。对于非可变参数桩，以入口 `SP` 代替上述布局公式中的 `bp` 计算调用区地址。
 
-`Frame` 以私有 `Register` 数组作为唯一寄存器存储，每槽为 `uint64_t`，按寄存器编号依次保存 `BP`、`SP`、`PC`、`EFLAGS`、`ZERO`，默认全部为 0。`getRegisters()` 返回数组的只读引用，运行时使用 `getRegisters()[static_cast<std::size_t>(Id)]` 直接索引，无需按寄存器种类分支；编号须已由调用方验证。`getBP()`、`getSP()`、`getPC()` 及对应的 setter 在固定槽与字节指针之间转换，`getEFlags()`、`setEFlags()` 使用公共 32 位 `EFlags` 类型，写入时零扩展到完整槽。`ZERO` 槽不提供写入口，始终为 0。`Frame{StackEnd}` 构造时只设置 `SP`；栈访问模板与现有 Native 桩不修改寄存器。
+`Frame` 还保存字节指针 `BP`、`PC` 和使用公共 `EFlags` 类型的同名标志成员，默认分别为 `nullptr` 和 0。`ZERO` 是值恒为 0 的只读静态常量成员，不占用可变的逐帧寄存器状态。`SP` 保留为首个数据成员，因此现有 `Frame{StackEnd}` 初始化仍只设置 `SP`；栈访问模板与现有 Native 桩不修改这些寄存器。
 
 `identity(i64) -> i64` 的调用区大小为 16 字节：
 

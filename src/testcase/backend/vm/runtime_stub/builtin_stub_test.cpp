@@ -44,11 +44,11 @@ namespace ink::vm::test
       auto Expected = Stack;
       std::memcpy(Expected.data() + ReturnSlotOffset, &Value, sizeof(Value));
       Frame CallFrame{Stack.data() + CallEndOffset};
-      auto *const InitialSP = CallFrame.getSP();
+      auto *const InitialSP = CallFrame.SP;
 
       identityStub(&CallFrame);
 
-      EXPECT_EQ(CallFrame.getSP(), InitialSP);
+      EXPECT_EQ(CallFrame.SP, InitialSP);
       EXPECT_EQ(Stack, Expected);
     }
   }
@@ -77,11 +77,11 @@ namespace ink::vm::test
     auto Expected = Stack;
     std::memcpy(Expected.data() + ReturnSlotOffset, &Value, sizeof(Value));
     Frame CallFrame{Stack.data() + CallEndOffset};
-    auto *const InitialSP = CallFrame.getSP();
+    auto *const InitialSP = CallFrame.SP;
 
     Stub(&CallFrame);
 
-    EXPECT_EQ(CallFrame.getSP(), InitialSP);
+    EXPECT_EQ(CallFrame.SP, InitialSP);
     EXPECT_EQ(Stack, Expected);
   }
 } // namespace ink::vm::test
