@@ -1,6 +1,12 @@
 #include "ink/backend/vm/executable/executable_file.h"
+#include "ink/backend/vm/executable_emitter/executable_emitter.h"
 #include "ink/backend/vm/interpreter/interpreter.h"
+#include "ink/backend/vm/serialization/machine_module_text.h"
 #include "ink/core/config/config_manager.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/diagnostic/diagnostic_formatter.h"
+#include "ink/core/name/name_pool.h"
 
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/InitLLVM.h>
@@ -10,17 +16,19 @@
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/ostream_sink.h>
 
+#include <array>
 #include <iostream>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace cl = llvm::cl;
 
 namespace
 {
-    static cl::opt<std::string> InputFile(cl::desc("<input bitcode>"), cl::Positional, cl::init("-"));
+    static cl::opt<std::string> InputFile(cl::desc("<input module>"), cl::Positional, cl::init("-"));
     // String flags keep validation errors out of LLVM's direct stderr output paths.
     static cl::opt<std::string> Help("h", cl::desc("Print help"), cl::ValueOptional);
     static cl::opt<std::string> Version("v", cl::desc("Print version"), cl::ValueOptional);
@@ -58,7 +66,7 @@ namespace
 
         if (HelpCount != 0)
         {
-            Output.info("Ink VM interpreter.\nUsage:\n  ink-interpreter [options] [<input bitcode>]\n\n  <input bitcode>  Input file (default: -, standard input)\n  -h, --help       Print help\n  -v, --version    Print version\n");
+            Output.info("Ink VM interpreter.\nUsage:\n  ink-interpreter [options] [<input module>]\n\n  <input module>  MachineModule assembly text (default: -, standard input)\n  -h, --help      Print help\n  -v, --version   Print version\n");
             return std::cout ? 0 : 2;
         }
         if (VersionCount != 0)
@@ -70,7 +78,7 @@ namespace
         return std::nullopt;
     }
 
-    std::optional<ink::vm::ExecutableFile> prepareInputBitCode()
+    std::optional<ink::vm::ExecutableFile> prepareInputBitCode(const ink::core::DiagnosticEngine& Diagnostics)
     {
         const auto Input = llvm::MemoryBuffer::getFileOrSTDIN(InputFile.getValue(), false, false);
         if (!Input)
@@ -78,11 +86,17 @@ namespace
             ErrorOutput.error("ink-interpreter: error: cannot read '{}': {}\n", InputFile.getValue(), Input.getError().message());
             return std::nullopt;
         }
-        // Until an executable file decoder exists, input contains only the raw image bytes.
-        ink::vm::ExecutableFile Executable;
-        const auto Image = (*Input)->getBuffer();
-        Executable.getImage().assign(Image.bytes_begin(), Image.bytes_end());
-        return Executable;
+        const auto Text = (*Input)->getBuffer();
+        auto Module = ink::vm::readMachineModuleText(std::string_view(Text.data(), Text.size()));
+        if (!Module)
+        {
+            Diagnostics.report(Module.error());
+            return std::nullopt;
+        }
+        const auto EntryName = ink::core::NamePool::instance().intern("main");
+        const std::array ExportNames{EntryName};
+        ink::vm::ExecutableEmitter Emitter(Diagnostics);
+        return Emitter.emit(**Module, EntryName, ExportNames);
     }
 } // namespace
 
@@ -94,18 +108,44 @@ int main(int ArgumentCount, char** ArgumentValues)
         return *ExitCode;
     }
 
-    auto Executable = prepareInputBitCode();
-    if (!Executable)
-    {
-        return 2;
-    }
-
+    ink::core::CollectingDiagnosticConsumer Diagnostics;
     ink::vm::Interpreter Interpreter;
-    if (Interpreter.loadLibrary(std::move(*Executable)) == ink::vm::Interpreter::InvalidLibraryHandle)
+    Interpreter.getDiagnostics().addConsumer(Diagnostics);
+    const auto ReportDiagnostics = [&Diagnostics]()
     {
-        ErrorOutput.error("ink-interpreter: error: cannot load '{}'\n", InputFile.getValue());
+        bool HasErrors = false;
+        for (const ink::core::Diagnostic& Diagnostic : Diagnostics.takeDiagnostics())
+        {
+            const auto Formatted = ink::core::DiagnosticFormatter{}.format(Diagnostic);
+            HasErrors = HasErrors || Formatted.Severity == ink::core::DiagnosticSeverity::Error;
+            ErrorOutput.error("ink-interpreter: {}[{}]: {}\n", ink::core::diagnosticSeverityName(Formatted.Severity), Diagnostic.code(), Formatted.Message);
+            for (const auto& Note : Formatted.Notes)
+            {
+                ErrorOutput.error("ink-interpreter: note: {}\n", Note.Message);
+            }
+        }
+        return HasErrors;
+    };
+
+    auto Executable = prepareInputBitCode(Interpreter.getDiagnostics());
+    const bool PreparationErrors = ReportDiagnostics();
+    if (!Executable || PreparationErrors)
+    {
         return 2;
     }
 
-    return 0;
+    const auto Handle = Interpreter.loadLibrary(std::move(*Executable));
+    const bool LoadErrors = ReportDiagnostics();
+    if (Handle == ink::vm::Interpreter::InvalidLibraryHandle || LoadErrors)
+    {
+        if (!LoadErrors)
+        {
+            ErrorOutput.error("ink-interpreter: error: cannot load '{}'\n", InputFile.getValue());
+        }
+        return 2;
+    }
+    const auto& Entry = Interpreter.resolveSymbolAddress(ink::core::NamePool::instance().intern("main"));
+    const bool Succeeded = Interpreter.execute(Entry);
+    const bool ExecutionErrors = ReportDiagnostics();
+    return Succeeded && !ExecutionErrors ? 0 : 1;
 }

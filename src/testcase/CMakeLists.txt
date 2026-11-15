@@ -22,7 +22,7 @@ target_link_libraries(ink_tokenizer_test_objects PRIVATE ink::core GTest::gtest)
 ink_disable_exceptions(ink_tokenizer_test_objects)
 
 add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_IR_TEST_SOURCES} ${INK_BACKEND_TEST_SOURCES})
-add_dependencies(ink_tests ink_tokenize ink_parse inkc)
+add_dependencies(ink_tests ink_tokenize ink_parse inkc ink_interpreter)
 target_compile_features(ink_tests PRIVATE cxx_std_23)
 target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::frontend ink::ir ink::vm ink::llvm GTest::gtest_main GTest::gmock spdlog::spdlog)
 ink_disable_exceptions(ink_tests)
@@ -41,3 +41,4 @@ add_test(NAME ParserAdversarialProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_PAR
 set_tests_properties(ParserAdversarialProcessTest PROPERTIES TIMEOUT 120 LABELS "parser;adversarial")
 add_test(NAME TokenizerProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_TOKENIZER=$<TARGET_FILE:ink_tokenize>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/tokenizer-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/tokenizer/process_test.cmake")
 add_test(NAME InkcProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_COMPILER=$<TARGET_FILE:inkc>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/inkc-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/inkc/process_test.cmake")
+add_test(NAME InterpreterProcessTest COMMAND "${CMAKE_COMMAND}" "-DINK_INTERPRETER=$<TARGET_FILE:ink_interpreter>" "-DINK_TEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/interpreter-process" -P "${CMAKE_CURRENT_SOURCE_DIR}/interpreter/process_test.cmake")
