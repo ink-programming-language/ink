@@ -98,7 +98,7 @@ namespace ink::vm::test
       std::memcpy(Stack.data() + 48, &Overlapped, sizeof(Overlapped));
       auto Expected = Stack;
       Frame CallFrame{Stack.data() + 56};
-      auto *const InitialSP = CallFrame.SP;
+      auto *const InitialSP = GET_REGISTER(RegisterId::SP, CallFrame);
 
       ::SetLastError(ERROR_SUCCESS);
       writeFileStub(&CallFrame);
@@ -107,7 +107,7 @@ namespace ink::vm::test
       BOOL Value = FALSE;
       std::memcpy(&Value, Stack.data() + 8, sizeof(Value));
       std::memcpy(Expected.data() + 8, &Value, sizeof(Value));
-      EXPECT_EQ(CallFrame.SP, InitialSP);
+      EXPECT_EQ(GET_REGISTER(RegisterId::SP, CallFrame), InitialSP);
       EXPECT_EQ(Stack, Expected);
       return {Value, Error};
     }
@@ -135,13 +135,13 @@ namespace ink::vm::test
       auto ExpectedStack = Stack;
       std::memcpy(ExpectedStack.data() + 8, &ExpectedHandle, sizeof(ExpectedHandle));
       Frame CallFrame{Stack.data() + 24};
-      auto *const InitialSP = CallFrame.SP;
+      auto *const InitialSP = GET_REGISTER(RegisterId::SP, CallFrame);
 
       ::SetLastError(ERROR_SUCCESS);
       getStdHandleStub(&CallFrame);
       const DWORD ActualError = ::GetLastError();
 
-      EXPECT_EQ(CallFrame.SP, InitialSP);
+      EXPECT_EQ(GET_REGISTER(RegisterId::SP, CallFrame), InitialSP);
       EXPECT_EQ(Stack, ExpectedStack);
       if (Selector == 0)
       {
@@ -233,8 +233,9 @@ namespace ink::vm::test
   // The shared ZERO address resides in committed memory with readable protection and no writable page mode.
   TEST(VMWindowsStubTest, ZeroRegisterAddressResidesInReadOnlyCommittedMemory)
   {
+    const Frame CallFrame;
     MEMORY_BASIC_INFORMATION Information{};
-    ASSERT_EQ(::VirtualQuery(&Frame::ZERO, &Information, sizeof(Information)), sizeof(Information));
+    ASSERT_EQ(::VirtualQuery(GET_REGISTER(RegisterId::ZERO, CallFrame), &Information, sizeof(Information)), sizeof(Information));
     EXPECT_EQ(Information.State, static_cast<DWORD>(MEM_COMMIT));
     const DWORD Protection = Information.Protect & 0xFFU;
     EXPECT_NE(Protection, static_cast<DWORD>(PAGE_READWRITE));

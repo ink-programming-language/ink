@@ -15,3 +15,5 @@ INK_CONFIG(ParserMaxAllocationBytes, "INK_PARSER_MAX_ALLOCATION_BYTES", "6710886
 INK_CONFIG(InkVersion, "INK_VERSION", "0.0.1")
 // VM code segment initial reserved capacity: 1 MiB = 1024 * 1024 bytes.
 INK_CONFIG(VMInitialCodeSegmentBytes, "INK_VM_INITIAL_CODE_SEGMENT_BYTES", "1048576")
+// VM stack capacity: 2 MiB = 2 * 1024 * 1024 bytes.
+INK_CONFIG(VMStackBytes, "INK_VM_STACK_BYTES", "2097152")

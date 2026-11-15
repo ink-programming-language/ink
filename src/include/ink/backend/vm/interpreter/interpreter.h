@@ -2,11 +2,14 @@
 
 #include "ink/backend/vm/executable/executable_file.h"
 #include "ink/backend/vm/interpreter/loader.h"
+#include "ink/backend/vm/vm_runtime/frame.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/name/name.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
+#include <memory>
 #include <span>
 #include <unordered_map>
 
@@ -32,7 +35,7 @@ namespace ink::vm
       Interpreter(Interpreter &&) = delete;
       Interpreter &operator=(Interpreter &&) = delete;
 
-      // Registers built-in native addresses without overwriting symbols already present in the table.
+      // Creates the stack and default registers once; registers native addresses without overwriting existing symbols.
       void initialize();
 
       // Returned code addresses must be queried again after a load attempt that moves the code segment.
@@ -57,6 +60,11 @@ namespace ink::vm
       auto &getDiagnostics(this auto &&Self) noexcept
       {
         return Self.Diagnostics;
+      }
+
+      auto &getFrame(this auto &&Self) noexcept
+      {
+        return Self.Frame;
       }
 
       // This view borrows the allocation and must be refreshed after storage moves.
@@ -88,9 +96,13 @@ namespace ink::vm
       std::uint8_t *CodeSegment = nullptr;
       std::size_t CodeSegmentSize = 0;
       std::size_t CodeSegmentCapacity = 0;
+      vm::Frame Frame;
+      // Preserve allocation ownership independently of mutable BP/SP register values.
+      std::unique_ptr<void, decltype(&std::free)> StackAllocation{nullptr, &std::free};
       std::unordered_map<core::Name, std::uint64_t> ExportSymbolMap;
       core::DiagnosticEngine Diagnostics;
       vm::Loader Loader;
       std::uint32_t NextLibraryHandle = 1;
+      bool Initialized = false;
   };
 } // namespace ink::vm

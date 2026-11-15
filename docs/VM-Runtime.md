@@ -14,6 +14,8 @@
 
 `interpreter` 目录中的 `Interpreter` 持有 `DiagnosticEngine` 和 `Loader`，后者借用所属解释器；`getDiagnostics()` 提供诊断引擎访问，调用方可注册 consumer。构造函数自动调用公开的 `initialize()`，以 `try_emplace` 将 `NativeSymbolAddresses` 中的名称及宿主地址登记到统一的 `ExportSymbolMap`；重复初始化保留已有同名绑定。`Interpreter::resolveSymbolAddress(Name)` 只查询此表，找到时返回真实宿主地址，找不到时返回 nullptr，不再直接搜索 Native 表。`getExportSymbolMap()` 提供只读查询，表中 `uint64_t` 值同时保存 Native 和 VM 导出的真实宿主地址，不保存代码段偏移。
 
+解释器还持有当前 `Frame`。首次 `initialize()` 预留初始代码段容量，并读取 `config.def` 中的 `VMStackBytes`，用 `malloc` 创建栈后直接初始化 BP、SP 寄存器；默认栈大小为 2 MiB（2097152 字节），可通过 `INK_VM_STACK_BYTES` 环境变量覆盖，无效的十进制值或溢出值使用默认大小。栈向高地址增长，初始 BP 和 SP 均指向分配的栈起始位置，PC 为 nullptr，EFLAGS 显式初始化为 0，ZERO 恒为 0。零字节配置不分配栈存储，BP、SP 保持 nullptr。`getFrame()` 返回当前帧的可变或只读引用，外部通过其 `Register` 数组访问寄存器及栈地址。解释器仅通过 RAII 保留原始分配地址以便销毁时释放，不另存栈段大小；修改 BP 或 SP 不影响原始栈分配的释放。栈存储地址在解释器生命周期内保持稳定；重复 `initialize()` 不重新分配栈、不重置寄存器，也不重新读取栈大小配置。
+
 `CodeSegment` 使用 `malloc` 管理的 `std::uint8_t *`，由解释器记录有效字节数和容量，销毁时释放。`getCodeSegment()` 返回覆盖有效字节的 `std::span<const std::uint8_t>`，`getCodeSegmentCapacity()` 返回分配容量。容量不足时优先调用 `realloc`；失败后改用 `malloc` 分配新缓冲区，复制既有有效字节，再释放旧存储。`realloc` 成功也可能搬迁地址，不能只在 fallback 分支更新绑定。
 
 只要代码段地址改变，解释器就将统一符号表中指向旧代码段的地址平移到新存储，并遍历既有库的两类地址重定位修补字段。动态重定位从字段中读取原绑定值并逆向去掉 `Addend` 后，才能判断原符号基地址是否位于旧代码段；属于旧代码段时换算到新基址，再加回 `Addend`，Native 地址保持不变。该过程保留旧引用已经选择的目标，不按最新同名导出重新解析，因而后续符号覆盖不会改变旧库的绑定。镜像基址重定位则直接根据各库的新宿主基址、`TargetOffset` 和有符号 `Addend` 重算，不读取旧绑定值、不查询统一符号表。原始 `ExecutableFile::Image` 和重定位记录不参与改写。
@@ -45,7 +47,7 @@ VM 与其他 Ink 组件统一使用 `InkVersion`，默认值为 `0.0.1`，可通
 
 ## 算术状态与控制流
 
-EFLAGS 使用 32 位值，当前定义 CF（bit 0）、ZF（bit 6）、SF（bit 7）、OF（bit 11），其余位保留为零。执行语义规定所有 ADD 和 CMP 隐式覆盖四位；CMP 按对应位宽计算 `LHS - RHS` 并丢弃结果。普通加载、存储、跳转和 RET 保持标志不变。`eflags.h` 仅定义类型、标志掩码和 `conditionEFlagsMask()` 所表达的依赖元数据，不实现标志值生成或条件判断。当前尚没有 VM 执行状态、执行循环或这些运行时计算函数。
+EFLAGS 使用 32 位值，当前定义 CF（bit 0）、ZF（bit 6）、SF（bit 7）、OF（bit 11），其余位保留为零。执行语义规定所有 ADD 和 CMP 隐式覆盖四位；CMP 按对应位宽计算 `LHS - RHS` 并丢弃结果。普通加载、存储、跳转和 RET 保持标志不变。`eflags.h` 仅定义类型、标志掩码和 `conditionEFlagsMask()` 所表达的依赖元数据，不实现标志值生成或条件判断。解释器已持有初始化的帧和栈，执行循环及这些运行时计算函数仍待实现。
 
 跳转包括 `jmp`，以及 `je/jne`、`jb/jbe/ja/jae`、`jl/jle/jg/jge`、`jo/jno`、`js/jns`。无符号大小关系使用 CF、ZF，有符号大小关系使用 SF、OF、ZF；具体条件见 [指令编码格式](VM-Instruction-Format.md)。跳转在内存中保存非空的目标基本块指针，源块和目标块须属于同一函数；文本使用 `jne failure`、`jmp done`，支持函数内前向、后向和自引用。指令插入或块布局变化保留目标身份，调用方不需要手工维护内存中的跳转位移。
 

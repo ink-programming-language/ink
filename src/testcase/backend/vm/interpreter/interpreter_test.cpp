@@ -3,6 +3,7 @@
 #include "ink/backend/vm/interpreter/interpreter.h"
 #include "ink/backend/vm/runtime_stub/builtin_stub.h"
 #include "ink/backend/vm/vm_runtime/runtime.h"
+#include "ink/core/config/config_manager.h"
 #include "ink/core/name/name_pool.h"
 
 #include <gtest/gtest.h>
@@ -10,8 +11,10 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstddef>
+#include <cstring>
 #include <limits>
 #include <span>
+#include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -60,6 +63,122 @@ namespace ink::vm::test
   static_assert(std::is_same_v<decltype(std::declval<Interpreter &>().loadLibrary(std::declval<ExecutableFile>())), std::uint32_t>);
   static_assert(std::is_same_v<decltype(std::declval<const Interpreter &>().getCodeSegment()), std::span<const std::uint8_t>>);
   static_assert(std::is_same_v<decltype(std::declval<const Interpreter &>().getCodeSegmentCapacity()), std::size_t>);
+  static_assert(std::is_same_v<decltype(std::declval<Interpreter &>().getFrame()), Frame &>);
+  static_assert(std::is_same_v<decltype(std::declval<const Interpreter &>().getFrame()), const Frame &>);
+
+  // An absent stack override allocates two MiB and initializes an empty upward-growing frame with no selected entry point.
+  TEST(VMInterpreterTest, AllocatesDefaultStackAndInitializesRegisters)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_VM_STACK_BYTES");
+    ASSERT_TRUE(Environment.set(nullptr));
+    Interpreter VM;
+    const auto StackBytes = core::ConfigManager::getSize<core::ConfigKind::VMStackBytes>();
+    ASSERT_EQ(StackBytes, 2U * 1024U * 1024U);
+    auto *const Stack = SET_REGISTER(RegisterId::SP, VM.getFrame());
+    ASSERT_NE(Stack, nullptr);
+    EXPECT_EQ(hostAddress(Stack) % 8, 0U);
+    Stack[StackBytes - 1] = 0xA5;
+    EXPECT_EQ(Stack[StackBytes - 1], 0xA5);
+    const auto &CallFrame = VM.getFrame();
+    EXPECT_EQ(GET_REGISTER(RegisterId::BP, CallFrame), Stack);
+    EXPECT_EQ(GET_REGISTER(RegisterId::SP, CallFrame), Stack);
+    EXPECT_EQ(GET_REGISTER(RegisterId::PC, CallFrame), nullptr);
+    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), 0U);
+    EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, CallFrame)), 0U);
+  }
+
+  // A configured interpreter stack can prepare a native call by updating the public SP slot, without changing other bytes or registers.
+  TEST(VMInterpreterTest, InvokesNativeStubUsingConfiguredStackAndRegisterArray)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_VM_STACK_BYTES");
+    ASSERT_TRUE(Environment.set("64"));
+    Interpreter VM;
+    auto Stack = std::span<std::uint8_t>{SET_REGISTER(RegisterId::SP, VM.getFrame()), 64};
+    ASSERT_NE(Stack.data(), nullptr);
+    std::ranges::fill(Stack, 0xA5);
+    constexpr std::int64_t Argument = -0x0123456789ABCDEF;
+    std::memcpy(Stack.data() + 16, &Argument, sizeof(Argument));
+    std::vector<std::uint8_t> Expected(Stack.begin(), Stack.end());
+    std::memcpy(Expected.data() + 8, &Argument, sizeof(Argument));
+    auto &CallFrame = VM.getFrame();
+    CallFrame.Register[static_cast<std::size_t>(RegisterId::BP)] = Stack.data() + 8;
+    CallFrame.Register[static_cast<std::size_t>(RegisterId::SP)] = Stack.data() + 24;
+    *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, CallFrame)) = ArithmeticEFlagsMask;
+    const auto InitialRegisters = CallFrame.Register;
+
+    identityStub(&CallFrame);
+
+    EXPECT_TRUE(std::ranges::equal(Stack, Expected));
+    EXPECT_EQ(CallFrame.Register, InitialRegisters);
+    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), ArithmeticEFlagsMask);
+  }
+
+  // Repeated initialization retains the original stack allocation, stack bytes, and current registers even when configuration changes.
+  TEST(VMInterpreterTest, RepeatedInitializationPreservesStackAndLiveRegisters)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_VM_STACK_BYTES");
+    ASSERT_TRUE(Environment.set("64"));
+    Interpreter VM;
+    auto *const Stack = SET_REGISTER(RegisterId::SP, VM.getFrame());
+    ASSERT_NE(Stack, nullptr);
+    Stack[0] = 0x6D;
+    std::uint8_t Code = 0;
+    auto &CallFrame = VM.getFrame();
+    CallFrame.Register[static_cast<std::size_t>(RegisterId::BP)] = Stack + 8;
+    CallFrame.Register[static_cast<std::size_t>(RegisterId::SP)] = Stack + 24;
+    CallFrame.Register[static_cast<std::size_t>(RegisterId::PC)] = &Code;
+    *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, CallFrame)) = ArithmeticEFlagsMask;
+    const auto InitialRegisters = CallFrame.Register;
+    ASSERT_TRUE(Environment.set("128"));
+
+    VM.initialize();
+
+    EXPECT_EQ(Stack[0], 0x6D);
+    EXPECT_EQ(CallFrame.Register, InitialRegisters);
+    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), ArithmeticEFlagsMask);
+  }
+
+  // A zero-byte stack has null address registers and remains empty after repeated initialization with a different override.
+  TEST(VMInterpreterTest, SupportsZeroStackCapacityWithoutAllocatingStorage)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_VM_STACK_BYTES");
+    ASSERT_TRUE(Environment.set("0"));
+    Interpreter VM;
+    EXPECT_EQ(GET_REGISTER(RegisterId::BP, VM.getFrame()), nullptr);
+    EXPECT_EQ(GET_REGISTER(RegisterId::SP, VM.getFrame()), nullptr);
+    EXPECT_EQ(GET_REGISTER(RegisterId::PC, VM.getFrame()), nullptr);
+    ASSERT_TRUE(Environment.set("64"));
+
+    VM.initialize();
+
+    EXPECT_EQ(GET_REGISTER(RegisterId::BP, VM.getFrame()), nullptr);
+    EXPECT_EQ(GET_REGISTER(RegisterId::SP, VM.getFrame()), nullptr);
+  }
+
+  // Invalid syntax, negative values, and overflow fall back to the registered two-MiB stack size.
+  TEST(VMInterpreterTest, FallsBackToDefaultForInvalidStackSizeOverrides)
+  {
+    core::test::ScopedEnvironmentVariable Environment("INK_VM_STACK_BYTES");
+    const std::string InvalidValues[] = {
+        "invalid",
+        "-1",
+        std::to_string(std::numeric_limits<std::size_t>::max()) + "0",
+    };
+    for (const auto &Value : InvalidValues)
+    {
+      SCOPED_TRACE(Value);
+      ASSERT_TRUE(Environment.set(Value.c_str()));
+      Interpreter VM;
+      const auto StackBytes = core::ConfigManager::getSize<core::ConfigKind::VMStackBytes>();
+      ASSERT_EQ(StackBytes, 2U * 1024U * 1024U);
+      auto *const Stack = SET_REGISTER(RegisterId::SP, VM.getFrame());
+      ASSERT_NE(Stack, nullptr);
+      Stack[StackBytes - 1] = 0x6D;
+      EXPECT_EQ(Stack[StackBytes - 1], 0x6D);
+      EXPECT_EQ(GET_REGISTER(RegisterId::BP, VM.getFrame()), Stack);
+      EXPECT_EQ(GET_REGISTER(RegisterId::SP, VM.getFrame()), Stack);
+    }
+  }
 
   // Construction registers every native address, and repeated initialization preserves later VM exports with the same name.
   TEST(VMInterpreterTest, InitializesNativeSymbolsWithoutOverwritingVMExports)

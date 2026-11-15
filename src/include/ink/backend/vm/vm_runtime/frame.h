@@ -12,22 +12,17 @@
 #include <type_traits>
 
 // Id must be a validated RegisterId; each expression argument is evaluated exactly once.
-#define GET_REGISTER(Id, FrameValue) (static_cast<const void *>((FrameValue).Register[static_cast<::std::size_t>(Id)]))
-#define SET_REGISTER(Id, FrameValue) (const_cast<void *>(static_cast<::ink::vm::Frame &>(FrameValue).Register[static_cast<::std::size_t>(Id)]))
+#define GET_REGISTER(Id, FrameValue) (static_cast<const ::std::uint8_t *>((FrameValue).Register[static_cast<::std::size_t>(Id)]))
+#define SET_REGISTER(Id, FrameValue) (const_cast<::std::uint8_t *>(static_cast<const ::std::uint8_t *>(static_cast<::ink::vm::Frame &>(FrameValue).Register[static_cast<::std::size_t>(Id)])))
 
 namespace ink::vm
 {
   // Native stubs receive the caller's validated call area without a VM BP/PC save area.
   struct Frame
   {
-      // Native stubs leave SP unchanged; BP and PC are borrowed host addresses.
-      std::uint8_t *SP = nullptr;
-      std::uint8_t *BP = nullptr;
-      std::uint8_t *PC = nullptr;
-      vm::EFlags EFlags = 0;
-      inline static constexpr std::uint64_t ZERO = 0;
-
+    public:
       // Address values in register-number order: BP, SP, PC, &EFlags, &ZERO.
+      // Address slots are authoritative after construction; native stubs leave them unchanged.
       std::array<const void *, static_cast<std::size_t>(RegisterId::ZERO) + 1> Register{};
 
       Frame() noexcept
@@ -42,25 +37,52 @@ namespace ink::vm
       }
 
       Frame(const Frame &Other) noexcept
-          : SP(Other.SP),
-            BP(Other.BP),
-            PC(Other.PC),
-            EFlags(Other.EFlags)
+          : SP(const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::SP, Other))),
+            BP(const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::BP, Other))),
+            PC(const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::PC, Other))),
+            EFlags(*reinterpret_cast<const vm::EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Other)))
       {
         initializeRegisters();
       }
 
       Frame &operator=(const Frame &Other) noexcept
       {
-        SP = Other.SP;
-        BP = Other.BP;
-        PC = Other.PC;
-        EFlags = Other.EFlags;
+        SP = const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::SP, Other));
+        BP = const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::BP, Other));
+        PC = const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::PC, Other));
+        EFlags = *reinterpret_cast<const vm::EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Other));
         initializeRegisters();
         return *this;
       }
 
-      // Refresh after changing BP, SP, or PC directly; scalar slots always address this frame's members.
+      // ArgumentTypes must list every parameter in declaration order, using types whose host and VM representations match.
+      template <std::size_t Index, typename... ArgumentTypes>
+      [[nodiscard]] auto getArgument() const noexcept
+      {
+        static_assert(Index < sizeof...(ArgumentTypes), "Frame argument index must be within the complete parameter list");
+        using ValueType = std::tuple_element_t<Index, std::tuple<ArgumentTypes...>>;
+        constexpr std::size_t ByteOffset = getArgumentByteOffset<Index, ArgumentTypes...>();
+        std::array<std::byte, sizeof(ValueType)> Bytes;
+        std::memcpy(Bytes.data(), GET_REGISTER(RegisterId::SP, *this) - ByteOffset, sizeof(ValueType));
+        return std::bit_cast<ValueType>(Bytes);
+      }
+
+      // Copy only the value bytes, preserving slot padding; void-returning stubs do not call this method.
+      template <typename ReturnType, typename... ArgumentTypes>
+      void setReturnValue(const ReturnType &Value) const noexcept
+      {
+        constexpr std::size_t ByteOffset = getSlotByteSize<ReturnType>() + (getSlotByteSize<ArgumentTypes>() + ... + std::size_t{0});
+        std::memcpy(const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::SP, *this)) - ByteOffset, &Value, sizeof(ReturnType));
+      }
+
+    private:
+      // Construction seeds the address slots; subsequent access goes through Register.
+      std::uint8_t *SP = nullptr;
+      std::uint8_t *BP = nullptr;
+      std::uint8_t *PC = nullptr;
+      vm::EFlags EFlags = 0;
+      inline static constexpr std::uint64_t ZERO = 0;
+
       void initializeRegisters() noexcept
       {
         Register = {
@@ -72,27 +94,6 @@ namespace ink::vm
         };
       }
 
-      // ArgumentTypes must list every parameter in declaration order, using types whose host and VM representations match.
-      template <std::size_t Index, typename... ArgumentTypes>
-      [[nodiscard]] auto getArgument() const noexcept
-      {
-        static_assert(Index < sizeof...(ArgumentTypes), "Frame argument index must be within the complete parameter list");
-        using ValueType = std::tuple_element_t<Index, std::tuple<ArgumentTypes...>>;
-        constexpr std::size_t ByteOffset = getArgumentByteOffset<Index, ArgumentTypes...>();
-        std::array<std::byte, sizeof(ValueType)> Bytes;
-        std::memcpy(Bytes.data(), SP - ByteOffset, sizeof(ValueType));
-        return std::bit_cast<ValueType>(Bytes);
-      }
-
-      // Copy only the value bytes, preserving slot padding; void-returning stubs do not call this method.
-      template <typename ReturnType, typename... ArgumentTypes>
-      void setReturnValue(const ReturnType &Value) const noexcept
-      {
-        constexpr std::size_t ByteOffset = getSlotByteSize<ReturnType>() + (getSlotByteSize<ArgumentTypes>() + ... + std::size_t{0});
-        std::memcpy(SP - ByteOffset, &Value, sizeof(ReturnType));
-      }
-
-    private:
       template <typename ValueType>
       static constexpr std::size_t getSlotByteSize() noexcept
       {

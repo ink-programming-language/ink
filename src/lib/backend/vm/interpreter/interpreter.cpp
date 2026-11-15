@@ -15,7 +15,6 @@ namespace ink::vm
   Interpreter::Interpreter() noexcept
       : Loader(*this)
   {
-    reserveCodeSegment(core::ConfigManager::getSize<core::ConfigKind::VMInitialCodeSegmentBytes>());
     initialize();
   }
 
@@ -26,6 +25,19 @@ namespace ink::vm
 
   void Interpreter::initialize()
   {
+    if (!Initialized)
+    {
+      reserveCodeSegment(core::ConfigManager::getSize<core::ConfigKind::VMInitialCodeSegmentBytes>());
+      const auto StackBytes = core::ConfigManager::getSize<core::ConfigKind::VMStackBytes>();
+      auto *const Stack = StackBytes != 0 ? static_cast<std::uint8_t *>(std::malloc(StackBytes)) : nullptr;
+      REPORT_ICE_IF(StackBytes != 0 && !Stack, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "stack", "runtime storage allocation failed");
+      StackAllocation.reset(Stack);
+      Frame.Register[static_cast<std::size_t>(RegisterId::BP)] = Stack;
+      Frame.Register[static_cast<std::size_t>(RegisterId::SP)] = Stack;
+      Frame.Register[static_cast<std::size_t>(RegisterId::PC)] = nullptr;
+      *reinterpret_cast<vm::EFlags *>(SET_REGISTER(RegisterId::EFLAGS, Frame)) = 0;
+      Initialized = true;
+    }
     for (const auto &Symbol : NativeSymbolAddresses)
     {
       ExportSymbolMap.try_emplace(Symbol.Name, static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(Symbol.Address)));
