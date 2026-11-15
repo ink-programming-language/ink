@@ -1,6 +1,8 @@
 #include "ink/backend/vm/vm_runtime/runtime.h"
 #include "ink/backend/vm/runtime_stub/builtin_stub.h"
+#if INK_PLATFORM_WINDOWS
 #include "ink/backend/vm/runtime_stub/windows/kernel32_stub.h"
+#endif
 #include "ink/core/name/name_pool.h"
 
 namespace ink::vm

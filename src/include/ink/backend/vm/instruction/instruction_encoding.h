@@ -9,8 +9,14 @@
 
 namespace ink::vm
 {
-    // Instructions consist of a header word followed by one word per semantic operand.
-    // The header contains the opcode and three register IDs; all other bits are reserved.
+    /**
+     * Little-endian, eight-byte-aligned encoding: one header word followed by up to three operand words.
+     * Header bits: 0..15 = opcode, 16..23 / 24..31 / 32..39 = operand register IDs, 40..63 = zero.
+     * Immediate and unused register fields contain RegisterId::ZERO; slots follow semantic operand order.
+     * Operand slot offsets are 8 * (Index + 1) for zero-based Index; total size is 8 * (1 + OperandCount).
+     * Slots hold 64-bit offset/address bits or immediates; narrow immediates are zero-extended.
+     * PC-relative offsets use the instruction start. Encoded alignment does not constrain data addresses.
+     */
     struct InstructionEncoding
     {
             static constexpr std::size_t WordBytes = sizeof(std::uint64_t);

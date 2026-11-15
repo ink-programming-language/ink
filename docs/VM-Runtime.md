@@ -12,6 +12,10 @@
 
 [VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录统一符号声明、可写或只读全局数据和栈帧描述。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号绑定和 Native 符号推导，`ExecutableFile` 提供镜像模型和结构校验。指令编码、镜像布局、发射和加载已实现；执行入口与分派循环当前支持 `Add64rrr`、`Add64rrm`、`Add64mrr`、四种无条件跳转、显式比较条件跳转和最外层 `Ret`，其他指令执行仍待实现。
 
+`vm_runtime` 和 `runtime_stub` 分别构建为独立静态库 `ink_vm_runtime`（`ink::vm_runtime`）和 `ink_runtime_stub`（`ink::runtime_stub`）。前者提供 `NativeSymbolAddresses` 并链接后者，后者提供通用 Native 桩并链接共享 C Runtime `ink::runtime`；依赖链为 `ink::vm → ink::vm_runtime → ink::runtime_stub → ink::runtime`。
+
+`runtime_stub/windows` 仅在 CMake 的 `WIN32` 目标上加入，构建独立平台库 `ink_runtime_stub_windows`（`ink::runtime_stub_windows`）。Windows 上的 `ink::runtime_stub` 链接该平台库，平台库链接 `kernel32`；其他目标不编译或链接 Windows 桩。
+
 `interpreter` 目录中的 `Interpreter` 持有 `DiagnosticEngine` 和 `Loader`，后者借用所属解释器；`getDiagnostics()` 提供诊断引擎访问，调用方可注册 consumer。构造函数自动调用公开的 `initialize()`，以 `try_emplace` 将 `NativeSymbolAddresses` 中的名称及宿主地址登记到统一的 `ExportSymbolMap`；重复初始化保留已有同名绑定。`Interpreter::resolveSymbolAddress(Name)` 只查询此表，找到时返回真实宿主地址，找不到时返回 nullptr，不再直接搜索 Native 表。`getExportSymbolMap()` 提供只读查询，表中 `uint64_t` 值同时保存 Native 和 VM 导出的真实宿主地址，不保存代码段偏移。
 
 解释器还持有当前 `Frame`。首次 `initialize()` 预留初始代码段容量，并读取 `config.def` 中的 `VMStackBytes`，用 `malloc` 创建一次栈分配。默认大小为 2 MiB（2097152 字节），可通过 `INK_VM_STACK_BYTES` 环境变量覆盖，无效的十进制值或溢出值使用默认大小；零字节配置不分配栈存储。构造后的寄存器保留 `Frame` 默认状态，BP、SP、PC 的整数值均为 0。重复 `initialize()` 注册 Native 符号并保留当前帧与当前栈，不重新读取配置或重置寄存器。

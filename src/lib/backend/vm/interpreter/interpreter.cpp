@@ -4,6 +4,7 @@
 #include "ink/backend/vm/instruction/instruction_encoding.h"
 #include "ink/backend/vm/vm_runtime/runtime.h"
 #include "ink/core/config/config_manager.h"
+#include "ink/core/support/core_define.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -42,14 +43,12 @@ namespace ink::vm
     {
         const auto EntryAddress = reinterpret_cast<std::uintptr_t>(Entry);
         const auto CodeAddress = reinterpret_cast<std::uintptr_t>(CodeSegment);
-        if (EntryAddress < CodeAddress || EntryAddress - CodeAddress >= CodeSegmentSize)
+        const bool OutsideCodeSegment = EntryAddress < CodeAddress || EntryAddress - CodeAddress >= CodeSegmentSize;
+        const bool MisalignedEntry = !OutsideCodeSegment && (EntryAddress - CodeAddress) % InstructionEncoding::WordBytes != 0;
+        REPORT_IF(OutsideCodeSegment, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "entry", "entry address is outside the loaded code segment");
+        REPORT_IF(MisalignedEntry, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "entry", "entry address is not aligned to an instruction word");
+        if (OutsideCodeSegment || MisalignedEntry)
         {
-            Diagnostics.report<core::DiagnosticKind::VMExecutionFailed>({}, "entry", "entry address is outside the loaded code segment");
-            return false;
-        }
-        if ((EntryAddress - CodeAddress) % InstructionEncoding::WordBytes != 0)
-        {
-            Diagnostics.report<core::DiagnosticKind::VMExecutionFailed>({}, "entry", "entry address is not aligned to an instruction word");
             return false;
         }
         Frame = vm::Frame{};

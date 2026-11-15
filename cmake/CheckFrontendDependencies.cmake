@@ -12,7 +12,7 @@ function(ink_check_frontend_target_dependencies)
             set(Target "${AliasedTarget}")
         endif()
 
-        if(Target STREQUAL "ink_ir" OR Target STREQUAL "ink_vm" OR Target STREQUAL "ink_semantic")
+        if(Target STREQUAL "ink_ir" OR Target MATCHES "^ink_(vm|runtime_stub)($|_)" OR Target STREQUAL "ink_semantic")
             message(FATAL_ERROR "Frontend dependency boundary violated: ${DependencyPath}")
         endif()
         if(Target IN_LIST VisitedTargets)
