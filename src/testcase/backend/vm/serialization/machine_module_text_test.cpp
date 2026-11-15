@@ -29,8 +29,8 @@ namespace ink::vm::test
 #undef OPCODE
     };
 
-    template <typename OperandType>
-    OperandType exampleOperand(std::size_t Index)
+    template <Opcode Operation, typename OperandType>
+    OperandType exampleOperand(std::size_t Index, const MachineBasicBlock *Target)
     {
       if constexpr (std::is_same_v<OperandType, RegisterOperand>)
       {
@@ -40,10 +40,22 @@ namespace ink::vm::test
       }
       else if constexpr (std::is_same_v<OperandType, AddressOperand>)
       {
+        if constexpr (OpcodeTraits<Operation>::BlockCount == 1)
+        {
+          return AddressOperand(Index == 0 ? RegisterId::BP : RegisterId::SP, static_cast<std::int64_t>(Index * 8));
+        }
         return Index == 1 ? AddressOperand(core::NamePool::instance().intern("external.data"), std::numeric_limits<std::int64_t>::max()) : AddressOperand(RegisterId::BP, std::numeric_limits<std::int64_t>::min());
+      }
+      else if constexpr (std::is_same_v<OperandType, BasicBlockOperand>)
+      {
+        return BasicBlockOperand(Target);
       }
       else
       {
+        if constexpr (OpcodeTraits<Operation>::BlockCount == 1)
+        {
+          return ImmediateOperand(127);
+        }
         return Index == 1 ? ImmediateOperand(core::NamePool::instance().intern("external.address"), std::numeric_limits<std::int64_t>::min()) : ImmediateOperand(std::numeric_limits<std::uint64_t>::max() - Index);
       }
     }
@@ -52,17 +64,13 @@ namespace ink::vm::test
     void appendExampleInstruction(MachineInstructionBuilder &Builder, const MachineBasicBlock *Target, std::index_sequence<Indices...>)
     {
       using Operands = typename OpcodeTraits<Operation>::OperandTuple;
-      if constexpr (OpcodeTraits<Operation>::Form == InstructionForm::B)
-      {
-        Builder.create<Operation>(Target);
-      }
-      else if constexpr (Operation == Opcode::CallNativei)
+      if constexpr (Operation == Opcode::CallNativei)
       {
         Builder.create<Operation>(ImmediateOperand(std::numeric_limits<std::uint32_t>::max()));
       }
       else
       {
-        Builder.create<Operation>(exampleOperand<std::tuple_element_t<Indices, Operands>>(Indices)...);
+        Builder.create<Operation>(exampleOperand<Operation, std::tuple_element_t<Indices, Operands>>(Indices, Target)...);
       }
     }
 
@@ -1145,6 +1153,86 @@ entry:
     const auto Rewritten = writeMachineModuleText(**Reparsed);
     ASSERT_TRUE(Rewritten.has_value());
     EXPECT_EQ(*Rewritten, *Written);
+  }
+
+  // Compare-and-branch instructions keep their final target labels distinct from memory and immediate comparison operands.
+  TEST(VMMachineModuleTextTest, ResolvesComparisonBranchTargetsFromFinalOperands)
+  {
+    constexpr std::string_view Text = R"(.module "comparison-targets"
+.section .text
+.function first
+entry:
+    je8mmb [bp + 1], [sp + 2], later
+    jltu16mib [bp + 3], -1, entry
+later:
+    jge64mib [zero + 24], 0x8000000000000000, later
+.endfunction
+.function second
+entry:
+    ret
+.endfunction
+)";
+    const auto Parsed = readMachineModuleText(Text);
+    ASSERT_TRUE(Parsed.has_value());
+    const auto &Function = *(*Parsed)->functions().begin();
+    const auto &Entry = *Function.basicBlocks().begin();
+    const auto &Later = *std::next(Function.basicBlocks().begin());
+    const auto Instructions = Entry.instructions();
+    const auto &Forward = static_cast<const MachineJe8mmbInstruction &>(*Instructions.begin());
+    const auto &Backward = static_cast<const MachineJltu16mibInstruction &>(*std::next(Instructions.begin()));
+    const auto &Self = static_cast<const MachineJge64mibInstruction &>(*Later.instructions().begin());
+    EXPECT_EQ(Forward.getLHS().getRegister(), RegisterId::BP);
+    EXPECT_EQ(Forward.getLHS().getByteOffset(), 1);
+    EXPECT_EQ(Forward.getRHS().getRegister(), RegisterId::SP);
+    EXPECT_EQ(Forward.getTarget(), &Later);
+    EXPECT_EQ(Backward.getRHS().bits(), std::numeric_limits<std::uint64_t>::max());
+    EXPECT_EQ(Backward.getTarget(), &Entry);
+    EXPECT_EQ(Self.getRHS().bits(), std::uint64_t{1} << 63);
+    EXPECT_EQ(Self.getTarget(), &Later);
+    const auto Written = writeMachineModuleText(**Parsed);
+    ASSERT_TRUE(Written.has_value());
+    const auto Reparsed = readMachineModuleText(*Written);
+    ASSERT_TRUE(Reparsed.has_value());
+    expectEqualModules(**Parsed, **Reparsed);
+  }
+
+  // Comparison branches reject missing commas, wrong comparison operand kinds, extra operands and targets outside their function.
+  TEST(VMMachineModuleTextTest, RejectsMalformedComparisonBranchOperandsAndTargets)
+  {
+    constexpr std::string_view InvalidBodies[] = {
+        "je8mmb",
+        "je8mmb [bp], [sp]",
+        "je8mmb [bp], 1, entry",
+        "je8mmb bp, [sp], entry",
+        "je8mib [bp], [sp], entry",
+        "je8mib [bp] 1, entry",
+        "je8mib [bp], 1 entry",
+        "je8mib [bp], 1, @entry",
+        "je8mib [bp], 1, 0",
+        "je8mib [bp], 1, [pc]",
+        "je8mib [bp], 1, entry, entry",
+        "je8mib [bp], 1, missing",
+    };
+    for (const auto Body : InvalidBodies)
+    {
+      SCOPED_TRACE(Body);
+      const auto Text = std::string(".module \"\"\n.section .text\n.function F\nentry:\n    ") + std::string(Body) + "\n.endfunction\n";
+      const auto Parsed = readMachineModuleText(Text);
+      ASSERT_FALSE(Parsed.has_value());
+      EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+    }
+    constexpr std::string_view CrossFunctionTexts[] = {
+        ".module \"\"\n.section .text\n.function F\nentry:\n    je8mib [bp], 1, target\n.endfunction\n.function G\ntarget:\n    ret\n.endfunction\n",
+        ".module \"\"\n.section .text\n.function G\ntarget:\n    ret\n.endfunction\n.function F\nentry:\n    je8mib [bp], 1, target\n.endfunction\n",
+    };
+    for (const auto Text : CrossFunctionTexts)
+    {
+      const auto Parsed = readMachineModuleText(Text);
+      ASSERT_FALSE(Parsed.has_value());
+      EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+      ASSERT_TRUE(Parsed.error().Span.isValid());
+      EXPECT_EQ(Parsed.error().Span.getBegin().getByteOffset(), Text.find("je8mib [bp], 1, target") + std::string_view("je8mib [bp], 1, ").size());
+    }
   }
 
   // Direct jump symbols reject nonzero displacements when serializing already constructed instructions.

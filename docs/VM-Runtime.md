@@ -10,7 +10,7 @@
 
 逻辑寄存器属于 VM 的可见执行状态，与宿主 CPU 的寄存器分配无关。解释器计算有效地址、解码操作数时使用的宿主临时变量不增加 VM 的逻辑寄存器。
 
-[VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录统一符号声明、可写或只读全局数据和栈帧描述。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号绑定和 Native 符号推导，`ExecutableFile` 提供镜像模型和结构校验。指令编码、镜像布局、发射和加载已实现；执行入口与分派循环当前支持 `Add64rrr`、`Add64rrm`、`Add64mrr`、四种无条件跳转和最外层 `Ret`，其他指令执行仍待实现。
+[VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录统一符号声明、可写或只读全局数据和栈帧描述。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号绑定和 Native 符号推导，`ExecutableFile` 提供镜像模型和结构校验。指令编码、镜像布局、发射和加载已实现；执行入口与分派循环当前支持 `Add64rrr`、`Add64rrm`、`Add64mrr`、四种无条件跳转、显式比较条件跳转和最外层 `Ret`，其他指令执行仍待实现。
 
 `interpreter` 目录中的 `Interpreter` 持有 `DiagnosticEngine` 和 `Loader`，后者借用所属解释器；`getDiagnostics()` 提供诊断引擎访问，调用方可注册 consumer。构造函数自动调用公开的 `initialize()`，以 `try_emplace` 将 `NativeSymbolAddresses` 中的名称及宿主地址登记到统一的 `ExportSymbolMap`；重复初始化保留已有同名绑定。`Interpreter::resolveSymbolAddress(Name)` 只查询此表，找到时返回真实宿主地址，找不到时返回 nullptr，不再直接搜索 Native 表。`getExportSymbolMap()` 提供只读查询，表中 `uint64_t` 值同时保存 Native 和 VM 导出的真实宿主地址，不保存代码段偏移。
 
@@ -51,11 +51,11 @@
 
 指令中的寄存器来源保存寄存器编号和有符号 `ByteOffset`，先读取寄存器成员存储，再使用 `RegisterValue + ByteOffset` 的值，不访问该值指向的 VM 内存。例如 PC 为 2、SP 为 0 时，`add64rrr bp, sp, pc + 2` 得到 BP 为 4；寄存器目标必须为 BP 或 SP，且偏移为零。地址操作数用于定位内存中的值，例如 `[bp + 16]` 或 `[@counter + 8]`，作为来源时比 `r` 多一次 VM 内存读取。立即数可以保存数值，也可以保存符号地址值，例如 `@counter + 8`。内存模型还提供持有目标基本块指针的 `BasicBlockOperand`，跳转构建时直接引用同一函数的目标块。[VM 指令编码格式讨论稿](VM-Instruction-Format.md) 约定 `r` 与寄存器形式的 `m` 共用九字节的寄存器编号和偏移字段，由指令语义区分寄存器值与内存访问；操作数字段发射共用 `padRegister`，当前分派实现 `Add64rrr`、`Add64rrm` 和 `Add64mrr`。VM 符号内存地址和基本块目标使用 PC 相对字段，VM 符号地址立即数使用镜像基址重定位；宿主数据内存地址使用恒零的 ZERO 基址编码 `03` 及八字节动态重定位字段，`ff` 不是合法基址。
 
-VM 与其他 Ink 组件统一使用 `InkVersion`，默认值为 `0.0.1`，可通过 `INK_VERSION` 配置。指令集包括加载、存储、ADD、四种无条件跳转、RET，以及 `call`、`callNative` 的立即数与内存形式。跳转和调用的目标编码见 [VM 指令编码格式](VM-Instruction-Format.md)。
+VM 与其他 Ink 组件统一使用 `InkVersion`，默认值为 `0.0.1`，可通过 `INK_VERSION` 配置。指令集包括加载、存储、ADD、四种无条件跳转、显式比较条件跳转、RET，以及 `call`、`callNative` 的立即数与内存形式。跳转和调用的目标编码见 [VM 指令编码格式](VM-Instruction-Format.md)。
 
 ## 无条件跳转
 
-所有跳转都无条件执行，成功后直接将 PC 改为目标地址，不再执行顺序后继。四种形式如下：
+以下四种无条件跳转成功后直接将 PC 改为目标地址，不再执行顺序后继。四种形式如下：
 
 | 操作码 | 文本 | 目标来源 | 总长度 |
 | --- | --- | --- | --- |
@@ -65,6 +65,20 @@ VM 与其他 Ink 组件统一使用 `InkVersion`，默认值为 `0.0.1`，可通
 | `Jmpm` | `jmpm [bp + 8]` | 从有效地址读取八字节目标宿主地址 | 11 字节 |
 
 `Jmp` 在逻辑模块中借用目标块指针，前向、后向和自引用都保留块身份。`Jmpi` 的函数符号目标采用与直接 VM 调用相同的 PC 相对解析，符号 addend 必须为零。`Jmpr` 直接使用寄存器保存的目标值；`Jmpm` 的操作数定位一个指针槽，槽内数值才是跳转目标。ZERO 作为基址时仍按普通寄存器存储读取零值，无需特殊分支。
+
+## 显式比较条件跳转
+
+条件跳转在一条指令内读取两个来源、进行比较并选择目标，不保存标志或其他隐式比较状态。文本例如：
+
+```text
+je64mib [bp + 16], 42, equal
+jlt64mmb [bp + 16], [bp + 24], signed_less
+jltu64mib [bp + 16], 42, unsigned_less
+```
+
+支持 `je`、`jne`，有符号关系 `jlt/jle/jgt/jge`，以及无符号关系 `jltu/jleu/jgtu/jgeu`。每种关系提供 8、16、32、64 位比较及 `mmb`、`mib` 两种形式，共 80 种操作码。`mmb` 从两处内存各读取指定位宽的值；`mib` 从内存读取左值，并将指令中对应位宽的立即数字段作为右值。相等比较按位判断，有符号比较按相应位宽的二进制补码解释。
+
+目标块始终位于第三个操作数。条件成立时 PC 转移到目标块；否则 PC 前进到整条比较分支之后。目标位移相对当前指令起始 PC，比较不会写入任何寄存器或内存，PC 除外。比较来源、位宽和关系由 opcode 固定，不增加运行时操作数类型或 ZERO 判断。目标只接受同一函数中的块；需要间接条件转移时，让目标块执行已有的 `jmpr` 或 `jmpm`。
 
 ## 寄存器和栈：建议约定
 

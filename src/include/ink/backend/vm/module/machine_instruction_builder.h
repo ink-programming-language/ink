@@ -52,7 +52,7 @@ namespace ink::vm
         if constexpr (OpcodeTraits<Operation>::BlockCount == 1)
         {
           const auto Operands = std::forward_as_tuple(Values...);
-          const auto &TargetValue = std::get<0>(Operands);
+          const auto &TargetValue = std::get<OpcodeTraits<Operation>::OperandCount - 1>(Operands);
           const MachineBasicBlock *Target = nullptr;
           if constexpr (std::is_same_v<std::remove_cvref_t<decltype(TargetValue)>, BasicBlockOperand>)
           {

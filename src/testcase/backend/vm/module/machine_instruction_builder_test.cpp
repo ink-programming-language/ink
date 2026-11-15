@@ -465,7 +465,8 @@ namespace ink::vm::test
     for (const MachineBasicBlock *Target : InvalidTargets)
     {
       EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(Target), nullptr);
-      EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(Target), nullptr);
+      EXPECT_EQ(Builder.tryCreate<Opcode::Je64mib>(AddressOperand(RegisterId::BP), ImmediateOperand(0), BasicBlockOperand(Target)), nullptr);
+      EXPECT_EQ(Builder.tryCreate<Opcode::Jltu8mmb>(AddressOperand(RegisterId::BP), AddressOperand(RegisterId::SP), BasicBlockOperand(Target)), nullptr);
       EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(BasicBlockOperand(Target)), nullptr);
     }
     EXPECT_EQ(Entry.instructionCount(), 1U);
@@ -484,6 +485,46 @@ namespace ink::vm::test
     static_assert(!CanBuildVMInstruction<Opcode::Jmp, RegisterOperand>);
     static_assert(!CanBuildVMInstruction<Opcode::Jmp, ImmediateOperand>);
     static_assert(!CanBuildVMInstruction<Opcode::Ret, ImmediateOperand>);
+  }
+
+  // Conditional builders validate the final block target while copying both comparison sources and keeping the insertion anchor stable.
+  TEST(VMMachineInstructionBuilderTest, BuildsComparisonBranchesWithFinalOwnedBlockTargets)
+  {
+    MachineFunction Function;
+    auto &Entry = Function.createBasicBlock();
+    auto &Target = Function.createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Entry);
+    auto &Anchor = Builder.create<Opcode::Ret>();
+    ASSERT_TRUE(Builder.setInsertPoint(Anchor));
+    AddressOperand Left(RegisterId::BP, -8);
+    ImmediateOperand Right(42);
+    BasicBlockOperand Destination(&Target);
+    const auto &Immediate = Builder.create<Opcode::Je64mib>(Left, Right, Destination);
+    const auto *Memory = Builder.tryCreate<Opcode::Jltu8mmb>(Left, AddressOperand(RegisterId::SP, 3), BasicBlockOperand(&Entry));
+    ASSERT_NE(Memory, nullptr);
+    Left = AddressOperand(RegisterId::ZERO);
+    Right = ImmediateOperand(0);
+    Destination = BasicBlockOperand(&Entry);
+    EXPECT_EQ(Immediate.getLHS().getRegister(), RegisterId::BP);
+    EXPECT_EQ(Immediate.getLHS().getByteOffset(), -8);
+    EXPECT_EQ(Immediate.getRHS().bits(), 42U);
+    EXPECT_EQ(Immediate.getTarget(), &Target);
+    EXPECT_EQ(Memory->getTarget(), &Entry);
+    EXPECT_EQ(Memory->getRHS().getRegister(), RegisterId::SP);
+    EXPECT_EQ(Memory->getRHS().getByteOffset(), 3);
+    EXPECT_EQ(Immediate.parent(), &Entry);
+    EXPECT_EQ(Memory->parent(), &Entry);
+    EXPECT_EQ(Builder.getInsertBefore(), &Anchor);
+    const std::vector<const MachineInstruction *> Expected{&Immediate, Memory, &Anchor};
+    EXPECT_EQ(blockInstructionAddresses(Entry), Expected);
+    Builder.clearInsertPoint();
+    EXPECT_EQ(Builder.tryCreate<Opcode::Je64mib>(Left, Right, BasicBlockOperand(&Target)), nullptr);
+    static_assert(CanBuildVMInstruction<Opcode::Je64mib, AddressOperand, ImmediateOperand, BasicBlockOperand>);
+    static_assert(CanBuildVMInstruction<Opcode::Jltu8mmb, AddressOperand, AddressOperand, BasicBlockOperand>);
+    static_assert(!CanBuildVMInstruction<Opcode::Je64mib, MachineBasicBlock *>);
+    static_assert(!CanBuildVMInstruction<Opcode::Je64mib, AddressOperand, ImmediateOperand, MachineBasicBlock *>);
+    static_assert(!CanBuildVMInstruction<Opcode::Je64mib, BasicBlockOperand, AddressOperand, ImmediateOperand>);
   }
 
   // The infallible API reports invalid target ownership, a null target, or a missing insertion point before terminating.

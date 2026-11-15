@@ -45,7 +45,7 @@ namespace ink::vm
       }
 
       // Logical branch targets remain block pointers until the executable layout is known.
-      constexpr explicit MachineInstructionImpl(const MachineBasicBlock *Target) noexcept requires(Traits::BlockCount == 1)
+      constexpr explicit MachineInstructionImpl(const MachineBasicBlock *Target) noexcept requires(Traits::Form == InstructionForm::B)
           : MachineInstruction(OperationValue),
             Operands(BasicBlockOperand(Target))
       {
@@ -66,19 +66,19 @@ namespace ink::vm
         return std::get<1>(Operands);
       }
 
-      constexpr const auto &getLHS() const noexcept requires(Traits::Category == InstructionCategory::Add)
+      constexpr const auto &getLHS() const noexcept requires(Traits::Category == InstructionCategory::Add || Traits::Category == InstructionCategory::ConditionalBranch)
       {
-        return std::get<1>(Operands);
+        return std::get<(Traits::Category == InstructionCategory::Add ? 1 : 0)>(Operands);
       }
 
-      constexpr const auto &getRHS() const noexcept requires(Traits::Category == InstructionCategory::Add)
+      constexpr const auto &getRHS() const noexcept requires(Traits::Category == InstructionCategory::Add || Traits::Category == InstructionCategory::ConditionalBranch)
       {
-        return std::get<2>(Operands);
+        return std::get<(Traits::Category == InstructionCategory::Add ? 2 : 1)>(Operands);
       }
 
       constexpr const MachineBasicBlock *getTarget() const noexcept requires(Traits::BlockCount == 1)
       {
-        return std::get<0>(Operands).getBlock();
+        return std::get<Traits::OperandCount - 1>(Operands).getBlock();
       }
 
       constexpr const auto &getTarget() const noexcept requires(Traits::Category == InstructionCategory::Call || (Traits::Category == InstructionCategory::Branch && Traits::BlockCount == 0))
@@ -86,9 +86,9 @@ namespace ink::vm
         return std::get<0>(Operands);
       }
 
-      constexpr const auto &getTargetOperand() const noexcept requires(Traits::Category == InstructionCategory::Branch || Traits::Category == InstructionCategory::Call)
+      constexpr const auto &getTargetOperand() const noexcept requires(Traits::Category == InstructionCategory::Branch || Traits::Category == InstructionCategory::ConditionalBranch || Traits::Category == InstructionCategory::Call)
       {
-        return std::get<0>(Operands);
+        return std::get<(Traits::BlockCount == 1 ? Traits::OperandCount - 1 : 0)>(Operands);
       }
 
       constexpr const Operand *getOperand(std::size_t Index) const noexcept

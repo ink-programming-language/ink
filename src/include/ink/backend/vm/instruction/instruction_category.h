@@ -10,6 +10,7 @@ namespace ink::vm
     Store,
     Add,
     Branch,
+    ConditionalBranch,
     Return,
     Call,
   };

@@ -30,6 +30,8 @@ OPCODE_FORM(Rri, RegisterOperand, RegisterOperand, ImmediateOperand)
 OPCODE_FORM(Mrr, AddressOperand, RegisterOperand, RegisterOperand)
 OPCODE_FORM(Mrm, AddressOperand, RegisterOperand, AddressOperand)
 OPCODE_FORM(Mri, AddressOperand, RegisterOperand, ImmediateOperand)
+OPCODE_FORM(Mmb, AddressOperand, AddressOperand, BasicBlockOperand)
+OPCODE_FORM(Mib, AddressOperand, ImmediateOperand, BasicBlockOperand)
 
 // Loads read a value of the specified bit width from memory.
 OPCODE(Load8, 0x0001, "load8", Mm, 8, 0, 2, 0, Load)
@@ -100,6 +102,14 @@ OPCODE(CallNativem, 0x003E, "callNative", M, 64, 0, 1, 0, Call)
 OPCODE(Jmpi, 0x003F, "jmpi", I, 64, 0, 0, 1, Branch)
 OPCODE(Jmpr, 0x0040, "jmpr", R, 64, 1, 0, 0, Branch)
 OPCODE(Jmpm, 0x0041, "jmpm", M, 64, 0, 1, 0, Branch)
+
+#define INK_COMPARE_BRANCH_Mmb(Kind, Encoding, Spelling, Width) OPCODE(Kind, Encoding, Spelling, Mmb, Width, 0, 2, 0, ConditionalBranch)
+#define INK_COMPARE_BRANCH_Mib(Kind, Encoding, Spelling, Width) OPCODE(Kind, Encoding, Spelling, Mib, Width, 0, 1, 1, ConditionalBranch)
+#define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed) INK_COMPARE_BRANCH_##Form(Kind, Encoding, Spelling, Width)
+#include "ink/backend/vm/instruction/compare_branch.def"
+#undef COMPARE_BRANCH
+#undef INK_COMPARE_BRANCH_Mib
+#undef INK_COMPARE_BRANCH_Mmb
 
 #ifdef INK_VM_OPCODE_DEF_UNDEF_FORM
 #undef INK_VM_OPCODE_DEF_UNDEF_FORM

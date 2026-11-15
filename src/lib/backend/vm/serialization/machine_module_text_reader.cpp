@@ -400,6 +400,7 @@ namespace ink::vm
         std::string TargetLabel;
         std::size_t Offset;
         std::size_t TargetOffset = 0;
+        std::size_t TargetOperandIndex = 0;
     };
 
     enum class Section
@@ -784,15 +785,29 @@ namespace ink::vm
         std::expected<void, core::Diagnostic> readKnownInstruction(const Token &Mnemonic, LineParser &Line)
         {
           PendingInstruction Pending{Builder.getInsertBlock(), Operation, {}, {}, Mnemonic.Offset};
-          if constexpr (OpcodeTraits<Operation>::Form == InstructionForm::B)
+          if constexpr (OpcodeTraits<Operation>::BlockCount == 1)
           {
+            constexpr std::size_t TargetIndex = OpcodeTraits<Operation>::OperandCount - 1;
+            for (std::size_t Index = 0; Index != TargetIndex; ++Index)
+            {
+              const auto Offset = Line.offset();
+              if (!parseOperand(Line, Pending.Operands[Index]) || !Line.consume(TokenKind::Comma))
+              {
+                return std::unexpected(textError(Offset, "expected a branch comparison operand followed by a comma"));
+              }
+            }
+            if (!operandTypesMatch<Operation>(Pending.Operands, std::make_index_sequence<TargetIndex>{}))
+            {
+              return std::unexpected(textError(Mnemonic.Offset, "branch comparison operands do not match the opcode form"));
+            }
             const Token *Target = Line.take(TokenKind::Identifier);
             if (!Target || Line.peek())
             {
-              return std::unexpected(textError(Line.offset(), "a branch requires exactly one basic block label"));
+              return std::unexpected(textError(Line.offset(), "a branch requires a final basic block label"));
             }
             Pending.TargetLabel = Target->Text;
             Pending.TargetOffset = Target->Offset;
+            Pending.TargetOperandIndex = TargetIndex;
           }
           else
           {
@@ -898,7 +913,7 @@ namespace ink::vm
               {
                 return std::unexpected(textError(Pending.TargetOffset, "unknown basic block label in this function"));
               }
-              Pending.Operands[0].emplace<BasicBlockOperand>(Target->second);
+              Pending.Operands[Pending.TargetOperandIndex].emplace<BasicBlockOperand>(Target->second);
             }
           }
           for (const PendingInstruction &Pending : PendingInstructions)

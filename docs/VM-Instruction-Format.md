@@ -18,7 +18,7 @@ Opcode:u16 | Operand0 | Operand1 | ...
 
 运行时数据指针、VM 函数入口及 BP、SP、PC 统一使用 64 位宿主地址，ZERO 恒为零。普通 VM 符号取地址在加载时计算为 `ImageBase + SymbolOffset + Addend`；Native 符号取地址为解析后的宿主地址加 Addend。这里的 SymbolOffset 相对整个未绑定 Image 开头。内存地址统一采用寄存器基址与八字节偏移位模式，PC 相对地址使用 PC 基址，绝对地址使用 ZERO 基址，计算结果采用同一运行时表示；保存、传递一个地址值时无需携带其重定位来源。未绑定镜像只保存偏移、占位字段和重定位记录，实际宿主指针只出现在地址稳定的已加载镜像及运行时状态中。
 
-操作码唯一确定操作数的顺序、种类和立即数位宽。有显式结果目标的指令将目标放在最前；加法随后依次是左来源和右来源。跳转只有一个目标来源，调用只有目标来源，返回没有显式操作数。`r`、`m`、`i` 分别表示寄存器值、内存地址和立即数；`b` 表示内存模型中的目标基本块。已约定的字节布局不附加逻辑操作数的种类标签，也不保存基本块宿主指针或进程内的名称句柄。
+操作码唯一确定操作数的顺序、种类和立即数位宽。有显式结果目标的指令将目标放在最前；加法随后依次是左来源和右来源。无条件跳转只有一个目标来源；条件跳转依次保存两个比较来源和一个目标块，调用只有目标来源，返回没有显式操作数。`r`、`m`、`i` 分别表示寄存器值、内存地址和立即数；`b` 表示内存模型中的目标基本块。已约定的字节布局不附加逻辑操作数的种类标签，也不保存基本块宿主指针或进程内的名称句柄。
 
 | `opcode.def` 中的形式 | 操作数顺序 |
 | --- | --- |
@@ -27,6 +27,8 @@ Opcode:u16 | Operand0 | Operand1 | ...
 | `Mmm` | `m, m, m` |
 | `Mmi` | `m, m, i` |
 | `Mii` | `m, i, i` |
+| `Mmb` | `m, m, b`；条件跳转的左来源、右来源、目标块 |
+| `Mib` | `m, i, b`；条件跳转的左来源、右来源、目标块 |
 | `Rrr` | `r, r, r` |
 | `Rrm` | `r, r, m` |
 | `Rri` | `r, r, i` |
@@ -137,6 +139,25 @@ Opcode:u16 | Destination:(RegisterId:u8, ByteOffset:i64) | LHS:(RegisterId:u8, B
 
 已删除操作码的编号 `001f` 至 `002a`、`002c` 至 `0039` 保留未分配。`ret` 仍为 `003a`，没有操作数，长度为两字节。当前解释器将最外层 Ret 作为本次执行成功结束；普通调用帧的保存与恢复协议见 [VM 调用约定](VM-Calling-Convention.md)，嵌套调用执行仍待实现。
 
+## 显式比较条件跳转编码
+
+`compare_branch.def` 以 `COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed)` 集中记录 80 种比较分支。编码范围为 `0042` 至 `0091`，依次按 `je`、`jne`、`jlt`、`jle`、`jgt`、`jge`、`jltu`、`jleu`、`jgtu`、`jgeu` 排列；每组依次为位宽 8、16、32、64，各位宽先 `mmb` 后 `mib`。
+
+| 前缀 | 比较 |
+| --- | --- |
+| `je`、`jne` | 等于、不等于，按位比较 |
+| `jlt`、`jle`、`jgt`、`jge` | 有符号小于、小于等于、大于、大于等于 |
+| `jltu`、`jleu`、`jgtu`、`jgeu` | 对应的无符号关系 |
+
+```text
+Mmb: Opcode:u16 | LHS:m | RHS:m | Target:(RegisterId:u8 = 02, ByteOffset:i64)
+Mib: Opcode:u16 | LHS:m | RHS:i<Width> | Target:(RegisterId:u8 = 02, ByteOffset:i64)
+```
+
+`Mmb` 固定为 29 字节。`Mib` 为 `20 + Width / 8` 字节，位宽 8/16/32/64 对应长度 21/22/24/28 字节。两个 `m` 字段都是九字节有效地址描述，来源内存的实际读取宽度由 opcode 决定；立即数在镜像中只占该位宽，负数保存为相同位宽的二进制补码。
+
+例如 `je64mib [bp + 16], 42, done` 的 opcode 为 `0049`，`jlt64mib` 为 `0059`，`jltu64mib` 为 `0079`。目标块按与 `Jmp` 相同的九字节 PC 相对形式发射，但放在整条指令的最后。目标位移相对当前指令起点；成立时执行 `PC = InstructionPC + ByteOffset`，否则执行 `PC = InstructionPC + InstructionBytes`。目标只接受同一函数中的基本块，不为每种比较再展开立即数、寄存器、内存目标变体。
+
 ## 函数调用目标与编码
 
 `call` 和 `callNative` 指令族各有立即数与内存两种形式，共用文本名称，由操作数种类选择具体操作码。直接调用使用 `I` 形式的 `ImmediateOperand`，间接调用使用 `M` 形式的 `AddressOperand`；参数和结果不作为显式指令操作数。文本示例：
@@ -179,7 +200,7 @@ callNative [@native_pointer_slot]
 
 `machine_instructions.h` 根据 `opcode.def` 为每个操作码生成 `OpcodeTraits`，将操作码绑定到对应的 `Form`、`BitWidth` 和操作数布局。`MachineInstructionImpl<Opcode>` 按值持有该布局的 `std::tuple`，并为每个现有操作码提供对应的指令别名，例如 `MachineAdd64rriInstruction`。构造函数要求操作数的数量和具体类型匹配布局，操作数存储随指令对象一起分配。
 
-只有 Load、Store、Add 提供 `getDestination()`；具有目标和单个来源的形式提供 `getSource()`。Add 的 `getLHS()`、`getRHS()` 分别访问索引 1、2。`Jmp` 的 `getTarget()` 返回基本块指针，`getTargetOperand()` 返回块操作数引用；其他跳转和调用的目标访问器返回对应立即数、寄存器或地址操作数的常量引用。Ret 没有这些访问器。
+只有 Load、Store、Add 提供 `getDestination()`；具有目标和单个来源的形式提供 `getSource()`。Add 的 `getLHS()`、`getRHS()` 分别访问索引 1、2，条件跳转的同名访问器访问索引 0、1。具有块目标的跳转由 `getTarget()` 返回最后一个操作数的基本块指针，`getTargetOperand()` 返回块操作数引用；其他跳转和调用的目标访问器返回对应立即数、寄存器或地址操作数的常量引用。Ret 没有这些访问器。
 
 ```cpp
 #include "ink/backend/vm/instruction/machine_instructions.h"
@@ -199,13 +220,13 @@ namespace ink::vm
 
 `MachineInstruction::operandCount()` 返回包含目标在内的操作数数量；`getOperand(Index)` 按相同的语义顺序返回 `const Operand *`，越界返回 `nullptr`。统一访问在实现文件中通过操作码分派到对应的具体指令布局；这是一层供编码器、打印器和校验器使用的模型遍历接口，不规定未来执行器的热路径。
 
-`category()`、`hasDestination()`、`isBranch()`、`isCall()`、`isNativeCall()`、`isReturn()`、`isTerminator()` 描述指令语义；所有跳转都是无条件终结指令。
+`category()`、`hasDestination()`、`isBranch()`、`isCall()`、`isNativeCall()`、`isReturn()`、`isTerminator()` 描述指令语义；无条件跳转和比较条件跳转均为终结指令，后者还通过 `isConditionalBranch()` 标识。
 
 具体指令通过 `MachineInstructionImpl` 构造函数绑定操作码与布局，该模板为 `final`，保证用于分派的具体类型一致。`MachineInstructionBuilder` 在将新指令交给基本块后设置其 `parent()`。指令对象禁止复制，使用具体类型销毁；基类没有虚函数或虚析构函数。构造函数在编译期约束操作数种类和数量，PC 写入限制、寄存器编号有效性、立即数范围等语义约束仍须由后续指令校验处理。
 
 ## 编码、解码与预解码边界
 
-`InstructionEmitter::padInstruction` 已提供 opcode 写入、操作数字段分派、基本块目标、跳转和直接调用编码；解释器已实现三种 ADD 形式、四种跳转和最外层 Ret，公共解码接口仍待实现，也没有已解析字节指令的公共 API。当前模块发射流程完成全局布局、函数名入口偏移登记、基本块偏移登记、指令字节追加、重定位处理及显式入口和导出元数据生成。`MachineInstruction` 及操作数属于逻辑内存模型，`MachineModule` 文本读写不等同于指令字节编码。独立模块 validator 尚未实现。
+`InstructionEmitter::padInstruction` 已提供 opcode 写入、操作数字段分派、基本块目标、跳转和直接调用编码；解释器已实现三种 ADD 形式、四种无条件跳转、80 种显式比较条件跳转和最外层 Ret，公共解码接口仍待实现，也没有已解析字节指令的公共 API。当前模块发射流程完成全局布局、函数名入口偏移登记、基本块偏移登记、指令字节追加、重定位处理及显式入口和导出元数据生成。`MachineInstruction` 及操作数属于逻辑内存模型，`MachineModule` 文本读写不等同于指令字节编码。独立模块 validator 尚未实现。
 
 指令编码有效与运行时可执行是不同层次的检查。VM 符号须由链接阶段解析，宿主导入由加载阶段绑定；寄存器写权限、指令边界、有效地址计算、访存范围和栈规则也须按执行语义检查。当前操作数构造函数不完成这些检查。
 

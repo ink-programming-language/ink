@@ -279,6 +279,46 @@ namespace ink::vm::test
     EXPECT_EQ(static_cast<const MachineJmpInstruction &>(instructionAt(Entry, 0)).getTarget(), &Later);
   }
 
+  // Comparison source symbols are rebound independently of their final block targets, preserving signed addends and native data declarations.
+  TEST(VMModuleLinkerTest, RewritesComparisonSourceSymbolsAndFinalBlockTargets)
+  {
+    const auto LocalName = linkName("link.comparison.local.source");
+    const auto NativeName = linkName("link.comparison.native.source");
+    MachineModule Input;
+    ASSERT_TRUE(Input.createGlobalVariable(16, 8, {}, LocalName).has_value());
+    Input.declareSymbol(NativeName, MachineSymbolKind::GlobalVariable);
+    auto &Function = Input.createFunction();
+    auto &Entry = Function.createBasicBlock();
+    auto &Target = Function.createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Entry);
+    const auto &Original = Builder.create<Opcode::Je64mmb>(AddressOperand(LocalName, 4), AddressOperand(NativeName, -2), BasicBlockOperand(&Target));
+    Builder.create<Opcode::Jltu16mib>(AddressOperand(LocalName, 8), ImmediateOperand(0xABCD), BasicBlockOperand(&Entry));
+    Builder.setInsertPoint(Target);
+    Builder.create<Opcode::Ret>();
+
+    const auto Result = link({&Input});
+
+    ASSERT_NE(Result, nullptr);
+    const auto OutputName = Result->globalVariables().begin()->name();
+    EXPECT_NE(OutputName, LocalName);
+    const auto &OutputFunction = *Result->functions().begin();
+    const auto &OutputEntry = *OutputFunction.basicBlocks().begin();
+    const auto &OutputTarget = *std::next(OutputFunction.basicBlocks().begin());
+    const auto &MemoryBranch = static_cast<const MachineJe64mmbInstruction &>(instructionAt(OutputEntry, 0));
+    EXPECT_EQ(MemoryBranch.getLHS().getSymbol(), OutputName);
+    EXPECT_EQ(MemoryBranch.getLHS().getByteOffset(), 4);
+    EXPECT_EQ(MemoryBranch.getRHS().getSymbol(), NativeName);
+    EXPECT_EQ(MemoryBranch.getRHS().getByteOffset(), -2);
+    EXPECT_EQ(MemoryBranch.getTarget(), &OutputTarget);
+    const auto &ImmediateBranch = static_cast<const MachineJltu16mibInstruction &>(instructionAt(OutputEntry, 1));
+    EXPECT_EQ(ImmediateBranch.getLHS().getSymbol(), OutputName);
+    EXPECT_EQ(ImmediateBranch.getRHS().bits(), 0xABCDU);
+    EXPECT_EQ(ImmediateBranch.getTarget(), &OutputEntry);
+    EXPECT_EQ(Original.getLHS().getSymbol(), LocalName);
+    EXPECT_EQ(Original.getTarget(), &Target);
+  }
+
   // Every registered opcode survives linking with its operands, function symbols and output-owned block references intact.
   TEST(VMModuleLinkerTest, ClonesEveryRegisteredOpcode)
   {

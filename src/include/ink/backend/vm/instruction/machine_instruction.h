@@ -91,7 +91,12 @@ namespace ink::vm
 
       constexpr bool isBranch() const noexcept
       {
-        return category() == InstructionCategory::Branch;
+        return category() == InstructionCategory::Branch || isConditionalBranch();
+      }
+
+      constexpr bool isConditionalBranch() const noexcept
+      {
+        return category() == InstructionCategory::ConditionalBranch;
       }
 
       constexpr bool isReturn() const noexcept

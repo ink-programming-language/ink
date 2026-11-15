@@ -207,6 +207,50 @@ namespace ink::vm::test
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
+  // Comparison source addresses retain VM PC-relative and native import bindings while the final block target is patched independently.
+  TEST(VMExecutableEmitterTest, BindsComparisonSourceSymbolsAndFinalBranchTargets)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    auto &Names = core::NamePool::instance();
+    const auto VMSymbol = Names.intern("emitter-comparison-vm-source");
+    const auto NativeSymbol = Names.intern("emitter-comparison-native-source");
+    const auto EntryName = Names.intern("emitter-comparison-entry");
+    MachineModule Module;
+    ASSERT_TRUE(Module.createGlobalVariable(8, 8, {}, VMSymbol).has_value());
+    Module.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
+    auto &Function = Module.createFunction(EntryName);
+    auto &Entry = Function.createBasicBlock();
+    auto &Target = Function.createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Entry);
+    Builder.create<Opcode::Je64mmb>(AddressOperand(VMSymbol, 1), AddressOperand(NativeSymbol, -3), BasicBlockOperand(&Target));
+    Builder.create<Opcode::Jltu8mib>(AddressOperand(VMSymbol, 2), ImmediateOperand(0xFF), BasicBlockOperand(&Target));
+    Builder.setInsertPoint(Target);
+    Builder.create<Opcode::Ret>();
+    ExecutableEmitter Emitter(Diagnostics);
+    const auto Executable = Emitter.emit(Module, EntryName, {});
+
+    ASSERT_EQ(Executable.byteSize(), 60U);
+    EXPECT_EQ(Executable.getEntryOffset(), 8U);
+    EXPECT_EQ(Executable.getImage()[10], static_cast<std::uint8_t>(RegisterId::PC));
+    EXPECT_EQ(readLittleEndian(Executable, 11), static_cast<std::uint64_t>(-7));
+    EXPECT_EQ(Executable.getImage()[19], static_cast<std::uint8_t>(RegisterId::ZERO));
+    EXPECT_EQ(readLittleEndian(Executable, 20), 0U);
+    EXPECT_EQ(Executable.getImage()[28], static_cast<std::uint8_t>(RegisterId::PC));
+    EXPECT_EQ(readLittleEndian(Executable, 29), 50U);
+    EXPECT_EQ(readLittleEndian(Executable, 40), static_cast<std::uint64_t>(-35));
+    EXPECT_EQ(readLittleEndian(Executable, 48, 1), 0xFFU);
+    EXPECT_EQ(readLittleEndian(Executable, 50), 21U);
+    ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
+    EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, NativeSymbol);
+    ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 1U);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 20U);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].Addend, -3);
+    EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+  }
+
   // Immediate jumps encode forward, self and backward function entries relative to their own opcode without address relocations.
   TEST(VMExecutableEmitterTest, EncodesPCRelativeImmediateJumpsAcrossFunctionBodies)
   {

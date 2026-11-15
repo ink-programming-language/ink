@@ -60,6 +60,19 @@ Builder.create<Opcode::Jmpm>(AddressOperand(RegisterId::BP, 8));
 
 `isBranch()`、`isReturn()`、`isTerminator()` 提供控制流分类；四种跳转均为无条件终结指令。只有 Load、Store、Add 提供 `getDestination()`，Add 的 `getLHS()`、`getRHS()` 分别访问索引 1、2；Ret 没有目标或来源操作数。
 
+## 显式比较条件跳转
+
+`ConditionalBranch` 类别同时描述比较来源和跳转目标，不依赖隐式寄存器。`Mmb` 的布局为 `AddressOperand, AddressOperand, BasicBlockOperand`，`Mib` 为 `AddressOperand, ImmediateOperand, BasicBlockOperand`。比较关系与有符号属性记录在 `compare_branch.def`，操作码经 `opcode.def` 接入同一套强类型模型。
+
+```cpp
+Builder.create<Opcode::Je64mib>(AddressOperand(RegisterId::BP, 16), ImmediateOperand(42), BasicBlockOperand(&Done));
+Builder.create<Opcode::Jlt32mmb>(AddressOperand(RegisterId::BP, 16), AddressOperand(RegisterId::BP, 24), BasicBlockOperand(&Less));
+```
+
+支持相等、不等、有符号及无符号的四种大小关系，每种提供 8/16/32/64 位和两种来源形式。`getLHS()`、`getRHS()` 访问索引 0、1；`getTarget()` 返回最后一个操作数中的块指针，`getTargetOperand()` 返回该块操作数引用。单块指针构造便捷接口仅用于原有 `Jmp`，比较分支显式传入三个操作数。Builder 检查目标非空并且与插入点属于同一函数，克隆与文本读写也保留最后一个目标块的身份。
+
+`isBranch()` 包含无条件和条件跳转，`isConditionalBranch()` 仅描述后者的分类。条件成立时跳目标块，不成立时执行下一条指令；它们不写来源值，不产生比较结果槽或隐式状态。需要表达两个显式去向时，可在其后追加普通 `jmp`。
+
 ## 函数调用指令
 
 `Calli`、`CallNativei` 使用持有单个 `ImmediateOperand` 的 `I` 形式；`Callm`、`CallNativem` 使用持有单个 `AddressOperand` 的 `M` 形式。四者均属于 `InstructionCategory::Call`，复用现有操作数类型。`getTarget()` 和 `getTargetOperand()` 都返回具体目标操作数的常量引用。

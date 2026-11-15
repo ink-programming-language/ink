@@ -25,10 +25,70 @@ namespace ink::vm::test
       }
       return Bits;
     }
+
+    template <Opcode Operation>
+    void verifyComparisonBranchEncoding(std::uint16_t Encoding)
+    {
+      SCOPED_TRACE(Encoding);
+      constexpr auto Width = OpcodeTraits<Operation>::BitWidth;
+      constexpr bool MemoryRHS = OpcodeTraits<Operation>::Form == InstructionForm::Mmb;
+      constexpr auto InstructionBytes = MemoryRHS ? std::size_t{29} : std::size_t{20} + Width / 8;
+      constexpr std::uint64_t ImmediateBits = 0xFFEEDDCCBBAA9988;
+      const core::DiagnosticEngine Diagnostics;
+      ExecutableEmissionContext Context(Diagnostics);
+      Context.padZero(1);
+      MachineFunction Function;
+      auto &Source = Function.createBasicBlock();
+      auto &Target = Function.createBasicBlock();
+      MachineInstructionBuilder Builder;
+      Builder.setInsertPoint(Source);
+      if constexpr (MemoryRHS)
+      {
+        Builder.create<Operation>(AddressOperand(RegisterId::BP, -3), AddressOperand(RegisterId::SP, 5), BasicBlockOperand(&Target));
+      }
+      else
+      {
+        Builder.create<Operation>(AddressOperand(RegisterId::BP, -3), ImmediateOperand(ImmediateBits), BasicBlockOperand(&Target));
+      }
+      Builder.setInsertPoint(Target);
+      Builder.create<Opcode::Ret>();
+      FunctionEmitter Emitter(Context);
+      Emitter.emit(Function);
+
+      ASSERT_EQ(Context.byteSize(), InstructionBytes + 3);
+      EXPECT_EQ(readLittleEndian(Context, 1, 2), Encoding);
+      EXPECT_EQ(Context.getExecutable().getImage()[3], static_cast<std::uint8_t>(RegisterId::BP));
+      EXPECT_EQ(readLittleEndian(Context, 4), static_cast<std::uint64_t>(-3));
+      if constexpr (MemoryRHS)
+      {
+        EXPECT_EQ(Context.getExecutable().getImage()[12], static_cast<std::uint8_t>(RegisterId::SP));
+        EXPECT_EQ(readLittleEndian(Context, 13), 5U);
+      }
+      else
+      {
+        constexpr auto Mask = ~std::uint64_t{0} >> (64 - Width);
+        EXPECT_EQ(readLittleEndian(Context, 12, Width / 8), ImmediateBits & Mask);
+      }
+      constexpr auto TargetField = 1 + InstructionBytes - 8;
+      EXPECT_NE(TargetField % 8, 0U);
+      EXPECT_EQ(Context.getExecutable().getImage()[TargetField - 1], static_cast<std::uint8_t>(RegisterId::PC));
+      EXPECT_EQ(readLittleEndian(Context, TargetField), InstructionBytes);
+      EXPECT_EQ(readLittleEndian(Context, 1 + InstructionBytes, 2), 0x003AU);
+      EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
+      EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
+    }
   } // namespace
 
   static_assert(std::is_same_v<decltype(std::declval<FunctionEmitter &>().getContext()), FunctionEmissionContext &>);
   static_assert(std::is_same_v<decltype(std::declval<const FunctionEmitter &>().getContext()), const FunctionEmissionContext &>);
+
+  // All eighty comparison opcodes emit their typed RHS width and resolve an unaligned final target field relative to the opcode.
+  TEST(VMFunctionEmitterTest, EncodesEveryComparisonBranchFormAndWidth)
+  {
+#define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed) verifyComparisonBranchEncoding<Opcode::Kind>(Encoding);
+#include "ink/backend/vm/instruction/compare_branch.def"
+#undef COMPARE_BRANCH
+  }
 
   // Explicit block emission appends instructions without padding and resolves each block at its first byte in the complete image.
   TEST(VMFunctionEmitterTest, AppendsOrderedInstructionsAndResolvesImageOffsets)
@@ -183,6 +243,43 @@ namespace ink::vm::test
     EXPECT_EQ(readLittleEndian(Context, 44, 2), 0x002BU);
     EXPECT_EQ(Context.getExecutable().getImage()[46], static_cast<std::uint8_t>(RegisterId::PC));
     EXPECT_EQ(readLittleEndian(Context, 47), 0U);
+    EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
+    EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
+  }
+
+  // Mixed comparison widths resolve forward, backward and self targets from each opcode rather than the final operand's location.
+  TEST(VMFunctionEmitterTest, ResolvesComparisonTargetsAtInstructionOrigins)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    ExecutableEmissionContext Context(Diagnostics);
+    Context.padZero(3);
+    MachineFunction Function;
+    auto &First = Function.createBasicBlock();
+    auto &Later = Function.createBasicBlock();
+    auto &Self = Function.createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(First);
+    Builder.create<Opcode::Je8mib>(AddressOperand(RegisterId::BP), ImmediateOperand(0), BasicBlockOperand(&Later));
+    Builder.create<Opcode::Jne64mmb>(AddressOperand(RegisterId::BP, 1), AddressOperand(RegisterId::SP, -1), BasicBlockOperand(&Later));
+    Builder.setInsertPoint(Later);
+    Builder.create<Opcode::Jlt16mib>(AddressOperand(RegisterId::BP, 2), ImmediateOperand(0x1122), BasicBlockOperand(&First));
+    Builder.setInsertPoint(Self);
+    Builder.create<Opcode::Jgeu32mmb>(AddressOperand(RegisterId::BP), AddressOperand(RegisterId::SP), BasicBlockOperand(&Self));
+    FunctionEmitter Emitter(Context);
+    Emitter.emit(Function);
+
+    ASSERT_EQ(Context.byteSize(), 104U);
+    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 3U);
+    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Later), 53U);
+    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Self), 75U);
+    EXPECT_EQ(Context.getExecutable().getImage()[15], static_cast<std::uint8_t>(RegisterId::PC));
+    EXPECT_EQ(readLittleEndian(Context, 16), 50U);
+    EXPECT_EQ(Context.getExecutable().getImage()[44], static_cast<std::uint8_t>(RegisterId::PC));
+    EXPECT_EQ(readLittleEndian(Context, 45), 29U);
+    EXPECT_EQ(Context.getExecutable().getImage()[66], static_cast<std::uint8_t>(RegisterId::PC));
+    EXPECT_EQ(readLittleEndian(Context, 67), static_cast<std::uint64_t>(-50));
+    EXPECT_EQ(Context.getExecutable().getImage()[95], static_cast<std::uint8_t>(RegisterId::PC));
+    EXPECT_EQ(readLittleEndian(Context, 96), 0U);
     EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
     EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
   }

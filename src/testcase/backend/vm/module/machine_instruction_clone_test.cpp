@@ -13,6 +13,22 @@
 
 namespace ink::vm::test
 {
+  namespace
+  {
+    template <Opcode Operation>
+    MachineInstructionImpl<Operation> &createComparisonBranch(MachineInstructionBuilder &Builder, const MachineBasicBlock *Target)
+    {
+      if constexpr (OpcodeTraits<Operation>::Form == InstructionForm::Mmb)
+      {
+        return Builder.create<Operation>(AddressOperand(RegisterId::BP, 5), AddressOperand(RegisterId::SP, -3), BasicBlockOperand(Target));
+      }
+      else
+      {
+        return Builder.create<Operation>(AddressOperand(RegisterId::BP, 5), ImmediateOperand(42), BasicBlockOperand(Target));
+      }
+    }
+  } // namespace
+
   // Value and void visitors receive the concrete const instruction once through a base reference.
   TEST(VMMachineInstructionVisitorTest, DispatchesConcreteConstTypesWithValueAndVoidResults)
   {
@@ -184,6 +200,82 @@ namespace ink::vm::test
     };
     EXPECT_EQ(tryCloneInstruction(Source, Builder, NullTarget), nullptr);
     EXPECT_EQ(DestinationEntry.instructionCount(), 1U);
+  }
+
+  // All comparison branches clone their two sources in order and remap only the final target into the destination function.
+  TEST(VMMachineInstructionCloneTest, ClonesEveryComparisonBranchWithRemappedFinalTargets)
+  {
+    MachineModule SourceModule;
+    auto &SourceFunction = SourceModule.createFunction();
+    auto &SourceEntry = SourceFunction.createBasicBlock();
+    auto &SourceTarget = SourceFunction.createBasicBlock();
+    MachineInstructionBuilder SourceBuilder;
+    SourceBuilder.setInsertPoint(SourceEntry);
+    std::vector<const MachineInstruction *> Sources;
+#define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed) Sources.push_back(&createComparisonBranch<Opcode::Kind>(SourceBuilder, &SourceTarget));
+#include "ink/backend/vm/instruction/compare_branch.def"
+#undef COMPARE_BRANCH
+    ASSERT_EQ(Sources.size(), 80U);
+    MachineFunction DestinationFunction;
+    auto &DestinationEntry = DestinationFunction.createBasicBlock();
+    auto &DestinationTarget = DestinationFunction.createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(DestinationEntry);
+    const auto KeepOperand = [](auto &)
+    {
+      return true;
+    };
+    std::vector<OperandKind> RewrittenKinds;
+    const auto Rewrite = [&](auto &Value)
+    {
+      using OperandType = std::remove_cvref_t<decltype(Value)>;
+      RewrittenKinds.push_back(Value.getKind());
+      if constexpr (std::is_same_v<OperandType, AddressOperand>)
+      {
+        Value = AddressOperand(*Value.getRegister(), Value.getByteOffset() + 2);
+      }
+      else if constexpr (std::is_same_v<OperandType, ImmediateOperand>)
+      {
+        Value = ImmediateOperand(99);
+      }
+      else if constexpr (std::is_same_v<OperandType, BasicBlockOperand>)
+      {
+        EXPECT_EQ(Value.getBlock(), &SourceTarget);
+        Value = BasicBlockOperand(&DestinationTarget);
+      }
+      return true;
+    };
+    for (std::size_t Index = 0; Index < Sources.size(); ++Index)
+    {
+      const auto &Source = *Sources[Index];
+      SCOPED_TRACE(Source.getName());
+      EXPECT_EQ(tryCloneInstruction(Source, Builder, KeepOperand), nullptr);
+      EXPECT_EQ(DestinationEntry.instructionCount(), Index);
+      RewrittenKinds.clear();
+      auto *Cloned = tryCloneInstruction(Source, Builder, Rewrite);
+      ASSERT_NE(Cloned, nullptr);
+      EXPECT_EQ(Cloned->getOpcode(), Source.getOpcode());
+      EXPECT_EQ(Cloned->parent(), &DestinationEntry);
+      EXPECT_TRUE(Cloned->isConditionalBranch());
+      const std::vector<OperandKind> ExpectedKinds{OperandKind::Address, Source.getOperand(1)->getKind(), OperandKind::BasicBlock};
+      EXPECT_EQ(RewrittenKinds, ExpectedKinds);
+      EXPECT_EQ(static_cast<const AddressOperand *>(Cloned->getOperand(0))->getByteOffset(), 7);
+      if (Source.getOperand(1)->getKind() == OperandKind::Address)
+      {
+        EXPECT_EQ(static_cast<const AddressOperand *>(Cloned->getOperand(1))->getByteOffset(), -1);
+        EXPECT_EQ(static_cast<const AddressOperand *>(Source.getOperand(1))->getByteOffset(), -3);
+      }
+      else
+      {
+        EXPECT_EQ(static_cast<const ImmediateOperand *>(Cloned->getOperand(1))->bits(), 99U);
+        EXPECT_EQ(static_cast<const ImmediateOperand *>(Source.getOperand(1))->bits(), 42U);
+      }
+      EXPECT_EQ(static_cast<const BasicBlockOperand *>(Cloned->getOperand(2))->getBlock(), &DestinationTarget);
+      EXPECT_EQ(static_cast<const BasicBlockOperand *>(Source.getOperand(2))->getBlock(), &SourceTarget);
+      EXPECT_EQ(static_cast<const AddressOperand *>(Source.getOperand(0))->getByteOffset(), 5);
+      EXPECT_EQ(Source.parent(), &SourceEntry);
+    }
+    EXPECT_EQ(DestinationEntry.instructionCount(), Sources.size());
   }
 
   // Cloning a zero-operand return inserts it successfully without invoking an operand rewriter that would reject all operands.
