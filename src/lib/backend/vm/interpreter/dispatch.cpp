@@ -65,6 +65,14 @@ namespace ink::vm
                     WRITE_REGISTER(RegisterId::PC, Frame, InstructionAddress + InstructionBytes);
                     continue;
                 }
+            case Opcode::Add64rri:
+                {
+                    const auto Left = READ_REGISTER(LeftRegister, Frame) + Instruction[2];
+                    check(isWritableAddressRegister(DestinationRegister));
+                    WRITE_REGISTER(DestinationRegister, Frame, Left + Instruction[3]);
+                    WRITE_REGISTER(RegisterId::PC, Frame, InstructionAddress + InstructionBytes);
+                    continue;
+                }
             case Opcode::Add64mrr:
                 {
                     const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
@@ -79,6 +87,32 @@ namespace ink::vm
             case Opcode::Jmpr:
                 {
                     WRITE_REGISTER(RegisterId::PC, Frame, READ_REGISTER(DestinationRegister, Frame) + Instruction[1]);
+                    continue;
+                }
+            case Opcode::Load64:
+                {
+                    const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
+                    const auto SourceAddress = READ_REGISTER(LeftRegister, Frame) + Instruction[2];
+                    std::uint64_t Value;
+                    std::memcpy(&Value, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(SourceAddress)), sizeof(Value));
+                    std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Value, sizeof(Value));
+                    WRITE_REGISTER(RegisterId::PC, Frame, InstructionAddress + InstructionBytes);
+                    continue;
+                }
+            case Opcode::Store32i:
+                {
+                    const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
+                    const auto Value = static_cast<std::uint32_t>(Instruction[2]);
+                    std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Value, sizeof(Value));
+                    WRITE_REGISTER(RegisterId::PC, Frame, InstructionAddress + InstructionBytes);
+                    continue;
+                }
+            case Opcode::Store64i:
+                {
+                    const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
+                    const auto Value = Instruction[2];
+                    std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Value, sizeof(Value));
+                    WRITE_REGISTER(RegisterId::PC, Frame, InstructionAddress + InstructionBytes);
                     continue;
                 }
             case Opcode::Jmpi:
