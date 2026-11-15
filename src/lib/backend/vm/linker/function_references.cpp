@@ -4,7 +4,6 @@
 #include "ink/core/name/name_pool.h"
 
 #include <cstdint>
-#include <limits>
 #include <optional>
 #include <tuple>
 #include <type_traits>
@@ -102,21 +101,17 @@ namespace ink::vm::detail
 
                 std::expected<void, std::string> visitOperand(const ImmediateOperand& Value, Opcode Operation) const
                 {
-                    if (const auto Bits = Value.bits())
+                    if (Value.bits())
                     {
-                        if (Operation == Opcode::CallNativei && *Bits > std::numeric_limits<std::uint32_t>::max())
-                        {
-                            return std::unexpected("callNativei import index exceeds u32 range");
-                        }
                         return {};
                     }
-                    if (Operation == Opcode::Calli || Operation == Opcode::CallNativei || Operation == Opcode::Jmpi)
+                    if (Operation == Opcode::Calli || Operation == Opcode::Jmpi)
                     {
                         if (*Value.getByteOffset() != 0)
                         {
                             return std::unexpected("direct function symbol target must have a zero byte offset");
                         }
-                        return VisitReference(*Value.getSymbol(), Operation == Opcode::CallNativei ? SymbolReferenceTarget::NativeFunction : SymbolReferenceTarget::VMFunction);
+                        return VisitReference(*Value.getSymbol(), Operation == Opcode::Calli ? SymbolReferenceTarget::Function : SymbolReferenceTarget::VMFunction);
                     }
                     return VisitReference(*Value.getSymbol(), SymbolReferenceTarget::Any);
                 }

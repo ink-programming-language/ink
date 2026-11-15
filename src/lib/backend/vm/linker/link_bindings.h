@@ -29,7 +29,7 @@ namespace ink::vm::detail
             core::Name OutputName;
             std::size_t ModuleIndex;
 
-            // Native imports have no VM definition linkage.
+            // Unresolved imports have no VM definition linkage.
             std::optional<MachineSymbolLinkage> linkage() const;
             MachineSymbolKind kind() const;
             bool isConstant() const;

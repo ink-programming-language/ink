@@ -59,14 +59,14 @@ namespace ink::vm
             [[nodiscard]] ExecutableFile takeExecutable();
             void reset();
 
-            // Native symbols are declared names without a function or global definition in this module.
+            // Imports are declared names without a function or global definition in this module; providers may be Ink libraries or native stubs.
             // Resolved image offsets are retained until reset.
             void scanUnResolvedSymbol(const MachineModule& Module);
             void resolveSymbol(core::Name Name, std::uint64_t ImageOffset);
             std::optional<std::uint64_t> resolvedSymbolOffset(core::Name Name) const noexcept;
             bool hasUnResolvedSymbol(core::Name Name) const noexcept;
 
-            bool isNativeSymbol(core::Name Name) const noexcept;
+            bool isImportSymbol(core::Name Name) const noexcept;
 
             // Appends Count readable bytes from outside the image; zero Count permits a null source.
             void pad(const void* Src, std::size_t Count);
@@ -79,7 +79,7 @@ namespace ink::vm
 
             // InstructionOffset is the instruction's image offset for PC-relative references; ZERO ignores it.
             std::uint64_t resolveRegisterRelativeOffset(RegisterId Register, std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset) const;
-            std::uint32_t getOrAddNativeSymbol(const DynamicImportSymbol& Import);
+            std::uint32_t getOrAddImportSymbol(const DynamicImportSymbol& Import);
             void addStaticRelocation(StaticRelocationSymbol Relocation);
             void addImageBaseAddressRelocation(ImageBaseAddressRelocation Relocation);
             void addDynamicImportSymbolRelocation(DynamicImportSymbolRelocation Relocation);
@@ -95,7 +95,7 @@ namespace ink::vm
             ExecutableFile Executable;
             std::unordered_map<core::Name, std::uint64_t> UnresolvedSymbol;
             std::unordered_map<core::Name, std::uint64_t> ResolvedSymbol;
-            std::unordered_set<core::Name> NativeSymbols;
+            std::unordered_set<core::Name> ImportSymbols;
             std::vector<StaticRelocationSymbol> PendingStaticRelocationSymbol;
     };
 } // namespace ink::vm

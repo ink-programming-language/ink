@@ -51,29 +51,6 @@ namespace ink::vm::test
             return *std::next(Function.basicBlocks().begin()->instructions().begin(), static_cast<std::ptrdiff_t>(Index));
         }
 
-        void appendCall(MachineInstructionBuilder& Builder, bool Native, core::Name Target)
-        {
-            if (Native)
-            {
-                Builder.create<Opcode::CallNativei>(ImmediateOperand(Target));
-            }
-            else
-            {
-                Builder.create<Opcode::Calli>(ImmediateOperand(Target));
-            }
-        }
-
-        void appendMemoryCall(MachineInstructionBuilder& Builder, bool Native, const AddressOperand& Target)
-        {
-            if (Native)
-            {
-                Builder.create<Opcode::CallNativem>(Target);
-            }
-            else
-            {
-                Builder.create<Opcode::Callm>(Target);
-            }
-        }
     } // namespace
 
     // Calls resolve forward External definitions across modules while recursive calls retain their target identity.
@@ -131,10 +108,10 @@ namespace ink::vm::test
         EXPECT_EQ(static_cast<const MachineCalliInstruction&>(callInstructionAt(*Second.functions().begin())).getTarget().getSymbol(), TargetName);
     }
 
-    // Repeated unresolved function declarations coalesce and cloned native calls outlive both source modules.
-    TEST(VMModuleLinkerCallTest, CanonicalizesNativeCallsWithIndependentOwnership)
+    // Repeated unresolved function declarations coalesce and cloned imported calls outlive both source modules.
+    TEST(VMModuleLinkerCallTest, CanonicalizesImportedCallsWithIndependentOwnership)
     {
-        const auto Name = callName("call.native.shared");
+        const auto Name = callName("call.import.shared");
         std::unique_ptr<MachineModule> Output;
         {
             MachineModule First;
@@ -147,7 +124,7 @@ namespace ink::vm::test
                 Input.declareSymbol(Name, MachineSymbolKind::Function);
                 auto& Block = Input.createFunction().createBasicBlock();
                 Builder.setInsertPoint(Block);
-                Builder.create<Opcode::CallNativei>(ImmediateOperand(Name));
+                Builder.create<Opcode::Calli>(ImmediateOperand(Name));
             }
             Output = linkCallModules({&First, &Second});
             ASSERT_NE(Output, nullptr);
@@ -156,7 +133,7 @@ namespace ink::vm::test
                 const auto& SourceFunction = *Inputs[Index]->functions().begin();
                 const auto& LinkedFunction = *std::next(Output->functions().begin(), static_cast<std::ptrdiff_t>(Index));
                 EXPECT_NE(&callInstructionAt(SourceFunction), &callInstructionAt(LinkedFunction));
-                EXPECT_EQ(static_cast<const MachineCallNativeiInstruction&>(callInstructionAt(SourceFunction)).getTarget().getSymbol(), Name);
+                EXPECT_EQ(static_cast<const MachineCalliInstruction&>(callInstructionAt(SourceFunction)).getTarget().getSymbol(), Name);
             }
         }
         ASSERT_NE(Output, nullptr);
@@ -164,113 +141,77 @@ namespace ink::vm::test
         EXPECT_EQ(Output->symbolDeclarations()[0].Name, Name);
         for (const auto& Function : Output->functions())
         {
-            const auto& Call = static_cast<const MachineCallNativeiInstruction&>(callInstructionAt(Function));
+            const auto& Call = static_cast<const MachineCalliInstruction&>(callInstructionAt(Function));
             EXPECT_EQ(Call.getTarget().getSymbol(), Name);
             EXPECT_EQ(Call.parent(), &*Function.basicBlocks().begin());
         }
     }
 
-    // Calls reject data targets and the opposite function category instead of silently changing their calling contract.
-    TEST(VMModuleLinkerCallTest, RejectsIncompatibleCallTargetKinds)
+    // Direct calls reject data definitions and declarations while both function sources remain valid.
+    TEST(VMModuleLinkerCallTest, RejectsDataCallTargets)
     {
         const auto Target = callName("call.invalid.kind.target");
-        for (const bool Native : {false, true})
+        for (const bool Defined : {false, true})
         {
-            for (unsigned Kind = 0; Kind != 4; ++Kind)
+            MachineModule Input;
+            if (Defined)
             {
-                if ((!Native && Kind == 0) || (Native && Kind == 1))
-                {
-                    continue;
-                }
-                SCOPED_TRACE(Native);
-                SCOPED_TRACE(Kind);
-                MachineModule Input;
-                if (Kind == 0)
-                {
-                    Input.createFunction(Target);
-                }
-                else if (Kind == 1)
-                {
-                    Input.declareSymbol(Target, MachineSymbolKind::Function);
-                }
-                else if (Kind == 2)
-                {
-                    ASSERT_TRUE(Input.createGlobalVariable(8, 8, {}, Target).has_value());
-                }
-                else
-                {
-                    Input.declareSymbol(Target, MachineSymbolKind::GlobalVariable);
-                }
-                auto& Block = Input.createFunction().createBasicBlock();
-                MachineInstructionBuilder Builder;
-                Builder.setInsertPoint(Block);
-                appendCall(Builder, Native, Target);
-                expectCallLinkFailure({&Input});
-                EXPECT_EQ(Block.instructionCount(), 1U);
-            }
-        }
-    }
-
-    // External fallback resolution still validates the opcode's function category instead of accepting any named definition.
-    TEST(VMModuleLinkerCallTest, RejectsIncompatibleExternalCallTargets)
-    {
-        const auto Target = callName("call.external.invalid.target");
-        for (const bool Native : {false, true})
-        {
-            SCOPED_TRACE(Native);
-            MachineModule Provider;
-            MachineModule Caller;
-            if (Native)
-            {
-                Provider.createFunction(Target, MachineSymbolLinkage::External);
+                ASSERT_TRUE(Input.createGlobalVariable(8, 8, {}, Target).has_value());
             }
             else
             {
-                ASSERT_TRUE(Provider.createGlobalVariable(8, 8, {}, Target, MachineSymbolLinkage::External).has_value());
+                Input.declareSymbol(Target, MachineSymbolKind::GlobalVariable);
             }
-            auto& Block = Caller.createFunction().createBasicBlock();
             MachineInstructionBuilder Builder;
-            Builder.setInsertPoint(Block);
-            appendCall(Builder, Native, Target);
-            expectCallLinkFailure({&Provider, &Caller});
+            Builder.setInsertPoint(Input.createFunction().createBasicBlock());
+            Builder.create<Opcode::Calli>(ImmediateOperand(Target));
+            expectCallLinkFailure({&Input});
         }
     }
 
-    // Direct symbol calls reject absent names and registered-but-undefined symbols for both call opcodes.
+    // External fallback resolution rejects a global definition used as a function target.
+    TEST(VMModuleLinkerCallTest, RejectsExternalDataCallTargets)
+    {
+        const auto Target = callName("call.external.invalid.target");
+        MachineModule Provider;
+        MachineModule Caller;
+        ASSERT_TRUE(Provider.createGlobalVariable(8, 8, {}, Target, MachineSymbolLinkage::External).has_value());
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Caller.createFunction().createBasicBlock());
+        Builder.create<Opcode::Calli>(ImmediateOperand(Target));
+        expectCallLinkFailure({&Provider, &Caller});
+    }
+
+    // Direct calls reject absent names and undefined symbols that have no declaration.
     TEST(VMModuleLinkerCallTest, RejectsInvalidAndUndefinedFunctionSymbols)
     {
-        for (const bool Native : {false, true})
+        for (const auto Target : {core::NAME_None, callName("call.undefined.target")})
         {
-            for (const auto Target : {core::NAME_None, callName("call.undefined.target")})
-            {
-                SCOPED_TRACE(Native);
-                MachineModule Input;
-                auto& Block = Input.createFunction().createBasicBlock();
-                MachineInstructionBuilder Builder;
-                Builder.setInsertPoint(Block);
-                appendCall(Builder, Native, Target);
-                expectCallLinkFailure({&Input});
-            }
+            MachineModule Input;
+            MachineInstructionBuilder Builder;
+            Builder.setInsertPoint(Input.createFunction().createBasicBlock());
+            Builder.create<Opcode::Calli>(ImmediateOperand(Target));
+            expectCallLinkFailure({&Input});
         }
     }
 
-    // Unresolved declarations in another input do not authorize callNative until the caller declares the same name.
-    TEST(VMModuleLinkerCallTest, RequiresNativeDeclarationsInReferencingModules)
+    // Unresolved declarations in another input do not authorize calls until the caller declares the same name.
+    TEST(VMModuleLinkerCallTest, RequiresImportDeclarationsInReferencingModules)
     {
-        const auto Alias = callName("call.native.scoped.alias");
+        const auto Alias = callName("call.import.scoped.name");
         MachineModule Provider;
         MachineModule Caller;
         Provider.declareSymbol(Alias, MachineSymbolKind::Function);
         auto& Block = Caller.createFunction().createBasicBlock();
         MachineInstructionBuilder Builder;
         Builder.setInsertPoint(Block);
-        Builder.create<Opcode::CallNativei>(ImmediateOperand(Alias));
+        Builder.create<Opcode::Calli>(ImmediateOperand(Alias));
         expectCallLinkFailure({&Provider, &Caller});
         Caller.declareSymbol(Alias, MachineSymbolKind::Function);
         EXPECT_NE(linkCallModules({&Provider, &Caller}), nullptr);
     }
 
-    // Numeric calls preserve all signed PC-relative bits and the full u32 native-index range without requiring symbols.
+    // Numeric calls retain full-width address bits while numeric jumps preserve their signed displacements.
     TEST(VMModuleLinkerCallTest, ClonesNumericCallTargetsWithoutPrematureAddressValidation)
     {
         MachineModule Input;
@@ -279,8 +220,8 @@ namespace ink::vm::test
         Builder.setInsertPoint(Block);
         Builder.create<Opcode::Calli>(ImmediateOperand(0));
         Builder.create<Opcode::Calli>(ImmediateOperand(std::numeric_limits<std::uint64_t>::max()));
-        Builder.create<Opcode::CallNativei>(ImmediateOperand(0));
-        Builder.create<Opcode::CallNativei>(ImmediateOperand(std::numeric_limits<std::uint32_t>::max()));
+        Builder.create<Opcode::Calli>(ImmediateOperand(0));
+        Builder.create<Opcode::Calli>(ImmediateOperand(std::uint64_t{1} << 32));
         Builder.create<Opcode::Jmpi>(ImmediateOperand(0));
         Builder.create<Opcode::Jmpi>(ImmediateOperand(std::numeric_limits<std::uint64_t>::max()));
         const auto Output = linkCallModules({&Input});
@@ -288,40 +229,43 @@ namespace ink::vm::test
         const auto& Function = *Output->functions().begin();
         EXPECT_EQ(static_cast<const MachineCalliInstruction&>(callInstructionAt(Function, 0)).getTarget().bits(), 0U);
         EXPECT_EQ(static_cast<const MachineCalliInstruction&>(callInstructionAt(Function, 1)).getTarget().bits(), std::numeric_limits<std::uint64_t>::max());
-        EXPECT_EQ(static_cast<const MachineCallNativeiInstruction&>(callInstructionAt(Function, 2)).getTarget().bits(), 0U);
-        EXPECT_EQ(static_cast<const MachineCallNativeiInstruction&>(callInstructionAt(Function, 3)).getTarget().bits(), std::numeric_limits<std::uint32_t>::max());
+        EXPECT_EQ(static_cast<const MachineCalliInstruction&>(callInstructionAt(Function, 2)).getTarget().bits(), 0U);
+        EXPECT_EQ(static_cast<const MachineCalliInstruction&>(callInstructionAt(Function, 3)).getTarget().bits(), std::uint64_t{1} << 32);
         EXPECT_EQ(static_cast<const MachineJmpiInstruction&>(callInstructionAt(Function, 4)).getTarget().bits(), 0U);
         EXPECT_EQ(static_cast<const MachineJmpiInstruction&>(callInstructionAt(Function, 5)).getTarget().bits(), std::numeric_limits<std::uint64_t>::max());
     }
 
-    // Native immediate indices that require more than four bytes fail linking instead of being silently truncated.
-    TEST(VMModuleLinkerCallTest, RejectsNativeImmediateIndexOverflow)
+    // A function declaration may bind to another input's Ink definition without changing the call form.
+    TEST(VMModuleLinkerCallTest, ResolvesDeclaredFunctionsFromOtherInputs)
     {
-        const std::array<std::uint64_t, 2> Targets{std::uint64_t{std::numeric_limits<std::uint32_t>::max()} + 1, std::numeric_limits<std::uint64_t>::max()};
-        for (const auto Target : Targets)
-        {
-            SCOPED_TRACE(Target);
-            MachineModule Input;
-            auto& Block = Input.createFunction().createBasicBlock();
-            MachineInstructionBuilder Builder;
-            Builder.setInsertPoint(Block);
-            Builder.create<Opcode::CallNativei>(ImmediateOperand(Target));
-            expectCallLinkFailure({&Input});
-        }
+        const auto Name = callName("call.declared.external.function");
+        MachineModule Caller;
+        MachineModule Provider;
+        Caller.declareSymbol(Name, MachineSymbolKind::Function);
+        Provider.createFunction(Name, MachineSymbolLinkage::External).createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Caller.createFunction().createBasicBlock());
+        Builder.create<Opcode::Calli>(ImmediateOperand(Name));
+        const auto Output = linkCallModules({&Caller, &Provider});
+        ASSERT_NE(Output, nullptr);
+        EXPECT_TRUE(Output->symbolDeclarations().empty());
+        const auto& Call = static_cast<const MachineCalliInstruction&>(callInstructionAt(*Output->functions().begin()));
+        EXPECT_EQ(Call.getTarget().getSymbol(), Name);
+        EXPECT_EQ(Call.getOpcode(), Opcode::Calli);
     }
 
-    // Direct symbols must select an exact function entry or native import and cannot add positive or negative byte offsets.
+    // Direct symbols must select an exact function entry or imported function and cannot add positive or negative byte offsets.
     TEST(VMModuleLinkerCallTest, RejectsNonzeroDirectSymbolOffsets)
     {
         const auto Target = callName("call.direct.offset.target");
-        for (const bool Native : {false, true})
+        for (const bool Imported : {false, true})
         {
             for (const std::int64_t Offset : {-1, 1})
             {
-                SCOPED_TRACE(Native);
+                SCOPED_TRACE(Imported);
                 SCOPED_TRACE(Offset);
                 MachineModule Input;
-                if (Native)
+                if (Imported)
                 {
                     Input.declareSymbol(Target, MachineSymbolKind::Function);
                 }
@@ -332,14 +276,7 @@ namespace ink::vm::test
                 auto& Block = Input.createFunction().createBasicBlock();
                 MachineInstructionBuilder Builder;
                 Builder.setInsertPoint(Block);
-                if (Native)
-                {
-                    Builder.create<Opcode::CallNativei>(ImmediateOperand(Target, Offset));
-                }
-                else
-                {
-                    Builder.create<Opcode::Calli>(ImmediateOperand(Target, Offset));
-                }
+                Builder.create<Opcode::Calli>(ImmediateOperand(Target, Offset));
                 expectCallLinkFailure({&Input});
             }
         }
@@ -357,12 +294,9 @@ namespace ink::vm::test
         const std::array<AddressOperand, 4> Targets{AddressOperand(RegisterId::SP), AddressOperand(RegisterId::BP, 24), AddressOperand(SlotName, 8), AddressOperand(NativeSlotAlias, -8)};
         MachineInstructionBuilder Builder;
         Builder.setInsertPoint(Block);
-        for (const bool Native : {false, true})
+        for (const auto& Target : Targets)
         {
-            for (const auto& Target : Targets)
-            {
-                appendMemoryCall(Builder, Native, Target);
-            }
+            Builder.create<Opcode::Callm>(Target);
         }
         const auto Output = linkCallModules({&Input});
         ASSERT_NE(Output, nullptr);
@@ -370,42 +304,35 @@ namespace ink::vm::test
         const auto LinkedSlotName = Output->globalVariables().begin()->name();
         EXPECT_NE(LinkedSlotName, SlotName);
         const auto& Function = *Output->functions().begin();
-        for (std::size_t Native = 0; Native != 2; ++Native)
+        for (std::size_t Index = 0; Index < Targets.size(); ++Index)
         {
-            for (std::size_t Index = 0; Index < Targets.size(); ++Index)
-            {
-                const auto& Instruction = callInstructionAt(Function, Native * Targets.size() + Index);
-                EXPECT_EQ(Instruction.getOpcode(), Native ? Opcode::CallNativem : Opcode::Callm);
-                ASSERT_NE(Instruction.getOperand(0), nullptr);
-                const auto& Target = static_cast<const AddressOperand&>(*Instruction.getOperand(0));
-                EXPECT_EQ(Target.getRegister(), Targets[Index].getRegister());
-                EXPECT_EQ(Target.getByteOffset(), Targets[Index].getByteOffset());
-                EXPECT_EQ(Target.getSymbol(), Index == 2 ? std::optional{LinkedSlotName} : Targets[Index].getSymbol());
-            }
+            const auto& Instruction = callInstructionAt(Function, Index);
+            EXPECT_EQ(Instruction.getOpcode(), Opcode::Callm);
+            ASSERT_NE(Instruction.getOperand(0), nullptr);
+            const auto& Target = static_cast<const AddressOperand&>(*Instruction.getOperand(0));
+            EXPECT_EQ(Target.getRegister(), Targets[Index].getRegister());
+            EXPECT_EQ(Target.getByteOffset(), Targets[Index].getByteOffset());
+            EXPECT_EQ(Target.getSymbol(), Index == 2 ? std::optional{LinkedSlotName} : Targets[Index].getSymbol());
         }
         const auto& OriginalTarget = static_cast<const MachineCallmInstruction&>(callInstructionAt(*Input.functions().begin(), 2)).getTarget();
         EXPECT_EQ(OriginalTarget.getSymbol(), SlotName);
         EXPECT_EQ(OriginalTarget.getByteOffset(), 8);
     }
 
-    // Indirect call addresses still reject unresolved storage symbols and invalid address registers for both call families.
+    // Indirect call addresses still reject unresolved storage symbols and invalid address registers for the unified call family.
     TEST(VMModuleLinkerCallTest, RejectsInvalidMemoryCallAddresses)
     {
         const std::array<AddressOperand, 3> Targets{AddressOperand(callName("call.memory.undefined.slot")), AddressOperand(core::NAME_None), AddressOperand(static_cast<RegisterId>(255))};
-        for (const bool Native : {false, true})
+        for (const auto& Target : Targets)
         {
-            for (const auto& Target : Targets)
-            {
-                SCOPED_TRACE(Native);
-                MachineModule Input;
-                auto& Block = Input.createFunction().createBasicBlock();
-                MachineInstructionBuilder Builder;
-                Builder.setInsertPoint(Block);
-                appendMemoryCall(Builder, Native, Target);
-                expectCallLinkFailure({&Input});
-            }
+            MachineModule Input;
+            MachineInstructionBuilder Builder;
+            Builder.setInsertPoint(Input.createFunction().createBasicBlock());
+            Builder.create<Opcode::Callm>(Target);
+            expectCallLinkFailure({&Input});
         }
     }
+
     // Immediate jumps resolve VM functions across modules while register jumps preserve their address-value operands.
     TEST(VMModuleLinkerJumpTest, ResolvesFunctionEntriesAndClonesRegisterJumpTargets)
     {

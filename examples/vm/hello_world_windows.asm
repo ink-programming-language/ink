@@ -23,7 +23,7 @@ entry:
     ; GetStdHandle(u32) -> HANDLE: an eight-byte return slot, then one argument slot.
     add64rri sp, sp, 16
     store32i [sp - 8], 0xFFFFFFF5
-    callNative @GetStdHandle
+    call @GetStdHandle
 
     ; WriteFile has an eight-byte return slot followed by five eight-byte argument slots.
     add64rri sp, sp, 48
@@ -32,7 +32,7 @@ entry:
     store32i [sp - 24], 14
     store64i [sp - 16], @written
     store64i [sp - 8], 0
-    callNative @WriteFile
+    call @WriteFile
 
     add64rri sp, sp, -64
     ret

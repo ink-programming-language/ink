@@ -42,39 +42,39 @@ namespace ink::vm::test
     static_assert(std::is_same_v<decltype(std::declval<ExecutableEmitter&>().getExecutable()), const ExecutableFile&>);
     static_assert(std::is_same_v<decltype(std::declval<const ExecutableEmitter&>().getExecutable()), const ExecutableFile&>);
 
-    // Only declared names without VM definitions become Native symbols, including unused functions and read-only data.
-    TEST(VMExecutableEmitterTest, DerivesNativeSymbolsBySubtractingFunctionsAndGlobalsFromDeclarations)
+    // Only declared names without VM definitions become imports, including unused functions and read-only data.
+    TEST(VMExecutableEmitterTest, DerivesImportsBySubtractingFunctionsAndGlobalsFromDeclarations)
     {
         const core::DiagnosticEngine Diagnostics;
         core::NamePool& Names = core::NamePool::instance();
         const auto FunctionName = Names.intern("emitter-declared-vm-function");
         const auto GlobalName = Names.intern("emitter-declared-vm-global");
-        const auto NativeFunction = Names.intern("emitter-declared-native-function");
-        const auto NativeData = Names.intern("emitter-declared-native-data");
-        const auto NativeConstant = Names.intern("emitter-declared-native-constant");
+        const auto ImportFunction = Names.intern("emitter-declared-import-function");
+        const auto ImportData = Names.intern("emitter-declared-import-data");
+        const auto ImportConstant = Names.intern("emitter-declared-import-constant");
         const auto UndeclaredName = Names.intern("emitter-undeclared-symbol");
         MachineModule Module;
         Module.declareSymbol(FunctionName, MachineSymbolKind::Function);
         Module.declareSymbol(GlobalName, MachineSymbolKind::GlobalVariable);
-        Module.declareSymbol(NativeFunction, MachineSymbolKind::Function);
-        Module.declareSymbol(NativeFunction, MachineSymbolKind::Function);
-        Module.declareSymbol(NativeData, MachineSymbolKind::GlobalVariable);
-        Module.declareSymbol(NativeConstant, MachineSymbolKind::GlobalVariable, true);
+        Module.declareSymbol(ImportFunction, MachineSymbolKind::Function);
+        Module.declareSymbol(ImportFunction, MachineSymbolKind::Function);
+        Module.declareSymbol(ImportData, MachineSymbolKind::GlobalVariable);
+        Module.declareSymbol(ImportConstant, MachineSymbolKind::GlobalVariable, true);
         Module.createFunction(FunctionName);
         ASSERT_TRUE(Module.createGlobalVariable(8, 8, {}, GlobalName).has_value());
         ExecutableEmitter Emitter(Diagnostics);
         Emitter.scanUnResolvedSymbol(Module);
 
-        EXPECT_FALSE(Emitter.getContext().isNativeSymbol(FunctionName));
-        EXPECT_FALSE(Emitter.getContext().isNativeSymbol(GlobalName));
-        EXPECT_FALSE(Emitter.getContext().isNativeSymbol(UndeclaredName));
-        EXPECT_TRUE(Emitter.getContext().isNativeSymbol(NativeFunction));
-        EXPECT_TRUE(Emitter.getContext().isNativeSymbol(NativeData));
-        EXPECT_TRUE(Emitter.getContext().isNativeSymbol(NativeConstant));
+        EXPECT_FALSE(Emitter.getContext().isImportSymbol(FunctionName));
+        EXPECT_FALSE(Emitter.getContext().isImportSymbol(GlobalName));
+        EXPECT_FALSE(Emitter.getContext().isImportSymbol(UndeclaredName));
+        EXPECT_TRUE(Emitter.getContext().isImportSymbol(ImportFunction));
+        EXPECT_TRUE(Emitter.getContext().isImportSymbol(ImportData));
+        EXPECT_TRUE(Emitter.getContext().isImportSymbol(ImportConstant));
         EXPECT_TRUE(Emitter.getContext().hasUnResolvedSymbol(FunctionName));
         EXPECT_TRUE(Emitter.getContext().hasUnResolvedSymbol(GlobalName));
-        EXPECT_FALSE(Emitter.getContext().hasUnResolvedSymbol(NativeFunction));
-        EXPECT_FALSE(Emitter.getContext().hasUnResolvedSymbol(NativeData));
+        EXPECT_FALSE(Emitter.getContext().hasUnResolvedSymbol(ImportFunction));
+        EXPECT_FALSE(Emitter.getContext().hasUnResolvedSymbol(ImportData));
         EXPECT_TRUE(Emitter.getExecutable().getDynamicImportSymbols().empty());
     }
 
@@ -145,23 +145,26 @@ namespace ink::vm::test
         EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 24U);
         EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 80U);
         EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x000CU);
-        EXPECT_EQ(readLittleEndian(Executable, 32), static_cast<std::uint64_t>(-24));
-        EXPECT_EQ(readLittleEndian(Executable, 56), static_cast<std::uint64_t>(-40));
+        EXPECT_EQ(readLittleEndian(Executable, 32), 0U);
+        EXPECT_EQ(readLittleEndian(Executable, 56), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 80, 2), 0x000CU);
-        EXPECT_EQ(readLittleEndian(Executable, 88), static_cast<std::uint64_t>(-64));
+        EXPECT_EQ(readLittleEndian(Executable, 88), 0U);
         const auto& Relocations = Executable.getImageBaseAddressRelocations();
-        ASSERT_EQ(Relocations.size(), 3U);
-        constexpr std::array<std::pair<std::uint64_t, std::uint64_t>, 3> ExpectedRelocations{{
-            {40, 80},
-            {64, 24},
-            {96, 24},
+        ASSERT_EQ(Relocations.size(), 6U);
+        constexpr std::array<ImageBaseAddressRelocation, 6> ExpectedRelocations{{
+            {32, 0, 0},
+            {40, 80, 0},
+            {56, 0, 8},
+            {64, 24, 0},
+            {88, 0, 16},
+            {96, 24, 0},
         }};
-        for (const auto& [ImageOffset, TargetOffset] : ExpectedRelocations)
+        for (const auto& [ImageOffset, TargetOffset, Addend] : ExpectedRelocations)
         {
             const auto Position = std::ranges::find(Relocations, ImageOffset, &ImageBaseAddressRelocation::ImageOffset);
             ASSERT_NE(Position, Relocations.end());
             EXPECT_EQ(Position->TargetOffset, TargetOffset);
-            EXPECT_EQ(Position->Addend, 0);
+            EXPECT_EQ(Position->Addend, Addend);
             EXPECT_EQ(readLittleEndian(Executable, ImageOffset), 0U);
         }
         EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
@@ -169,7 +172,7 @@ namespace ink::vm::test
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
-    // Direct VM calls encode forward, self, and backward targets relative to each call opcode after global storage.
+    // Direct calls reserve full addresses for forward, self, and backward VM targets after global storage.
     TEST(VMExecutableEmitterTest, EncodesDirectVMCallsAcrossFunctionBodies)
     {
         const core::DiagnosticEngine Diagnostics;
@@ -195,36 +198,49 @@ namespace ink::vm::test
         EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 8U);
         EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 48U);
         EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x003BU);
-        EXPECT_EQ(readLittleEndian(Executable, 16), 40U);
+        EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x003BU);
-        EXPECT_EQ(readLittleEndian(Executable, 32), static_cast<std::uint64_t>(-16));
+        EXPECT_EQ(readLittleEndian(Executable, 32), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 40, 2), 0x003AU);
         EXPECT_EQ(readLittleEndian(Executable, 48, 2), 0x003BU);
-        EXPECT_EQ(readLittleEndian(Executable, 56), static_cast<std::uint64_t>(-40));
+        EXPECT_EQ(readLittleEndian(Executable, 56), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 64, 2), 0x003AU);
-        EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+        const auto& Relocations = Executable.getImageBaseAddressRelocations();
+        ASSERT_EQ(Relocations.size(), 3U);
+        constexpr std::array<ImageBaseAddressRelocation, 3> ExpectedRelocations{{
+            {16, 48, 0},
+            {32, 8, 0},
+            {56, 8, 0},
+        }};
+        for (const auto& Expected : ExpectedRelocations)
+        {
+            const auto Position = std::ranges::find(Relocations, Expected.ImageOffset, &ImageBaseAddressRelocation::ImageOffset);
+            ASSERT_NE(Position, Relocations.end());
+            EXPECT_EQ(Position->TargetOffset, Expected.TargetOffset);
+            EXPECT_EQ(Position->Addend, 0);
+        }
         EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
-    // Comparison source addresses retain VM PC-relative and native import bindings while the final block target is patched independently.
+    // Comparison source addresses use image-base and import bindings while the final block target retains its PC-relative displacement.
     TEST(VMExecutableEmitterTest, BindsComparisonSourceSymbolsAndFinalBranchTargets)
     {
         const core::DiagnosticEngine Diagnostics;
         auto& Names = core::NamePool::instance();
         const auto VMSymbol = Names.intern("emitter-comparison-vm-source");
-        const auto NativeSymbol = Names.intern("emitter-comparison-native-source");
+        const auto ImportSymbol = Names.intern("emitter-comparison-import-source");
         const auto EntryName = Names.intern("emitter-comparison-entry");
         MachineModule Module;
         ASSERT_TRUE(Module.createGlobalVariable(8, 8, {}, VMSymbol).has_value());
-        Module.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
+        Module.declareSymbol(ImportSymbol, MachineSymbolKind::GlobalVariable);
         auto& Function = Module.createFunction(EntryName);
         auto& Entry = Function.createBasicBlock();
         auto& Target = Function.createBasicBlock();
         MachineInstructionBuilder Builder;
         Builder.setInsertPoint(Entry);
-        Builder.create<Opcode::Je64mmb>(AddressOperand(VMSymbol, 1), AddressOperand(NativeSymbol, -3), BasicBlockOperand(&Target));
+        Builder.create<Opcode::Je64mmb>(AddressOperand(VMSymbol, 1), AddressOperand(ImportSymbol, -3), BasicBlockOperand(&Target));
         Builder.create<Opcode::Jltu8mib>(AddressOperand(VMSymbol, 2), ImmediateOperand(0xFF), BasicBlockOperand(&Target));
         Builder.setInsertPoint(Target);
         Builder.create<Opcode::Ret>();
@@ -233,22 +249,28 @@ namespace ink::vm::test
 
         ASSERT_EQ(Executable.byteSize(), 80U);
         EXPECT_EQ(Executable.getEntryOffset(), 8U);
-        EXPECT_EQ(Executable.getImage()[10], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 16), static_cast<std::uint64_t>(-7));
+        EXPECT_EQ(Executable.getImage()[10], static_cast<std::uint8_t>(RegisterId::ZERO));
+        EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
         EXPECT_EQ(Executable.getImage()[11], static_cast<std::uint8_t>(RegisterId::ZERO));
         EXPECT_EQ(readLittleEndian(Executable, 24), 0U);
         EXPECT_EQ(Executable.getImage()[12], static_cast<std::uint8_t>(RegisterId::PC));
         EXPECT_EQ(readLittleEndian(Executable, 32), 64U);
-        EXPECT_EQ(readLittleEndian(Executable, 48), static_cast<std::uint64_t>(-38));
+        EXPECT_EQ(readLittleEndian(Executable, 48), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 56), 0xFFU);
         EXPECT_EQ(readLittleEndian(Executable, 64), 32U);
         ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
-        EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, NativeSymbol);
+        EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, ImportSymbol);
         ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 1U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 24U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].Addend, -3);
-        EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+        ASSERT_EQ(Executable.getImageBaseAddressRelocations().size(), 2U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 16U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 0U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Addend, 1);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].ImageOffset, 48U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].TargetOffset, 0U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].Addend, 2);
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
@@ -289,15 +311,15 @@ namespace ink::vm::test
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
-    // Register jumps keep their value operands, while memory jumps patch VM slot addresses and relocate native slot addresses.
+    // Register jumps keep their value operands, while memory jump slots use image-base or import address relocations.
     TEST(VMExecutableEmitterTest, EncodesRegisterJumpsAndRelocatesMemoryJumpSlots)
     {
         const core::DiagnosticEngine Diagnostics;
         const auto VMSlot = core::NamePool::instance().intern("emitter-jump-vm-slot");
-        const auto NativeSlot = core::NamePool::instance().intern("emitter-jump-native-slot");
+        const auto ImportSlot = core::NamePool::instance().intern("emitter-jump-import-slot");
         MachineModule Module;
         ASSERT_TRUE(Module.createGlobalVariable(8, 8, {}, VMSlot).has_value());
-        Module.declareSymbol(NativeSlot, MachineSymbolKind::GlobalVariable);
+        Module.declareSymbol(ImportSlot, MachineSymbolKind::GlobalVariable);
         ExecutableEmitter Emitter(Diagnostics);
         FunctionEmissionContext FunctionContext;
         InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
@@ -305,7 +327,7 @@ namespace ink::vm::test
         Emitter.getContext().padZero(5);
         Instructions.padInstruction(MachineJmprInstruction(RegisterOperand(RegisterId::PC, -8)));
         Instructions.padInstruction(MachineJmpmInstruction(AddressOperand(VMSlot, 4)));
-        Instructions.padInstruction(MachineJmpmInstruction(AddressOperand(NativeSlot, -8)));
+        Instructions.padInstruction(MachineJmpmInstruction(AddressOperand(ImportSlot, -8)));
         EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 32), 0U);
         Emitter.padGlobals(Module);
         Emitter.resolveStaticRelocations();
@@ -316,22 +338,25 @@ namespace ink::vm::test
         EXPECT_EQ(Executable.getImage()[10], static_cast<std::uint8_t>(RegisterId::PC));
         EXPECT_EQ(readLittleEndian(Executable, 16), static_cast<std::uint64_t>(-8));
         EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x0041U);
-        EXPECT_EQ(Executable.getImage()[26], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 32), 36U);
+        EXPECT_EQ(Executable.getImage()[26], static_cast<std::uint8_t>(RegisterId::ZERO));
+        EXPECT_EQ(readLittleEndian(Executable, 32), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 40, 2), 0x0041U);
         EXPECT_EQ(Executable.getImage()[42], static_cast<std::uint8_t>(RegisterId::ZERO));
         EXPECT_EQ(readLittleEndian(Executable, 48), 0U);
         ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
-        EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, NativeSlot);
+        EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, ImportSlot);
         ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 1U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 48U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].Addend, -8);
-        EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+        ASSERT_EQ(Executable.getImageBaseAddressRelocations().size(), 1U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 32U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 56U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Addend, 4);
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
-    // An unresolved direct VM call reserves exactly eight target bytes and patches them only during module finalization.
+    // An unresolved direct call reserves eight address bytes and gains an image-base relocation after module layout.
     TEST(VMExecutableEmitterTest, DefersForwardDirectVMCallUntilModuleFinalization)
     {
         const core::DiagnosticEngine Diagnostics;
@@ -358,20 +383,23 @@ namespace ink::vm::test
         Emitter.resolveStaticRelocations();
 
         const ExecutableFile& Executable = Emitter.getExecutable();
-        EXPECT_EQ(readLittleEndian(Executable, 16), 16U);
+        EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x003AU);
-        EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+        ASSERT_EQ(Executable.getImageBaseAddressRelocations().size(), 1U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 16U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 24U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Addend, 0);
         EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
     }
 
-    // Native direct calls reuse address imports by symbol name and emit four-byte indices without pointer relocations.
-    TEST(VMExecutableEmitterTest, SharesNativeImportsAcrossDirectCallsAndAddressFields)
+    // External direct calls reuse address imports by symbol name and give every call target its own address relocation.
+    TEST(VMExecutableEmitterTest, SharesImportsAcrossDirectCallsAndAddressFields)
     {
         const core::DiagnosticEngine Diagnostics;
         core::NamePool& Names = core::NamePool::instance();
-        const auto SharedSymbol = Names.intern("emitter-native-call-shared");
-        const auto OtherSymbol = Names.intern("emitter-native-call-other");
+        const auto SharedSymbol = Names.intern("emitter-import-call-shared");
+        const auto OtherSymbol = Names.intern("emitter-import-call-other");
         MachineModule Module;
         Module.declareSymbol(SharedSymbol, MachineSymbolKind::Function);
         Module.declareSymbol(SharedSymbol, MachineSymbolKind::Function);
@@ -381,32 +409,41 @@ namespace ink::vm::test
         InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
         Emitter.scanUnResolvedSymbol(Module);
         Instructions.padOperand(ImmediateOperand(SharedSymbol), 64);
-        Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(SharedSymbol)));
-        Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(OtherSymbol)));
-        Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(SharedSymbol)));
+        Instructions.padInstruction(MachineCalliInstruction(ImmediateOperand(SharedSymbol)));
+        Instructions.padInstruction(MachineCalliInstruction(ImmediateOperand(OtherSymbol)));
+        Instructions.padInstruction(MachineCalliInstruction(ImmediateOperand(SharedSymbol)));
 
         const ExecutableFile& Executable = Emitter.getExecutable();
         ASSERT_EQ(Executable.byteSize(), 56U);
         EXPECT_EQ(readLittleEndian(Executable, 0), 0U);
-        EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x003CU);
+        EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x003BU);
         EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
-        EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x003CU);
-        EXPECT_EQ(readLittleEndian(Executable, 32), 1U);
-        EXPECT_EQ(readLittleEndian(Executable, 40, 2), 0x003CU);
+        EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x003BU);
+        EXPECT_EQ(readLittleEndian(Executable, 32), 0U);
+        EXPECT_EQ(readLittleEndian(Executable, 40, 2), 0x003BU);
         EXPECT_EQ(readLittleEndian(Executable, 48), 0U);
         ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 2U);
         EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, SharedSymbol);
         EXPECT_EQ(Executable.getDynamicImportSymbols()[1].Name, OtherSymbol);
-        ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 1U);
-        const auto& Relocation = Executable.getDynamicImportSymbolRelocations()[0];
-        EXPECT_EQ(Relocation.ImageOffset, 0U);
-        EXPECT_EQ(Relocation.SymbolIndex, 0U);
-        EXPECT_EQ(Relocation.Addend, 0);
+        const auto& Relocations = Executable.getDynamicImportSymbolRelocations();
+        ASSERT_EQ(Relocations.size(), 4U);
+        constexpr std::array<DynamicImportSymbolRelocation, 4> ExpectedRelocations{{
+            {0, 0, 0},
+            {16, 0, 0},
+            {32, 1, 0},
+            {48, 0, 0},
+        }};
+        for (std::size_t Index = 0; Index < ExpectedRelocations.size(); ++Index)
+        {
+            EXPECT_EQ(Relocations[Index].ImageOffset, ExpectedRelocations[Index].ImageOffset);
+            EXPECT_EQ(Relocations[Index].SymbolIndex, ExpectedRelocations[Index].SymbolIndex);
+            EXPECT_EQ(Relocations[Index].Addend, 0);
+        }
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
-    // Numeric control transfers preserve signed VM displacement bits and the largest native u32 index at their opcode-specific widths.
+    // Numeric calls preserve complete 64-bit address patterns while immediate jumps retain signed displacement bits.
     TEST(VMExecutableEmitterTest, PreservesNumericDirectCallBoundaryValues)
     {
         const core::DiagnosticEngine Diagnostics;
@@ -414,15 +451,15 @@ namespace ink::vm::test
         FunctionEmissionContext FunctionContext;
         InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
         Instructions.padInstruction(MachineCalliInstruction(ImmediateOperand(static_cast<std::uint64_t>(-16))));
-        Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(std::numeric_limits<std::uint32_t>::max())));
+        Instructions.padInstruction(MachineCalliInstruction(ImmediateOperand(std::numeric_limits<std::uint64_t>::max())));
         Instructions.padInstruction(MachineJmpiInstruction(ImmediateOperand(std::uint64_t{1} << 63)));
 
         const ExecutableFile& Executable = Emitter.getExecutable();
         ASSERT_EQ(Executable.byteSize(), 48U);
         EXPECT_EQ(readLittleEndian(Executable, 0, 2), 0x003BU);
         EXPECT_EQ(readLittleEndian(Executable, 8), static_cast<std::uint64_t>(-16));
-        EXPECT_EQ(readLittleEndian(Executable, 16, 2), 0x003CU);
-        EXPECT_EQ(readLittleEndian(Executable, 24), std::numeric_limits<std::uint32_t>::max());
+        EXPECT_EQ(readLittleEndian(Executable, 16, 2), 0x003BU);
+        EXPECT_EQ(readLittleEndian(Executable, 24), std::numeric_limits<std::uint64_t>::max());
         EXPECT_EQ(readLittleEndian(Executable, 32, 2), 0x003FU);
         EXPECT_EQ(readLittleEndian(Executable, 40), std::uint64_t{1} << 63);
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
@@ -470,8 +507,8 @@ namespace ink::vm::test
         EXPECT_EQ(readLittleEndian(Executable, 16), 0x7788U);
     }
 
-    // Every forward symbol address in one instruction uses the opcode's image offset as its PC-relative origin.
-    TEST(VMExecutableEmitterTest, PreservesInstructionStartForForwardPCRelativeOperands)
+    // Every forward symbol address in one instruction receives its own image-base relocation and signed addend.
+    TEST(VMExecutableEmitterTest, RelocatesEveryForwardMemoryAddressOperand)
     {
         const core::DiagnosticEngine Diagnostics;
         const auto Symbol = core::NamePool::instance().intern("emitter-instruction-forward-global");
@@ -491,11 +528,17 @@ namespace ink::vm::test
         const ExecutableFile& Executable = Emitter.getExecutable();
         ASSERT_EQ(Executable.byteSize(), 40U);
         EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x0004U);
-        EXPECT_EQ(Executable.getImage()[10], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 16), 25U);
-        EXPECT_EQ(Executable.getImage()[11], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 24), 28U);
-        EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+        EXPECT_EQ(Executable.getImage()[10], static_cast<std::uint8_t>(RegisterId::ZERO));
+        EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
+        EXPECT_EQ(Executable.getImage()[11], static_cast<std::uint8_t>(RegisterId::ZERO));
+        EXPECT_EQ(readLittleEndian(Executable, 24), 0U);
+        ASSERT_EQ(Executable.getImageBaseAddressRelocations().size(), 2U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 16U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 32U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Addend, 1);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].ImageOffset, 24U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].TargetOffset, 32U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].Addend, 4);
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
     }
 
@@ -596,24 +639,27 @@ namespace ink::vm::test
 
         const ExecutableFile& Executable = Emitter.getExecutable();
         ASSERT_EQ(Executable.byteSize(), 48U);
-        ASSERT_EQ(Executable.getImageBaseAddressRelocations().size(), 2U);
+        ASSERT_EQ(Executable.getImageBaseAddressRelocations().size(), 3U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 8U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 32U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Addend, -1);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].ImageOffset, 16U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].TargetOffset, 32U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].Addend, 8);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[2].ImageOffset, 24U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[2].TargetOffset, 32U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[2].Addend, 4);
         EXPECT_EQ(readLittleEndian(Executable, 8), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
-        EXPECT_EQ(readLittleEndian(Executable, 24), 12U);
+        EXPECT_EQ(readLittleEndian(Executable, 24), 0U);
         Emitter.resolveStaticRelocations();
-        EXPECT_EQ(Executable.getImageBaseAddressRelocations().size(), 2U);
-        EXPECT_EQ(readLittleEndian(Executable, 24), 12U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations().size(), 3U);
+        EXPECT_EQ(readLittleEndian(Executable, 24), 0U);
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
-    // VM memory addresses retain PC-relative encoding for both deferred forward references and resolved backward references.
-    TEST(VMExecutableEmitterTest, PreservesPCRelativeAddressesBeforeAndAfterLayout)
+    // VM memory addresses produce image-base relocations both before and after their target is laid out.
+    TEST(VMExecutableEmitterTest, RelocatesMemoryAddressesBeforeAndAfterLayout)
     {
         const core::DiagnosticEngine Diagnostics;
         const auto Symbol = core::NamePool::instance().intern("emitter-pc-global");
@@ -632,41 +678,51 @@ namespace ink::vm::test
 
         const ExecutableFile& Executable = Emitter.getExecutable();
         ASSERT_EQ(Executable.byteSize(), 32U);
-        EXPECT_EQ(readLittleEndian(Executable, 8), 6U);
-        EXPECT_EQ(readLittleEndian(Executable, 24), static_cast<std::uint64_t>(-4));
-        EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+        EXPECT_EQ(readLittleEndian(Executable, 8), 0U);
+        EXPECT_EQ(readLittleEndian(Executable, 24), 0U);
+        const auto& Relocations = Executable.getImageBaseAddressRelocations();
+        ASSERT_EQ(Relocations.size(), 2U);
+        EXPECT_EQ(Relocations[0].ImageOffset, 24U);
+        EXPECT_EQ(Relocations[0].TargetOffset, 16U);
+        EXPECT_EQ(Relocations[0].Addend, 4);
+        EXPECT_EQ(Relocations[1].ImageOffset, 8U);
+        EXPECT_EQ(Relocations[1].TargetOffset, 16U);
+        EXPECT_EQ(Relocations[1].Addend, -2);
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
-    // VM and Native pointers retain separate loading records while their memory references share the same aligned displacement-word format.
-    TEST(VMExecutableEmitterTest, KeepsVMAndNativeAddressFieldsInSeparateLoadingTables)
+    // Image-local and imported pointers use separate loading tables for both immediates and memory-address fields.
+    TEST(VMExecutableEmitterTest, KeepsVMAndImportAddressFieldsInSeparateLoadingTables)
     {
         const core::DiagnosticEngine Diagnostics;
         core::NamePool& Names = core::NamePool::instance();
         const auto VMSymbol = Names.intern("emitter-mixed-vm");
-        const auto NativeSymbol = Names.intern("emitter-mixed-native");
+        const auto ImportSymbol = Names.intern("emitter-mixed-import");
         MachineModule Module;
         ASSERT_TRUE(Module.createGlobalVariable(16, 1, {}, VMSymbol).has_value());
-        Module.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
+        Module.declareSymbol(ImportSymbol, MachineSymbolKind::GlobalVariable);
         ExecutableEmitter Emitter(Diagnostics);
         FunctionEmissionContext FunctionContext;
         InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
         Emitter.scanUnResolvedSymbol(Module);
         Emitter.padGlobals(Module);
         Instructions.padOperand(ImmediateOperand(VMSymbol, 8), 64);
-        Instructions.padOperand(ImmediateOperand(NativeSymbol, -8), 64);
+        Instructions.padOperand(ImmediateOperand(ImportSymbol, -8), 64);
         Instructions.padOperand(AddressOperand(VMSymbol, 8), 32);
-        Instructions.padOperand(AddressOperand(NativeSymbol, 12), 40);
+        Instructions.padOperand(AddressOperand(ImportSymbol, 12), 40);
 
         const ExecutableFile& Executable = Emitter.getExecutable();
         ASSERT_EQ(Executable.byteSize(), 48U);
-        ASSERT_EQ(Executable.getImageBaseAddressRelocations().size(), 1U);
+        ASSERT_EQ(Executable.getImageBaseAddressRelocations().size(), 2U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 16U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 0U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Addend, 8);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].ImageOffset, 32U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].TargetOffset, 0U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].Addend, 8);
         ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
-        EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, NativeSymbol);
+        EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, ImportSymbol);
         ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 2U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 24U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
@@ -676,34 +732,34 @@ namespace ink::vm::test
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].Addend, 12);
         EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 24), 0U);
-        EXPECT_EQ(readLittleEndian(Executable, 32), static_cast<std::uint64_t>(-24));
+        EXPECT_EQ(readLittleEndian(Executable, 32), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 40), 0U);
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
-    // Repeated Native declarations share one import across ZERO-relative memory addresses and ordinary address immediates.
-    TEST(VMExecutableEmitterTest, SharesNativeImportsAcrossImmediateAndMemoryAddressFields)
+    // Repeated external declarations share one import across ZERO-relative memory addresses and ordinary address immediates.
+    TEST(VMExecutableEmitterTest, SharesImportImportsAcrossImmediateAndMemoryAddressFields)
     {
         const core::DiagnosticEngine Diagnostics;
         core::NamePool& Names = core::NamePool::instance();
-        const auto NativeSymbol = Names.intern("emitter-shared-native");
+        const auto ImportSymbol = Names.intern("emitter-shared-import");
         MachineModule Module;
-        Module.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
-        Module.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
+        Module.declareSymbol(ImportSymbol, MachineSymbolKind::GlobalVariable);
+        Module.declareSymbol(ImportSymbol, MachineSymbolKind::GlobalVariable);
         ExecutableEmitter Emitter(Diagnostics);
         FunctionEmissionContext FunctionContext;
         InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
         Emitter.scanUnResolvedSymbol(Module);
         Emitter.getContext().padZero(1);
-        Instructions.padOperand(AddressOperand(NativeSymbol, 12), 0);
-        Instructions.padOperand(ImmediateOperand(NativeSymbol, -4), 64);
+        Instructions.padOperand(AddressOperand(ImportSymbol, 12), 0);
+        Instructions.padOperand(ImmediateOperand(ImportSymbol, -4), 64);
 
         const ExecutableFile& Executable = Emitter.getExecutable();
         ASSERT_EQ(Executable.byteSize(), 24U);
         EXPECT_EQ(readLittleEndian(Executable, 8), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
         ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
-        EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, NativeSymbol);
+        EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, ImportSymbol);
         ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 2U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 8U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
@@ -721,17 +777,17 @@ namespace ink::vm::test
         const core::DiagnosticEngine Diagnostics;
         core::NamePool& Names = core::NamePool::instance();
         const auto VMSymbol = Names.intern("emitter-reset-vm");
-        const auto NativeSymbol = Names.intern("emitter-reset-native");
+        const auto ImportSymbol = Names.intern("emitter-reset-import");
         MachineModule FirstModule;
         ASSERT_TRUE(FirstModule.createGlobalVariable(8, 1, {}, VMSymbol).has_value());
-        FirstModule.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
+        FirstModule.declareSymbol(ImportSymbol, MachineSymbolKind::GlobalVariable);
         ExecutableEmitter Emitter(Diagnostics);
         FunctionEmissionContext FunctionContext;
         InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
         Emitter.scanUnResolvedSymbol(FirstModule);
         Emitter.padGlobals(FirstModule);
         Instructions.padOperand(ImmediateOperand(VMSymbol), 64);
-        Instructions.padOperand(ImmediateOperand(NativeSymbol), 64);
+        Instructions.padOperand(ImmediateOperand(ImportSymbol), 64);
         ASSERT_EQ(Emitter.getExecutable().getImageBaseAddressRelocations().size(), 1U);
         ASSERT_EQ(Emitter.getExecutable().getDynamicImportSymbolRelocations().size(), 1U);
 
@@ -745,7 +801,7 @@ namespace ink::vm::test
         const ExecutableFile Executable = Emitter.emit(SecondModule, EntryName, {});
         ASSERT_EQ(Executable.byteSize(), 16U);
         EXPECT_EQ(Executable.getEntryOffset(), 8U);
-        EXPECT_FALSE(Emitter.getContext().isNativeSymbol(NativeSymbol));
+        EXPECT_FALSE(Emitter.getContext().isImportSymbol(ImportSymbol));
         EXPECT_EQ(Executable.getImage()[0], 0xABU);
         EXPECT_EQ(Executable.getImage()[1], 0xCDU);
         EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x003AU);
@@ -827,7 +883,7 @@ namespace ink::vm::test
         const auto GlobalName = Names.intern("emitter-invalid-entry-global");
         const auto EmptyName = Names.intern("emitter-invalid-entry-empty-function");
         const auto ValidName = Names.intern("emitter-invalid-entry-valid-function");
-        const auto NativeName = Names.intern("emitter-invalid-entry-native");
+        const auto ImportName = Names.intern("emitter-invalid-entry-import");
         const auto UnknownName = Names.intern("emitter-invalid-entry-unknown");
         MachineModule Module;
         ASSERT_TRUE(Module.createGlobalVariable(1, 1, {}, GlobalName).has_value());
@@ -835,10 +891,10 @@ namespace ink::vm::test
         MachineInstructionBuilder Builder;
         Builder.setInsertPoint(Module.createFunction(ValidName).createBasicBlock());
         Builder.create<Opcode::Ret>();
-        Module.declareSymbol(NativeName, MachineSymbolKind::Function);
+        Module.declareSymbol(ImportName, MachineSymbolKind::Function);
         ExecutableEmitter Emitter(Diagnostics);
 
-        for (const auto EntryName : {UnknownName, GlobalName, NativeName})
+        for (const auto EntryName : {UnknownName, GlobalName, ImportName})
         {
             SCOPED_TRACE(EntryName.index());
             EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, EntryName, {})), "INK-V0002.*entry must name a defined VM function");
@@ -855,7 +911,7 @@ namespace ink::vm::test
         const auto GlobalName = Names.intern("emitter-invalid-export-global");
         const auto EntryName = Names.intern("emitter-invalid-export-entry");
         const auto EmptyName = Names.intern("emitter-invalid-export-trailing-empty-function");
-        const auto NativeName = Names.intern("emitter-invalid-export-native");
+        const auto ImportName = Names.intern("emitter-invalid-export-import");
         const auto UnknownName = Names.intern("emitter-invalid-export-unknown");
         MachineModule Module;
         ASSERT_TRUE(Module.createGlobalVariable(1, 1, {}, GlobalName).has_value());
@@ -863,11 +919,11 @@ namespace ink::vm::test
         Builder.setInsertPoint(Module.createFunction(EntryName).createBasicBlock());
         Builder.create<Opcode::Ret>();
         Module.createFunction(EmptyName);
-        Module.declareSymbol(NativeName, MachineSymbolKind::Function);
+        Module.declareSymbol(ImportName, MachineSymbolKind::Function);
         ExecutableEmitter Emitter(Diagnostics);
         const std::array<core::Name, 2> Duplicated{GlobalName, GlobalName};
         EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, EntryName, Duplicated)), "INK-V0002.*export symbol name is duplicated");
-        for (const auto Name : {UnknownName, NativeName})
+        for (const auto Name : {UnknownName, ImportName})
         {
             SCOPED_TRACE(Name.index());
             const std::array<core::Name, 1> ExportNames{Name};
@@ -877,6 +933,24 @@ namespace ink::vm::test
         EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, EntryName, InvalidNames)), "INK-V0002.*export symbol name must be registered and nonempty");
         const std::array<core::Name, 1> TrailingEmptyFunction{EmptyName};
         EXPECT_DEATH(static_cast<void>(Emitter.emit(Module, EntryName, TrailingEmptyFunction)), "INK-V0002.*export symbol offset is outside the image");
+    }
+
+    // Direct calls reject byte offsets on function symbols before creating an address relocation.
+    TEST(VMExecutableEmitterDeathTest, RejectsNonzeroDirectCallSymbolOffsets)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        const auto Symbol = core::NamePool::instance().intern("emitter-offset-call-target");
+        MachineModule Module;
+        Module.declareSymbol(Symbol, MachineSymbolKind::Function);
+        ExecutableEmitter Emitter(Diagnostics);
+        FunctionEmissionContext FunctionContext;
+        InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
+        Emitter.scanUnResolvedSymbol(Module);
+        for (const std::int64_t Offset : {-1, 1})
+        {
+            SCOPED_TRACE(Offset);
+            EXPECT_DEATH(Instructions.padInstruction(MachineCalliInstruction(ImmediateOperand(Symbol, Offset))), "INK-V0002.*zero symbol byte offset");
+        }
     }
 
     // Finalization rejects a referenced function whose entry was never assigned an image offset.
@@ -895,16 +969,16 @@ namespace ink::vm::test
         EXPECT_DEATH(Emitter.resolveStaticRelocations(), "INK-V0002.*VM symbol has no image offset after layout");
     }
 
-    // Ordinary VM and Native symbol addresses reject narrow fields even when their image offsets would fit those fields.
+    // Ordinary image-local and imported symbol addresses reject narrow fields even when their image offsets would fit those fields.
     TEST(VMExecutableEmitterDeathTest, RejectsNarrowSymbolAddressImmediateFields)
     {
         const core::DiagnosticEngine Diagnostics;
         core::NamePool& Names = core::NamePool::instance();
         const auto VMSymbol = Names.intern("emitter-narrow-vm");
-        const auto NativeSymbol = Names.intern("emitter-narrow-native");
+        const auto ImportSymbol = Names.intern("emitter-narrow-import");
         MachineModule Module;
         ASSERT_TRUE(Module.createGlobalVariable(8, 1, {}, VMSymbol).has_value());
-        Module.declareSymbol(NativeSymbol, MachineSymbolKind::GlobalVariable);
+        Module.declareSymbol(ImportSymbol, MachineSymbolKind::GlobalVariable);
         ExecutableEmitter Emitter(Diagnostics);
         FunctionEmissionContext FunctionContext;
         InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
@@ -914,7 +988,7 @@ namespace ink::vm::test
         {
             SCOPED_TRACE(Width);
             EXPECT_DEATH(Instructions.padOperand(ImmediateOperand(VMSymbol), Width), "INK-V0002.*64-bit immediate");
-            EXPECT_DEATH(Instructions.padOperand(ImmediateOperand(NativeSymbol), Width), "INK-V0002.*64-bit immediate");
+            EXPECT_DEATH(Instructions.padOperand(ImmediateOperand(ImportSymbol), Width), "INK-V0002.*64-bit immediate");
         }
     }
 } // namespace ink::vm::test

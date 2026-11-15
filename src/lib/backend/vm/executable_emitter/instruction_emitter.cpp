@@ -38,7 +38,7 @@ namespace ink::vm
             else if (Operand.getKind() == OperandKind::Address)
             {
                 const auto& Address = static_cast<const AddressOperand&>(Operand);
-                Register = Address.getRegister().value_or(Context.isNativeSymbol(Address.getSymbol().value_or(core::NAME_None)) ? RegisterId::ZERO : RegisterId::PC);
+                Register = Address.getRegister().value_or(RegisterId::ZERO);
             }
             else if (Operand.getKind() == OperandKind::BasicBlock)
             {
@@ -59,13 +59,13 @@ namespace ink::vm
                 padOperand(static_cast<const AddressOperand&>(Operand), InstructionOffset);
                 break;
             case OperandKind::Immediate:
-                if (Instruction.getOpcode() == Opcode::Calli || Instruction.getOpcode() == Opcode::Jmpi)
+                if (Instruction.getOpcode() == Opcode::Jmpi)
                 {
                     padPCRelativeTarget(static_cast<const ImmediateOperand&>(Operand), InstructionOffset);
                 }
-                else if (Instruction.getOpcode() == Opcode::CallNativei)
+                else if (Instruction.getOpcode() == Opcode::Calli)
                 {
-                    padNativeCallTarget(static_cast<const ImmediateOperand&>(Operand));
+                    padCallTarget(static_cast<const ImmediateOperand&>(Operand));
                 }
                 else
                 {
@@ -102,19 +102,10 @@ namespace ink::vm
         Context.padZero(8);
     }
 
-    void InstructionEmitter::padNativeCallTarget(const ImmediateOperand& Operand)
+    void InstructionEmitter::padCallTarget(const ImmediateOperand& Operand)
     {
-        if (const auto Bits = Operand.bits())
-        {
-            Context.padInteger(static_cast<std::uint32_t>(*Bits), 64);
-            return;
-        }
-
-        const auto Symbol = Operand.getSymbol();
-        REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "callNative", "native call target name must be registered and nonempty");
-        REPORT_ICE_IF(!Context.isNativeSymbol(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "callNative", "native call target has no unresolved symbol declaration");
-        const auto Index = Context.getOrAddNativeSymbol(DynamicImportSymbol{*Symbol});
-        Context.padInteger(Index, 64);
+        REPORT_ICE_IF(Operand.getSymbol() && *Operand.getByteOffset() != 0, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "call", "function target must have a zero symbol byte offset");
+        padOperand(Operand, 64);
     }
 
     void InstructionEmitter::padRegister(RegisterId Register, std::int64_t ByteOffset)
@@ -141,9 +132,9 @@ namespace ink::vm
         Context.padInteger(Bits, 64);
     }
 
-    void InstructionEmitter::padNativeSymbol(const DynamicImportSymbol& Import, std::int64_t Addend)
+    void InstructionEmitter::padImportSymbol(const DynamicImportSymbol& Import, std::int64_t Addend)
     {
-        const auto Index = Context.getOrAddNativeSymbol(Import);
+        const auto Index = Context.getOrAddImportSymbol(Import);
         Context.addDynamicImportSymbolRelocation({Context.byteSize(), Index, Addend});
         Context.padZero(8);
     }
@@ -170,8 +161,8 @@ namespace ink::vm
         REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol name must be registered and nonempty");
         const auto Addend = *Operand.getByteOffset();
         const auto Position = Context.resolvedSymbolOffset(*Symbol);
-        const bool Native = Context.isNativeSymbol(*Symbol);
-        REPORT_ICE_IF(Native && (Position || Context.hasUnResolvedSymbol(*Symbol)), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has both VM and native definitions");
+        const bool Import = Context.isImportSymbol(*Symbol);
+        REPORT_ICE_IF(Import && (Position || Context.hasUnResolvedSymbol(*Symbol)), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has both image and import definitions");
         if (Position)
         {
             Context.addImageBaseAddressRelocation({Context.byteSize(), *Position, Addend});
@@ -186,8 +177,8 @@ namespace ink::vm
             return;
         }
 
-        REPORT_ICE_IF(!Native, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has no resolved VM offset or unresolved symbol declaration");
-        const auto Index = Context.getOrAddNativeSymbol(DynamicImportSymbol{*Symbol});
+        REPORT_ICE_IF(!Import, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has no resolved VM offset or unresolved symbol declaration");
+        const auto Index = Context.getOrAddImportSymbol(DynamicImportSymbol{*Symbol});
         Context.addDynamicImportSymbolRelocation({Context.byteSize(), Index, Addend});
         Context.padZero(8);
     }
@@ -204,22 +195,22 @@ namespace ink::vm
         const auto Symbol = Operand.getSymbol();
         REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol name must be registered and nonempty");
         const auto Position = Context.resolvedSymbolOffset(*Symbol);
-        const bool Native = Context.isNativeSymbol(*Symbol);
-        REPORT_ICE_IF(Native && (Position || Context.hasUnResolvedSymbol(*Symbol)), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has both VM and native definitions");
+        const bool Import = Context.isImportSymbol(*Symbol);
+        REPORT_ICE_IF(Import && (Position || Context.hasUnResolvedSymbol(*Symbol)), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has both image and import definitions");
         if (Position)
         {
-            padRegisterRelativeSymbol(RegisterId::PC, *Position, Operand.getByteOffset(), InstructionOffset);
+            padRegisterRelativeSymbol(RegisterId::ZERO, *Position, Operand.getByteOffset(), InstructionOffset);
             return;
         }
 
         if (Context.hasUnResolvedSymbol(*Symbol))
         {
-            padUnresolvedSymbol(RegisterId::PC, *Symbol, Operand.getByteOffset(), InstructionOffset);
+            padUnresolvedSymbol(RegisterId::ZERO, *Symbol, Operand.getByteOffset(), InstructionOffset);
             return;
         }
 
-        REPORT_ICE_IF(!Native, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has no resolved VM offset or unresolved symbol declaration");
-        padNativeSymbol(DynamicImportSymbol{*Symbol}, Operand.getByteOffset());
+        REPORT_ICE_IF(!Import, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has no resolved VM offset or unresolved symbol declaration");
+        padImportSymbol(DynamicImportSymbol{*Symbol}, Operand.getByteOffset());
     }
 
     void InstructionEmitter::padOperand(const BasicBlockOperand& Operand, std::uint64_t InstructionOffset)

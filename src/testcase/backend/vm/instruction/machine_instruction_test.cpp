@@ -535,15 +535,13 @@ namespace ink::vm::test
         EXPECT_EQ(Base.getOperand(std::numeric_limits<std::size_t>::max()), nullptr);
     }
 
-    // Immediate and memory calls reuse value operands, distinguish VM and native targets, without terminating the block.
-    TEST(VMMachineInstructionTest, ModelsImmediateAndIndirectVMAndNativeCalls)
+    // Immediate and memory calls share one mnemonic and full-width targets without terminating their block.
+    TEST(VMMachineInstructionTest, ModelsImmediateAndIndirectCalls)
     {
         const core::Name Target = core::NamePool::instance().intern("instruction.call.target");
         const MachineCalliInstruction Direct{ImmediateOperand(Target)};
-        const MachineCallNativeiInstruction NativeDirect{ImmediateOperand(Target)};
-        constexpr MachineCallmInstruction Indirect{AddressOperand(RegisterId::SP)};
-        constexpr MachineCallNativemInstruction NativeIndirect{AddressOperand(RegisterId::SP, 8)};
-        const MachineInstruction* Calls[] = {&Direct, &NativeDirect, &Indirect, &NativeIndirect};
+        constexpr MachineCallmInstruction Indirect{AddressOperand(RegisterId::SP, 8)};
+        const MachineInstruction* Calls[] = {&Direct, &Indirect};
         for (const auto* Value : Calls)
         {
             EXPECT_TRUE(Value->isCall());
@@ -553,45 +551,34 @@ namespace ink::vm::test
             EXPECT_FALSE(Value->hasDestination());
             EXPECT_EQ(Value->category(), InstructionCategory::Call);
             EXPECT_EQ(Value->operandCount(), 1U);
-            EXPECT_EQ(Value->bitWidth(), Value->getOpcode() == Opcode::CallNativei ? 32U : 64U);
+            EXPECT_EQ(Value->bitWidth(), 64U);
             ASSERT_NE(Value->getOperand(0), nullptr);
             EXPECT_EQ(Value->getOperand(1), nullptr);
+            EXPECT_EQ(Value->getName(), "call");
         }
-        EXPECT_EQ(Direct.getName(), "call");
-        EXPECT_EQ(Indirect.getName(), "call");
-        EXPECT_EQ(NativeDirect.getName(), "callNative");
-        EXPECT_EQ(NativeIndirect.getName(), "callNative");
-        EXPECT_FALSE(Direct.isNativeCall());
-        EXPECT_FALSE(Indirect.isNativeCall());
-        EXPECT_TRUE(NativeDirect.isNativeCall());
-        EXPECT_TRUE(NativeIndirect.isNativeCall());
         EXPECT_EQ(Direct.getTarget().getSymbol(), Target);
-        EXPECT_EQ(NativeDirect.getTarget().getSymbol(), Target);
         EXPECT_EQ(Direct.getTargetOperand().getKind(), OperandKind::Immediate);
         EXPECT_EQ(Indirect.getTargetOperand().getKind(), OperandKind::Address);
         EXPECT_EQ(Direct.getOperand(0), &Direct.getTarget());
-        EXPECT_EQ(NativeDirect.getOperand(0), &NativeDirect.getTargetOperand());
         EXPECT_EQ(Indirect.getOperand(0), &Indirect.getTarget());
-        EXPECT_EQ(NativeIndirect.getOperand(0), &NativeIndirect.getTargetOperand());
         static_assert(Indirect.getTarget().getRegister() == RegisterId::SP);
-        static_assert(Indirect.getTarget().getByteOffset() == 0);
-        static_assert(NativeIndirect.getTarget().getByteOffset() == 8);
+        static_assert(Indirect.getTarget().getByteOffset() == 8);
         static_assert(OpcodeTraits<Opcode::Calli>::Form == InstructionForm::I);
-        static_assert(OpcodeTraits<Opcode::CallNativei>::ImmediateCount == 1);
+        static_assert(OpcodeTraits<Opcode::Calli>::ImmediateCount == 1);
         static_assert(OpcodeTraits<Opcode::Callm>::Form == InstructionForm::M);
-        static_assert(OpcodeTraits<Opcode::CallNativem>::AddressCount == 1);
+        static_assert(OpcodeTraits<Opcode::Callm>::AddressCount == 1);
         static_assert(std::is_same_v<decltype(Direct.getTarget()), const ImmediateOperand&>);
         static_assert(std::is_same_v<decltype(Indirect.getTarget()), const AddressOperand&>);
-        static_assert(!HasInstructionDestination<MachineCalliInstruction> && !HasInstructionSource<MachineCallNativemInstruction>);
+        static_assert(!HasInstructionDestination<MachineCalliInstruction> && !HasInstructionSource<MachineCallmInstruction>);
         static_assert(!std::is_constructible_v<MachineCalliInstruction, AddressOperand>);
         static_assert(!std::is_constructible_v<MachineCallmInstruction, ImmediateOperand>);
-        static_assert(!std::is_constructible_v<MachineCallNativeiInstruction, core::Name>);
-        static_assert(!std::is_constructible_v<MachineCallNativemInstruction, RegisterOperand>);
-        static_assert(!std::is_constructible_v<MachineCallNativeiInstruction, std::uint32_t>);
+        static_assert(!std::is_constructible_v<MachineCalliInstruction, core::Name>);
+        static_assert(!std::is_constructible_v<MachineCallmInstruction, RegisterOperand>);
+        static_assert(!std::is_constructible_v<MachineCalliInstruction, std::uint64_t>);
         static_assert(!std::is_constructible_v<MachineCalliInstruction, ImmediateOperand, ImmediateOperand>);
         constexpr MachineCalliInstruction Numeric{ImmediateOperand(std::numeric_limits<std::uint64_t>::max())};
         static_assert(Numeric.getTarget().bits() == std::numeric_limits<std::uint64_t>::max());
-        static_assert(Numeric.isCall() && !Numeric.isNativeCall());
+        static_assert(Numeric.isCall());
     }
 
 } // namespace ink::vm::test

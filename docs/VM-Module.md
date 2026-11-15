@@ -75,20 +75,16 @@ Builder.create<Opcode::Jlt32mmb>(AddressOperand(RegisterId::BP, 16), AddressOper
 
 ## 函数调用指令
 
-`Calli`、`CallNativei` 使用持有单个 `ImmediateOperand` 的 `I` 形式；`Callm`、`CallNativem` 使用持有单个 `AddressOperand` 的 `M` 形式。四者均属于 `InstructionCategory::Call`，复用现有操作数类型。`getTarget()` 和 `getTargetOperand()` 都返回具体目标操作数的常量引用。
+`Calli` 使用单个 `ImmediateOperand`，`Callm` 使用单个 `AddressOperand`，两者均属于 `InstructionCategory::Call`，文本统一为 `call`。`getTarget()` 和 `getTargetOperand()` 返回具体目标操作数的常量引用。
 
 ```cpp
 Builder.create<Opcode::Calli>(ImmediateOperand(FunctionName));
-Builder.create<Opcode::CallNativei>(ImmediateOperand(NativeFunctionName));
 Builder.create<Opcode::Callm>(AddressOperand(RegisterId::BP, 16));
-Builder.create<Opcode::CallNativem>(AddressOperand(PointerSlotName, 8));
 ```
 
-`isCall()` 识别全部调用，`isNativeCall()` 识别两种 Native 调用。调用没有显式结果目标或参数操作数，也不是终结指令；返回后继续执行后继指令。
+`isCall()` 识别调用。调用没有显式结果目标或参数操作数，不是终结指令。`Calli` 数值目标是完整 u64 地址，符号目标可绑定 VM 函数定义或尚待加载解析的函数声明，符号 addend 必须为零。`Callm` 从内存读取完整函数地址，其符号只定位指针槽。
 
-`Calli` 的数值目标为相对当前 PC 的有符号 i64 位模式，符号目标绑定 VM 函数定义；`CallNativei` 的数值目标为统一动态导入表 `DynamicImportSymbols` 的 u32 索引，符号目标必须是通过 `declareSymbol` 声明且未被 VM 定义满足的函数符号。直接调用的符号 addend 必须为零。`Callm` 和 `CallNativem` 分别从有效地址读取 64 位 VM 函数地址和 native 可调用指针，后者不是导入索引。间接目标中的符号只定位存放指针的内存，按普通地址符号规则解析。
-
-Builder 不解析名称或校验调用签名。逻辑指令、文本、链接接入和指令编码均已实现；解码仍待实现。参数与返回槽的布局约定见 [VM 调用约定](VM-Calling-Convention.md)，其自动代码生成和调用执行尚未实现。native 可调用指针的 adapter 与宿主 ABI 协议也仍待确定。
+发射时本镜像符号地址生成镜像基址重定位，外部符号地址生成动态导入重定位，调用目标也使用这些地址记录。解释器已实现 `Calli` 的 stub 地址集合分派及普通 CALL/RET；`Callm` 执行、调用区自动生成和完整签名校验仍待实现。参数与返回槽布局见 [VM 调用约定](VM-Calling-Convention.md)。
 
 ## 全局数据与栈帧
 
@@ -119,7 +115,7 @@ Builder 不解析名称或校验调用签名。逻辑指令、文本、链接接
 
 符号名称通过 `core::Name` 保存链接名，不借用输入文本，也不是宿主指针。函数和全局变量分别保存 `MachineSymbolLinkage::Local` 或 `External`，创建接口的 Linkage 参数指定该属性，默认 Local。`MachineModule::declareSymbol(Name, Kind, IsConstant)` 统一保存符号声明，通过 `symbolDeclarations()` 只读遍历。Kind 为 Function 或 GlobalVariable，IsConstant 默认 false，只能在全局变量声明上设为 true；链接时声明与定义的种类和常量属性必须精确一致。模块内存模型本身不执行链接校验。
 
-Native 符号由 `NativeSymbols = SymbolDeclarations - (Functions + Globals)` 推导。链接器先查找声明所在模块的定义及其他输入中的 External 定义，只有未被这些定义满足的声明才作为 Native 符号保留；已有 VM 定义不会同时成为 Native 导入。函数和数据共用这一集合，模块不再保存独立的 Native 函数或 Native 数据成员。每个 Native 符号仅有一个名称，同时用于指令引用和宿主查找，不提供独立的宿主名称或别名。
+导入候选由 `ImportSymbols = SymbolDeclarations - (Functions + Globals)` 推导。声明先尝试绑定本模块或本次链接中可见的 VM 定义；未满足的声明留待加载时解析，可以由其他 Ink 库或 Native 提供，不能提前认定为 Native。函数和数据共用符号声明和动态导入表，每个名称同时用于逻辑引用和加载查找。
 
 `serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；基本块跳转使用 `jmp done`；其他跳转显式写为 `jmpi`、`jmpr`、`jmpm`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
 
@@ -127,7 +123,7 @@ Native 符号由 `NativeSymbols = SymbolDeclarations - (Functions + Globals)` �
 
 符号操作数使用 `@name` 或带转义名称的 `@"name"`，以区分寄存器、数值和函数内块标签。`[@counter + 8]` 表示读取或写入符号相对地址的内存，`@counter + 8` 表示地址值。例如 `add64mmi [bp + 16], [@counter], 1` 使用 counter 内存中的值，`add64mii [bp + 16], @counter, 1` 使用 counter 的地址值。符号偏移完整保留为 `i64`，文本读写不会根据指令位宽截断符号偏移；名称必须在 NamePool 中有效且非空。
 
-调用文本共用 `call` 和 `callNative` 名称，由操作数决定具体形式。例如 `call @function_name` 和 `callNative 0` 分别是符号直接调用和按 native 导入索引调用；`call [bp + 16]` 和 `callNative [@pointer_slot + 8]` 则从内存读取可调用目标。名称支持转义，直接调用拒绝 `call @function_name + 8` 等非零符号偏移；符号是否存在、直接调用是否属于正确类别由链接器检查。
+调用文本统一使用 `call`，由操作数决定直接或间接形式，例如 `call @function_name`、`call [bp + 16]` 和 `call [@pointer_slot + 8]`。名称支持转义，直接符号调用拒绝非零 addend。`callNative` 不再是合法助记符；函数来源由实际目标地址在执行时确定。
 
 定义行末尾的 `external` 保留外部链接属性，例如 `.function sum external` 和 `.global counter, 8, 8 external`。全局变量的格式为 `.global name, size, alignment [readonly] [local|external]`，`readonly` 表示 IsConstant，例如 `.global message, 3, 1 readonly external`。全部全局变量统一写在 `.section .data` 中，文本不再提供 `.rodata`、`.constant` 或 `.endconstant`。省略链接属性或使用 `local` 表示 Local；写出器省略 Local 属性。External 定义必须具有非空原始名称，自动显示标签不替代链接名。顶层声明语法如下，名称同样支持带转义的 `@"name"`：
 
@@ -140,11 +136,11 @@ Native 符号由 `NativeSymbols = SymbolDeclarations - (Functions + Globals)` �
 .declare global @host_buffer
 ```
 
-全部声明都使用 `.declare`，不再提供独立的 Native 声明语法。声明中的种类和只读属性保留给逻辑链接检查。文本读取只恢复字段、名称和结构，不执行链接，也不决定哪些声明最终由 VM 定义满足。发射器从声明与定义的差集建立统一 Native 符号集合，被指令使用的符号按名称加入镜像的 `DynamicImportSymbols`；未使用的声明不会自动生成动态导入项。完整宿主 ABI 调用描述及 adapter 协议仍待实现。
+全部声明都使用 `.declare`，不再提供独立的 Native 声明语法。声明中的种类和只读属性保留给逻辑链接检查。文本读取只恢复字段、名称和结构，不执行链接，也不决定哪些声明最终由 VM 定义满足。发射器从声明与定义的差集建立统一外部导入符号集合，被指令使用的符号按名称加入镜像的 `DynamicImportSymbols`；未使用的声明不会自动生成动态导入项。完整宿主 ABI 调用描述及 adapter 协议仍待实现。
 
 ## 链接与可执行镜像边界
 
-已实现的模块链接流水线为 `MachineModule × N → ModuleLinker → MachineModule`。`linker` 目录的 `ModuleLinker` 支持强符号、Local/External、统一声明、Native 符号推导、种类检查和深克隆，具体接口与冲突规则见 [VM 模块链接器](VM-Linker.md)。发射器已提供全局及函数布局、基本块目标到 PC 相对位移的转换、指令编码和重定位处理。VM 符号内存地址选择 PC 基址，Native 符号内存地址选择恒零的 ZERO 基址，统一编码为寄存器编号与八字节偏移位模式；普通 VM 符号立即数通过镜像基址地址重定位在加载时生成完整地址。进程内的 Name 句柄不能进入字节流。
+已实现的模块链接流水线为 `MachineModule × N → ModuleLinker → MachineModule`。`linker` 目录的 `ModuleLinker` 支持强符号、Local/External、统一声明、外部导入符号推导、种类检查和深克隆，具体接口与冲突规则见 [VM 模块链接器](VM-Linker.md)。发射器已提供全局及函数布局、基本块目标到 PC 相对位移的转换、指令编码和重定位处理。符号内存地址统一选择恒零的 ZERO 基址；本镜像符号地址通过镜像基址重定位填写，外部符号地址通过动态导入重定位填写，普通符号立即数和直接调用目标使用相同规则。进程内的 Name 句柄不能进入字节流。
 
 `executable` 目录提供可执行镜像的内存模型 `ExecutableFile`，保存小端镜像字节、入口偏移、统一动态导入符号表 `DynamicImportSymbols`、动态导入符号地址重定位 `DynamicImportSymbolRelocations`、镜像基址地址重定位 `ImageBaseAddressRelocations`，以及记录导出名称和镜像内偏移的 `ExportSymbols`，并提供结构校验；模型不保存段表或字节序配置，接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。`ModuleLinker` 输出仍是逻辑模块，不生成上述镜像内容。
 

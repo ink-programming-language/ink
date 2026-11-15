@@ -12,6 +12,7 @@
 #include <memory>
 #include <span>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace ink::vm
@@ -107,6 +108,8 @@ namespace ink::vm
             vm::Frame Frame;
             // Preserve allocation ownership independently of mutable BP/SP register values.
             std::unique_ptr<void, decltype(&std::free)> StackAllocation{nullptr, &std::free};
+            std::size_t StackSize = 0;
+            std::unordered_set<std::uint64_t> NativeStubAddresses;
             std::unordered_map<core::Name, std::uint64_t> ExportSymbolMap;
             core::DiagnosticEngine Diagnostics;
             vm::Loader Loader;

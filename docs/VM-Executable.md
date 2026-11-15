@@ -45,11 +45,11 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 镜像字节可由调用方显式构造，或通过发射器当前提供的全局布局与操作数字段接口追加；镜像模型本身不执行布局。`ExecutableEmitter::getExecutable()` 借用当前构建中的未绑定镜像，只提供 const 访问；后续发射仍可能修改其内容。镜像模型不携带代码范围和数据权限信息；后续加载及执行阶段如何建立指令边界、区分代码与数据和实施权限检查仍待确定。结构校验要求入口偏移位于镜像内且满足八字节对齐，但不识别代码、数据或完整指令起点。
 
-`ExecutableEmitter` 拥有 `ExecutableEmissionContext`，上下文保存镜像、模块符号、统一的 `NativeSymbols` 和待解析符号重定位，并提供字节追加及回填接口。扫描时先登记模块中的函数与全局定义，再从 `SymbolDeclarations` 排除这些定义，得到 `NativeSymbols = SymbolDeclarations - (Functions + Globals)`；符号只有一个名称，同时作为逻辑引用名和宿主查找名。`FunctionEmitter` 拥有保存基本块偏移状态的 `FunctionEmissionContext`；`InstructionEmitter` 借用两个上下文，负责指令和操作数字段编码。函数发射器重置和扫描基本块状态后，按函数内顺序调用 `padBasicBlock`；该接口先将当前镜像偏移补齐到八字节边界，再在 `FunctionEmissionContext` 中登记该偏移并移除对应的未解析记录，再按块内顺序调用 `InstructionEmitter::padInstruction`。基本块目标在指令头中记录 PC 寄存器编号，在对应的八字节操作数槽中记录 PC 相对位移，前向引用记录在 `FunctionEmissionContext::PendingStaticRelocationBasicBlock`，由函数发射结束后的 `FunctionEmitter::resolveBasicBlockStaticRelocations` 统一回填并清空；`reset` 也清空该队列。直接调用目标编码已实现，调用区生成、执行及 native adapter 仍待实现。
+`ExecutableEmitter` 拥有 `ExecutableEmissionContext`，上下文保存镜像、模块符号、`ImportSymbols` 和待解析符号重定位，并提供字节追加及回填接口。`ImportSymbols = SymbolDeclarations - (Functions + Globals)` 表示当前镜像之外待绑定的声明，目标可以由其他 Ink 库或 Native stub 提供。函数发射器按函数、基本块和指令顺序发射；基本块目标仍使用八字节 PC 相对位移，前向引用由函数发射结束后的 `resolveBasicBlockStaticRelocations` 回填。普通符号地址和直接调用目标统一使用加载地址重定位。
 
 ## 运行时地址与未绑定镜像
 
-运行时地址统一使用 64 位宿主地址，BP、SP、PC、数据指针和 VM 函数入口采用同一地址坐标。Loader 参数 `ImageBase` 是镜像在代码段中的字节偏移，运行时镜像宿主基址则是 `CodeSegment.data() + ImageBase` 的地址，记为 `RuntimeImageBase`。VM 符号地址为 `RuntimeImageBase + SymbolOffset + Addend`，其中 `SymbolOffset` 是符号相对整个 `Image` 开头的字节偏移；Native 符号地址为绑定后的宿主符号地址加 Addend。PC 相对寻址仍可保留，`PC = RuntimeImageBase + InstructionOffset`，因此 `PC + (SymbolOffset + Addend - InstructionOffset)` 得到相同的运行时地址。ZERO 寄存器编码为 `03`、恒为零且不可写，绝对地址编码为 ZERO 基址加完整的八字节地址位模式。内存地址的寄存器编号位于指令头中，对应的八字节槽保存 `OffsetBits:u64`，执行器可按 `READ_REGISTER(RegisterId, Frame) + OffsetBits` 计算有效地址，无需按 PC 相对或绝对寻址分支；地址合法性检查仍须完成。
+运行时地址统一使用 64 位宿主地址，BP、SP、PC、数据指针和函数入口采用同一地址坐标。Loader 参数 `ImageBase` 是镜像在代码段中的字节偏移，运行时基址为 `CodeSegment.data() + ImageBase`。本镜像符号地址通过镜像基址重定位填写，外部符号通过动态导入重定位填写。符号内存地址使用 ZERO 基址加八字节地址字段；寄存器相对内存和基本块、直接跳转仍保留各自的寄存器及 PC 相对表示。
 
 `ExecutableFile` 保存未绑定、与进程无关的镜像，地址字段不保存加载后的宿主指针。解释器使用 `std::vector<std::uint64_t>` 中具有有效生命周期的整数槽管理独立的运行时代码段及其有效字节数、容量；代码与数据仍共享同一地址坐标，字节视图用于镜像复制和任意数据访问；`getCodeSegment()` 返回有效字节的只读 span，`getCodeSegmentCapacity()` 返回容量。加载器在运行时代码段中绑定地址，原始镜像与元数据始终保持不变；入口执行的宿主地址为 `RuntimeImageBase + EntryOffset`，导出地址为 `RuntimeImageBase + Export.Offset`。不能将已绑定指针缓存作为可执行文件内容保存。统一地址表示不改变 VM 调用与 Native 调用的 ABI 区别，native adapter 仍须处理调用协议。
 
@@ -57,15 +57,15 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 ## 动态导入符号
 
-`executable_file_type.h` 中的 `DynamicImportSymbol` 只保存 `core::Name Name`，表示待运行时解析的符号名称。当前统一符号表既可提供 Native 地址，也可提供已登记的 VM 导出地址。记录不区分函数与数据，也不保存解析来源、调用约定或 DLL、共享库名称。
+`executable_file_type.h` 中的 `DynamicImportSymbol` 只保存 `core::Name Name`，表示待加载时解析的符号名称。统一符号表可以提供其他 Ink 镜像的导出地址或 Native stub、数据地址；镜像中的导入记录不预先指定来源。
 
 导入表内的 `Name` 必须唯一。同一名称供调用和取地址共同引用，无需因用途不同重复导入。导入表本身不区分函数和数据；逻辑模块中的同名声明仍须通过种类和只读属性的一致性检查。Name 默认为无效的 `core::NAME_None`，必须通过进程共享的 `core::NamePool` 登记非空拼写后使用。导入记录保存待解析名称，不保存宿主指针或已绑定的运行时对象。动态导入项按指令的实际使用生成，未使用的未定义声明不会自动加入此表。
 
-符号在 `DynamicImportSymbols` 中的位置就是其 u32 导入索引，供 `CallNativei` 及地址重定位引用。该逻辑指令复用 `ImmediateOperand`，接受 u32 数值索引或零 addend 的符号名；模块链接器在逻辑模块层检查该符号是当前输入声明且未被 VM 定义满足的函数。`InstructionEmitter` 通过 `ExecutableEmissionContext::getOrAddNativeSymbol` 按同一名称复用导入并写入 u32 索引，与普通地址取用共享导入；数值目标按原 32 位截断后零扩展到八字节槽，u32 合法性由模块链接器检查。指令连同八字节头部共十六字节，不生成动态地址重定位。直接调用按索引使用符号，不要求把调用目标地址填写到指令中；同一符号另有取地址用途时，可以生成地址重定位。
+符号在 `DynamicImportSymbols` 中的位置是重定位元数据引用的 u32 索引，不作为调用操作数写入指令。`Calli` 的操作数是八字节地址字段；外部函数调用与取地址按同一名称复用导入项，各自生成 `DynamicImportSymbolRelocation`。Loader 将实际绑定地址写入每个字段，调用执行时不读取导入索引。
 
-`CallNativem` 复用 `AddressOperand`，从其有效地址处读取 64 位 native 可调用指针，而不是读取 u32 导入索引。符号地址引用的是存放指针的内存位置，按普通地址符号规则链接。该指针的运行时构造、有效性验证及 adapter/宿主 ABI 协议尚未实现，不能仅凭现有导入表把任意 C 函数地址当作可调用值。
+`Callm` 复用 `AddressOperand`，从有效地址读取 64 位函数地址，其内存操作数定位存放函数指针的槽位。该形式的逻辑模型、文本及发射已实现，执行暂未实现。当前先实现 `Calli`：代码段内对齐目标直接按 Ink 调用协议执行，其他目标必须命中 Native stub 地址集合才按 `void(Frame*)` 调用。
 
-逻辑模块使用 `MachineSymbolDeclaration` 统一保存声明名称、函数或数据种类以及只读属性，不保存独立的 Native 函数或数据列表，也不提供不同的 VM 名与宿主名。未由 VM 定义满足的声明形成 Native 符号集合；镜像中的统一导入表只保存名称并按名称去重。完整调用签名、参数和返回值布局、调用区描述及宿主 ABI adapter 协议仍待设计，导入记录不提供这些信息。
+逻辑模块使用 `MachineSymbolDeclaration` 保存名称、函数或数据种类及只读属性。未由当前镜像定义满足的声明形成 `ImportSymbols`；不能据此认定目标是 Native。实际使用的外部符号按名称进入统一导入表。现有 Native 调用仅支持已注册的 `Frame*` stub，完整调用签名及通用宿主 ABI adapter 仍待扩展。
 
 ## 动态导入符号重定位
 
@@ -73,7 +73,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 `ImageOffset` 指向待填写字段的第一个字节，而不是所在指令的起点，该字段可以位于代码或数据中。`SymbolIndex` 是 `DynamicImportSymbols` 的 u32 下标，可以引用函数或数据符号。`Addend` 是解析符号地址后施加的有符号字节偏移，最终填写值为 `ResolvedSymbolAddress + Addend`；例如引用宿主 buffer 的第 8 字节可以使用 `Addend = 8`，只引用符号本身时 Addend 为零。记录存入 vector，不要求按地址排序。
 
-本表记录加载时才能确定的动态导入符号地址，镜像内部 VM 地址使用下节的镜像基址地址重定位。`InstructionEmitter::padOperand` 已实现宿主内存地址及普通宿主符号地址立即数的字段和重定位生成，二者按宿主 `Name` 复用同一导入。内存地址操作数在指令头中保存 ZERO 寄存器编码 `03`，对应的八字节槽追加零占位；普通符号地址立即数只允许 Width 为 64，直接追加八字节零，不带寄存器编号。加载后的内存地址字段保存完整 `u64` 地址位模式，与恒零基址相加即可访问；`ff` 不再是合法基址。两者的 `ImageOffset` 都指向八字节字段起点，不能将 u32 字段作为地址重定位目标。函数地址的重定位只负责填写地址，其可调用表示及 adapter 协议仍须单独确定；直接 native 调用已写入 u32 导入索引，不生成地址重定位。
+本表记录当前镜像之外的符号地址，包含符号内存地址、普通取地址及直接调用目标；本镜像内符号使用镜像基址地址重定位。地址字段先追加八字节零，外部符号按名称复用导入，`ImageOffset` 指向字段本身。内存寻址在头中使用 ZERO 基址，普通立即数和 `Calli` 不额外追加寄存器字节。函数与数据地址共享本表，地址重定位不改变调用协议，也不赋予任意地址可调用性。
 
 `Interpreter` 持有统一的 `ExportSymbolMap`，以名称映射到 `uint64_t` 表示的真实宿主地址。构造时自动调用公开的 `initialize()`，通过 `try_emplace` 登记 `NativeSymbolAddresses`；重复初始化不会覆盖已有绑定。`Interpreter::resolveSymbolAddress(Name)` 仅查询此表，缺少名称时返回 nullptr。内置 `identity` 对应 `identityStub` 的地址，沿用 [VM 调用约定](VM-Calling-Convention.md) 中的 `Frame *` 桩接口。
 
@@ -83,7 +83,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 `Interpreter` 持有 `DiagnosticEngine`，可通过 `getDiagnostics()` 注册诊断 consumer。找不到导入地址时报告 `VMLibraryLinkFailed`（`INK-V0004`）并返回 `false`。容量增长和既有地址修补发生在加载事务之前；事务恢复本次登记前的符号表、有效代码段长度及 handle，删除新增库记录，但已完成的容量增长和地址搬迁保留。既有有效字节中的非地址内容保持不变，既有地址绑定与当前存储一致，不保证失败后恢复原指针、容量或地址字段的原位模式。直接调用 Loader 的调用方自行负责回滚代码段逻辑状态及符号表；Loader 不保存修补快照。原始 `Image`、导入和重定位记录始终保持未绑定状态。
 
-镜像窗口、源镜像与目标存储重叠、导出偏移、导入索引、完整修补字段、镜像基址重定位的目标偏移和地址加减溢出属于内部不变量，失败通过 `REPORT_ICE_IF` 报告 `VMExecutableValidationFailed`（`INK-V0002`）并终止进程，不作为普通链接失败返回，也不依赖异常展开或事务析构恢复。重定位范围重叠由上游 `ExecutableFileValidator` 校验。`CallNativei` 索引的执行绑定仍待实现。执行器仍须处理宿主地址访问及权限；本步骤不执行宿主访存，也不验证任意 Addend 结果的可解引用性。
+镜像窗口、源镜像与目标存储重叠、导出偏移、导入索引、完整修补字段、镜像基址目标偏移和地址加减溢出属于内部不变量，失败报告 `VMExecutableValidationFailed`（`INK-V0002`）并终止进程。重定位范围重叠由 `ExecutableFileValidator` 校验。Loader 只填写地址，不改写调用 opcode；`Calli` 在执行时按最终地址区分 stub 与 Ink。
 
 ## 镜像基址地址重定位
 
@@ -91,7 +91,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 本表绑定本镜像内的固定目标，不查询 `ExportSymbolMap`，也不受后加载同名导出的符号覆盖影响。代码段每次搬迁后，解释器都按该库的新宿主基址及原始 `TargetOffset`、`Addend` 重算全部本表字段，而不尝试从旧地址或名称反推目标。首次加载与搬迁修补均检查库镜像范围、完整八字节目标字段、`TargetOffset` 范围和地址加减溢出，并遵守实际字段八字节对齐及小端平台的直接写入前置条件。所有写入只发生在运行时代码段，`ExecutableFile::Image` 及原始重定位记录保持未绑定。
 
-普通 VM 符号立即数统一要求 Width 为 64。已布局符号也追加八字节零并生成本表记录，不能直接把镜像偏移当作完整指针值写入。未布局符号先进入发射器的 `PendingStaticRelocationSymbol`，通过 `Register` 决定最终处理方式。普通符号取地址立即数的临时记录使用 `Register = ZERO`，地址字段本身不追加寄存器编号；寄存器相对访存引用则记录实际基址寄存器及当前指令的镜像偏移 `InstructionOffset`。最终解析时，PC 引用按 `InstructionOffset` 求差并回填位移，ZERO 引用生成 `ImageBaseAddressRelocation`，加载时填写 `RuntimeImageBase + TargetOffset + Addend`。当前普通 VM 符号访存选择 PC 基址。直接 `Calli` 的前向符号目标也复用 `PendingStaticRelocationSymbol`，记录 `Register = PC` 和当前 opcode 偏移，但指令只预留八字节位移字段，不追加寄存器字节、不生成加载地址重定位；最终回填 `FunctionOffset - InstructionOffset`。数值目标保留原 64 位位模式，整条指令十六字节。
+普通符号立即数和 `Calli` 统一使用 64 位地址字段。已布局的本镜像符号生成镜像基址地址重定位；前向地址引用先记录在 `PendingStaticRelocationSymbol`，使用 `Register = ZERO`，最终解析生成同类重定位。符号内存地址也使用 ZERO 基址和地址重定位。`Jmpi` 的函数符号目标仍以 `Register = PC` 记录并回填 PC 相对位移，基本块目标保留函数内静态解析。数值 `Calli` 保留完整 u64 地址位模式，不自动生成重定位。
 
 `padGlobals` 只负责全局布局及符号偏移登记，不触发重定位解析。`ExecutableEmitter::emit` 依次执行 `padGlobals`、`padFunction` 后调用 `resolveStaticRelocations`，由 `ExecutableEmissionContext` 统一处理待解析符号记录；此时每个待解析 VM 符号都必须已有镜像偏移，缺少目标时报告内部编译错误，成功后清空临时队列。`padFunction` 在每个函数发射前先补齐到八字节边界，再调用 `Context.resolveSymbol(Function.name(), Context.byteSize())`，登记函数名的入口镜像偏移并移除其未解析符号记录，再按函数、基本块和指令顺序发射字节。布局与静态重定位完成后，`emit` 按显式入口名称及导出列表填写 `EntryOffset` 和 `ExportSymbols`。
 
@@ -113,6 +113,6 @@ Offset 必须小于镜像字节数，不能指向镜像末尾之后的位置。�
 
 校验不改写或重排镜像和记录，不解析宿主符号，不解码指令，不校验入口或导出偏移的指令边界、调用兼容性或字节码中的动态导入索引，也不根据未知运行时绑定检查最终地址与 Addend 的运算结果。调用方显式调用本镜像校验器；对外部字节码的验证及运行时访存、栈和权限检查仍需由后续加载器、执行器完成。
 
-镜像内存模型、结构校验、逻辑模块链接、全局及函数布局、指令字节发射、显式入口选择和导出生成均已实现。Loader 已提供动态导入和镜像基址地址重定位，解释器在代码段搬迁后修补两类地址字段，共享 runtime 的 `identity` 已提供 Native 桩样例。完整指令执行、可执行文件的磁盘字节格式、Reader/Writer 和完整 Native 调用绑定仍待实现；`Image` 不是自动生成的自描述磁盘文件，不能直接写出 C++ 对象内存布局。
+镜像内存模型、结构校验、逻辑模块链接、全局及函数布局、指令字节发射、显式入口选择和导出生成均已实现。Loader 已提供动态导入和镜像基址地址重定位，解释器在代码段搬迁后修补两类地址字段，共享 runtime 的 `identity` 已提供 Native 桩样例。完整指令执行、可执行文件的磁盘字节格式、Reader/Writer 和通用宿主 ABI adapter 仍待实现；`Image` 不是自动生成的自描述磁盘文件，不能直接写出 C++ 对象内存布局。
 
 当前对齐编码替换了此前的紧排指令格式，旧 raw image 必须重新生成。镜像目前没有编码版本字段；若需要不同编码共存，必须另行增加版本标识或显式转换。指令编码对齐不约束 VM 数据的有效地址，未对齐的数据访问仍由字节复制完成。

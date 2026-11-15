@@ -20,6 +20,17 @@ namespace ink::vm
             return false;
         };
         const auto CodeAddress = reinterpret_cast<std::uintptr_t>(CodeSegment);
+        const auto StackAddress = reinterpret_cast<std::uintptr_t>(StackAllocation.get());
+        const auto IsInstructionAddress = [this, CodeAddress](std::uint64_t Address)
+        {
+            return Address >= CodeAddress && Address - CodeAddress < CodeSegmentSize && (Address - CodeAddress) % InstructionEncoding::WordBytes == 0 && CodeSegmentSize - static_cast<std::size_t>(Address - CodeAddress) >= InstructionEncoding::WordBytes;
+        };
+        const auto IsStackPosition = [this, StackAddress](std::uint64_t Address)
+        {
+            return Address >= StackAddress && Address - StackAddress <= StackSize && (Address - StackAddress) % InstructionEncoding::WordBytes == 0;
+        };
+        constexpr std::size_t SaveAreaBytes = 2 * InstructionEncoding::WordBytes;
+        std::size_t CallDepth = 0;
         for (;;)
         {
             const auto InstructionAddress = READ_REGISTER(RegisterId::PC, Frame);
@@ -128,6 +139,47 @@ namespace ink::vm
                     WRITE_REGISTER(RegisterId::PC, Frame, Target);
                     continue;
                 }
+            case Opcode::Calli:
+                {
+                    const auto TargetAddress = Instruction[1];
+                    const auto NextPC = InstructionAddress + InstructionBytes;
+                    const auto StackPointer = READ_REGISTER(RegisterId::SP, Frame);
+                    const auto BasePointer = READ_REGISTER(RegisterId::BP, Frame);
+                    if (!IsInstructionAddress(NextPC))
+                    {
+                        return Fail("call return address is outside the loaded instruction storage or is unaligned");
+                    }
+                    if (!IsStackPosition(StackPointer) || !IsStackPosition(BasePointer) || BasePointer > StackPointer || (CallDepth != 0 && StackPointer - BasePointer < SaveAreaBytes))
+                    {
+                        return Fail("call BP or SP is outside the aligned stack storage or active frame");
+                    }
+                    if (IsInstructionAddress(TargetAddress))
+                    {
+                        if (SaveAreaBytes > StackSize - static_cast<std::size_t>(StackPointer - StackAddress))
+                        {
+                            return Fail("call save area is outside the stack storage");
+                        }
+                        auto* const SaveArea = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(StackPointer));
+                        std::memcpy(SaveArea, &BasePointer, sizeof(BasePointer));
+                        std::memcpy(SaveArea + InstructionEncoding::WordBytes, &NextPC, sizeof(NextPC));
+                        WRITE_REGISTER(RegisterId::BP, Frame, StackPointer);
+                        WRITE_REGISTER(RegisterId::SP, Frame, StackPointer + SaveAreaBytes);
+                        WRITE_REGISTER(RegisterId::PC, Frame, TargetAddress);
+                        ++CallDepth;
+                        continue;
+                    }
+                    else
+                    {
+                        if (!NativeStubAddresses.contains(TargetAddress))
+                        {
+                            return Fail("call target is neither a loaded instruction address nor a registered native stub");
+                        }
+                        const auto Stub = reinterpret_cast<void (*)(vm::Frame*)>(static_cast<std::uintptr_t>(TargetAddress));
+                        Stub(&Frame);
+                        WRITE_REGISTER(RegisterId::PC, Frame, NextPC);
+                        continue;
+                    }
+                }
 #define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed)                                                                \
     case Opcode::Kind:                                                                                                                         \
         {                                                                                                                                      \
@@ -154,7 +206,32 @@ namespace ink::vm
 #include "ink/backend/vm/instruction/compare_branch.def"
 #undef COMPARE_BRANCH
             case Opcode::Ret:
-                return true;
+                {
+                    if (CallDepth == 0)
+                    {
+                        return true;
+                    }
+                    const auto StackPointer = READ_REGISTER(RegisterId::SP, Frame);
+                    const auto BasePointer = READ_REGISTER(RegisterId::BP, Frame);
+                    if (!IsStackPosition(StackPointer) || !IsStackPosition(BasePointer) || BasePointer > StackPointer || StackPointer - BasePointer < SaveAreaBytes)
+                    {
+                        return Fail("return save area is outside the active aligned stack frame");
+                    }
+                    const auto* const SaveArea = reinterpret_cast<const std::uint8_t*>(static_cast<std::uintptr_t>(BasePointer));
+                    std::uint64_t SavedBP;
+                    std::uint64_t SavedPC;
+                    std::memcpy(&SavedBP, SaveArea, sizeof(SavedBP));
+                    std::memcpy(&SavedPC, SaveArea + InstructionEncoding::WordBytes, sizeof(SavedPC));
+                    if (!IsStackPosition(SavedBP) || SavedBP > BasePointer || !IsInstructionAddress(SavedPC))
+                    {
+                        return Fail("return saved BP or PC is outside its valid aligned storage");
+                    }
+                    WRITE_REGISTER(RegisterId::SP, Frame, BasePointer);
+                    WRITE_REGISTER(RegisterId::BP, Frame, SavedBP);
+                    WRITE_REGISTER(RegisterId::PC, Frame, SavedPC);
+                    --CallDepth;
+                    continue;
+                }
             default:
                 return Fail("unsupported instruction opcode");
             }

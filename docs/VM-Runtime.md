@@ -10,23 +10,23 @@
 
 逻辑寄存器属于 VM 的可见执行状态，与宿主 CPU 的寄存器分配无关。解释器计算有效地址、解码操作数时使用的宿主临时变量不增加 VM 的逻辑寄存器。
 
-[VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录统一符号声明、可写或只读全局数据和栈帧描述。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号绑定和 Native 符号推导，`ExecutableFile` 提供镜像模型和结构校验。指令编码、镜像布局、发射和加载已实现；执行入口与分派循环当前支持 `Add64rrr`、`Add64rrm`、`Add64mrr`、四种无条件跳转、显式比较条件跳转和最外层 `Ret`，其他指令执行仍待实现。
+[VM 内存模型与指令构建](VM-Module.md) 提供逻辑模块与指令构建，[模块链接器](VM-Linker.md) 合并模块并绑定可见定义，未满足的声明留待加载解析。镜像布局、发射与加载已实现；解释器支持部分 Add、Load、Store、四种无条件跳转、显式比较分支、地址型 `Calli` 以及普通和最外层 `Ret`，其余指令执行仍待实现。
 
 `vm_runtime` 和 `runtime_stub` 分别构建为独立静态库 `ink_vm_runtime`（`ink::vm_runtime`）和 `ink_runtime_stub`（`ink::runtime_stub`）。前者提供 `NativeSymbolAddresses` 并链接后者，后者提供通用 Native 桩并链接共享 C Runtime `ink::runtime`；依赖链为 `ink::vm → ink::vm_runtime → ink::runtime_stub → ink::runtime`。
 
 `runtime_stub/windows` 仅在 CMake 的 `WIN32` 目标上加入，构建独立平台库 `ink_runtime_stub_windows`（`ink::runtime_stub_windows`）。Windows 上的 `ink::runtime_stub` 链接该平台库，平台库链接 `kernel32`；其他目标不编译或链接 Windows 桩。
 
-`interpreter` 目录中的 `Interpreter` 持有 `DiagnosticEngine` 和 `Loader`，后者借用所属解释器；`getDiagnostics()` 提供诊断引擎访问，调用方可注册 consumer。构造函数自动调用公开的 `initialize()`，以 `try_emplace` 将 `NativeSymbolAddresses` 中的名称及宿主地址登记到统一的 `ExportSymbolMap`；重复初始化保留已有同名绑定。`Interpreter::resolveSymbolAddress(Name)` 只查询此表，找到时返回真实宿主地址，找不到时返回 nullptr，不再直接搜索 Native 表。`getExportSymbolMap()` 提供只读查询，表中 `uint64_t` 值同时保存 Native 和 VM 导出的真实宿主地址，不保存代码段偏移。
+`Interpreter` 持有诊断引擎和 Loader。`initialize()` 以 `try_emplace` 将 `NativeSymbolAddresses` 登记到统一 `ExportSymbolMap`，同时将 stub 地址加入 hash set。重复初始化保留已有同名绑定。名称查询只查统一符号表；`Calli` 按最终地址查询 stub 集合，同名 Ink 导出覆盖不会把它误判为 stub。
 
 解释器还持有当前 `Frame`。首次 `initialize()` 预留初始代码段容量，并读取 `config.def` 中的 `VMStackBytes`，用 `malloc` 创建一次栈分配。默认大小为 2 MiB（2097152 字节），可通过 `INK_VM_STACK_BYTES` 环境变量覆盖，无效的十进制值或溢出值使用默认大小；零字节配置不分配栈存储。构造后的寄存器保留 `Frame` 默认状态，BP、SP、PC 的整数值均为 0。重复 `initialize()` 注册 Native 符号并保留当前帧与当前栈，不重新读取配置或重置寄存器。
 
 `Interpreter::execute(const void *Entry)` 接受已加载代码段中的宿主入口地址。入口不在有效代码字节范围内或不满足八字节对齐时报告 `VMExecutionFailed`（`INK-V0005`），返回 `false` 并保留此前帧和栈。有效入口会重置当前帧并复用初始化时创建的栈：栈向高地址增长，BP、SP 均保存原始栈分配的起始地址，PC 保存 `Entry` 的地址，ZERO 恒为 0；零字节栈的 BP、SP 为 0。每次有效入口执行都重置这些寄存器，保留栈分配与其中的字节，随后调用单独定义于 `dispatch.cpp` 的私有 `dispatch()`。
 
-`getFrame()` 返回当前帧的可变或只读引用。BP、SP、PC 的实际成员存储统一为 `std::uint64_t`，ZERO 使用不可变的 `std::uint64_t` 常量存储；地址在整数值和宿主指针之间通过 `std::uintptr_t` 显式转换。`READ_REGISTER(Id, FrameValue)` 返回完整的 64 位值，`WRITE_REGISTER(Id, FrameValue, Value)` 写入 BP、SP 或 PC；两者使用无捕获 lambda 和有类型的参数，每个实参只求值一次；读取接受 const 帧并返回值，写入只接受可变帧。无效寄存器编号和写入 ZERO 违反 `check` 契约。`Register` 数组仍依次绑定到 `&BP`、`&SP`、`&PC`、`&ZERO`；表项保存整数对象的存储地址，表项本身保持固定。GET/SET 宏保留返回字节存储地址的兼容外观，不再允许将这些地址转换为指针对象的指针后解引用。构造后的 BP、SP、PC 值为 0，但对应表项及宏返回的存储地址有效。帧复制会复制寄存器值，并重新绑定到目标帧自身存储。Native 参数和返回适配将 SP 显式转换回栈字节指针，继续只复制值字节并保留槽填充。解释器仅通过 RAII 保留原始栈分配地址，不另存栈段大小；修改 BP 或 SP 不影响释放原始栈分配。栈分配在解释器生命周期内保持稳定，销毁时释放。
+`getFrame()` 返回当前帧，BP、SP、PC 均以 u64 保存宿主地址，ZERO 恒为零。READ/WRITE 宏读取或更新整数寄存器，GET/SET 宏提供寄存器存储的字节视图。帧复制重新绑定自身寄存器存储。解释器保留原始栈分配及大小，用于 CALL/RET 的栈边界检查，修改 BP 或 SP 不影响原始分配的释放。栈存储在解释器生命周期内保持稳定。
 
 当前分派循环读取八字节对齐的头字，从低 16 位提取 opcode，从其后三个字节提取寄存器编号。三种已实现的 Add 形式均直接读取三个八字节操作数槽，并通过 `READ_REGISTER` 从整数寄存器存储读取八字节值；ZERO 与其他寄存器使用相同读取路径，其常量存储提供 0。`r` 来源为读取的寄存器值加偏移位模式，`m` 来源在同样计算有效地址后，再从该地址读取八字节内存值。`Add64rrr` 使用两个 `r` 来源，`Add64rrm` 的右来源增加这一次内存读取。加法按 64 位位模式回绕；`r` 目标将八字节结果写入目标寄存器的成员存储，`Add64mrr` 则将结果写入目标 `m` 有效地址指向的可写内存。三者均将 PC 前进 32 字节继续分派。指令编码的对齐不要求数据有效地址对齐，内存来源与目标仍按字节复制。
 
-调用方须提供完整有效的 Add 编码：`r` 目标为 BP 或 SP 且偏移为零，寄存器来源或内存基址为 BP、SP、PC 或 ZERO，`m` 来源指向可读的八字节区域，`m` 目标指向可写的八字节区域；分派内部通过 `check` 表达 PC 范围与对齐、完整指令头及操作数长度、有效 opcode 编码、头部保留位、操作数寄存器编号和寄存器目标可写性的前置条件。启用断言时，违反这些条件会报告 check 失败并终止；Shipping 关闭这些检查，调用方必须提供有效编码与控制流。地址溢出、SP 边界、活动帧约束、目标寄存器偏移为零以及访存有效性同样属于调用前置条件。八字节头形式的 `Ret` 结束最外层执行并返回 `true`，PC 保留在该 `Ret` 的起始位置。当前不恢复普通 VM 调用帧；CALL、嵌套返回及其他 opcode 尚无执行实现。编码已知且完整、但尚未实现执行的 opcode 报告 `VMExecutionFailed` 并返回 `false`，PC 保留在该位置。未知 opcode、截断指令、非法头或执行未遇到 `Ret` 就离开代码段均违反上述 `check` 契约，不作为可恢复执行失败返回。完整字节码验证和访存权限检查仍属后续工作。
+调用方须提供完整有效的指令编码及有效访存地址。分派通过 `check` 表达头部、指令长度、寄存器编号和普通访存的内部前置条件。`Calli` 和普通返回在提交状态前检查代码目标范围与八字节对齐、栈寄存器范围和调用保存区；失败报告 `VMExecutionFailed` 并返回 false。最外层 `Ret` 成功结束执行并将 PC 保留在该指令。已知但未实现的 opcode 同样报告执行失败。完整指令边界、数据权限和一般访存验证仍属后续工作。
 
 `CodeWords` 使用 `std::vector<std::uint64_t>` 拥有完整整数槽，`CodeSegment` 是同一存储的字节视图；指令直接按整数槽读取，数据访问保留按字节复制。解释器另存逻辑有效字节数和按八字节取整的容量。`getCodeSegment()` 返回覆盖有效字节的 `std::span<const std::uint8_t>`，`getCodeSegmentCapacity()` 返回分配容量。容量不足时通常倍增并向上取整，创建新的整数槽数组，复制覆盖有效字节的完整槽，再安装新存储并修补既有宿主地址。尾槽的额外字节不计入逻辑有效长度。
 
@@ -38,7 +38,7 @@
 
 `tools/interpreter` 中的 `ink-interpreter` 工具持有解释器实例，将输入文件原始字节读入 `ExecutableFile::Image` 后调用 `loadLibrary`，输入为 `-` 时读取标准输入。可执行文件解码器尚未实现，此时不读取入口、导入或重定位元数据。Loader 在导出循环中检查偏移，将 `CodeSegment.data() + ImageBase + Export.Offset` 对应的宿主地址写入统一符号表；同名导出覆盖当前绑定，因此本库导入也能查到本库导出。随后为完整导入表中的每项调用一次 `Interpreter::resolveSymbolAddress(Name)` 并按索引缓存地址，再遍历 `DynamicImportSymbolRelocations`，加上有符号 `Addend` 后直接通过 `uint64_t *` 写入目标字段，不构造修补数组。同次加载也绑定 `ImageBaseAddressRelocations`：将 `CodeSegment.data() + ImageBase + TargetOffset` 的宿主地址加上有符号 `Addend` 后写入字段。本表固定引用当前镜像，不查询统一符号表，也不参与同名符号覆盖；`TargetOffset` 可等于镜像字节数，表示 one-past 位置，但字段本身必须完整位于镜像内。
 
-直接地址写入要求小端宿主，Loader 通过平台字节序宏在编译时拒绝大端平台。两类重定位的每个实际修补字段都必须满足 8 字节对齐，通过所有构建模式下有效的 ICE 检查验证。发射器的操作数槽和解释器加载的非空镜像基址均满足八字节对齐，Loader 不再依赖断言保证直接写入合法。镜像窗口、字段、导出偏移、导入索引、镜像基址目标偏移或地址算术违反内部不变量时报告 `VMExecutableValidationFailed` ICE；重定位重叠由上游结构校验器检查。`TargetOffset` 的 one-past 值或加上 Addend 后得到的镜像外地址不代表可解引用，访存边界和权限仍由后续执行器检查。原始 `ExecutableFile` 的镜像和记录保持不变；空镜像且没有导出、导入或任何重定位时仍接受。`CallNativei` 索引的执行绑定仍待实现。
+直接地址写入要求小端宿主及实际字段八字节对齐，违反镜像和重定位内部不变量会报告 ICE。原始 `ExecutableFile` 保持未绑定，所有写入只作用于运行时副本。Loader 对调用地址使用同样的重定位规则，不改写调用 opcode。
 
 ## 寄存器与符号操作数
 
@@ -53,9 +53,9 @@
 
 寄存器值使用上述独立编号，符号引用通过 `core::Name` 保存链接名，文本用 `@name` 或 `@"escaped name"` 标识符号。
 
-指令中的寄存器来源保存寄存器编号和有符号 `ByteOffset`，先读取寄存器成员存储，再使用 `RegisterValue + ByteOffset` 的值，不访问该值指向的 VM 内存。例如 PC 为 2、SP 为 0 时，`add64rrr bp, sp, pc + 2` 得到 BP 为 4；寄存器目标必须为 BP 或 SP，且偏移为零。地址操作数用于定位内存中的值，例如 `[bp + 16]` 或 `[@counter + 8]`，作为来源时比 `r` 多一次 VM 内存读取。立即数可以保存数值，也可以保存符号地址值，例如 `@counter + 8`。内存模型还提供持有目标基本块指针的 `BasicBlockOperand`，跳转构建时直接引用同一函数的目标块。[VM 指令编码格式讨论稿](VM-Instruction-Format.md) 约定 `r` 与寄存器形式的 `m` 共用头中的寄存器编号和一个八字节偏移槽，由指令语义区分寄存器值与内存访问；操作数字段发射共用 `padRegister`，当前分派实现 `Add64rrr`、`Add64rrm` 和 `Add64mrr`。VM 符号内存地址和基本块目标使用 PC 相对字段，VM 符号地址立即数使用镜像基址重定位；宿主数据内存地址使用恒零的 ZERO 基址编码 `03` 及八字节动态重定位字段，`ff` 不是合法基址。
+寄存器来源保存编号和有符号偏移，值为寄存器值加偏移，不读取目标内存；地址来源在此基础上读取内存。符号内存地址统一采用 ZERO 基址加加载时填写的地址字段，本镜像符号使用镜像基址重定位，外部符号使用动态导入重定位。基本块目标及 `Jmpi` 仍保留 PC 相对位移。
 
-VM 与其他 Ink 组件统一使用 `InkVersion`，默认值为 `0.0.1`，可通过 `INK_VERSION` 配置。指令集包括加载、存储、ADD、四种无条件跳转、显式比较条件跳转、RET，以及 `call`、`callNative` 的立即数与内存形式。跳转和调用的目标编码见 [VM 指令编码格式](VM-Instruction-Format.md)。
+VM 与其他 Ink 组件统一使用 `InkVersion`，默认 `0.0.1`。指令集包含加载、存储、ADD、四种无条件跳转、显式比较条件跳转、RET，以及统一 `call` 的立即数与内存形式，详见 [VM 指令编码格式](VM-Instruction-Format.md)。
 
 ## 无条件跳转
 
@@ -68,7 +68,7 @@ VM 与其他 Ink 组件统一使用 `InkVersion`，默认值为 `0.0.1`，可通
 | `Jmpr` | `jmpr pc + 16` | 寄存器值加有符号字节偏移 | 16 字节 |
 | `Jmpm` | `jmpm [bp + 8]` | 从有效地址读取八字节目标宿主地址 | 16 字节 |
 
-`Jmp` 在逻辑模块中借用目标块指针，前向、后向和自引用都保留块身份。`Jmpi` 的函数符号目标采用与直接 VM 调用相同的 PC 相对解析，符号 addend 必须为零。`Jmpr` 直接使用寄存器保存的目标值；`Jmpm` 的操作数定位一个指针槽，槽内数值才是跳转目标。ZERO 作为基址时仍按普通寄存器存储读取零值，无需特殊分支。
+`Jmp` 借用同函数基本块指针；`Jmpi` 的符号目标必须为已定义 VM 函数，按 PC 相对形式解析，addend 必须为零。`Jmpr` 使用寄存器值，`Jmpm` 从指针槽读取目标；槽内地址才是跳转目标。
 
 ## 显式比较条件跳转
 
@@ -122,11 +122,13 @@ add64rri sp, sp, -16    // 回收 16 字节
 
 ## 函数调用与返回
 
-当前已提供 `call`、`callNative` 指令族和零操作数 `ret` 的指令模型。直接调用复用 `ImmediateOperand`：`Calli` 保存 PC 相对 i64 位模式或 VM 函数符号，`CallNativei` 保存统一动态导入表 `DynamicImportSymbols` 的 u32 索引或未被可见 VM 定义满足的函数声明名称；调用符号的 addend 必须为零。间接调用复用 `AddressOperand`：`Callm` 读取 64 位 VM 函数地址，`CallNativem` 读取 64 位 native 可调用指针；间接地址中的符号定位存放指针的内存，不要求它是函数符号。这些指令不包含参数、结果槽或签名描述。文本读写、链接、指令编码和镜像发射已实现；当前执行仅支持以最外层 `Ret` 结束循环，普通调用与恢复调用帧的返回仍待实现。
+调用族统一为 `Calli` 和 `Callm`，文本均为 `call`。`Calli` 保存完整 64 位函数地址，本镜像符号使用镜像基址重定位，外部符号使用动态导入重定位；符号 addend 为零。`Callm` 的逻辑模型、文本和发射保留，执行暂未实现。
 
-间接 native 目标不是 u32 导入索引，其可调用指针的 adapter 与宿主 ABI 协议仍待确定。逻辑模块通过 `MachineSymbolDeclaration` 统一保存声明，未被 VM 函数或全局定义满足的声明形成 `NativeSymbols`；符号只有一个名称，同时用于逻辑引用和宿主查找。统一动态导入表只保存实际使用的 Native 符号名称，完整调用签名与执行描述仍待实现。函数和数据的取地址用途共用 `DynamicImportSymbolRelocations`，地址重定位本身不赋予地址可调用性。增加间接指令模型不表示已经实现任意 C 函数指针调用。
+解释器从 `NativeSymbolAddresses` 建立 stub 地址 hash set。`Calli` 先检查目标是否位于有效代码段且按八字节对齐，满足时直接执行 Ink 调用；只有其他地址查询 stub 集合。命中时按 `void(Frame*)` 调用已注册 stub，stub 返回后继续 `NextPC`，不创建 Ink 保存区；未命中则报告执行错误。调用方保证参数和返回槽满足各 stub 的既有契约；此集合不允许任意原始 C 函数指针自动进入宿主调用。
 
-参数与返回槽的 8 字节对齐、仅可变参数调用包含的 24 字节预留区、CALL/RET 状态转换及完整示例统一见 [VM 调用约定](VM-Calling-Convention.md)。普通调用的返回约定要求 `ret` 从 `[bp]`、`[bp + 8]` 恢复旧 BP 和返回 PC，将 SP 恢复为返回前的 BP，调用区由调用方回收；当前最外层 `Ret` 直接结束执行。
+Ink 目标通过范围与对齐及栈保存区检查后，在 SP 处写入旧 BP 和返回 PC，再令 BP 为旧 SP、SP 前进 16 字节、PC 指向目标。普通 `Ret` 从保存区恢复 BP、PC，并将 SP 恢复到当前 BP；调用区由调用方回收。没有活动 Ink 调用时，`Ret` 结束本次执行。
+
+布局公式、参数及返回槽、可变参数预留区见 [VM 调用约定](VM-Calling-Convention.md)。当前尚无调用区自动生成、完整调用签名检查或间接调用执行。
 
 ## 执行边界与失败：建议约定
 

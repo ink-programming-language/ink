@@ -82,9 +82,9 @@ namespace ink::vm::test
             else
             {
                 static_assert(std::is_same_v<OperandType, ImmediateOperand>);
-                if constexpr (Operation == Opcode::Calli || Operation == Opcode::CallNativei || Operation == Opcode::Jmpi)
+                if constexpr (Operation == Opcode::Calli || Operation == Opcode::Jmpi)
                 {
-                    return ImmediateOperand(linkName(Operation == Opcode::CallNativei ? "link.registered.native" : "link.registered.function"));
+                    return ImmediateOperand(linkName("link.registered.function"));
                 }
                 else
                 {

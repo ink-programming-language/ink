@@ -1,6 +1,6 @@
 # VM 调用约定
 
-本文定义 Ink VM 函数和 Native 桩的调用布局约定；调用区自动代码生成与普通 CALL/RET 执行尚未实现，当前解释器已支持部分加法、无条件跳转、显式比较条件跳转和最外层返回。Native 桩负责转换到共享 runtime 的宿主 C ABI，目前提供 `identity(i64) -> i64` 样例，通用宿主 ABI 映射仍待扩展。
+本文定义 Ink VM 函数和 Native stub 的调用布局。解释器已实现地址型 `Calli` 和普通 CALL/RET：目标命中 Native stub 地址集合时按 `void(Frame*)` 调用，否则进入 Ink 函数。调用区自动生成、间接调用和通用宿主 ABI 映射仍待实现。
 
 ## 基本规则
 

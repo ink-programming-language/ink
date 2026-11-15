@@ -33,7 +33,7 @@ namespace ink::vm
     void ExecutableEmissionContext::scanUnResolvedSymbol(const MachineModule& Module)
     {
         UnresolvedSymbol.clear();
-        NativeSymbols.clear();
+        ImportSymbols.clear();
         const auto AddUnResolvedSymbol = [&](core::Name Name)
         {
             const auto [Position, Inserted] = UnresolvedSymbol.try_emplace(Name, 0);
@@ -51,7 +51,7 @@ namespace ink::vm
         {
             if (!UnresolvedSymbol.contains(Declaration.Name))
             {
-                NativeSymbols.insert(Declaration.Name);
+                ImportSymbols.insert(Declaration.Name);
             }
         }
     }
@@ -77,9 +77,9 @@ namespace ink::vm
         return UnresolvedSymbol.contains(Name);
     }
 
-    bool ExecutableEmissionContext::isNativeSymbol(core::Name Name) const noexcept
+    bool ExecutableEmissionContext::isImportSymbol(core::Name Name) const noexcept
     {
-        return NativeSymbols.contains(Name);
+        return ImportSymbols.contains(Name);
     }
 
     void ExecutableEmissionContext::pad(const void* Src, std::size_t Count)
@@ -152,16 +152,16 @@ namespace ink::vm
         return Forward ? Distance : std::uint64_t{0} - Distance;
     }
 
-    std::uint32_t ExecutableEmissionContext::getOrAddNativeSymbol(const DynamicImportSymbol& Import)
+    std::uint32_t ExecutableEmissionContext::getOrAddImportSymbol(const DynamicImportSymbol& Import)
     {
-        REPORT_ICE_IF(!core::NamePool::instance().contains(Import.Name), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "native import has an invalid host name");
+        REPORT_ICE_IF(!core::NamePool::instance().contains(Import.Name), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "dynamic import has an invalid symbol name");
         auto& Imports = Executable.getDynamicImportSymbols();
         std::size_t Index = 0;
         while (Index < Imports.size() && Imports[Index].Name != Import.Name)
         {
             ++Index;
         }
-        REPORT_ICE_IF(Index > std::numeric_limits<std::uint32_t>::max(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "native import index exceeds u32 range");
+        REPORT_ICE_IF(Index > std::numeric_limits<std::uint32_t>::max(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "dynamic import index exceeds u32 range");
         if (Index == Imports.size())
         {
             Imports.push_back(Import);

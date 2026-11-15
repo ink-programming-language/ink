@@ -201,11 +201,11 @@ namespace ink::vm::detail
                 }
                 if (!Target)
                 {
-                    Target = lookup(NativeSymbols, Declaration.Name);
+                    Target = lookup(ImportSymbols, Declaration.Name);
                     if (!Target)
                     {
                         Target = addSymbol(Index, Declaration.Name, Declaration);
-                        NativeSymbols.emplace(Declaration.Name, *Target);
+                        ImportSymbols.emplace(Declaration.Name, *Target);
                     }
                 }
                 const auto& Symbol = Bindings.Symbols[Target->Index];
@@ -249,7 +249,7 @@ namespace ink::vm::detail
                     Resolved = lookup(ExternalDefinitions, Name);
                     if (!Resolved)
                     {
-                        return std::unexpected(fmt::format("undefined symbol '{}'; native symbols require an explicit declaration in the referencing module", spelling(Name)));
+                        return std::unexpected(fmt::format("undefined symbol '{}'; imported symbols require an explicit declaration in the referencing module", spelling(Name)));
                     }
                     Scope.emplace(Name, *Resolved);
                 }
@@ -258,9 +258,9 @@ namespace ink::vm::detail
                 {
                     return std::unexpected(fmt::format("PC-relative target '{}' must resolve to a VM function definition", spelling(Name)));
                 }
-                if (ExpectedTarget == SymbolReferenceTarget::NativeFunction && (!std::holds_alternative<MachineSymbolDeclaration>(Target) || Bindings.Symbols[Resolved->Index].kind() != MachineSymbolKind::Function))
+                if (ExpectedTarget == SymbolReferenceTarget::Function && Bindings.Symbols[Resolved->Index].kind() != MachineSymbolKind::Function)
                 {
-                    return std::unexpected(fmt::format("callNativei target '{}' must resolve to an explicitly declared native function", spelling(Name)));
+                    return std::unexpected(fmt::format("call target '{}' must resolve to a function definition or declaration", spelling(Name)));
                 }
                 return {};
             }
@@ -311,7 +311,7 @@ namespace ink::vm::detail
             const core::DiagnosticEngine& Diagnostics;
             LinkBindings Bindings;
             SymbolTable ExternalDefinitions;
-            SymbolTable NativeSymbols;
+            SymbolTable ImportSymbols;
             std::unordered_set<core::Name> ReservedNames;
     };
 

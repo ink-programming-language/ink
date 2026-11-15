@@ -6,16 +6,16 @@
 
 namespace ink::vm
 {
-    // Identifies an unresolved host symbol independently of whether a reference calls it or takes its address.
+    // Identifies an unresolved imported symbol independently of whether a reference calls it or takes its address.
     // Name is its unique lookup identity; call contracts and bound runtime addresses are outside this record.
     struct DynamicImportSymbol
     {
             core::Name Name = core::NAME_None;
     };
 
-    // ImageOffset identifies the first byte of an eight-byte host symbol address field in the image.
+    // ImageOffset identifies the first byte of an eight-byte imported symbol address field in the image.
     // SymbolIndex indexes ExecutableFile's DynamicImportSymbols; Addend is a signed byte displacement.
-    // Loading patches the resolved symbol address plus Addend, for either function or data address references.
+    // Loading patches the resolved symbol address plus Addend, for function calls, function addresses, and data addresses; providers may be Ink images or native stubs.
     // Bound addresses share the runtime address representation used by image and stack storage; callable addresses still require a matching call contract.
     struct DynamicImportSymbolRelocation
     {

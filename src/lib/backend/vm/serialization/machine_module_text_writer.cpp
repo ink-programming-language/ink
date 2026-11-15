@@ -228,11 +228,6 @@ namespace ink::vm
                         Error = "a direct function symbol cannot have a nonzero displacement";
                         return false;
                     }
-                    if (Instruction.getOpcode() == Opcode::CallNativei && Target.bits() && *Target.bits() > std::numeric_limits<std::uint32_t>::max())
-                    {
-                        Error = "a native function import index must fit in u32";
-                        return false;
-                    }
                     return true;
                 }
 

@@ -31,11 +31,14 @@ namespace ink::vm
             auto* const Stack = StackBytes != 0 ? static_cast<std::uint8_t*>(std::malloc(StackBytes)) : nullptr;
             REPORT_ICE_IF(StackBytes != 0 && !Stack, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "stack", "runtime storage allocation failed");
             StackAllocation.reset(Stack);
+            StackSize = StackBytes;
             Initialized = true;
         }
         for (const auto& Symbol : NativeSymbolAddresses)
         {
-            ExportSymbolMap.try_emplace(Symbol.Name, static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(Symbol.Address)));
+            const auto Address = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(Symbol.Address));
+            NativeStubAddresses.insert(Address);
+            ExportSymbolMap.try_emplace(Symbol.Name, Address);
         }
     }
 

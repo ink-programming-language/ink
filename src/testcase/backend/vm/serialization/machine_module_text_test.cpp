@@ -64,14 +64,7 @@ namespace ink::vm::test
         void appendExampleInstruction(MachineInstructionBuilder& Builder, const MachineBasicBlock* Target, std::index_sequence<Indices...>)
         {
             using Operands = typename OpcodeTraits<Operation>::OperandTuple;
-            if constexpr (Operation == Opcode::CallNativei)
-            {
-                Builder.create<Operation>(ImmediateOperand(std::numeric_limits<std::uint32_t>::max()));
-            }
-            else
-            {
-                Builder.create<Operation>(exampleOperand<Operation, std::tuple_element_t<Indices, Operands>>(Indices, Target)...);
-            }
+            Builder.create<Operation>(exampleOperand<Operation, std::tuple_element_t<Indices, Operands>>(Indices, Target)...);
         }
 
         void expectEqualOperands(const Operand& Expected, const Operand& Actual, const std::unordered_map<const MachineBasicBlock*, const MachineBasicBlock*>& BlockMap)
@@ -856,8 +849,8 @@ entry:
         expectEqualModules(**Parsed, **Reparsed);
     }
 
-    // Direct VM and native calls preserve unresolved link names and escaped bytes without requiring declarations during text parsing.
-    TEST(VMMachineModuleTextTest, RoundTripsUnresolvedVMAndNativeCallTargets)
+    // Direct calls preserve unresolved link names and escaped bytes without requiring declarations during text parsing.
+    TEST(VMMachineModuleTextTest, RoundTripsUnresolvedLocalAndImportedCallTargets)
     {
         auto& Names = core::NamePool::instance();
         const auto VMTarget = Names.intern("unresolved.vm");
@@ -870,13 +863,13 @@ entry:
         MachineInstructionBuilder Builder;
         Builder.setInsertPoint(Block);
         Builder.create<Opcode::Calli>(ImmediateOperand(VMTarget));
-        Builder.create<Opcode::CallNativei>(ImmediateOperand(NativeTarget));
+        Builder.create<Opcode::Calli>(ImmediateOperand(NativeTarget));
         Builder.create<Opcode::Calli>(ImmediateOperand(Names.intern("bp")));
         Builder.create<Opcode::Ret>();
         const auto Text = writeMachineModuleText(Module);
         ASSERT_TRUE(Text.has_value());
         EXPECT_NE(Text->find("call @unresolved.vm\n"), std::string::npos);
-        EXPECT_NE(Text->find("callNative @\"native \\\"bridge\\\"\\\\\\00\\FF\"\n"), std::string::npos);
+        EXPECT_NE(Text->find("call @\"native \\\"bridge\\\"\\\\\\00\\FF\"\n"), std::string::npos);
         EXPECT_NE(Text->find("call @bp\n"), std::string::npos);
         const auto Parsed = readMachineModuleText(*Text);
         ASSERT_TRUE(Parsed.has_value());
@@ -884,13 +877,13 @@ entry:
         expectEqualModules(Module, **Parsed);
         const auto Instructions = (*Parsed)->functions().begin()->basicBlocks().begin()->instructions();
         EXPECT_EQ(static_cast<const MachineCalliInstruction&>(*Instructions.begin()).getTarget().getSymbol(), VMTarget);
-        EXPECT_EQ(static_cast<const MachineCallNativeiInstruction&>(*std::next(Instructions.begin())).getTarget().getSymbol(), NativeTarget);
+        EXPECT_EQ(static_cast<const MachineCalliInstruction&>(*std::next(Instructions.begin())).getTarget().getSymbol(), NativeTarget);
         const auto Rewritten = writeMachineModuleText(**Parsed);
         ASSERT_TRUE(Rewritten.has_value());
         EXPECT_EQ(*Rewritten, *Text);
     }
 
-    // Shared call spellings select immediate or memory opcodes without losing signed offsets, full-width targets or native index boundaries.
+    // Shared call spellings select immediate or memory opcodes without losing signed offsets, full-width targets or 64-bit addresses.
     TEST(VMMachineModuleTextTest, RoundTripsImmediateAndMemoryCallForms)
     {
         constexpr std::string_view Text = R"(.module "call-forms"
@@ -904,12 +897,12 @@ entry:
     call [sp]
     call [bp + 8]
     call [@pointer_slot + 9223372036854775807]
-    callNative @native.target
-    callNative 0
-    callNative 4294967295
-    callNative [sp]
-    callNative [bp + 4294967296]
-    callNative [@pointer_slot - 9223372036854775808]
+    call @native.target
+    call 0
+    call 4294967296
+    call [sp]
+    call [bp + 4294967296]
+    call [@pointer_slot - 9223372036854775808]
     ret
 .endfunction
 )";
@@ -924,12 +917,12 @@ entry:
             Opcode::Callm,
             Opcode::Callm,
             Opcode::Callm,
-            Opcode::CallNativei,
-            Opcode::CallNativei,
-            Opcode::CallNativei,
-            Opcode::CallNativem,
-            Opcode::CallNativem,
-            Opcode::CallNativem,
+            Opcode::Calli,
+            Opcode::Calli,
+            Opcode::Calli,
+            Opcode::Callm,
+            Opcode::Callm,
+            Opcode::Callm,
             Opcode::Ret,
         };
         ASSERT_EQ(Block.instructionCount(), std::size(ExpectedOpcodes));
@@ -945,13 +938,13 @@ entry:
         EXPECT_EQ(static_cast<const MachineCallmInstruction&>(*std::next(Instructions.begin(), 4)).getTarget().getRegister(), RegisterId::SP);
         EXPECT_EQ(static_cast<const MachineCallmInstruction&>(*std::next(Instructions.begin(), 5)).getTarget().getByteOffset(), 8);
         EXPECT_EQ(static_cast<const MachineCallmInstruction&>(*std::next(Instructions.begin(), 6)).getTarget().getByteOffset(), std::numeric_limits<std::int64_t>::max());
-        const auto& NativeIndex = static_cast<const MachineCallNativeiInstruction&>(*std::next(Instructions.begin(), 9));
-        const auto& NativePointer = static_cast<const MachineCallNativemInstruction&>(*std::next(Instructions.begin(), 11));
-        EXPECT_EQ(NativeIndex.getTarget().bits(), std::numeric_limits<std::uint32_t>::max());
-        EXPECT_EQ(NativeIndex.bitWidth(), 32U);
-        EXPECT_EQ(NativePointer.getTarget().getByteOffset(), 4294967296LL);
-        EXPECT_EQ(NativePointer.bitWidth(), 64U);
-        EXPECT_EQ(static_cast<const MachineCallNativemInstruction&>(*std::next(Instructions.begin(), 12)).getTarget().getByteOffset(), std::numeric_limits<std::int64_t>::min());
+        const auto& FullWidthAddress = static_cast<const MachineCalliInstruction&>(*std::next(Instructions.begin(), 9));
+        const auto& IndirectPointer = static_cast<const MachineCallmInstruction&>(*std::next(Instructions.begin(), 11));
+        EXPECT_EQ(FullWidthAddress.getTarget().bits(), std::uint64_t{1} << 32);
+        EXPECT_EQ(FullWidthAddress.bitWidth(), 64U);
+        EXPECT_EQ(IndirectPointer.getTarget().getByteOffset(), 4294967296LL);
+        EXPECT_EQ(IndirectPointer.bitWidth(), 64U);
+        EXPECT_EQ(static_cast<const MachineCallmInstruction&>(*std::next(Instructions.begin(), 12)).getTarget().getByteOffset(), std::numeric_limits<std::int64_t>::min());
         const auto Rewritten = writeMachineModuleText(**Parsed);
         ASSERT_TRUE(Rewritten.has_value());
         const auto Reparsed = readMachineModuleText(*Rewritten);
@@ -962,12 +955,11 @@ entry:
         EXPECT_EQ(*StableText, *Rewritten);
     }
 
-    // Both call mnemonics reject registers, nonzero symbol displacements, malformed memory, missing targets and extra operands.
-    TEST(VMMachineModuleTextTest, RejectsMalformedVMAndNativeCallTargets)
+    // Calls reject registers, nonzero symbol displacements, malformed memory, missing targets and extra operands.
+    TEST(VMMachineModuleTextTest, RejectsMalformedCallTargets)
     {
         constexpr std::string_view Mnemonics[] = {
             "call",
-            "callNative",
         };
         constexpr std::string_view InvalidTargets[] = {
             "",
@@ -1003,34 +995,29 @@ entry:
         }
     }
 
-    // Invalid function names cannot be written as either VM or native call targets.
+    // Invalid function names cannot be written as direct call targets.
     TEST(VMMachineModuleTextTest, RejectsEmptyFunctionSymbolsWhenWritingCalls)
     {
+        MachineModule Module;
         MachineInstructionBuilder Builder;
-        MachineModule VMModule;
-        Builder.setInsertPoint(VMModule.createFunction().createBasicBlock());
+        Builder.setInsertPoint(Module.createFunction().createBasicBlock());
         Builder.create<Opcode::Calli>(ImmediateOperand(core::NAME_None));
-        const auto VMText = writeMachineModuleText(VMModule);
-        ASSERT_FALSE(VMText.has_value());
-        EXPECT_EQ(VMText.error().Kind, core::DiagnosticKind::VMTextInvalid);
-        MachineModule NativeModule;
-        Builder.setInsertPoint(NativeModule.createFunction().createBasicBlock());
-        Builder.create<Opcode::CallNativei>(ImmediateOperand(core::NAME_None));
-        const auto NativeText = writeMachineModuleText(NativeModule);
-        ASSERT_FALSE(NativeText.has_value());
-        EXPECT_EQ(NativeText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        const auto Text = writeMachineModuleText(Module);
+        ASSERT_FALSE(Text.has_value());
+        EXPECT_EQ(Text.error().Kind, core::DiagnosticKind::VMTextInvalid);
     }
 
-    // Native immediate indices reject values outside u32 while ordinary VM calls retain the complete u64 bit pattern.
-    TEST(VMMachineModuleTextTest, RejectsOutOfRangeNativeImportIndices)
+    // The removed native-only mnemonic is rejected for otherwise valid immediate and memory targets.
+    TEST(VMMachineModuleTextTest, RejectsRemovedNativeCallMnemonic)
     {
-        constexpr std::string_view InvalidTargets[] = {
+        constexpr std::string_view Targets[] = {
+            "@target",
+            "0",
             "4294967296",
-            "0x100000000",
-            "-1",
-            "18446744073709551615",
+            "[sp]",
+            "[@slot]",
         };
-        for (const auto Target : InvalidTargets)
+        for (const auto Target : Targets)
         {
             const std::string Text = ".module \"\"\n.section .text\n.function caller\nentry:\n    callNative " + std::string(Target) + "\n.endfunction\n";
             SCOPED_TRACE(Text);
@@ -1038,38 +1025,24 @@ entry:
             ASSERT_FALSE(Parsed.has_value());
             EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
         }
-        MachineModule Module;
-        MachineInstructionBuilder Builder;
-        Builder.setInsertPoint(Module.createFunction().createBasicBlock());
-        Builder.create<Opcode::CallNativei>(ImmediateOperand(std::uint64_t{1} << 32));
-        const auto Written = writeMachineModuleText(Module);
-        ASSERT_FALSE(Written.has_value());
-        EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMTextInvalid);
     }
 
     // Direct symbol targets allow only a zero addend and normalize explicit zero displacements without changing the call form.
     TEST(VMMachineModuleTextTest, NormalizesZeroDirectSymbolDisplacementsAndRejectsNonzeroWrites)
     {
-        const auto Parsed = readMachineModuleText(".module \"\"\n.section .text\n.function caller\nentry:\n    call @vm.target + 0\n    callNative @native.target - 0\n.endfunction\n");
+        const auto Parsed = readMachineModuleText(".module \"\"\n.section .text\n.function caller\nentry:\n    call @vm.target + 0\n    call @native.target - 0\n.endfunction\n");
         ASSERT_TRUE(Parsed.has_value());
         const auto Text = writeMachineModuleText(**Parsed);
         ASSERT_TRUE(Text.has_value());
         EXPECT_NE(Text->find("call @vm.target\n"), std::string::npos);
-        EXPECT_NE(Text->find("callNative @native.target\n"), std::string::npos);
+        EXPECT_NE(Text->find("call @native.target\n"), std::string::npos);
         const auto Target = core::NamePool::instance().intern("displaced.target");
-        for (const bool Native : {false, true})
+        for (const std::int64_t Offset : {-1, 1})
         {
             MachineModule Module;
             MachineInstructionBuilder Builder;
             Builder.setInsertPoint(Module.createFunction().createBasicBlock());
-            if (Native)
-            {
-                Builder.create<Opcode::CallNativei>(ImmediateOperand(Target, -1));
-            }
-            else
-            {
-                Builder.create<Opcode::Calli>(ImmediateOperand(Target, 1));
-            }
+            Builder.create<Opcode::Calli>(ImmediateOperand(Target, Offset));
             const auto Written = writeMachineModuleText(Module);
             ASSERT_FALSE(Written.has_value());
             EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMTextInvalid);

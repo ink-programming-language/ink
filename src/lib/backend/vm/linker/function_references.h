@@ -12,7 +12,7 @@ namespace ink::vm::detail
     {
         Any,
         VMFunction,
-        NativeFunction,
+        Function,
     };
 
     using SymbolReferenceVisitor = std::function<std::expected<void, std::string>(core::Name, SymbolReferenceTarget)>;

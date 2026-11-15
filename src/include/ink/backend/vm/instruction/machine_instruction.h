@@ -109,11 +109,6 @@ namespace ink::vm
                 return category() == InstructionCategory::Call;
             }
 
-            constexpr bool isNativeCall() const noexcept
-            {
-                return Operation == Opcode::CallNativei || Operation == Opcode::CallNativem;
-            }
-
             constexpr bool isTerminator() const noexcept
             {
                 return isBranch() || isReturn();
