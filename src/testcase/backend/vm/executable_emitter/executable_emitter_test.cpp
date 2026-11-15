@@ -5,6 +5,7 @@
 #include "ink/backend/vm/executable_emitter/instruction_emitter.h"
 #include "ink/backend/vm/instruction/address_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
+#include "ink/backend/vm/instruction/instruction_encoding.h"
 #include "ink/backend/vm/instruction/machine_instructions.h"
 #include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/backend/vm/module/machine_instruction_builder.h"
@@ -104,17 +105,17 @@ namespace ink::vm::test
         Emitter.padFunction(Module);
 
         const ExecutableFile& Executable = Emitter.getExecutable();
-        ASSERT_EQ(Executable.byteSize(), 16U);
+        ASSERT_EQ(Executable.byteSize(), 32U);
         EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(GlobalName), 8U);
-        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 12U);
-        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 14U);
+        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 16U);
+        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 24U);
         EXPECT_FALSE(Emitter.getContext().hasUnResolvedSymbol(FirstName));
         EXPECT_FALSE(Emitter.getContext().hasUnResolvedSymbol(SecondName));
         EXPECT_EQ(Executable.getImage()[8], 0xA1U);
         EXPECT_EQ(Executable.getImage()[9], 0xB2U);
         EXPECT_EQ(readLittleEndian(Executable, 10, 2), 0U);
-        EXPECT_EQ(readLittleEndian(Executable, 12, 2), 0x003AU);
-        EXPECT_EQ(readLittleEndian(Executable, 14, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Executable, 16, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x003AU);
     }
 
     // Full module emission binds ordinary forward, self, and backward function-address immediates to their laid-out entries.
@@ -140,20 +141,20 @@ namespace ink::vm::test
         ExecutableEmitter Emitter(Diagnostics);
         const ExecutableFile Executable = Emitter.emit(Module, FirstName, {});
 
-        ASSERT_EQ(Executable.byteSize(), 85U);
+        ASSERT_EQ(Executable.byteSize(), 112U);
         EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 24U);
-        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 64U);
+        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 80U);
         EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x000CU);
-        EXPECT_EQ(readLittleEndian(Executable, 27), static_cast<std::uint64_t>(-24));
-        EXPECT_EQ(readLittleEndian(Executable, 46), static_cast<std::uint64_t>(-35));
-        EXPECT_EQ(readLittleEndian(Executable, 64, 2), 0x000CU);
-        EXPECT_EQ(readLittleEndian(Executable, 67), static_cast<std::uint64_t>(-48));
+        EXPECT_EQ(readLittleEndian(Executable, 32), static_cast<std::uint64_t>(-24));
+        EXPECT_EQ(readLittleEndian(Executable, 56), static_cast<std::uint64_t>(-40));
+        EXPECT_EQ(readLittleEndian(Executable, 80, 2), 0x000CU);
+        EXPECT_EQ(readLittleEndian(Executable, 88), static_cast<std::uint64_t>(-64));
         const auto& Relocations = Executable.getImageBaseAddressRelocations();
         ASSERT_EQ(Relocations.size(), 3U);
         constexpr std::array<std::pair<std::uint64_t, std::uint64_t>, 3> ExpectedRelocations{{
-            {35, 64},
-            {54, 24},
-            {75, 24},
+            {40, 80},
+            {64, 24},
+            {96, 24},
         }};
         for (const auto& [ImageOffset, TargetOffset] : ExpectedRelocations)
         {
@@ -190,17 +191,17 @@ namespace ink::vm::test
         ExecutableEmitter Emitter(Diagnostics);
         const ExecutableFile Executable = Emitter.emit(Module, FirstName, {});
 
-        ASSERT_EQ(Executable.byteSize(), 39U);
-        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 5U);
-        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 27U);
-        EXPECT_EQ(readLittleEndian(Executable, 5, 2), 0x003BU);
-        EXPECT_EQ(readLittleEndian(Executable, 7), 22U);
-        EXPECT_EQ(readLittleEndian(Executable, 15, 2), 0x003BU);
-        EXPECT_EQ(readLittleEndian(Executable, 17), static_cast<std::uint64_t>(-10));
-        EXPECT_EQ(readLittleEndian(Executable, 25, 2), 0x003AU);
-        EXPECT_EQ(readLittleEndian(Executable, 27, 2), 0x003BU);
-        EXPECT_EQ(readLittleEndian(Executable, 29), static_cast<std::uint64_t>(-22));
-        EXPECT_EQ(readLittleEndian(Executable, 37, 2), 0x003AU);
+        ASSERT_EQ(Executable.byteSize(), 72U);
+        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 8U);
+        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 48U);
+        EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x003BU);
+        EXPECT_EQ(readLittleEndian(Executable, 16), 40U);
+        EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x003BU);
+        EXPECT_EQ(readLittleEndian(Executable, 32), static_cast<std::uint64_t>(-16));
+        EXPECT_EQ(readLittleEndian(Executable, 40, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Executable, 48, 2), 0x003BU);
+        EXPECT_EQ(readLittleEndian(Executable, 56), static_cast<std::uint64_t>(-40));
+        EXPECT_EQ(readLittleEndian(Executable, 64, 2), 0x003AU);
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
@@ -230,21 +231,21 @@ namespace ink::vm::test
         ExecutableEmitter Emitter(Diagnostics);
         const auto Executable = Emitter.emit(Module, EntryName, {});
 
-        ASSERT_EQ(Executable.byteSize(), 60U);
+        ASSERT_EQ(Executable.byteSize(), 80U);
         EXPECT_EQ(Executable.getEntryOffset(), 8U);
         EXPECT_EQ(Executable.getImage()[10], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 11), static_cast<std::uint64_t>(-7));
-        EXPECT_EQ(Executable.getImage()[19], static_cast<std::uint8_t>(RegisterId::ZERO));
-        EXPECT_EQ(readLittleEndian(Executable, 20), 0U);
-        EXPECT_EQ(Executable.getImage()[28], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 29), 50U);
-        EXPECT_EQ(readLittleEndian(Executable, 40), static_cast<std::uint64_t>(-35));
-        EXPECT_EQ(readLittleEndian(Executable, 48, 1), 0xFFU);
-        EXPECT_EQ(readLittleEndian(Executable, 50), 21U);
+        EXPECT_EQ(readLittleEndian(Executable, 16), static_cast<std::uint64_t>(-7));
+        EXPECT_EQ(Executable.getImage()[11], static_cast<std::uint8_t>(RegisterId::ZERO));
+        EXPECT_EQ(readLittleEndian(Executable, 24), 0U);
+        EXPECT_EQ(Executable.getImage()[12], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Executable, 32), 64U);
+        EXPECT_EQ(readLittleEndian(Executable, 48), static_cast<std::uint64_t>(-38));
+        EXPECT_EQ(readLittleEndian(Executable, 56), 0xFFU);
+        EXPECT_EQ(readLittleEndian(Executable, 64), 32U);
         ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
         EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, NativeSymbol);
         ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 1U);
-        EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 20U);
+        EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 24U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].Addend, -3);
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
@@ -273,15 +274,15 @@ namespace ink::vm::test
         ExecutableEmitter Emitter(Diagnostics);
         const auto Executable = Emitter.emit(Module, FirstName, {});
 
-        ASSERT_EQ(Executable.byteSize(), 39U);
-        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 5U);
-        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 27U);
-        EXPECT_EQ(readLittleEndian(Executable, 5, 2), 0x003FU);
-        EXPECT_EQ(readLittleEndian(Executable, 7), 22U);
-        EXPECT_EQ(readLittleEndian(Executable, 15, 2), 0x003FU);
-        EXPECT_EQ(readLittleEndian(Executable, 17), static_cast<std::uint64_t>(-10));
-        EXPECT_EQ(readLittleEndian(Executable, 27, 2), 0x003FU);
-        EXPECT_EQ(readLittleEndian(Executable, 29), static_cast<std::uint64_t>(-22));
+        ASSERT_EQ(Executable.byteSize(), 72U);
+        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 8U);
+        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 48U);
+        EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x003FU);
+        EXPECT_EQ(readLittleEndian(Executable, 16), 40U);
+        EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x003FU);
+        EXPECT_EQ(readLittleEndian(Executable, 32), static_cast<std::uint64_t>(-16));
+        EXPECT_EQ(readLittleEndian(Executable, 48, 2), 0x003FU);
+        EXPECT_EQ(readLittleEndian(Executable, 56), static_cast<std::uint64_t>(-40));
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
@@ -305,25 +306,25 @@ namespace ink::vm::test
         Instructions.padInstruction(MachineJmprInstruction(RegisterOperand(RegisterId::PC, -8)));
         Instructions.padInstruction(MachineJmpmInstruction(AddressOperand(VMSlot, 4)));
         Instructions.padInstruction(MachineJmpmInstruction(AddressOperand(NativeSlot, -8)));
-        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 19), 0U);
+        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 32), 0U);
         Emitter.padGlobals(Module);
         Emitter.resolveStaticRelocations();
 
         const auto& Executable = Emitter.getExecutable();
-        ASSERT_EQ(Executable.byteSize(), 48U);
-        EXPECT_EQ(readLittleEndian(Executable, 5, 2), 0x0040U);
-        EXPECT_EQ(Executable.getImage()[7], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 8), static_cast<std::uint64_t>(-8));
-        EXPECT_EQ(readLittleEndian(Executable, 16, 2), 0x0041U);
-        EXPECT_EQ(Executable.getImage()[18], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 19), 28U);
-        EXPECT_EQ(readLittleEndian(Executable, 27, 2), 0x0041U);
-        EXPECT_EQ(Executable.getImage()[29], static_cast<std::uint8_t>(RegisterId::ZERO));
-        EXPECT_EQ(readLittleEndian(Executable, 30), 0U);
+        ASSERT_EQ(Executable.byteSize(), 64U);
+        EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x0040U);
+        EXPECT_EQ(Executable.getImage()[10], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Executable, 16), static_cast<std::uint64_t>(-8));
+        EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x0041U);
+        EXPECT_EQ(Executable.getImage()[26], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Executable, 32), 36U);
+        EXPECT_EQ(readLittleEndian(Executable, 40, 2), 0x0041U);
+        EXPECT_EQ(Executable.getImage()[42], static_cast<std::uint8_t>(RegisterId::ZERO));
+        EXPECT_EQ(readLittleEndian(Executable, 48), 0U);
         ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
         EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, NativeSlot);
         ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 1U);
-        EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 30U);
+        EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 48U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].Addend, -8);
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
@@ -347,18 +348,18 @@ namespace ink::vm::test
         Emitter.getContext().padZero(3);
         Instructions.padInstruction(MachineCalliInstruction(ImmediateOperand(TargetName)));
 
-        ASSERT_EQ(Emitter.getExecutable().byteSize(), 13U);
-        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 3, 2), 0x003BU);
-        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 5), 0U);
+        ASSERT_EQ(Emitter.getExecutable().byteSize(), 24U);
+        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 8, 2), 0x003BU);
+        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 16), 0U);
         Emitter.padFunction(Module);
-        ASSERT_EQ(Emitter.getExecutable().byteSize(), 15U);
-        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(TargetName), 13U);
-        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 5), 0U);
+        ASSERT_EQ(Emitter.getExecutable().byteSize(), 32U);
+        EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(TargetName), 24U);
+        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 16), 0U);
         Emitter.resolveStaticRelocations();
 
         const ExecutableFile& Executable = Emitter.getExecutable();
-        EXPECT_EQ(readLittleEndian(Executable, 5), 10U);
-        EXPECT_EQ(readLittleEndian(Executable, 13, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Executable, 16), 16U);
+        EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x003AU);
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
@@ -385,14 +386,14 @@ namespace ink::vm::test
         Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(SharedSymbol)));
 
         const ExecutableFile& Executable = Emitter.getExecutable();
-        ASSERT_EQ(Executable.byteSize(), 26U);
+        ASSERT_EQ(Executable.byteSize(), 56U);
         EXPECT_EQ(readLittleEndian(Executable, 0), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x003CU);
-        EXPECT_EQ(readLittleEndian(Executable, 10, 4), 0U);
-        EXPECT_EQ(readLittleEndian(Executable, 14, 2), 0x003CU);
-        EXPECT_EQ(readLittleEndian(Executable, 16, 4), 1U);
-        EXPECT_EQ(readLittleEndian(Executable, 20, 2), 0x003CU);
-        EXPECT_EQ(readLittleEndian(Executable, 22, 4), 0U);
+        EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
+        EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x003CU);
+        EXPECT_EQ(readLittleEndian(Executable, 32), 1U);
+        EXPECT_EQ(readLittleEndian(Executable, 40, 2), 0x003CU);
+        EXPECT_EQ(readLittleEndian(Executable, 48), 0U);
         ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 2U);
         EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, SharedSymbol);
         EXPECT_EQ(Executable.getDynamicImportSymbols()[1].Name, OtherSymbol);
@@ -417,19 +418,19 @@ namespace ink::vm::test
         Instructions.padInstruction(MachineJmpiInstruction(ImmediateOperand(std::uint64_t{1} << 63)));
 
         const ExecutableFile& Executable = Emitter.getExecutable();
-        ASSERT_EQ(Executable.byteSize(), 26U);
+        ASSERT_EQ(Executable.byteSize(), 48U);
         EXPECT_EQ(readLittleEndian(Executable, 0, 2), 0x003BU);
-        EXPECT_EQ(readLittleEndian(Executable, 2), static_cast<std::uint64_t>(-16));
-        EXPECT_EQ(readLittleEndian(Executable, 10, 2), 0x003CU);
-        EXPECT_EQ(readLittleEndian(Executable, 12, 4), std::numeric_limits<std::uint32_t>::max());
-        EXPECT_EQ(readLittleEndian(Executable, 16, 2), 0x003FU);
-        EXPECT_EQ(readLittleEndian(Executable, 18), std::uint64_t{1} << 63);
+        EXPECT_EQ(readLittleEndian(Executable, 8), static_cast<std::uint64_t>(-16));
+        EXPECT_EQ(readLittleEndian(Executable, 16, 2), 0x003CU);
+        EXPECT_EQ(readLittleEndian(Executable, 24), std::numeric_limits<std::uint32_t>::max());
+        EXPECT_EQ(readLittleEndian(Executable, 32, 2), 0x003FU);
+        EXPECT_EQ(readLittleEndian(Executable, 40), std::uint64_t{1} << 63);
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
     }
 
-    // An add instruction writes its opcode before ordered register and immediate fields, followed immediately by a two-byte return.
+    // An add instruction packs register IDs into its header, emits ordered payload words, and precedes an eight-byte return header.
     TEST(VMExecutableEmitterTest, EncodesOpcodeBeforeOrderedRegisterAndImmediateOperands)
     {
         const core::DiagnosticEngine Diagnostics;
@@ -440,18 +441,20 @@ namespace ink::vm::test
         Instructions.padInstruction(MachineRetInstruction());
 
         const ExecutableFile& Executable = Emitter.getExecutable();
-        ASSERT_EQ(Executable.byteSize(), 30U);
+        ASSERT_EQ(Executable.byteSize(), 40U);
+        EXPECT_EQ(readLittleEndian(Executable, 0), 0x000000030001001BULL);
         EXPECT_EQ(readLittleEndian(Executable, 0, 2), 0x001BU);
         EXPECT_EQ(Executable.getImage()[2], static_cast<std::uint8_t>(RegisterId::SP));
-        EXPECT_EQ(readLittleEndian(Executable, 3), 0U);
-        EXPECT_EQ(Executable.getImage()[11], static_cast<std::uint8_t>(RegisterId::BP));
-        EXPECT_EQ(readLittleEndian(Executable, 12), static_cast<std::uint64_t>(-8));
-        EXPECT_EQ(readLittleEndian(Executable, 20), 16U);
-        EXPECT_EQ(readLittleEndian(Executable, 28, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Executable, 8), 0U);
+        EXPECT_EQ(Executable.getImage()[3], static_cast<std::uint8_t>(RegisterId::BP));
+        EXPECT_EQ(readLittleEndian(Executable, 16), static_cast<std::uint64_t>(-8));
+        EXPECT_EQ(readLittleEndian(Executable, 24), 16U);
+        EXPECT_EQ(readLittleEndian(Executable, 32, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Executable, 32), 0x000000030303003AULL);
     }
 
-    // A 16-bit store emits only the low two immediate bytes after its nine-byte address without tags or alignment padding.
-    TEST(VMExecutableEmitterTest, EncodesNarrowInstructionImmediateWithoutPadding)
+    // A 16-bit store preserves its low two immediate bytes and clears the remaining bytes of its aligned payload word.
+    TEST(VMExecutableEmitterTest, ZeroExtendsNarrowInstructionImmediateInAlignedWord)
     {
         const core::DiagnosticEngine Diagnostics;
         ExecutableEmitter Emitter(Diagnostics);
@@ -460,11 +463,11 @@ namespace ink::vm::test
         Instructions.padInstruction(MachineStore16iInstruction(AddressOperand(RegisterId::SP, -8), ImmediateOperand(0x1122334455667788)));
 
         const ExecutableFile& Executable = Emitter.getExecutable();
-        ASSERT_EQ(Executable.byteSize(), 13U);
+        ASSERT_EQ(Executable.byteSize(), 24U);
         EXPECT_EQ(readLittleEndian(Executable, 0, 2), 0x0008U);
         EXPECT_EQ(Executable.getImage()[2], static_cast<std::uint8_t>(RegisterId::SP));
-        EXPECT_EQ(readLittleEndian(Executable, 3), static_cast<std::uint64_t>(-8));
-        EXPECT_EQ(readLittleEndian(Executable, 11, 2), 0x7788U);
+        EXPECT_EQ(readLittleEndian(Executable, 8), static_cast<std::uint64_t>(-8));
+        EXPECT_EQ(readLittleEndian(Executable, 16), 0x7788U);
     }
 
     // Every forward symbol address in one instruction uses the opcode's image offset as its PC-relative origin.
@@ -480,18 +483,18 @@ namespace ink::vm::test
         Emitter.scanUnResolvedSymbol(Module);
         Emitter.getContext().padZero(5);
         Instructions.padInstruction(MachineLoad64Instruction(AddressOperand(Symbol, 1), AddressOperand(Symbol, 4)));
-        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 8), 0U);
-        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 17), 0U);
+        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 16), 0U);
+        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 24), 0U);
         Emitter.padGlobals(Module);
         Emitter.resolveStaticRelocations();
 
         const ExecutableFile& Executable = Emitter.getExecutable();
         ASSERT_EQ(Executable.byteSize(), 40U);
-        EXPECT_EQ(readLittleEndian(Executable, 5, 2), 0x0004U);
-        EXPECT_EQ(Executable.getImage()[7], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 8), 28U);
-        EXPECT_EQ(Executable.getImage()[16], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 17), 31U);
+        EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x0004U);
+        EXPECT_EQ(Executable.getImage()[10], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Executable, 16), 25U);
+        EXPECT_EQ(Executable.getImage()[11], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Executable, 24), 28U);
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
     }
@@ -510,16 +513,16 @@ namespace ink::vm::test
         Instructions.padOperand(ImmediateOperand(Bits), 64);
 
         const ExecutableFile& Executable = Emitter.getExecutable();
-        ASSERT_EQ(Executable.byteSize(), 15U);
-        EXPECT_EQ(readLittleEndian(Executable, 0, 1), 0x88U);
-        EXPECT_EQ(readLittleEndian(Executable, 1, 2), 0x7788U);
-        EXPECT_EQ(readLittleEndian(Executable, 3, 4), 0x55667788U);
-        EXPECT_EQ(readLittleEndian(Executable, 7), Bits);
+        ASSERT_EQ(Executable.byteSize(), 32U);
+        EXPECT_EQ(readLittleEndian(Executable, 0), 0x88U);
+        EXPECT_EQ(readLittleEndian(Executable, 8), 0x7788U);
+        EXPECT_EQ(readLittleEndian(Executable, 16), 0x55667788U);
+        EXPECT_EQ(readLittleEndian(Executable, 24), Bits);
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
     }
 
-    // ZERO register values and memory addresses share the nine-byte register-relative layout and preserve every signed offset bit.
+    // ZERO register values and memory addresses use header register slots and preserve every signed offset bit in their payload words.
     TEST(VMExecutableEmitterTest, EncodesZeroRelativeRegisterAndAddressOperands)
     {
         const core::DiagnosticEngine Diagnostics;
@@ -530,15 +533,14 @@ namespace ink::vm::test
             ExecutableEmitter Emitter(Diagnostics);
             FunctionEmissionContext FunctionContext;
             InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
-            Instructions.padOperand(RegisterOperand(RegisterId::ZERO, Offset));
-            Instructions.padOperand(AddressOperand(RegisterId::ZERO, Offset), 9);
+            Instructions.padInstruction(MachineAdd64mrrInstruction(AddressOperand(RegisterId::ZERO, Offset), RegisterOperand(RegisterId::ZERO, Offset), RegisterOperand(RegisterId::ZERO)));
 
             const ExecutableFile& Executable = Emitter.getExecutable();
-            ASSERT_EQ(Executable.byteSize(), 18U);
-            EXPECT_EQ(Executable.getImage()[0], 0x03);
-            EXPECT_EQ(Executable.getImage()[9], 0x03);
-            EXPECT_EQ(readLittleEndian(Executable, 1), static_cast<std::uint64_t>(Offset));
-            EXPECT_EQ(readLittleEndian(Executable, 10), static_cast<std::uint64_t>(Offset));
+            ASSERT_EQ(Executable.byteSize(), 32U);
+            EXPECT_EQ(Executable.getImage()[2], 0x03);
+            EXPECT_EQ(Executable.getImage()[3], 0x03);
+            EXPECT_EQ(readLittleEndian(Executable, 8), static_cast<std::uint64_t>(Offset));
+            EXPECT_EQ(readLittleEndian(Executable, 16), static_cast<std::uint64_t>(Offset));
             EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
             EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
         }
@@ -585,29 +587,28 @@ namespace ink::vm::test
         Emitter.getContext().padZero(1);
         Instructions.padOperand(ImmediateOperand(Symbol, -1), 64);
         Instructions.padOperand(ImmediateOperand(Symbol, 8), 64);
-        Instructions.padOperand(AddressOperand(Symbol, 4), 17);
+        Instructions.padOperand(AddressOperand(Symbol, 4), 24);
         EXPECT_TRUE(Emitter.getExecutable().getImageBaseAddressRelocations().empty());
         Emitter.padGlobals(Module);
         EXPECT_TRUE(Emitter.getExecutable().getImageBaseAddressRelocations().empty());
-        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 18), 0U);
+        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 24), 0U);
         Emitter.resolveStaticRelocations();
 
         const ExecutableFile& Executable = Emitter.getExecutable();
         ASSERT_EQ(Executable.byteSize(), 48U);
         ASSERT_EQ(Executable.getImageBaseAddressRelocations().size(), 2U);
-        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 1U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 8U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 32U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Addend, -1);
-        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].ImageOffset, 9U);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].ImageOffset, 16U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].TargetOffset, 32U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].Addend, 8);
-        EXPECT_EQ(readLittleEndian(Executable, 1), 0U);
-        EXPECT_EQ(readLittleEndian(Executable, 9), 0U);
-        EXPECT_EQ(Executable.getImage()[17], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 18), 19U);
+        EXPECT_EQ(readLittleEndian(Executable, 8), 0U);
+        EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
+        EXPECT_EQ(readLittleEndian(Executable, 24), 12U);
         Emitter.resolveStaticRelocations();
         EXPECT_EQ(Executable.getImageBaseAddressRelocations().size(), 2U);
-        EXPECT_EQ(readLittleEndian(Executable, 18), 19U);
+        EXPECT_EQ(readLittleEndian(Executable, 24), 12U);
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
@@ -623,24 +624,22 @@ namespace ink::vm::test
         InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
         Emitter.scanUnResolvedSymbol(Module);
         Emitter.getContext().padZero(3);
-        Instructions.padOperand(AddressOperand(Symbol, -2), 3);
+        Instructions.padOperand(AddressOperand(Symbol, -2), 8);
         Emitter.padGlobals(Module);
         Instructions.padOperand(AddressOperand(Symbol, 4), 24);
-        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 4), 0U);
+        EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 8), 0U);
         Emitter.resolveStaticRelocations();
 
         const ExecutableFile& Executable = Emitter.getExecutable();
-        ASSERT_EQ(Executable.byteSize(), 33U);
-        EXPECT_EQ(Executable.getImage()[3], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 4), 11U);
-        EXPECT_EQ(Executable.getImage()[24], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 25), static_cast<std::uint64_t>(-4));
+        ASSERT_EQ(Executable.byteSize(), 32U);
+        EXPECT_EQ(readLittleEndian(Executable, 8), 6U);
+        EXPECT_EQ(readLittleEndian(Executable, 24), static_cast<std::uint64_t>(-4));
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
-    // VM and Native pointers retain separate loading records while their memory references share the same nine-byte register-relative format.
+    // VM and Native pointers retain separate loading records while their memory references share the same aligned displacement-word format.
     TEST(VMExecutableEmitterTest, KeepsVMAndNativeAddressFieldsInSeparateLoadingTables)
     {
         const core::DiagnosticEngine Diagnostics;
@@ -658,10 +657,10 @@ namespace ink::vm::test
         Instructions.padOperand(ImmediateOperand(VMSymbol, 8), 64);
         Instructions.padOperand(ImmediateOperand(NativeSymbol, -8), 64);
         Instructions.padOperand(AddressOperand(VMSymbol, 8), 32);
-        Instructions.padOperand(AddressOperand(NativeSymbol, 12), 41);
+        Instructions.padOperand(AddressOperand(NativeSymbol, 12), 40);
 
         const ExecutableFile& Executable = Emitter.getExecutable();
-        ASSERT_EQ(Executable.byteSize(), 50U);
+        ASSERT_EQ(Executable.byteSize(), 48U);
         ASSERT_EQ(Executable.getImageBaseAddressRelocations().size(), 1U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 16U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 0U);
@@ -672,15 +671,13 @@ namespace ink::vm::test
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 24U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].Addend, -8);
-        EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].ImageOffset, 42U);
+        EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].ImageOffset, 40U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].SymbolIndex, 0U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].Addend, 12);
         EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
         EXPECT_EQ(readLittleEndian(Executable, 24), 0U);
-        EXPECT_EQ(Executable.getImage()[32], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Executable, 33), static_cast<std::uint64_t>(-24));
-        EXPECT_EQ(Executable.getImage()[41], static_cast<std::uint8_t>(RegisterId::ZERO));
-        EXPECT_EQ(readLittleEndian(Executable, 42), 0U);
+        EXPECT_EQ(readLittleEndian(Executable, 32), static_cast<std::uint64_t>(-24));
+        EXPECT_EQ(readLittleEndian(Executable, 40), 0U);
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 
@@ -702,17 +699,16 @@ namespace ink::vm::test
         Instructions.padOperand(ImmediateOperand(NativeSymbol, -4), 64);
 
         const ExecutableFile& Executable = Emitter.getExecutable();
-        ASSERT_EQ(Executable.byteSize(), 18U);
-        EXPECT_EQ(Executable.getImage()[1], static_cast<std::uint8_t>(RegisterId::ZERO));
-        EXPECT_EQ(readLittleEndian(Executable, 2), 0U);
-        EXPECT_EQ(readLittleEndian(Executable, 10), 0U);
+        ASSERT_EQ(Executable.byteSize(), 24U);
+        EXPECT_EQ(readLittleEndian(Executable, 8), 0U);
+        EXPECT_EQ(readLittleEndian(Executable, 16), 0U);
         ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
         EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, NativeSymbol);
         ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 2U);
-        EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 2U);
+        EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 8U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].Addend, 12);
-        EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].ImageOffset, 10U);
+        EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].ImageOffset, 16U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].SymbolIndex, 0U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].Addend, -4);
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
@@ -747,12 +743,12 @@ namespace ink::vm::test
         Builder.setInsertPoint(SecondModule.createFunction(EntryName).createBasicBlock());
         Builder.create<Opcode::Ret>();
         const ExecutableFile Executable = Emitter.emit(SecondModule, EntryName, {});
-        ASSERT_EQ(Executable.byteSize(), 4U);
-        EXPECT_EQ(Executable.getEntryOffset(), 2U);
+        ASSERT_EQ(Executable.byteSize(), 16U);
+        EXPECT_EQ(Executable.getEntryOffset(), 8U);
         EXPECT_FALSE(Emitter.getContext().isNativeSymbol(NativeSymbol));
         EXPECT_EQ(Executable.getImage()[0], 0xABU);
         EXPECT_EQ(Executable.getImage()[1], 0xCDU);
-        EXPECT_EQ(readLittleEndian(Executable, 2, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Executable, 8, 2), 0x003AU);
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
@@ -779,12 +775,12 @@ namespace ink::vm::test
         ExecutableEmitter Emitter(Diagnostics);
         const ExecutableFile Executable = Emitter.emit(Module, EntryName, ExportNames);
 
-        ASSERT_EQ(Executable.byteSize(), 20U);
-        EXPECT_EQ(Executable.getEntryOffset(), 18U);
-        EXPECT_EQ(readLittleEndian(Executable, 18, 2), 0x003AU);
+        ASSERT_EQ(Executable.byteSize(), 32U);
+        EXPECT_EQ(Executable.getEntryOffset(), 24U);
+        EXPECT_EQ(readLittleEndian(Executable, 24, 2), 0x003AU);
         ASSERT_EQ(Executable.getExportSymbols().size(), 2U);
         EXPECT_EQ(Executable.getExportSymbols()[0].Name, EntryName);
-        EXPECT_EQ(Executable.getExportSymbols()[0].Offset, 18U);
+        EXPECT_EQ(Executable.getExportSymbols()[0].Offset, 24U);
         EXPECT_EQ(Executable.getExportSymbols()[1].Name, GlobalName);
         EXPECT_EQ(Executable.getExportSymbols()[1].Offset, 8U);
         ExecutableFileValidator::validate(Executable, Diagnostics);
@@ -806,7 +802,7 @@ namespace ink::vm::test
         const std::array<core::Name, 2> FirstExports{FirstEntryName, GlobalName};
         ExecutableEmitter Emitter(Diagnostics);
         const ExecutableFile First = Emitter.emit(FirstModule, FirstEntryName, FirstExports);
-        ASSERT_EQ(First.getEntryOffset(), 4U);
+        ASSERT_EQ(First.getEntryOffset(), 8U);
         ASSERT_EQ(First.getExportSymbols().size(), 2U);
 
         MachineModule SecondModule;
@@ -814,11 +810,11 @@ namespace ink::vm::test
         Builder.create<Opcode::Ret>();
         const ExecutableFile Second = Emitter.emit(SecondModule, SecondEntryName, {});
 
-        ASSERT_EQ(Second.byteSize(), 2U);
+        ASSERT_EQ(Second.byteSize(), 8U);
         EXPECT_EQ(Second.getEntryOffset(), 0U);
         EXPECT_TRUE(Second.getExportSymbols().empty());
         EXPECT_EQ(readLittleEndian(Second, 0, 2), 0x003AU);
-        EXPECT_EQ(First.getEntryOffset(), 4U);
+        EXPECT_EQ(First.getEntryOffset(), 8U);
         EXPECT_EQ(First.getExportSymbols().size(), 2U);
         ExecutableFileValidator::validate(Second, Diagnostics);
     }

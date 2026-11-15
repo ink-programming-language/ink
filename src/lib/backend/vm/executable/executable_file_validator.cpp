@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <string_view>
 #include <unordered_set>
@@ -93,6 +94,10 @@ namespace ink::vm
         {
             failValidation(Diagnostics, "image", "entry offset is outside the image");
         }
+        if (Executable.getEntryOffset() % sizeof(std::uint64_t) != 0)
+        {
+            failValidation(Diagnostics, "image", "entry offset is not eight-byte aligned");
+        }
         if (hasTooManyRecords(Imports.size()))
         {
             failValidation(Diagnostics, "dynamic import symbol table", "import count exceeds the u32 index range");
@@ -143,6 +148,13 @@ namespace ink::vm
                 const auto& Record = First.RecordOrder > Second.RecordOrder ? First : Second;
                 const auto& Other = First.RecordOrder > Second.RecordOrder ? Second : First;
                 failRecord(Diagnostics, Record.Kind, Record.RecordIndex, fmt::format("address field overlaps {} #{}", Other.Kind, Other.RecordIndex));
+            }
+        }
+        for (const auto& Range : Ranges)
+        {
+            if (Range.Begin % sizeof(std::uint64_t) != 0)
+            {
+                failRecord(Diagnostics, Range.Kind, Range.RecordIndex, "address field is not eight-byte aligned");
             }
         }
     }

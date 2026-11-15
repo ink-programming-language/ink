@@ -22,17 +22,17 @@ namespace ink::vm
             // Both borrowed contexts must outlive this emitter.
             InstructionEmitter(ExecutableEmissionContext& Context, FunctionEmissionContext& FunctionContext) noexcept;
 
-            // Appends the opcode, then emits operands in semantic order with opcode-specific immediate control-transfer targets.
+            // Appends an aligned header word, then one payload word per operand in semantic order.
             // Direct target kinds, zero symbol addends, and numeric import indices must be validated before emission.
             void padInstruction(const MachineInstruction& Instruction);
 
-            // Appends a register identifier and its signed byte offset without dereferencing memory.
+            // Appends the register's signed byte offset as one word; its identifier belongs to the instruction header.
             void padOperand(const RegisterOperand& Operand);
 
-            // Appends a numeric immediate or a 64-bit symbol address placeholder with a loading relocation; direct-call targets use opcode-specific encoding.
+            // Appends a zero-extended, width-truncated numeric word or a symbol address placeholder with a loading relocation.
             void padOperand(const ImmediateOperand& Operand, std::uint32_t Width);
 
-            // Appends a nine-byte address operand; unresolved VM symbols reserve a zero displacement and queue a static relocation.
+            // Appends one displacement word; unresolved VM symbols reserve zero and queue a static relocation.
             void padOperand(const AddressOperand& Operand, std::uint64_t InstructionOffset);
 
             // Appends a PC-relative basic-block target; unresolved blocks reserve a zero displacement until function finalization.

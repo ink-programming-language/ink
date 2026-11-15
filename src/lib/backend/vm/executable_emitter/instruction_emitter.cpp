@@ -5,6 +5,7 @@
 #include "ink/backend/vm/instruction/address_operand.h"
 #include "ink/backend/vm/instruction/basic_block_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
+#include "ink/backend/vm/instruction/instruction_encoding.h"
 #include "ink/backend/vm/instruction/machine_instruction.h"
 #include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
@@ -23,8 +24,29 @@ namespace ink::vm
 
     void InstructionEmitter::padInstruction(const MachineInstruction& Instruction)
     {
+        Context.padAlignment(InstructionEncoding::WordBytes);
         const auto InstructionOffset = Context.byteSize();
-        Context.padInteger(static_cast<std::uint16_t>(Instruction.getOpcode()), 16);
+        auto Header = InstructionEncoding::encodeOpcode(Instruction.getOpcode());
+        for (std::size_t Index = 0; Index < Instruction.operandCount(); ++Index)
+        {
+            const auto& Operand = *Instruction.getOperand(Index);
+            RegisterId Register = RegisterId::ZERO;
+            if (Operand.getKind() == OperandKind::Register)
+            {
+                Register = static_cast<const RegisterOperand&>(Operand).getRegister();
+            }
+            else if (Operand.getKind() == OperandKind::Address)
+            {
+                const auto& Address = static_cast<const AddressOperand&>(Operand);
+                Register = Address.getRegister().value_or(Context.isNativeSymbol(Address.getSymbol().value_or(core::NAME_None)) ? RegisterId::ZERO : RegisterId::PC);
+            }
+            else if (Operand.getKind() == OperandKind::BasicBlock)
+            {
+                Register = RegisterId::PC;
+            }
+            Header = InstructionEncoding::encodeRegister(Header, Index, Register);
+        }
+        Context.padInteger(Header, 64);
         for (std::size_t Index = 0; Index < Instruction.operandCount(); ++Index)
         {
             const Operand& Operand = *Instruction.getOperand(Index);
@@ -84,7 +106,7 @@ namespace ink::vm
     {
         if (const auto Bits = Operand.bits())
         {
-            Context.padInteger(*Bits, 32);
+            Context.padInteger(static_cast<std::uint32_t>(*Bits), 64);
             return;
         }
 
@@ -92,19 +114,17 @@ namespace ink::vm
         REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "callNative", "native call target name must be registered and nonempty");
         REPORT_ICE_IF(!Context.isNativeSymbol(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "callNative", "native call target has no unresolved symbol declaration");
         const auto Index = Context.getOrAddNativeSymbol(DynamicImportSymbol{*Symbol});
-        Context.padInteger(Index, 32);
+        Context.padInteger(Index, 64);
     }
 
     void InstructionEmitter::padRegister(RegisterId Register, std::int64_t ByteOffset)
     {
         REPORT_ICE_IF(!isAddressRegister(Register), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "register operand", "register must be BP, SP, PC, or ZERO");
-        Context.padInteger(static_cast<std::uint8_t>(Register), 8);
         Context.padInteger(static_cast<std::uint64_t>(ByteOffset), 64);
     }
 
     void InstructionEmitter::padUnresolvedSymbol(RegisterId Register, core::Name Symbol, std::int64_t Addend, std::uint64_t InstructionOffset)
     {
-        Context.padInteger(static_cast<std::uint8_t>(Register), 8);
         Context.addStaticRelocation({Context.byteSize(), Symbol, InstructionOffset, Addend, Register});
         Context.padZero(8);
     }
@@ -113,35 +133,35 @@ namespace ink::vm
     {
         if (Register == RegisterId::ZERO)
         {
-            Context.padInteger(static_cast<std::uint8_t>(Register), 8);
             Context.addImageBaseAddressRelocation({Context.byteSize(), SymbolOffset, Addend});
             Context.padZero(8);
             return;
         }
         const auto Bits = Context.resolveRegisterRelativeOffset(Register, SymbolOffset, Addend, InstructionOffset);
-        Context.padInteger(static_cast<std::uint8_t>(Register), 8);
         Context.padInteger(Bits, 64);
     }
 
     void InstructionEmitter::padNativeSymbol(const DynamicImportSymbol& Import, std::int64_t Addend)
     {
         const auto Index = Context.getOrAddNativeSymbol(Import);
-        Context.padInteger(static_cast<std::uint8_t>(RegisterId::ZERO), 8);
         Context.addDynamicImportSymbolRelocation({Context.byteSize(), Index, Addend});
         Context.padZero(8);
     }
 
     void InstructionEmitter::padOperand(const RegisterOperand& Operand)
     {
+        Context.padAlignment(InstructionEncoding::WordBytes);
         padRegister(Operand.getRegister(), Operand.getByteOffset());
     }
 
     void InstructionEmitter::padOperand(const ImmediateOperand& Operand, std::uint32_t Width)
     {
+        Context.padAlignment(InstructionEncoding::WordBytes);
         REPORT_ICE_IF(Width != 8 && Width != 16 && Width != 32 && Width != 64, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "integer encoding requires a supported width");
         if (const auto Bits = Operand.bits())
         {
-            Context.padInteger(*Bits, Width);
+            const auto Mask = ~std::uint64_t{0} >> (64 - Width);
+            Context.padInteger(*Bits & Mask, 64);
             return;
         }
 
@@ -174,6 +194,7 @@ namespace ink::vm
 
     void InstructionEmitter::padOperand(const AddressOperand& Operand, std::uint64_t InstructionOffset)
     {
+        Context.padAlignment(InstructionEncoding::WordBytes);
         if (const auto Register = Operand.getRegister())
         {
             padRegister(*Register, Operand.getByteOffset());
@@ -203,6 +224,7 @@ namespace ink::vm
 
     void InstructionEmitter::padOperand(const BasicBlockOperand& Operand, std::uint64_t InstructionOffset)
     {
+        Context.padAlignment(InstructionEncoding::WordBytes);
         const auto* Block = Operand.getBlock();
         REPORT_ICE_IF(!Block, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "basic block target must be nonnull");
         if (const auto Position = FunctionContext.resolvedBasicBlockOffset(*Block))
@@ -212,7 +234,6 @@ namespace ink::vm
         }
 
         REPORT_ICE_IF(!FunctionContext.hasUnResolvedBasicBlock(*Block), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "basic block target is not declared in the current function");
-        Context.padInteger(static_cast<std::uint8_t>(RegisterId::PC), 8);
         FunctionContext.addBasicBlockStaticRelocation({Context.byteSize(), Block, InstructionOffset});
         Context.padZero(8);
     }

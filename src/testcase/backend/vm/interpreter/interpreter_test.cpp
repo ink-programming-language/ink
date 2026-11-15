@@ -1,6 +1,9 @@
 #include "../../../core/support/environment_test_support.h"
 
+#include "ink/backend/vm/executable_emitter/executable_emitter.h"
 #include "ink/backend/vm/interpreter/interpreter.h"
+#include "ink/backend/vm/module/machine_instruction_builder.h"
+#include "ink/backend/vm/module/machine_module.h"
 #include "ink/backend/vm/runtime_stub/builtin_stub.h"
 #include "ink/backend/vm/vm_runtime/runtime.h"
 #include "ink/core/config/config_manager.h"
@@ -33,15 +36,12 @@ namespace ink::vm::test
 
         std::uint8_t* readAddressRegister(const Frame& CallFrame, RegisterId Id) noexcept
         {
-            std::uint8_t* Address = nullptr;
-            std::memcpy(&Address, GET_REGISTER(Id, CallFrame), sizeof(Address));
-            return Address;
+            return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(READ_REGISTER(Id, CallFrame)));
         }
 
         void writeAddressRegister(Frame& CallFrame, RegisterId Id, const void* Address) noexcept
         {
-            auto* const Pointer = const_cast<std::uint8_t*>(static_cast<const std::uint8_t*>(Address));
-            std::memcpy(SET_REGISTER(Id, CallFrame), &Pointer, sizeof(Pointer));
+            WRITE_REGISTER(Id, CallFrame, hostAddress(Address));
         }
 
         void expectFrameValues(const Frame& Actual, const Frame& Expected)
@@ -49,7 +49,7 @@ namespace ink::vm::test
             EXPECT_EQ(readAddressRegister(Actual, RegisterId::BP), readAddressRegister(Expected, RegisterId::BP));
             EXPECT_EQ(readAddressRegister(Actual, RegisterId::SP), readAddressRegister(Expected, RegisterId::SP));
             EXPECT_EQ(readAddressRegister(Actual, RegisterId::PC), readAddressRegister(Expected, RegisterId::PC));
-            EXPECT_EQ(*reinterpret_cast<const std::uint64_t*>(GET_REGISTER(RegisterId::ZERO, Actual)), *reinterpret_cast<const std::uint64_t*>(GET_REGISTER(RegisterId::ZERO, Expected)));
+            EXPECT_EQ(READ_REGISTER(RegisterId::ZERO, Actual), READ_REGISTER(RegisterId::ZERO, Expected));
         }
 
         std::uint64_t codeAddress(const Interpreter& VM, std::size_t Offset) noexcept
@@ -83,7 +83,7 @@ namespace ink::vm::test
         ExecutableFile makeReturnExecutable()
         {
             ExecutableFile Executable;
-            Executable.getImage() = {0x3A, 0x00};
+            Executable.getImage() = {0x3A, 0x00, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00};
             return Executable;
         }
 
@@ -145,7 +145,7 @@ namespace ink::vm::test
         EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::BP), Stack);
         EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::SP), Stack);
         EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::PC), VM.getCodeSegment().data());
-        EXPECT_EQ(*reinterpret_cast<const std::uint64_t*>(GET_REGISTER(RegisterId::ZERO, CallFrame)), 0U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::ZERO, CallFrame), 0U);
     }
 
     // A configured interpreter stack can prepare a native call by updating the public SP slot, without changing other bytes or registers.
@@ -210,8 +210,9 @@ namespace ink::vm::test
         core::test::ScopedEnvironmentVariable Environment("INK_VM_STACK_BYTES");
         ASSERT_TRUE(Environment.set("64"));
         Interpreter VM;
-        ExecutableFile Executable;
-        Executable.getImage() = {0x3A, 0x00, 0x3A, 0x00};
+        auto Executable = makeReturnExecutable();
+        const auto Return = Executable.getImage();
+        Executable.getImage().insert(Executable.getImage().end(), Return.begin(), Return.end());
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
         ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
         auto& CallFrame = VM.getFrame();
@@ -224,17 +225,17 @@ namespace ink::vm::test
         writeAddressRegister(CallFrame, RegisterId::PC, nullptr);
         ASSERT_TRUE(Environment.set("128"));
 
-        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + 2));
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + 8));
 
         EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::SP), Stack);
         EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::BP), Stack);
         EXPECT_EQ(Stack[0], 0x6D);
         EXPECT_EQ(Stack[63], 0xA5);
-        EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::PC), VM.getCodeSegment().data() + 2);
-        EXPECT_EQ(*reinterpret_cast<const std::uint64_t*>(GET_REGISTER(RegisterId::ZERO, CallFrame)), 0U);
+        EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::PC), VM.getCodeSegment().data() + 8);
+        EXPECT_EQ(READ_REGISTER(RegisterId::ZERO, CallFrame), 0U);
     }
 
-    // Null, one-past, and unrelated entry addresses report a user diagnostic while preserving the prior frame.
+    // Null, misaligned, one-past, and unrelated entry addresses report a user diagnostic while preserving the prior frame.
     TEST(VMInterpreterTest, RejectsInvalidEntryAddressesWithoutChangingFrame)
     {
         core::test::ScopedEnvironmentVariable Environment("INK_VM_STACK_BYTES");
@@ -252,6 +253,7 @@ namespace ink::vm::test
         std::uint8_t Outside = 0;
         const void* InvalidEntries[] = {
             nullptr,
+            VM.getCodeSegment().data() + 1,
             VM.getCodeSegment().data() + VM.getCodeSegment().size(),
             &Outside,
         };
@@ -269,12 +271,12 @@ namespace ink::vm::test
         VM.getDiagnostics().removeConsumer(Collector);
     }
 
-    // An unsupported complete opcode reports failure at its instruction address without changing the loaded image.
+    // A complete known opcode without an execution implementation reports failure without changing PC or the image.
     TEST(VMInterpreterTest, ReportsUnsupportedOpcodeWithoutAdvancingPC)
     {
         Interpreter VM;
         ExecutableFile Executable;
-        const std::vector<std::uint8_t> Image{0xFF, 0xFF, 0x3A, 0x00};
+        const std::vector<std::uint8_t> Image{0x01, 0x00, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         Executable.getImage() = Image;
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
         const auto* Entry = VM.getCodeSegment().data();
@@ -289,24 +291,134 @@ namespace ink::vm::test
         expectCodeBytes(VM, Image);
     }
 
-    // A one-byte opcode reports truncation instead of reading beyond the loaded code segment.
-    TEST(VMInterpreterTest, ReportsTruncatedOpcodeWithoutReadingPastCodeSegment)
+#if INK_ENABLE_ASSERTIONS
+    // Unknown opcode bits violate the instruction encoding contract before operand decoding.
+    TEST(VMInterpreterDeathTest, RejectsUnknownOpcodeBits)
+    {
+        Interpreter VM;
+        ExecutableFile Executable;
+        Executable.getImage() = {0xFF, 0xFF, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00};
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+
+        EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data())), "check failed.*InstructionBytes != 0");
+    }
+
+    // An incomplete instruction header violates the word-load precondition before accessing its missing bytes.
+    TEST(VMInterpreterDeathTest, RejectsTruncatedInstructionHeader)
     {
         Interpreter VM;
         ExecutableFile Executable;
         Executable.getImage() = {0x3A};
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
-        const auto* Entry = VM.getCodeSegment().data();
-        core::CollectingDiagnosticConsumer Collector;
-        VM.getDiagnostics().addConsumer(Collector);
 
-        EXPECT_FALSE(VM.execute(Entry));
+        EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data())), "check failed.*InstructionEncoding::WordBytes");
+    }
 
-        VM.getDiagnostics().removeConsumer(Collector);
-        expectExecutionDiagnostic(Collector);
-        EXPECT_EQ(readAddressRegister(VM.getFrame(), RegisterId::PC), Entry);
-        ASSERT_EQ(VM.getCodeSegment().size(), 1U);
-        EXPECT_EQ(VM.getCodeSegment().front(), 0x3A);
+    // Each missing or partially present Add64 operand slot violates the complete-instruction contract.
+    TEST(VMInterpreterDeathTest, RejectsTruncatedOperandSlotsBeforeDecodingThem)
+    {
+        constexpr std::size_t TruncatedSizes[] = {
+            8,
+            15,
+            16,
+            23,
+            24,
+            31,
+        };
+        for (const auto ByteCount : TruncatedSizes)
+        {
+            SCOPED_TRACE(ByteCount);
+            Interpreter VM;
+            ExecutableFile Executable;
+            Executable.getImage() = {0x19, 0x00, 0x00, 0x03, 0x03, 0x00, 0x00, 0x00};
+            Executable.getImage().resize(ByteCount, 0xA5);
+            ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+
+            EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data())), "check failed.*InstructionBytes");
+        }
+    }
+
+    // An immediate jump to an odd address violates PC alignment before the next instruction word is loaded.
+    TEST(VMInterpreterDeathTest, RejectsMisalignedJumpTargetBeforeFetchingInstruction)
+    {
+        Interpreter VM;
+        ExecutableFile Executable;
+        Executable.getImage() = {0x3F, 0x00, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00, 17, 0, 0, 0, 0, 0, 0, 0};
+        const auto Return = makeReturnExecutable().getImage();
+        Executable.getImage().insert(Executable.getImage().end(), Return.begin(), Return.end());
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+
+        EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data())), "check failed.*InstructionOffset");
+    }
+
+    // Reserved header bits, invalid active register IDs, and ZERO destinations violate execution preconditions.
+    TEST(VMInterpreterDeathTest, RejectsMalformedInstructionHeaders)
+    {
+        struct HeaderMutation
+        {
+                std::size_t ByteOffset;
+                std::uint8_t Byte;
+        };
+        constexpr HeaderMutation Mutations[] = {
+            {5, 0x01},
+            {3, 0xFF},
+            {2, 0x03},
+        };
+        for (const auto& Mutation : Mutations)
+        {
+            SCOPED_TRACE(Mutation.ByteOffset);
+            Interpreter VM;
+            ExecutableFile Executable;
+            Executable.getImage() = {0x19, 0x00, 0x00, 0x03, 0x03, 0x00, 0x00, 0x00};
+            Executable.getImage().resize(32, 0);
+            Executable.getImage()[Mutation.ByteOffset] = Mutation.Byte;
+            ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+
+            EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data())), "check failed");
+        }
+    }
+
+    // Falling off a complete Add64 without a terminating Ret violates the next fetch's PC range precondition.
+    TEST(VMInterpreterDeathTest, RequiresRetBeforeExecutionLeavesCodeSegment)
+    {
+        Interpreter VM;
+        ExecutableFile Executable;
+        Executable.getImage() = {0x19, 0x00, 0x00, 0x03, 0x03, 0x00, 0x00, 0x00};
+        Executable.getImage().resize(32, 0);
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+
+        EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data())), "check failed.*InstructionAddress");
+    }
+#endif
+
+    // Emission aligns a function after odd-sized global data and resolves its forward block jump before direct runtime decoding.
+    TEST(VMInterpreterTest, EmitsLoadsAndExecutesAlignedBlocksAfterOddSizedGlobalData)
+    {
+        auto& Names = core::NamePool::instance();
+        const auto EntryName = Names.intern("interpreter-aligned-emitted-entry");
+        const auto GlobalName = Names.intern("interpreter-aligned-emitted-global");
+        MachineModule Module;
+        ASSERT_TRUE(Module.createGlobalVariable(3, 1, {}, GlobalName).has_value());
+        auto& Function = Module.createFunction(EntryName);
+        auto& EntryBlock = Function.createBasicBlock();
+        auto& TargetBlock = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(EntryBlock);
+        Builder.create<Opcode::Jmp>(&TargetBlock);
+        Builder.setInsertPoint(TargetBlock);
+        Builder.create<Opcode::Add64rrr>(RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::ZERO, 40), RegisterOperand(RegisterId::ZERO, 2));
+        Builder.create<Opcode::Ret>();
+        Interpreter VM;
+        ExecutableEmitter Emitter(VM.getDiagnostics());
+        auto Executable = Emitter.emit(Module, EntryName, {});
+        const auto EntryOffset = Executable.getEntryOffset();
+        ASSERT_GE(EntryOffset, 3U);
+        ASSERT_EQ(EntryOffset % 8, 0U);
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + EntryOffset));
+
+        EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), 42U);
     }
 
     // A zero-byte stack retains null BP/SP through initialization and execution even after its environment override changes.
@@ -468,11 +580,11 @@ namespace ink::vm::test
         const auto NextHandle = VM.loadLibrary(std::move(Next));
         EXPECT_EQ(NextHandle, 2U);
         EXPECT_EQ(VM.findExecutable(FirstHandle), StoredFirst);
-        expectCodeBytes(VM, (std::vector<std::uint8_t>{0x11, 0x22, 0x33, 0x55, 0x66}));
+        expectCodeBytes(VM, (std::vector<std::uint8_t>{0x11, 0x22, 0x33, 0, 0, 0, 0, 0, 0x55, 0x66}));
         auto ExpectedSymbols = OriginalSymbols;
-        ExpectedSymbols[SharedName] = codeAddress(VM, 4);
+        ExpectedSymbols[SharedName] = codeAddress(VM, 9);
         ExpectedSymbols[FirstOnlyName] = codeAddress(VM, 2);
-        ExpectedSymbols[NewName] = codeAddress(VM, 3);
+        ExpectedSymbols[NewName] = codeAddress(VM, 8);
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
     }
 
@@ -506,7 +618,7 @@ namespace ink::vm::test
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
     }
 
-    // Loading unequal images uses their accumulated bases, overwrites shared exports, and preserves other addresses through growth.
+    // Loading unequal images aligns each image base, overwrites shared exports, and preserves other addresses through growth.
     TEST(VMInterpreterTest, RegistersLibraryExportsAcrossCodeSegmentGrowth)
     {
         core::test::ScopedEnvironmentVariable Environment("INK_VM_INITIAL_CODE_SEGMENT_BYTES");
@@ -538,9 +650,9 @@ namespace ink::vm::test
         ASSERT_NE(SecondHandle, Interpreter::InvalidLibraryHandle);
         EXPECT_NE(FirstHandle, SecondHandle);
         EXPECT_GT(VM.getCodeSegmentCapacity(), InitialCapacity);
-        ExpectedSymbols[SharedName] = codeAddress(VM, 4);
+        ExpectedSymbols[SharedName] = codeAddress(VM, 9);
         ExpectedSymbols[FirstOnlyName] = codeAddress(VM, 2);
-        ExpectedSymbols[SecondOnlyName] = codeAddress(VM, 3);
+        ExpectedSymbols[SecondOnlyName] = codeAddress(VM, 8);
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
     }
 
@@ -667,6 +779,33 @@ namespace ink::vm::test
         EXPECT_EQ(StoredSecond->getImage(), SecondImage);
     }
 
+    // A trailing data byte in the previous image cannot misalign a subsequent library's directly decoded return instruction.
+    TEST(VMInterpreterTest, AlignsExecutableLibraryAfterOddSizedImage)
+    {
+        Interpreter VM;
+        auto First = makeReturnExecutable();
+        First.getImage().push_back(0xA5);
+        const auto FirstImage = First.getImage();
+        const auto FirstHandle = VM.loadLibrary(std::move(First));
+        ASSERT_NE(FirstHandle, Interpreter::InvalidLibraryHandle);
+        auto Second = makeReturnExecutable();
+        const auto SecondImage = Second.getImage();
+        const auto SecondHandle = VM.loadLibrary(std::move(Second));
+        ASSERT_NE(SecondHandle, Interpreter::InvalidLibraryHandle);
+        auto Expected = FirstImage;
+        Expected.resize(16, 0);
+        Expected.insert(Expected.end(), SecondImage.begin(), SecondImage.end());
+        expectCodeBytes(VM, Expected);
+        const auto* Entry = VM.getCodeSegment().data() + 16;
+        EXPECT_EQ(hostAddress(Entry) % 8, 0U);
+
+        ASSERT_TRUE(VM.execute(Entry));
+
+        EXPECT_EQ(readAddressRegister(VM.getFrame(), RegisterId::PC), Entry);
+        EXPECT_EQ(VM.findExecutable(FirstHandle)->getImage(), FirstImage);
+        EXPECT_EQ(VM.findExecutable(SecondHandle)->getImage(), SecondImage);
+    }
+
     // The default code segment reserves one MiB without making unused storage part of its image bytes.
     TEST(VMInterpreterTest, ReservesDefaultCodeSegmentStorageWithoutImageBytes)
     {
@@ -710,6 +849,7 @@ namespace ink::vm::test
         const auto SecondHandle = VM.loadLibrary(std::move(Second));
         ASSERT_NE(SecondHandle, Interpreter::InvalidLibraryHandle);
         auto ExpectedImage = FirstImage;
+        ExpectedImage.resize(8, 0);
         ExpectedImage.insert(ExpectedImage.end(), SecondImage.begin(), SecondImage.end());
         expectCodeBytes(VM, ExpectedImage);
         EXPECT_GT(VM.getCodeSegmentCapacity(), InitialCapacity);
@@ -742,7 +882,7 @@ namespace ink::vm::test
         {
             ExecutableFile First;
             First.getImage() = FirstImage;
-            First.getEntryOffset() = 1;
+            First.getEntryOffset() = 8;
             First.getDynamicImportSymbols().push_back({ImportName});
             First.getDynamicImportSymbolRelocations().push_back({0, 0, -4});
             First.getImageBaseAddressRelocations().push_back({8, 2, 3});
@@ -766,7 +906,7 @@ namespace ink::vm::test
         const auto* First = VM.findExecutable(FirstHandle);
         ASSERT_NE(First, nullptr);
         EXPECT_EQ(First->getImage(), FirstImage);
-        EXPECT_EQ(First->getEntryOffset(), 1U);
+        EXPECT_EQ(First->getEntryOffset(), 8U);
         ASSERT_EQ(First->getDynamicImportSymbols().size(), 1U);
         EXPECT_EQ(First->getDynamicImportSymbols()[0].Name, ImportName);
         ASSERT_EQ(First->getDynamicImportSymbolRelocations().size(), 1U);

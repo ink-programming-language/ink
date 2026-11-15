@@ -99,6 +99,13 @@ namespace ink::vm
         Image.insert(Image.end(), Count, std::uint8_t{0});
     }
 
+    void ExecutableEmissionContext::padAlignment(std::size_t Alignment)
+    {
+        REPORT_ICE_IF(Alignment == 0 || (Alignment & (Alignment - 1)) != 0, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "executable emission", "alignment must be a nonzero power of two");
+        const auto Remainder = byteSize() % Alignment;
+        padZero(Remainder == 0 ? 0 : Alignment - Remainder);
+    }
+
     void ExecutableEmissionContext::padInteger(std::uint64_t Bits, std::uint32_t Width)
     {
         REPORT_ICE_IF(Width != 8 && Width != 16 && Width != 32 && Width != 64, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "executable emission", "integer encoding requires a supported width");

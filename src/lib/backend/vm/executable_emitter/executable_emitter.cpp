@@ -1,6 +1,7 @@
 #include "ink/backend/vm/executable_emitter/executable_emitter.h"
 
 #include "ink/backend/vm/module/machine_module.h"
+#include "ink/backend/vm/instruction/instruction_encoding.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/name/name_pool.h"
 #include "ink/core/support/core_define.h"
@@ -51,6 +52,7 @@ namespace ink::vm
     {
         for (const MachineFunction& Function : Module.functions())
         {
+            Context.padAlignment(InstructionEncoding::WordBytes);
             Context.resolveSymbol(Function.name(), Context.byteSize());
             FunctionEmitter.emit(Function);
         }

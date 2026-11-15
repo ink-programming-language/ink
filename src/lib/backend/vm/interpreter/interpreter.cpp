@@ -1,6 +1,7 @@
 #include "ink/backend/vm/interpreter/interpreter.h"
 #include "load_transaction.h"
 #include "relocation_address.h"
+#include "ink/backend/vm/instruction/instruction_encoding.h"
 #include "ink/backend/vm/vm_runtime/runtime.h"
 #include "ink/core/config/config_manager.h"
 
@@ -18,10 +19,7 @@ namespace ink::vm
         initialize();
     }
 
-    Interpreter::~Interpreter()
-    {
-        std::free(CodeSegment);
-    }
+    Interpreter::~Interpreter() = default;
 
     void Interpreter::initialize()
     {
@@ -49,10 +47,16 @@ namespace ink::vm
             Diagnostics.report<core::DiagnosticKind::VMExecutionFailed>({}, "entry", "entry address is outside the loaded code segment");
             return false;
         }
+        if ((EntryAddress - CodeAddress) % InstructionEncoding::WordBytes != 0)
+        {
+            Diagnostics.report<core::DiagnosticKind::VMExecutionFailed>({}, "entry", "entry address is not aligned to an instruction word");
+            return false;
+        }
         Frame = vm::Frame{};
-        *reinterpret_cast<std::uint8_t**>(SET_REGISTER(RegisterId::BP, Frame)) = static_cast<std::uint8_t*>(StackAllocation.get());
-        *reinterpret_cast<std::uint8_t**>(SET_REGISTER(RegisterId::SP, Frame)) = static_cast<std::uint8_t*>(StackAllocation.get());
-        *reinterpret_cast<std::uint8_t**>(SET_REGISTER(RegisterId::PC, Frame)) = const_cast<std::uint8_t*>(static_cast<const std::uint8_t*>(Entry));
+        const auto StackAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(StackAllocation.get()));
+        WRITE_REGISTER(RegisterId::BP, Frame, StackAddress);
+        WRITE_REGISTER(RegisterId::SP, Frame, StackAddress);
+        WRITE_REGISTER(RegisterId::PC, Frame, static_cast<std::uint64_t>(EntryAddress));
         return dispatch();
     }
 
@@ -64,13 +68,10 @@ namespace ink::vm
 
     /**
      * Ensure at least RequiredBytes total capacity, not an additional byte count; CodeSegmentSize is unchanged.
-     * Existing capacity is reused. Growth normally doubles capacity without overflowing and always covers
-     * RequiredBytes. The initial allocation uses malloc; an existing allocation first tries realloc.
-     *
-     * If realloc fails, the old block remains valid: allocate a replacement, copy only CodeSegmentSize bytes,
-     * then release the old block. Preserve the old base as an integer because a successful realloc may also
-     * move storage and invalidate the old pointer. An in-place extension needs no address repair; either kind
-     * of move calls repatchCodeSegment after the new allocation is installed.
+     * Existing capacity is reused. Growth normally doubles capacity without overflowing and rounds up to
+     * complete uint64_t words. The runtime allocation contains live integer objects so instruction words
+     * can be loaded directly; global data continues to be accessed through its byte representation.
+     * A replacement allocation preserves existing words, then repatches their embedded host addresses.
      *
      * Growth precedes the load transaction, so a subsequent link failure can retain the increased capacity
      * and repaired addresses. External cached pointers are not repaired and must be queried again after a move.
@@ -81,20 +82,15 @@ namespace ink::vm
         {
             return;
         }
-        const auto NewCapacity = CodeSegmentCapacity <= std::numeric_limits<std::size_t>::max() / 2 ? std::max(RequiredBytes, CodeSegmentCapacity * 2) : RequiredBytes;
+        constexpr auto MaximumCapacity = std::numeric_limits<std::size_t>::max() - (InstructionEncoding::WordBytes - 1);
+        REPORT_ICE_IF(RequiredBytes > MaximumCapacity, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "code segment", "aligned runtime storage size overflows");
+        const auto RequestedCapacity = CodeSegmentCapacity <= MaximumCapacity / 2 ? std::max(RequiredBytes, CodeSegmentCapacity * 2) : RequiredBytes;
+        const auto NewCapacity = (RequestedCapacity + InstructionEncoding::WordBytes - 1) / InstructionEncoding::WordBytes * InstructionEncoding::WordBytes;
         const auto OldAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment));
-        auto* Allocation = CodeSegment ? static_cast<std::uint8_t*>(std::realloc(CodeSegment, NewCapacity)) : static_cast<std::uint8_t*>(std::malloc(NewCapacity));
-        if (!Allocation)
-        {
-            Allocation = static_cast<std::uint8_t*>(std::malloc(NewCapacity));
-            REPORT_ICE_IF(!Allocation, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "code segment", "runtime storage allocation failed");
-            if (CodeSegmentSize != 0)
-            {
-                std::memcpy(Allocation, CodeSegment, CodeSegmentSize);
-            }
-            std::free(CodeSegment);
-        }
-        CodeSegment = Allocation;
+        std::vector<std::uint64_t> Replacement(NewCapacity / InstructionEncoding::WordBytes);
+        std::copy_n(CodeWords.begin(), (CodeSegmentSize + InstructionEncoding::WordBytes - 1) / InstructionEncoding::WordBytes, Replacement.begin());
+        CodeWords.swap(Replacement);
+        CodeSegment = reinterpret_cast<std::uint8_t*>(CodeWords.data());
         CodeSegmentCapacity = NewCapacity;
         if (OldAddress != static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment)))
         {
@@ -175,17 +171,24 @@ namespace ink::vm
         {
             return InvalidLibraryHandle;
         }
-        REPORT_ICE_IF(Executable.getImage().size() > std::numeric_limits<std::size_t>::max() - CodeSegmentSize, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "image", "code segment size overflows");
-        reserveCodeSegment(CodeSegmentSize + Executable.getImage().size());
+        const auto ImageSize = Executable.getImage().size();
+        const auto Padding = ImageSize == 0 ? std::size_t{0} : (InstructionEncoding::WordBytes - CodeSegmentSize % InstructionEncoding::WordBytes) % InstructionEncoding::WordBytes;
+        REPORT_ICE_IF(Padding > std::numeric_limits<std::size_t>::max() - CodeSegmentSize || ImageSize > std::numeric_limits<std::size_t>::max() - CodeSegmentSize - Padding, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "image", "code segment size overflows");
+        const auto ImageBase = CodeSegmentSize + Padding;
+        reserveCodeSegment(ImageBase + ImageSize);
         LoadTransaction Transaction(*this);
         const std::uint32_t Handle = NextLibraryHandle++;
-        auto& Library = Libraries.try_emplace(Handle, LibraryDescriptor{static_cast<std::uint64_t>(CodeSegmentSize), std::move(Executable)}).first->second;
+        auto& Library = Libraries.try_emplace(Handle, LibraryDescriptor{static_cast<std::uint64_t>(ImageBase), std::move(Executable)}).first->second;
+        if (Padding != 0)
+        {
+            std::memset(CodeSegment + CodeSegmentSize, 0, Padding);
+        }
         const auto& Image = Library.ExecutableFile.getImage();
         if (!Image.empty())
         {
-            std::memcpy(CodeSegment + CodeSegmentSize, Image.data(), Image.size());
+            std::memcpy(CodeSegment + ImageBase, Image.data(), Image.size());
         }
-        CodeSegmentSize += Image.size();
+        CodeSegmentSize = ImageBase + Image.size();
         if (!Loader.loadLibrary({CodeSegment, CodeSegmentSize}, Library.ImageBase, Library.ExecutableFile))
         {
             return InvalidLibraryHandle;

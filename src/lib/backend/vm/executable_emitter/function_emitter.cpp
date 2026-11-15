@@ -1,6 +1,7 @@
 #include "ink/backend/vm/executable_emitter/function_emitter.h"
 
 #include "ink/backend/vm/executable_emitter/executable_emission_context.h"
+#include "ink/backend/vm/instruction/instruction_encoding.h"
 #include "ink/backend/vm/module/machine_function.h"
 
 namespace ink::vm
@@ -29,6 +30,7 @@ namespace ink::vm
 
     void FunctionEmitter::padBasicBlock(const MachineBasicBlock& Block)
     {
+        ExecutableContext.padAlignment(InstructionEncoding::WordBytes);
         Context.resolveBasicBlock(Block, ExecutableContext.byteSize());
         for (const MachineInstruction& Instruction : Block.instructions())
         {

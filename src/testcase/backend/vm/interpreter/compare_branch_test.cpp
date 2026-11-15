@@ -34,17 +34,15 @@ namespace ink::vm::test
             }
         }
 
-        void appendAddress(std::vector<std::uint8_t>& Bytes, RegisterId Base, std::uint64_t Offset)
+        void appendHeader(std::vector<std::uint8_t>& Bytes, std::uint16_t Operation, RegisterId Target = RegisterId::ZERO)
         {
-            Bytes.push_back(static_cast<std::uint8_t>(Base));
-            appendInteger(Bytes, Offset, 8);
+            const auto Header = Operation | (static_cast<std::uint64_t>(RegisterId::ZERO) << 16) | (static_cast<std::uint64_t>(RegisterId::ZERO) << 24) | (static_cast<std::uint64_t>(Target) << 32);
+            appendInteger(Bytes, Header, 8);
         }
 
         std::uint64_t storedRegister(const Frame& Value, RegisterId Id) noexcept
         {
-            std::uint64_t Bits;
-            std::memcpy(&Bits, GET_REGISTER(Id, Value), sizeof(Bits));
-            return Bits;
+            return READ_REGISTER(Id, Value);
         }
 
         bool expectedComparison(std::size_t Relation, std::size_t Width, std::uint64_t LeftBits, std::uint64_t RightBits) noexcept
@@ -91,23 +89,25 @@ namespace ink::vm::test
             std::memcpy(RightMemory.data() + 5, &RightBits, sizeof(RightBits));
             const auto ExpectedLeft = LeftMemory;
             const auto ExpectedRight = RightMemory;
-            const auto BranchBytes = MemoryRHS ? 29 : 20 + Width / 8;
+            constexpr std::size_t BranchBytes = 32;
+            constexpr std::size_t ReturnBytes = 8;
             ExecutableFile Executable;
             auto& Bytes = Executable.getImage();
-            appendInteger(Bytes, 0x3A, 2);
-            appendInteger(Bytes, Operation, 2);
-            appendAddress(Bytes, RegisterId::ZERO, reinterpret_cast<std::uintptr_t>(LeftMemory.data() + 3));
+            appendHeader(Bytes, 0x3A);
+            appendHeader(Bytes, Operation, RegisterId::PC);
+            appendInteger(Bytes, reinterpret_cast<std::uintptr_t>(LeftMemory.data() + 3), 8);
             if (MemoryRHS)
             {
-                appendAddress(Bytes, RegisterId::ZERO, reinterpret_cast<std::uintptr_t>(RightMemory.data() + 5));
+                appendInteger(Bytes, reinterpret_cast<std::uintptr_t>(RightMemory.data() + 5), 8);
             }
             else
             {
-                appendInteger(Bytes, RightBits, Width / 8);
+                const auto Mask = Width == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << Width) - 1;
+                appendInteger(Bytes, RightBits & Mask, 8);
             }
-            appendAddress(Bytes, RegisterId::PC, BranchBytes + 2);
-            appendInteger(Bytes, 0x3A, 2);
-            appendInteger(Bytes, 0x3A, 2);
+            appendInteger(Bytes, BranchBytes + ReturnBytes, 8);
+            appendHeader(Bytes, 0x3A);
+            appendHeader(Bytes, 0x3A);
             const auto ExpectedCode = Bytes;
             Interpreter VM;
             ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
@@ -121,9 +121,9 @@ namespace ink::vm::test
             ExpectedStack.fill(0xA7);
             std::memcpy(Stack, ExpectedStack.data(), ExpectedStack.size());
 
-            ASSERT_TRUE(VM.execute(Entry + 2));
+            ASSERT_TRUE(VM.execute(Entry + ReturnBytes));
 
-            EXPECT_EQ(storedRegister(VM.getFrame(), RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + 2 + BranchBytes + (Taken ? 2 : 0)));
+            EXPECT_EQ(storedRegister(VM.getFrame(), RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + ReturnBytes + BranchBytes + (Taken ? ReturnBytes : 0)));
             EXPECT_EQ(storedRegister(VM.getFrame(), RegisterId::BP), StackAddress);
             EXPECT_EQ(storedRegister(VM.getFrame(), RegisterId::SP), StackAddress);
             EXPECT_EQ(VM.getFrame().Register, Bindings);

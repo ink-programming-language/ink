@@ -20,7 +20,7 @@ namespace ink::vm::test
             core::NamePool& Names = core::NamePool::instance();
             ExecutableFile Executable;
             Executable.getImage().resize(24, 0xFF);
-            Executable.getEntryOffset() = 23;
+            Executable.getEntryOffset() = 16;
             Executable.getDynamicImportSymbols() = {
                 {Names.intern("counter")},
                 {Names.intern("callback")},
@@ -93,6 +93,26 @@ namespace ink::vm::test
         expectExecutableICE(Executable, "INK-V0002.*image.*entry offset is outside the image");
     }
 
+    // Entry offsets identify aligned instruction headers, while metadata validation does not decode complete instructions.
+    TEST(VMExecutableFileDeathTest, RequiresEightByteAlignedEntryOffsets)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        ExecutableFile Executable;
+        Executable.getImage().resize(24);
+        for (const std::uint64_t Offset : {1U, 7U, 9U, 23U})
+        {
+            SCOPED_TRACE(Offset);
+            Executable.getEntryOffset() = Offset;
+            expectExecutableICE(Executable, "INK-V0002.*image.*entry offset is not eight-byte aligned");
+        }
+        for (const std::uint64_t Offset : {0U, 8U, 16U})
+        {
+            SCOPED_TRACE(Offset);
+            Executable.getEntryOffset() = Offset;
+            ExecutableFileValidator::validate(Executable, Diagnostics);
+        }
+    }
+
     // Distinct host names remain valid imports even when no address relocation uses them.
     TEST(VMExecutableFileTest, AcceptsDistinctImportsWithoutRelocations)
     {
@@ -115,7 +135,7 @@ namespace ink::vm::test
         const core::DiagnosticEngine Diagnostics;
         ExecutableFile Executable = makeValidExecutableFile();
         ExecutableFileValidator::validate(Executable, Diagnostics);
-        EXPECT_EQ(Executable.getEntryOffset(), Executable.byteSize() - 1);
+        EXPECT_EQ(Executable.getEntryOffset(), 16U);
         EXPECT_NE(Executable.getDynamicImportSymbols()[0].Name, Executable.getDynamicImportSymbols()[1].Name);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 16U);
         EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[1].SymbolIndex, Executable.getDynamicImportSymbolRelocations()[2].SymbolIndex);
@@ -161,7 +181,7 @@ namespace ink::vm::test
         Original.getExportSymbols()[0].Offset = 1;
 
         EXPECT_EQ(Copy.getImage()[0], 0xFF);
-        EXPECT_EQ(Copy.getEntryOffset(), 23U);
+        EXPECT_EQ(Copy.getEntryOffset(), 16U);
         EXPECT_EQ(Copy.getDynamicImportSymbols()[0].Name, Names.intern("counter"));
         EXPECT_EQ(Copy.getDynamicImportSymbolRelocations()[0].ImageOffset, 16U);
         EXPECT_EQ(Copy.getDynamicImportSymbolRelocations()[0].SymbolIndex, 2U);
@@ -218,7 +238,7 @@ namespace ink::vm::test
         expectExecutableICE(Executable, "INK-V0002.*export symbol #1.*offset is outside the image");
     }
 
-    // Address patches accept exact-width unaligned fields and any import index, but reject overruns, overflow, and absent imports.
+    // Address patches require aligned complete fields and valid import indices, rejecting overruns, overflow, and absent imports.
     TEST(VMExecutableFileDeathTest, ChecksUnifiedRelocationBoundsAndSymbolIndices)
     {
         const core::DiagnosticEngine Diagnostics;
@@ -232,7 +252,7 @@ namespace ink::vm::test
         Executable.getDynamicImportSymbolRelocations().push_back({8, 1, -1});
         ExecutableFileValidator::validate(Executable, Diagnostics);
         Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = 1;
-        ExecutableFileValidator::validate(Executable, Diagnostics);
+        expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #0.*address field is not eight-byte aligned");
         Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = 9;
         expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #0.*address field is outside the image");
         Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = std::numeric_limits<std::uint64_t>::max();
@@ -287,7 +307,7 @@ namespace ink::vm::test
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[1].Addend, std::numeric_limits<std::int64_t>::max());
     }
 
-    // Image-base patches allow exact-width unaligned fields and one-past targets but reject field overruns and targets beyond the image.
+    // Image-base patches require aligned complete fields and allow one-past targets while rejecting out-of-image addresses.
     TEST(VMExecutableFileDeathTest, ChecksImageBaseRelocationFieldBoundsAndTargets)
     {
         const core::DiagnosticEngine Diagnostics;
@@ -297,7 +317,7 @@ namespace ink::vm::test
         ExecutableFileValidator::validate(Executable, Diagnostics);
         auto& Relocation = Executable.getImageBaseAddressRelocations()[0];
         Relocation.ImageOffset = 1;
-        ExecutableFileValidator::validate(Executable, Diagnostics);
+        expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*address field is not eight-byte aligned");
         Relocation.ImageOffset = 9;
         expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*address field is outside the image");
         Relocation.ImageOffset = std::numeric_limits<std::uint64_t>::max();

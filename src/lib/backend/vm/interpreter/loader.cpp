@@ -96,7 +96,7 @@ namespace ink::vm
             const auto Address = detail::addAddressOffset(SymbolAddress, Relocation.Addend, Diagnostics);
             const auto CodeOffset = static_cast<std::size_t>(ImageBase + Relocation.ImageOffset);
             auto* Destination = CodeSegment.data() + CodeOffset;
-            check(reinterpret_cast<std::uintptr_t>(Destination) % DynamicImportSymbolRelocation::ByteSize == 0);
+            REPORT_ICE_IF(reinterpret_cast<std::uintptr_t>(Destination) % DynamicImportSymbolRelocation::ByteSize != 0, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "dynamic import relocation", "address field is not eight-byte aligned");
             *reinterpret_cast<std::uint64_t*>(Destination) = Address;
         }
         for (const auto& Relocation : Executable.getImageBaseAddressRelocations())
@@ -106,7 +106,7 @@ namespace ink::vm
             const auto TargetAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment.data() + ImageBase + Relocation.TargetOffset));
             const auto Address = detail::addAddressOffset(TargetAddress, Relocation.Addend, Diagnostics, "image-base address relocation");
             auto* Destination = CodeSegment.data() + ImageBase + Relocation.ImageOffset;
-            check(reinterpret_cast<std::uintptr_t>(Destination) % ImageBaseAddressRelocation::ByteSize == 0);
+            REPORT_ICE_IF(reinterpret_cast<std::uintptr_t>(Destination) % ImageBaseAddressRelocation::ByteSize != 0, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "image-base address relocation", "address field is not eight-byte aligned");
             *reinterpret_cast<std::uint64_t*>(Destination) = Address;
         }
         return true;

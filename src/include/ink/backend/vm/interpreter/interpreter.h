@@ -12,6 +12,7 @@
 #include <memory>
 #include <span>
 #include <unordered_map>
+#include <vector>
 
 namespace ink::vm
 {
@@ -98,6 +99,8 @@ namespace ink::vm
             void repatchCodeSegment(std::uint64_t OldAddress, std::size_t OldSize);
 
             std::unordered_map<std::uint32_t, LibraryDescriptor> Libraries;
+            // Owns live integer words; CodeSegment is their byte view, including global data.
+            std::vector<std::uint64_t> CodeWords;
             std::uint8_t* CodeSegment = nullptr;
             std::size_t CodeSegmentSize = 0;
             std::size_t CodeSegmentCapacity = 0;

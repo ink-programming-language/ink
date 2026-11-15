@@ -119,11 +119,11 @@ Native 边界仍须由 adapter 处理参数、返回值、数据布局及宿主�
 
 VM 提供给 Native 函数符号的地址指向桩函数，桩统一接收 `Frame *`，通过栈上的返回槽回写结果，宿主函数返回类型为 `void`。桩内部按共享 runtime 的真实 C ABI 调用目标函数；例如符号名 `identity` 登记 `identityStub` 的地址，后者调用共享 runtime 的 `identity`。
 
-`Frame` 的 SP 寄存器值是字节指针，指向调用方准备完成的调用区末尾，也就是首个空闲字节；SP 槽保存该指针成员的存储地址。Native 桩不建立普通 VM `call` 使用的 16 字节旧 BP、返回 PC 保存区；调用区内部仍遵循先返回槽、后参数槽的布局。对于非可变参数桩，以入口 `SP` 代替上述布局公式中的 `bp` 计算调用区地址。
+`Frame` 的 SP 寄存器成员使用 `std::uint64_t` 保存宿主地址，指向调用方准备完成的调用区末尾，也就是首个空闲字节；`Register` 表中的 SP 槽保存该整数成员的存储地址。`READ_REGISTER(Id, FrameValue)` 读取寄存器值，`WRITE_REGISTER(Id, FrameValue, Value)` 写入可变帧中的非 ZERO 寄存器，两者每个实参只求值一次。Native 参数和返回适配将 SP 经 `std::uintptr_t` 显式转换为字节指针后访问调用区；GET/SET 宏仍返回寄存器存储的字节地址。Native 桩不建立普通 VM `call` 使用的 16 字节旧 BP、返回 PC 保存区；调用区内部仍遵循先返回槽、后参数槽的布局。对于非可变参数桩，以入口 `SP` 代替上述布局公式中的 `bp` 计算调用区地址。
 
-`Frame` 的 `SP`、`BP`、`PC` 和 `ZERO` 成员均为私有，外部统一通过公开的 `Register` 数组访问。`Register` 是 `const void *` 存储地址表，按寄存器编号依次保存 `&BP`、`&SP`、`&PC`、`&ZERO`。构造时自动绑定到成员存储；表项保持固定，读写寄存器值时读写对应存储，不对数组元素重新赋值。BP、SP、PC 成员保存字节指针，ZERO 为值恒为 0 的静态 `constexpr uint64_t` 常量存储。复制构造和赋值复制当前指针值，并将目标帧的表项绑定到自身成员，避免指向源对象的存储。
+`Frame` 的 `SP`、`BP`、`PC` 和 `ZERO` 成员均为私有，外部通过 READ/WRITE 宏读写寄存器值，并保留公开的 `Register` 存储地址表。`Register` 是 `const void *` 存储地址表，按寄存器编号依次保存 `&BP`、`&SP`、`&PC`、`&ZERO`。构造时自动绑定到成员存储；表项保持固定，读写寄存器值时读写对应存储，不对数组元素重新赋值。BP、SP、PC 成员使用 `std::uint64_t` 保存地址位模式，ZERO 为值恒为 0 的静态 `constexpr uint64_t` 常量存储。复制构造和赋值复制当前整数值，并将目标帧的表项绑定到自身成员，避免指向源对象的存储。
 
-`GET_REGISTER(Id, FrameValue)` 直接将表中的存储地址转换为 `const std::uint8_t *` 字节指针，`SET_REGISTER(Id, FrameValue)` 返回同一存储地址的 `std::uint8_t *` 写入视图，不执行赋值或解引用；后者要求可变的 `Frame` 对象。两个宏均直接按已验证的编号索引，编号与对象表达式各求值一次，没有辅助读写函数或运行时分支。BP、SP、PC 的读写须从宏返回的地址复制完整指针值，例如 `std::memcpy(SET_REGISTER(RegisterId::SP, CallFrame), &StackEnd, sizeof(StackEnd))` 更新 SP 成员；访问 VM 栈内存还须先读取该成员保存的指针。即使 SP 值为 nullptr，`GET_REGISTER(RegisterId::SP, CallFrame)` 仍指向有效的 SP 成员存储。`ZERO` 的两个宏均指向同一常量对象；不得写入该地址，指令目标可写性仍须预先验证。在当前 Windows 构建中，测试检查此对象位于不可写的已提交内存页；内存保护错误不是正常的失败处理通道。`Frame{StackEnd}` 构造时只设置 SP 成员的值；栈访问模板与现有 Native 桩不修改寄存器。
+`GET_REGISTER(Id, FrameValue)` 直接将表中的存储地址转换为 `const std::uint8_t *` 字节指针，`SET_REGISTER(Id, FrameValue)` 返回同一存储地址的 `std::uint8_t *` 写入视图，不执行赋值或解引用；后者要求可变的 `Frame` 对象。两个宏均直接按已验证的编号索引，编号与对象表达式各求值一次，没有辅助读写函数或运行时分支。普通寄存器读写使用 READ/WRITE 值宏，例如 `WRITE_REGISTER(RegisterId::SP, CallFrame, reinterpret_cast<std::uintptr_t>(StackEnd))` 更新 SP 成员；访问 VM 栈内存时，再将读取的整数值经 `std::uintptr_t` 显式转换为字节指针。不得将整数成员的存储地址转换为指针对象的指针后解引用。即使 SP 值为 0，`GET_REGISTER(RegisterId::SP, CallFrame)` 仍指向有效的 SP 成员存储。`ZERO` 的两个宏均指向同一常量对象；不得写入该地址，指令目标可写性仍须预先验证。在当前 Windows 构建中，测试检查此对象位于不可写的已提交内存页；内存保护错误不是正常的失败处理通道。`Frame{StackEnd}` 构造时只设置 SP 成员的值；栈访问模板与现有 Native 桩不修改寄存器。
 
 `identity(i64) -> i64` 的调用区大小为 16 字节：
 

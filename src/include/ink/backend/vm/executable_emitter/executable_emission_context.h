@@ -71,6 +71,7 @@ namespace ink::vm
             // Appends Count readable bytes from outside the image; zero Count permits a null source.
             void pad(const void* Src, std::size_t Count);
             void padZero(std::size_t Count);
+            void padAlignment(std::size_t Alignment);
             void padInteger(std::uint64_t Bits, std::uint32_t Width);
 
             // Replaces an existing integer field; ImageOffset and Width must identify writable image bytes.

@@ -1,5 +1,6 @@
 #include "ink/backend/vm/executable_emitter/executable_emission_context.h"
 #include "ink/backend/vm/executable_emitter/function_emitter.h"
+#include "ink/backend/vm/instruction/instruction_encoding.h"
 #include "ink/backend/vm/module/machine_function.h"
 #include "ink/backend/vm/module/machine_instruction_builder.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
@@ -32,7 +33,7 @@ namespace ink::vm::test
             SCOPED_TRACE(Encoding);
             constexpr auto Width = OpcodeTraits<Operation>::BitWidth;
             constexpr bool MemoryRHS = OpcodeTraits<Operation>::Form == InstructionForm::Mmb;
-            constexpr auto InstructionBytes = MemoryRHS ? std::size_t{29} : std::size_t{20} + Width / 8;
+            constexpr auto InstructionBytes = InstructionEncoding::byteSize(Operation);
             constexpr std::uint64_t ImmediateBits = 0xFFEEDDCCBBAA9988;
             const core::DiagnosticEngine Diagnostics;
             ExecutableEmissionContext Context(Diagnostics);
@@ -55,25 +56,25 @@ namespace ink::vm::test
             FunctionEmitter Emitter(Context);
             Emitter.emit(Function);
 
-            ASSERT_EQ(Context.byteSize(), InstructionBytes + 3);
-            EXPECT_EQ(readLittleEndian(Context, 1, 2), Encoding);
-            EXPECT_EQ(Context.getExecutable().getImage()[3], static_cast<std::uint8_t>(RegisterId::BP));
-            EXPECT_EQ(readLittleEndian(Context, 4), static_cast<std::uint64_t>(-3));
+            ASSERT_EQ(Context.byteSize(), InstructionBytes + 16);
+            EXPECT_EQ(readLittleEndian(Context, 8, 2), Encoding);
+            EXPECT_EQ(Context.getExecutable().getImage()[10], static_cast<std::uint8_t>(RegisterId::BP));
+            EXPECT_EQ(readLittleEndian(Context, 16), static_cast<std::uint64_t>(-3));
             if constexpr (MemoryRHS)
             {
-                EXPECT_EQ(Context.getExecutable().getImage()[12], static_cast<std::uint8_t>(RegisterId::SP));
-                EXPECT_EQ(readLittleEndian(Context, 13), 5U);
+                EXPECT_EQ(Context.getExecutable().getImage()[11], static_cast<std::uint8_t>(RegisterId::SP));
+                EXPECT_EQ(readLittleEndian(Context, 24), 5U);
             }
             else
             {
                 constexpr auto Mask = ~std::uint64_t{0} >> (64 - Width);
-                EXPECT_EQ(readLittleEndian(Context, 12, Width / 8), ImmediateBits & Mask);
+                EXPECT_EQ(readLittleEndian(Context, 24), ImmediateBits & Mask);
             }
-            constexpr auto TargetField = 1 + InstructionBytes - 8;
-            EXPECT_NE(TargetField % 8, 0U);
-            EXPECT_EQ(Context.getExecutable().getImage()[TargetField - 1], static_cast<std::uint8_t>(RegisterId::PC));
+            constexpr auto TargetField = 8 + InstructionBytes - 8;
+            EXPECT_EQ(TargetField % 8, 0U);
+            EXPECT_EQ(Context.getExecutable().getImage()[12], static_cast<std::uint8_t>(RegisterId::PC));
             EXPECT_EQ(readLittleEndian(Context, TargetField), InstructionBytes);
-            EXPECT_EQ(readLittleEndian(Context, 1 + InstructionBytes, 2), 0x003AU);
+            EXPECT_EQ(readLittleEndian(Context, 8 + InstructionBytes, 2), 0x003AU);
             EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
             EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
         }
@@ -82,7 +83,7 @@ namespace ink::vm::test
     static_assert(std::is_same_v<decltype(std::declval<FunctionEmitter&>().getContext()), FunctionEmissionContext&>);
     static_assert(std::is_same_v<decltype(std::declval<const FunctionEmitter&>().getContext()), const FunctionEmissionContext&>);
 
-    // All eighty comparison opcodes emit their typed RHS width and resolve an unaligned final target field relative to the opcode.
+    // All eighty comparison opcodes emit aligned payload words, truncate the typed RHS, and resolve the final target relative to the header.
     TEST(VMFunctionEmitterTest, EncodesEveryComparisonBranchFormAndWidth)
     {
 #define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed) verifyComparisonBranchEncoding<Opcode::Kind>(Encoding);
@@ -90,7 +91,7 @@ namespace ink::vm::test
 #undef COMPARE_BRANCH
     }
 
-    // Explicit block emission appends instructions without padding and resolves each block at its first byte in the complete image.
+    // Explicit block emission aligns its first instruction and resolves each block at its header in the complete image.
     TEST(VMFunctionEmitterTest, AppendsOrderedInstructionsAndResolvesImageOffsets)
     {
         const core::DiagnosticEngine Diagnostics;
@@ -110,26 +111,26 @@ namespace ink::vm::test
         Emitter.scanUnResolvedBasicBlock(Function);
         Emitter.padBasicBlock(First);
 
-        ASSERT_EQ(Context.byteSize(), 17U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 3U);
+        ASSERT_EQ(Context.byteSize(), 40U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 8U);
         EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(First));
         EXPECT_FALSE(Emitter.getContext().resolvedBasicBlockOffset(Second).has_value());
         EXPECT_TRUE(Emitter.getContext().hasUnResolvedBasicBlock(Second));
         Emitter.padBasicBlock(Second);
 
-        ASSERT_EQ(Context.byteSize(), 32U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Second), 17U);
+        ASSERT_EQ(Context.byteSize(), 72U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Second), 40U);
         EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Second));
-        EXPECT_EQ(readLittleEndian(Context, 3, 2), 0x0006U);
-        EXPECT_EQ(Context.getExecutable().getImage()[5], static_cast<std::uint8_t>(RegisterId::BP));
-        EXPECT_EQ(readLittleEndian(Context, 6), 8U);
-        EXPECT_EQ(readLittleEndian(Context, 14, 1), 0xABU);
-        EXPECT_EQ(readLittleEndian(Context, 15, 2), 0x003AU);
-        EXPECT_EQ(readLittleEndian(Context, 17, 2), 0x0008U);
-        EXPECT_EQ(Context.getExecutable().getImage()[19], static_cast<std::uint8_t>(RegisterId::SP));
-        EXPECT_EQ(readLittleEndian(Context, 20), static_cast<std::uint64_t>(-8));
-        EXPECT_EQ(readLittleEndian(Context, 28, 2), 0xBEEFU);
-        EXPECT_EQ(readLittleEndian(Context, 30, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Context, 8, 2), 0x0006U);
+        EXPECT_EQ(Context.getExecutable().getImage()[10], static_cast<std::uint8_t>(RegisterId::BP));
+        EXPECT_EQ(readLittleEndian(Context, 16), 8U);
+        EXPECT_EQ(readLittleEndian(Context, 24), 0xABU);
+        EXPECT_EQ(readLittleEndian(Context, 32, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Context, 40, 2), 0x0008U);
+        EXPECT_EQ(Context.getExecutable().getImage()[42], static_cast<std::uint8_t>(RegisterId::SP));
+        EXPECT_EQ(readLittleEndian(Context, 48), static_cast<std::uint64_t>(-8));
+        EXPECT_EQ(readLittleEndian(Context, 56), 0xBEEFU);
+        EXPECT_EQ(readLittleEndian(Context, 64, 2), 0x003AU);
     }
 
     // Empty, anonymous, and equally named blocks keep separate identities while empty blocks share the following byte offset.
@@ -152,17 +153,17 @@ namespace ink::vm::test
         FunctionEmitter Emitter(Context);
         Emitter.emit(Function);
 
-        ASSERT_EQ(Context.byteSize(), 9U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(EmptyAnonymous), 5U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(FirstNamed), 5U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(EmptyNamed), 7U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(LastAnonymous), 7U);
+        ASSERT_EQ(Context.byteSize(), 24U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(EmptyAnonymous), 8U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(FirstNamed), 8U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(EmptyNamed), 16U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(LastAnonymous), 16U);
         EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(EmptyAnonymous));
         EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(FirstNamed));
         EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(EmptyNamed));
         EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(LastAnonymous));
-        EXPECT_EQ(readLittleEndian(Context, 5, 2), 0x003AU);
-        EXPECT_EQ(readLittleEndian(Context, 7, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Context, 8, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Context, 16, 2), 0x003AU);
     }
 
     // Beginning another function discards old block offsets and pending branch relocations while preserving previously emitted bytes.
@@ -184,23 +185,23 @@ namespace ink::vm::test
         FunctionEmitter Emitter(Context);
         Emitter.scanUnResolvedBasicBlock(FirstFunction);
         Emitter.padBasicBlock(Resolved);
-        ASSERT_EQ(Context.byteSize(), 12U);
-        ASSERT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Resolved), 1U);
+        ASSERT_EQ(Context.byteSize(), 24U);
+        ASSERT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Resolved), 8U);
         ASSERT_TRUE(Emitter.getContext().hasUnResolvedBasicBlock(Unresolved));
-        ASSERT_EQ(readLittleEndian(Context, 4), 0U);
+        ASSERT_EQ(readLittleEndian(Context, 16), 0U);
 
         Emitter.emit(SecondFunction);
 
-        ASSERT_EQ(Context.byteSize(), 14U);
+        ASSERT_EQ(Context.byteSize(), 32U);
         EXPECT_FALSE(Emitter.getContext().resolvedBasicBlockOffset(Resolved).has_value());
         EXPECT_FALSE(Emitter.getContext().resolvedBasicBlockOffset(Unresolved).has_value());
         EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Resolved));
         EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Unresolved));
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Next), 12U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Next), 24U);
         EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Next));
-        EXPECT_EQ(readLittleEndian(Context, 1, 2), 0x002BU);
-        EXPECT_EQ(readLittleEndian(Context, 4), 0U);
-        EXPECT_EQ(readLittleEndian(Context, 12, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Context, 8, 2), 0x002BU);
+        EXPECT_EQ(readLittleEndian(Context, 16), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 24, 2), 0x003AU);
     }
 
     // Forward references share a target, backward references reach image offset zero, and a self-targeting branch encodes zero displacement.
@@ -224,25 +225,25 @@ namespace ink::vm::test
         FunctionEmitter Emitter(Context);
         Emitter.emit(Function);
 
-        ASSERT_EQ(Context.byteSize(), 55U);
+        ASSERT_EQ(Context.byteSize(), 80U);
         EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 0U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Later), 33U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Self), 44U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Later), 48U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Self), 64U);
         EXPECT_EQ(readLittleEndian(Context, 0, 2), 0x002BU);
         EXPECT_EQ(Context.getExecutable().getImage()[2], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Context, 3), 33U);
-        EXPECT_EQ(readLittleEndian(Context, 11, 2), 0x002BU);
-        EXPECT_EQ(Context.getExecutable().getImage()[13], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Context, 14), 22U);
-        EXPECT_EQ(readLittleEndian(Context, 22, 2), 0x002BU);
-        EXPECT_EQ(Context.getExecutable().getImage()[24], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Context, 25), static_cast<std::uint64_t>(-22));
-        EXPECT_EQ(readLittleEndian(Context, 33, 2), 0x002BU);
-        EXPECT_EQ(Context.getExecutable().getImage()[35], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Context, 36), static_cast<std::uint64_t>(-33));
-        EXPECT_EQ(readLittleEndian(Context, 44, 2), 0x002BU);
-        EXPECT_EQ(Context.getExecutable().getImage()[46], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Context, 47), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 8), 48U);
+        EXPECT_EQ(readLittleEndian(Context, 16, 2), 0x002BU);
+        EXPECT_EQ(Context.getExecutable().getImage()[18], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 24), 32U);
+        EXPECT_EQ(readLittleEndian(Context, 32, 2), 0x002BU);
+        EXPECT_EQ(Context.getExecutable().getImage()[34], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 40), static_cast<std::uint64_t>(-32));
+        EXPECT_EQ(readLittleEndian(Context, 48, 2), 0x002BU);
+        EXPECT_EQ(Context.getExecutable().getImage()[50], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 56), static_cast<std::uint64_t>(-48));
+        EXPECT_EQ(readLittleEndian(Context, 64, 2), 0x002BU);
+        EXPECT_EQ(Context.getExecutable().getImage()[66], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 72), 0U);
         EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
         EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
     }
@@ -268,18 +269,18 @@ namespace ink::vm::test
         FunctionEmitter Emitter(Context);
         Emitter.emit(Function);
 
-        ASSERT_EQ(Context.byteSize(), 104U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 3U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Later), 53U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Self), 75U);
-        EXPECT_EQ(Context.getExecutable().getImage()[15], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Context, 16), 50U);
+        ASSERT_EQ(Context.byteSize(), 136U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 8U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Later), 72U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Self), 104U);
+        EXPECT_EQ(Context.getExecutable().getImage()[12], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 32), 64U);
         EXPECT_EQ(Context.getExecutable().getImage()[44], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Context, 45), 29U);
-        EXPECT_EQ(Context.getExecutable().getImage()[66], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Context, 67), static_cast<std::uint64_t>(-50));
-        EXPECT_EQ(Context.getExecutable().getImage()[95], static_cast<std::uint8_t>(RegisterId::PC));
-        EXPECT_EQ(readLittleEndian(Context, 96), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 64), 32U);
+        EXPECT_EQ(Context.getExecutable().getImage()[76], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 96), static_cast<std::uint64_t>(-64));
+        EXPECT_EQ(Context.getExecutable().getImage()[108], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 128), 0U);
         EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
         EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
     }
@@ -303,18 +304,18 @@ namespace ink::vm::test
         Emitter.scanUnResolvedBasicBlock(Function);
         Emitter.padBasicBlock(Source);
 
-        ASSERT_EQ(Context.byteSize(), 27U);
-        EXPECT_EQ(readLittleEndian(Context, 8), 0U);
-        EXPECT_EQ(readLittleEndian(Context, 19), 0U);
+        ASSERT_EQ(Context.byteSize(), 40U);
+        EXPECT_EQ(readLittleEndian(Context, 16), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 32), 0U);
         Emitter.padBasicBlock(Target);
-        ASSERT_EQ(Context.byteSize(), 29U);
-        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Target), 27U);
-        EXPECT_EQ(readLittleEndian(Context, 8), 0U);
-        EXPECT_EQ(readLittleEndian(Context, 19), 0U);
+        ASSERT_EQ(Context.byteSize(), 48U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Target), 40U);
+        EXPECT_EQ(readLittleEndian(Context, 16), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 32), 0U);
         Emitter.resolveBasicBlockStaticRelocations();
 
-        EXPECT_EQ(readLittleEndian(Context, 8), 22U);
-        EXPECT_EQ(readLittleEndian(Context, 19), 11U);
+        EXPECT_EQ(readLittleEndian(Context, 16), 32U);
+        EXPECT_EQ(readLittleEndian(Context, 32), 16U);
         EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
         EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
         const auto PatchedImage = Context.getExecutable().getImage();
@@ -337,8 +338,8 @@ namespace ink::vm::test
         Emitter.scanUnResolvedBasicBlock(Function);
         Emitter.padBasicBlock(Source);
 
-        ASSERT_EQ(Context.byteSize(), 11U);
-        ASSERT_EQ(readLittleEndian(Context, 3), 0U);
+        ASSERT_EQ(Context.byteSize(), 16U);
+        ASSERT_EQ(readLittleEndian(Context, 8), 0U);
         EXPECT_DEATH(Emitter.resolveBasicBlockStaticRelocations(), "INK-V0002.*basic block has no image offset after function layout");
     }
 } // namespace ink::vm::test

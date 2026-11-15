@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <type_traits>
 #include <utility>
 
@@ -62,6 +63,11 @@ namespace ink::vm::test
             Value.ZERO;
         };
 
+        template <typename FrameType>
+        concept CanWriteRegister = requires(FrameType& Value) {
+            WRITE_REGISTER(RegisterId::SP, Value, std::uint64_t{0});
+        };
+
         static_assert(!HasPublicSP<Frame> && !HasPublicBP<Frame> && !HasPublicPC<Frame> && !HasPublicZERO<Frame>);
         static_assert(sizeof(TwelveByteValue) == 12 && alignof(TwelveByteValue) <= 8);
         static_assert(sizeof(TwentyFourByteValue) == 24 && alignof(TwentyFourByteValue) <= 8);
@@ -71,17 +77,96 @@ namespace ink::vm::test
         static_assert(std::is_same_v<decltype(GET_REGISTER(RegisterId::SP, std::declval<const Frame&>())), const std::uint8_t*>);
         static_assert(std::is_same_v<decltype(SET_REGISTER(RegisterId::SP, std::declval<Frame&>())), std::uint8_t*>);
         static_assert(!std::is_assignable_v<decltype((GET_REGISTER(RegisterId::ZERO, std::declval<Frame&>()))), const std::uint8_t*>);
+        static_assert(std::is_same_v<decltype(READ_REGISTER(RegisterId::SP, std::declval<const Frame&>())), std::uint64_t>);
+        static_assert(!std::is_lvalue_reference_v<decltype((READ_REGISTER(RegisterId::SP, std::declval<const Frame&>())))>);
+        static_assert(!std::is_assignable_v<decltype((READ_REGISTER(RegisterId::SP, std::declval<const Frame&>()))), std::uint64_t>);
+        static_assert(std::is_same_v<decltype(WRITE_REGISTER(RegisterId::SP, std::declval<Frame&>(), std::uint64_t{0})), void>);
+        static_assert(CanWriteRegister<Frame> && !CanWriteRegister<const Frame>);
 
         std::uint8_t* readAddressRegister(const Frame& Value, RegisterId Id) noexcept
         {
-            return *reinterpret_cast<std::uint8_t* const*>(GET_REGISTER(Id, Value));
+            return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(READ_REGISTER(Id, Value)));
         }
 
         void writeAddressRegister(Frame& Value, RegisterId Id, std::uint8_t* Address) noexcept
         {
-            *reinterpret_cast<std::uint8_t**>(SET_REGISTER(Id, Value)) = Address;
+            WRITE_REGISTER(Id, Value, reinterpret_cast<std::uintptr_t>(Address));
         }
     } // namespace
+
+    // Typed register access preserves every bit and shares the same integer objects with the legacy byte-storage macros.
+    TEST(VMFrameTest, ReadsAndWritesIntegerRegisterStorageWithoutChangingBindings)
+    {
+        Frame Value;
+        const auto Bindings = Value.Register;
+        constexpr std::uint64_t Bits = 0xFEDCBA9876543210;
+        WRITE_REGISTER(RegisterId::BP, Value, Bits);
+        WRITE_REGISTER(RegisterId::SP, Value, std::numeric_limits<std::uint64_t>::max());
+        WRITE_REGISTER(RegisterId::PC, Value, 1);
+
+        const Frame& View = Value;
+        EXPECT_EQ(READ_REGISTER(RegisterId::BP, View), Bits);
+        EXPECT_EQ(READ_REGISTER(RegisterId::SP, View), std::numeric_limits<std::uint64_t>::max());
+        EXPECT_EQ(READ_REGISTER(RegisterId::PC, View), 1U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::ZERO, View), 0U);
+        EXPECT_EQ(*reinterpret_cast<const std::uint64_t*>(GET_REGISTER(RegisterId::BP, View)), Bits);
+        *reinterpret_cast<std::uint64_t*>(SET_REGISTER(RegisterId::SP, Value)) = Bits;
+        EXPECT_EQ(READ_REGISTER(RegisterId::SP, View), Bits);
+        EXPECT_EQ(Value.Register, Bindings);
+    }
+
+    // Value macros accept a const read view and evaluate every register, frame, and written-value expression once.
+    TEST(VMFrameTest, EvaluatesRegisterValueMacroArgumentsOnce)
+    {
+        Frame Value;
+        WRITE_REGISTER(RegisterId::SP, Value, 17);
+        std::size_t IdEvaluations = 0;
+        std::size_t ReadFrameEvaluations = 0;
+        std::size_t WriteFrameEvaluations = 0;
+        std::size_t ValueEvaluations = 0;
+        const auto SelectId = [&]()
+        {
+            ++IdEvaluations;
+            return RegisterId::SP;
+        };
+        const auto SelectReadFrame = [&]() -> const Frame&
+        {
+            ++ReadFrameEvaluations;
+            return Value;
+        };
+        const auto SelectWriteFrame = [&]() -> Frame&
+        {
+            ++WriteFrameEvaluations;
+            return Value;
+        };
+        const auto SelectValue = [&]()
+        {
+            ++ValueEvaluations;
+            return std::uint64_t{42};
+        };
+
+        EXPECT_EQ(READ_REGISTER(SelectId(), SelectReadFrame()), 17U);
+        EXPECT_EQ(IdEvaluations, 1U);
+        EXPECT_EQ(ReadFrameEvaluations, 1U);
+        WRITE_REGISTER(SelectId(), SelectWriteFrame(), SelectValue());
+        EXPECT_EQ(IdEvaluations, 2U);
+        EXPECT_EQ(WriteFrameEvaluations, 1U);
+        EXPECT_EQ(ValueEvaluations, 1U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::SP, static_cast<const Frame&>(Value)), 42U);
+    }
+
+#if INK_ENABLE_ASSERTIONS
+    // Invalid register numbers and writes to the immutable ZERO register fail the typed access contract.
+    TEST(VMFrameTest, RejectsInvalidRegisterAccessAndZeroWrites)
+    {
+        Frame Value;
+        const auto Invalid = static_cast<RegisterId>(0xFF);
+        EXPECT_DEATH(static_cast<void>(READ_REGISTER(Invalid, Value)), "check failed");
+        EXPECT_DEATH(WRITE_REGISTER(Invalid, Value, 1), "check failed");
+        EXPECT_DEATH(WRITE_REGISTER(RegisterId::ZERO, Value, 1), "check failed");
+        EXPECT_EQ(READ_REGISTER(RegisterId::ZERO, Value), 0U);
+    }
+#endif
 
     // Every slot points to register storage; copies own independent address storage while sharing the immutable ZERO object.
     TEST(VMFrameTest, InitializesRegisterStorageAndRebindsIndependentCopies)
@@ -186,7 +271,7 @@ namespace ink::vm::test
         EXPECT_EQ(GET_REGISTER(RegisterId::ZERO, View), GET_REGISTER(RegisterId::ZERO, Initial));
     }
 
-    // Writing the stored SP changes native argument and return locations without changing slot bindings, and copies retain independent pointer storage.
+    // Writing the stored SP changes native argument and return locations without changing slot bindings, and copies retain independent register storage.
     TEST(VMFrameTest, UsesStoredRegisterValuesForNativeCallsAndCopies)
     {
         alignas(8) std::array<std::uint8_t, 48> Stack;

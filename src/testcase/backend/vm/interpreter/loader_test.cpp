@@ -242,12 +242,12 @@ namespace ink::vm::test
         auto Expected = Stack;
         std::memcpy(Expected.data() + 8, &Argument, sizeof(Argument));
         Frame CallFrame{Stack.data() + 24};
-        auto* const InitialSP = *reinterpret_cast<std::uint8_t* const*>(GET_REGISTER(RegisterId::SP, CallFrame));
+        const auto InitialSP = READ_REGISTER(RegisterId::SP, CallFrame);
 
         Stub(&CallFrame);
 
         EXPECT_EQ(Stack, Expected);
-        EXPECT_EQ(*reinterpret_cast<std::uint8_t* const*>(GET_REGISTER(RegisterId::SP, CallFrame)), InitialSP);
+        EXPECT_EQ(READ_REGISTER(RegisterId::SP, CallFrame), InitialSP);
     }
 
     // Exports are registered before imports so a library can relocate a reference to its own host address.
@@ -372,9 +372,8 @@ namespace ink::vm::test
         expectLoaderICE(LibraryLoader, CodeSegment, 8, Executable);
     }
 
-#if INK_BUILD_DEBUG || INK_BUILD_DEVELOPMENT
-    // Assertion-enabled builds reject misaligned dynamic and local address fields even when the image base is aligned.
-    TEST(VMLoaderDeathTest, RejectsMisalignedActualPatchAddressWhenAssertionsAreEnabled)
+    // Every build mode diagnoses misaligned dynamic and local patch addresses before performing a typed store.
+    TEST(VMLoaderDeathTest, RejectsMisalignedActualPatchAddresses)
     {
         Interpreter VM;
         Loader LibraryLoader(VM);
@@ -383,12 +382,11 @@ namespace ink::vm::test
         auto CodeSegment = makeCodeSegment(Executable);
         ASSERT_EQ(reinterpret_cast<std::uintptr_t>(CodeSegment.data() + 8) % 8, 0U);
 
-        EXPECT_DEATH(static_cast<void>(LibraryLoader.loadLibrary(CodeSegment, 8, Executable)), "check failed");
+        EXPECT_DEATH(static_cast<void>(LibraryLoader.loadLibrary(CodeSegment, 8, Executable)), "INK-V0002.*dynamic import relocation.*address field is not eight-byte aligned");
         Executable.getDynamicImportSymbolRelocations().clear();
         Executable.getImageBaseAddressRelocations().push_back({1, 0, 0});
-        EXPECT_DEATH(static_cast<void>(LibraryLoader.loadLibrary(CodeSegment, 8, Executable)), "check failed");
+        EXPECT_DEATH(static_cast<void>(LibraryLoader.loadLibrary(CodeSegment, 8, Executable)), "INK-V0002.*image-base address relocation.*address field is not eight-byte aligned");
     }
-#endif
 
     // Subtracting more than the resolved address is fatal, including INT64_MIN whose magnitude must not overflow signed arithmetic.
     TEST(VMLoaderDeathTest, RejectsAddressUnderflowIncludingMinimumSignedAddend)
@@ -494,9 +492,10 @@ namespace ink::vm::test
         EXPECT_EQ(VM.findExecutable(2), nullptr);
 
         auto Next = makeIdentityExecutable(16);
-        Next.getDynamicImportSymbolRelocations().push_back({5, 0, 0});
+        Next.getDynamicImportSymbolRelocations().push_back({0, 0, 0});
         Next.getExportSymbols().push_back({ExportName, 8});
         auto Expected = OriginalBytes;
+        Expected.resize(8, 0);
         Expected.insert(Expected.end(), Next.getImage().begin(), Next.getImage().end());
         storeLittleEndian(Expected, 8, identityAddress());
         const auto NextHandle = VM.loadLibrary(std::move(Next));
@@ -506,7 +505,7 @@ namespace ink::vm::test
         EXPECT_EQ(VM.findExecutable(FirstHandle), StoredFirst);
         EXPECT_EQ(StoredFirst->getImage(), OriginalBytes);
         auto ExpectedExports = OriginalExports;
-        ExpectedExports[ExportName] = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(VM.getCodeSegment().data() + 11));
+        ExpectedExports[ExportName] = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(VM.getCodeSegment().data() + 16));
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedExports);
         EXPECT_EQ(VM.getExportSymbolMap().find(FailedExportName), VM.getExportSymbolMap().end());
     }
