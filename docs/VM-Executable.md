@@ -49,7 +49,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 ## 运行时地址与未绑定镜像
 
-运行时地址统一使用 64 位宿主地址，BP、SP、PC、数据指针和 VM 函数入口采用同一地址坐标。Loader 参数 `ImageBase` 是镜像在代码段中的字节偏移，运行时镜像宿主基址则是 `CodeSegment.data() + ImageBase` 的地址，记为 `RuntimeImageBase`。VM 符号地址为 `RuntimeImageBase + SymbolOffset + Addend`，其中 `SymbolOffset` 是符号相对整个 `Image` 开头的字节偏移；Native 符号地址为绑定后的宿主符号地址加 Addend。PC 相对寻址仍可保留，`PC = RuntimeImageBase + InstructionOffset`，因此 `PC + (SymbolOffset + Addend - InstructionOffset)` 得到相同的运行时地址。ZERO 寄存器编码为 `04`、恒为零且不可写，绝对地址编码为 ZERO 基址加完整的八字节地址位模式。内存地址统一为 `RegisterId:u8 + OffsetBits:u64`，执行器可按 `Registers[RegisterId] + OffsetBits` 计算有效地址，无需按 PC 相对或绝对寻址分支；地址合法性检查仍须完成。
+运行时地址统一使用 64 位宿主地址，BP、SP、PC、数据指针和 VM 函数入口采用同一地址坐标。Loader 参数 `ImageBase` 是镜像在代码段中的字节偏移，运行时镜像宿主基址则是 `CodeSegment.data() + ImageBase` 的地址，记为 `RuntimeImageBase`。VM 符号地址为 `RuntimeImageBase + SymbolOffset + Addend`，其中 `SymbolOffset` 是符号相对整个 `Image` 开头的字节偏移；Native 符号地址为绑定后的宿主符号地址加 Addend。PC 相对寻址仍可保留，`PC = RuntimeImageBase + InstructionOffset`，因此 `PC + (SymbolOffset + Addend - InstructionOffset)` 得到相同的运行时地址。ZERO 寄存器编码为 `03`、恒为零且不可写，绝对地址编码为 ZERO 基址加完整的八字节地址位模式。内存地址统一为 `RegisterId:u8 + OffsetBits:u64`，执行器可按 `Registers[RegisterId] + OffsetBits` 计算有效地址，无需按 PC 相对或绝对寻址分支；地址合法性检查仍须完成。
 
 `ExecutableFile` 保存未绑定、与进程无关的镜像，地址字段不保存加载后的宿主指针。解释器使用 `malloc` 管理独立的运行时代码段及其有效字节数、容量；`getCodeSegment()` 返回有效字节的只读 span，`getCodeSegmentCapacity()` 返回容量。加载器在运行时代码段中绑定地址，原始镜像与元数据始终保持不变；入口执行仍待实现，其宿主地址应为 `RuntimeImageBase + EntryOffset`，导出地址为 `RuntimeImageBase + Export.Offset`。不能将已绑定指针缓存作为可执行文件内容保存。统一地址表示不改变 VM 调用与 Native 调用的 ABI 区别，native adapter 仍须处理调用协议。
 
@@ -73,7 +73,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 `ImageOffset` 指向待填写字段的第一个字节，而不是所在指令的起点，该字段可以位于代码或数据中。`SymbolIndex` 是 `DynamicImportSymbols` 的 u32 下标，可以引用函数或数据符号。`Addend` 是解析符号地址后施加的有符号字节偏移，最终填写值为 `ResolvedSymbolAddress + Addend`；例如引用宿主 buffer 的第 8 字节可以使用 `Addend = 8`，只引用符号本身时 Addend 为零。记录存入 vector，不要求按地址排序。
 
-本表记录加载时才能确定的动态导入符号地址，镜像内部 VM 地址使用下节的镜像基址地址重定位。`InstructionEmitter::padOperand` 已实现宿主内存地址及普通宿主符号地址立即数的字段和重定位生成，二者按宿主 `Name` 复用同一导入。内存地址操作数先追加 ZERO 寄存器编码 `04`，再追加八字节零占位；普通符号地址立即数只允许 Width 为 64，直接追加八字节零，不带寄存器编号。加载后的内存地址字段保存完整 `u64` 地址位模式，与恒零基址相加即可访问；`ff` 不再是合法基址。两者的 `ImageOffset` 都指向八字节字段起点，不能将 u32 字段作为地址重定位目标。函数地址的重定位只负责填写地址，其可调用表示及 adapter 协议仍须单独确定；直接 native 调用已写入 u32 导入索引，不生成地址重定位。
+本表记录加载时才能确定的动态导入符号地址，镜像内部 VM 地址使用下节的镜像基址地址重定位。`InstructionEmitter::padOperand` 已实现宿主内存地址及普通宿主符号地址立即数的字段和重定位生成，二者按宿主 `Name` 复用同一导入。内存地址操作数先追加 ZERO 寄存器编码 `03`，再追加八字节零占位；普通符号地址立即数只允许 Width 为 64，直接追加八字节零，不带寄存器编号。加载后的内存地址字段保存完整 `u64` 地址位模式，与恒零基址相加即可访问；`ff` 不再是合法基址。两者的 `ImageOffset` 都指向八字节字段起点，不能将 u32 字段作为地址重定位目标。函数地址的重定位只负责填写地址，其可调用表示及 adapter 协议仍须单独确定；直接 native 调用已写入 u32 导入索引，不生成地址重定位。
 
 `Interpreter` 持有统一的 `ExportSymbolMap`，以名称映射到 `uint64_t` 表示的真实宿主地址。构造时自动调用公开的 `initialize()`，通过 `try_emplace` 登记 `NativeSymbolAddresses`；重复初始化不会覆盖已有绑定。`Interpreter::resolveSymbolAddress(Name)` 仅查询此表，缺少名称时返回 nullptr。内置 `identity` 对应 `identityStub` 的地址，沿用 [VM 调用约定](VM-Calling-Convention.md) 中的 `Frame *` 桩接口。
 

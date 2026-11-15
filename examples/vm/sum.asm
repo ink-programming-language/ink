@@ -1,4 +1,4 @@
-; MachineModule text example: compute and check 20 + 22 in local stack slots.
+; MachineModule text example: compute 20 + 22 in local stack slots.
 .module "sum_example"
 
 .section .data
@@ -20,11 +20,7 @@ entry:
     add64rri sp, sp, 8
     store32i [bp + 16], 20
     add32mmi [bp + 20], [bp + 16], 22 ; result = 42
-    cmp32mi [bp + 20], 42
-    jne failure
     jmp done
-failure:
-    store32i [bp + 20], 0
 done:
     ret
 .endfunction

@@ -784,7 +784,7 @@ namespace ink::vm
         std::expected<void, core::Diagnostic> readKnownInstruction(const Token &Mnemonic, LineParser &Line)
         {
           PendingInstruction Pending{Builder.getInsertBlock(), Operation, {}, {}, Mnemonic.Offset};
-          if constexpr (OpcodeTraits<Operation>::Category == InstructionCategory::Branch)
+          if constexpr (OpcodeTraits<Operation>::Form == InstructionForm::B)
           {
             const Token *Target = Line.take(TokenKind::Identifier);
             if (!Target || Line.peek())
@@ -822,6 +822,14 @@ namespace ink::vm
               if (Destination && (!isWritableAddressRegister(Destination->getRegister()) || Destination->getByteOffset() != 0))
               {
                 return std::unexpected(textError(Mnemonic.Offset, "a register destination must be BP or SP with zero displacement"));
+              }
+            }
+            if constexpr (Operation == Opcode::Jmpi)
+            {
+              const auto &Target = std::get<ImmediateOperand>(Pending.Operands[0]);
+              if (Target.getSymbol() && *Target.getByteOffset() != 0)
+              {
+                return std::unexpected(textError(Mnemonic.Offset, "a direct function symbol cannot have a nonzero displacement"));
               }
             }
           }
@@ -868,7 +876,7 @@ namespace ink::vm
           {
             return readCallInstruction(Mnemonic, Line);
           }
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
   if (Mnemonic.Text == Spelling)                                                                                        \
   {                                                                                                                     \
     return readKnownInstruction<Opcode::Kind>(Mnemonic, Line);                                                          \
@@ -899,7 +907,7 @@ namespace ink::vm
             bool Appended = false;
             switch (Pending.Operation)
             {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition)                          \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category)                          \
   case Opcode::Kind:                                                                                                                             \
     Appended = appendInstruction<Opcode::Kind>(Builder, Pending.Operands, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{}); \
     break;

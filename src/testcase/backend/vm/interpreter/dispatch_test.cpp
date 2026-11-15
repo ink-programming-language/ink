@@ -59,6 +59,24 @@ namespace ink::vm::test
       appendRegister(Bytes, RHS);
     }
 
+    void appendRegisterJump(std::vector<std::uint8_t> &Bytes, std::uint16_t Operation, RegisterOperand Target)
+    {
+      Bytes.push_back(static_cast<std::uint8_t>(Operation));
+      Bytes.push_back(static_cast<std::uint8_t>(Operation >> 8));
+      appendRegister(Bytes, Target);
+    }
+
+    void appendImmediateJump(std::vector<std::uint8_t> &Bytes, std::int64_t Offset)
+    {
+      Bytes.push_back(0x3F);
+      Bytes.push_back(0x00);
+      const auto OffsetBits = static_cast<std::uint64_t>(Offset);
+      for (std::size_t Index = 0; Index < 8; ++Index)
+      {
+        Bytes.push_back(static_cast<std::uint8_t>(OffsetBits >> (Index * 8)));
+      }
+    }
+
     void appendRet(std::vector<std::uint8_t> &Bytes)
     {
       Bytes.push_back(0x3A);
@@ -72,10 +90,6 @@ namespace ink::vm::test
       return Value;
     }
 
-    EFlags arithmeticFlags(const Interpreter &VM) noexcept
-    {
-      return *reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, VM.getFrame()));
-    }
   }
 
   // Several additions advance PC by their encoded lengths and apply signed offsets to the address slots themselves.
@@ -101,7 +115,6 @@ namespace ink::vm::test
     ASSERT_NE(StackTop, 0U);
     EXPECT_EQ(registerAddress(VM, RegisterId::BP), StackTop - 8);
     EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + 3 * Add64Bytes));
-    EXPECT_EQ(arithmeticFlags(VM), eflagMask(EFlag::CF));
     EXPECT_TRUE(std::ranges::equal(VM.getCodeSegment(), ExpectedImage));
   }
 
@@ -126,34 +139,31 @@ namespace ink::vm::test
 
     EXPECT_EQ(registerAddress(VM, RegisterId::BP), 16U);
     EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + 2 * Add64Bytes));
-    EXPECT_EQ(arithmeticFlags(VM), 0U);
 
     ASSERT_TRUE(VM.execute(Entry + PCProgramOffset));
 
     EXPECT_EQ(registerAddress(VM, RegisterId::BP), reinterpret_cast<std::uintptr_t>(Entry + 7));
     EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + PCProgramOffset + Add64Bytes));
-    EXPECT_EQ(arithmeticFlags(VM), 0U);
   }
 
-  // ZERO-relative integer bit patterns exercise unsigned carry, zero, sign, and signed overflow while RET preserves the resulting flags.
-  TEST(VMDispatchTest, ComputesArithmeticFlagsAt64BitBoundaries)
+  // ZERO-relative integer bit patterns exercise 64-bit wrapping arithmetic without changing register storage bindings.
+  TEST(VMDispatchTest, WrapsRegisterArithmeticAt64BitBoundaries)
   {
     struct AdditionCase
     {
         std::int64_t LHS;
         std::int64_t RHS;
         std::uint64_t Result;
-        EFlags Flags;
     };
     const AdditionCase Cases[] = {
-        {0, 0, 0, eflagMask(EFlag::ZF)},
-        {1, -1, 0, eflagMask(EFlag::CF) | eflagMask(EFlag::ZF)},
-        {-1, 1, 0, eflagMask(EFlag::CF) | eflagMask(EFlag::ZF)},
-        {0, -1, std::numeric_limits<std::uint64_t>::max(), eflagMask(EFlag::SF)},
-        {std::numeric_limits<std::int64_t>::max(), 1, std::uint64_t{1} << 63, eflagMask(EFlag::SF) | eflagMask(EFlag::OF)},
-        {std::numeric_limits<std::int64_t>::min(), std::numeric_limits<std::int64_t>::min(), 0, eflagMask(EFlag::CF) | eflagMask(EFlag::ZF) | eflagMask(EFlag::OF)},
-        {-1, 0, std::numeric_limits<std::uint64_t>::max(), eflagMask(EFlag::SF)},
-        {std::numeric_limits<std::int64_t>::min(), -1, static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()), eflagMask(EFlag::CF) | eflagMask(EFlag::OF)},
+        {0, 0, 0},
+        {1, -1, 0},
+        {-1, 1, 0},
+        {0, -1, std::numeric_limits<std::uint64_t>::max()},
+        {std::numeric_limits<std::int64_t>::max(), 1, std::uint64_t{1} << 63},
+        {std::numeric_limits<std::int64_t>::min(), std::numeric_limits<std::int64_t>::min(), 0},
+        {-1, 0, std::numeric_limits<std::uint64_t>::max()},
+        {std::numeric_limits<std::int64_t>::min(), -1, static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())},
     };
     core::test::ScopedEnvironmentVariable Environment("INK_VM_STACK_BYTES");
     ASSERT_TRUE(Environment.set("64"));
@@ -168,11 +178,12 @@ namespace ink::vm::test
       appendRet(Bytes);
       ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
       const auto *Entry = VM.getCodeSegment().data();
+      const auto Bindings = VM.getFrame().Register;
 
       ASSERT_TRUE(VM.execute(Entry));
 
+      EXPECT_EQ(VM.getFrame().Register, Bindings);
       EXPECT_EQ(registerAddress(VM, RegisterId::BP), Case.Result);
-      EXPECT_EQ(arithmeticFlags(VM), Case.Flags);
       EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + Add64Bytes));
       EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, VM.getFrame())), 0U);
     }
@@ -203,7 +214,6 @@ namespace ink::vm::test
 
       EXPECT_EQ(registerAddress(VM, RegisterId::SP), registerAddress(VM, RegisterId::BP) + static_cast<std::uint64_t>(Offset));
       EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + Add64Bytes));
-      EXPECT_EQ(arithmeticFlags(VM), Offset < 0 ? eflagMask(EFlag::CF) : 0U);
     }
   }
 
@@ -244,7 +254,6 @@ namespace ink::vm::test
     EXPECT_EQ(VM.getFrame().Register, RegisterBindings);
     EXPECT_TRUE(std::ranges::equal(std::span<const std::uint8_t>(Stack, Expected.size()), Expected));
     EXPECT_TRUE(std::ranges::equal(VM.getCodeSegment(), ExpectedImage));
-    EXPECT_EQ(arithmeticFlags(VM), 0U);
   }
 
   // ZERO-relative memory operands load and store absolute unaligned addresses, leaving source bytes and surrounding padding intact.
@@ -277,6 +286,86 @@ namespace ink::vm::test
     EXPECT_EQ(registerAddress(VM, RegisterId::BP), Result);
     EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + 3 * Add64Bytes));
     EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, VM.getFrame())), 0U);
-    EXPECT_EQ(arithmeticFlags(VM), 0U);
+  }
+
+  // Block-style jumps take a finite forward/backward path and preserve the arithmetic result when control reaches RET.
+  TEST(VMDispatchTest, FollowsForwardAndBackwardBlockJumps)
+  {
+    Interpreter VM;
+    ExecutableFile Executable;
+    auto &Bytes = Executable.getImage();
+    appendRegisterJump(Bytes, 0x2B, RegisterOperand(RegisterId::PC, 51));
+    appendAdd64rrr(Bytes, RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::ZERO, 40), RegisterOperand(RegisterId::ZERO, 2));
+    appendRegisterJump(Bytes, 0x2B, RegisterOperand(RegisterId::PC, 22));
+    appendRegisterJump(Bytes, 0x2B, RegisterOperand(RegisterId::PC, -40));
+    appendRet(Bytes);
+    const auto ExpectedImage = Bytes;
+    ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+    const auto *Entry = VM.getCodeSegment().data();
+
+    ASSERT_TRUE(VM.execute(Entry));
+
+    EXPECT_EQ(registerAddress(VM, RegisterId::BP), 42U);
+    EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + 62));
+    EXPECT_TRUE(std::ranges::equal(VM.getCodeSegment(), ExpectedImage));
+  }
+
+  // Immediate jumps use their own instruction PC, while register jumps read the stored target and add the encoded offset without indirection.
+  TEST(VMDispatchTest, ExecutesImmediateAndRegisterTargetJumps)
+  {
+    Interpreter VM;
+    ExecutableFile Executable;
+    auto &Bytes = Executable.getImage();
+    appendImmediateJump(Bytes, 12);
+    Bytes.insert(Bytes.end(), {0xFF, 0xFF});
+    appendAdd64rrr(Bytes, RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::PC, 40), RegisterOperand(RegisterId::ZERO));
+    appendRegisterJump(Bytes, 0x40, RegisterOperand(RegisterId::BP, 2));
+    Bytes.insert(Bytes.end(), {0xFF, 0xFF});
+    appendRet(Bytes);
+    ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+    const auto *Entry = VM.getCodeSegment().data();
+
+    ASSERT_TRUE(VM.execute(Entry));
+
+    EXPECT_EQ(registerAddress(VM, RegisterId::BP), reinterpret_cast<std::uintptr_t>(Entry + 52));
+    EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + 54));
+  }
+
+  // Indirect jumps load an unaligned target pointer through either ZERO-based absolute memory or a stored register base.
+  TEST(VMDispatchTest, LoadsIndirectJumpTargetsFromRegisterAndZeroBasedMemory)
+  {
+    constexpr RegisterId Bases[] = {
+        RegisterId::ZERO,
+        RegisterId::BP,
+    };
+    for (const auto Base : Bases)
+    {
+      SCOPED_TRACE(static_cast<std::uint8_t>(Base));
+      std::array<std::uint8_t, 24> TargetMemory;
+      TargetMemory.fill(0xA5);
+      const auto MemoryAddress = static_cast<std::int64_t>(reinterpret_cast<std::uintptr_t>(TargetMemory.data()));
+      Interpreter VM;
+      ExecutableFile Executable;
+      auto &Bytes = Executable.getImage();
+      if (Base == RegisterId::BP)
+      {
+        appendAdd64rrr(Bytes, RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::ZERO, MemoryAddress), RegisterOperand(RegisterId::ZERO));
+      }
+      appendRegisterJump(Bytes, 0x41, RegisterOperand(Base, Base == RegisterId::ZERO ? MemoryAddress + 3 : 3));
+      Bytes.insert(Bytes.end(), {0xFF, 0xFF});
+      const auto ReturnOffset = Bytes.size();
+      appendRet(Bytes);
+      ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+      const auto *Entry = VM.getCodeSegment().data();
+      const auto Target = reinterpret_cast<std::uintptr_t>(Entry + ReturnOffset);
+      std::memcpy(TargetMemory.data() + 3, &Target, sizeof(Target));
+      const auto ExpectedMemory = TargetMemory;
+
+      ASSERT_TRUE(VM.execute(Entry));
+
+      EXPECT_EQ(registerAddress(VM, RegisterId::PC), Target);
+      EXPECT_EQ(TargetMemory, ExpectedMemory);
+      EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, VM.getFrame())), 0U);
+    }
   }
 } // namespace ink::vm::test

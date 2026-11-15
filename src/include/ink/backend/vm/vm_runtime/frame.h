@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ink/backend/vm/instruction/eflags.h"
 #include "ink/backend/vm/instruction/register.h"
 
 #include <array>
@@ -21,7 +20,7 @@ namespace ink::vm
   struct Frame
   {
     public:
-      // Register storage addresses in number order: &BP, &SP, &PC, &EFlags, &ZERO.
+      // Register storage addresses in number order: &BP, &SP, &PC, &ZERO.
       // Write register values through these addresses; keep the bindings unchanged.
       std::array<const void *, static_cast<std::size_t>(RegisterId::ZERO) + 1> Register{};
 
@@ -39,8 +38,7 @@ namespace ink::vm
       Frame(const Frame &Other) noexcept
           : SP(Other.SP),
             BP(Other.BP),
-            PC(Other.PC),
-            EFlags(Other.EFlags)
+            PC(Other.PC)
       {
         initializeRegisters();
       }
@@ -50,7 +48,6 @@ namespace ink::vm
         SP = Other.SP;
         BP = Other.BP;
         PC = Other.PC;
-        EFlags = Other.EFlags;
         initializeRegisters();
         return *this;
       }
@@ -80,7 +77,6 @@ namespace ink::vm
       std::uint8_t *SP = nullptr;
       std::uint8_t *BP = nullptr;
       std::uint8_t *PC = nullptr;
-      vm::EFlags EFlags = 0;
       inline static constexpr std::uint64_t ZERO = 0;
 
       void initializeRegisters() noexcept
@@ -89,7 +85,6 @@ namespace ink::vm
             &BP,
             &SP,
             &PC,
-            &EFlags,
             &ZERO,
         };
       }

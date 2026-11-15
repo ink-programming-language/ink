@@ -61,18 +61,12 @@ namespace ink::vm::test
     };
 
     template <typename FrameType>
-    concept HasPublicEFlags = requires(FrameType &Value)
-    {
-      Value.EFlags;
-    };
-
-    template <typename FrameType>
     concept HasPublicZERO = requires(FrameType &Value)
     {
       Value.ZERO;
     };
 
-    static_assert(!HasPublicSP<Frame> && !HasPublicBP<Frame> && !HasPublicPC<Frame> && !HasPublicEFlags<Frame> && !HasPublicZERO<Frame>);
+    static_assert(!HasPublicSP<Frame> && !HasPublicBP<Frame> && !HasPublicPC<Frame> && !HasPublicZERO<Frame>);
     static_assert(sizeof(TwelveByteValue) == 12 && alignof(TwelveByteValue) <= 8);
     static_assert(sizeof(TwentyFourByteValue) == 24 && alignof(TwentyFourByteValue) <= 8);
     static_assert(sizeof(NonDefaultConstructibleValue) == 8 && alignof(NonDefaultConstructibleValue) <= 8);
@@ -93,7 +87,7 @@ namespace ink::vm::test
     }
   }
 
-  // Every slot points to register storage; copies own independent address and flag storage while sharing the immutable ZERO object.
+  // Every slot points to register storage; copies own independent address storage while sharing the immutable ZERO object.
   TEST(VMFrameTest, InitializesRegisterStorageAndRebindsIndependentCopies)
   {
     constexpr RegisterId AddressRegisters[] = {
@@ -102,13 +96,17 @@ namespace ink::vm::test
         RegisterId::PC,
     };
     Frame Initial;
+    EXPECT_EQ(Initial.Register.size(), 4U);
+    EXPECT_EQ(Initial.Register[3], GET_REGISTER(RegisterId::ZERO, Initial));
+    for (const auto *Storage : Initial.Register)
+    {
+      ASSERT_NE(Storage, nullptr);
+    }
     for (const auto Id : AddressRegisters)
     {
       ASSERT_NE(GET_REGISTER(Id, Initial), nullptr);
       EXPECT_EQ(readAddressRegister(Initial, Id), nullptr);
     }
-    ASSERT_NE(GET_REGISTER(RegisterId::EFLAGS, Initial), nullptr);
-    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Initial)), 0U);
     ASSERT_NE(GET_REGISTER(RegisterId::ZERO, Initial), nullptr);
     EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, Initial)), 0U);
 
@@ -118,7 +116,6 @@ namespace ink::vm::test
     const auto OriginalBindings = Original.Register;
     writeAddressRegister(Original, RegisterId::BP, Stack.data() + 4);
     writeAddressRegister(Original, RegisterId::PC, Code.data() + 1);
-    *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, Original)) = ArithmeticEFlagsMask;
     EXPECT_EQ(readAddressRegister(Original, RegisterId::BP), Stack.data() + 4);
     EXPECT_EQ(readAddressRegister(Original, RegisterId::SP), Stack.data() + 12);
     EXPECT_EQ(readAddressRegister(Original, RegisterId::PC), Code.data() + 1);
@@ -140,28 +137,25 @@ namespace ink::vm::test
         &RvalueCopied,
         &RvalueAssigned,
     };
-    EFlags CopyFlags = eflagMask(EFlag::SF);
     for (auto *Value : Copies)
     {
       const auto CopyBindings = Value->Register;
+      EXPECT_EQ(Value->Register.size(), 4U);
+      EXPECT_EQ(Value->Register[3], GET_REGISTER(RegisterId::ZERO, Initial));
       for (const auto Id : AddressRegisters)
       {
         EXPECT_NE(GET_REGISTER(Id, *Value), GET_REGISTER(Id, Original));
         EXPECT_EQ(readAddressRegister(*Value, Id), readAddressRegister(Original, Id));
       }
-      EXPECT_NE(GET_REGISTER(RegisterId::EFLAGS, *Value), GET_REGISTER(RegisterId::EFLAGS, Original));
-      EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, *Value)), ArithmeticEFlagsMask);
       EXPECT_EQ(GET_REGISTER(RegisterId::ZERO, *Value), GET_REGISTER(RegisterId::ZERO, Initial));
       EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, *Value)), 0U);
       writeAddressRegister(*Value, RegisterId::BP, Stack.data() + 2);
       writeAddressRegister(*Value, RegisterId::SP, Stack.data() + 3);
       writeAddressRegister(*Value, RegisterId::PC, Code.data() + 2);
-      *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, *Value)) = CopyFlags++;
       EXPECT_EQ(Value->Register, CopyBindings);
       EXPECT_EQ(readAddressRegister(Original, RegisterId::BP), Stack.data() + 4);
       EXPECT_EQ(readAddressRegister(Original, RegisterId::SP), Stack.data() + 12);
       EXPECT_EQ(readAddressRegister(Original, RegisterId::PC), Code.data() + 1);
-      EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Original)), ArithmeticEFlagsMask);
     }
     EXPECT_EQ(readAddressRegister(Copied, RegisterId::BP), Stack.data() + 2);
     EXPECT_EQ(readAddressRegister(Copied, RegisterId::SP), Stack.data() + 3);
@@ -174,7 +168,7 @@ namespace ink::vm::test
     auto SelectId = [&]()
     {
       ++IdEvaluations;
-      return RegisterId::EFLAGS;
+      return RegisterId::SP;
     };
     auto SelectFrame = [&]() -> Frame &
     {
@@ -182,21 +176,21 @@ namespace ink::vm::test
       return Copied;
     };
 
-    const auto ExpectedFlagAddress = GET_REGISTER(RegisterId::EFLAGS, Copied);
+    const auto ExpectedStorageAddress = GET_REGISTER(RegisterId::SP, Copied);
     const auto ReadAddress = GET_REGISTER(SelectId(), SelectFrame());
-    EXPECT_EQ(ReadAddress, ExpectedFlagAddress);
+    EXPECT_EQ(ReadAddress, ExpectedStorageAddress);
     EXPECT_EQ(IdEvaluations, 1U);
     EXPECT_EQ(FrameEvaluations, 1U);
     const auto WriteAddress = SET_REGISTER(SelectId(), SelectFrame());
-    EXPECT_EQ(WriteAddress, ExpectedFlagAddress);
+    EXPECT_EQ(WriteAddress, ExpectedStorageAddress);
     EXPECT_EQ(IdEvaluations, 2U);
     EXPECT_EQ(FrameEvaluations, 2U);
     const Frame &View = Copied;
-    EXPECT_EQ(GET_REGISTER(RegisterId::EFLAGS, View), GET_REGISTER(RegisterId::EFLAGS, Copied));
+    EXPECT_EQ(GET_REGISTER(RegisterId::SP, View), GET_REGISTER(RegisterId::SP, Copied));
     EXPECT_EQ(GET_REGISTER(RegisterId::ZERO, View), GET_REGISTER(RegisterId::ZERO, Initial));
   }
 
-  // Writing the stored SP changes native argument and return locations without changing slot bindings, and copied flags remain independent.
+  // Writing the stored SP changes native argument and return locations without changing slot bindings, and copies retain independent pointer storage.
   TEST(VMFrameTest, UsesStoredRegisterValuesForNativeCallsAndCopies)
   {
     alignas(8) std::array<std::uint8_t, 48> Stack;
@@ -207,7 +201,6 @@ namespace ink::vm::test
     Frame CallFrame{Stack.data() + 16};
     const auto Bindings = CallFrame.Register;
     writeAddressRegister(CallFrame, RegisterId::SP, Stack.data() + 40);
-    *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, CallFrame)) = ArithmeticEFlagsMask;
 
     const auto Actual = CallFrame.getArgument<0, std::uint64_t>();
     EXPECT_EQ(Actual, Argument);
@@ -220,11 +213,9 @@ namespace ink::vm::test
       EXPECT_EQ(CopiedArgument, Argument);
       EXPECT_NE(GET_REGISTER(RegisterId::SP, *Value), GET_REGISTER(RegisterId::SP, CallFrame));
       EXPECT_EQ(readAddressRegister(*Value, RegisterId::SP), Stack.data() + 40);
-      EXPECT_NE(GET_REGISTER(RegisterId::EFLAGS, *Value), GET_REGISTER(RegisterId::EFLAGS, CallFrame));
-      EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, *Value)), ArithmeticEFlagsMask);
-      *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, *Value)) = 0;
+      writeAddressRegister(*Value, RegisterId::SP, Stack.data() + 24);
+      EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::SP), Stack.data() + 40);
     }
-    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), ArithmeticEFlagsMask);
 
     const std::uint64_t Result = 0xFEDCBA9876543210;
     std::memcpy(Expected.data() + 24, &Result, sizeof(Result));
@@ -252,7 +243,6 @@ namespace ink::vm::test
     Frame MutableCallFrame{Stack.data() + 48};
     writeAddressRegister(MutableCallFrame, RegisterId::BP, Stack.data() + 16);
     writeAddressRegister(MutableCallFrame, RegisterId::PC, Code.data());
-    *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, MutableCallFrame)) = ArithmeticEFlagsMask;
     const Frame CallFrame = MutableCallFrame;
     auto *const InitialSP = readAddressRegister(CallFrame, RegisterId::SP);
 
@@ -267,7 +257,6 @@ namespace ink::vm::test
     EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::SP), InitialSP);
     EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::BP), Stack.data() + 16);
     EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::PC), Code.data());
-    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), ArithmeticEFlagsMask);
     EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, CallFrame)), 0U);
 
     const std::uint8_t Result = 0x3C;
@@ -279,7 +268,6 @@ namespace ink::vm::test
     EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::SP), InitialSP);
     EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::BP), Stack.data() + 16);
     EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::PC), Code.data());
-    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), ArithmeticEFlagsMask);
     EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, CallFrame)), 0U);
   }
 

@@ -110,11 +110,11 @@ namespace ink::vm::detail
             }
             return {};
           }
-          if (Operation == Opcode::Calli || Operation == Opcode::CallNativei)
+          if (Operation == Opcode::Calli || Operation == Opcode::CallNativei || Operation == Opcode::Jmpi)
           {
             if (*Value.getByteOffset() != 0)
             {
-              return std::unexpected("direct call symbol target must have a zero byte offset");
+              return std::unexpected("direct function symbol target must have a zero byte offset");
             }
             return VisitReference(*Value.getSymbol(), Operation == Opcode::CallNativei ? SymbolReferenceTarget::NativeFunction : SymbolReferenceTarget::VMFunction);
           }

@@ -14,16 +14,13 @@ namespace ink::vm
   template <Opcode OperationValue>
   struct OpcodeTraits;
 
-#define OPCODE(Kind, Encoding, Spelling, FormValue, WidthValue, RegisterCountValue, AddressCountValue, ImmediateCountValue, CategoryValue, ConditionValue)            \
+#define OPCODE(Kind, Encoding, Spelling, FormValue, WidthValue, RegisterCountValue, AddressCountValue, ImmediateCountValue, CategoryValue)            \
   template <>                                                                                                                                                         \
   struct OpcodeTraits<Opcode::Kind> : FormTraits<InstructionForm::FormValue>                                                                                          \
   {                                                                                                                                                                   \
       static constexpr InstructionForm Form = InstructionForm::FormValue;                                                                                             \
       static constexpr InstructionCategory Category = InstructionCategory::CategoryValue;                                                                             \
-      static constexpr ConditionCode Condition = ConditionCode::ConditionValue;                                                                                       \
       static constexpr bool HasDestination = Category == InstructionCategory::Load || Category == InstructionCategory::Store || Category == InstructionCategory::Add; \
-      static constexpr EFlags ReadEFlagsMask = Category == InstructionCategory::Branch ? conditionEFlagsMask(Condition) : 0;                                          \
-      static constexpr EFlags WrittenEFlagsMask = Category == InstructionCategory::Add || Category == InstructionCategory::Compare || Category == InstructionCategory::Call ? ArithmeticEFlagsMask : 0; \
       static constexpr std::uint32_t BitWidth = WidthValue;                                                                                                           \
       static_assert(RegisterCount == RegisterCountValue && AddressCount == AddressCountValue && ImmediateCount == ImmediateCountValue);                               \
   };
@@ -48,7 +45,7 @@ namespace ink::vm
       }
 
       // Logical branch targets remain block pointers until the executable layout is known.
-      constexpr explicit MachineInstructionImpl(const MachineBasicBlock *Target) noexcept requires(Traits::Category == InstructionCategory::Branch)
+      constexpr explicit MachineInstructionImpl(const MachineBasicBlock *Target) noexcept requires(Traits::BlockCount == 1)
           : MachineInstruction(OperationValue),
             Operands(BasicBlockOperand(Target))
       {
@@ -69,22 +66,22 @@ namespace ink::vm
         return std::get<1>(Operands);
       }
 
-      constexpr const auto &getLHS() const noexcept requires(Traits::Category == InstructionCategory::Add || Traits::Category == InstructionCategory::Compare)
+      constexpr const auto &getLHS() const noexcept requires(Traits::Category == InstructionCategory::Add)
       {
-        return std::get<(Traits::Category == InstructionCategory::Compare ? 0 : 1)>(Operands);
+        return std::get<1>(Operands);
       }
 
-      constexpr const auto &getRHS() const noexcept requires(Traits::Category == InstructionCategory::Add || Traits::Category == InstructionCategory::Compare)
+      constexpr const auto &getRHS() const noexcept requires(Traits::Category == InstructionCategory::Add)
       {
-        return std::get<(Traits::Category == InstructionCategory::Compare ? 1 : 2)>(Operands);
+        return std::get<2>(Operands);
       }
 
-      constexpr const MachineBasicBlock *getTarget() const noexcept requires(Traits::Category == InstructionCategory::Branch)
+      constexpr const MachineBasicBlock *getTarget() const noexcept requires(Traits::BlockCount == 1)
       {
         return std::get<0>(Operands).getBlock();
       }
 
-      constexpr const auto &getTarget() const noexcept requires(Traits::Category == InstructionCategory::Call)
+      constexpr const auto &getTarget() const noexcept requires(Traits::Category == InstructionCategory::Call || (Traits::Category == InstructionCategory::Branch && Traits::BlockCount == 0))
       {
         return std::get<0>(Operands);
       }
@@ -126,7 +123,7 @@ namespace ink::vm
       OperandTuple Operands;
   };
 
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) using Machine##Kind##Instruction = MachineInstructionImpl<Opcode::Kind>;
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) using Machine##Kind##Instruction = MachineInstructionImpl<Opcode::Kind>;
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
 } // namespace ink::vm

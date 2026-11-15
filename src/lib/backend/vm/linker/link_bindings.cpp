@@ -256,7 +256,7 @@ namespace ink::vm::detail
         const auto &Target = Bindings.Symbols[Resolved->Index].Target;
         if (ExpectedTarget == SymbolReferenceTarget::VMFunction && !std::holds_alternative<const MachineFunction *>(Target))
         {
-          return std::unexpected(fmt::format("calli target '{}' must resolve to a VM function definition", spelling(Name)));
+          return std::unexpected(fmt::format("PC-relative target '{}' must resolve to a VM function definition", spelling(Name)));
         }
         if (ExpectedTarget == SymbolReferenceTarget::NativeFunction && (!std::holds_alternative<MachineSymbolDeclaration>(Target) || Bindings.Symbols[Resolved->Index].kind() != MachineSymbolKind::Function))
         {

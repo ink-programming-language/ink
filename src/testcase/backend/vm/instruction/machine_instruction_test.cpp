@@ -63,6 +63,8 @@ namespace ink::vm::test
         return {OperandKind::Immediate, OperandKind::Immediate, OperandKind::Immediate};
       case InstructionForm::M:
         return {OperandKind::Address, OperandKind::Immediate, OperandKind::Immediate};
+      case InstructionForm::R:
+        return {OperandKind::Register, OperandKind::Immediate, OperandKind::Immediate};
       case InstructionForm::Rr:
         return {OperandKind::Register, OperandKind::Register, OperandKind::Immediate};
       case InstructionForm::Rm:
@@ -98,7 +100,7 @@ namespace ink::vm::test
     }
 
     template <Opcode Operation>
-    void expectRegisteredInstruction(std::uint16_t Encoding, std::string_view Name, InstructionForm Form, std::uint32_t Width, std::size_t RegisterCount, std::size_t AddressCount, std::size_t ImmediateCount, InstructionCategory Category, ConditionCode Condition)
+    void expectRegisteredInstruction(std::uint16_t Encoding, std::string_view Name, InstructionForm Form, std::uint32_t Width, std::size_t RegisterCount, std::size_t AddressCount, std::size_t ImmediateCount, InstructionCategory Category)
     {
       using Traits = OpcodeTraits<Operation>;
       constexpr std::size_t OperandCount = std::tuple_size_v<typename Traits::OperandTuple>;
@@ -117,11 +119,7 @@ namespace ink::vm::test
       EXPECT_EQ(Traits::OperandCount, OperandCount);
       EXPECT_EQ(Base.operandCount(), RegisterCount + AddressCount + ImmediateCount + Traits::BlockCount);
       EXPECT_EQ(Base.category(), Category);
-      EXPECT_EQ(Base.branchCondition(), Condition);
       EXPECT_EQ(Traits::Category, Category);
-      EXPECT_EQ(Traits::Condition, Condition);
-      EXPECT_EQ(Base.readEFlagsMask(), Traits::ReadEFlagsMask);
-      EXPECT_EQ(Base.writtenEFlagsMask(), Traits::WrittenEFlagsMask);
       EXPECT_TRUE(MachineInstructionImpl<Operation>::classof(&Base));
       EXPECT_FALSE(MachineInstructionImpl<Operation>::classof(nullptr));
       std::array<const Operand *, OperandCount> NamedOperands{};
@@ -133,10 +131,6 @@ namespace ink::vm::test
       {
         static_assert(OperandCount == 3);
         NamedOperands = {&Value.getDestination(), &Value.getLHS(), &Value.getRHS()};
-      }
-      else if constexpr (Traits::Category == InstructionCategory::Compare)
-      {
-        NamedOperands = {&Value.getLHS(), &Value.getRHS()};
       }
       else if constexpr (Traits::Category == InstructionCategory::Branch || Traits::Category == InstructionCategory::Call)
       {
@@ -175,19 +169,51 @@ namespace ink::vm::test
   } // namespace
 
   template <typename InstructionType>
-  concept HasInstructionDestination = requires(const InstructionType &Value) {
+  concept HasInstructionDestination = requires(const InstructionType &Value)
+  {
     Value.getDestination();
   };
 
   template <typename InstructionType>
-  concept HasInstructionTarget = requires(const InstructionType &Value) {
+  concept HasInstructionTarget = requires(const InstructionType &Value)
+  {
     Value.getTarget();
+  };
+
+  template <typename InstructionType>
+  concept HasLegacyConditionState = requires(const InstructionType &Value)
+  {
+    Value.branchCondition();
+  } || requires(const InstructionType &Value)
+  {
+    Value.isConditionalBranch();
+  } || requires(const InstructionType &Value)
+  {
+    Value.readEFlagsMask();
+  } || requires(const InstructionType &Value)
+  {
+    Value.writtenEFlagsMask();
+  } || requires(const InstructionType &Value)
+  {
+    Value.isCompare();
+  };
+
+  template <typename Traits>
+  concept HasLegacyConditionMetadata = requires
+  {
+    Traits::Condition;
+  } || requires
+  {
+    Traits::ReadEFlagsMask;
+  } || requires
+  {
+    Traits::WrittenEFlagsMask;
   };
 
   // Every opcode owns a typed layout whose semantic order agrees with its declared Form and base traversal.
   TEST(VMMachineInstructionTest, ConnectsEveryOpcodeToItsTypedOperandLayout)
   {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) expectRegisteredInstruction<Opcode::Kind>(Encoding, Spelling, InstructionForm::Form, Width, RegisterCount, AddressCount, ImmediateCount, InstructionCategory::Category, ConditionCode::Condition);
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) expectRegisteredInstruction<Opcode::Kind>(Encoding, Spelling, InstructionForm::Form, Width, RegisterCount, AddressCount, ImmediateCount, InstructionCategory::Category);
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
   }
@@ -350,67 +376,87 @@ namespace ink::vm::test
     EXPECT_FALSE(UseAddress.getLHS().bits().has_value());
     EXPECT_EQ(UseAddress.getRHS().bits(), 1U);
   }
-  // Compare operands are ordered sources rather than a writable destination, and their full width controls flags.
-  TEST(VMMachineInstructionTest, ModelsCompareAsTwoSourcesAndImplicitFlags)
-  {
-    const MachineCmp32miInstruction Compare(AddressOperand(RegisterId::BP, 4), ImmediateOperand(42));
-    EXPECT_EQ(Compare.getLHS().getByteOffset(), 4);
-    EXPECT_EQ(Compare.getRHS().bits(), 42U);
-    EXPECT_TRUE(Compare.isCompare());
-    EXPECT_FALSE(Compare.hasDestination());
-    EXPECT_FALSE(Compare.isTerminator());
-    EXPECT_EQ(Compare.readEFlagsMask(), 0U);
-    EXPECT_EQ(Compare.writtenEFlagsMask(), ArithmeticEFlagsMask);
-    static_assert(!HasInstructionDestination<MachineCmp32miInstruction>);
-    static_assert(!HasInstructionSource<MachineCmp32miInstruction>);
-    static_assert(HasInstructionLHS<MachineCmp32miInstruction> && HasInstructionRHS<MachineCmp32miInstruction>);
-    static_assert(std::is_same_v<decltype(Compare.getLHS()), const AddressOperand &>);
-    static_assert(std::is_same_v<decltype(Compare.getRHS()), const ImmediateOperand &>);
-    static_assert(OpcodeTraits<Opcode::Cmp64rr>::Form == InstructionForm::Rr);
-    static_assert(OpcodeTraits<Opcode::Cmp64mr>::Form == InstructionForm::Mr);
-  }
 
-  // Branches borrow block pointers independently of byte layout and read only the flags needed by their condition.
-  TEST(VMMachineInstructionTest, ModelsBranchTargetAndImplicitFlagDependencies)
+
+  // Block jumps retain their target identity independently of executable byte layout and expose no value destination.
+  TEST(VMMachineInstructionTest, ModelsBlockPointerJumpTargets)
   {
     static const MachineBasicBlock Target;
     constexpr MachineJmpInstruction Jump(&Target);
-    constexpr MachineJeInstruction Equal{BasicBlockOperand(&Target)};
-    constexpr MachineJlInstruction Less(&Target);
-    constexpr MachineJgInstruction Greater(&Target);
+    constexpr MachineJmpInstruction Wrapped{BasicBlockOperand(&Target)};
     static_assert(OpcodeTraits<Opcode::Jmp>::Form == InstructionForm::B);
-    static_assert(OpcodeTraits<Opcode::Jmp>::AddressCount == 0);
     static_assert(OpcodeTraits<Opcode::Jmp>::BlockCount == 1);
     static_assert(std::is_same_v<decltype(Jump.getTarget()), const MachineBasicBlock *>);
     static_assert(std::is_same_v<decltype(Jump.getTargetOperand()), const BasicBlockOperand &>);
-    static_assert(Jump.getTarget() == &Target);
-    EXPECT_EQ(Jump.getTargetOperand().getKind(), OperandKind::BasicBlock);
-    EXPECT_EQ(Equal.getTarget(), &Target);
+    static_assert(Jump.getTarget() == &Target && Wrapped.getTarget() == &Target);
     EXPECT_EQ(Jump.getOperand(0), &Jump.getTargetOperand());
+    EXPECT_EQ(Jump.getTargetOperand().getKind(), OperandKind::BasicBlock);
     EXPECT_TRUE(Jump.isBranch());
     EXPECT_TRUE(Jump.isTerminator());
-    EXPECT_FALSE(Jump.isConditionalBranch());
-    EXPECT_EQ(Jump.branchCondition(), ConditionCode::Always);
-    EXPECT_EQ(Jump.readEFlagsMask(), 0U);
-    EXPECT_EQ(Jump.writtenEFlagsMask(), 0U);
-    EXPECT_TRUE(Equal.isConditionalBranch());
-    EXPECT_EQ(Equal.readEFlagsMask(), eflagMask(EFlag::ZF));
-    EXPECT_EQ(Less.readEFlagsMask(), eflagMask(EFlag::SF) | eflagMask(EFlag::OF));
-    EXPECT_EQ(Greater.readEFlagsMask(), eflagMask(EFlag::ZF) | eflagMask(EFlag::SF) | eflagMask(EFlag::OF));
-    static_assert(HasInstructionTarget<MachineJmpInstruction>);
     static_assert(!HasInstructionDestination<MachineJmpInstruction>);
     static_assert(!HasInstructionSource<MachineJmpInstruction> && !HasInstructionLHS<MachineJmpInstruction> && !HasInstructionRHS<MachineJmpInstruction>);
     static_assert(!std::is_constructible_v<MachineJmpInstruction, ImmediateOperand>);
     static_assert(!std::is_constructible_v<MachineJmpInstruction, RegisterOperand>);
     static_assert(!std::is_constructible_v<MachineJmpInstruction, AddressOperand>);
-    static_assert(std::is_constructible_v<MachineJmpInstruction, const MachineBasicBlock *>);
-    static_assert(std::is_constructible_v<MachineJmpInstruction, MachineBasicBlock *>);
     static_assert(std::is_constructible_v<MachineJmpInstruction, std::nullptr_t>);
     constexpr MachineJmpInstruction Unresolved(nullptr);
     static_assert(Unresolved.getTarget() == nullptr);
   }
 
-  // RET is a zero-operand terminator with no destination or target and preserves EFLAGS.
+  // Explicit jump forms preserve immediate bits and signed register or memory displacements without accepting block-pointer construction.
+  TEST(VMMachineInstructionTest, ModelsImmediateRegisterAndMemoryJumpTargets)
+  {
+    constexpr MachineJmpiInstruction Immediate{ImmediateOperand(std::numeric_limits<std::uint64_t>::max())};
+    constexpr MachineJmprInstruction Register{RegisterOperand(RegisterId::PC, -11)};
+    constexpr MachineJmpmInstruction Memory{AddressOperand(RegisterId::BP, 24)};
+    static_assert(OpcodeTraits<Opcode::Jmpi>::Form == InstructionForm::I);
+    static_assert(OpcodeTraits<Opcode::Jmpr>::Form == InstructionForm::R);
+    static_assert(OpcodeTraits<Opcode::Jmpm>::Form == InstructionForm::M);
+    static_assert(OpcodeTraits<Opcode::Jmpi>::BlockCount == 0 && OpcodeTraits<Opcode::Jmpi>::ImmediateCount == 1);
+    static_assert(OpcodeTraits<Opcode::Jmpr>::BlockCount == 0 && OpcodeTraits<Opcode::Jmpr>::RegisterCount == 1);
+    static_assert(OpcodeTraits<Opcode::Jmpm>::BlockCount == 0 && OpcodeTraits<Opcode::Jmpm>::AddressCount == 1);
+    static_assert(std::is_same_v<decltype(Immediate.getTarget()), const ImmediateOperand &>);
+    static_assert(std::is_same_v<decltype(Register.getTarget()), const RegisterOperand &>);
+    static_assert(std::is_same_v<decltype(Memory.getTarget()), const AddressOperand &>);
+    static_assert(Immediate.getTarget().bits() == std::numeric_limits<std::uint64_t>::max());
+    static_assert(Register.getTarget().getRegister() == RegisterId::PC && Register.getTarget().getByteOffset() == -11);
+    static_assert(Memory.getTarget().getRegister() == RegisterId::BP && Memory.getTarget().getByteOffset() == 24);
+    static_assert(!std::is_constructible_v<MachineJmpiInstruction, const MachineBasicBlock *>);
+    static_assert(!std::is_constructible_v<MachineJmprInstruction, const MachineBasicBlock *>);
+    static_assert(!std::is_constructible_v<MachineJmpmInstruction, const MachineBasicBlock *>);
+    static_assert(!std::is_constructible_v<MachineJmpiInstruction, RegisterOperand>);
+    static_assert(!std::is_constructible_v<MachineJmprInstruction, AddressOperand>);
+    static_assert(!std::is_constructible_v<MachineJmpmInstruction, ImmediateOperand>);
+    const MachineInstruction *Jumps[] = {&Immediate, &Register, &Memory};
+    for (const auto *Jump : Jumps)
+    {
+      EXPECT_TRUE(Jump->isBranch());
+      EXPECT_TRUE(Jump->isTerminator());
+      EXPECT_FALSE(Jump->isCall());
+      EXPECT_FALSE(Jump->hasDestination());
+      EXPECT_EQ(Jump->bitWidth(), 64U);
+      EXPECT_EQ(Jump->operandCount(), 1U);
+      EXPECT_EQ(Jump->getOperand(1), nullptr);
+    }
+    const auto Symbol = core::NamePool::instance().intern("instruction.jump.target");
+    const MachineJmpiInstruction Symbolic{ImmediateOperand(Symbol)};
+    EXPECT_EQ(Symbolic.getTarget().getSymbol(), Symbol);
+    EXPECT_EQ(Register.getOperand(0), &Register.getTargetOperand());
+    EXPECT_EQ(Memory.getOperand(0), &Memory.getTargetOperand());
+  }
+
+  // Instructions and opcode traits expose value effects and unconditional control flow without legacy comparison or condition state APIs.
+  TEST(VMMachineInstructionTest, OmitsConditionStateInterfaces)
+  {
+    static_assert(!HasLegacyConditionState<MachineInstruction>);
+    static_assert(!HasLegacyConditionState<MachineAdd64rrrInstruction>);
+    static_assert(!HasLegacyConditionState<MachineJmpInstruction>);
+    static_assert(!HasLegacyConditionMetadata<OpcodeTraits<Opcode::Add64rrr>>);
+    static_assert(!HasLegacyConditionMetadata<OpcodeTraits<Opcode::Jmpi>>);
+    SUCCEED();
+  }
+
+  // RET is a zero-operand terminator with no destination or target.
   TEST(VMMachineInstructionTest, SupportsZeroOperandReturn)
   {
     constexpr MachineRetInstruction Return;
@@ -419,7 +465,6 @@ namespace ink::vm::test
     static_assert(Return.operandCount() == 0 && Return.bitWidth() == 0);
     static_assert(Return.getOperand(0) == nullptr);
     static_assert(Return.isReturn() && Return.isTerminator() && !Return.isBranch());
-    static_assert(Return.readEFlagsMask() == 0 && Return.writtenEFlagsMask() == 0);
     static_assert(!HasInstructionDestination<MachineRetInstruction> && !HasInstructionTarget<MachineRetInstruction>);
     static_assert(!HasInstructionSource<MachineRetInstruction> && !HasInstructionLHS<MachineRetInstruction> && !HasInstructionRHS<MachineRetInstruction>);
     static_assert(!std::is_constructible_v<MachineRetInstruction, ImmediateOperand>);
@@ -428,7 +473,7 @@ namespace ink::vm::test
     EXPECT_EQ(Base.getOperand(std::numeric_limits<std::size_t>::max()), nullptr);
   }
 
-  // Immediate and memory calls reuse value operands, distinguish VM and native targets, and clobber flags without terminating the block.
+  // Immediate and memory calls reuse value operands, distinguish VM and native targets, without terminating the block.
   TEST(VMMachineInstructionTest, ModelsImmediateAndIndirectVMAndNativeCalls)
   {
     const core::Name Target = core::NamePool::instance().intern("instruction.call.target");
@@ -447,9 +492,6 @@ namespace ink::vm::test
       EXPECT_EQ(Value->category(), InstructionCategory::Call);
       EXPECT_EQ(Value->operandCount(), 1U);
       EXPECT_EQ(Value->bitWidth(), Value->getOpcode() == Opcode::CallNativei ? 32U : 64U);
-      EXPECT_EQ(Value->branchCondition(), ConditionCode::None);
-      EXPECT_EQ(Value->readEFlagsMask(), 0U);
-      EXPECT_EQ(Value->writtenEFlagsMask(), ArithmeticEFlagsMask);
       ASSERT_NE(Value->getOperand(0), nullptr);
       EXPECT_EQ(Value->getOperand(1), nullptr);
     }
@@ -490,15 +532,4 @@ namespace ink::vm::test
     static_assert(Numeric.isCall() && !Numeric.isNativeCall());
   }
 
-  // Existing ADD forms define the arithmetic flags, while data movement preserves them.
-  TEST(VMMachineInstructionTest, DescribesArithmeticAndMovementFlagEffects)
-  {
-    constexpr MachineAdd64rriInstruction Add(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::SP), ImmediateOperand(8));
-    constexpr MachineStore8iInstruction Store(AddressOperand(RegisterId::BP), ImmediateOperand(1));
-    constexpr MachineLoad8Instruction Load{AddressOperand(RegisterId::BP), AddressOperand(RegisterId::SP)};
-    static_assert(Add.hasDestination() && Add.writtenEFlagsMask() == ArithmeticEFlagsMask && Add.readEFlagsMask() == 0);
-    static_assert(Store.writtenEFlagsMask() == 0 && Store.readEFlagsMask() == 0);
-    static_assert(Load.writtenEFlagsMask() == 0 && Load.readEFlagsMask() == 0);
-    EXPECT_FALSE(Add.isTerminator());
-  }
 } // namespace ink::vm::test

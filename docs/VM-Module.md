@@ -44,40 +44,21 @@ namespace ink::vm
 
 基类 `MachineInstruction` 没有虚析构函数；基本块通过记录具体类型的删除器释放指令。调用方使用 Builder 返回的引用或指针进行访问，由所属基本块负责销毁。`parent()` 从指令到基本块、从基本块到函数、从函数到模块提供归属关系；常量对象访问会传播为常量父对象指针。脱离所属容器单独构造的对象，其父指针为空。
 
-## 比较、跳转与隐式状态
+## 无条件跳转
 
-`Cmp8mm`、`Cmp8mi` 至 `Cmp64mm`、`Cmp64mi`，以及 `Cmp64rr`、`Cmp64rm`、`Cmp64ri`、`Cmp64mr` 持有两个来源，不产生显式结果；它们的 `getLHS()`、`getRHS()` 分别访问索引 0、1。`getDestination()` 仅用于 Load、Store、Add，零操作数 `Ret` 不提供目标或来源访问器。
+`Jmp` 持有同一函数的 `BasicBlockOperand`。Builder 可直接接收非空目标块指针；`getTarget()` 返回该指针，`getTargetOperand()` 返回块操作数引用。块布局变化不改变目标身份，镜像发射阶段再计算 PC 相对位移。
 
-跳转在内存中保存目标基本块指针。`BasicBlockOperand` 是持有 `const MachineBasicBlock *` 的操作数包装，`getTarget()` 直接返回该指针，`getTargetOperand()` 返回 `const BasicBlockOperand &` 以便统一遍历。Builder 可直接接收基本块指针，要求目标非空，且源块与目标块属于同一函数；允许前向、后向和自跳转。目标指针借用所属函数中的稳定块对象，函数必须覆盖跳转指令的使用期。
+新增的三种跳转按目标来源使用独立操作数形式：
 
 ```cpp
-#include "ink/backend/vm/module/machine_instruction_builder.h"
-#include "ink/backend/vm/module/machine_module.h"
-
-namespace ink::vm
-{
-  void buildBranchExample(MachineModule &ModuleValue)
-  {
-    MachineFunction &FunctionValue = ModuleValue.createFunction();
-    MachineBasicBlock &Entry = FunctionValue.createBasicBlock();
-    MachineBasicBlock &Failure = FunctionValue.createBasicBlock();
-    MachineBasicBlock &Done = FunctionValue.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Entry);
-    Builder.create<Opcode::Cmp32mi>(AddressOperand(RegisterId::BP, 20), ImmediateOperand(42));
-    Builder.create<Opcode::Jne>(&Failure);
-    Builder.create<Opcode::Jmp>(&Done);
-    Builder.setInsertPoint(Failure);
-    Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP, 20), ImmediateOperand(0));
-    Builder.setInsertPoint(Done);
-    Builder.create<Opcode::Ret>();
-  }
-} // namespace ink::vm
+Builder.create<Opcode::Jmpi>(ImmediateOperand(FunctionName));
+Builder.create<Opcode::Jmpr>(RegisterOperand(RegisterId::PC, 16));
+Builder.create<Opcode::Jmpm>(AddressOperand(RegisterId::BP, 8));
 ```
 
-内存模型不保存 PC 相对位移，因此追加指令或调整块布局不会改变目标身份。镜像发射阶段完成函数和块布局，再根据目标块指针计算、编码 PC 相对位移；宿主指针不能写入可执行镜像。
+`Jmpi` 使用 `I` 形式，立即数是相对当前指令 PC 的有符号 64 位位移；函数符号由链接器绑定为 VM 函数，发射器计算相对位移。`Jmpr` 使用单个 `RegisterOperand` 的 `R` 形式，目标为寄存器值加偏移。`Jmpm` 使用 `M` 形式，从有效地址处读取八字节目标宿主地址；操作数中的符号定位指针槽，按普通地址符号解析。三者的 `getTarget()` 和 `getTargetOperand()` 返回具体操作数的常量引用。
 
-`isBranch()`、`isConditionalBranch()`、`isReturn()`、`isTerminator()` 提供控制流分类；条件跳转只有一个显式目标块，未跳转时继续执行下一条指令。`readEFlagsMask()` 和 `writtenEFlagsMask()` 描述隐式标志依赖：所有 ADD、CMP 改写 CF、ZF、SF、OF，条件跳转读取各自所需的子集。EFLAGS 不作为它们的显式操作数，也不能用作普通寄存器值或地址基址。`eflags.h` 只提供标志定义、掩码及条件依赖元数据；标志生成和条件判断由后续执行器实现，当前模型不执行指令。
+`isBranch()`、`isReturn()`、`isTerminator()` 提供控制流分类；四种跳转均为无条件终结指令。只有 Load、Store、Add 提供 `getDestination()`，Add 的 `getLHS()`、`getRHS()` 分别访问索引 1、2；Ret 没有目标或来源操作数。
 
 ## 函数调用指令
 
@@ -90,7 +71,7 @@ Builder.create<Opcode::Callm>(AddressOperand(RegisterId::BP, 16));
 Builder.create<Opcode::CallNativem>(AddressOperand(PointerSlotName, 8));
 ```
 
-`isCall()` 识别全部调用，`isNativeCall()` 识别两种 Native 调用。调用没有显式结果目标或参数操作数，也不是终结指令；返回后继续执行后继指令。四者的 `readEFlagsMask()` 为零，`writtenEFlagsMask()` 为 `ArithmeticEFlagsMask`，表示调用后不能依赖原先的算术标志。
+`isCall()` 识别全部调用，`isNativeCall()` 识别两种 Native 调用。调用没有显式结果目标或参数操作数，也不是终结指令；返回后继续执行后继指令。
 
 `Calli` 的数值目标为相对当前 PC 的有符号 i64 位模式，符号目标绑定 VM 函数定义；`CallNativei` 的数值目标为统一动态导入表 `DynamicImportSymbols` 的 u32 索引，符号目标必须是通过 `declareSymbol` 声明且未被 VM 定义满足的函数符号。直接调用的符号 addend 必须为零。`Callm` 和 `CallNativem` 分别从有效地址读取 64 位 VM 函数地址和 native 可调用指针，后者不是导入索引。间接目标中的符号只定位存放指针的内存，按普通地址符号规则解析。
 
@@ -121,15 +102,15 @@ Builder 不解析名称或校验调用签名。逻辑指令、文本、链接接
 
 ## 符号操作数与文本序列化
 
-`AddressOperand(core::Name Symbol, std::int64_t ByteOffset)` 表示符号相对的内存地址，ADD、CMP、Load、Store 的 `m` 来源读取该地址处的值。`ImmediateOperand(core::Name Symbol, std::int64_t ByteOffset)` 则表示符号地址本身加上偏移，作为 `i` 值参与指令；它与 `ImmediateOperand(std::uint64_t Bits)` 的数值形式由 `ImmediateValueKind::Symbol` 和 `ImmediateValueKind::Numeric` 区分。`getValueKind()` 返回该分类，数值形式的 `bits()` 返回 `std::optional<std::uint64_t>`，符号形式的 `getSymbol()` 和 `getByteOffset()` 分别返回名称与有符号偏移；不匹配的访问器返回空值。
+`AddressOperand(core::Name Symbol, std::int64_t ByteOffset)` 表示符号相对的内存地址，ADD、Load、Store 的 `m` 来源读取该地址处的值。`ImmediateOperand(core::Name Symbol, std::int64_t ByteOffset)` 则表示符号地址本身加上偏移，作为 `i` 值参与指令；它与 `ImmediateOperand(std::uint64_t Bits)` 的数值形式由 `ImmediateValueKind::Symbol` 和 `ImmediateValueKind::Numeric` 区分。`getValueKind()` 返回该分类，数值形式的 `bits()` 返回 `std::optional<std::uint64_t>`，符号形式的 `getSymbol()` 和 `getByteOffset()` 分别返回名称与有符号偏移；不匹配的访问器返回空值。
 
 符号名称通过 `core::Name` 保存链接名，不借用输入文本，也不是宿主指针。函数和全局变量分别保存 `MachineSymbolLinkage::Local` 或 `External`，创建接口的 Linkage 参数指定该属性，默认 Local。`MachineModule::declareSymbol(Name, Kind, IsConstant)` 统一保存符号声明，通过 `symbolDeclarations()` 只读遍历。Kind 为 Function 或 GlobalVariable，IsConstant 默认 false，只能在全局变量声明上设为 true；链接时声明与定义的种类和常量属性必须精确一致。模块内存模型本身不执行链接校验。
 
 Native 符号由 `NativeSymbols = SymbolDeclarations - (Functions + Globals)` 推导。链接器先查找声明所在模块的定义及其他输入中的 External 定义，只有未被这些定义满足的声明才作为 Native 符号保留；已有 VM 定义不会同时成为 Native 导入。函数和数据共用这一集合，模块不再保存独立的 Native 函数或 Native 数据成员。每个 Native 符号仅有一个名称，同时用于指令引用和宿主查找，不提供独立的宿主名称或别名。
 
-`serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；跳转使用 `jne failure`、`jmp done`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
+`serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；基本块跳转使用 `jmp done`；其他跳转显式写为 `jmpi`、`jmpr`、`jmpm`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
 
-`RegisterOperand(RegisterId Register, std::int64_t ByteOffset = 0)` 保存寄存器编号和有符号字节偏移，通过 `getRegister()` 和 `getByteOffset()` 查询。来源文本 `pc + 2` 表示寄存器值加 2，`[pc + 2]` 则表示该地址处的内存；文本读写和指令克隆保留完整的 `i64` 偏移。寄存器来源和地址基址接受 BP、SP、PC、ZERO；ZERO 编码为 `04`、文本拼写为 `zero`，恒为零且不可写。寄存器目标仅接受 BP、SP 且偏移必须为零，PC 与 ZERO 均不能作为普通写入目标。
+`RegisterOperand(RegisterId Register, std::int64_t ByteOffset = 0)` 保存寄存器编号和有符号字节偏移，通过 `getRegister()` 和 `getByteOffset()` 查询。来源文本 `pc + 2` 表示寄存器值加 2，`[pc + 2]` 则表示该地址处的内存；文本读写和指令克隆保留完整的 `i64` 偏移。寄存器来源和地址基址接受 BP、SP、PC、ZERO；ZERO 编码为 `03`、文本拼写为 `zero`，恒为零且不可写。寄存器目标仅接受 BP、SP 且偏移必须为零，PC 与 ZERO 均不能作为普通写入目标。
 
 符号操作数使用 `@name` 或带转义名称的 `@"name"`，以区分寄存器、数值和函数内块标签。`[@counter + 8]` 表示读取或写入符号相对地址的内存，`@counter + 8` 表示地址值。例如 `add64mmi [bp + 16], [@counter], 1` 使用 counter 内存中的值，`add64mii [bp + 16], @counter, 1` 使用 counter 的地址值。符号偏移完整保留为 `i64`，文本读写不会根据指令位宽截断符号偏移；名称必须在 NamePool 中有效且非空。
 
@@ -154,4 +135,4 @@ Native 符号由 `NativeSymbols = SymbolDeclarations - (Functions + Globals)` �
 
 `executable` 目录提供可执行镜像的内存模型 `ExecutableFile`，保存小端镜像字节、入口偏移、统一动态导入符号表 `DynamicImportSymbols`、动态导入符号地址重定位 `DynamicImportSymbolRelocations`、镜像基址地址重定位 `ImageBaseAddressRelocations`，以及记录导出名称和镜像内偏移的 `ExportSymbols`，并提供结构校验；模型不保存段表或字节序配置，接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。`ModuleLinker` 输出仍是逻辑模块，不生成上述镜像内容。
 
-当前尚未实现 lowering pass、指令解码、镜像磁盘读写、加载器、native adapter 或 VM 执行器；创建和链接逻辑模块不会自行生成指令字节，须显式调用发射器。编码方案见 [VM 指令编码格式讨论稿](VM-Instruction-Format.md)，运行时规划见 [VM 运行时设计](VM-Runtime.md)，参数、返回槽和可变参数调用预留区布局约定见 [VM 调用约定](VM-Calling-Convention.md)。
+当前已实现镜像发射、加载及部分指令执行；lowering pass、公共解码器、镜像磁盘读写、通用 native adapter 和完整 VM 执行仍待实现；创建和链接逻辑模块不会自行生成指令字节，须显式调用发射器。编码方案见 [VM 指令编码格式讨论稿](VM-Instruction-Format.md)，运行时规划见 [VM 运行时设计](VM-Runtime.md)，参数、返回槽和可变参数调用预留区布局约定见 [VM 调用约定](VM-Calling-Convention.md)。

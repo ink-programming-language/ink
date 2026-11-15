@@ -37,9 +37,9 @@ namespace ink::vm
         padOperand(static_cast<const AddressOperand &>(Operand), InstructionOffset);
         break;
       case OperandKind::Immediate:
-        if (Instruction.getOpcode() == Opcode::Calli)
+        if (Instruction.getOpcode() == Opcode::Calli || Instruction.getOpcode() == Opcode::Jmpi)
         {
-          padCallTarget(static_cast<const ImmediateOperand &>(Operand), InstructionOffset);
+          padPCRelativeTarget(static_cast<const ImmediateOperand &>(Operand), InstructionOffset);
         }
         else if (Instruction.getOpcode() == Opcode::CallNativei)
         {
@@ -57,7 +57,7 @@ namespace ink::vm
     }
   }
 
-  void InstructionEmitter::padCallTarget(const ImmediateOperand &Operand, std::uint64_t InstructionOffset)
+  void InstructionEmitter::padPCRelativeTarget(const ImmediateOperand &Operand, std::uint64_t InstructionOffset)
   {
     if (const auto Bits = Operand.bits())
     {
@@ -66,7 +66,8 @@ namespace ink::vm
     }
 
     const auto Symbol = Operand.getSymbol();
-    REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "call", "VM call target name must be registered and nonempty");
+    REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "PC-relative target", "VM function target name must be registered and nonempty");
+    REPORT_ICE_IF(*Operand.getByteOffset() != 0, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "PC-relative target", "VM function target must have a zero symbol byte offset");
     if (const auto Position = Context.resolvedSymbolOffset(*Symbol))
     {
       const auto Bits = Context.resolveRegisterRelativeOffset(RegisterId::PC, *Position, 0, InstructionOffset);
@@ -74,7 +75,7 @@ namespace ink::vm
       return;
     }
 
-    REPORT_ICE_IF(!Context.hasUnResolvedSymbol(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "call", "VM call target has no resolved image offset or declaration");
+    REPORT_ICE_IF(!Context.hasUnResolvedSymbol(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "PC-relative target", "VM function target has no resolved image offset or declaration");
     Context.addStaticRelocation({Context.byteSize(), *Symbol, InstructionOffset, 0, RegisterId::PC});
     Context.padZero(8);
   }

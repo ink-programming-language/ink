@@ -82,7 +82,7 @@ namespace ink::vm::test
       else
       {
         static_assert(std::is_same_v<OperandType, ImmediateOperand>);
-        if constexpr (Operation == Opcode::Calli || Operation == Opcode::CallNativei)
+        if constexpr (Operation == Opcode::Calli || Operation == Opcode::CallNativei || Operation == Opcode::Jmpi)
         {
           return ImmediateOperand(linkName(Operation == Opcode::CallNativei ? "link.registered.native" : "link.registered.function"));
         }
@@ -264,7 +264,7 @@ namespace ink::vm::test
     auto &Later = Function.createBasicBlock(SharedName);
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Entry);
-    Builder.create<Opcode::Jne>(&Later);
+    Builder.create<Opcode::Jmp>(&Later);
     Builder.create<Opcode::Jmp>(&Entry);
     Builder.setInsertPoint(Later);
     Builder.create<Opcode::Jmp>(&Entry);
@@ -273,10 +273,10 @@ namespace ink::vm::test
     const auto &OutputFunction = *Result->functions().begin();
     const auto &OutputEntry = *OutputFunction.basicBlocks().begin();
     const auto &OutputLater = *std::next(OutputFunction.basicBlocks().begin());
-    EXPECT_EQ(static_cast<const MachineJneInstruction &>(instructionAt(OutputEntry, 0)).getTarget(), &OutputLater);
+    EXPECT_EQ(static_cast<const MachineJmpInstruction &>(instructionAt(OutputEntry, 0)).getTarget(), &OutputLater);
     EXPECT_EQ(static_cast<const MachineJmpInstruction &>(instructionAt(OutputEntry, 1)).getTarget(), &OutputEntry);
     EXPECT_EQ(static_cast<const MachineJmpInstruction &>(instructionAt(OutputLater, 0)).getTarget(), &OutputEntry);
-    EXPECT_EQ(static_cast<const MachineJneInstruction &>(instructionAt(Entry, 0)).getTarget(), &Later);
+    EXPECT_EQ(static_cast<const MachineJmpInstruction &>(instructionAt(Entry, 0)).getTarget(), &Later);
   }
 
   // Every registered opcode survives linking with its operands, function symbols and output-owned block references intact.
@@ -288,7 +288,7 @@ namespace ink::vm::test
     Input.declareSymbol(linkName("link.registered.native"), MachineSymbolKind::Function);
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Block);
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) appendRegisteredInstruction<Opcode::Kind>(Builder, Block, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{});
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) appendRegisteredInstruction<Opcode::Kind>(Builder, Block, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{});
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
     const auto Result = link({&Input});
@@ -311,7 +311,7 @@ namespace ink::vm::test
     }
   }
 
-  // Register destinations require plain BP/SP, while explicit sources reject EFLAGS and undefined identifiers.
+  // Register destinations require plain BP/SP, while explicit sources reject undefined identifiers starting at encoding 0x04.
   TEST(VMModuleLinkerTest, RejectsInvalidRegisterDestinationsAndSources)
   {
     const std::array<std::pair<RegisterOperand, RegisterOperand>, 8> InvalidOperands = {{
@@ -319,9 +319,9 @@ namespace ink::vm::test
         {RegisterOperand(RegisterId::ZERO), RegisterOperand(RegisterId::SP, -8)},
         {RegisterOperand(RegisterId::BP, std::numeric_limits<std::int64_t>::min()), RegisterOperand(RegisterId::PC, 8)},
         {RegisterOperand(RegisterId::SP, std::numeric_limits<std::int64_t>::max()), RegisterOperand(RegisterId::BP, -8)},
-        {RegisterOperand(RegisterId::EFLAGS), RegisterOperand(RegisterId::PC, 8)},
+        {RegisterOperand(static_cast<RegisterId>(0x04)), RegisterOperand(RegisterId::PC, 8)},
         {RegisterOperand(static_cast<RegisterId>(255)), RegisterOperand(RegisterId::SP, -8)},
-        {RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::EFLAGS, -8)},
+        {RegisterOperand(RegisterId::BP), RegisterOperand(static_cast<RegisterId>(0x04), -8)},
         {RegisterOperand(RegisterId::SP), RegisterOperand(static_cast<RegisterId>(255), 8)},
     }};
     for (const auto &[Destination, Source] : InvalidOperands)
@@ -348,7 +348,7 @@ namespace ink::vm::test
     Builder.setInsertPoint(Block);
     Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::ZERO), ImmediateOperand(1));
     Builder.create<Opcode::Store64m>(AddressOperand(RegisterId::ZERO, 4096), AddressOperand(RegisterId::ZERO, -8));
-    Builder.create<Opcode::Cmp64rr>(RegisterOperand(RegisterId::ZERO, 16), RegisterOperand(RegisterId::ZERO));
+    Builder.create<Opcode::Add64rrr>(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::ZERO, 16), RegisterOperand(RegisterId::ZERO));
     const auto Result = link({&Input});
     ASSERT_NE(Result, nullptr);
     const auto &OutputBlock = *Result->functions().begin()->basicBlocks().begin();
@@ -360,10 +360,10 @@ namespace ink::vm::test
     EXPECT_EQ(Store.getDestination().getByteOffset(), 4096);
     EXPECT_EQ(Store.getSource().getRegister(), RegisterId::ZERO);
     EXPECT_EQ(Store.getSource().getByteOffset(), -8);
-    const auto &Compare = static_cast<const MachineCmp64rrInstruction &>(instructionAt(OutputBlock, 2));
-    EXPECT_EQ(Compare.getLHS().getRegister(), RegisterId::ZERO);
-    EXPECT_EQ(Compare.getLHS().getByteOffset(), 16);
-    EXPECT_EQ(Compare.getRHS().getRegister(), RegisterId::ZERO);
+    const auto &RegisterAdd = static_cast<const MachineAdd64rrrInstruction &>(instructionAt(OutputBlock, 2));
+    EXPECT_EQ(RegisterAdd.getLHS().getRegister(), RegisterId::ZERO);
+    EXPECT_EQ(RegisterAdd.getLHS().getByteOffset(), 16);
+    EXPECT_EQ(RegisterAdd.getRHS().getRegister(), RegisterId::ZERO);
   }
 
   // Repeated private names remain distinct and both symbol operand forms follow their own module's definition.

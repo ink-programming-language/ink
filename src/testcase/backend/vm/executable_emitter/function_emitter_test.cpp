@@ -154,8 +154,8 @@ namespace ink::vm::test
     MachineBasicBlock &Self = Function.createBasicBlock();
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(First);
-    Builder.create<Opcode::Je>(&Later);
-    Builder.create<Opcode::Jne>(&Later);
+    Builder.create<Opcode::Jmp>(&Later);
+    Builder.create<Opcode::Jmp>(&Later);
     Builder.create<Opcode::Jmp>(&First);
     Builder.setInsertPoint(Later);
     Builder.create<Opcode::Jmp>(&First);
@@ -168,10 +168,10 @@ namespace ink::vm::test
     EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 0U);
     EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Later), 33U);
     EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Self), 44U);
-    EXPECT_EQ(readLittleEndian(Context, 0, 2), 0x002CU);
+    EXPECT_EQ(readLittleEndian(Context, 0, 2), 0x002BU);
     EXPECT_EQ(Context.getExecutable().getImage()[2], static_cast<std::uint8_t>(RegisterId::PC));
     EXPECT_EQ(readLittleEndian(Context, 3), 33U);
-    EXPECT_EQ(readLittleEndian(Context, 11, 2), 0x002DU);
+    EXPECT_EQ(readLittleEndian(Context, 11, 2), 0x002BU);
     EXPECT_EQ(Context.getExecutable().getImage()[13], static_cast<std::uint8_t>(RegisterId::PC));
     EXPECT_EQ(readLittleEndian(Context, 14), 22U);
     EXPECT_EQ(readLittleEndian(Context, 22, 2), 0x002BU);
@@ -198,7 +198,7 @@ namespace ink::vm::test
     MachineBasicBlock &Target = Function.createBasicBlock();
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Source);
-    Builder.create<Opcode::Je>(&Target);
+    Builder.create<Opcode::Jmp>(&Target);
     Builder.create<Opcode::Jmp>(&Target);
     Builder.setInsertPoint(Target);
     Builder.create<Opcode::Ret>();

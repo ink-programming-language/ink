@@ -53,7 +53,6 @@ namespace ink::vm
     *reinterpret_cast<std::uint8_t **>(SET_REGISTER(RegisterId::BP, Frame)) = static_cast<std::uint8_t *>(StackAllocation.get());
     *reinterpret_cast<std::uint8_t **>(SET_REGISTER(RegisterId::SP, Frame)) = static_cast<std::uint8_t *>(StackAllocation.get());
     *reinterpret_cast<std::uint8_t **>(SET_REGISTER(RegisterId::PC, Frame)) = const_cast<std::uint8_t *>(static_cast<const std::uint8_t *>(Entry));
-    *reinterpret_cast<vm::EFlags *>(SET_REGISTER(RegisterId::EFLAGS, Frame)) = 0;
     return dispatch();
   }
 

@@ -207,6 +207,85 @@ namespace ink::vm::test
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
+  // Immediate jumps encode forward, self and backward function entries relative to their own opcode without address relocations.
+  TEST(VMExecutableEmitterTest, EncodesPCRelativeImmediateJumpsAcrossFunctionBodies)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    auto &Names = core::NamePool::instance();
+    const auto FirstName = Names.intern("emitter-direct-jump-first");
+    const auto SecondName = Names.intern("emitter-direct-jump-second");
+    MachineModule Module;
+    ASSERT_TRUE(Module.createGlobalVariable(5, 1, {}, Names.intern("emitter-direct-jump-prefix")).has_value());
+    auto &First = Module.createFunction(FirstName).createBasicBlock();
+    auto &Second = Module.createFunction(SecondName).createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(First);
+    Builder.create<Opcode::Jmpi>(ImmediateOperand(SecondName));
+    Builder.create<Opcode::Jmpi>(ImmediateOperand(FirstName));
+    Builder.create<Opcode::Ret>();
+    Builder.setInsertPoint(Second);
+    Builder.create<Opcode::Jmpi>(ImmediateOperand(FirstName));
+    Builder.create<Opcode::Ret>();
+    ExecutableEmitter Emitter(Diagnostics);
+    const auto Executable = Emitter.emit(Module, FirstName, {});
+
+    ASSERT_EQ(Executable.byteSize(), 39U);
+    EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(FirstName), 5U);
+    EXPECT_EQ(Emitter.getContext().resolvedSymbolOffset(SecondName), 27U);
+    EXPECT_EQ(readLittleEndian(Executable, 5, 2), 0x003FU);
+    EXPECT_EQ(readLittleEndian(Executable, 7), 22U);
+    EXPECT_EQ(readLittleEndian(Executable, 15, 2), 0x003FU);
+    EXPECT_EQ(readLittleEndian(Executable, 17), static_cast<std::uint64_t>(-10));
+    EXPECT_EQ(readLittleEndian(Executable, 27, 2), 0x003FU);
+    EXPECT_EQ(readLittleEndian(Executable, 29), static_cast<std::uint64_t>(-22));
+    EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
+    EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+  }
+
+  // Register jumps keep their value operands, while memory jumps patch VM slot addresses and relocate native slot addresses.
+  TEST(VMExecutableEmitterTest, EncodesRegisterJumpsAndRelocatesMemoryJumpSlots)
+  {
+    const core::DiagnosticEngine Diagnostics;
+    const auto VMSlot = core::NamePool::instance().intern("emitter-jump-vm-slot");
+    const auto NativeSlot = core::NamePool::instance().intern("emitter-jump-native-slot");
+    MachineModule Module;
+    ASSERT_TRUE(Module.createGlobalVariable(8, 8, {}, VMSlot).has_value());
+    Module.declareSymbol(NativeSlot, MachineSymbolKind::GlobalVariable);
+    ExecutableEmitter Emitter(Diagnostics);
+    FunctionEmissionContext FunctionContext;
+    InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
+    Emitter.scanUnResolvedSymbol(Module);
+    Emitter.getContext().padZero(5);
+    Instructions.padInstruction(MachineJmprInstruction(RegisterOperand(RegisterId::PC, -8)));
+    Instructions.padInstruction(MachineJmpmInstruction(AddressOperand(VMSlot, 4)));
+    Instructions.padInstruction(MachineJmpmInstruction(AddressOperand(NativeSlot, -8)));
+    EXPECT_EQ(readLittleEndian(Emitter.getExecutable(), 19), 0U);
+    Emitter.padGlobals(Module);
+    Emitter.resolveStaticRelocations();
+
+    const auto &Executable = Emitter.getExecutable();
+    ASSERT_EQ(Executable.byteSize(), 48U);
+    EXPECT_EQ(readLittleEndian(Executable, 5, 2), 0x0040U);
+    EXPECT_EQ(Executable.getImage()[7], static_cast<std::uint8_t>(RegisterId::PC));
+    EXPECT_EQ(readLittleEndian(Executable, 8), static_cast<std::uint64_t>(-8));
+    EXPECT_EQ(readLittleEndian(Executable, 16, 2), 0x0041U);
+    EXPECT_EQ(Executable.getImage()[18], static_cast<std::uint8_t>(RegisterId::PC));
+    EXPECT_EQ(readLittleEndian(Executable, 19), 28U);
+    EXPECT_EQ(readLittleEndian(Executable, 27, 2), 0x0041U);
+    EXPECT_EQ(Executable.getImage()[29], static_cast<std::uint8_t>(RegisterId::ZERO));
+    EXPECT_EQ(readLittleEndian(Executable, 30), 0U);
+    ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 1U);
+    EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, NativeSlot);
+    ASSERT_EQ(Executable.getDynamicImportSymbolRelocations().size(), 1U);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].ImageOffset, 30U);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex, 0U);
+    EXPECT_EQ(Executable.getDynamicImportSymbolRelocations()[0].Addend, -8);
+    EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
+    ExecutableFileValidator::validate(Executable, Diagnostics);
+  }
+
   // An unresolved direct VM call reserves exactly eight target bytes and patches them only during module finalization.
   TEST(VMExecutableEmitterTest, DefersForwardDirectVMCallUntilModuleFinalization)
   {
@@ -282,7 +361,7 @@ namespace ink::vm::test
     ExecutableFileValidator::validate(Executable, Diagnostics);
   }
 
-  // Numeric direct calls preserve signed VM displacement bits and the largest native u32 index at their opcode-specific widths.
+  // Numeric control transfers preserve signed VM displacement bits and the largest native u32 index at their opcode-specific widths.
   TEST(VMExecutableEmitterTest, PreservesNumericDirectCallBoundaryValues)
   {
     const core::DiagnosticEngine Diagnostics;
@@ -291,13 +370,16 @@ namespace ink::vm::test
     InstructionEmitter Instructions(Emitter.getContext(), FunctionContext);
     Instructions.padInstruction(MachineCalliInstruction(ImmediateOperand(static_cast<std::uint64_t>(-16))));
     Instructions.padInstruction(MachineCallNativeiInstruction(ImmediateOperand(std::numeric_limits<std::uint32_t>::max())));
+    Instructions.padInstruction(MachineJmpiInstruction(ImmediateOperand(std::uint64_t{1} << 63)));
 
     const ExecutableFile &Executable = Emitter.getExecutable();
-    ASSERT_EQ(Executable.byteSize(), 16U);
+    ASSERT_EQ(Executable.byteSize(), 26U);
     EXPECT_EQ(readLittleEndian(Executable, 0, 2), 0x003BU);
     EXPECT_EQ(readLittleEndian(Executable, 2), static_cast<std::uint64_t>(-16));
     EXPECT_EQ(readLittleEndian(Executable, 10, 2), 0x003CU);
     EXPECT_EQ(readLittleEndian(Executable, 12, 4), std::numeric_limits<std::uint32_t>::max());
+    EXPECT_EQ(readLittleEndian(Executable, 16, 2), 0x003FU);
+    EXPECT_EQ(readLittleEndian(Executable, 18), std::uint64_t{1} << 63);
     EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
     EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
     EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
@@ -409,8 +491,8 @@ namespace ink::vm::test
 
       const ExecutableFile &Executable = Emitter.getExecutable();
       ASSERT_EQ(Executable.byteSize(), 18U);
-      EXPECT_EQ(Executable.getImage()[0], static_cast<std::uint8_t>(RegisterId::ZERO));
-      EXPECT_EQ(Executable.getImage()[9], static_cast<std::uint8_t>(RegisterId::ZERO));
+      EXPECT_EQ(Executable.getImage()[0], 0x03);
+      EXPECT_EQ(Executable.getImage()[9], 0x03);
       EXPECT_EQ(readLittleEndian(Executable, 1), static_cast<std::uint64_t>(Offset));
       EXPECT_EQ(readLittleEndian(Executable, 10), static_cast<std::uint64_t>(Offset));
       EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());

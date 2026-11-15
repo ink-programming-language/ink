@@ -31,7 +31,8 @@ namespace ink::vm::test
     }
 
     template <Opcode Operation, typename... ValueTypes>
-    concept CanBuildVMInstruction = requires(MachineInstructionBuilder &Builder, ValueTypes &&...Values) {
+    concept CanBuildVMInstruction = requires(MachineInstructionBuilder &Builder, ValueTypes &&...Values)
+    {
       { Builder.create<Operation>(std::forward<ValueTypes>(Values)...) } -> std::same_as<MachineInstructionImpl<Operation> &>;
       { Builder.tryCreate<Operation>(std::forward<ValueTypes>(Values)...) } -> std::same_as<MachineInstructionImpl<Operation> *>;
     };
@@ -319,7 +320,7 @@ namespace ink::vm::test
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Block);
     std::size_t ExpectedCount = 0;
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition)           \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category)           \
   buildRegisteredInstruction<Opcode::Kind>(Builder, Block, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{}); \
   ++ExpectedCount;
 #include "ink/backend/vm/instruction/opcode.def"
@@ -337,10 +338,10 @@ namespace ink::vm::test
     MachineInstructionBuilder Builder;
     Builder.setInsertPoint(Entry);
     MachineBasicBlock *Target = &Exit;
-    auto *Conditional = Builder.tryCreate<Opcode::Je>(Target);
+    auto *Jump = Builder.tryCreate<Opcode::Jmp>(Target);
     auto *Loop = Builder.tryCreate<Opcode::Jmp>(&Entry);
-    auto *Wrapped = Builder.tryCreate<Opcode::Jne>(BasicBlockOperand(&Exit));
-    ASSERT_NE(Conditional, nullptr);
+    auto *Wrapped = Builder.tryCreate<Opcode::Jmp>(BasicBlockOperand(&Exit));
+    ASSERT_NE(Jump, nullptr);
     ASSERT_NE(Loop, nullptr);
     ASSERT_NE(Wrapped, nullptr);
     Target = &Entry;
@@ -348,13 +349,11 @@ namespace ink::vm::test
     {
       Function.createBasicBlock();
     }
-    EXPECT_EQ(Conditional->getTarget(), &Exit);
+    EXPECT_EQ(Jump->getTarget(), &Exit);
     EXPECT_EQ(Loop->getTarget(), &Entry);
     EXPECT_EQ(Wrapped->getTarget(), &Exit);
-    EXPECT_EQ(Conditional->getTargetOperand().getBlock(), &Exit);
-    EXPECT_EQ(Conditional->parent(), &Entry);
-    EXPECT_EQ(Conditional->readEFlagsMask(), eflagMask(EFlag::ZF));
-    EXPECT_TRUE(Conditional->isConditionalBranch());
+    EXPECT_EQ(Jump->getTargetOperand().getBlock(), &Exit);
+    EXPECT_EQ(Jump->parent(), &Entry);
     EXPECT_TRUE(Loop->isTerminator());
     Builder.setInsertPoint(Exit);
     auto &Return = Builder.create<Opcode::Ret>();
@@ -363,8 +362,49 @@ namespace ink::vm::test
     EXPECT_TRUE(Return.isTerminator());
     EXPECT_EQ(Return.operandCount(), 0U);
     EXPECT_EQ(Return.getOperand(0), nullptr);
-    EXPECT_EQ(Return.readEFlagsMask(), 0U);
-    EXPECT_EQ(Return.writtenEFlagsMask(), 0U);
+  }
+
+  // Explicit jumps can be built in a detached block because their operands are values rather than function-owned block targets.
+  TEST(VMMachineInstructionBuilderTest, BuildsValueJumpTargetsWithoutBlockOwnershipChecks)
+  {
+    MachineBasicBlock Block;
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Block);
+    auto &Return = Builder.create<Opcode::Ret>();
+    ASSERT_TRUE(Builder.setInsertPoint(Return));
+    ImmediateOperand Immediate(std::numeric_limits<std::uint64_t>::max());
+    RegisterOperand Register(RegisterId::PC, -11);
+    AddressOperand Memory(RegisterId::BP, 24);
+    const auto &ImmediateJump = Builder.create<Opcode::Jmpi>(Immediate);
+    const auto *RegisterJump = Builder.tryCreate<Opcode::Jmpr>(Register);
+    const auto &MemoryJump = Builder.create<Opcode::Jmpm>(Memory);
+    ASSERT_NE(RegisterJump, nullptr);
+    Immediate = ImmediateOperand(0);
+    Register = RegisterOperand(RegisterId::ZERO);
+    Memory = AddressOperand(RegisterId::SP);
+    EXPECT_EQ(ImmediateJump.getTarget().bits(), std::numeric_limits<std::uint64_t>::max());
+    EXPECT_EQ(RegisterJump->getTarget().getRegister(), RegisterId::PC);
+    EXPECT_EQ(RegisterJump->getTarget().getByteOffset(), -11);
+    EXPECT_EQ(MemoryJump.getTarget().getRegister(), RegisterId::BP);
+    EXPECT_EQ(MemoryJump.getTarget().getByteOffset(), 24);
+    EXPECT_EQ(ImmediateJump.parent(), &Block);
+    EXPECT_EQ(RegisterJump->parent(), &Block);
+    EXPECT_EQ(MemoryJump.parent(), &Block);
+    EXPECT_EQ(Builder.getInsertBefore(), &Return);
+    const std::vector<const MachineInstruction *> Expected{&ImmediateJump, RegisterJump, &MemoryJump, &Return};
+    EXPECT_EQ(blockInstructionAddresses(Block), Expected);
+    EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(&Block), nullptr);
+    Builder.clearInsertPoint();
+    EXPECT_EQ(Builder.tryCreate<Opcode::Jmpi>(Immediate), nullptr);
+    EXPECT_EQ(Builder.tryCreate<Opcode::Jmpr>(Register), nullptr);
+    EXPECT_EQ(Builder.tryCreate<Opcode::Jmpm>(Memory), nullptr);
+    EXPECT_EQ(Block.instructionCount(), 4U);
+    static_assert(CanBuildVMInstruction<Opcode::Jmpi, ImmediateOperand>);
+    static_assert(CanBuildVMInstruction<Opcode::Jmpr, RegisterOperand>);
+    static_assert(CanBuildVMInstruction<Opcode::Jmpm, AddressOperand>);
+    static_assert(!CanBuildVMInstruction<Opcode::Jmpi, MachineBasicBlock *>);
+    static_assert(!CanBuildVMInstruction<Opcode::Jmpr, BasicBlockOperand>);
+    static_assert(!CanBuildVMInstruction<Opcode::Jmpm, RegisterOperand>);
   }
 
   // Calls copy direct targets and pointer-slot addresses independently while preserving the insertion anchor for following instructions.
@@ -425,8 +465,8 @@ namespace ink::vm::test
     for (const MachineBasicBlock *Target : InvalidTargets)
     {
       EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(Target), nullptr);
-      EXPECT_EQ(Builder.tryCreate<Opcode::Jne>(Target), nullptr);
-      EXPECT_EQ(Builder.tryCreate<Opcode::Je>(BasicBlockOperand(Target)), nullptr);
+      EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(Target), nullptr);
+      EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(BasicBlockOperand(Target)), nullptr);
     }
     EXPECT_EQ(Entry.instructionCount(), 1U);
     EXPECT_EQ(Builder.getInsertBlock(), &Entry);

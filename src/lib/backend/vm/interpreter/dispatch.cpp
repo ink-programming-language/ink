@@ -96,31 +96,46 @@ namespace ink::vm
         Destination = reinterpret_cast<std::uint8_t *>(static_cast<std::uintptr_t>(DestinationAddress));
         break;
       }
+      case Opcode::Jmp:
+      case Opcode::Jmpr:
+      {
+        const auto TargetRegister = static_cast<RegisterId>(Instruction[2]);
+        std::uint64_t Target;
+        std::uint64_t Offset;
+        std::memcpy(&Target, GET_REGISTER(TargetRegister, Frame), sizeof(Target));
+        std::memcpy(&Offset, Instruction + 3, sizeof(Offset));
+        Target += Offset;
+        std::memcpy(SET_REGISTER(RegisterId::PC, Frame), &Target, sizeof(Target));
+        continue;
+      }
+      case Opcode::Jmpi:
+      {
+        std::uint64_t Offset;
+        std::memcpy(&Offset, Instruction + 2, sizeof(Offset));
+        const auto Target = InstructionAddress + Offset;
+        std::memcpy(SET_REGISTER(RegisterId::PC, Frame), &Target, sizeof(Target));
+        continue;
+      }
+      case Opcode::Jmpm:
+      {
+        const auto TargetRegister = static_cast<RegisterId>(Instruction[2]);
+        std::uint64_t Address;
+        std::uint64_t Offset;
+        std::uint64_t Target;
+        std::memcpy(&Address, GET_REGISTER(TargetRegister, Frame), sizeof(Address));
+        std::memcpy(&Offset, Instruction + 3, sizeof(Offset));
+        Address += Offset;
+        std::memcpy(&Target, reinterpret_cast<const void *>(static_cast<std::uintptr_t>(Address)), sizeof(Target));
+        std::memcpy(SET_REGISTER(RegisterId::PC, Frame), &Target, sizeof(Target));
+        continue;
+      }
       case Opcode::Ret:
         return true;
       default:
         return Fail("unsupported instruction opcode");
       }
       const auto Result = Left + Right;
-      vm::EFlags Flags = 0;
-      if (Result < Left)
-      {
-        Flags |= eflagMask(EFlag::CF);
-      }
-      if (Result == 0)
-      {
-        Flags |= eflagMask(EFlag::ZF);
-      }
-      if ((Result >> 63) != 0)
-      {
-        Flags |= eflagMask(EFlag::SF);
-      }
-      if (((~(Left ^ Right) & (Left ^ Result)) >> 63) != 0)
-      {
-        Flags |= eflagMask(EFlag::OF);
-      }
       std::memcpy(Destination, &Result, sizeof(Result));
-      *reinterpret_cast<vm::EFlags *>(SET_REGISTER(RegisterId::EFLAGS, Frame)) = Flags;
       const auto *NextPC = Instruction + InstructionBytes;
       std::memcpy(SET_REGISTER(RegisterId::PC, Frame), &NextPC, sizeof(NextPC));
     }

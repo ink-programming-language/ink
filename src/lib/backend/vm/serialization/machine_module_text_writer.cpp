@@ -218,7 +218,7 @@ namespace ink::vm
               return false;
             }
           }
-          if (!Instruction.isCall() || Instruction.getOperand(0)->getKind() != OperandKind::Immediate)
+          if ((!Instruction.isCall() && Instruction.getOpcode() != Opcode::Jmpi) || Instruction.getOperand(0)->getKind() != OperandKind::Immediate)
           {
             return true;
           }
@@ -366,7 +366,7 @@ namespace ink::vm
           const std::string_view Name = getRegisterName(Register);
           if (!isArithmeticRegister(Register))
           {
-            Error = Name == "InvalidRegister" ? "instruction contains an unknown register ID" : "EFLAGS is only accessed implicitly by instructions";
+            Error = "instruction contains an unknown register ID";
             return false;
           }
           Text += Name;

@@ -281,6 +281,8 @@ namespace ink::vm::test
     Builder.create<Opcode::Calli>(ImmediateOperand(std::numeric_limits<std::uint64_t>::max()));
     Builder.create<Opcode::CallNativei>(ImmediateOperand(0));
     Builder.create<Opcode::CallNativei>(ImmediateOperand(std::numeric_limits<std::uint32_t>::max()));
+    Builder.create<Opcode::Jmpi>(ImmediateOperand(0));
+    Builder.create<Opcode::Jmpi>(ImmediateOperand(std::numeric_limits<std::uint64_t>::max()));
     const auto Output = linkCallModules({&Input});
     ASSERT_NE(Output, nullptr);
     const auto &Function = *Output->functions().begin();
@@ -288,6 +290,8 @@ namespace ink::vm::test
     EXPECT_EQ(static_cast<const MachineCalliInstruction &>(callInstructionAt(Function, 1)).getTarget().bits(), std::numeric_limits<std::uint64_t>::max());
     EXPECT_EQ(static_cast<const MachineCallNativeiInstruction &>(callInstructionAt(Function, 2)).getTarget().bits(), 0U);
     EXPECT_EQ(static_cast<const MachineCallNativeiInstruction &>(callInstructionAt(Function, 3)).getTarget().bits(), std::numeric_limits<std::uint32_t>::max());
+    EXPECT_EQ(static_cast<const MachineJmpiInstruction &>(callInstructionAt(Function, 4)).getTarget().bits(), 0U);
+    EXPECT_EQ(static_cast<const MachineJmpiInstruction &>(callInstructionAt(Function, 5)).getTarget().bits(), std::numeric_limits<std::uint64_t>::max());
   }
 
   // Native immediate indices that require more than four bytes fail linking instead of being silently truncated.
@@ -401,5 +405,88 @@ namespace ink::vm::test
         expectCallLinkFailure({&Input});
       }
     }
+  }
+  // Immediate jumps resolve VM functions across modules while register jumps preserve their address-value operands.
+  TEST(VMModuleLinkerJumpTest, ResolvesFunctionEntriesAndClonesRegisterJumpTargets)
+  {
+    const auto TargetName = callName("jump.external.function");
+    MachineModule Caller;
+    MachineModule Callee;
+    auto &CallerBlock = Caller.createFunction(callName("jump.external.caller"), MachineSymbolLinkage::External).createBasicBlock();
+    Callee.createFunction(TargetName, MachineSymbolLinkage::External).createBasicBlock();
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(CallerBlock);
+    Builder.create<Opcode::Jmpi>(ImmediateOperand(TargetName));
+    Builder.create<Opcode::Jmpr>(RegisterOperand(RegisterId::PC, -8));
+
+    const auto Output = linkCallModules({&Caller, &Callee});
+
+    ASSERT_NE(Output, nullptr);
+    ASSERT_EQ(Output->functionCount(), 2U);
+    const auto &Function = *Output->functions().begin();
+    EXPECT_EQ(static_cast<const MachineJmpiInstruction &>(callInstructionAt(Function, 0)).getTarget().getSymbol(), TargetName);
+    const auto &RegisterTarget = static_cast<const MachineJmprInstruction &>(callInstructionAt(Function, 1)).getTarget();
+    EXPECT_EQ(RegisterTarget.getRegister(), RegisterId::PC);
+    EXPECT_EQ(RegisterTarget.getByteOffset(), -8);
+  }
+
+  // Immediate jump symbols reject VM data, native declarations, missing definitions and nonzero function addends.
+  TEST(VMModuleLinkerJumpTest, RejectsNonFunctionAndDisplacedImmediateJumpSymbols)
+  {
+    for (unsigned Scenario = 0; Scenario != 5; ++Scenario)
+    {
+      SCOPED_TRACE(Scenario);
+      const auto Target = callName("jump.invalid.function.target");
+      MachineModule Module;
+      if (Scenario == 0)
+      {
+        ASSERT_TRUE(Module.createGlobalVariable(8, 8, {}, Target).has_value());
+      }
+      else if (Scenario == 1)
+      {
+        Module.declareSymbol(Target, MachineSymbolKind::Function);
+      }
+      else if (Scenario == 2)
+      {
+        Module.declareSymbol(Target, MachineSymbolKind::GlobalVariable);
+      }
+      else if (Scenario == 3)
+      {
+        Module.createFunction(Target);
+      }
+      MachineInstructionBuilder Builder;
+      Builder.setInsertPoint(Module.createFunction().createBasicBlock());
+      Builder.create<Opcode::Jmpi>(ImmediateOperand(Target, Scenario == 3 ? 1 : 0));
+      expectCallLinkFailure({&Module});
+    }
+  }
+
+  // Memory jumps bind the referenced pointer slot as data and rewrite Local names without requiring the slot to be a function.
+  TEST(VMModuleLinkerJumpTest, RewritesMemoryJumpSlotSymbolsWithSignedOffsets)
+  {
+    const auto LocalSlot = callName("jump.memory.local.slot");
+    const auto NativeSlot = callName("jump.memory.native.slot");
+    MachineModule Module;
+    ASSERT_TRUE(Module.createGlobalVariable(16, 8, {}, LocalSlot).has_value());
+    Module.declareSymbol(NativeSlot, MachineSymbolKind::GlobalVariable);
+    MachineInstructionBuilder Builder;
+    Builder.setInsertPoint(Module.createFunction().createBasicBlock());
+    Builder.create<Opcode::Jmpm>(AddressOperand(LocalSlot, 8));
+    Builder.create<Opcode::Jmpm>(AddressOperand(NativeSlot, -8));
+
+    const auto Output = linkCallModules({&Module});
+
+    ASSERT_NE(Output, nullptr);
+    ASSERT_EQ(Output->globalVariableCount(), 1U);
+    const auto LinkedSlot = Output->globalVariables().begin()->name();
+    EXPECT_NE(LinkedSlot, LocalSlot);
+    const auto &Function = *Output->functions().begin();
+    const auto &LocalTarget = static_cast<const MachineJmpmInstruction &>(callInstructionAt(Function, 0)).getTarget();
+    const auto &NativeTarget = static_cast<const MachineJmpmInstruction &>(callInstructionAt(Function, 1)).getTarget();
+    EXPECT_EQ(LocalTarget.getSymbol(), LinkedSlot);
+    EXPECT_EQ(LocalTarget.getByteOffset(), 8);
+    EXPECT_EQ(NativeTarget.getSymbol(), NativeSlot);
+    EXPECT_EQ(NativeTarget.getByteOffset(), -8);
+    EXPECT_EQ(static_cast<const MachineJmpmInstruction &>(callInstructionAt(*Module.functions().begin())).getTarget().getSymbol(), LocalSlot);
   }
 } // namespace ink::vm::test

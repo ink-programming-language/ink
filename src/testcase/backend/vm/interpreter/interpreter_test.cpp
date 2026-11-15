@@ -49,7 +49,6 @@ namespace ink::vm::test
       EXPECT_EQ(readAddressRegister(Actual, RegisterId::BP), readAddressRegister(Expected, RegisterId::BP));
       EXPECT_EQ(readAddressRegister(Actual, RegisterId::SP), readAddressRegister(Expected, RegisterId::SP));
       EXPECT_EQ(readAddressRegister(Actual, RegisterId::PC), readAddressRegister(Expected, RegisterId::PC));
-      EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Actual)), *reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Expected)));
       EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, Actual)), *reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, Expected)));
     }
 
@@ -117,13 +116,15 @@ namespace ink::vm::test
   static_assert(std::is_same_v<decltype(std::declval<const Interpreter &>().getFrame()), const Frame &>);
   static_assert(std::is_same_v<decltype(std::declval<Interpreter &>().execute(std::declval<const void *>())), bool>);
 
-  // Construction leaves address registers empty, while execution binds the default two-MiB stack and clears flags.
+  // Construction leaves address registers empty, while execution binds the default two-MiB stack.
   TEST(VMInterpreterTest, ExecuteInitializesDefaultStackAndRegisters)
   {
     core::test::ScopedEnvironmentVariable Environment("INK_VM_STACK_BYTES");
     ASSERT_TRUE(Environment.set(nullptr));
     Interpreter VM;
     const auto InitialBindings = VM.getFrame().Register;
+    ASSERT_EQ(InitialBindings.size(), 4U);
+    EXPECT_EQ(InitialBindings[3], GET_REGISTER(RegisterId::ZERO, VM.getFrame()));
     EXPECT_NE(GET_REGISTER(RegisterId::BP, VM.getFrame()), nullptr);
     EXPECT_NE(GET_REGISTER(RegisterId::SP, VM.getFrame()), nullptr);
     EXPECT_NE(GET_REGISTER(RegisterId::PC, VM.getFrame()), nullptr);
@@ -144,7 +145,6 @@ namespace ink::vm::test
     EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::BP), Stack);
     EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::SP), Stack);
     EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::PC), VM.getCodeSegment().data());
-    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), 0U);
     EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, CallFrame)), 0U);
   }
 
@@ -167,7 +167,6 @@ namespace ink::vm::test
     auto &CallFrame = VM.getFrame();
     writeAddressRegister(CallFrame, RegisterId::BP, Stack.data() + 8);
     writeAddressRegister(CallFrame, RegisterId::SP, Stack.data() + 24);
-    *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, CallFrame)) = ArithmeticEFlagsMask;
     const auto InitialRegisters = CallFrame.Register;
     const Frame InitialFrame = CallFrame;
 
@@ -176,7 +175,6 @@ namespace ink::vm::test
     EXPECT_TRUE(std::ranges::equal(Stack, Expected));
     EXPECT_EQ(CallFrame.Register, InitialRegisters);
     expectFrameValues(CallFrame, InitialFrame);
-    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), ArithmeticEFlagsMask);
   }
 
   // Repeated initialization retains the original stack allocation, stack bytes, and current registers even when configuration changes.
@@ -195,7 +193,6 @@ namespace ink::vm::test
     writeAddressRegister(CallFrame, RegisterId::BP, Stack + 8);
     writeAddressRegister(CallFrame, RegisterId::SP, Stack + 24);
     writeAddressRegister(CallFrame, RegisterId::PC, &Code);
-    *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, CallFrame)) = ArithmeticEFlagsMask;
     const auto InitialRegisters = CallFrame.Register;
     const Frame InitialFrame = CallFrame;
     ASSERT_TRUE(Environment.set("128"));
@@ -205,11 +202,10 @@ namespace ink::vm::test
     EXPECT_EQ(Stack[0], 0x6D);
     EXPECT_EQ(CallFrame.Register, InitialRegisters);
     expectFrameValues(CallFrame, InitialFrame);
-    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), ArithmeticEFlagsMask);
   }
 
-  // Each execution reuses the original stack and its bytes while resetting address registers and flags despite configuration changes.
-  TEST(VMInterpreterTest, ExecuteResetsStackRegistersAndFlagsForEachEntry)
+  // Each execution reuses the original stack and its bytes while resetting address registers despite configuration changes.
+  TEST(VMInterpreterTest, ExecuteResetsStackRegistersForEachEntry)
   {
     core::test::ScopedEnvironmentVariable Environment("INK_VM_STACK_BYTES");
     ASSERT_TRUE(Environment.set("64"));
@@ -226,7 +222,6 @@ namespace ink::vm::test
     writeAddressRegister(CallFrame, RegisterId::BP, Stack + 8);
     writeAddressRegister(CallFrame, RegisterId::SP, Stack + 24);
     writeAddressRegister(CallFrame, RegisterId::PC, nullptr);
-    *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, CallFrame)) = ArithmeticEFlagsMask;
     ASSERT_TRUE(Environment.set("128"));
 
     ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + 2));
@@ -236,7 +231,6 @@ namespace ink::vm::test
     EXPECT_EQ(Stack[0], 0x6D);
     EXPECT_EQ(Stack[63], 0xA5);
     EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::PC), VM.getCodeSegment().data() + 2);
-    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), 0U);
     EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, CallFrame)), 0U);
   }
 
@@ -253,7 +247,6 @@ namespace ink::vm::test
     ASSERT_NE(Stack, nullptr);
     writeAddressRegister(CallFrame, RegisterId::BP, Stack + 8);
     writeAddressRegister(CallFrame, RegisterId::SP, Stack + 24);
-    *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, CallFrame)) = ArithmeticEFlagsMask;
     const auto InitialRegisters = CallFrame.Register;
     const Frame InitialFrame = CallFrame;
     std::uint8_t Outside = 0;
@@ -271,7 +264,6 @@ namespace ink::vm::test
       EXPECT_FALSE(VM.execute(Entry));
       EXPECT_EQ(CallFrame.Register, InitialRegisters);
       expectFrameValues(CallFrame, InitialFrame);
-      EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), ArithmeticEFlagsMask);
       expectExecutionDiagnostic(Collector);
     }
     VM.getDiagnostics().removeConsumer(Collector);

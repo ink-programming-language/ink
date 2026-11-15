@@ -3,7 +3,6 @@
 #include "ink/backend/vm/instruction/operand.h"
 #include "ink/backend/vm/instruction/instruction_form.h"
 #include "ink/backend/vm/instruction/instruction_category.h"
-#include "ink/backend/vm/instruction/eflags.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -17,7 +16,7 @@ namespace ink::vm
 
   enum class Opcode : std::uint16_t
   {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) Kind = Encoding,
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) Kind = Encoding,
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
   };
@@ -37,7 +36,7 @@ namespace ink::vm
       {
         switch (Operation)
         {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
   case Opcode::Kind:                                                                                                    \
     return Spelling;
 #include "ink/backend/vm/instruction/opcode.def"
@@ -50,7 +49,7 @@ namespace ink::vm
       {
         switch (Operation)
         {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
   case Opcode::Kind:                                                                                                    \
     return Width;
 #include "ink/backend/vm/instruction/opcode.def"
@@ -63,7 +62,7 @@ namespace ink::vm
       {
         switch (Operation)
         {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
   case Opcode::Kind:                                                                                                    \
     return FormTraits<InstructionForm::Form>::OperandCount;
 #include "ink/backend/vm/instruction/opcode.def"
@@ -76,7 +75,7 @@ namespace ink::vm
       {
         switch (Operation)
         {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
   case Opcode::Kind:                                                                                                    \
     return InstructionCategory::Category;
 #include "ink/backend/vm/instruction/opcode.def"
@@ -85,37 +84,14 @@ namespace ink::vm
         return InstructionCategory::Load;
       }
 
-      constexpr ConditionCode branchCondition() const noexcept
-      {
-        switch (Operation)
-        {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Condition) \
-  case Opcode::Kind:                                                                                                    \
-    return ConditionCode::Condition;
-#include "ink/backend/vm/instruction/opcode.def"
-#undef OPCODE
-        }
-        return ConditionCode::None;
-      }
-
       constexpr bool hasDestination() const noexcept
       {
         return category() == InstructionCategory::Load || category() == InstructionCategory::Store || category() == InstructionCategory::Add;
       }
 
-      constexpr bool isCompare() const noexcept
-      {
-        return category() == InstructionCategory::Compare;
-      }
-
       constexpr bool isBranch() const noexcept
       {
         return category() == InstructionCategory::Branch;
-      }
-
-      constexpr bool isConditionalBranch() const noexcept
-      {
-        return isBranch() && branchCondition() != ConditionCode::Always;
       }
 
       constexpr bool isReturn() const noexcept
@@ -136,16 +112,6 @@ namespace ink::vm
       constexpr bool isTerminator() const noexcept
       {
         return isBranch() || isReturn();
-      }
-
-      constexpr EFlags readEFlagsMask() const noexcept
-      {
-        return isConditionalBranch() ? conditionEFlagsMask(branchCondition()) : 0;
-      }
-
-      constexpr EFlags writtenEFlagsMask() const noexcept
-      {
-        return category() == InstructionCategory::Add || isCompare() || isCall() ? ArithmeticEFlagsMask : 0;
       }
 
       // Borrows an operand in semantic order; an index outside operandCount() returns nullptr.

@@ -28,7 +28,7 @@ namespace ink::vm
       MachineBasicBlock *getInsertBlock() const noexcept;
       MachineInstruction *getInsertBefore() const noexcept;
 
-      // Requires an insertion point and, for branches, a nonnull target in the insertion block's function.
+      // Requires an insertion point and, for block branches, a nonnull target in the insertion block's function.
       template <Opcode Operation, typename... ValueTypes>
       MachineInstructionImpl<Operation> &create(ValueTypes &&...Values) requires(std::is_constructible_v<MachineInstructionImpl<Operation>, ValueTypes && ...>)
       {
@@ -49,7 +49,7 @@ namespace ink::vm
         {
           return nullptr;
         }
-        if constexpr (OpcodeTraits<Operation>::Category == InstructionCategory::Branch)
+        if constexpr (OpcodeTraits<Operation>::BlockCount == 1)
         {
           const auto Operands = std::forward_as_tuple(Values...);
           const auto &TargetValue = std::get<0>(Operands);

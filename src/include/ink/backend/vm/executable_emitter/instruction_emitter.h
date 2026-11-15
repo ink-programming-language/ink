@@ -22,8 +22,8 @@ namespace ink::vm
       // Both borrowed contexts must outlive this emitter.
       InstructionEmitter(ExecutableEmissionContext &Context, FunctionEmissionContext &FunctionContext) noexcept;
 
-      // Appends the opcode, then emits operands in semantic order with opcode-specific direct-call targets.
-      // Direct-call target kinds, zero symbol addends, and numeric import indices must be validated before emission.
+      // Appends the opcode, then emits operands in semantic order with opcode-specific immediate control-transfer targets.
+      // Direct target kinds, zero symbol addends, and numeric import indices must be validated before emission.
       void padInstruction(const MachineInstruction &Instruction);
 
       // Appends a register identifier and its signed byte offset without dereferencing memory.
@@ -39,7 +39,7 @@ namespace ink::vm
       void padOperand(const BasicBlockOperand &Operand, std::uint64_t InstructionOffset);
 
     private:
-      void padCallTarget(const ImmediateOperand &Operand, std::uint64_t InstructionOffset);
+      void padPCRelativeTarget(const ImmediateOperand &Operand, std::uint64_t InstructionOffset);
       void padNativeCallTarget(const ImmediateOperand &Operand);
       void padRegister(RegisterId Register, std::int64_t ByteOffset);
       void padUnresolvedSymbol(RegisterId Register, core::Name Symbol, std::int64_t Addend, std::uint64_t InstructionOffset);

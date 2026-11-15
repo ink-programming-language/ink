@@ -9,7 +9,6 @@ namespace ink::vm
     Load,
     Store,
     Add,
-    Compare,
     Branch,
     Return,
     Call,

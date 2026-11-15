@@ -35,7 +35,6 @@ namespace ink::vm
     return Register == RegisterId::BP || Register == RegisterId::SP;
   }
 
-  // EFLAGS is implicit status, never an ordinary arithmetic source or destination.
   constexpr bool isArithmeticRegister(RegisterId Register) noexcept
   {
     return isAddressRegister(Register);
