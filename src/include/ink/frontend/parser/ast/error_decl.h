@@ -7,25 +7,25 @@
 
 namespace ink::frontend::parser
 {
-  class ErrorDecl final : public Decl
-  {
-    public:
-      static constexpr ASTKind Kind = ASTKind::ErrorDecl;
-      static bool classof(const ASTNodeBase *Node)
-      {
-        return Node && Node->getKind() == Kind;
-      }
-      ErrorDecl(SourceRange Range, ASTArray<Attribute> Attributes)
-          : Decl(Kind, Range),
-            Attributes(Attributes)
-      {
-      }
-      ASTArray<Attribute> attributes() const noexcept
-      {
-        return Attributes;
-      }
+    class ErrorDecl final : public Decl
+    {
+        public:
+            static constexpr ASTKind Kind = ASTKind::ErrorDecl;
+            static bool classof(const ASTNodeBase* Node)
+            {
+                return Node && Node->getKind() == Kind;
+            }
+            ErrorDecl(SourceRange Range, ASTArray<Attribute> Attributes)
+                : Decl(Kind, Range),
+                  Attributes(Attributes)
+            {
+            }
+            ASTArray<Attribute> attributes() const noexcept
+            {
+                return Attributes;
+            }
 
-    private:
-      ASTArray<Attribute> Attributes;
-  };
+        private:
+            ASTArray<Attribute> Attributes;
+    };
 } // namespace ink::frontend::parser

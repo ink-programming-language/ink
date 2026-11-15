@@ -7,11 +7,11 @@
 
 namespace ink::vm
 {
-  struct NativeSymbolAddress
-  {
-      core::Name Name = core::NAME_None;
-      void *Address = nullptr;
-  };
+    struct NativeSymbolAddress
+    {
+            core::Name Name = core::NAME_None;
+            void* Address = nullptr;
+    };
 
-  extern const std::array<NativeSymbolAddress, INK_PLATFORM_WINDOWS ? 3 : 1> NativeSymbolAddresses;
+    extern const std::array<NativeSymbolAddress, INK_PLATFORM_WINDOWS ? 3 : 1> NativeSymbolAddresses;
 } // namespace ink::vm

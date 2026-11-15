@@ -4,20 +4,20 @@
 
 namespace ink::ir
 {
-  void PhiInstruction::addIncoming(ValueRef IncomingValue, BasicBlock &Predecessor)
-  {
-    IncomingValues.push_back({&IncomingValue.get(), &Predecessor});
-  }
+    void PhiInstruction::addIncoming(ValueRef IncomingValue, BasicBlock& Predecessor)
+    {
+        IncomingValues.push_back({&IncomingValue.get(), &Predecessor});
+    }
 
-  const Value &PhiInstruction::incomingValue(std::size_t Index) const noexcept
-  {
-    checkMsgf(Index < IncomingValues.size(), "Phi incoming index is out of range");
-    return *IncomingValues[Index].IncomingValue;
-  }
+    const Value& PhiInstruction::incomingValue(std::size_t Index) const noexcept
+    {
+        checkMsgf(Index < IncomingValues.size(), "Phi incoming index is out of range");
+        return *IncomingValues[Index].IncomingValue;
+    }
 
-  BasicBlock &PhiInstruction::incomingBlockAt(std::size_t Index) const noexcept
-  {
-    checkMsgf(Index < IncomingValues.size(), "Phi incoming index is out of range");
-    return *IncomingValues[Index].Predecessor;
-  }
+    BasicBlock& PhiInstruction::incomingBlockAt(std::size_t Index) const noexcept
+    {
+        checkMsgf(Index < IncomingValues.size(), "Phi incoming index is out of range");
+        return *IncomingValues[Index].Predecessor;
+    }
 } // namespace ink::ir

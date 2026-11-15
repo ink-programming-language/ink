@@ -8,31 +8,31 @@
 
 namespace ink::frontend::parser
 {
-  class SwitchStmt final : public Stmt
-  {
-    public:
-      static constexpr ASTKind Kind = ASTKind::SwitchStmt;
-      static bool classof(const ASTNodeBase *Node)
-      {
-        return Node && Node->getKind() == Kind;
-      }
-      SwitchStmt(SourceRange Range, Expr *Value, ASTArray<SwitchClause> Clauses)
-          : Stmt(Kind, Range),
-            Value(Value),
-            Clauses(Clauses)
-      {
-      }
-      auto *value(this auto &&Self) noexcept
-      {
-        return Self.Value ? &std::forward_like<decltype(Self) &>(*Self.Value) : nullptr;
-      }
-      ASTArray<SwitchClause> clauses() const noexcept
-      {
-        return Clauses;
-      }
+    class SwitchStmt final : public Stmt
+    {
+        public:
+            static constexpr ASTKind Kind = ASTKind::SwitchStmt;
+            static bool classof(const ASTNodeBase* Node)
+            {
+                return Node && Node->getKind() == Kind;
+            }
+            SwitchStmt(SourceRange Range, Expr* Value, ASTArray<SwitchClause> Clauses)
+                : Stmt(Kind, Range),
+                  Value(Value),
+                  Clauses(Clauses)
+            {
+            }
+            auto* value(this auto&& Self) noexcept
+            {
+                return Self.Value ? &std::forward_like<decltype(Self)&>(*Self.Value) : nullptr;
+            }
+            ASTArray<SwitchClause> clauses() const noexcept
+            {
+                return Clauses;
+            }
 
-    private:
-      Expr *Value;
-      ASTArray<SwitchClause> Clauses;
-  };
+        private:
+            Expr* Value;
+            ASTArray<SwitchClause> Clauses;
+    };
 } // namespace ink::frontend::parser

@@ -4,12 +4,12 @@
 
 namespace ink::vm
 {
-  const Operand *MachineInstruction::getOperand(std::size_t Index) const noexcept
-  {
-    const auto Lookup = [Index](const auto &Instruction) noexcept -> const Operand *
+    const Operand* MachineInstruction::getOperand(std::size_t Index) const noexcept
     {
-      return Instruction.getOperand(Index);
-    };
-    return visitInstruction(*this, Lookup);
-  }
+        const auto Lookup = [Index](const auto& Instruction) noexcept -> const Operand*
+        {
+            return Instruction.getOperand(Index);
+        };
+        return visitInstruction(*this, Lookup);
+    }
 } // namespace ink::vm

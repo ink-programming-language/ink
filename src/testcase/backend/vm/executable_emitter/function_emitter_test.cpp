@@ -14,331 +14,331 @@
 
 namespace ink::vm::test
 {
-  namespace
-  {
-    std::uint64_t readLittleEndian(const ExecutableEmissionContext &Context, std::size_t Offset, std::size_t Count = 8)
+    namespace
     {
-      std::uint64_t Bits = 0;
-      for (std::size_t Index = 0; Index < Count; ++Index)
-      {
-        Bits |= static_cast<std::uint64_t>(Context.getExecutable().getImage()[Offset + Index]) << (Index * 8);
-      }
-      return Bits;
-    }
+        std::uint64_t readLittleEndian(const ExecutableEmissionContext& Context, std::size_t Offset, std::size_t Count = 8)
+        {
+            std::uint64_t Bits = 0;
+            for (std::size_t Index = 0; Index < Count; ++Index)
+            {
+                Bits |= static_cast<std::uint64_t>(Context.getExecutable().getImage()[Offset + Index]) << (Index * 8);
+            }
+            return Bits;
+        }
 
-    template <Opcode Operation>
-    void verifyComparisonBranchEncoding(std::uint16_t Encoding)
+        template <Opcode Operation>
+        void verifyComparisonBranchEncoding(std::uint16_t Encoding)
+        {
+            SCOPED_TRACE(Encoding);
+            constexpr auto Width = OpcodeTraits<Operation>::BitWidth;
+            constexpr bool MemoryRHS = OpcodeTraits<Operation>::Form == InstructionForm::Mmb;
+            constexpr auto InstructionBytes = MemoryRHS ? std::size_t{29} : std::size_t{20} + Width / 8;
+            constexpr std::uint64_t ImmediateBits = 0xFFEEDDCCBBAA9988;
+            const core::DiagnosticEngine Diagnostics;
+            ExecutableEmissionContext Context(Diagnostics);
+            Context.padZero(1);
+            MachineFunction Function;
+            auto& Source = Function.createBasicBlock();
+            auto& Target = Function.createBasicBlock();
+            MachineInstructionBuilder Builder;
+            Builder.setInsertPoint(Source);
+            if constexpr (MemoryRHS)
+            {
+                Builder.create<Operation>(AddressOperand(RegisterId::BP, -3), AddressOperand(RegisterId::SP, 5), BasicBlockOperand(&Target));
+            }
+            else
+            {
+                Builder.create<Operation>(AddressOperand(RegisterId::BP, -3), ImmediateOperand(ImmediateBits), BasicBlockOperand(&Target));
+            }
+            Builder.setInsertPoint(Target);
+            Builder.create<Opcode::Ret>();
+            FunctionEmitter Emitter(Context);
+            Emitter.emit(Function);
+
+            ASSERT_EQ(Context.byteSize(), InstructionBytes + 3);
+            EXPECT_EQ(readLittleEndian(Context, 1, 2), Encoding);
+            EXPECT_EQ(Context.getExecutable().getImage()[3], static_cast<std::uint8_t>(RegisterId::BP));
+            EXPECT_EQ(readLittleEndian(Context, 4), static_cast<std::uint64_t>(-3));
+            if constexpr (MemoryRHS)
+            {
+                EXPECT_EQ(Context.getExecutable().getImage()[12], static_cast<std::uint8_t>(RegisterId::SP));
+                EXPECT_EQ(readLittleEndian(Context, 13), 5U);
+            }
+            else
+            {
+                constexpr auto Mask = ~std::uint64_t{0} >> (64 - Width);
+                EXPECT_EQ(readLittleEndian(Context, 12, Width / 8), ImmediateBits & Mask);
+            }
+            constexpr auto TargetField = 1 + InstructionBytes - 8;
+            EXPECT_NE(TargetField % 8, 0U);
+            EXPECT_EQ(Context.getExecutable().getImage()[TargetField - 1], static_cast<std::uint8_t>(RegisterId::PC));
+            EXPECT_EQ(readLittleEndian(Context, TargetField), InstructionBytes);
+            EXPECT_EQ(readLittleEndian(Context, 1 + InstructionBytes, 2), 0x003AU);
+            EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
+            EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
+        }
+    } // namespace
+
+    static_assert(std::is_same_v<decltype(std::declval<FunctionEmitter&>().getContext()), FunctionEmissionContext&>);
+    static_assert(std::is_same_v<decltype(std::declval<const FunctionEmitter&>().getContext()), const FunctionEmissionContext&>);
+
+    // All eighty comparison opcodes emit their typed RHS width and resolve an unaligned final target field relative to the opcode.
+    TEST(VMFunctionEmitterTest, EncodesEveryComparisonBranchFormAndWidth)
     {
-      SCOPED_TRACE(Encoding);
-      constexpr auto Width = OpcodeTraits<Operation>::BitWidth;
-      constexpr bool MemoryRHS = OpcodeTraits<Operation>::Form == InstructionForm::Mmb;
-      constexpr auto InstructionBytes = MemoryRHS ? std::size_t{29} : std::size_t{20} + Width / 8;
-      constexpr std::uint64_t ImmediateBits = 0xFFEEDDCCBBAA9988;
-      const core::DiagnosticEngine Diagnostics;
-      ExecutableEmissionContext Context(Diagnostics);
-      Context.padZero(1);
-      MachineFunction Function;
-      auto &Source = Function.createBasicBlock();
-      auto &Target = Function.createBasicBlock();
-      MachineInstructionBuilder Builder;
-      Builder.setInsertPoint(Source);
-      if constexpr (MemoryRHS)
-      {
-        Builder.create<Operation>(AddressOperand(RegisterId::BP, -3), AddressOperand(RegisterId::SP, 5), BasicBlockOperand(&Target));
-      }
-      else
-      {
-        Builder.create<Operation>(AddressOperand(RegisterId::BP, -3), ImmediateOperand(ImmediateBits), BasicBlockOperand(&Target));
-      }
-      Builder.setInsertPoint(Target);
-      Builder.create<Opcode::Ret>();
-      FunctionEmitter Emitter(Context);
-      Emitter.emit(Function);
-
-      ASSERT_EQ(Context.byteSize(), InstructionBytes + 3);
-      EXPECT_EQ(readLittleEndian(Context, 1, 2), Encoding);
-      EXPECT_EQ(Context.getExecutable().getImage()[3], static_cast<std::uint8_t>(RegisterId::BP));
-      EXPECT_EQ(readLittleEndian(Context, 4), static_cast<std::uint64_t>(-3));
-      if constexpr (MemoryRHS)
-      {
-        EXPECT_EQ(Context.getExecutable().getImage()[12], static_cast<std::uint8_t>(RegisterId::SP));
-        EXPECT_EQ(readLittleEndian(Context, 13), 5U);
-      }
-      else
-      {
-        constexpr auto Mask = ~std::uint64_t{0} >> (64 - Width);
-        EXPECT_EQ(readLittleEndian(Context, 12, Width / 8), ImmediateBits & Mask);
-      }
-      constexpr auto TargetField = 1 + InstructionBytes - 8;
-      EXPECT_NE(TargetField % 8, 0U);
-      EXPECT_EQ(Context.getExecutable().getImage()[TargetField - 1], static_cast<std::uint8_t>(RegisterId::PC));
-      EXPECT_EQ(readLittleEndian(Context, TargetField), InstructionBytes);
-      EXPECT_EQ(readLittleEndian(Context, 1 + InstructionBytes, 2), 0x003AU);
-      EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
-      EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
-    }
-  } // namespace
-
-  static_assert(std::is_same_v<decltype(std::declval<FunctionEmitter &>().getContext()), FunctionEmissionContext &>);
-  static_assert(std::is_same_v<decltype(std::declval<const FunctionEmitter &>().getContext()), const FunctionEmissionContext &>);
-
-  // All eighty comparison opcodes emit their typed RHS width and resolve an unaligned final target field relative to the opcode.
-  TEST(VMFunctionEmitterTest, EncodesEveryComparisonBranchFormAndWidth)
-  {
 #define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed) verifyComparisonBranchEncoding<Opcode::Kind>(Encoding);
 #include "ink/backend/vm/instruction/compare_branch.def"
 #undef COMPARE_BRANCH
-  }
+    }
 
-  // Explicit block emission appends instructions without padding and resolves each block at its first byte in the complete image.
-  TEST(VMFunctionEmitterTest, AppendsOrderedInstructionsAndResolvesImageOffsets)
-  {
-    const core::DiagnosticEngine Diagnostics;
-    ExecutableEmissionContext Context(Diagnostics);
-    Context.padZero(3);
-    MachineFunction Function;
-    MachineBasicBlock &First = Function.createBasicBlock();
-    MachineBasicBlock &Second = Function.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(First);
-    Builder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP, 8), ImmediateOperand(0x1AB));
-    Builder.create<Opcode::Ret>();
-    Builder.setInsertPoint(Second);
-    Builder.create<Opcode::Store16i>(AddressOperand(RegisterId::SP, -8), ImmediateOperand(0xBEEF));
-    Builder.create<Opcode::Ret>();
-    FunctionEmitter Emitter(Context);
-    Emitter.scanUnResolvedBasicBlock(Function);
-    Emitter.padBasicBlock(First);
+    // Explicit block emission appends instructions without padding and resolves each block at its first byte in the complete image.
+    TEST(VMFunctionEmitterTest, AppendsOrderedInstructionsAndResolvesImageOffsets)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        ExecutableEmissionContext Context(Diagnostics);
+        Context.padZero(3);
+        MachineFunction Function;
+        MachineBasicBlock& First = Function.createBasicBlock();
+        MachineBasicBlock& Second = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(First);
+        Builder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP, 8), ImmediateOperand(0x1AB));
+        Builder.create<Opcode::Ret>();
+        Builder.setInsertPoint(Second);
+        Builder.create<Opcode::Store16i>(AddressOperand(RegisterId::SP, -8), ImmediateOperand(0xBEEF));
+        Builder.create<Opcode::Ret>();
+        FunctionEmitter Emitter(Context);
+        Emitter.scanUnResolvedBasicBlock(Function);
+        Emitter.padBasicBlock(First);
 
-    ASSERT_EQ(Context.byteSize(), 17U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 3U);
-    EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(First));
-    EXPECT_FALSE(Emitter.getContext().resolvedBasicBlockOffset(Second).has_value());
-    EXPECT_TRUE(Emitter.getContext().hasUnResolvedBasicBlock(Second));
-    Emitter.padBasicBlock(Second);
+        ASSERT_EQ(Context.byteSize(), 17U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 3U);
+        EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(First));
+        EXPECT_FALSE(Emitter.getContext().resolvedBasicBlockOffset(Second).has_value());
+        EXPECT_TRUE(Emitter.getContext().hasUnResolvedBasicBlock(Second));
+        Emitter.padBasicBlock(Second);
 
-    ASSERT_EQ(Context.byteSize(), 32U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Second), 17U);
-    EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Second));
-    EXPECT_EQ(readLittleEndian(Context, 3, 2), 0x0006U);
-    EXPECT_EQ(Context.getExecutable().getImage()[5], static_cast<std::uint8_t>(RegisterId::BP));
-    EXPECT_EQ(readLittleEndian(Context, 6), 8U);
-    EXPECT_EQ(readLittleEndian(Context, 14, 1), 0xABU);
-    EXPECT_EQ(readLittleEndian(Context, 15, 2), 0x003AU);
-    EXPECT_EQ(readLittleEndian(Context, 17, 2), 0x0008U);
-    EXPECT_EQ(Context.getExecutable().getImage()[19], static_cast<std::uint8_t>(RegisterId::SP));
-    EXPECT_EQ(readLittleEndian(Context, 20), static_cast<std::uint64_t>(-8));
-    EXPECT_EQ(readLittleEndian(Context, 28, 2), 0xBEEFU);
-    EXPECT_EQ(readLittleEndian(Context, 30, 2), 0x003AU);
-  }
+        ASSERT_EQ(Context.byteSize(), 32U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Second), 17U);
+        EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Second));
+        EXPECT_EQ(readLittleEndian(Context, 3, 2), 0x0006U);
+        EXPECT_EQ(Context.getExecutable().getImage()[5], static_cast<std::uint8_t>(RegisterId::BP));
+        EXPECT_EQ(readLittleEndian(Context, 6), 8U);
+        EXPECT_EQ(readLittleEndian(Context, 14, 1), 0xABU);
+        EXPECT_EQ(readLittleEndian(Context, 15, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Context, 17, 2), 0x0008U);
+        EXPECT_EQ(Context.getExecutable().getImage()[19], static_cast<std::uint8_t>(RegisterId::SP));
+        EXPECT_EQ(readLittleEndian(Context, 20), static_cast<std::uint64_t>(-8));
+        EXPECT_EQ(readLittleEndian(Context, 28, 2), 0xBEEFU);
+        EXPECT_EQ(readLittleEndian(Context, 30, 2), 0x003AU);
+    }
 
-  // Empty, anonymous, and equally named blocks keep separate identities while empty blocks share the following byte offset.
-  TEST(VMFunctionEmitterTest, PreservesEmptyAnonymousAndDuplicateNamedBlockIdentities)
-  {
-    const core::DiagnosticEngine Diagnostics;
-    ExecutableEmissionContext Context(Diagnostics);
-    Context.padZero(5);
-    const auto BlockName = core::NamePool::instance().intern("function-emitter-duplicate-block");
-    MachineFunction Function;
-    MachineBasicBlock &EmptyAnonymous = Function.createBasicBlock();
-    MachineBasicBlock &FirstNamed = Function.createBasicBlock(BlockName);
-    MachineBasicBlock &EmptyNamed = Function.createBasicBlock(BlockName);
-    MachineBasicBlock &LastAnonymous = Function.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(FirstNamed);
-    Builder.create<Opcode::Ret>();
-    Builder.setInsertPoint(LastAnonymous);
-    Builder.create<Opcode::Ret>();
-    FunctionEmitter Emitter(Context);
-    Emitter.emit(Function);
+    // Empty, anonymous, and equally named blocks keep separate identities while empty blocks share the following byte offset.
+    TEST(VMFunctionEmitterTest, PreservesEmptyAnonymousAndDuplicateNamedBlockIdentities)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        ExecutableEmissionContext Context(Diagnostics);
+        Context.padZero(5);
+        const auto BlockName = core::NamePool::instance().intern("function-emitter-duplicate-block");
+        MachineFunction Function;
+        MachineBasicBlock& EmptyAnonymous = Function.createBasicBlock();
+        MachineBasicBlock& FirstNamed = Function.createBasicBlock(BlockName);
+        MachineBasicBlock& EmptyNamed = Function.createBasicBlock(BlockName);
+        MachineBasicBlock& LastAnonymous = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(FirstNamed);
+        Builder.create<Opcode::Ret>();
+        Builder.setInsertPoint(LastAnonymous);
+        Builder.create<Opcode::Ret>();
+        FunctionEmitter Emitter(Context);
+        Emitter.emit(Function);
 
-    ASSERT_EQ(Context.byteSize(), 9U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(EmptyAnonymous), 5U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(FirstNamed), 5U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(EmptyNamed), 7U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(LastAnonymous), 7U);
-    EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(EmptyAnonymous));
-    EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(FirstNamed));
-    EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(EmptyNamed));
-    EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(LastAnonymous));
-    EXPECT_EQ(readLittleEndian(Context, 5, 2), 0x003AU);
-    EXPECT_EQ(readLittleEndian(Context, 7, 2), 0x003AU);
-  }
+        ASSERT_EQ(Context.byteSize(), 9U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(EmptyAnonymous), 5U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(FirstNamed), 5U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(EmptyNamed), 7U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(LastAnonymous), 7U);
+        EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(EmptyAnonymous));
+        EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(FirstNamed));
+        EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(EmptyNamed));
+        EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(LastAnonymous));
+        EXPECT_EQ(readLittleEndian(Context, 5, 2), 0x003AU);
+        EXPECT_EQ(readLittleEndian(Context, 7, 2), 0x003AU);
+    }
 
-  // Beginning another function discards old block offsets and pending branch relocations while preserving previously emitted bytes.
-  TEST(VMFunctionEmitterTest, ClearsPreviousFunctionStateWhileAppendingNextFunction)
-  {
-    const core::DiagnosticEngine Diagnostics;
-    ExecutableEmissionContext Context(Diagnostics);
-    Context.padZero(1);
-    MachineFunction FirstFunction;
-    MachineBasicBlock &Resolved = FirstFunction.createBasicBlock();
-    MachineBasicBlock &Unresolved = FirstFunction.createBasicBlock();
-    MachineFunction SecondFunction;
-    MachineBasicBlock &Next = SecondFunction.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Resolved);
-    Builder.create<Opcode::Jmp>(&Unresolved);
-    Builder.setInsertPoint(Next);
-    Builder.create<Opcode::Ret>();
-    FunctionEmitter Emitter(Context);
-    Emitter.scanUnResolvedBasicBlock(FirstFunction);
-    Emitter.padBasicBlock(Resolved);
-    ASSERT_EQ(Context.byteSize(), 12U);
-    ASSERT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Resolved), 1U);
-    ASSERT_TRUE(Emitter.getContext().hasUnResolvedBasicBlock(Unresolved));
-    ASSERT_EQ(readLittleEndian(Context, 4), 0U);
+    // Beginning another function discards old block offsets and pending branch relocations while preserving previously emitted bytes.
+    TEST(VMFunctionEmitterTest, ClearsPreviousFunctionStateWhileAppendingNextFunction)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        ExecutableEmissionContext Context(Diagnostics);
+        Context.padZero(1);
+        MachineFunction FirstFunction;
+        MachineBasicBlock& Resolved = FirstFunction.createBasicBlock();
+        MachineBasicBlock& Unresolved = FirstFunction.createBasicBlock();
+        MachineFunction SecondFunction;
+        MachineBasicBlock& Next = SecondFunction.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Resolved);
+        Builder.create<Opcode::Jmp>(&Unresolved);
+        Builder.setInsertPoint(Next);
+        Builder.create<Opcode::Ret>();
+        FunctionEmitter Emitter(Context);
+        Emitter.scanUnResolvedBasicBlock(FirstFunction);
+        Emitter.padBasicBlock(Resolved);
+        ASSERT_EQ(Context.byteSize(), 12U);
+        ASSERT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Resolved), 1U);
+        ASSERT_TRUE(Emitter.getContext().hasUnResolvedBasicBlock(Unresolved));
+        ASSERT_EQ(readLittleEndian(Context, 4), 0U);
 
-    Emitter.emit(SecondFunction);
+        Emitter.emit(SecondFunction);
 
-    ASSERT_EQ(Context.byteSize(), 14U);
-    EXPECT_FALSE(Emitter.getContext().resolvedBasicBlockOffset(Resolved).has_value());
-    EXPECT_FALSE(Emitter.getContext().resolvedBasicBlockOffset(Unresolved).has_value());
-    EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Resolved));
-    EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Unresolved));
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Next), 12U);
-    EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Next));
-    EXPECT_EQ(readLittleEndian(Context, 1, 2), 0x002BU);
-    EXPECT_EQ(readLittleEndian(Context, 4), 0U);
-    EXPECT_EQ(readLittleEndian(Context, 12, 2), 0x003AU);
-  }
+        ASSERT_EQ(Context.byteSize(), 14U);
+        EXPECT_FALSE(Emitter.getContext().resolvedBasicBlockOffset(Resolved).has_value());
+        EXPECT_FALSE(Emitter.getContext().resolvedBasicBlockOffset(Unresolved).has_value());
+        EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Resolved));
+        EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Unresolved));
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Next), 12U);
+        EXPECT_FALSE(Emitter.getContext().hasUnResolvedBasicBlock(Next));
+        EXPECT_EQ(readLittleEndian(Context, 1, 2), 0x002BU);
+        EXPECT_EQ(readLittleEndian(Context, 4), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 12, 2), 0x003AU);
+    }
 
-  // Forward references share a target, backward references reach image offset zero, and a self-targeting branch encodes zero displacement.
-  TEST(VMFunctionEmitterTest, ResolvesForwardBackwardAndSelfBranchesAtInstructionOrigins)
-  {
-    const core::DiagnosticEngine Diagnostics;
-    ExecutableEmissionContext Context(Diagnostics);
-    MachineFunction Function;
-    MachineBasicBlock &First = Function.createBasicBlock();
-    MachineBasicBlock &Later = Function.createBasicBlock();
-    MachineBasicBlock &Self = Function.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(First);
-    Builder.create<Opcode::Jmp>(&Later);
-    Builder.create<Opcode::Jmp>(&Later);
-    Builder.create<Opcode::Jmp>(&First);
-    Builder.setInsertPoint(Later);
-    Builder.create<Opcode::Jmp>(&First);
-    Builder.setInsertPoint(Self);
-    Builder.create<Opcode::Jmp>(&Self);
-    FunctionEmitter Emitter(Context);
-    Emitter.emit(Function);
+    // Forward references share a target, backward references reach image offset zero, and a self-targeting branch encodes zero displacement.
+    TEST(VMFunctionEmitterTest, ResolvesForwardBackwardAndSelfBranchesAtInstructionOrigins)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        ExecutableEmissionContext Context(Diagnostics);
+        MachineFunction Function;
+        MachineBasicBlock& First = Function.createBasicBlock();
+        MachineBasicBlock& Later = Function.createBasicBlock();
+        MachineBasicBlock& Self = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(First);
+        Builder.create<Opcode::Jmp>(&Later);
+        Builder.create<Opcode::Jmp>(&Later);
+        Builder.create<Opcode::Jmp>(&First);
+        Builder.setInsertPoint(Later);
+        Builder.create<Opcode::Jmp>(&First);
+        Builder.setInsertPoint(Self);
+        Builder.create<Opcode::Jmp>(&Self);
+        FunctionEmitter Emitter(Context);
+        Emitter.emit(Function);
 
-    ASSERT_EQ(Context.byteSize(), 55U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 0U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Later), 33U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Self), 44U);
-    EXPECT_EQ(readLittleEndian(Context, 0, 2), 0x002BU);
-    EXPECT_EQ(Context.getExecutable().getImage()[2], static_cast<std::uint8_t>(RegisterId::PC));
-    EXPECT_EQ(readLittleEndian(Context, 3), 33U);
-    EXPECT_EQ(readLittleEndian(Context, 11, 2), 0x002BU);
-    EXPECT_EQ(Context.getExecutable().getImage()[13], static_cast<std::uint8_t>(RegisterId::PC));
-    EXPECT_EQ(readLittleEndian(Context, 14), 22U);
-    EXPECT_EQ(readLittleEndian(Context, 22, 2), 0x002BU);
-    EXPECT_EQ(Context.getExecutable().getImage()[24], static_cast<std::uint8_t>(RegisterId::PC));
-    EXPECT_EQ(readLittleEndian(Context, 25), static_cast<std::uint64_t>(-22));
-    EXPECT_EQ(readLittleEndian(Context, 33, 2), 0x002BU);
-    EXPECT_EQ(Context.getExecutable().getImage()[35], static_cast<std::uint8_t>(RegisterId::PC));
-    EXPECT_EQ(readLittleEndian(Context, 36), static_cast<std::uint64_t>(-33));
-    EXPECT_EQ(readLittleEndian(Context, 44, 2), 0x002BU);
-    EXPECT_EQ(Context.getExecutable().getImage()[46], static_cast<std::uint8_t>(RegisterId::PC));
-    EXPECT_EQ(readLittleEndian(Context, 47), 0U);
-    EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
-    EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
-  }
+        ASSERT_EQ(Context.byteSize(), 55U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 0U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Later), 33U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Self), 44U);
+        EXPECT_EQ(readLittleEndian(Context, 0, 2), 0x002BU);
+        EXPECT_EQ(Context.getExecutable().getImage()[2], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 3), 33U);
+        EXPECT_EQ(readLittleEndian(Context, 11, 2), 0x002BU);
+        EXPECT_EQ(Context.getExecutable().getImage()[13], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 14), 22U);
+        EXPECT_EQ(readLittleEndian(Context, 22, 2), 0x002BU);
+        EXPECT_EQ(Context.getExecutable().getImage()[24], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 25), static_cast<std::uint64_t>(-22));
+        EXPECT_EQ(readLittleEndian(Context, 33, 2), 0x002BU);
+        EXPECT_EQ(Context.getExecutable().getImage()[35], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 36), static_cast<std::uint64_t>(-33));
+        EXPECT_EQ(readLittleEndian(Context, 44, 2), 0x002BU);
+        EXPECT_EQ(Context.getExecutable().getImage()[46], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 47), 0U);
+        EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
+        EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
+    }
 
-  // Mixed comparison widths resolve forward, backward and self targets from each opcode rather than the final operand's location.
-  TEST(VMFunctionEmitterTest, ResolvesComparisonTargetsAtInstructionOrigins)
-  {
-    const core::DiagnosticEngine Diagnostics;
-    ExecutableEmissionContext Context(Diagnostics);
-    Context.padZero(3);
-    MachineFunction Function;
-    auto &First = Function.createBasicBlock();
-    auto &Later = Function.createBasicBlock();
-    auto &Self = Function.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(First);
-    Builder.create<Opcode::Je8mib>(AddressOperand(RegisterId::BP), ImmediateOperand(0), BasicBlockOperand(&Later));
-    Builder.create<Opcode::Jne64mmb>(AddressOperand(RegisterId::BP, 1), AddressOperand(RegisterId::SP, -1), BasicBlockOperand(&Later));
-    Builder.setInsertPoint(Later);
-    Builder.create<Opcode::Jlt16mib>(AddressOperand(RegisterId::BP, 2), ImmediateOperand(0x1122), BasicBlockOperand(&First));
-    Builder.setInsertPoint(Self);
-    Builder.create<Opcode::Jgeu32mmb>(AddressOperand(RegisterId::BP), AddressOperand(RegisterId::SP), BasicBlockOperand(&Self));
-    FunctionEmitter Emitter(Context);
-    Emitter.emit(Function);
+    // Mixed comparison widths resolve forward, backward and self targets from each opcode rather than the final operand's location.
+    TEST(VMFunctionEmitterTest, ResolvesComparisonTargetsAtInstructionOrigins)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        ExecutableEmissionContext Context(Diagnostics);
+        Context.padZero(3);
+        MachineFunction Function;
+        auto& First = Function.createBasicBlock();
+        auto& Later = Function.createBasicBlock();
+        auto& Self = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(First);
+        Builder.create<Opcode::Je8mib>(AddressOperand(RegisterId::BP), ImmediateOperand(0), BasicBlockOperand(&Later));
+        Builder.create<Opcode::Jne64mmb>(AddressOperand(RegisterId::BP, 1), AddressOperand(RegisterId::SP, -1), BasicBlockOperand(&Later));
+        Builder.setInsertPoint(Later);
+        Builder.create<Opcode::Jlt16mib>(AddressOperand(RegisterId::BP, 2), ImmediateOperand(0x1122), BasicBlockOperand(&First));
+        Builder.setInsertPoint(Self);
+        Builder.create<Opcode::Jgeu32mmb>(AddressOperand(RegisterId::BP), AddressOperand(RegisterId::SP), BasicBlockOperand(&Self));
+        FunctionEmitter Emitter(Context);
+        Emitter.emit(Function);
 
-    ASSERT_EQ(Context.byteSize(), 104U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 3U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Later), 53U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Self), 75U);
-    EXPECT_EQ(Context.getExecutable().getImage()[15], static_cast<std::uint8_t>(RegisterId::PC));
-    EXPECT_EQ(readLittleEndian(Context, 16), 50U);
-    EXPECT_EQ(Context.getExecutable().getImage()[44], static_cast<std::uint8_t>(RegisterId::PC));
-    EXPECT_EQ(readLittleEndian(Context, 45), 29U);
-    EXPECT_EQ(Context.getExecutable().getImage()[66], static_cast<std::uint8_t>(RegisterId::PC));
-    EXPECT_EQ(readLittleEndian(Context, 67), static_cast<std::uint64_t>(-50));
-    EXPECT_EQ(Context.getExecutable().getImage()[95], static_cast<std::uint8_t>(RegisterId::PC));
-    EXPECT_EQ(readLittleEndian(Context, 96), 0U);
-    EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
-    EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
-  }
+        ASSERT_EQ(Context.byteSize(), 104U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(First), 3U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Later), 53U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Self), 75U);
+        EXPECT_EQ(Context.getExecutable().getImage()[15], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 16), 50U);
+        EXPECT_EQ(Context.getExecutable().getImage()[44], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 45), 29U);
+        EXPECT_EQ(Context.getExecutable().getImage()[66], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 67), static_cast<std::uint64_t>(-50));
+        EXPECT_EQ(Context.getExecutable().getImage()[95], static_cast<std::uint8_t>(RegisterId::PC));
+        EXPECT_EQ(readLittleEndian(Context, 96), 0U);
+        EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
+        EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
+    }
 
-  // Forward branch fields remain zero after their target is laid out and are patched only by explicit, repeatable finalization.
-  TEST(VMFunctionEmitterTest, DefersForwardBranchPatchingUntilExplicitFinalization)
-  {
-    const core::DiagnosticEngine Diagnostics;
-    ExecutableEmissionContext Context(Diagnostics);
-    Context.padZero(5);
-    MachineFunction Function;
-    MachineBasicBlock &Source = Function.createBasicBlock();
-    MachineBasicBlock &Target = Function.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Source);
-    Builder.create<Opcode::Jmp>(&Target);
-    Builder.create<Opcode::Jmp>(&Target);
-    Builder.setInsertPoint(Target);
-    Builder.create<Opcode::Ret>();
-    FunctionEmitter Emitter(Context);
-    Emitter.scanUnResolvedBasicBlock(Function);
-    Emitter.padBasicBlock(Source);
+    // Forward branch fields remain zero after their target is laid out and are patched only by explicit, repeatable finalization.
+    TEST(VMFunctionEmitterTest, DefersForwardBranchPatchingUntilExplicitFinalization)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        ExecutableEmissionContext Context(Diagnostics);
+        Context.padZero(5);
+        MachineFunction Function;
+        MachineBasicBlock& Source = Function.createBasicBlock();
+        MachineBasicBlock& Target = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Source);
+        Builder.create<Opcode::Jmp>(&Target);
+        Builder.create<Opcode::Jmp>(&Target);
+        Builder.setInsertPoint(Target);
+        Builder.create<Opcode::Ret>();
+        FunctionEmitter Emitter(Context);
+        Emitter.scanUnResolvedBasicBlock(Function);
+        Emitter.padBasicBlock(Source);
 
-    ASSERT_EQ(Context.byteSize(), 27U);
-    EXPECT_EQ(readLittleEndian(Context, 8), 0U);
-    EXPECT_EQ(readLittleEndian(Context, 19), 0U);
-    Emitter.padBasicBlock(Target);
-    ASSERT_EQ(Context.byteSize(), 29U);
-    EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Target), 27U);
-    EXPECT_EQ(readLittleEndian(Context, 8), 0U);
-    EXPECT_EQ(readLittleEndian(Context, 19), 0U);
-    Emitter.resolveBasicBlockStaticRelocations();
+        ASSERT_EQ(Context.byteSize(), 27U);
+        EXPECT_EQ(readLittleEndian(Context, 8), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 19), 0U);
+        Emitter.padBasicBlock(Target);
+        ASSERT_EQ(Context.byteSize(), 29U);
+        EXPECT_EQ(Emitter.getContext().resolvedBasicBlockOffset(Target), 27U);
+        EXPECT_EQ(readLittleEndian(Context, 8), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 19), 0U);
+        Emitter.resolveBasicBlockStaticRelocations();
 
-    EXPECT_EQ(readLittleEndian(Context, 8), 22U);
-    EXPECT_EQ(readLittleEndian(Context, 19), 11U);
-    EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
-    EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
-    const auto PatchedImage = Context.getExecutable().getImage();
-    Emitter.resolveBasicBlockStaticRelocations();
-    EXPECT_EQ(Context.getExecutable().getImage(), PatchedImage);
-  }
+        EXPECT_EQ(readLittleEndian(Context, 8), 22U);
+        EXPECT_EQ(readLittleEndian(Context, 19), 11U);
+        EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
+        EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
+        const auto PatchedImage = Context.getExecutable().getImage();
+        Emitter.resolveBasicBlockStaticRelocations();
+        EXPECT_EQ(Context.getExecutable().getImage(), PatchedImage);
+    }
 
-  // Finalization rejects a pending branch whose target block was scanned but never assigned an image offset.
-  TEST(VMFunctionEmitterDeathTest, RejectsUnlaidOutBranchTargetsDuringFinalization)
-  {
-    const core::DiagnosticEngine Diagnostics;
-    ExecutableEmissionContext Context(Diagnostics);
-    MachineFunction Function;
-    MachineBasicBlock &Source = Function.createBasicBlock();
-    MachineBasicBlock &Target = Function.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Source);
-    Builder.create<Opcode::Jmp>(&Target);
-    FunctionEmitter Emitter(Context);
-    Emitter.scanUnResolvedBasicBlock(Function);
-    Emitter.padBasicBlock(Source);
+    // Finalization rejects a pending branch whose target block was scanned but never assigned an image offset.
+    TEST(VMFunctionEmitterDeathTest, RejectsUnlaidOutBranchTargetsDuringFinalization)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        ExecutableEmissionContext Context(Diagnostics);
+        MachineFunction Function;
+        MachineBasicBlock& Source = Function.createBasicBlock();
+        MachineBasicBlock& Target = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Source);
+        Builder.create<Opcode::Jmp>(&Target);
+        FunctionEmitter Emitter(Context);
+        Emitter.scanUnResolvedBasicBlock(Function);
+        Emitter.padBasicBlock(Source);
 
-    ASSERT_EQ(Context.byteSize(), 11U);
-    ASSERT_EQ(readLittleEndian(Context, 3), 0U);
-    EXPECT_DEATH(Emitter.resolveBasicBlockStaticRelocations(), "INK-V0002.*basic block has no image offset after function layout");
-  }
+        ASSERT_EQ(Context.byteSize(), 11U);
+        ASSERT_EQ(readLittleEndian(Context, 3), 0U);
+        EXPECT_DEATH(Emitter.resolveBasicBlockStaticRelocations(), "INK-V0002.*basic block has no image offset after function layout");
+    }
 } // namespace ink::vm::test

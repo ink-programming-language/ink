@@ -5,11 +5,11 @@
 
 namespace ink::vm
 {
-  const std::array<NativeSymbolAddress, INK_PLATFORM_WINDOWS ? 3 : 1> NativeSymbolAddresses = {{
-      {core::NamePool::instance().intern("identity"), reinterpret_cast<void *>(&identityStub)},
+    const std::array<NativeSymbolAddress, INK_PLATFORM_WINDOWS ? 3 : 1> NativeSymbolAddresses = {{
+        {core::NamePool::instance().intern("identity"), reinterpret_cast<void*>(&identityStub)},
 #if INK_PLATFORM_WINDOWS
-      {core::NamePool::instance().intern("GetStdHandle"), reinterpret_cast<void *>(&getStdHandleStub)},
-      {core::NamePool::instance().intern("WriteFile"), reinterpret_cast<void *>(&writeFileStub)},
+        {core::NamePool::instance().intern("GetStdHandle"), reinterpret_cast<void*>(&getStdHandleStub)},
+        {core::NamePool::instance().intern("WriteFile"), reinterpret_cast<void*>(&writeFileStub)},
 #endif
-  }};
+    }};
 } // namespace ink::vm

@@ -4,8 +4,8 @@
 // C headers use these paired macros to preserve C linkage when included from C++.
 #ifdef __cplusplus
 #define INK_EXTERN_C_BEGIN \
-  extern "C" \
-  {
+    extern "C"             \
+    {
 #define INK_EXTERN_C_END }
 #else
 #define INK_EXTERN_C_BEGIN

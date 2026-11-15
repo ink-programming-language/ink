@@ -5,19 +5,19 @@
 
 namespace ink::frontend::parser
 {
-  class BreakStmt final : public Stmt
-  {
-    public:
-      static constexpr ASTKind Kind = ASTKind::BreakStmt;
-      static bool classof(const ASTNodeBase *Node)
-      {
-        return Node && Node->getKind() == Kind;
-      }
-      BreakStmt(SourceRange Range)
-          : Stmt(Kind, Range)
-      {
-      }
+    class BreakStmt final : public Stmt
+    {
+        public:
+            static constexpr ASTKind Kind = ASTKind::BreakStmt;
+            static bool classof(const ASTNodeBase* Node)
+            {
+                return Node && Node->getKind() == Kind;
+            }
+            BreakStmt(SourceRange Range)
+                : Stmt(Kind, Range)
+            {
+            }
 
-    private:
-  };
+        private:
+    };
 } // namespace ink::frontend::parser

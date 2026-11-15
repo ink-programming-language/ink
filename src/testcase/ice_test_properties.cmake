@@ -1,7 +1,7 @@
 # This corpus starts a child process for each fatal input instead of returning an error in-process.
 foreach(TestName IN ITEMS ParserTest.RecoveryBudgetCheckpoints)
-  list(FIND ink_tests_TESTS "${TestName}" TestIndex)
-  if(NOT TestIndex EQUAL -1)
-    set_tests_properties("${TestName}" PROPERTIES TIMEOUT 300)
-  endif()
+    list(FIND ink_tests_TESTS "${TestName}" TestIndex)
+    if(NOT TestIndex EQUAL -1)
+        set_tests_properties("${TestName}" PROPERTIES TIMEOUT 300)
+    endif()
 endforeach()

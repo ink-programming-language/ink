@@ -1,11 +1,11 @@
 include(CheckCXXSourceCompiles)
 
 function(ink_check_cxx23_support)
-  # Keep the probe's language mode local so bundled third-party targets retain their own requirements.
-  set(CMAKE_CXX_STANDARD 23)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
-  check_cxx_source_compiles([=[
+    # Keep the probe's language mode local so bundled third-party targets retain their own requirements.
+    set(CMAKE_CXX_STANDARD 23)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_CXX_EXTENSIONS OFF)
+    check_cxx_source_compiles([=[
 #include <type_traits>
 #include <utility>
 
@@ -29,7 +29,7 @@ int main()
   return 0;
 }
 ]=] INK_HAS_CXX23_ACCESSORS)
-  if(NOT INK_HAS_CXX23_ACCESSORS)
-    message(FATAL_ERROR "Ink requires C++23 explicit object parameters and std::forward_like; select a compiler and standard library that support both features.")
-  endif()
+    if(NOT INK_HAS_CXX23_ACCESSORS)
+        message(FATAL_ERROR "Ink requires C++23 explicit object parameters and std::forward_like; select a compiler and standard library that support both features.")
+    endif()
 endfunction()

@@ -29,37 +29,37 @@
 #include <csignal>
 #include <cstdio>
 #include <cstring>
-#define INK_DETAIL_IS_DEBUGGER_ATTACHED() \
-  ([]() noexcept \
-  { \
-    const ::std::unique_ptr<::std::FILE, decltype(&::std::fclose)> Status(::std::fopen("/proc/self/status", "r"), &::std::fclose); \
-    if (!Status) \
-    { \
-      return false; \
-    } \
-    char Line[256]; \
-    while (::std::fgets(Line, sizeof(Line), Status.get())) \
-    { \
-      if (::std::strncmp(Line, "TracerPid:", 10) == 0) \
-      { \
-        return ::std::strtol(Line + 10, nullptr, 10) > 0; \
-      } \
-    } \
-    return false; \
-  }())
+#define INK_DETAIL_IS_DEBUGGER_ATTACHED()                                                                                               \
+    ([]() noexcept                                                                                                                      \
+     {                                                                                                                                  \
+         const ::std::unique_ptr<::std::FILE, decltype(&::std::fclose)> Status(::std::fopen("/proc/self/status", "r"), &::std::fclose); \
+         if (!Status)                                                                                                                   \
+         {                                                                                                                              \
+             return false;                                                                                                              \
+         }                                                                                                                              \
+         char Line[256];                                                                                                                \
+         while (::std::fgets(Line, sizeof(Line), Status.get()))                                                                         \
+         {                                                                                                                              \
+             if (::std::strncmp(Line, "TracerPid:", 10) == 0)                                                                           \
+             {                                                                                                                          \
+                 return ::std::strtol(Line + 10, nullptr, 10) > 0;                                                                      \
+             }                                                                                                                          \
+         }                                                                                                                              \
+         return false;                                                                                                                  \
+     }())
 #elif INK_PLATFORM_MACOS || INK_PLATFORM_IOS
 #include <csignal>
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #include <unistd.h>
-#define INK_DETAIL_IS_DEBUGGER_ATTACHED() \
-  ([]() noexcept \
-  { \
-    ::kinfo_proc Info{}; \
-    ::std::size_t Size = sizeof(Info); \
-    int Query[] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, ::getpid()}; \
-    return ::sysctl(Query, 4, &Info, &Size, nullptr, 0) == 0 && (Info.kp_proc.p_flag & P_TRACED) != 0; \
-  }())
+#define INK_DETAIL_IS_DEBUGGER_ATTACHED()                                                                   \
+    ([]() noexcept                                                                                          \
+     {                                                                                                      \
+         ::kinfo_proc Info{};                                                                               \
+         ::std::size_t Size = sizeof(Info);                                                                 \
+         int Query[] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, ::getpid()};                                    \
+         return ::sysctl(Query, 4, &Info, &Size, nullptr, 0) == 0 && (Info.kp_proc.p_flag & P_TRACED) != 0; \
+     }())
 #else
 #define INK_DETAIL_IS_DEBUGGER_ATTACHED() false
 #endif
@@ -91,49 +91,50 @@
 #endif
 
 // Writes and flushes a fatal message before aborting, independently of installed loggers.
-#define panic(Message) \
-  ([](::std::string_view InkPanicMessage) noexcept \
-  { \
-    const auto InkPanicSink = ::std::make_shared<::spdlog::sinks::stderr_sink_mt>(); \
-    ::spdlog::logger InkPanicLogger("ink-panic", InkPanicSink); \
-    InkPanicLogger.set_pattern("%v"); \
-    InkPanicLogger.critical("{}\npanic at {}:{}", InkPanicMessage, __FILE__, __LINE__); \
-    InkPanicLogger.flush(); \
-  }((Message)), INK_DETAIL_DEBUG_BREAK_IF_ATTACHED(), INK_DETAIL_ABORT())
+#define panic(Message)                                                                       \
+    ([](::std::string_view InkPanicMessage) noexcept                                         \
+     {                                                                                       \
+         const auto InkPanicSink = ::std::make_shared<::spdlog::sinks::stderr_sink_mt>();    \
+         ::spdlog::logger InkPanicLogger("ink-panic", InkPanicSink);                         \
+         InkPanicLogger.set_pattern("%v");                                                   \
+         InkPanicLogger.critical("{}\npanic at {}:{}", InkPanicMessage, __FILE__, __LINE__); \
+         InkPanicLogger.flush();                                                             \
+     }((Message)),                                                                           \
+     INK_DETAIL_DEBUG_BREAK_IF_ATTACHED(), INK_DETAIL_ABORT())
 
 // Evaluates the condition once; the engine and diagnostic arguments are evaluated only when true, in every build mode.
-#define REPORT_IF(Expression, Engine, Kind, ...) \
-  do \
-  { \
-    if (static_cast<bool>(Expression)) \
-    { \
-      (Engine).template report<Kind>(__VA_ARGS__); \
-    } \
-  } while (false)
+#define REPORT_IF(Expression, Engine, Kind, ...)         \
+    do                                                   \
+    {                                                    \
+        if (static_cast<bool>(Expression))               \
+        {                                                \
+            (Engine).template report<Kind>(__VA_ARGS__); \
+        }                                                \
+    } while (false)
 
-#define REPORT_ICE_IF(Expression, Engine, Kind, ...) \
-  do \
-  { \
-    if (static_cast<bool>(Expression)) \
-    { \
-      (Engine).template reportICE<Kind>(__VA_ARGS__); \
-    } \
-  } while (false)
+#define REPORT_ICE_IF(Expression, Engine, Kind, ...)        \
+    do                                                      \
+    {                                                       \
+        if (static_cast<bool>(Expression))                  \
+        {                                                   \
+            (Engine).template reportICE<Kind>(__VA_ARGS__); \
+        }                                                   \
+    } while (false)
 
 // One switch controls check and ensure reporting and debugger breaks, independently of NDEBUG.
 #define INK_ENABLE_ASSERTIONS (INK_BUILD_DEBUG || INK_BUILD_DEVELOPMENT)
 
-#define INK_DETAIL_CHECK(Expression, ...) \
-  do \
-  { \
-    if (!static_cast<bool>(Expression)) \
-    { \
-      panic([](::std::string_view InkCheckMessage) noexcept \
-      { \
-        return InkCheckMessage.empty() ? ::fmt::format("check failed: {}", #Expression) : ::fmt::format("check failed: {}\n{}", #Expression, InkCheckMessage); \
-      }(__VA_ARGS__)); \
-    } \
-  } while (false)
+#define INK_DETAIL_CHECK(Expression, ...)                                                                                                                                    \
+    do                                                                                                                                                                       \
+    {                                                                                                                                                                        \
+        if (!static_cast<bool>(Expression))                                                                                                                                  \
+        {                                                                                                                                                                    \
+            panic([](::std::string_view InkCheckMessage) noexcept                                                                                                            \
+                  {                                                                                                                                                          \
+                      return InkCheckMessage.empty() ? ::fmt::format("check failed: {}", #Expression) : ::fmt::format("check failed: {}\n{}", #Expression, InkCheckMessage); \
+                  }(__VA_ARGS__));                                                                                                                                           \
+        }                                                                                                                                                                    \
+    } while (false)
 
 // Disabled checks discard the condition and message arguments.
 // Formatted variants accept a format string followed by optional arguments: checkMsgf(Ready, "id={}", Id).
@@ -152,29 +153,30 @@
 
 #if INK_ENABLE_ASSERTIONS
 // Each macro expansion owns its flag; concurrent failures at that call site report only once.
-#define INK_DETAIL_ENSURE_ONCE() \
-  ([]() \
-  { \
-    static ::std::atomic_flag Reported = ATOMIC_FLAG_INIT; \
-    return !Reported.test_and_set(::std::memory_order_relaxed); \
-  }())
+#define INK_DETAIL_ENSURE_ONCE()                                     \
+    ([]()                                                            \
+     {                                                               \
+         static ::std::atomic_flag Reported = ATOMIC_FLAG_INIT;      \
+         return !Reported.test_and_set(::std::memory_order_relaxed); \
+     }())
 
-#define INK_DETAIL_ENSURE(Expression, Always, ...) \
-  (static_cast<bool>(Expression) || (((Always) || INK_DETAIL_ENSURE_ONCE()) && ([](::std::string_view InkEnsureMessage) noexcept \
-  { \
-    const auto InkEnsureSink = ::std::make_shared<::spdlog::sinks::stderr_sink_mt>(); \
-    ::spdlog::logger InkEnsureLogger("ink-ensure", InkEnsureSink); \
-    InkEnsureLogger.set_pattern("%v"); \
-    if (InkEnsureMessage.empty()) \
-    { \
-      InkEnsureLogger.error("ensure failed: {}\nensure at {}:{}", #Expression, __FILE__, __LINE__); \
-    } \
-    else \
-    { \
-      InkEnsureLogger.error("ensure failed: {}\n{}\nensure at {}:{}", #Expression, InkEnsureMessage, __FILE__, __LINE__); \
-    } \
-    InkEnsureLogger.flush(); \
-  }(__VA_ARGS__), INK_DETAIL_DEBUG_BREAK_IF_ATTACHED(), false)))
+#define INK_DETAIL_ENSURE(Expression, Always, ...)                                                                                                                                                            \
+    (static_cast<bool>(Expression) || (((Always) || INK_DETAIL_ENSURE_ONCE()) && ([](::std::string_view InkEnsureMessage) noexcept                                                                            \
+                                                                                  {                                                                                                                           \
+                                                                                      const auto InkEnsureSink = ::std::make_shared<::spdlog::sinks::stderr_sink_mt>();                                       \
+                                                                                      ::spdlog::logger InkEnsureLogger("ink-ensure", InkEnsureSink);                                                          \
+                                                                                      InkEnsureLogger.set_pattern("%v");                                                                                      \
+                                                                                      if (InkEnsureMessage.empty())                                                                                           \
+                                                                                      {                                                                                                                       \
+                                                                                          InkEnsureLogger.error("ensure failed: {}\nensure at {}:{}", #Expression, __FILE__, __LINE__);                       \
+                                                                                      }                                                                                                                       \
+                                                                                      else                                                                                                                    \
+                                                                                      {                                                                                                                       \
+                                                                                          InkEnsureLogger.error("ensure failed: {}\n{}\nensure at {}:{}", #Expression, InkEnsureMessage, __FILE__, __LINE__); \
+                                                                                      }                                                                                                                       \
+                                                                                      InkEnsureLogger.flush();                                                                                                \
+                                                                                  }(__VA_ARGS__),                                                                                                             \
+                                                                                  INK_DETAIL_DEBUG_BREAK_IF_ATTACHED(), false)))
 
 // All ensures return bool and evaluate their condition exactly once, including after a prior failure.
 // Message arguments are evaluated only when a failure is actually reported. Normal ensures report

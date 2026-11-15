@@ -5,9 +5,9 @@
 
 namespace ink::vm
 {
-  void identityStub(Frame *CallFrame) noexcept
-  {
-    const auto Value = CallFrame->getArgument<0, std::int64_t>();
-    CallFrame->setReturnValue<std::int64_t, std::int64_t>(::identity(Value));
-  }
+    void identityStub(Frame* CallFrame) noexcept
+    {
+        const auto Value = CallFrame->getArgument<0, std::int64_t>();
+        CallFrame->setReturnValue<std::int64_t, std::int64_t>(::identity(Value));
+    }
 } // namespace ink::vm

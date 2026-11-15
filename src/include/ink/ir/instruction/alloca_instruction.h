@@ -5,26 +5,26 @@
 
 namespace ink::ir
 {
-  // Models stack storage for a type value, including an unbound generic parameter; target layout is resolved after specialization.
-  // The caller must provide PointerType(T) as the result type; it and T must outlive this instruction.
-  class AllocaInstruction final : public Instruction
-  {
-    public:
-      static constexpr InstructionKind Kind = InstructionKind::Alloca;
+    // Models stack storage for a type value, including an unbound generic parameter; target layout is resolved after specialization.
+    // The caller must provide PointerType(T) as the result type; it and T must outlive this instruction.
+    class AllocaInstruction final : public Instruction
+    {
+        public:
+            static constexpr InstructionKind Kind = InstructionKind::Alloca;
 
-      constexpr explicit AllocaInstruction(ValueRef ResultType) noexcept
-          : Instruction(Kind, ResultType)
-      {
-      }
+            constexpr explicit AllocaInstruction(ValueRef ResultType) noexcept
+                : Instruction(Kind, ResultType)
+            {
+            }
 
-      static constexpr bool classof(const Instruction *Value) noexcept
-      {
-        return Value && Value->getKind() == Kind;
-      }
+            static constexpr bool classof(const Instruction* Value) noexcept
+            {
+                return Value && Value->getKind() == Kind;
+            }
 
-      constexpr const Value &getAllocatedType() const noexcept
-      {
-        return static_cast<const PointerType &>(getType()).pointeeType();
-      }
-  };
+            constexpr const Value& getAllocatedType() const noexcept
+            {
+                return static_cast<const PointerType&>(getType()).pointeeType();
+            }
+    };
 } // namespace ink::ir

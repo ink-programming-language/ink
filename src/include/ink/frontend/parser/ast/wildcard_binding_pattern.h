@@ -5,19 +5,19 @@
 
 namespace ink::frontend::parser
 {
-  class WildcardBindingPattern final : public BindingPattern
-  {
-    public:
-      static constexpr ASTKind Kind = ASTKind::WildcardBindingPattern;
-      static bool classof(const ASTNodeBase *Node)
-      {
-        return Node && Node->getKind() == Kind;
-      }
-      WildcardBindingPattern(SourceRange Range)
-          : BindingPattern(Kind, Range)
-      {
-      }
+    class WildcardBindingPattern final : public BindingPattern
+    {
+        public:
+            static constexpr ASTKind Kind = ASTKind::WildcardBindingPattern;
+            static bool classof(const ASTNodeBase* Node)
+            {
+                return Node && Node->getKind() == Kind;
+            }
+            WildcardBindingPattern(SourceRange Range)
+                : BindingPattern(Kind, Range)
+            {
+            }
 
-    private:
-  };
+        private:
+    };
 } // namespace ink::frontend::parser

@@ -8,53 +8,53 @@
 
 namespace ink::vm::test
 {
-  // Register encodings are fixed byte-sized IDs rather than object-local symbol reference indices.
-  TEST(VMRegisterTest, HasStableIndependentByteEncodings)
-  {
-    static_assert(std::is_same_v<std::underlying_type_t<RegisterId>, std::uint8_t>);
-    EXPECT_EQ(static_cast<std::uint8_t>(RegisterId::BP), 0x00);
-    EXPECT_EQ(static_cast<std::uint8_t>(RegisterId::SP), 0x01);
-    EXPECT_EQ(static_cast<std::uint8_t>(RegisterId::PC), 0x02);
-    EXPECT_EQ(static_cast<std::uint8_t>(RegisterId::ZERO), 0x03);
-  }
-
-  // Every defined logical register has a lowercase spelling available during constant evaluation.
-  TEST(VMRegisterTest, ExposesConstantRegisterSpellings)
-  {
-    static_assert(getRegisterName(RegisterId::BP) == "bp");
-    static_assert(getRegisterName(RegisterId::SP) == "sp");
-    static_assert(getRegisterName(RegisterId::PC) == "pc");
-    static_assert(getRegisterName(RegisterId::ZERO) == "zero");
-    EXPECT_EQ(getRegisterName(RegisterId::BP), std::string_view("bp"));
-    EXPECT_EQ(getRegisterName(RegisterId::SP), std::string_view("sp"));
-    EXPECT_EQ(getRegisterName(RegisterId::PC), std::string_view("pc"));
-    EXPECT_EQ(getRegisterName(RegisterId::ZERO), std::string_view("zero"));
-  }
-
-  // Undefined byte encodings never acquire a valid register spelling.
-  TEST(VMRegisterTest, RejectsUndefinedRegisterSpellings)
-  {
-    EXPECT_EQ(getRegisterName(static_cast<RegisterId>(0x04)), std::string_view("InvalidRegister"));
-    EXPECT_EQ(getRegisterName(static_cast<RegisterId>(0x05)), std::string_view("InvalidRegister"));
-    EXPECT_EQ(getRegisterName(static_cast<RegisterId>(0xFF)), std::string_view("InvalidRegister"));
-  }
-  // Unknown registers cannot become memory bases or arithmetic operands, while only BP and SP are writable address registers.
-  TEST(VMRegisterTest, DistinguishesWritableAndUndefinedRegisters)
-  {
-    for (const auto Register : {RegisterId::BP, RegisterId::SP, RegisterId::PC, RegisterId::ZERO})
+    // Register encodings are fixed byte-sized IDs rather than object-local symbol reference indices.
+    TEST(VMRegisterTest, HasStableIndependentByteEncodings)
     {
-      EXPECT_TRUE(isAddressRegister(Register));
-      EXPECT_TRUE(isArithmeticRegister(Register));
+        static_assert(std::is_same_v<std::underlying_type_t<RegisterId>, std::uint8_t>);
+        EXPECT_EQ(static_cast<std::uint8_t>(RegisterId::BP), 0x00);
+        EXPECT_EQ(static_cast<std::uint8_t>(RegisterId::SP), 0x01);
+        EXPECT_EQ(static_cast<std::uint8_t>(RegisterId::PC), 0x02);
+        EXPECT_EQ(static_cast<std::uint8_t>(RegisterId::ZERO), 0x03);
     }
-    EXPECT_TRUE(isWritableAddressRegister(RegisterId::BP));
-    EXPECT_TRUE(isWritableAddressRegister(RegisterId::SP));
-    EXPECT_FALSE(isWritableAddressRegister(RegisterId::PC));
-    EXPECT_FALSE(isWritableAddressRegister(RegisterId::ZERO));
-    for (const auto Register : {static_cast<RegisterId>(0x04), static_cast<RegisterId>(0xff)})
+
+    // Every defined logical register has a lowercase spelling available during constant evaluation.
+    TEST(VMRegisterTest, ExposesConstantRegisterSpellings)
     {
-      EXPECT_FALSE(isAddressRegister(Register));
-      EXPECT_FALSE(isArithmeticRegister(Register));
-      EXPECT_FALSE(isWritableAddressRegister(Register));
+        static_assert(getRegisterName(RegisterId::BP) == "bp");
+        static_assert(getRegisterName(RegisterId::SP) == "sp");
+        static_assert(getRegisterName(RegisterId::PC) == "pc");
+        static_assert(getRegisterName(RegisterId::ZERO) == "zero");
+        EXPECT_EQ(getRegisterName(RegisterId::BP), std::string_view("bp"));
+        EXPECT_EQ(getRegisterName(RegisterId::SP), std::string_view("sp"));
+        EXPECT_EQ(getRegisterName(RegisterId::PC), std::string_view("pc"));
+        EXPECT_EQ(getRegisterName(RegisterId::ZERO), std::string_view("zero"));
     }
-  }
+
+    // Undefined byte encodings never acquire a valid register spelling.
+    TEST(VMRegisterTest, RejectsUndefinedRegisterSpellings)
+    {
+        EXPECT_EQ(getRegisterName(static_cast<RegisterId>(0x04)), std::string_view("InvalidRegister"));
+        EXPECT_EQ(getRegisterName(static_cast<RegisterId>(0x05)), std::string_view("InvalidRegister"));
+        EXPECT_EQ(getRegisterName(static_cast<RegisterId>(0xFF)), std::string_view("InvalidRegister"));
+    }
+    // Unknown registers cannot become memory bases or arithmetic operands, while only BP and SP are writable address registers.
+    TEST(VMRegisterTest, DistinguishesWritableAndUndefinedRegisters)
+    {
+        for (const auto Register : {RegisterId::BP, RegisterId::SP, RegisterId::PC, RegisterId::ZERO})
+        {
+            EXPECT_TRUE(isAddressRegister(Register));
+            EXPECT_TRUE(isArithmeticRegister(Register));
+        }
+        EXPECT_TRUE(isWritableAddressRegister(RegisterId::BP));
+        EXPECT_TRUE(isWritableAddressRegister(RegisterId::SP));
+        EXPECT_FALSE(isWritableAddressRegister(RegisterId::PC));
+        EXPECT_FALSE(isWritableAddressRegister(RegisterId::ZERO));
+        for (const auto Register : {static_cast<RegisterId>(0x04), static_cast<RegisterId>(0xff)})
+        {
+            EXPECT_FALSE(isAddressRegister(Register));
+            EXPECT_FALSE(isArithmeticRegister(Register));
+            EXPECT_FALSE(isWritableAddressRegister(Register));
+        }
+    }
 } // namespace ink::vm::test

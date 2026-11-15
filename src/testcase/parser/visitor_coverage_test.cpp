@@ -3,133 +3,133 @@
 #include <iterator>
 namespace ink::frontend::parser::test
 {
-  namespace
-  {
-    struct DispatchCounter : ASTVisitor<DispatchCounter>
+    namespace
     {
-        std::vector<ASTKind> Kinds;
+        struct DispatchCounter : ASTVisitor<DispatchCounter>
+        {
+                std::vector<ASTKind> Kinds;
 #define AST_NODE(Name, Base, Category, Id) \
-        void visit##Name(Name *)          \
-        {                                 \
-          Kinds.push_back(ASTKind::Name); \
-        }
+    void visit##Name(Name*)                \
+    {                                      \
+        Kinds.push_back(ASTKind::Name);    \
+    }
 #include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
-    };
-    struct ConstDispatchCounter : ConstASTVisitor<ConstDispatchCounter>
-    {
-        std::vector<ASTKind> Kinds;
+        };
+        struct ConstDispatchCounter : ConstASTVisitor<ConstDispatchCounter>
+        {
+                std::vector<ASTKind> Kinds;
 #define AST_NODE(Name, Base, Category, Id) \
-        void visit##Name(const Name *)    \
-        {                                 \
-          Kinds.push_back(ASTKind::Name); \
-        }
+    void visit##Name(const Name*)          \
+    {                                      \
+        Kinds.push_back(ASTKind::Name);    \
+    }
 #include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
-    };
-  } // namespace
-  // Every concrete kind defaults to runtime and dispatches once to its mutable and const leaf callbacks after becoming comptime.
-  TEST(ASTVisitorTest, EveryRegisteredKind)
-  {
-    ASTContext Context;
-    const auto Range = SourceRange::fromByteOffsets(0, 0);
-    std::vector<ASTNodeBase *> Nodes;
-    Nodes.push_back(Context.make<ModuleAST>(Range, ASTArray<Stmt *>{}));
-    Nodes.push_back(Context.make<TypeSyntax>(Range, static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<MissingExpr>(Range));
-    Nodes.push_back(Context.make<ErrorExpr>(Range));
-    Nodes.push_back(Context.make<MissingStmt>(Range));
-    Nodes.push_back(Context.make<ErrorStmt>(Range));
-    Nodes.push_back(Context.make<MissingDecl>(Range, ASTArray<Attribute>{}));
-    Nodes.push_back(Context.make<ErrorDecl>(Range, ASTArray<Attribute>{}));
-    Nodes.push_back(Context.make<MissingBindingPattern>(Range));
-    Nodes.push_back(Context.make<ErrorBindingPattern>(Range));
-    Nodes.push_back(Context.make<MissingMatchPattern>(Range));
-    Nodes.push_back(Context.make<ErrorMatchPattern>(Range));
-    Nodes.push_back(Context.make<NameExpr>(Range, NameToken{}));
-    Nodes.push_back(Context.make<LiteralExpr>(Range, TokenId{}, TokenKind{}));
-    Nodes.push_back(Context.make<UnaryExpr>(Range, TokenKind{}, Range, static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<BinaryExpr>(Range, static_cast<Expr *>(nullptr), TokenKind{}, Range, static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<ConditionalExpr>(Range, static_cast<Expr *>(nullptr), static_cast<Expr *>(nullptr), static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<ParenExpr>(Range, static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<TupleExpr>(Range, ASTArray<Expr *>{}));
-    Nodes.push_back(Context.make<ArrayExpr>(Range, ASTArray<Expr *>{}));
-    Nodes.push_back(Context.make<ArrayRepeatExpr>(Range, static_cast<Expr *>(nullptr), static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<CallExpr>(Range, static_cast<Expr *>(nullptr), ASTArray<Argument>{}, bool{}));
-    Nodes.push_back(Context.make<IndexExpr>(Range, static_cast<Expr *>(nullptr), static_cast<Expr *>(nullptr), bool{}));
-    Nodes.push_back(Context.make<MemberExpr>(Range, static_cast<Expr *>(nullptr), TokenKind{}, NameToken{}));
-    Nodes.push_back(Context.make<GenericApplyExpr>(Range, static_cast<Expr *>(nullptr), ASTArray<Argument>{}));
-    Nodes.push_back(Context.make<PostfixUpdateExpr>(Range, static_cast<Expr *>(nullptr), TokenKind{}, Range));
-    Nodes.push_back(Context.make<FunctionTypeExpr>(Range, ASTArray<FunctionTypeParameter>{}, static_cast<TypeSyntax *>(nullptr)));
-    Nodes.push_back(Context.make<LambdaExpr>(Range, ASTArray<Parameter>{}, ASTArray<Parameter>{}, static_cast<TypeSyntax *>(nullptr), static_cast<BlockStmt *>(nullptr)));
-    Nodes.push_back(Context.make<MatchExpr>(Range, static_cast<Expr *>(nullptr), ASTArray<MatchArm>{}));
-    Nodes.push_back(Context.make<BlockExpr>(Range, static_cast<BlockStmt *>(nullptr)));
-    Nodes.push_back(Context.make<ExprItem>(Range, static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<AssignmentItem>(Range, static_cast<Expr *>(nullptr), TokenKind{}, Range, static_cast<SimpleItem *>(nullptr)));
-    Nodes.push_back(Context.make<SimpleStmt>(Range, ASTArray<SimpleItem *>{}));
-    Nodes.push_back(Context.make<BlockStmt>(Range, ASTArray<Stmt *>{}, bool{}));
-    Nodes.push_back(Context.make<DeclStmt>(Range, static_cast<Decl *>(nullptr)));
-    Nodes.push_back(Context.make<IfStmt>(Range, static_cast<Expr *>(nullptr), static_cast<Stmt *>(nullptr), static_cast<Stmt *>(nullptr)));
-    Nodes.push_back(Context.make<WhileStmt>(Range, static_cast<Expr *>(nullptr), static_cast<Stmt *>(nullptr)));
-    Nodes.push_back(Context.make<ClassicForStmt>(Range, static_cast<Stmt *>(nullptr), static_cast<Expr *>(nullptr), ASTArray<SimpleItem *>{}, static_cast<Stmt *>(nullptr)));
-    Nodes.push_back(Context.make<ForInStmt>(Range, static_cast<BindingPattern *>(nullptr), static_cast<Expr *>(nullptr), static_cast<Stmt *>(nullptr)));
-    Nodes.push_back(Context.make<SwitchStmt>(Range, static_cast<Expr *>(nullptr), ASTArray<SwitchClause>{}));
-    Nodes.push_back(Context.make<ReturnStmt>(Range, static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<BreakStmt>(Range));
-    Nodes.push_back(Context.make<ContinueStmt>(Range));
-    Nodes.push_back(Context.make<YieldStmt>(Range, bool{}, static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<DeferStmt>(Range, static_cast<Stmt *>(nullptr)));
-    Nodes.push_back(Context.make<DirectImportStmt>(Range, ASTArray<ImportEntry>{}));
-    Nodes.push_back(Context.make<FromImportStmt>(Range, std::size_t{}, ASTArray<TokenId>{}, ASTArray<NameToken>{}, ASTArray<ImportEntry>{}));
-    Nodes.push_back(Context.make<VarDecl>(Range, ASTArray<Attribute>{}, bool{}, static_cast<BindingPattern *>(nullptr), static_cast<TypeSyntax *>(nullptr), static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<FieldDecl>(Range, ASTArray<Attribute>{}, NameToken{}, FieldTailKind{}, static_cast<TypeSyntax *>(nullptr), ASTArray<Parameter>{}, static_cast<Expr *>(nullptr)));
-    Nodes.push_back(Context.make<FunctionDecl>(Range, ASTArray<Attribute>{}, NameToken{}, ASTArray<Parameter>{}, ASTArray<Parameter>{}, static_cast<TypeSyntax *>(nullptr), FunctionBodyKind{}, static_cast<BlockStmt *>(nullptr)));
-    Nodes.push_back(Context.make<ClassDecl>(Range, ASTArray<Attribute>{}, NameToken{}, ASTArray<Parameter>{}, ASTArray<BaseSpec>{}, AggregateForm{}, static_cast<BlockStmt *>(nullptr), Range));
-    Nodes.push_back(Context.make<EnumDecl>(Range, ASTArray<Attribute>{}, NameToken{}, ASTArray<Parameter>{}, ASTArray<BaseSpec>{}, AggregateForm{}, static_cast<BlockStmt *>(nullptr), Range));
-    Nodes.push_back(Context.make<InterfaceDecl>(Range, ASTArray<Attribute>{}, NameToken{}, ASTArray<Parameter>{}, ASTArray<BaseSpec>{}, AggregateForm{}, static_cast<BlockStmt *>(nullptr), Range));
-    Nodes.push_back(Context.make<WildcardBindingPattern>(Range));
-    Nodes.push_back(Context.make<NameBindingPattern>(Range, NameToken{}));
-    Nodes.push_back(Context.make<TupleBindingPattern>(Range, ASTArray<BindingPattern *>{}));
-    Nodes.push_back(Context.make<ArrayBindingPattern>(Range, ASTArray<BindingPattern *>{}, std::optional<RestBinding>{}));
-    Nodes.push_back(Context.make<WildcardMatchPattern>(Range));
-    Nodes.push_back(Context.make<NameMatchPattern>(Range, ASTArray<PathSegment>{}, bool{}, ASTArray<MatchPattern *>{}));
-    Nodes.push_back(Context.make<TupleMatchPattern>(Range, ASTArray<MatchPattern *>{}));
-    Nodes.push_back(Context.make<ArrayMatchPattern>(Range, ASTArray<MatchPattern *>{}, std::optional<RestBinding>{}));
-    Nodes.push_back(Context.make<LiteralMatchPattern>(Range, static_cast<LiteralExpr *>(nullptr), bool{}));
-    Nodes.push_back(Context.make<GroupedMatchPattern>(Range, static_cast<MatchPattern *>(nullptr)));
-    Nodes.push_back(Context.make<OrMatchPattern>(Range, ASTArray<MatchPattern *>{}));
-    constexpr ASTKind RegisteredKinds[] = {
+        };
+    } // namespace
+    // Every concrete kind defaults to runtime and dispatches once to its mutable and const leaf callbacks after becoming comptime.
+    TEST(ASTVisitorTest, EveryRegisteredKind)
+    {
+        ASTContext Context;
+        const auto Range = SourceRange::fromByteOffsets(0, 0);
+        std::vector<ASTNodeBase*> Nodes;
+        Nodes.push_back(Context.make<ModuleAST>(Range, ASTArray<Stmt*>{}));
+        Nodes.push_back(Context.make<TypeSyntax>(Range, static_cast<Expr*>(nullptr)));
+        Nodes.push_back(Context.make<MissingExpr>(Range));
+        Nodes.push_back(Context.make<ErrorExpr>(Range));
+        Nodes.push_back(Context.make<MissingStmt>(Range));
+        Nodes.push_back(Context.make<ErrorStmt>(Range));
+        Nodes.push_back(Context.make<MissingDecl>(Range, ASTArray<Attribute>{}));
+        Nodes.push_back(Context.make<ErrorDecl>(Range, ASTArray<Attribute>{}));
+        Nodes.push_back(Context.make<MissingBindingPattern>(Range));
+        Nodes.push_back(Context.make<ErrorBindingPattern>(Range));
+        Nodes.push_back(Context.make<MissingMatchPattern>(Range));
+        Nodes.push_back(Context.make<ErrorMatchPattern>(Range));
+        Nodes.push_back(Context.make<NameExpr>(Range, NameToken{}));
+        Nodes.push_back(Context.make<LiteralExpr>(Range, TokenId{}, TokenKind{}));
+        Nodes.push_back(Context.make<UnaryExpr>(Range, TokenKind{}, Range, static_cast<Expr*>(nullptr)));
+        Nodes.push_back(Context.make<BinaryExpr>(Range, static_cast<Expr*>(nullptr), TokenKind{}, Range, static_cast<Expr*>(nullptr)));
+        Nodes.push_back(Context.make<ConditionalExpr>(Range, static_cast<Expr*>(nullptr), static_cast<Expr*>(nullptr), static_cast<Expr*>(nullptr)));
+        Nodes.push_back(Context.make<ParenExpr>(Range, static_cast<Expr*>(nullptr)));
+        Nodes.push_back(Context.make<TupleExpr>(Range, ASTArray<Expr*>{}));
+        Nodes.push_back(Context.make<ArrayExpr>(Range, ASTArray<Expr*>{}));
+        Nodes.push_back(Context.make<ArrayRepeatExpr>(Range, static_cast<Expr*>(nullptr), static_cast<Expr*>(nullptr)));
+        Nodes.push_back(Context.make<CallExpr>(Range, static_cast<Expr*>(nullptr), ASTArray<Argument>{}, bool{}));
+        Nodes.push_back(Context.make<IndexExpr>(Range, static_cast<Expr*>(nullptr), static_cast<Expr*>(nullptr), bool{}));
+        Nodes.push_back(Context.make<MemberExpr>(Range, static_cast<Expr*>(nullptr), TokenKind{}, NameToken{}));
+        Nodes.push_back(Context.make<GenericApplyExpr>(Range, static_cast<Expr*>(nullptr), ASTArray<Argument>{}));
+        Nodes.push_back(Context.make<PostfixUpdateExpr>(Range, static_cast<Expr*>(nullptr), TokenKind{}, Range));
+        Nodes.push_back(Context.make<FunctionTypeExpr>(Range, ASTArray<FunctionTypeParameter>{}, static_cast<TypeSyntax*>(nullptr)));
+        Nodes.push_back(Context.make<LambdaExpr>(Range, ASTArray<Parameter>{}, ASTArray<Parameter>{}, static_cast<TypeSyntax*>(nullptr), static_cast<BlockStmt*>(nullptr)));
+        Nodes.push_back(Context.make<MatchExpr>(Range, static_cast<Expr*>(nullptr), ASTArray<MatchArm>{}));
+        Nodes.push_back(Context.make<BlockExpr>(Range, static_cast<BlockStmt*>(nullptr)));
+        Nodes.push_back(Context.make<ExprItem>(Range, static_cast<Expr*>(nullptr)));
+        Nodes.push_back(Context.make<AssignmentItem>(Range, static_cast<Expr*>(nullptr), TokenKind{}, Range, static_cast<SimpleItem*>(nullptr)));
+        Nodes.push_back(Context.make<SimpleStmt>(Range, ASTArray<SimpleItem*>{}));
+        Nodes.push_back(Context.make<BlockStmt>(Range, ASTArray<Stmt*>{}, bool{}));
+        Nodes.push_back(Context.make<DeclStmt>(Range, static_cast<Decl*>(nullptr)));
+        Nodes.push_back(Context.make<IfStmt>(Range, static_cast<Expr*>(nullptr), static_cast<Stmt*>(nullptr), static_cast<Stmt*>(nullptr)));
+        Nodes.push_back(Context.make<WhileStmt>(Range, static_cast<Expr*>(nullptr), static_cast<Stmt*>(nullptr)));
+        Nodes.push_back(Context.make<ClassicForStmt>(Range, static_cast<Stmt*>(nullptr), static_cast<Expr*>(nullptr), ASTArray<SimpleItem*>{}, static_cast<Stmt*>(nullptr)));
+        Nodes.push_back(Context.make<ForInStmt>(Range, static_cast<BindingPattern*>(nullptr), static_cast<Expr*>(nullptr), static_cast<Stmt*>(nullptr)));
+        Nodes.push_back(Context.make<SwitchStmt>(Range, static_cast<Expr*>(nullptr), ASTArray<SwitchClause>{}));
+        Nodes.push_back(Context.make<ReturnStmt>(Range, static_cast<Expr*>(nullptr)));
+        Nodes.push_back(Context.make<BreakStmt>(Range));
+        Nodes.push_back(Context.make<ContinueStmt>(Range));
+        Nodes.push_back(Context.make<YieldStmt>(Range, bool{}, static_cast<Expr*>(nullptr)));
+        Nodes.push_back(Context.make<DeferStmt>(Range, static_cast<Stmt*>(nullptr)));
+        Nodes.push_back(Context.make<DirectImportStmt>(Range, ASTArray<ImportEntry>{}));
+        Nodes.push_back(Context.make<FromImportStmt>(Range, std::size_t{}, ASTArray<TokenId>{}, ASTArray<NameToken>{}, ASTArray<ImportEntry>{}));
+        Nodes.push_back(Context.make<VarDecl>(Range, ASTArray<Attribute>{}, bool{}, static_cast<BindingPattern*>(nullptr), static_cast<TypeSyntax*>(nullptr), static_cast<Expr*>(nullptr)));
+        Nodes.push_back(Context.make<FieldDecl>(Range, ASTArray<Attribute>{}, NameToken{}, FieldTailKind{}, static_cast<TypeSyntax*>(nullptr), ASTArray<Parameter>{}, static_cast<Expr*>(nullptr)));
+        Nodes.push_back(Context.make<FunctionDecl>(Range, ASTArray<Attribute>{}, NameToken{}, ASTArray<Parameter>{}, ASTArray<Parameter>{}, static_cast<TypeSyntax*>(nullptr), FunctionBodyKind{}, static_cast<BlockStmt*>(nullptr)));
+        Nodes.push_back(Context.make<ClassDecl>(Range, ASTArray<Attribute>{}, NameToken{}, ASTArray<Parameter>{}, ASTArray<BaseSpec>{}, AggregateForm{}, static_cast<BlockStmt*>(nullptr), Range));
+        Nodes.push_back(Context.make<EnumDecl>(Range, ASTArray<Attribute>{}, NameToken{}, ASTArray<Parameter>{}, ASTArray<BaseSpec>{}, AggregateForm{}, static_cast<BlockStmt*>(nullptr), Range));
+        Nodes.push_back(Context.make<InterfaceDecl>(Range, ASTArray<Attribute>{}, NameToken{}, ASTArray<Parameter>{}, ASTArray<BaseSpec>{}, AggregateForm{}, static_cast<BlockStmt*>(nullptr), Range));
+        Nodes.push_back(Context.make<WildcardBindingPattern>(Range));
+        Nodes.push_back(Context.make<NameBindingPattern>(Range, NameToken{}));
+        Nodes.push_back(Context.make<TupleBindingPattern>(Range, ASTArray<BindingPattern*>{}));
+        Nodes.push_back(Context.make<ArrayBindingPattern>(Range, ASTArray<BindingPattern*>{}, std::optional<RestBinding>{}));
+        Nodes.push_back(Context.make<WildcardMatchPattern>(Range));
+        Nodes.push_back(Context.make<NameMatchPattern>(Range, ASTArray<PathSegment>{}, bool{}, ASTArray<MatchPattern*>{}));
+        Nodes.push_back(Context.make<TupleMatchPattern>(Range, ASTArray<MatchPattern*>{}));
+        Nodes.push_back(Context.make<ArrayMatchPattern>(Range, ASTArray<MatchPattern*>{}, std::optional<RestBinding>{}));
+        Nodes.push_back(Context.make<LiteralMatchPattern>(Range, static_cast<LiteralExpr*>(nullptr), bool{}));
+        Nodes.push_back(Context.make<GroupedMatchPattern>(Range, static_cast<MatchPattern*>(nullptr)));
+        Nodes.push_back(Context.make<OrMatchPattern>(Range, ASTArray<MatchPattern*>{}));
+        constexpr ASTKind RegisteredKinds[] = {
 #define AST_NODE(Name, Base, Category, Id) ASTKind::Name,
 #include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
-    };
-    ASSERT_EQ(Nodes.size(), std::size(RegisteredKinds));
-    DispatchCounter Mutable;
-    ConstDispatchCounter Constant;
-    for (auto *Node : Nodes)
-    {
-      const ASTKind Kind = Node->getKind();
-      const std::size_t ExpectedCount = Mutable.Kinds.size() + 1;
-      SCOPED_TRACE(astKindName(Kind));
-      EXPECT_FALSE(Node->isComptime());
-      Node->setComptime();
-      EXPECT_TRUE(Node->isComptime());
-      EXPECT_EQ(Node->getKind(), Kind);
-      Mutable.visit(Node);
-      Constant.visit(Node);
-      ASSERT_EQ(Mutable.Kinds.size(), ExpectedCount);
-      ASSERT_EQ(Constant.Kinds.size(), ExpectedCount);
-      EXPECT_EQ(Mutable.Kinds.back(), Kind);
-      EXPECT_EQ(Constant.Kinds.back(), Kind);
-      EXPECT_NE(std::string_view(astKindName(Node->getKind())), "InvalidASTKind");
-      Node->setComptime(false);
-      EXPECT_FALSE(Node->isComptime());
+        };
+        ASSERT_EQ(Nodes.size(), std::size(RegisteredKinds));
+        DispatchCounter Mutable;
+        ConstDispatchCounter Constant;
+        for (auto* Node : Nodes)
+        {
+            const ASTKind Kind = Node->getKind();
+            const std::size_t ExpectedCount = Mutable.Kinds.size() + 1;
+            SCOPED_TRACE(astKindName(Kind));
+            EXPECT_FALSE(Node->isComptime());
+            Node->setComptime();
+            EXPECT_TRUE(Node->isComptime());
+            EXPECT_EQ(Node->getKind(), Kind);
+            Mutable.visit(Node);
+            Constant.visit(Node);
+            ASSERT_EQ(Mutable.Kinds.size(), ExpectedCount);
+            ASSERT_EQ(Constant.Kinds.size(), ExpectedCount);
+            EXPECT_EQ(Mutable.Kinds.back(), Kind);
+            EXPECT_EQ(Constant.Kinds.back(), Kind);
+            EXPECT_NE(std::string_view(astKindName(Node->getKind())), "InvalidASTKind");
+            Node->setComptime(false);
+            EXPECT_FALSE(Node->isComptime());
+        }
+        for (ASTKind Kind : RegisteredKinds)
+        {
+            SCOPED_TRACE(astKindName(Kind));
+            EXPECT_EQ(std::count(Mutable.Kinds.begin(), Mutable.Kinds.end(), Kind), 1);
+            EXPECT_EQ(std::count(Constant.Kinds.begin(), Constant.Kinds.end(), Kind), 1);
+        }
     }
-    for (ASTKind Kind : RegisteredKinds)
-    {
-      SCOPED_TRACE(astKindName(Kind));
-      EXPECT_EQ(std::count(Mutable.Kinds.begin(), Mutable.Kinds.end(), Kind), 1);
-      EXPECT_EQ(std::count(Constant.Kinds.begin(), Constant.Kinds.end(), Kind), 1);
-    }
-  }
 } // namespace ink::frontend::parser::test

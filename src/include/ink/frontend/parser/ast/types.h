@@ -7,71 +7,71 @@
 
 namespace ink::frontend::parser
 {
-  using core::SourceRange;
-  using tokenizer::TokenKind;
-  using TokenId = std::size_t;
-  inline constexpr TokenId InvalidTokenId = static_cast<TokenId>(-1);
-  struct NameToken
-  {
-      TokenId Id = InvalidTokenId;
-      std::string_view Text;
-      SourceRange Range;
-  };
-  struct RestBinding
-  {
-      NameToken Name;
-      bool Wildcard;
-      SourceRange EllipsisRange;
-  };
-  enum class TypeQualifierKind
-  {
-    Const,
-  };
-  struct TypeQualifier
-  {
-      TypeQualifierKind Kind;
-      SourceRange Range;
-  };
-  enum class ArgumentKind
-  {
-    Named,
-    Positional,
-    SpreadPositional
-  };
-  enum class AttributeSuffix
-  {
-    None,
-    Arguments,
-    Value
-  };
-  enum class FieldTailKind
-  {
-    None,
-    Typed,
-    InitializerOnly,
-    Payload
-  };
-  enum class FunctionBodyKind
-  {
-    DeclarationOnly,
-    Definition
-  };
-  // Records an explicit native import/export specifier in source, before linkage resolution.
-  enum class NativeSymbolKind
-  {
-    None,
-    Import,
-    Export,
-  };
-  enum class AggregateForm
-  {
-    Forward,
-    Definition
-  };
-  enum class DeclarationVisibility
-  {
-    Default,
-    Public,
-    Private,
-  };
+    using core::SourceRange;
+    using tokenizer::TokenKind;
+    using TokenId = std::size_t;
+    inline constexpr TokenId InvalidTokenId = static_cast<TokenId>(-1);
+    struct NameToken
+    {
+            TokenId Id = InvalidTokenId;
+            std::string_view Text;
+            SourceRange Range;
+    };
+    struct RestBinding
+    {
+            NameToken Name;
+            bool Wildcard;
+            SourceRange EllipsisRange;
+    };
+    enum class TypeQualifierKind
+    {
+        Const,
+    };
+    struct TypeQualifier
+    {
+            TypeQualifierKind Kind;
+            SourceRange Range;
+    };
+    enum class ArgumentKind
+    {
+        Named,
+        Positional,
+        SpreadPositional
+    };
+    enum class AttributeSuffix
+    {
+        None,
+        Arguments,
+        Value
+    };
+    enum class FieldTailKind
+    {
+        None,
+        Typed,
+        InitializerOnly,
+        Payload
+    };
+    enum class FunctionBodyKind
+    {
+        DeclarationOnly,
+        Definition
+    };
+    // Records an explicit native import/export specifier in source, before linkage resolution.
+    enum class NativeSymbolKind
+    {
+        None,
+        Import,
+        Export,
+    };
+    enum class AggregateForm
+    {
+        Forward,
+        Definition
+    };
+    enum class DeclarationVisibility
+    {
+        Default,
+        Public,
+        Private,
+    };
 } // namespace ink::frontend::parser

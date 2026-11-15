@@ -8,36 +8,36 @@
 
 namespace ink::core
 {
-  class DiagnosticConsumer
-  {
-    public:
-      virtual ~DiagnosticConsumer() = default;
-      virtual void consume(const Diagnostic &DiagnosticEntry) = 0;
-  };
+    class DiagnosticConsumer
+    {
+        public:
+            virtual ~DiagnosticConsumer() = default;
+            virtual void consume(const Diagnostic& DiagnosticEntry) = 0;
+    };
 
-  class CollectingDiagnosticConsumer final : public DiagnosticConsumer
-  {
-    public:
-      void consume(const Diagnostic &DiagnosticEntry) override;
+    class CollectingDiagnosticConsumer final : public DiagnosticConsumer
+    {
+        public:
+            void consume(const Diagnostic& DiagnosticEntry) override;
 
-      const std::vector<Diagnostic> &diagnostics() const noexcept
-      {
-        return Diagnostics;
-      }
+            const std::vector<Diagnostic>& diagnostics() const noexcept
+            {
+                return Diagnostics;
+            }
 
-      std::vector<Diagnostic> takeDiagnostics() noexcept
-      {
-        return std::move(Diagnostics);
-      }
+            std::vector<Diagnostic> takeDiagnostics() noexcept
+            {
+                return std::move(Diagnostics);
+            }
 
-      void clear() noexcept
-      {
-        Diagnostics.clear();
-      }
+            void clear() noexcept
+            {
+                Diagnostics.clear();
+            }
 
-    private:
-      std::vector<Diagnostic> Diagnostics;
-  };
+        private:
+            std::vector<Diagnostic> Diagnostics;
+    };
 } // namespace ink::core
 
 #endif

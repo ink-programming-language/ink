@@ -13,75 +13,75 @@
 
 namespace ink::vm::test
 {
-  namespace
-  {
-    constexpr std::size_t ReturnSlotOffset = 8;
-    constexpr std::size_t ArgumentSlotOffset = ReturnSlotOffset + sizeof(std::int64_t);
-    constexpr std::size_t CallEndOffset = ArgumentSlotOffset + sizeof(std::int64_t);
-    using StackBytes = std::array<std::uint8_t, CallEndOffset + 8>;
-  }
-
-  // Identity reads the i64 argument below SP and changes only its return slot for signed boundaries and distinct byte patterns.
-  TEST(VMBuiltinStubTest, IdentityPreservesStackOutsideReturnSlotForSignedIntegerValues)
-  {
-    constexpr std::int64_t Values[] = {
-        0,
-        1,
-        -1,
-        42,
-        -42,
-        std::numeric_limits<std::int64_t>::min(),
-        std::numeric_limits<std::int64_t>::max(),
-        0x0123456789ABCDEF,
-    };
-
-    for (const auto Value : Values)
+    namespace
     {
-      SCOPED_TRACE(Value);
-      alignas(8) StackBytes Stack;
-      Stack.fill(0xA5);
-      std::memcpy(Stack.data() + ArgumentSlotOffset, &Value, sizeof(Value));
-      auto Expected = Stack;
-      std::memcpy(Expected.data() + ReturnSlotOffset, &Value, sizeof(Value));
-      Frame CallFrame{Stack.data() + CallEndOffset};
-      auto *const InitialSP = *reinterpret_cast<std::uint8_t *const *>(GET_REGISTER(RegisterId::SP, CallFrame));
+        constexpr std::size_t ReturnSlotOffset = 8;
+        constexpr std::size_t ArgumentSlotOffset = ReturnSlotOffset + sizeof(std::int64_t);
+        constexpr std::size_t CallEndOffset = ArgumentSlotOffset + sizeof(std::int64_t);
+        using StackBytes = std::array<std::uint8_t, CallEndOffset + 8>;
+    } // namespace
 
-      identityStub(&CallFrame);
-
-      EXPECT_EQ(*reinterpret_cast<std::uint8_t *const *>(GET_REGISTER(RegisterId::SP, CallFrame)), InitialSP);
-      EXPECT_EQ(Stack, Expected);
-    }
-  }
-
-  // The native identity name resolves to the Frame adapter and dispatches it without changing SP, arguments, or surrounding bytes.
-  TEST(VMBuiltinStubTest, RegistersAndInvokesIdentityAdapterByNativeSymbolName)
-  {
-    const auto IdentityName = core::NamePool::instance().intern("identity");
-    const NativeSymbolAddress *IdentitySymbol = nullptr;
-    for (const auto &Symbol : NativeSymbolAddresses)
+    // Identity reads the i64 argument below SP and changes only its return slot for signed boundaries and distinct byte patterns.
+    TEST(VMBuiltinStubTest, IdentityPreservesStackOutsideReturnSlotForSignedIntegerValues)
     {
-      if (Symbol.Name == IdentityName)
-      {
-        IdentitySymbol = &Symbol;
-        break;
-      }
+        constexpr std::int64_t Values[] = {
+            0,
+            1,
+            -1,
+            42,
+            -42,
+            std::numeric_limits<std::int64_t>::min(),
+            std::numeric_limits<std::int64_t>::max(),
+            0x0123456789ABCDEF,
+        };
+
+        for (const auto Value : Values)
+        {
+            SCOPED_TRACE(Value);
+            alignas(8) StackBytes Stack;
+            Stack.fill(0xA5);
+            std::memcpy(Stack.data() + ArgumentSlotOffset, &Value, sizeof(Value));
+            auto Expected = Stack;
+            std::memcpy(Expected.data() + ReturnSlotOffset, &Value, sizeof(Value));
+            Frame CallFrame{Stack.data() + CallEndOffset};
+            auto* const InitialSP = *reinterpret_cast<std::uint8_t* const*>(GET_REGISTER(RegisterId::SP, CallFrame));
+
+            identityStub(&CallFrame);
+
+            EXPECT_EQ(*reinterpret_cast<std::uint8_t* const*>(GET_REGISTER(RegisterId::SP, CallFrame)), InitialSP);
+            EXPECT_EQ(Stack, Expected);
+        }
     }
-    ASSERT_NE(IdentitySymbol, nullptr);
-    ASSERT_EQ(IdentitySymbol->Address, reinterpret_cast<void *>(&identityStub));
-    const auto Stub = reinterpret_cast<decltype(&identityStub)>(IdentitySymbol->Address);
 
-    constexpr std::int64_t Value = -0x0123456789ABCDEF;
-    alignas(8) StackBytes Stack;
-    Stack.fill(0x5A);
-    std::memcpy(Stack.data() + ArgumentSlotOffset, &Value, sizeof(Value));
-    auto Expected = Stack;
-    std::memcpy(Expected.data() + ReturnSlotOffset, &Value, sizeof(Value));
-    Frame CallFrame{Stack.data() + CallEndOffset};
-    auto *const InitialSP = *reinterpret_cast<std::uint8_t *const *>(GET_REGISTER(RegisterId::SP, CallFrame));
+    // The native identity name resolves to the Frame adapter and dispatches it without changing SP, arguments, or surrounding bytes.
+    TEST(VMBuiltinStubTest, RegistersAndInvokesIdentityAdapterByNativeSymbolName)
+    {
+        const auto IdentityName = core::NamePool::instance().intern("identity");
+        const NativeSymbolAddress* IdentitySymbol = nullptr;
+        for (const auto& Symbol : NativeSymbolAddresses)
+        {
+            if (Symbol.Name == IdentityName)
+            {
+                IdentitySymbol = &Symbol;
+                break;
+            }
+        }
+        ASSERT_NE(IdentitySymbol, nullptr);
+        ASSERT_EQ(IdentitySymbol->Address, reinterpret_cast<void*>(&identityStub));
+        const auto Stub = reinterpret_cast<decltype(&identityStub)>(IdentitySymbol->Address);
 
-    Stub(&CallFrame);
+        constexpr std::int64_t Value = -0x0123456789ABCDEF;
+        alignas(8) StackBytes Stack;
+        Stack.fill(0x5A);
+        std::memcpy(Stack.data() + ArgumentSlotOffset, &Value, sizeof(Value));
+        auto Expected = Stack;
+        std::memcpy(Expected.data() + ReturnSlotOffset, &Value, sizeof(Value));
+        Frame CallFrame{Stack.data() + CallEndOffset};
+        auto* const InitialSP = *reinterpret_cast<std::uint8_t* const*>(GET_REGISTER(RegisterId::SP, CallFrame));
 
-    EXPECT_EQ(*reinterpret_cast<std::uint8_t *const *>(GET_REGISTER(RegisterId::SP, CallFrame)), InitialSP);
-    EXPECT_EQ(Stack, Expected);
-  }
+        Stub(&CallFrame);
+
+        EXPECT_EQ(*reinterpret_cast<std::uint8_t* const*>(GET_REGISTER(RegisterId::SP, CallFrame)), InitialSP);
+        EXPECT_EQ(Stack, Expected);
+    }
 } // namespace ink::vm::test

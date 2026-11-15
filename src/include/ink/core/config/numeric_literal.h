@@ -5,16 +5,16 @@
 
 namespace ink::core
 {
-  enum class NumericBase : unsigned
-  {
-    Binary = 2,
-    Octal = 8,
-    Decimal = 10,
-    Hexadecimal = 16,
-  };
+    enum class NumericBase : unsigned
+    {
+        Binary = 2,
+        Octal = 8,
+        Decimal = 10,
+        Hexadecimal = 16,
+    };
 
-  // Binary, octal and hexadecimal literals start with a two-byte ASCII prefix.
-  inline constexpr std::size_t NumericBasePrefixLength = 2;
+    // Binary, octal and hexadecimal literals start with a two-byte ASCII prefix.
+    inline constexpr std::size_t NumericBasePrefixLength = 2;
 } // namespace ink::core
 
 #endif

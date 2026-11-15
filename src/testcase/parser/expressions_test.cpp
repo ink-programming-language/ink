@@ -1,231 +1,231 @@
 #include "parser_test_support.h"
 namespace ink::frontend::parser::test
 {
-  // Void uses the same identifier token and name expression as other builtin types, preserving pointer syntax and source ranges.
-  TEST_F(ParserTest, VoidNameExpressionAndPointerPrefixes)
-  {
-    const auto Result = read("void; *void; **void; const Unit = void; Result::[void, *void]; comptime void; i32; bool;");
-    ASSERT_TRUE(Result.succeeded());
-    const auto ExpectVoidName = [&](const Expr *Value)
+    // Void uses the same identifier token and name expression as other builtin types, preserving pointer syntax and source ranges.
+    TEST_F(ParserTest, VoidNameExpressionAndPointerPrefixes)
     {
-      const auto *Name = dyn_cast<NameExpr>(Value);
-      ASSERT_NE(Name, nullptr);
-      EXPECT_EQ(Name->name().Text, "void");
-      const auto &Token = Result.Unit->input().token(Name->name().Id);
-      EXPECT_EQ(Token.Kind, TokenKind::Identifier);
-      EXPECT_EQ(Name->name().Range, Token.Span);
-    };
-    const auto *Void = cast<NameExpr>(expression(Result));
-    ExpectVoidName(Void);
-    EXPECT_EQ(Void->getSourceRange(), SourceRange::fromByteOffsets(0, 4));
-    EXPECT_EQ(Void->name().Range, Void->getSourceRange());
-    const auto *Pointer = cast<UnaryExpr>(expression(Result, 1));
-    EXPECT_EQ(Pointer->op(), TokenKind::Star);
-    ExpectVoidName(Pointer->operand());
-    const auto *DoublePointer = cast<UnaryExpr>(expression(Result, 2));
-    EXPECT_EQ(DoublePointer->op(), TokenKind::Star);
-    const auto *InnerPointer = cast<UnaryExpr>(DoublePointer->operand());
-    EXPECT_EQ(InnerPointer->op(), TokenKind::Star);
-    ExpectVoidName(InnerPointer->operand());
-    ExpectVoidName(cast<VarDecl>(declaration(Result, 3))->initializer());
-    const auto Arguments = cast<GenericApplyExpr>(expression(Result, 4))->arguments();
-    ASSERT_EQ(Arguments.size(), 2U);
-    ExpectVoidName(Arguments[0].value());
-    ExpectVoidName(cast<UnaryExpr>(Arguments[1].value())->operand());
-    ExpectVoidName(expression(Result, 5));
-    EXPECT_TRUE(expression(Result, 5)->isComptime());
-    EXPECT_EQ(Void->getKind(), expression(Result, 6)->getKind());
-    EXPECT_EQ(Void->getKind(), expression(Result, 7)->getKind());
-    std::size_t Children = 0;
-    forEachChild(Void, [&](const ASTNodeBase *)
-    {
-      ++Children;
-    });
-    EXPECT_EQ(Children, 0U);
-    EXPECT_NE(dumpAST(*Result.Unit).find("NameExpr"), std::string::npos);
-  }
-
-  // Multiplication binds more tightly than addition and subtraction associates left.
-  TEST_F(ParserTest, PrecedenceAndLeftAssociation)
-  {
-    const auto Result = read("a + b * c - d - e;");
-    ASSERT_TRUE(Result.succeeded());
-    const auto *Outer = cast<BinaryExpr>(expression(Result));
-    EXPECT_EQ(Outer->op(), TokenKind::Minus);
-    const auto *Middle = cast<BinaryExpr>(Outer->left());
-    EXPECT_EQ(Middle->op(), TokenKind::Minus);
-    const auto *Add = cast<BinaryExpr>(Middle->left());
-    EXPECT_EQ(Add->op(), TokenKind::Plus);
-    EXPECT_EQ(cast<BinaryExpr>(Add->right())->op(), TokenKind::Star);
-  }
-  // Every Pratt precedence boundary produces the expected nested binary tree.
-  TEST_F(ParserTest, EveryBinaryPrecedence)
-  {
-    const std::vector<std::pair<std::string, TokenKind>> Operators = {
-        {"??", TokenKind::NullCoalesce},
-        {"||", TokenKind::PipePipe},
-        {"&&", TokenKind::AmpAmp},
-        {"|", TokenKind::Pipe},
-        {"^", TokenKind::Caret},
-        {"&", TokenKind::Amp},
-        {"==", TokenKind::EqualEqual},
-        {"<", TokenKind::Less},
-        {"<<", TokenKind::ShiftLeft},
-        {"+", TokenKind::Plus},
-        {"*", TokenKind::Star},
-    };
-    for (std::size_t Index = 1; Index < Operators.size(); ++Index)
-    {
-      const auto Source = "a " + Operators[Index - 1].first + " b " + Operators[Index].first + " c;";
-      SCOPED_TRACE(Source);
-      const auto Result = read(Source);
-      ASSERT_TRUE(Result.succeeded());
-      const auto *Outer = cast<BinaryExpr>(expression(Result));
-      EXPECT_EQ(Outer->op(), Operators[Index - 1].second);
-      EXPECT_EQ(cast<BinaryExpr>(Outer->right())->op(), Operators[Index].second);
+        const auto Result = read("void; *void; **void; const Unit = void; Result::[void, *void]; comptime void; i32; bool;");
+        ASSERT_TRUE(Result.succeeded());
+        const auto ExpectVoidName = [&](const Expr* Value)
+        {
+            const auto* Name = dyn_cast<NameExpr>(Value);
+            ASSERT_NE(Name, nullptr);
+            EXPECT_EQ(Name->name().Text, "void");
+            const auto& Token = Result.Unit->input().token(Name->name().Id);
+            EXPECT_EQ(Token.Kind, TokenKind::Identifier);
+            EXPECT_EQ(Name->name().Range, Token.Span);
+        };
+        const auto* Void = cast<NameExpr>(expression(Result));
+        ExpectVoidName(Void);
+        EXPECT_EQ(Void->getSourceRange(), SourceRange::fromByteOffsets(0, 4));
+        EXPECT_EQ(Void->name().Range, Void->getSourceRange());
+        const auto* Pointer = cast<UnaryExpr>(expression(Result, 1));
+        EXPECT_EQ(Pointer->op(), TokenKind::Star);
+        ExpectVoidName(Pointer->operand());
+        const auto* DoublePointer = cast<UnaryExpr>(expression(Result, 2));
+        EXPECT_EQ(DoublePointer->op(), TokenKind::Star);
+        const auto* InnerPointer = cast<UnaryExpr>(DoublePointer->operand());
+        EXPECT_EQ(InnerPointer->op(), TokenKind::Star);
+        ExpectVoidName(InnerPointer->operand());
+        ExpectVoidName(cast<VarDecl>(declaration(Result, 3))->initializer());
+        const auto Arguments = cast<GenericApplyExpr>(expression(Result, 4))->arguments();
+        ASSERT_EQ(Arguments.size(), 2U);
+        ExpectVoidName(Arguments[0].value());
+        ExpectVoidName(cast<UnaryExpr>(Arguments[1].value())->operand());
+        ExpectVoidName(expression(Result, 5));
+        EXPECT_TRUE(expression(Result, 5)->isComptime());
+        EXPECT_EQ(Void->getKind(), expression(Result, 6)->getKind());
+        EXPECT_EQ(Void->getKind(), expression(Result, 7)->getKind());
+        std::size_t Children = 0;
+        forEachChild(Void, [&](const ASTNodeBase*)
+                     {
+                         ++Children;
+                     });
+        EXPECT_EQ(Children, 0U);
+        EXPECT_NE(dumpAST(*Result.Unit).find("NameExpr"), std::string::npos);
     }
-  }
 
-  // Null coalescing and conditional tails associate right, with nested middle colons owned locally.
-  TEST_F(ParserTest, RightAssociativeOperators)
-  {
-    const auto Result = read("a ?? b ?? c; a ? b ? c : d : e ? f : g;");
-    ASSERT_TRUE(Result.succeeded());
-    EXPECT_TRUE(isa<BinaryExpr>(cast<BinaryExpr>(expression(Result))->right()));
-    const auto *Conditional = cast<ConditionalExpr>(expression(Result, 1));
-    EXPECT_TRUE(isa<ConditionalExpr>(Conditional->then()));
-    EXPECT_TRUE(isa<ConditionalExpr>(Conditional->elseValue()));
-  }
-
-  // Comptime marks the ordinary unary operand or parenthesized expression without propagating to its descendants.
-  TEST_F(ParserTest, ComptimeUnaryScope)
-  {
-    const auto Result = read("comptime a + b; comptime(a + b); comptime if (x) {}");
-    ASSERT_TRUE(Result.succeeded());
-    const auto *Binary = cast<BinaryExpr>(expression(Result));
-    ASSERT_TRUE(isa<NameExpr>(Binary->left()));
-    EXPECT_FALSE(Binary->isComptime());
-    EXPECT_TRUE(Binary->left()->isComptime());
-    EXPECT_FALSE(Binary->right()->isComptime());
-    EXPECT_EQ(Binary->left()->getSourceRange(), SourceRange::fromByteOffsets(0, 10));
-    const auto *Paren = cast<ParenExpr>(expression(Result, 1));
-    EXPECT_TRUE(Paren->isComptime());
-    ASSERT_TRUE(isa<BinaryExpr>(Paren->expression()));
-    EXPECT_FALSE(Paren->expression()->isComptime());
-    EXPECT_EQ(Paren->getSourceRange(), SourceRange::fromByteOffsets(16, 31));
-    const auto *If = cast<IfStmt>(Result.Unit->root()->statements()[2]);
-    EXPECT_TRUE(If->isComptime());
-    EXPECT_FALSE(If->condition()->isComptime());
-    EXPECT_FALSE(If->thenBranch()->isComptime());
-    EXPECT_FALSE(Result.Unit->root()->statements()[0]->isComptime());
-    EXPECT_FALSE(Result.Unit->root()->statements()[1]->isComptime());
-  }
-
-  // Repeated prefixes share a flag while prefixes on distinct unary nodes keep their independent scopes and ranges.
-  TEST_F(ParserTest, RepeatedAndNestedComptimeExpressions)
-  {
-    const std::string Source = "comptime comptime x; comptime -comptime y; -comptime z; comptime f(x)[i].value++;";
-    const auto Result = read(Source);
-    ASSERT_TRUE(Result.succeeded());
-    const auto *Name = cast<NameExpr>(expression(Result));
-    EXPECT_TRUE(Name->isComptime());
-    EXPECT_EQ(Name->getSourceRange(), SourceRange::fromByteOffsets(0, Source.find(';')));
-    const auto *Outer = cast<UnaryExpr>(expression(Result, 1));
-    EXPECT_TRUE(Outer->isComptime());
-    EXPECT_TRUE(Outer->operand()->isComptime());
-    EXPECT_EQ(Outer->getSourceRange().getBegin().getByteOffset(), Source.find("comptime -"));
-    EXPECT_EQ(Outer->operand()->getSourceRange().getBegin().getByteOffset(), Source.find("comptime y"));
-    const auto *RuntimeUnary = cast<UnaryExpr>(expression(Result, 2));
-    EXPECT_FALSE(RuntimeUnary->isComptime());
-    EXPECT_TRUE(RuntimeUnary->operand()->isComptime());
-    const auto *Update = cast<PostfixUpdateExpr>(expression(Result, 3));
-    EXPECT_TRUE(Update->isComptime());
-    EXPECT_FALSE(Update->operand()->isComptime());
-    EXPECT_EQ(Update->getSourceRange(), SourceRange::fromByteOffsets(Source.find("comptime f"), Source.size() - 1));
-  }
-
-  // Assignment chains belong to SimpleItem and commas divide independent items.
-  TEST_F(ParserTest, AssignmentItems)
-  {
-    const auto Result = read("a = b = c; a, b = c, d; a + b = c;");
-    ASSERT_TRUE(Result.succeeded());
-    const auto *First = cast<AssignmentItem>(cast<SimpleStmt>(Result.Unit->root()->statements()[0])->items()[0]);
-    EXPECT_TRUE(isa<AssignmentItem>(First->right()));
-    const auto *Second = cast<SimpleStmt>(Result.Unit->root()->statements()[1]);
-    ASSERT_EQ(Second->items().size(), 3U);
-    EXPECT_TRUE(isa<ExprItem>(Second->items()[0]));
-    EXPECT_TRUE(isa<AssignmentItem>(Second->items()[1]));
-    EXPECT_TRUE(isa<ExprItem>(Second->items()[2]));
-    EXPECT_TRUE(isa<BinaryExpr>(cast<AssignmentItem>(cast<SimpleStmt>(Result.Unit->root()->statements()[2])->items()[0])->left()));
-  }
-
-  // Named and spread arguments retain distinct tags, and assignment is forbidden inside grouped arguments.
-  TEST_F(ParserTest, ArgumentForms)
-  {
-    const auto Result = read("foo(a = 1, xs..., 3);");
-    ASSERT_TRUE(Result.succeeded());
-    const auto Arguments = cast<CallExpr>(expression(Result))->arguments();
-    ASSERT_EQ(Arguments.size(), 3U);
-    EXPECT_EQ(Arguments[0].form(), ArgumentKind::Named);
-    EXPECT_EQ(Arguments[0].name()->Text, "a");
-    EXPECT_EQ(Arguments[1].form(), ArgumentKind::SpreadPositional);
-    EXPECT_EQ(Arguments[2].form(), ArgumentKind::Positional);
-    EXPECT_FALSE(read("foo((a = 1));").succeeded());
-    EXPECT_FALSE(read("var x = a = b;").succeeded());
-    EXPECT_FALSE(read("foo(a = xs...);").succeeded());
-  }
-
-  // Postfix operations preserve source order, optional access modes and generic arguments.
-  TEST_F(ParserTest, PostfixChain)
-  {
-    const auto Result = read("a::[T](x)?.[i]?.member->next++;");
-    ASSERT_TRUE(Result.succeeded());
-    const auto *Update = cast<PostfixUpdateExpr>(expression(Result));
-    const auto *Arrow = cast<MemberExpr>(Update->operand());
-    EXPECT_EQ(Arrow->access(), TokenKind::Arrow);
-    const auto *Member = cast<MemberExpr>(Arrow->object());
-    EXPECT_EQ(Member->access(), TokenKind::QuestionDot);
-    const auto *Index = cast<IndexExpr>(Member->object());
-    EXPECT_TRUE(Index->optional());
-    EXPECT_TRUE(isa<GenericApplyExpr>(cast<CallExpr>(Index->object())->callee()));
-    const auto OptionalCall = read("f?.(x);");
-    ASSERT_TRUE(OptionalCall.succeeded());
-    EXPECT_TRUE(cast<CallExpr>(expression(OptionalCall))->optional());
-  }
-
-  // Grouping, empty tuples, singleton tuples, arrays and repeat arrays retain different node kinds.
-  TEST_F(ParserTest, TupleArrayForms)
-  {
-    const auto Result = read("(); (x); (x,); (x,y); []; [x,y]; [do { yield 1; }; n];");
-    ASSERT_TRUE(Result.succeeded());
-    EXPECT_TRUE(isa<TupleExpr>(expression(Result, 0)));
-    EXPECT_TRUE(isa<ParenExpr>(expression(Result, 1)));
-    EXPECT_EQ(cast<TupleExpr>(expression(Result, 2))->elements().size(), 1U);
-    EXPECT_EQ(cast<TupleExpr>(expression(Result, 3))->elements().size(), 2U);
-    EXPECT_TRUE(cast<ArrayExpr>(expression(Result, 4))->elements().empty());
-    EXPECT_EQ(cast<ArrayExpr>(expression(Result, 5))->elements().size(), 2U);
-    EXPECT_TRUE(isa<BlockExpr>(cast<ArrayRepeatExpr>(expression(Result, 6))->value()));
-    for (const auto *Source : {"(x,y,);", "[x,];", "f(x,);", "f::[T,];"})
+    // Multiplication binds more tightly than addition and subtraction associates left.
+    TEST_F(ParserTest, PrecedenceAndLeftAssociation)
     {
-      SCOPED_TRACE(Source);
-      EXPECT_FALSE(read(Source).succeeded());
+        const auto Result = read("a + b * c - d - e;");
+        ASSERT_TRUE(Result.succeeded());
+        const auto* Outer = cast<BinaryExpr>(expression(Result));
+        EXPECT_EQ(Outer->op(), TokenKind::Minus);
+        const auto* Middle = cast<BinaryExpr>(Outer->left());
+        EXPECT_EQ(Middle->op(), TokenKind::Minus);
+        const auto* Add = cast<BinaryExpr>(Middle->left());
+        EXPECT_EQ(Add->op(), TokenKind::Plus);
+        EXPECT_EQ(cast<BinaryExpr>(Add->right())->op(), TokenKind::Star);
     }
-  }
+    // Every Pratt precedence boundary produces the expected nested binary tree.
+    TEST_F(ParserTest, EveryBinaryPrecedence)
+    {
+        const std::vector<std::pair<std::string, TokenKind>> Operators = {
+            {"??", TokenKind::NullCoalesce},
+            {"||", TokenKind::PipePipe},
+            {"&&", TokenKind::AmpAmp},
+            {"|", TokenKind::Pipe},
+            {"^", TokenKind::Caret},
+            {"&", TokenKind::Amp},
+            {"==", TokenKind::EqualEqual},
+            {"<", TokenKind::Less},
+            {"<<", TokenKind::ShiftLeft},
+            {"+", TokenKind::Plus},
+            {"*", TokenKind::Star},
+        };
+        for (std::size_t Index = 1; Index < Operators.size(); ++Index)
+        {
+            const auto Source = "a " + Operators[Index - 1].first + " b " + Operators[Index].first + " c;";
+            SCOPED_TRACE(Source);
+            const auto Result = read(Source);
+            ASSERT_TRUE(Result.succeeded());
+            const auto* Outer = cast<BinaryExpr>(expression(Result));
+            EXPECT_EQ(Outer->op(), Operators[Index - 1].second);
+            EXPECT_EQ(cast<BinaryExpr>(Outer->right())->op(), Operators[Index].second);
+        }
+    }
 
-  // Each unary, binary and assignment token accepted by the BNF reaches the parser.
-  TEST_F(ParserTest, OperatorCoverage)
-  {
-    for (const auto *Op : {"+", "-", "!", "~", "++", "--", "&", "*"})
+    // Null coalescing and conditional tails associate right, with nested middle colons owned locally.
+    TEST_F(ParserTest, RightAssociativeOperators)
     {
-      EXPECT_TRUE(read(std::string(Op) + "x;").succeeded()) << Op;
+        const auto Result = read("a ?? b ?? c; a ? b ? c : d : e ? f : g;");
+        ASSERT_TRUE(Result.succeeded());
+        EXPECT_TRUE(isa<BinaryExpr>(cast<BinaryExpr>(expression(Result))->right()));
+        const auto* Conditional = cast<ConditionalExpr>(expression(Result, 1));
+        EXPECT_TRUE(isa<ConditionalExpr>(Conditional->then()));
+        EXPECT_TRUE(isa<ConditionalExpr>(Conditional->elseValue()));
     }
-    for (const auto *Op : {"??", "||", "&&", "|", "^", "&", "==", "!=", "<", "<=", ">", ">=", "<<", ">>", "+", "-", "*", "/", "%"})
+
+    // Comptime marks the ordinary unary operand or parenthesized expression without propagating to its descendants.
+    TEST_F(ParserTest, ComptimeUnaryScope)
     {
-      EXPECT_TRUE(read("a " + std::string(Op) + " b;").succeeded()) << Op;
+        const auto Result = read("comptime a + b; comptime(a + b); comptime if (x) {}");
+        ASSERT_TRUE(Result.succeeded());
+        const auto* Binary = cast<BinaryExpr>(expression(Result));
+        ASSERT_TRUE(isa<NameExpr>(Binary->left()));
+        EXPECT_FALSE(Binary->isComptime());
+        EXPECT_TRUE(Binary->left()->isComptime());
+        EXPECT_FALSE(Binary->right()->isComptime());
+        EXPECT_EQ(Binary->left()->getSourceRange(), SourceRange::fromByteOffsets(0, 10));
+        const auto* Paren = cast<ParenExpr>(expression(Result, 1));
+        EXPECT_TRUE(Paren->isComptime());
+        ASSERT_TRUE(isa<BinaryExpr>(Paren->expression()));
+        EXPECT_FALSE(Paren->expression()->isComptime());
+        EXPECT_EQ(Paren->getSourceRange(), SourceRange::fromByteOffsets(16, 31));
+        const auto* If = cast<IfStmt>(Result.Unit->root()->statements()[2]);
+        EXPECT_TRUE(If->isComptime());
+        EXPECT_FALSE(If->condition()->isComptime());
+        EXPECT_FALSE(If->thenBranch()->isComptime());
+        EXPECT_FALSE(Result.Unit->root()->statements()[0]->isComptime());
+        EXPECT_FALSE(Result.Unit->root()->statements()[1]->isComptime());
     }
-    for (const auto *Op : {"=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "^=", "|="})
+
+    // Repeated prefixes share a flag while prefixes on distinct unary nodes keep their independent scopes and ranges.
+    TEST_F(ParserTest, RepeatedAndNestedComptimeExpressions)
     {
-      EXPECT_TRUE(read("a " + std::string(Op) + " b;").succeeded()) << Op;
+        const std::string Source = "comptime comptime x; comptime -comptime y; -comptime z; comptime f(x)[i].value++;";
+        const auto Result = read(Source);
+        ASSERT_TRUE(Result.succeeded());
+        const auto* Name = cast<NameExpr>(expression(Result));
+        EXPECT_TRUE(Name->isComptime());
+        EXPECT_EQ(Name->getSourceRange(), SourceRange::fromByteOffsets(0, Source.find(';')));
+        const auto* Outer = cast<UnaryExpr>(expression(Result, 1));
+        EXPECT_TRUE(Outer->isComptime());
+        EXPECT_TRUE(Outer->operand()->isComptime());
+        EXPECT_EQ(Outer->getSourceRange().getBegin().getByteOffset(), Source.find("comptime -"));
+        EXPECT_EQ(Outer->operand()->getSourceRange().getBegin().getByteOffset(), Source.find("comptime y"));
+        const auto* RuntimeUnary = cast<UnaryExpr>(expression(Result, 2));
+        EXPECT_FALSE(RuntimeUnary->isComptime());
+        EXPECT_TRUE(RuntimeUnary->operand()->isComptime());
+        const auto* Update = cast<PostfixUpdateExpr>(expression(Result, 3));
+        EXPECT_TRUE(Update->isComptime());
+        EXPECT_FALSE(Update->operand()->isComptime());
+        EXPECT_EQ(Update->getSourceRange(), SourceRange::fromByteOffsets(Source.find("comptime f"), Source.size() - 1));
     }
-  }
+
+    // Assignment chains belong to SimpleItem and commas divide independent items.
+    TEST_F(ParserTest, AssignmentItems)
+    {
+        const auto Result = read("a = b = c; a, b = c, d; a + b = c;");
+        ASSERT_TRUE(Result.succeeded());
+        const auto* First = cast<AssignmentItem>(cast<SimpleStmt>(Result.Unit->root()->statements()[0])->items()[0]);
+        EXPECT_TRUE(isa<AssignmentItem>(First->right()));
+        const auto* Second = cast<SimpleStmt>(Result.Unit->root()->statements()[1]);
+        ASSERT_EQ(Second->items().size(), 3U);
+        EXPECT_TRUE(isa<ExprItem>(Second->items()[0]));
+        EXPECT_TRUE(isa<AssignmentItem>(Second->items()[1]));
+        EXPECT_TRUE(isa<ExprItem>(Second->items()[2]));
+        EXPECT_TRUE(isa<BinaryExpr>(cast<AssignmentItem>(cast<SimpleStmt>(Result.Unit->root()->statements()[2])->items()[0])->left()));
+    }
+
+    // Named and spread arguments retain distinct tags, and assignment is forbidden inside grouped arguments.
+    TEST_F(ParserTest, ArgumentForms)
+    {
+        const auto Result = read("foo(a = 1, xs..., 3);");
+        ASSERT_TRUE(Result.succeeded());
+        const auto Arguments = cast<CallExpr>(expression(Result))->arguments();
+        ASSERT_EQ(Arguments.size(), 3U);
+        EXPECT_EQ(Arguments[0].form(), ArgumentKind::Named);
+        EXPECT_EQ(Arguments[0].name()->Text, "a");
+        EXPECT_EQ(Arguments[1].form(), ArgumentKind::SpreadPositional);
+        EXPECT_EQ(Arguments[2].form(), ArgumentKind::Positional);
+        EXPECT_FALSE(read("foo((a = 1));").succeeded());
+        EXPECT_FALSE(read("var x = a = b;").succeeded());
+        EXPECT_FALSE(read("foo(a = xs...);").succeeded());
+    }
+
+    // Postfix operations preserve source order, optional access modes and generic arguments.
+    TEST_F(ParserTest, PostfixChain)
+    {
+        const auto Result = read("a::[T](x)?.[i]?.member->next++;");
+        ASSERT_TRUE(Result.succeeded());
+        const auto* Update = cast<PostfixUpdateExpr>(expression(Result));
+        const auto* Arrow = cast<MemberExpr>(Update->operand());
+        EXPECT_EQ(Arrow->access(), TokenKind::Arrow);
+        const auto* Member = cast<MemberExpr>(Arrow->object());
+        EXPECT_EQ(Member->access(), TokenKind::QuestionDot);
+        const auto* Index = cast<IndexExpr>(Member->object());
+        EXPECT_TRUE(Index->optional());
+        EXPECT_TRUE(isa<GenericApplyExpr>(cast<CallExpr>(Index->object())->callee()));
+        const auto OptionalCall = read("f?.(x);");
+        ASSERT_TRUE(OptionalCall.succeeded());
+        EXPECT_TRUE(cast<CallExpr>(expression(OptionalCall))->optional());
+    }
+
+    // Grouping, empty tuples, singleton tuples, arrays and repeat arrays retain different node kinds.
+    TEST_F(ParserTest, TupleArrayForms)
+    {
+        const auto Result = read("(); (x); (x,); (x,y); []; [x,y]; [do { yield 1; }; n];");
+        ASSERT_TRUE(Result.succeeded());
+        EXPECT_TRUE(isa<TupleExpr>(expression(Result, 0)));
+        EXPECT_TRUE(isa<ParenExpr>(expression(Result, 1)));
+        EXPECT_EQ(cast<TupleExpr>(expression(Result, 2))->elements().size(), 1U);
+        EXPECT_EQ(cast<TupleExpr>(expression(Result, 3))->elements().size(), 2U);
+        EXPECT_TRUE(cast<ArrayExpr>(expression(Result, 4))->elements().empty());
+        EXPECT_EQ(cast<ArrayExpr>(expression(Result, 5))->elements().size(), 2U);
+        EXPECT_TRUE(isa<BlockExpr>(cast<ArrayRepeatExpr>(expression(Result, 6))->value()));
+        for (const auto* Source : {"(x,y,);", "[x,];", "f(x,);", "f::[T,];"})
+        {
+            SCOPED_TRACE(Source);
+            EXPECT_FALSE(read(Source).succeeded());
+        }
+    }
+
+    // Each unary, binary and assignment token accepted by the BNF reaches the parser.
+    TEST_F(ParserTest, OperatorCoverage)
+    {
+        for (const auto* Op : {"+", "-", "!", "~", "++", "--", "&", "*"})
+        {
+            EXPECT_TRUE(read(std::string(Op) + "x;").succeeded()) << Op;
+        }
+        for (const auto* Op : {"??", "||", "&&", "|", "^", "&", "==", "!=", "<", "<=", ">", ">=", "<<", ">>", "+", "-", "*", "/", "%"})
+        {
+            EXPECT_TRUE(read("a " + std::string(Op) + " b;").succeeded()) << Op;
+        }
+        for (const auto* Op : {"=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "^=", "|="})
+        {
+            EXPECT_TRUE(read("a " + std::string(Op) + " b;").succeeded()) << Op;
+        }
+    }
 } // namespace ink::frontend::parser::test

@@ -6,34 +6,34 @@
 
 namespace ink::ir
 {
-  class FloatType final : public Type
-  {
-    public:
-      enum class Width : std::uint8_t
-      {
-        Bits32 = 32,
-        Bits64 = 64,
-      };
+    class FloatType final : public Type
+    {
+        public:
+            enum class Width : std::uint8_t
+            {
+                Bits32 = 32,
+                Bits64 = 64,
+            };
 
-      static constexpr TypeKind Kind = TypeKind::Float;
+            static constexpr TypeKind Kind = TypeKind::Float;
 
-      constexpr explicit FloatType(Width BitWidth) noexcept
-          : Type(Kind),
-            BitWidth(BitWidth)
-      {
-      }
+            constexpr explicit FloatType(Width BitWidth) noexcept
+                : Type(Kind),
+                  BitWidth(BitWidth)
+            {
+            }
 
-      static constexpr bool classof(const Value *Value) noexcept
-      {
-        return Type::classof(Value) && static_cast<const Type *>(Value)->getKind() == Kind;
-      }
+            static constexpr bool classof(const Value* Value) noexcept
+            {
+                return Type::classof(Value) && static_cast<const Type*>(Value)->getKind() == Kind;
+            }
 
-      constexpr std::uint32_t bitWidth() const noexcept
-      {
-        return static_cast<std::uint32_t>(BitWidth);
-      }
+            constexpr std::uint32_t bitWidth() const noexcept
+            {
+                return static_cast<std::uint32_t>(BitWidth);
+            }
 
-    private:
-      Width BitWidth;
-  };
+        private:
+            Width BitWidth;
+    };
 } // namespace ink::ir

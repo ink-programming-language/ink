@@ -5,118 +5,118 @@
 
 namespace ink::frontend::tokenizer::test
 {
-  // Invalid locations are distinct from byte zero, and raw encodings round-trip equal locations.
-  TEST(TokenizerSourceLocationTest, InvalidAndZeroOffsetAreDistinct)
-  {
-    using core::SourceLocation;
-    constexpr SourceLocation Invalid;
-    constexpr auto Zero = SourceLocation::fromByteOffset(0);
-    static_assert(Invalid.isInvalid() && Zero.isValid());
-    EXPECT_NE(Invalid, Zero);
-    EXPECT_EQ(Zero.getByteOffset(), 0U);
-    EXPECT_EQ(SourceLocation::getFromRawEncoding(Zero.getRawEncoding()), Zero);
-  }
-
-  // Offset arithmetic handles both ends of the encoding without wrapping.
-  TEST(TokenizerSourceLocationTest, CheckedOffsetArithmetic)
-  {
-    using core::SourceLocation;
-    const auto First = SourceLocation::fromByteOffset(0);
-    const auto Last = SourceLocation::fromByteOffset(SourceLocation::MaxByteOffset);
-    EXPECT_TRUE(First.getLocWithOffset(-1).isInvalid());
-    EXPECT_TRUE(Last.getLocWithOffset(1).isInvalid());
-    EXPECT_TRUE(SourceLocation::fromByteOffset(SourceLocation::MaxByteOffset + 1).isInvalid());
-    EXPECT_TRUE(SourceLocation{}.getLocWithOffset(1).isInvalid());
-    EXPECT_TRUE(First.getLocWithOffset(std::numeric_limits<std::int64_t>::min()).isInvalid());
-    EXPECT_TRUE(First.getLocWithOffset(std::numeric_limits<std::int64_t>::max()).isInvalid());
-    EXPECT_EQ(First.getLocWithOffset(123).getByteOffset(), 123U);
-    EXPECT_EQ(Last.getLocWithOffset(-static_cast<std::int64_t>(SourceLocation::MaxByteOffset)), First);
-    EXPECT_LT(First, Last);
-    EXPECT_LE(First, First);
-    EXPECT_GT(Last, First);
-    EXPECT_GE(Last, Last);
-  }
-
-  // Half-open ranges distinguish invalid, reversed, nonempty and valid EOF ranges.
-  TEST(TokenizerSourceLocationTest, RangeValidityAndContainment)
-  {
-    using core::SourceLocation;
-    using core::SourceRange;
-    EXPECT_TRUE(SourceRange{}.isInvalid());
-    EXPECT_FALSE(SourceRange{}.empty());
-    EXPECT_TRUE(SourceRange::fromByteOffsets(9, 2).isInvalid());
-    auto Range = SourceRange::fromByteOffsets(2, 9);
-    EXPECT_EQ(Range.size(), 7U);
-    EXPECT_TRUE(Range.fullyContains(SourceRange::fromByteOffsets(3, 9)));
-    EXPECT_TRUE(Range.fullyContains(SourceRange(SourceLocation::fromByteOffset(9))));
-    EXPECT_FALSE(Range.fullyContains(SourceRange::fromByteOffsets(1, 9)));
-    EXPECT_FALSE(Range.fullyContains({}));
-    Range.setBegin(SourceLocation::fromByteOffset(4));
-    Range.setEnd(SourceLocation::fromByteOffset(4));
-    EXPECT_TRUE(Range.empty());
-    EXPECT_EQ(Range.size(), 0U);
-  }
-
-  // NFC and literal decoding never move byte ranges or alter retained source bytes.
-  TEST_F(TokenizerTest, OriginalByteRangesSurviveAllTransformations)
-  {
-    const std::string Source = utf8(u8"e\u0301 r\"x\\\" \"\"\"a\r\nb\rc\"\"\" '\\xFF'");
-    const auto Buffer = lex(Source);
-    expectKinds(Buffer, {TokenKind::Identifier, TokenKind::StringLiteral, TokenKind::StringLiteral, TokenKind::CharLiteral});
-    ASSERT_EQ(Buffer.tokens().size(), 5U);
-    EXPECT_EQ(Buffer.source(), Source);
-    EXPECT_EQ(Buffer.tokens()[0].Span, core::SourceRange::fromByteOffsets(0, 3));
-    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[0].Payload).Name, utf8(u8"\u00E9"));
-    EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), "r\"x\\\"");
-    EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[1].Payload).Decoded, "x\\");
-    EXPECT_EQ(Buffer.raw(Buffer.tokens()[2]), "\"\"\"a\r\nb\rc\"\"\"");
-    EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[2].Payload).Decoded, "a\nb\nc");
-    EXPECT_EQ(Buffer.raw(Buffer.tokens()[3]), "'\\xFF'");
-    EXPECT_EQ(std::get<CharInfo>(Buffer.tokens()[3].Payload).Value, U'\u00FF');
-  }
-
-  // Source ownership survives tokenization and source IDs remain context-specific.
-  TEST_F(TokenizerTest, RegisteredBuffersAndLineNumbers)
-  {
-    const auto Id = Sources.addSource("sample.ink", "a\r\nb\rc\nd");
-    const auto Buffer = tokenizeSource(Context, Id);
-    expectKinds(Buffer, {TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier});
-    EXPECT_EQ(Buffer.sourceName(), "sample.ink");
-    EXPECT_EQ(Buffer.sourceId(), Id);
-    EXPECT_TRUE(Buffer.isRegisteredWith(Sources));
-    EXPECT_EQ(Buffer.lineStarts(), (std::vector<std::size_t>{0, 3, 5, 7}));
-    EXPECT_EQ(Buffer.lineNumber(0), 1U);
-    EXPECT_EQ(Buffer.lineNumber(2), 1U);
-    EXPECT_EQ(Buffer.lineNumber(3), 2U);
-    EXPECT_EQ(Buffer.lineNumber(5), 3U);
-    EXPECT_EQ(Buffer.lineNumber(8), 4U);
-    core::SourceManager Other;
-    EXPECT_FALSE(Buffer.isRegisteredWith(Other));
-    Token Invalid;
-    EXPECT_TRUE(Buffer.raw(Invalid).empty());
-    Invalid.Span = core::SourceRange::fromByteOffsets(0, 999);
-    EXPECT_TRUE(Buffer.raw(Invalid).empty());
-  }
-
-  // An unknown source ID prints an ICE and terminates before returning a token buffer.
-  TEST_F(TokenizerTest, UnregisteredSourceReportsFailure)
-  {
-    EXPECT_DEATH(tokenizeSource(Context, {}), "internal compiler error\\[INK-T0021\\]");
-  }
-
-  // A buffer owns its source and decoded payload after its source manager and frontend context are destroyed.
-  TEST(TokenizerSourceLocationTest, BufferOutlivesContext)
-  {
-    const auto Buffer = []()
+    // Invalid locations are distinct from byte zero, and raw encodings round-trip equal locations.
+    TEST(TokenizerSourceLocationTest, InvalidAndZeroOffsetAreDistinct)
     {
-      core::SourceManager Sources;
-      core::DiagnosticEngine DiagnosticEngine;
-      frontend::FrontendContext Context(Sources, DiagnosticEngine);
-      return tokenize(Context, utf8(u8"e\u0301 \"\\x00\""));
-    }();
-    ASSERT_TRUE(Buffer.succeeded());
-    EXPECT_EQ(Buffer.source(), utf8(u8"e\u0301 \"\\x00\""));
-    EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[0].Payload).Name, utf8(u8"\u00E9"));
-    EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[1].Payload).Decoded, std::string(1, '\0'));
-  }
+        using core::SourceLocation;
+        constexpr SourceLocation Invalid;
+        constexpr auto Zero = SourceLocation::fromByteOffset(0);
+        static_assert(Invalid.isInvalid() && Zero.isValid());
+        EXPECT_NE(Invalid, Zero);
+        EXPECT_EQ(Zero.getByteOffset(), 0U);
+        EXPECT_EQ(SourceLocation::getFromRawEncoding(Zero.getRawEncoding()), Zero);
+    }
+
+    // Offset arithmetic handles both ends of the encoding without wrapping.
+    TEST(TokenizerSourceLocationTest, CheckedOffsetArithmetic)
+    {
+        using core::SourceLocation;
+        const auto First = SourceLocation::fromByteOffset(0);
+        const auto Last = SourceLocation::fromByteOffset(SourceLocation::MaxByteOffset);
+        EXPECT_TRUE(First.getLocWithOffset(-1).isInvalid());
+        EXPECT_TRUE(Last.getLocWithOffset(1).isInvalid());
+        EXPECT_TRUE(SourceLocation::fromByteOffset(SourceLocation::MaxByteOffset + 1).isInvalid());
+        EXPECT_TRUE(SourceLocation{}.getLocWithOffset(1).isInvalid());
+        EXPECT_TRUE(First.getLocWithOffset(std::numeric_limits<std::int64_t>::min()).isInvalid());
+        EXPECT_TRUE(First.getLocWithOffset(std::numeric_limits<std::int64_t>::max()).isInvalid());
+        EXPECT_EQ(First.getLocWithOffset(123).getByteOffset(), 123U);
+        EXPECT_EQ(Last.getLocWithOffset(-static_cast<std::int64_t>(SourceLocation::MaxByteOffset)), First);
+        EXPECT_LT(First, Last);
+        EXPECT_LE(First, First);
+        EXPECT_GT(Last, First);
+        EXPECT_GE(Last, Last);
+    }
+
+    // Half-open ranges distinguish invalid, reversed, nonempty and valid EOF ranges.
+    TEST(TokenizerSourceLocationTest, RangeValidityAndContainment)
+    {
+        using core::SourceLocation;
+        using core::SourceRange;
+        EXPECT_TRUE(SourceRange{}.isInvalid());
+        EXPECT_FALSE(SourceRange{}.empty());
+        EXPECT_TRUE(SourceRange::fromByteOffsets(9, 2).isInvalid());
+        auto Range = SourceRange::fromByteOffsets(2, 9);
+        EXPECT_EQ(Range.size(), 7U);
+        EXPECT_TRUE(Range.fullyContains(SourceRange::fromByteOffsets(3, 9)));
+        EXPECT_TRUE(Range.fullyContains(SourceRange(SourceLocation::fromByteOffset(9))));
+        EXPECT_FALSE(Range.fullyContains(SourceRange::fromByteOffsets(1, 9)));
+        EXPECT_FALSE(Range.fullyContains({}));
+        Range.setBegin(SourceLocation::fromByteOffset(4));
+        Range.setEnd(SourceLocation::fromByteOffset(4));
+        EXPECT_TRUE(Range.empty());
+        EXPECT_EQ(Range.size(), 0U);
+    }
+
+    // NFC and literal decoding never move byte ranges or alter retained source bytes.
+    TEST_F(TokenizerTest, OriginalByteRangesSurviveAllTransformations)
+    {
+        const std::string Source = utf8(u8"e\u0301 r\"x\\\" \"\"\"a\r\nb\rc\"\"\" '\\xFF'");
+        const auto Buffer = lex(Source);
+        expectKinds(Buffer, {TokenKind::Identifier, TokenKind::StringLiteral, TokenKind::StringLiteral, TokenKind::CharLiteral});
+        ASSERT_EQ(Buffer.tokens().size(), 5U);
+        EXPECT_EQ(Buffer.source(), Source);
+        EXPECT_EQ(Buffer.tokens()[0].Span, core::SourceRange::fromByteOffsets(0, 3));
+        EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[0].Payload).Name, utf8(u8"\u00E9"));
+        EXPECT_EQ(Buffer.raw(Buffer.tokens()[1]), "r\"x\\\"");
+        EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[1].Payload).Decoded, "x\\");
+        EXPECT_EQ(Buffer.raw(Buffer.tokens()[2]), "\"\"\"a\r\nb\rc\"\"\"");
+        EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[2].Payload).Decoded, "a\nb\nc");
+        EXPECT_EQ(Buffer.raw(Buffer.tokens()[3]), "'\\xFF'");
+        EXPECT_EQ(std::get<CharInfo>(Buffer.tokens()[3].Payload).Value, U'\u00FF');
+    }
+
+    // Source ownership survives tokenization and source IDs remain context-specific.
+    TEST_F(TokenizerTest, RegisteredBuffersAndLineNumbers)
+    {
+        const auto Id = Sources.addSource("sample.ink", "a\r\nb\rc\nd");
+        const auto Buffer = tokenizeSource(Context, Id);
+        expectKinds(Buffer, {TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier, TokenKind::Identifier});
+        EXPECT_EQ(Buffer.sourceName(), "sample.ink");
+        EXPECT_EQ(Buffer.sourceId(), Id);
+        EXPECT_TRUE(Buffer.isRegisteredWith(Sources));
+        EXPECT_EQ(Buffer.lineStarts(), (std::vector<std::size_t>{0, 3, 5, 7}));
+        EXPECT_EQ(Buffer.lineNumber(0), 1U);
+        EXPECT_EQ(Buffer.lineNumber(2), 1U);
+        EXPECT_EQ(Buffer.lineNumber(3), 2U);
+        EXPECT_EQ(Buffer.lineNumber(5), 3U);
+        EXPECT_EQ(Buffer.lineNumber(8), 4U);
+        core::SourceManager Other;
+        EXPECT_FALSE(Buffer.isRegisteredWith(Other));
+        Token Invalid;
+        EXPECT_TRUE(Buffer.raw(Invalid).empty());
+        Invalid.Span = core::SourceRange::fromByteOffsets(0, 999);
+        EXPECT_TRUE(Buffer.raw(Invalid).empty());
+    }
+
+    // An unknown source ID prints an ICE and terminates before returning a token buffer.
+    TEST_F(TokenizerTest, UnregisteredSourceReportsFailure)
+    {
+        EXPECT_DEATH(tokenizeSource(Context, {}), "internal compiler error\\[INK-T0021\\]");
+    }
+
+    // A buffer owns its source and decoded payload after its source manager and frontend context are destroyed.
+    TEST(TokenizerSourceLocationTest, BufferOutlivesContext)
+    {
+        const auto Buffer = []()
+        {
+            core::SourceManager Sources;
+            core::DiagnosticEngine DiagnosticEngine;
+            frontend::FrontendContext Context(Sources, DiagnosticEngine);
+            return tokenize(Context, utf8(u8"e\u0301 \"\\x00\""));
+        }();
+        ASSERT_TRUE(Buffer.succeeded());
+        EXPECT_EQ(Buffer.source(), utf8(u8"e\u0301 \"\\x00\""));
+        EXPECT_EQ(std::get<IdentifierInfo>(Buffer.tokens()[0].Payload).Name, utf8(u8"\u00E9"));
+        EXPECT_EQ(std::get<StringInfo>(Buffer.tokens()[1].Payload).Decoded, std::string(1, '\0'));
+    }
 } // namespace ink::frontend::tokenizer::test

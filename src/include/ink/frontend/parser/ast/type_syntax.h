@@ -6,25 +6,25 @@
 
 namespace ink::frontend::parser
 {
-  class TypeSyntax final : public ASTNodeBase
-  {
-    public:
-      static constexpr ASTKind Kind = ASTKind::TypeSyntax;
-      static bool classof(const ASTNodeBase *Node)
-      {
-        return Node && Node->getKind() == Kind;
-      }
-      TypeSyntax(SourceRange Range, Expr *Expression)
-          : ASTNodeBase(Kind, Range),
-            Expression(Expression)
-      {
-      }
-      auto *expression(this auto &&Self) noexcept
-      {
-        return Self.Expression ? &std::forward_like<decltype(Self) &>(*Self.Expression) : nullptr;
-      }
+    class TypeSyntax final : public ASTNodeBase
+    {
+        public:
+            static constexpr ASTKind Kind = ASTKind::TypeSyntax;
+            static bool classof(const ASTNodeBase* Node)
+            {
+                return Node && Node->getKind() == Kind;
+            }
+            TypeSyntax(SourceRange Range, Expr* Expression)
+                : ASTNodeBase(Kind, Range),
+                  Expression(Expression)
+            {
+            }
+            auto* expression(this auto&& Self) noexcept
+            {
+                return Self.Expression ? &std::forward_like<decltype(Self)&>(*Self.Expression) : nullptr;
+            }
 
-    private:
-      Expr *Expression;
-  };
+        private:
+            Expr* Expression;
+    };
 } // namespace ink::frontend::parser

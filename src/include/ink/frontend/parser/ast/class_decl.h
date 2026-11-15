@@ -10,61 +10,61 @@
 
 namespace ink::frontend::parser
 {
-  class ClassDecl final : public Decl
-  {
-    public:
-      static constexpr ASTKind Kind = ASTKind::ClassDecl;
-      static bool classof(const ASTNodeBase *Node)
-      {
-        return Node && Node->getKind() == Kind;
-      }
-      ClassDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<BaseSpec> Bases, AggregateForm Form, BlockStmt *Body, SourceRange SemicolonRange)
-          : Decl(Kind, Range),
-            Attributes(Attributes),
-            Name(Name),
-            GenericParameters(GenericParameters),
-            Bases(Bases),
-            Form(Form),
-            Body(Body),
-            SemicolonRange(SemicolonRange)
-      {
-      }
-      ASTArray<Attribute> attributes() const noexcept
-      {
-        return Attributes;
-      }
-      NameToken name() const noexcept
-      {
-        return Name;
-      }
-      ASTArray<Parameter> genericParameters() const noexcept
-      {
-        return GenericParameters;
-      }
-      ASTArray<BaseSpec> bases() const noexcept
-      {
-        return Bases;
-      }
-      AggregateForm form() const noexcept
-      {
-        return Form;
-      }
-      auto *body(this auto &&Self) noexcept
-      {
-        return Self.Body ? &std::forward_like<decltype(Self) &>(*Self.Body) : nullptr;
-      }
-      SourceRange semicolonRange() const noexcept
-      {
-        return SemicolonRange;
-      }
+    class ClassDecl final : public Decl
+    {
+        public:
+            static constexpr ASTKind Kind = ASTKind::ClassDecl;
+            static bool classof(const ASTNodeBase* Node)
+            {
+                return Node && Node->getKind() == Kind;
+            }
+            ClassDecl(SourceRange Range, ASTArray<Attribute> Attributes, NameToken Name, ASTArray<Parameter> GenericParameters, ASTArray<BaseSpec> Bases, AggregateForm Form, BlockStmt* Body, SourceRange SemicolonRange)
+                : Decl(Kind, Range),
+                  Attributes(Attributes),
+                  Name(Name),
+                  GenericParameters(GenericParameters),
+                  Bases(Bases),
+                  Form(Form),
+                  Body(Body),
+                  SemicolonRange(SemicolonRange)
+            {
+            }
+            ASTArray<Attribute> attributes() const noexcept
+            {
+                return Attributes;
+            }
+            NameToken name() const noexcept
+            {
+                return Name;
+            }
+            ASTArray<Parameter> genericParameters() const noexcept
+            {
+                return GenericParameters;
+            }
+            ASTArray<BaseSpec> bases() const noexcept
+            {
+                return Bases;
+            }
+            AggregateForm form() const noexcept
+            {
+                return Form;
+            }
+            auto* body(this auto&& Self) noexcept
+            {
+                return Self.Body ? &std::forward_like<decltype(Self)&>(*Self.Body) : nullptr;
+            }
+            SourceRange semicolonRange() const noexcept
+            {
+                return SemicolonRange;
+            }
 
-    private:
-      ASTArray<Attribute> Attributes;
-      NameToken Name;
-      ASTArray<Parameter> GenericParameters;
-      ASTArray<BaseSpec> Bases;
-      AggregateForm Form;
-      BlockStmt *Body;
-      SourceRange SemicolonRange;
-  };
+        private:
+            ASTArray<Attribute> Attributes;
+            NameToken Name;
+            ASTArray<Parameter> GenericParameters;
+            ASTArray<BaseSpec> Bases;
+            AggregateForm Form;
+            BlockStmt* Body;
+            SourceRange SemicolonRange;
+    };
 } // namespace ink::frontend::parser

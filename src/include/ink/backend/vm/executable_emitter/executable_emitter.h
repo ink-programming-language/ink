@@ -7,50 +7,50 @@
 
 namespace ink::vm
 {
-  class MachineModule;
+    class MachineModule;
 
-  class ExecutableEmitter
-  {
-    public:
-      // The borrowed diagnostic engine must outlive this emitter and its context.
-      explicit ExecutableEmitter(const core::DiagnosticEngine &Diagnostics) noexcept;
+    class ExecutableEmitter
+    {
+        public:
+            // The borrowed diagnostic engine must outlive this emitter and its context.
+            explicit ExecutableEmitter(const core::DiagnosticEngine& Diagnostics) noexcept;
 
-      ExecutableEmitter(const ExecutableEmitter &) = delete;
-      ExecutableEmitter &operator=(const ExecutableEmitter &) = delete;
-      ExecutableEmitter(ExecutableEmitter &&) = delete;
-      ExecutableEmitter &operator=(ExecutableEmitter &&) = delete;
+            ExecutableEmitter(const ExecutableEmitter&) = delete;
+            ExecutableEmitter& operator=(const ExecutableEmitter&) = delete;
+            ExecutableEmitter(ExecutableEmitter&&) = delete;
+            ExecutableEmitter& operator=(ExecutableEmitter&&) = delete;
 
-      // EntryFunctionName selects a named VM function with instructions; only ExportNames are exported, in the supplied order.
-      [[nodiscard]] ExecutableFile emit(const MachineModule &Module, core::Name EntryFunctionName, std::span<const core::Name> ExportNames);
+            // EntryFunctionName selects a named VM function with instructions; only ExportNames are exported, in the supplied order.
+            [[nodiscard]] ExecutableFile emit(const MachineModule& Module, core::Name EntryFunctionName, std::span<const core::Name> ExportNames);
 
-      // Borrows the current unbound image; further emission may change its contents.
-      const ExecutableFile &getExecutable() const noexcept
-      {
-        return Context.getExecutable();
-      }
+            // Borrows the current unbound image; further emission may change its contents.
+            const ExecutableFile& getExecutable() const noexcept
+            {
+                return Context.getExecutable();
+            }
 
-      auto &getContext(this auto &&Self) noexcept
-      {
-        return Self.Context;
-      }
+            auto& getContext(this auto&& Self) noexcept
+            {
+                return Self.Context;
+            }
 
-      // Rebuilds the symbol map from all functions and globals, using zero offsets until image layout is known.
-      void scanUnResolvedSymbol(const MachineModule &Module);
+            // Rebuilds the symbol map from all functions and globals, using zero offsets until image layout is known.
+            void scanUnResolvedSymbol(const MachineModule& Module);
 
-      // Appends aligned global storage and resolves each global to its image offset.
-      void padGlobals(const MachineModule &Module);
+            // Appends aligned global storage and resolves each global to its image offset.
+            void padGlobals(const MachineModule& Module);
 
-      // Resolves each function to its entry image offset, then invokes the function emitter in module order.
-      void padFunction(const MachineModule &Module);
+            // Resolves each function to its entry image offset, then invokes the function emitter in module order.
+            void padFunction(const MachineModule& Module);
 
-      // Finalizes forward references after all globals and functions are laid out; every referenced VM symbol must have an image offset.
-      void resolveStaticRelocations();
+            // Finalizes forward references after all globals and functions are laid out; every referenced VM symbol must have an image offset.
+            void resolveStaticRelocations();
 
-    private:
-      void resolveEntryOffset(const MachineModule &Module, core::Name EntryFunctionName);
-      void generateExportSymbols(std::span<const core::Name> ExportNames);
+        private:
+            void resolveEntryOffset(const MachineModule& Module, core::Name EntryFunctionName);
+            void generateExportSymbols(std::span<const core::Name> ExportNames);
 
-      ExecutableEmissionContext Context;
-      vm::FunctionEmitter FunctionEmitter;
-  };
+            ExecutableEmissionContext Context;
+            vm::FunctionEmitter FunctionEmitter;
+    };
 } // namespace ink::vm

@@ -4,7 +4,15 @@ ColumnLimit: 0
 SortIncludes: Never
 BreakBeforeBraces: Allman
 NamespaceIndentation: All
+IndentWidth: 4
+ContinuationIndentWidth: 4
+UseTab: Never
 IndentAccessModifiers: true
+IndentCaseLabels: false
+IndentCaseBlocks: true
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Left
 KeepEmptyLines:
   AtEndOfFile: false
   AtStartOfBlock: false

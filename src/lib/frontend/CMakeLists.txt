@@ -8,7 +8,7 @@ target_link_libraries(ink_frontend PUBLIC ink::core PRIVATE ink::llvm utf8proc::
 ink_disable_exceptions(ink_frontend)
 
 if(MSVC)
-  target_compile_options(ink_frontend PRIVATE /utf-8 /W4 /permissive-)
+    target_compile_options(ink_frontend PRIVATE /utf-8 /W4 /permissive-)
 else()
-  target_compile_options(ink_frontend PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(ink_frontend PRIVATE -Wall -Wextra -Wpedantic)
 endif()

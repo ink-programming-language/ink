@@ -7,5 +7,5 @@ ink_disable_exceptions(ink_parse)
 set_target_properties(ink_parse PROPERTIES OUTPUT_NAME ink-parse)
 
 if(MSVC)
-  target_compile_options(ink_parse PRIVATE /utf-8)
+    target_compile_options(ink_parse PRIVATE /utf-8)
 endif()

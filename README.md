@@ -34,6 +34,8 @@ ctest --test-dir build -C Release --output-on-failure
 
 使用其他生成器时可按工具链调整生成参数；单配置生成器使用 `-DCMAKE_BUILD_TYPE=Release`，运行 CTest 时可省略 `-C Release`。
 
+自有 C/C++ 代码统一使用仓库 `.clang-format`，与 `dispatch.cpp` 的 CLion 格式一致。使用 Python 3.10+ 和 clang-format 19 或更新版本运行 `python cmake/format_sources.py` 格式化，或追加 `--check` 只检查；工具不在 PATH 时可指定 `--clang-format <可执行文件路径>`。格式化范围包括头文件和 `.def`，排除第三方依赖、构建产物及生成的数据片段。CMake 同样使用四空格缩进，完整命令保持在同一行。
+
 项目自有 C++ 目标统一要求 C++23，编译器和标准库必须支持显式对象参数（deducing this）和 `std::forward_like`；配置阶段会编译探测这两个特性。语言标准通过目标级 `cxx_std_23` 声明，第三方目标保留各自的标准要求。CMake 会根据工具链选择标准选项；部分 CMake/MSVC 组合将 C++23 映射为 `/std:c++latest`。
 
 `-DINK_BUILD_MODE=debug|development|shipping` 选择 Ink 构建模式，默认 `debug`。CMake 将 `src/include/ink/core/config.in` 配置为构建目录下的 `include/ink/core/config.h`，提供目标平台、指针大小、字节序、编译器身份与版本，以及互斥的 `INK_BUILD_DEBUG`、`INK_BUILD_DEVELOPMENT`、`INK_BUILD_SHIPPING` 宏。字节序由 `CMAKE_CXX_BYTE_ORDER` 自动检测，通过互斥的 `INK_PLATFORM_LITTLE_ENDIAN`、`INK_PLATFORM_BIG_ENDIAN` 表示；无法确定目标字节序时配置失败。所有布尔宏均定义为 `0` 或 `1`，使用 `#if` 判断。`ink::config` 将生成头目录传递给各模块；生成文件不写入源码树。

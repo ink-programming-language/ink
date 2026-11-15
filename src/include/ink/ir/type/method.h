@@ -8,56 +8,56 @@
 
 namespace ink::ir
 {
-  // Owns its function; the borrowed signature must remain alive whenever the function is used.
-  // Moving a method preserves function and body addresses; hasFunction() safely detects a moved-from method.
-  class Method
-  {
-    public:
-      explicit Method(const FunctionType &Signature, core::Name Name = core::NAME_None, MemberKind Kind = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None)
-          : MethodFunction(std::make_unique<Function>(Signature, Name, Visibility, Linkage)),
-            Kind(Kind)
-      {
-      }
+    // Owns its function; the borrowed signature must remain alive whenever the function is used.
+    // Moving a method preserves function and body addresses; hasFunction() safely detects a moved-from method.
+    class Method
+    {
+        public:
+            explicit Method(const FunctionType& Signature, core::Name Name = core::NAME_None, MemberKind Kind = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None)
+                : MethodFunction(std::make_unique<Function>(Signature, Name, Visibility, Linkage)),
+                  Kind(Kind)
+            {
+            }
 
-      Method(const FunctionType &&, core::Name = core::NAME_None, MemberKind = MemberKind::Instance, SymbolVisibility = SymbolVisibility::Private, NativeLinkage = NativeLinkage::None) = delete;
+            Method(const FunctionType&&, core::Name = core::NAME_None, MemberKind = MemberKind::Instance, SymbolVisibility = SymbolVisibility::Private, NativeLinkage = NativeLinkage::None) = delete;
 
-      Method(const Method &) = delete;
-      Method &operator=(const Method &) = delete;
-      Method(Method &&) noexcept = default;
-      Method &operator=(Method &&) noexcept = default;
+            Method(const Method&) = delete;
+            Method& operator=(const Method&) = delete;
+            Method(Method&&) noexcept = default;
+            Method& operator=(Method&&) noexcept = default;
 
-      bool hasFunction() const noexcept
-      {
-        return MethodFunction != nullptr;
-      }
+            bool hasFunction() const noexcept
+            {
+                return MethodFunction != nullptr;
+            }
 
-      core::Name name() const noexcept
-      {
-        return MethodFunction->name();
-      }
+            core::Name name() const noexcept
+            {
+                return MethodFunction->name();
+            }
 
-      Function &function() noexcept
-      {
-        return *MethodFunction;
-      }
+            Function& function() noexcept
+            {
+                return *MethodFunction;
+            }
 
-      const Function &function() const noexcept
-      {
-        return *MethodFunction;
-      }
+            const Function& function() const noexcept
+            {
+                return *MethodFunction;
+            }
 
-      MemberKind kind() const noexcept
-      {
-        return Kind;
-      }
+            MemberKind kind() const noexcept
+            {
+                return Kind;
+            }
 
-      bool isStatic() const noexcept
-      {
-        return Kind == MemberKind::Static;
-      }
+            bool isStatic() const noexcept
+            {
+                return Kind == MemberKind::Static;
+            }
 
-    private:
-      std::unique_ptr<Function> MethodFunction = nullptr;
-      MemberKind Kind = MemberKind::Instance;
-  };
+        private:
+            std::unique_ptr<Function> MethodFunction = nullptr;
+            MemberKind Kind = MemberKind::Instance;
+    };
 } // namespace ink::ir

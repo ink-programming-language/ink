@@ -4,8 +4,8 @@
 
 namespace ink::ir
 {
-  Parameter::Kind Argument::kind() const noexcept
-  {
-    return Parent->signature().parameters()[Index].kind();
-  }
+    Parameter::Kind Argument::kind() const noexcept
+    {
+        return Parent->signature().parameters()[Index].kind();
+    }
 } // namespace ink::ir

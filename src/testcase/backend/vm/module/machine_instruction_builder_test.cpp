@@ -18,548 +18,547 @@
 
 namespace ink::vm::test
 {
-  namespace
-  {
-    std::vector<const MachineInstruction *> blockInstructionAddresses(const MachineBasicBlock &Block)
+    namespace
     {
-      std::vector<const MachineInstruction *> Values;
-      for (const MachineInstruction &Value : Block.instructions())
-      {
-        Values.push_back(&Value);
-      }
-      return Values;
+        std::vector<const MachineInstruction*> blockInstructionAddresses(const MachineBasicBlock& Block)
+        {
+            std::vector<const MachineInstruction*> Values;
+            for (const MachineInstruction& Value : Block.instructions())
+            {
+                Values.push_back(&Value);
+            }
+            return Values;
+        }
+
+        template <Opcode Operation, typename... ValueTypes>
+        concept CanBuildVMInstruction = requires(MachineInstructionBuilder& Builder, ValueTypes&&... Values) {
+            { Builder.create<Operation>(std::forward<ValueTypes>(Values)...) } -> std::same_as<MachineInstructionImpl<Operation>&>;
+            { Builder.tryCreate<Operation>(std::forward<ValueTypes>(Values)...) } -> std::same_as<MachineInstructionImpl<Operation>*>;
+        };
+
+        template <typename OperandType>
+        OperandType makeBuilderTestOperand(std::size_t Index, const MachineBasicBlock* Target)
+        {
+            if constexpr (std::is_same_v<OperandType, RegisterOperand>)
+            {
+                return RegisterOperand(static_cast<RegisterId>(Index % 3));
+            }
+            else if constexpr (std::is_same_v<OperandType, AddressOperand>)
+            {
+                return AddressOperand(RegisterId::BP, static_cast<std::int64_t>(16 + Index));
+            }
+            else if constexpr (std::is_same_v<OperandType, BasicBlockOperand>)
+            {
+                return BasicBlockOperand(Target);
+            }
+            else
+            {
+                static_assert(std::is_same_v<OperandType, ImmediateOperand>);
+                return ImmediateOperand(64 + Index);
+            }
+        }
+
+        template <Opcode Operation, std::size_t... Indices>
+        void buildRegisteredInstruction(MachineInstructionBuilder& Builder, MachineBasicBlock& Block, std::index_sequence<Indices...>)
+        {
+            using OperandTuple = typename OpcodeTraits<Operation>::OperandTuple;
+            auto& Value = Builder.create<Operation>(makeBuilderTestOperand<std::tuple_element_t<Indices, OperandTuple>>(Indices, &Block)...);
+            const MachineInstruction& Base = Value;
+            EXPECT_EQ(Value.parent(), &Block);
+            EXPECT_EQ(Base.getOpcode(), Operation);
+            EXPECT_EQ(Base.operandCount(), sizeof...(Indices));
+            for (std::size_t Index = 0; Index < Base.operandCount(); ++Index)
+            {
+                EXPECT_EQ(Base.getOperand(Index), Value.getOperand(Index));
+            }
+        }
+    } // namespace
+
+    // Built instructions own symbolic immediate values independently of later operand reassignment.
+    TEST(VMMachineInstructionBuilderTest, CopiesSymbolImmediateValuesIntoInstructions)
+    {
+        MachineModule Module;
+        auto& Block = Module.createFunction().createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        const core::Name Symbol = core::NamePool::instance().intern("builder.symbol");
+        ImmediateOperand Source(Symbol, std::numeric_limits<std::int64_t>::min());
+        const auto& Instruction = Builder.create<Opcode::Add64mii>(AddressOperand(RegisterId::BP, 16), Source, ImmediateOperand(1));
+        Source = ImmediateOperand(42);
+        EXPECT_EQ(Instruction.parent(), &Block);
+        EXPECT_EQ(Instruction.getLHS().getSymbol(), Symbol);
+        EXPECT_EQ(Instruction.getLHS().getByteOffset(), std::numeric_limits<std::int64_t>::min());
+        EXPECT_FALSE(Instruction.getLHS().bits().has_value());
+        EXPECT_EQ(Instruction.getRHS().bits(), 1U);
     }
 
-    template <Opcode Operation, typename... ValueTypes>
-    concept CanBuildVMInstruction = requires(MachineInstructionBuilder &Builder, ValueTypes &&...Values)
+    // A detached block preserves its name and exposes an empty instruction sequence without an owning function.
+    TEST(VMMachineBasicBlockTest, PreservesDetachedIdentityAndConstRangeTypes)
     {
-      { Builder.create<Operation>(std::forward<ValueTypes>(Values)...) } -> std::same_as<MachineInstructionImpl<Operation> &>;
-      { Builder.tryCreate<Operation>(std::forward<ValueTypes>(Values)...) } -> std::same_as<MachineInstructionImpl<Operation> *>;
-    };
-
-    template <typename OperandType>
-    OperandType makeBuilderTestOperand(std::size_t Index, const MachineBasicBlock *Target)
-    {
-      if constexpr (std::is_same_v<OperandType, RegisterOperand>)
-      {
-        return RegisterOperand(static_cast<RegisterId>(Index % 3));
-      }
-      else if constexpr (std::is_same_v<OperandType, AddressOperand>)
-      {
-        return AddressOperand(RegisterId::BP, static_cast<std::int64_t>(16 + Index));
-      }
-      else if constexpr (std::is_same_v<OperandType, BasicBlockOperand>)
-      {
-        return BasicBlockOperand(Target);
-      }
-      else
-      {
-        static_assert(std::is_same_v<OperandType, ImmediateOperand>);
-        return ImmediateOperand(64 + Index);
-      }
+        const core::Name BlockName = core::NamePool::instance().intern("vm.detached.entry");
+        MachineBasicBlock Block(BlockName);
+        static_assert(!std::is_copy_constructible_v<MachineBasicBlock> && !std::is_move_constructible_v<MachineBasicBlock>);
+        static_assert(std::is_same_v<decltype(std::declval<MachineBasicBlock&>().parent()), MachineFunction*>);
+        static_assert(std::is_same_v<decltype(std::declval<const MachineBasicBlock&>().parent()), const MachineFunction*>);
+        static_assert(std::is_same_v<std::ranges::range_reference_t<decltype(std::declval<MachineBasicBlock&>().instructions())>, MachineInstruction&>);
+        static_assert(std::is_same_v<std::ranges::range_reference_t<decltype(std::declval<const MachineBasicBlock&>().instructions())>, const MachineInstruction&>);
+        EXPECT_EQ(Block.name(), BlockName);
+        EXPECT_EQ(Block.parent(), nullptr);
+        EXPECT_EQ(Block.instructionCount(), 0U);
+        EXPECT_TRUE(std::ranges::empty(Block.instructions()));
+        const MachineBasicBlock& ConstBlock = Block;
+        EXPECT_TRUE(std::ranges::empty(ConstBlock.instructions()));
     }
 
-    template <Opcode Operation, std::size_t... Indices>
-    void buildRegisteredInstruction(MachineInstructionBuilder &Builder, MachineBasicBlock &Block, std::index_sequence<Indices...>)
+    // An unset insertion point reports a recoverable creation failure and leaves detached operands unowned.
+    TEST(VMMachineInstructionBuilderTest, RejectsCreationWithoutAnInsertionPoint)
     {
-      using OperandTuple = typename OpcodeTraits<Operation>::OperandTuple;
-      auto &Value = Builder.create<Operation>(makeBuilderTestOperand<std::tuple_element_t<Indices, OperandTuple>>(Indices, &Block)...);
-      const MachineInstruction &Base = Value;
-      EXPECT_EQ(Value.parent(), &Block);
-      EXPECT_EQ(Base.getOpcode(), Operation);
-      EXPECT_EQ(Base.operandCount(), sizeof...(Indices));
-      for (std::size_t Index = 0; Index < Base.operandCount(); ++Index)
-      {
-        EXPECT_EQ(Base.getOperand(Index), Value.getOperand(Index));
-      }
+        MachineInstructionBuilder Builder;
+        static_assert(!std::is_copy_constructible_v<MachineInstructionBuilder> && !std::is_move_constructible_v<MachineInstructionBuilder>);
+        EXPECT_EQ(Builder.getInsertBlock(), nullptr);
+        EXPECT_EQ(Builder.getInsertBefore(), nullptr);
+        EXPECT_EQ(Builder.tryCreate<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(42)), nullptr);
+        EXPECT_EQ(Builder.getInsertBlock(), nullptr);
+        const MachineStore32iInstruction Detached(AddressOperand(RegisterId::BP), ImmediateOperand(7));
+        static_assert(std::is_same_v<decltype(Detached.parent()), const MachineBasicBlock*>);
+        EXPECT_EQ(Detached.parent(), nullptr);
     }
-  } // namespace
 
-  // Built instructions own symbolic immediate values independently of later operand reassignment.
-  TEST(VMMachineInstructionBuilderTest, CopiesSymbolImmediateValuesIntoInstructions)
-  {
-    MachineModule Module;
-    auto &Block = Module.createFunction().createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Block);
-    const core::Name Symbol = core::NamePool::instance().intern("builder.symbol");
-    ImmediateOperand Source(Symbol, std::numeric_limits<std::int64_t>::min());
-    const auto &Instruction = Builder.create<Opcode::Add64mii>(AddressOperand(RegisterId::BP, 16), Source, ImmediateOperand(1));
-    Source = ImmediateOperand(42);
-    EXPECT_EQ(Instruction.parent(), &Block);
-    EXPECT_EQ(Instruction.getLHS().getSymbol(), Symbol);
-    EXPECT_EQ(Instruction.getLHS().getByteOffset(), std::numeric_limits<std::int64_t>::min());
-    EXPECT_FALSE(Instruction.getLHS().bits().has_value());
-    EXPECT_EQ(Instruction.getRHS().bits(), 1U);
-  }
-
-  // A detached block preserves its name and exposes an empty instruction sequence without an owning function.
-  TEST(VMMachineBasicBlockTest, PreservesDetachedIdentityAndConstRangeTypes)
-  {
-    const core::Name BlockName = core::NamePool::instance().intern("vm.detached.entry");
-    MachineBasicBlock Block(BlockName);
-    static_assert(!std::is_copy_constructible_v<MachineBasicBlock> && !std::is_move_constructible_v<MachineBasicBlock>);
-    static_assert(std::is_same_v<decltype(std::declval<MachineBasicBlock &>().parent()), MachineFunction *>);
-    static_assert(std::is_same_v<decltype(std::declval<const MachineBasicBlock &>().parent()), const MachineFunction *>);
-    static_assert(std::is_same_v<std::ranges::range_reference_t<decltype(std::declval<MachineBasicBlock &>().instructions())>, MachineInstruction &>);
-    static_assert(std::is_same_v<std::ranges::range_reference_t<decltype(std::declval<const MachineBasicBlock &>().instructions())>, const MachineInstruction &>);
-    EXPECT_EQ(Block.name(), BlockName);
-    EXPECT_EQ(Block.parent(), nullptr);
-    EXPECT_EQ(Block.instructionCount(), 0U);
-    EXPECT_TRUE(std::ranges::empty(Block.instructions()));
-    const MachineBasicBlock &ConstBlock = Block;
-    EXPECT_TRUE(std::ranges::empty(ConstBlock.instructions()));
-  }
-
-  // An unset insertion point reports a recoverable creation failure and leaves detached operands unowned.
-  TEST(VMMachineInstructionBuilderTest, RejectsCreationWithoutAnInsertionPoint)
-  {
-    MachineInstructionBuilder Builder;
-    static_assert(!std::is_copy_constructible_v<MachineInstructionBuilder> && !std::is_move_constructible_v<MachineInstructionBuilder>);
-    EXPECT_EQ(Builder.getInsertBlock(), nullptr);
-    EXPECT_EQ(Builder.getInsertBefore(), nullptr);
-    EXPECT_EQ(Builder.tryCreate<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(42)), nullptr);
-    EXPECT_EQ(Builder.getInsertBlock(), nullptr);
-    const MachineStore32iInstruction Detached(AddressOperand(RegisterId::BP), ImmediateOperand(7));
-    static_assert(std::is_same_v<decltype(Detached.parent()), const MachineBasicBlock *>);
-    EXPECT_EQ(Detached.parent(), nullptr);
-  }
-
-  // Appending creates typed block-owned instructions and copies each caller-owned operand payload.
-  TEST(VMMachineInstructionBuilderTest, AppendsTypedInstructionsWithOwnedOperands)
-  {
-    MachineBasicBlock Block;
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Block);
-    AddressOperand Destination(RegisterId::BP, 16);
-    ImmediateOperand Source(20);
-    auto &First = Builder.create<Opcode::Store32i>(Destination, Source);
-    auto *Second = Builder.tryCreate<Opcode::Add32mmi>(AddressOperand(RegisterId::BP, 20), Destination, ImmediateOperand(22));
-    ASSERT_NE(Second, nullptr);
-    Destination = AddressOperand(RegisterId::SP, -8);
-    Source = ImmediateOperand(99);
-    EXPECT_EQ(Block.instructionCount(), 2U);
-    EXPECT_EQ(First.parent(), &Block);
-    EXPECT_EQ(Second->parent(), &Block);
-    EXPECT_EQ(First.getDestination().getRegister(), RegisterId::BP);
-    EXPECT_EQ(First.getDestination().getByteOffset(), 16);
-    EXPECT_EQ(First.getSource().bits(), 20U);
-    EXPECT_EQ(Second->getLHS().getByteOffset(), 16);
-    EXPECT_EQ(Builder.getInsertBlock(), &Block);
-    EXPECT_EQ(Builder.getInsertBefore(), nullptr);
-    const std::vector<const MachineInstruction *> Expected = {&First, Second};
-    EXPECT_EQ(blockInstructionAddresses(Block), Expected);
-  }
-
-  // Repeated insertion before one anchor preserves creation order and keeps the anchor selected.
-  TEST(VMMachineInstructionBuilderTest, RepeatedInsertionPreservesAnchorAndOrder)
-  {
-    MachineBasicBlock Block;
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Block);
-    auto &First = Builder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
-    auto &Anchor = Builder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(4));
-    ASSERT_TRUE(Builder.setInsertPoint(Anchor));
-    auto &Second = Builder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(2));
-    auto &Third = Builder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(3));
-    const std::vector<const MachineInstruction *> Expected = {&First, &Second, &Third, &Anchor};
-    EXPECT_EQ(blockInstructionAddresses(Block), Expected);
-    EXPECT_EQ(Builder.getInsertBefore(), &Anchor);
-    EXPECT_EQ(Anchor.parent(), &Block);
-    EXPECT_EQ(Second.parent(), &Block);
-  }
-
-  // Selecting a block's first instruction permits insertion at its beginning without moving existing instructions.
-  TEST(VMMachineInstructionBuilderTest, InsertsBeforeTheFirstInstruction)
-  {
-    MachineBasicBlock Block;
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Block);
-    auto &Anchor = Builder.create<Opcode::Store16i>(AddressOperand(RegisterId::BP), ImmediateOperand(2));
-    ASSERT_TRUE(Builder.setInsertPoint(Anchor));
-    auto &First = Builder.create<Opcode::Store16i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
-    const std::vector<const MachineInstruction *> Expected = {&First, &Anchor};
-    EXPECT_EQ(blockInstructionAddresses(Block), Expected);
-    EXPECT_EQ(Builder.getInsertBefore(), &Anchor);
-  }
-
-  // Selecting an instruction in another block transfers the insertion point to its actual owning block.
-  TEST(VMMachineInstructionBuilderTest, SelectsOwningBlockWhenChangingAnchors)
-  {
-    MachineBasicBlock Left;
-    MachineBasicBlock Right;
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Left);
-    auto &LeftValue = Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
-    Builder.setInsertPoint(Right);
-    auto &RightValue = Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(3));
-    ASSERT_TRUE(Builder.setInsertPoint(LeftValue));
-    EXPECT_EQ(Builder.getInsertBlock(), &Left);
-    EXPECT_EQ(Builder.getInsertBefore(), &LeftValue);
-    auto &BeforeLeft = Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(0));
-    const std::vector<const MachineInstruction *> LeftExpected = {&BeforeLeft, &LeftValue};
-    const std::vector<const MachineInstruction *> RightExpected = {&RightValue};
-    EXPECT_EQ(blockInstructionAddresses(Left), LeftExpected);
-    EXPECT_EQ(blockInstructionAddresses(Right), RightExpected);
-  }
-
-  // Rejecting a detached instruction preserves the previously selected block and anchor.
-  TEST(VMMachineInstructionBuilderTest, RejectsDetachedAnchorsWithoutChangingInsertionPoint)
-  {
-    MachineBasicBlock Block;
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Block);
-    auto &Anchor = Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP), ImmediateOperand(2));
-    ASSERT_TRUE(Builder.setInsertPoint(Anchor));
-    MachineStore64iInstruction Detached(AddressOperand(RegisterId::BP), ImmediateOperand(99));
-    EXPECT_FALSE(Builder.setInsertPoint(Detached));
-    EXPECT_EQ(Builder.getInsertBlock(), &Block);
-    EXPECT_EQ(Builder.getInsertBefore(), &Anchor);
-    auto &First = Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
-    const std::vector<const MachineInstruction *> Expected = {&First, &Anchor};
-    EXPECT_EQ(blockInstructionAddresses(Block), Expected);
-    EXPECT_EQ(Detached.parent(), nullptr);
-  }
-
-  // Clearing an insertion point disables creation while preserving already-owned instructions for later reuse.
-  TEST(VMMachineInstructionBuilderTest, ClearsInsertionPointWithoutRemovingInstructions)
-  {
-    MachineBasicBlock Block;
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Block);
-    auto &First = Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
-    Builder.clearInsertPoint();
-    EXPECT_EQ(Builder.getInsertBlock(), nullptr);
-    EXPECT_EQ(Builder.getInsertBefore(), nullptr);
-    EXPECT_EQ(Builder.tryCreate<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(99)), nullptr);
-    EXPECT_EQ(Block.instructionCount(), 1U);
-    Builder.setInsertPoint(Block);
-    auto &Second = Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(2));
-    const std::vector<const MachineInstruction *> Expected = {&First, &Second};
-    EXPECT_EQ(blockInstructionAddresses(Block), Expected);
-  }
-
-  // Destroying the builder leaves both the instruction and its inline operands alive in the owning block.
-  TEST(VMMachineInstructionBuilderTest, KeepsInstructionsAliveAfterBuilderDestruction)
-  {
-    MachineBasicBlock Block;
-    const MachineStore64iInstruction *Created = nullptr;
+    // Appending creates typed block-owned instructions and copies each caller-owned operand payload.
+    TEST(VMMachineInstructionBuilderTest, AppendsTypedInstructionsWithOwnedOperands)
     {
-      MachineInstructionBuilder Builder;
-      Builder.setInsertPoint(Block);
-      Created = &Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP, -24), ImmediateOperand(42));
+        MachineBasicBlock Block;
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        AddressOperand Destination(RegisterId::BP, 16);
+        ImmediateOperand Source(20);
+        auto& First = Builder.create<Opcode::Store32i>(Destination, Source);
+        auto* Second = Builder.tryCreate<Opcode::Add32mmi>(AddressOperand(RegisterId::BP, 20), Destination, ImmediateOperand(22));
+        ASSERT_NE(Second, nullptr);
+        Destination = AddressOperand(RegisterId::SP, -8);
+        Source = ImmediateOperand(99);
+        EXPECT_EQ(Block.instructionCount(), 2U);
+        EXPECT_EQ(First.parent(), &Block);
+        EXPECT_EQ(Second->parent(), &Block);
+        EXPECT_EQ(First.getDestination().getRegister(), RegisterId::BP);
+        EXPECT_EQ(First.getDestination().getByteOffset(), 16);
+        EXPECT_EQ(First.getSource().bits(), 20U);
+        EXPECT_EQ(Second->getLHS().getByteOffset(), 16);
+        EXPECT_EQ(Builder.getInsertBlock(), &Block);
+        EXPECT_EQ(Builder.getInsertBefore(), nullptr);
+        const std::vector<const MachineInstruction*> Expected = {&First, Second};
+        EXPECT_EQ(blockInstructionAddresses(Block), Expected);
     }
-    ASSERT_NE(Created, nullptr);
-    EXPECT_EQ(Block.instructionCount(), 1U);
-    EXPECT_EQ(Created->parent(), &Block);
-    EXPECT_EQ(Created->getDestination().getByteOffset(), -24);
-    EXPECT_EQ(Created->getSource().bits(), 42U);
-    EXPECT_EQ(blockInstructionAddresses(Block).front(), Created);
-  }
 
-  // Multiple builders can share an anchor while each retains its own insertion state.
-  TEST(VMMachineInstructionBuilderTest, KeepsIndependentInsertionPointsForSharedAnchors)
-  {
-    MachineBasicBlock Block;
-    MachineInstructionBuilder FirstBuilder;
-    MachineInstructionBuilder SecondBuilder;
-    FirstBuilder.setInsertPoint(Block);
-    auto &Anchor = FirstBuilder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(4));
-    ASSERT_TRUE(FirstBuilder.setInsertPoint(Anchor));
-    ASSERT_TRUE(SecondBuilder.setInsertPoint(Anchor));
-    auto &First = FirstBuilder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
-    auto &Second = SecondBuilder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(2));
-    FirstBuilder.clearInsertPoint();
-    auto &Third = SecondBuilder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(3));
-    const std::vector<const MachineInstruction *> Expected = {&First, &Second, &Third, &Anchor};
-    EXPECT_EQ(blockInstructionAddresses(Block), Expected);
-    EXPECT_EQ(SecondBuilder.getInsertBefore(), &Anchor);
-  }
-
-  // Appending many nodes preserves every earlier instruction address, payload, and parent association.
-  TEST(VMMachineInstructionBuilderTest, PreservesInstructionIdentityAcrossManyInsertions)
-  {
-    MachineBasicBlock Block;
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Block);
-    std::array<const MachineStore64iInstruction *, 256> Created{};
-    for (std::size_t Index = 0; Index < Created.size(); ++Index)
+    // Repeated insertion before one anchor preserves creation order and keeps the anchor selected.
+    TEST(VMMachineInstructionBuilderTest, RepeatedInsertionPreservesAnchorAndOrder)
     {
-      Created[Index] = &Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP, static_cast<std::int64_t>(Index * 8)), ImmediateOperand(Index));
+        MachineBasicBlock Block;
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        auto& First = Builder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
+        auto& Anchor = Builder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(4));
+        ASSERT_TRUE(Builder.setInsertPoint(Anchor));
+        auto& Second = Builder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(2));
+        auto& Third = Builder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(3));
+        const std::vector<const MachineInstruction*> Expected = {&First, &Second, &Third, &Anchor};
+        EXPECT_EQ(blockInstructionAddresses(Block), Expected);
+        EXPECT_EQ(Builder.getInsertBefore(), &Anchor);
+        EXPECT_EQ(Anchor.parent(), &Block);
+        EXPECT_EQ(Second.parent(), &Block);
     }
-    ASSERT_EQ(Block.instructionCount(), Created.size());
-    std::size_t Index = 0;
-    for (MachineInstruction &Value : Block.instructions())
+
+    // Selecting a block's first instruction permits insertion at its beginning without moving existing instructions.
+    TEST(VMMachineInstructionBuilderTest, InsertsBeforeTheFirstInstruction)
     {
-      ASSERT_LT(Index, Created.size());
-      EXPECT_EQ(&Value, Created[Index]);
-      EXPECT_EQ(Value.parent(), &Block);
-      EXPECT_EQ(Created[Index]->getSource().bits(), Index);
-      ++Index;
+        MachineBasicBlock Block;
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        auto& Anchor = Builder.create<Opcode::Store16i>(AddressOperand(RegisterId::BP), ImmediateOperand(2));
+        ASSERT_TRUE(Builder.setInsertPoint(Anchor));
+        auto& First = Builder.create<Opcode::Store16i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
+        const std::vector<const MachineInstruction*> Expected = {&First, &Anchor};
+        EXPECT_EQ(blockInstructionAddresses(Block), Expected);
+        EXPECT_EQ(Builder.getInsertBefore(), &Anchor);
     }
-    EXPECT_EQ(Index, Created.size());
-  }
 
-  // Builder construction accepts exact typed operand packs and rejects raw values, wrong kinds, and wrong arity.
-  TEST(VMMachineInstructionBuilderTest, RestrictsCreationToRegisteredTypedLayouts)
-  {
-    static_assert(CanBuildVMInstruction<Opcode::Add64rri, RegisterOperand, RegisterOperand, ImmediateOperand>);
-    static_assert(CanBuildVMInstruction<Opcode::Store32i, const AddressOperand &, const ImmediateOperand &>);
-    static_assert(!CanBuildVMInstruction<Opcode::Add64rri, RegisterOperand, AddressOperand, ImmediateOperand>);
-    static_assert(!CanBuildVMInstruction<Opcode::Add64rri, RegisterId, RegisterId, std::uint64_t>);
-    static_assert(!CanBuildVMInstruction<Opcode::Store32i, AddressOperand>);
-    static_assert(!CanBuildVMInstruction<Opcode::Store32i, AddressOperand, ImmediateOperand, ImmediateOperand>);
-    SUCCEED();
-  }
+    // Selecting an instruction in another block transfers the insertion point to its actual owning block.
+    TEST(VMMachineInstructionBuilderTest, SelectsOwningBlockWhenChangingAnchors)
+    {
+        MachineBasicBlock Left;
+        MachineBasicBlock Right;
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Left);
+        auto& LeftValue = Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
+        Builder.setInsertPoint(Right);
+        auto& RightValue = Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(3));
+        ASSERT_TRUE(Builder.setInsertPoint(LeftValue));
+        EXPECT_EQ(Builder.getInsertBlock(), &Left);
+        EXPECT_EQ(Builder.getInsertBefore(), &LeftValue);
+        auto& BeforeLeft = Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(0));
+        const std::vector<const MachineInstruction*> LeftExpected = {&BeforeLeft, &LeftValue};
+        const std::vector<const MachineInstruction*> RightExpected = {&RightValue};
+        EXPECT_EQ(blockInstructionAddresses(Left), LeftExpected);
+        EXPECT_EQ(blockInstructionAddresses(Right), RightExpected);
+    }
 
-  // Every registered opcode can be created, traversed, and destroyed through the block's concrete-type owner.
-  TEST(VMMachineInstructionBuilderTest, BuildsAndOwnsEveryRegisteredOpcode)
-  {
-    MachineFunction Function;
-    MachineBasicBlock &Block = Function.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Block);
-    std::size_t ExpectedCount = 0;
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category)           \
-  buildRegisteredInstruction<Opcode::Kind>(Builder, Block, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{}); \
-  ++ExpectedCount;
+    // Rejecting a detached instruction preserves the previously selected block and anchor.
+    TEST(VMMachineInstructionBuilderTest, RejectsDetachedAnchorsWithoutChangingInsertionPoint)
+    {
+        MachineBasicBlock Block;
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        auto& Anchor = Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP), ImmediateOperand(2));
+        ASSERT_TRUE(Builder.setInsertPoint(Anchor));
+        MachineStore64iInstruction Detached(AddressOperand(RegisterId::BP), ImmediateOperand(99));
+        EXPECT_FALSE(Builder.setInsertPoint(Detached));
+        EXPECT_EQ(Builder.getInsertBlock(), &Block);
+        EXPECT_EQ(Builder.getInsertBefore(), &Anchor);
+        auto& First = Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
+        const std::vector<const MachineInstruction*> Expected = {&First, &Anchor};
+        EXPECT_EQ(blockInstructionAddresses(Block), Expected);
+        EXPECT_EQ(Detached.parent(), nullptr);
+    }
+
+    // Clearing an insertion point disables creation while preserving already-owned instructions for later reuse.
+    TEST(VMMachineInstructionBuilderTest, ClearsInsertionPointWithoutRemovingInstructions)
+    {
+        MachineBasicBlock Block;
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        auto& First = Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
+        Builder.clearInsertPoint();
+        EXPECT_EQ(Builder.getInsertBlock(), nullptr);
+        EXPECT_EQ(Builder.getInsertBefore(), nullptr);
+        EXPECT_EQ(Builder.tryCreate<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(99)), nullptr);
+        EXPECT_EQ(Block.instructionCount(), 1U);
+        Builder.setInsertPoint(Block);
+        auto& Second = Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(2));
+        const std::vector<const MachineInstruction*> Expected = {&First, &Second};
+        EXPECT_EQ(blockInstructionAddresses(Block), Expected);
+    }
+
+    // Destroying the builder leaves both the instruction and its inline operands alive in the owning block.
+    TEST(VMMachineInstructionBuilderTest, KeepsInstructionsAliveAfterBuilderDestruction)
+    {
+        MachineBasicBlock Block;
+        const MachineStore64iInstruction* Created = nullptr;
+        {
+            MachineInstructionBuilder Builder;
+            Builder.setInsertPoint(Block);
+            Created = &Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP, -24), ImmediateOperand(42));
+        }
+        ASSERT_NE(Created, nullptr);
+        EXPECT_EQ(Block.instructionCount(), 1U);
+        EXPECT_EQ(Created->parent(), &Block);
+        EXPECT_EQ(Created->getDestination().getByteOffset(), -24);
+        EXPECT_EQ(Created->getSource().bits(), 42U);
+        EXPECT_EQ(blockInstructionAddresses(Block).front(), Created);
+    }
+
+    // Multiple builders can share an anchor while each retains its own insertion state.
+    TEST(VMMachineInstructionBuilderTest, KeepsIndependentInsertionPointsForSharedAnchors)
+    {
+        MachineBasicBlock Block;
+        MachineInstructionBuilder FirstBuilder;
+        MachineInstructionBuilder SecondBuilder;
+        FirstBuilder.setInsertPoint(Block);
+        auto& Anchor = FirstBuilder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(4));
+        ASSERT_TRUE(FirstBuilder.setInsertPoint(Anchor));
+        ASSERT_TRUE(SecondBuilder.setInsertPoint(Anchor));
+        auto& First = FirstBuilder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(1));
+        auto& Second = SecondBuilder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(2));
+        FirstBuilder.clearInsertPoint();
+        auto& Third = SecondBuilder.create<Opcode::Store8i>(AddressOperand(RegisterId::BP), ImmediateOperand(3));
+        const std::vector<const MachineInstruction*> Expected = {&First, &Second, &Third, &Anchor};
+        EXPECT_EQ(blockInstructionAddresses(Block), Expected);
+        EXPECT_EQ(SecondBuilder.getInsertBefore(), &Anchor);
+    }
+
+    // Appending many nodes preserves every earlier instruction address, payload, and parent association.
+    TEST(VMMachineInstructionBuilderTest, PreservesInstructionIdentityAcrossManyInsertions)
+    {
+        MachineBasicBlock Block;
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        std::array<const MachineStore64iInstruction*, 256> Created{};
+        for (std::size_t Index = 0; Index < Created.size(); ++Index)
+        {
+            Created[Index] = &Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP, static_cast<std::int64_t>(Index * 8)), ImmediateOperand(Index));
+        }
+        ASSERT_EQ(Block.instructionCount(), Created.size());
+        std::size_t Index = 0;
+        for (MachineInstruction& Value : Block.instructions())
+        {
+            ASSERT_LT(Index, Created.size());
+            EXPECT_EQ(&Value, Created[Index]);
+            EXPECT_EQ(Value.parent(), &Block);
+            EXPECT_EQ(Created[Index]->getSource().bits(), Index);
+            ++Index;
+        }
+        EXPECT_EQ(Index, Created.size());
+    }
+
+    // Builder construction accepts exact typed operand packs and rejects raw values, wrong kinds, and wrong arity.
+    TEST(VMMachineInstructionBuilderTest, RestrictsCreationToRegisteredTypedLayouts)
+    {
+        static_assert(CanBuildVMInstruction<Opcode::Add64rri, RegisterOperand, RegisterOperand, ImmediateOperand>);
+        static_assert(CanBuildVMInstruction<Opcode::Store32i, const AddressOperand&, const ImmediateOperand&>);
+        static_assert(!CanBuildVMInstruction<Opcode::Add64rri, RegisterOperand, AddressOperand, ImmediateOperand>);
+        static_assert(!CanBuildVMInstruction<Opcode::Add64rri, RegisterId, RegisterId, std::uint64_t>);
+        static_assert(!CanBuildVMInstruction<Opcode::Store32i, AddressOperand>);
+        static_assert(!CanBuildVMInstruction<Opcode::Store32i, AddressOperand, ImmediateOperand, ImmediateOperand>);
+        SUCCEED();
+    }
+
+    // Every registered opcode can be created, traversed, and destroyed through the block's concrete-type owner.
+    TEST(VMMachineInstructionBuilderTest, BuildsAndOwnsEveryRegisteredOpcode)
+    {
+        MachineFunction Function;
+        MachineBasicBlock& Block = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        std::size_t ExpectedCount = 0;
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category)                        \
+    buildRegisteredInstruction<Opcode::Kind>(Builder, Block, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{}); \
+    ++ExpectedCount;
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
-    EXPECT_EQ(Block.instructionCount(), ExpectedCount);
-    EXPECT_EQ(blockInstructionAddresses(Block).size(), ExpectedCount);
-  }
-
-  // Branches copy stable block pointers, accept self-loops, and retain target identity when more blocks are appended.
-  TEST(VMMachineInstructionBuilderTest, BuildsBlockPointerBranchesAndReturn)
-  {
-    MachineFunction Function;
-    MachineBasicBlock &Entry = Function.createBasicBlock();
-    MachineBasicBlock &Exit = Function.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Entry);
-    MachineBasicBlock *Target = &Exit;
-    auto *Jump = Builder.tryCreate<Opcode::Jmp>(Target);
-    auto *Loop = Builder.tryCreate<Opcode::Jmp>(&Entry);
-    auto *Wrapped = Builder.tryCreate<Opcode::Jmp>(BasicBlockOperand(&Exit));
-    ASSERT_NE(Jump, nullptr);
-    ASSERT_NE(Loop, nullptr);
-    ASSERT_NE(Wrapped, nullptr);
-    Target = &Entry;
-    for (std::size_t Index = 0; Index < 128; ++Index)
-    {
-      Function.createBasicBlock();
+        EXPECT_EQ(Block.instructionCount(), ExpectedCount);
+        EXPECT_EQ(blockInstructionAddresses(Block).size(), ExpectedCount);
     }
-    EXPECT_EQ(Jump->getTarget(), &Exit);
-    EXPECT_EQ(Loop->getTarget(), &Entry);
-    EXPECT_EQ(Wrapped->getTarget(), &Exit);
-    EXPECT_EQ(Jump->getTargetOperand().getBlock(), &Exit);
-    EXPECT_EQ(Jump->parent(), &Entry);
-    EXPECT_TRUE(Loop->isTerminator());
-    Builder.setInsertPoint(Exit);
-    auto &Return = Builder.create<Opcode::Ret>();
-    EXPECT_EQ(Return.parent(), &Exit);
-    EXPECT_TRUE(Return.isReturn());
-    EXPECT_TRUE(Return.isTerminator());
-    EXPECT_EQ(Return.operandCount(), 0U);
-    EXPECT_EQ(Return.getOperand(0), nullptr);
-  }
 
-  // Explicit jumps can be built in a detached block because their operands are values rather than function-owned block targets.
-  TEST(VMMachineInstructionBuilderTest, BuildsValueJumpTargetsWithoutBlockOwnershipChecks)
-  {
-    MachineBasicBlock Block;
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Block);
-    auto &Return = Builder.create<Opcode::Ret>();
-    ASSERT_TRUE(Builder.setInsertPoint(Return));
-    ImmediateOperand Immediate(std::numeric_limits<std::uint64_t>::max());
-    RegisterOperand Register(RegisterId::PC, -11);
-    AddressOperand Memory(RegisterId::BP, 24);
-    const auto &ImmediateJump = Builder.create<Opcode::Jmpi>(Immediate);
-    const auto *RegisterJump = Builder.tryCreate<Opcode::Jmpr>(Register);
-    const auto &MemoryJump = Builder.create<Opcode::Jmpm>(Memory);
-    ASSERT_NE(RegisterJump, nullptr);
-    Immediate = ImmediateOperand(0);
-    Register = RegisterOperand(RegisterId::ZERO);
-    Memory = AddressOperand(RegisterId::SP);
-    EXPECT_EQ(ImmediateJump.getTarget().bits(), std::numeric_limits<std::uint64_t>::max());
-    EXPECT_EQ(RegisterJump->getTarget().getRegister(), RegisterId::PC);
-    EXPECT_EQ(RegisterJump->getTarget().getByteOffset(), -11);
-    EXPECT_EQ(MemoryJump.getTarget().getRegister(), RegisterId::BP);
-    EXPECT_EQ(MemoryJump.getTarget().getByteOffset(), 24);
-    EXPECT_EQ(ImmediateJump.parent(), &Block);
-    EXPECT_EQ(RegisterJump->parent(), &Block);
-    EXPECT_EQ(MemoryJump.parent(), &Block);
-    EXPECT_EQ(Builder.getInsertBefore(), &Return);
-    const std::vector<const MachineInstruction *> Expected{&ImmediateJump, RegisterJump, &MemoryJump, &Return};
-    EXPECT_EQ(blockInstructionAddresses(Block), Expected);
-    EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(&Block), nullptr);
-    Builder.clearInsertPoint();
-    EXPECT_EQ(Builder.tryCreate<Opcode::Jmpi>(Immediate), nullptr);
-    EXPECT_EQ(Builder.tryCreate<Opcode::Jmpr>(Register), nullptr);
-    EXPECT_EQ(Builder.tryCreate<Opcode::Jmpm>(Memory), nullptr);
-    EXPECT_EQ(Block.instructionCount(), 4U);
-    static_assert(CanBuildVMInstruction<Opcode::Jmpi, ImmediateOperand>);
-    static_assert(CanBuildVMInstruction<Opcode::Jmpr, RegisterOperand>);
-    static_assert(CanBuildVMInstruction<Opcode::Jmpm, AddressOperand>);
-    static_assert(!CanBuildVMInstruction<Opcode::Jmpi, MachineBasicBlock *>);
-    static_assert(!CanBuildVMInstruction<Opcode::Jmpr, BasicBlockOperand>);
-    static_assert(!CanBuildVMInstruction<Opcode::Jmpm, RegisterOperand>);
-  }
-
-  // Calls copy direct targets and pointer-slot addresses independently while preserving the insertion anchor for following instructions.
-  TEST(VMMachineInstructionBuilderTest, BuildsImmediateAndIndirectCallsWithCopiedTargets)
-  {
-    MachineBasicBlock Block;
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Block);
-    auto &Return = Builder.create<Opcode::Ret>();
-    ASSERT_TRUE(Builder.setInsertPoint(Return));
-    const core::Name VMTarget = core::NamePool::instance().intern("builder.vm.target");
-    const core::Name NativeTarget = core::NamePool::instance().intern("builder.native.target");
-    ImmediateOperand Target(VMTarget);
-    const auto &Call = Builder.create<Opcode::Calli>(Target);
-    Target = ImmediateOperand(NativeTarget);
-    const auto *NativeCall = Builder.tryCreate<Opcode::CallNativei>(Target);
-    ASSERT_NE(NativeCall, nullptr);
-    AddressOperand PointerSlot(RegisterId::SP);
-    const auto &Indirect = Builder.create<Opcode::Callm>(PointerSlot);
-    PointerSlot = AddressOperand(RegisterId::BP, 24);
-    const auto &NativeIndirect = Builder.create<Opcode::CallNativem>(PointerSlot);
-    EXPECT_EQ(Call.getTarget().getSymbol(), VMTarget);
-    EXPECT_EQ(NativeCall->getTarget().getSymbol(), NativeTarget);
-    EXPECT_EQ(Indirect.getTarget().getRegister(), RegisterId::SP);
-    EXPECT_EQ(Indirect.getTarget().getByteOffset(), 0);
-    EXPECT_EQ(NativeIndirect.getTarget().getRegister(), RegisterId::BP);
-    EXPECT_EQ(NativeIndirect.getTarget().getByteOffset(), 24);
-    EXPECT_EQ(Call.parent(), &Block);
-    EXPECT_EQ(NativeCall->parent(), &Block);
-    EXPECT_EQ(Builder.getInsertBefore(), &Return);
-    const std::vector<const MachineInstruction *> Expected{&Call, NativeCall, &Indirect, &NativeIndirect, &Return};
-    EXPECT_EQ(blockInstructionAddresses(Block), Expected);
-    Builder.clearInsertPoint();
-    EXPECT_EQ(Builder.tryCreate<Opcode::Calli>(ImmediateOperand(VMTarget)), nullptr);
-    EXPECT_EQ(Builder.tryCreate<Opcode::CallNativem>(PointerSlot), nullptr);
-    EXPECT_EQ(Block.instructionCount(), 5U);
-    static_assert(CanBuildVMInstruction<Opcode::Calli, ImmediateOperand>);
-    static_assert(CanBuildVMInstruction<Opcode::CallNativei, ImmediateOperand>);
-    static_assert(CanBuildVMInstruction<Opcode::Callm, AddressOperand>);
-    static_assert(CanBuildVMInstruction<Opcode::CallNativem, AddressOperand>);
-    static_assert(!CanBuildVMInstruction<Opcode::Calli, AddressOperand>);
-    static_assert(!CanBuildVMInstruction<Opcode::CallNativem, ImmediateOperand>);
-  }
-
-  // Null, foreign, and detached block targets fail without changing the instruction list or insertion anchor.
-  TEST(VMMachineInstructionBuilderTest, RejectsInvalidBlockPointerTargets)
-  {
-    MachineFunction Function;
-    MachineBasicBlock &Entry = Function.createBasicBlock();
-    MachineFunction OtherFunction;
-    MachineBasicBlock &Foreign = OtherFunction.createBasicBlock();
-    MachineBasicBlock Detached;
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Entry);
-    auto &Anchor = Builder.create<Opcode::Ret>();
-    ASSERT_TRUE(Builder.setInsertPoint(Anchor));
-    const MachineBasicBlock *InvalidTargets[] = {nullptr, &Foreign, &Detached};
-    for (const MachineBasicBlock *Target : InvalidTargets)
+    // Branches copy stable block pointers, accept self-loops, and retain target identity when more blocks are appended.
+    TEST(VMMachineInstructionBuilderTest, BuildsBlockPointerBranchesAndReturn)
     {
-      EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(Target), nullptr);
-      EXPECT_EQ(Builder.tryCreate<Opcode::Je64mib>(AddressOperand(RegisterId::BP), ImmediateOperand(0), BasicBlockOperand(Target)), nullptr);
-      EXPECT_EQ(Builder.tryCreate<Opcode::Jltu8mmb>(AddressOperand(RegisterId::BP), AddressOperand(RegisterId::SP), BasicBlockOperand(Target)), nullptr);
-      EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(BasicBlockOperand(Target)), nullptr);
+        MachineFunction Function;
+        MachineBasicBlock& Entry = Function.createBasicBlock();
+        MachineBasicBlock& Exit = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Entry);
+        MachineBasicBlock* Target = &Exit;
+        auto* Jump = Builder.tryCreate<Opcode::Jmp>(Target);
+        auto* Loop = Builder.tryCreate<Opcode::Jmp>(&Entry);
+        auto* Wrapped = Builder.tryCreate<Opcode::Jmp>(BasicBlockOperand(&Exit));
+        ASSERT_NE(Jump, nullptr);
+        ASSERT_NE(Loop, nullptr);
+        ASSERT_NE(Wrapped, nullptr);
+        Target = &Entry;
+        for (std::size_t Index = 0; Index < 128; ++Index)
+        {
+            Function.createBasicBlock();
+        }
+        EXPECT_EQ(Jump->getTarget(), &Exit);
+        EXPECT_EQ(Loop->getTarget(), &Entry);
+        EXPECT_EQ(Wrapped->getTarget(), &Exit);
+        EXPECT_EQ(Jump->getTargetOperand().getBlock(), &Exit);
+        EXPECT_EQ(Jump->parent(), &Entry);
+        EXPECT_TRUE(Loop->isTerminator());
+        Builder.setInsertPoint(Exit);
+        auto& Return = Builder.create<Opcode::Ret>();
+        EXPECT_EQ(Return.parent(), &Exit);
+        EXPECT_TRUE(Return.isReturn());
+        EXPECT_TRUE(Return.isTerminator());
+        EXPECT_EQ(Return.operandCount(), 0U);
+        EXPECT_EQ(Return.getOperand(0), nullptr);
     }
-    EXPECT_EQ(Entry.instructionCount(), 1U);
-    EXPECT_EQ(Builder.getInsertBlock(), &Entry);
-    EXPECT_EQ(Builder.getInsertBefore(), &Anchor);
-    EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(nullptr), nullptr);
-    Builder.setInsertPoint(Detached);
-    EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(&Detached), nullptr);
-    EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(&Entry), nullptr);
-    EXPECT_EQ(Detached.instructionCount(), 0U);
-    static_assert(CanBuildVMInstruction<Opcode::Ret>);
-    static_assert(CanBuildVMInstruction<Opcode::Jmp, MachineBasicBlock *>);
-    static_assert(CanBuildVMInstruction<Opcode::Jmp, const MachineBasicBlock *>);
-    static_assert(CanBuildVMInstruction<Opcode::Jmp, BasicBlockOperand>);
-    static_assert(!CanBuildVMInstruction<Opcode::Jmp, AddressOperand>);
-    static_assert(!CanBuildVMInstruction<Opcode::Jmp, RegisterOperand>);
-    static_assert(!CanBuildVMInstruction<Opcode::Jmp, ImmediateOperand>);
-    static_assert(!CanBuildVMInstruction<Opcode::Ret, ImmediateOperand>);
-  }
 
-  // Conditional builders validate the final block target while copying both comparison sources and keeping the insertion anchor stable.
-  TEST(VMMachineInstructionBuilderTest, BuildsComparisonBranchesWithFinalOwnedBlockTargets)
-  {
-    MachineFunction Function;
-    auto &Entry = Function.createBasicBlock();
-    auto &Target = Function.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Entry);
-    auto &Anchor = Builder.create<Opcode::Ret>();
-    ASSERT_TRUE(Builder.setInsertPoint(Anchor));
-    AddressOperand Left(RegisterId::BP, -8);
-    ImmediateOperand Right(42);
-    BasicBlockOperand Destination(&Target);
-    const auto &Immediate = Builder.create<Opcode::Je64mib>(Left, Right, Destination);
-    const auto *Memory = Builder.tryCreate<Opcode::Jltu8mmb>(Left, AddressOperand(RegisterId::SP, 3), BasicBlockOperand(&Entry));
-    ASSERT_NE(Memory, nullptr);
-    Left = AddressOperand(RegisterId::ZERO);
-    Right = ImmediateOperand(0);
-    Destination = BasicBlockOperand(&Entry);
-    EXPECT_EQ(Immediate.getLHS().getRegister(), RegisterId::BP);
-    EXPECT_EQ(Immediate.getLHS().getByteOffset(), -8);
-    EXPECT_EQ(Immediate.getRHS().bits(), 42U);
-    EXPECT_EQ(Immediate.getTarget(), &Target);
-    EXPECT_EQ(Memory->getTarget(), &Entry);
-    EXPECT_EQ(Memory->getRHS().getRegister(), RegisterId::SP);
-    EXPECT_EQ(Memory->getRHS().getByteOffset(), 3);
-    EXPECT_EQ(Immediate.parent(), &Entry);
-    EXPECT_EQ(Memory->parent(), &Entry);
-    EXPECT_EQ(Builder.getInsertBefore(), &Anchor);
-    const std::vector<const MachineInstruction *> Expected{&Immediate, Memory, &Anchor};
-    EXPECT_EQ(blockInstructionAddresses(Entry), Expected);
-    Builder.clearInsertPoint();
-    EXPECT_EQ(Builder.tryCreate<Opcode::Je64mib>(Left, Right, BasicBlockOperand(&Target)), nullptr);
-    static_assert(CanBuildVMInstruction<Opcode::Je64mib, AddressOperand, ImmediateOperand, BasicBlockOperand>);
-    static_assert(CanBuildVMInstruction<Opcode::Jltu8mmb, AddressOperand, AddressOperand, BasicBlockOperand>);
-    static_assert(!CanBuildVMInstruction<Opcode::Je64mib, MachineBasicBlock *>);
-    static_assert(!CanBuildVMInstruction<Opcode::Je64mib, AddressOperand, ImmediateOperand, MachineBasicBlock *>);
-    static_assert(!CanBuildVMInstruction<Opcode::Je64mib, BasicBlockOperand, AddressOperand, ImmediateOperand>);
-  }
-
-  // The infallible API reports invalid target ownership, a null target, or a missing insertion point before terminating.
-  TEST(VMMachineInstructionBuilderDeathTest, ReportsInvalidCreationPreconditions)
-  {
-    MachineFunction Function;
-    MachineBasicBlock &Entry = Function.createBasicBlock();
-    MachineFunction OtherFunction;
-    MachineBasicBlock &Foreign = OtherFunction.createBasicBlock();
-    MachineInstructionBuilder Builder;
-    Builder.setInsertPoint(Entry);
-    EXPECT_DEATH(Builder.create<Opcode::Jmp>(&Foreign), "VM branch target must belong to the insertion block's function");
-    EXPECT_DEATH(Builder.create<Opcode::Jmp>(nullptr), "VM branch target must belong to the insertion block's function");
-    Builder.clearInsertPoint();
-    EXPECT_DEATH(Builder.create<Opcode::Ret>(), "VM MachineInstructionBuilder requires an insertion point");
-  }
-
-  // A module-owned function and block retain instructions after the temporary builder leaves scope.
-  TEST(VMMachineInstructionBuilderTest, IntegratesWithModuleFunctionAndBlockOwnership)
-  {
-    MachineModule ModuleValue;
-    auto &FunctionValue = ModuleValue.createFunction();
-    auto &Block = FunctionValue.createBasicBlock();
-    const MachineAdd64rriInstruction *Created = nullptr;
+    // Explicit jumps can be built in a detached block because their operands are values rather than function-owned block targets.
+    TEST(VMMachineInstructionBuilderTest, BuildsValueJumpTargetsWithoutBlockOwnershipChecks)
     {
-      MachineInstructionBuilder Builder;
-      Builder.setInsertPoint(Block);
-      Created = &Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::SP), ImmediateOperand(16));
+        MachineBasicBlock Block;
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        auto& Return = Builder.create<Opcode::Ret>();
+        ASSERT_TRUE(Builder.setInsertPoint(Return));
+        ImmediateOperand Immediate(std::numeric_limits<std::uint64_t>::max());
+        RegisterOperand Register(RegisterId::PC, -11);
+        AddressOperand Memory(RegisterId::BP, 24);
+        const auto& ImmediateJump = Builder.create<Opcode::Jmpi>(Immediate);
+        const auto* RegisterJump = Builder.tryCreate<Opcode::Jmpr>(Register);
+        const auto& MemoryJump = Builder.create<Opcode::Jmpm>(Memory);
+        ASSERT_NE(RegisterJump, nullptr);
+        Immediate = ImmediateOperand(0);
+        Register = RegisterOperand(RegisterId::ZERO);
+        Memory = AddressOperand(RegisterId::SP);
+        EXPECT_EQ(ImmediateJump.getTarget().bits(), std::numeric_limits<std::uint64_t>::max());
+        EXPECT_EQ(RegisterJump->getTarget().getRegister(), RegisterId::PC);
+        EXPECT_EQ(RegisterJump->getTarget().getByteOffset(), -11);
+        EXPECT_EQ(MemoryJump.getTarget().getRegister(), RegisterId::BP);
+        EXPECT_EQ(MemoryJump.getTarget().getByteOffset(), 24);
+        EXPECT_EQ(ImmediateJump.parent(), &Block);
+        EXPECT_EQ(RegisterJump->parent(), &Block);
+        EXPECT_EQ(MemoryJump.parent(), &Block);
+        EXPECT_EQ(Builder.getInsertBefore(), &Return);
+        const std::vector<const MachineInstruction*> Expected{&ImmediateJump, RegisterJump, &MemoryJump, &Return};
+        EXPECT_EQ(blockInstructionAddresses(Block), Expected);
+        EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(&Block), nullptr);
+        Builder.clearInsertPoint();
+        EXPECT_EQ(Builder.tryCreate<Opcode::Jmpi>(Immediate), nullptr);
+        EXPECT_EQ(Builder.tryCreate<Opcode::Jmpr>(Register), nullptr);
+        EXPECT_EQ(Builder.tryCreate<Opcode::Jmpm>(Memory), nullptr);
+        EXPECT_EQ(Block.instructionCount(), 4U);
+        static_assert(CanBuildVMInstruction<Opcode::Jmpi, ImmediateOperand>);
+        static_assert(CanBuildVMInstruction<Opcode::Jmpr, RegisterOperand>);
+        static_assert(CanBuildVMInstruction<Opcode::Jmpm, AddressOperand>);
+        static_assert(!CanBuildVMInstruction<Opcode::Jmpi, MachineBasicBlock*>);
+        static_assert(!CanBuildVMInstruction<Opcode::Jmpr, BasicBlockOperand>);
+        static_assert(!CanBuildVMInstruction<Opcode::Jmpm, RegisterOperand>);
     }
-    ASSERT_NE(Created, nullptr);
-    EXPECT_EQ(ModuleValue.functionCount(), 1U);
-    EXPECT_EQ(FunctionValue.parent(), &ModuleValue);
-    EXPECT_EQ(FunctionValue.basicBlockCount(), 1U);
-    EXPECT_EQ(Block.parent(), &FunctionValue);
-    EXPECT_EQ(Created->parent(), &Block);
-    EXPECT_EQ(Created->getRHS().bits(), 16U);
-  }
+
+    // Calls copy direct targets and pointer-slot addresses independently while preserving the insertion anchor for following instructions.
+    TEST(VMMachineInstructionBuilderTest, BuildsImmediateAndIndirectCallsWithCopiedTargets)
+    {
+        MachineBasicBlock Block;
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        auto& Return = Builder.create<Opcode::Ret>();
+        ASSERT_TRUE(Builder.setInsertPoint(Return));
+        const core::Name VMTarget = core::NamePool::instance().intern("builder.vm.target");
+        const core::Name NativeTarget = core::NamePool::instance().intern("builder.native.target");
+        ImmediateOperand Target(VMTarget);
+        const auto& Call = Builder.create<Opcode::Calli>(Target);
+        Target = ImmediateOperand(NativeTarget);
+        const auto* NativeCall = Builder.tryCreate<Opcode::CallNativei>(Target);
+        ASSERT_NE(NativeCall, nullptr);
+        AddressOperand PointerSlot(RegisterId::SP);
+        const auto& Indirect = Builder.create<Opcode::Callm>(PointerSlot);
+        PointerSlot = AddressOperand(RegisterId::BP, 24);
+        const auto& NativeIndirect = Builder.create<Opcode::CallNativem>(PointerSlot);
+        EXPECT_EQ(Call.getTarget().getSymbol(), VMTarget);
+        EXPECT_EQ(NativeCall->getTarget().getSymbol(), NativeTarget);
+        EXPECT_EQ(Indirect.getTarget().getRegister(), RegisterId::SP);
+        EXPECT_EQ(Indirect.getTarget().getByteOffset(), 0);
+        EXPECT_EQ(NativeIndirect.getTarget().getRegister(), RegisterId::BP);
+        EXPECT_EQ(NativeIndirect.getTarget().getByteOffset(), 24);
+        EXPECT_EQ(Call.parent(), &Block);
+        EXPECT_EQ(NativeCall->parent(), &Block);
+        EXPECT_EQ(Builder.getInsertBefore(), &Return);
+        const std::vector<const MachineInstruction*> Expected{&Call, NativeCall, &Indirect, &NativeIndirect, &Return};
+        EXPECT_EQ(blockInstructionAddresses(Block), Expected);
+        Builder.clearInsertPoint();
+        EXPECT_EQ(Builder.tryCreate<Opcode::Calli>(ImmediateOperand(VMTarget)), nullptr);
+        EXPECT_EQ(Builder.tryCreate<Opcode::CallNativem>(PointerSlot), nullptr);
+        EXPECT_EQ(Block.instructionCount(), 5U);
+        static_assert(CanBuildVMInstruction<Opcode::Calli, ImmediateOperand>);
+        static_assert(CanBuildVMInstruction<Opcode::CallNativei, ImmediateOperand>);
+        static_assert(CanBuildVMInstruction<Opcode::Callm, AddressOperand>);
+        static_assert(CanBuildVMInstruction<Opcode::CallNativem, AddressOperand>);
+        static_assert(!CanBuildVMInstruction<Opcode::Calli, AddressOperand>);
+        static_assert(!CanBuildVMInstruction<Opcode::CallNativem, ImmediateOperand>);
+    }
+
+    // Null, foreign, and detached block targets fail without changing the instruction list or insertion anchor.
+    TEST(VMMachineInstructionBuilderTest, RejectsInvalidBlockPointerTargets)
+    {
+        MachineFunction Function;
+        MachineBasicBlock& Entry = Function.createBasicBlock();
+        MachineFunction OtherFunction;
+        MachineBasicBlock& Foreign = OtherFunction.createBasicBlock();
+        MachineBasicBlock Detached;
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Entry);
+        auto& Anchor = Builder.create<Opcode::Ret>();
+        ASSERT_TRUE(Builder.setInsertPoint(Anchor));
+        const MachineBasicBlock* InvalidTargets[] = {nullptr, &Foreign, &Detached};
+        for (const MachineBasicBlock* Target : InvalidTargets)
+        {
+            EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(Target), nullptr);
+            EXPECT_EQ(Builder.tryCreate<Opcode::Je64mib>(AddressOperand(RegisterId::BP), ImmediateOperand(0), BasicBlockOperand(Target)), nullptr);
+            EXPECT_EQ(Builder.tryCreate<Opcode::Jltu8mmb>(AddressOperand(RegisterId::BP), AddressOperand(RegisterId::SP), BasicBlockOperand(Target)), nullptr);
+            EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(BasicBlockOperand(Target)), nullptr);
+        }
+        EXPECT_EQ(Entry.instructionCount(), 1U);
+        EXPECT_EQ(Builder.getInsertBlock(), &Entry);
+        EXPECT_EQ(Builder.getInsertBefore(), &Anchor);
+        EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(nullptr), nullptr);
+        Builder.setInsertPoint(Detached);
+        EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(&Detached), nullptr);
+        EXPECT_EQ(Builder.tryCreate<Opcode::Jmp>(&Entry), nullptr);
+        EXPECT_EQ(Detached.instructionCount(), 0U);
+        static_assert(CanBuildVMInstruction<Opcode::Ret>);
+        static_assert(CanBuildVMInstruction<Opcode::Jmp, MachineBasicBlock*>);
+        static_assert(CanBuildVMInstruction<Opcode::Jmp, const MachineBasicBlock*>);
+        static_assert(CanBuildVMInstruction<Opcode::Jmp, BasicBlockOperand>);
+        static_assert(!CanBuildVMInstruction<Opcode::Jmp, AddressOperand>);
+        static_assert(!CanBuildVMInstruction<Opcode::Jmp, RegisterOperand>);
+        static_assert(!CanBuildVMInstruction<Opcode::Jmp, ImmediateOperand>);
+        static_assert(!CanBuildVMInstruction<Opcode::Ret, ImmediateOperand>);
+    }
+
+    // Conditional builders validate the final block target while copying both comparison sources and keeping the insertion anchor stable.
+    TEST(VMMachineInstructionBuilderTest, BuildsComparisonBranchesWithFinalOwnedBlockTargets)
+    {
+        MachineFunction Function;
+        auto& Entry = Function.createBasicBlock();
+        auto& Target = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Entry);
+        auto& Anchor = Builder.create<Opcode::Ret>();
+        ASSERT_TRUE(Builder.setInsertPoint(Anchor));
+        AddressOperand Left(RegisterId::BP, -8);
+        ImmediateOperand Right(42);
+        BasicBlockOperand Destination(&Target);
+        const auto& Immediate = Builder.create<Opcode::Je64mib>(Left, Right, Destination);
+        const auto* Memory = Builder.tryCreate<Opcode::Jltu8mmb>(Left, AddressOperand(RegisterId::SP, 3), BasicBlockOperand(&Entry));
+        ASSERT_NE(Memory, nullptr);
+        Left = AddressOperand(RegisterId::ZERO);
+        Right = ImmediateOperand(0);
+        Destination = BasicBlockOperand(&Entry);
+        EXPECT_EQ(Immediate.getLHS().getRegister(), RegisterId::BP);
+        EXPECT_EQ(Immediate.getLHS().getByteOffset(), -8);
+        EXPECT_EQ(Immediate.getRHS().bits(), 42U);
+        EXPECT_EQ(Immediate.getTarget(), &Target);
+        EXPECT_EQ(Memory->getTarget(), &Entry);
+        EXPECT_EQ(Memory->getRHS().getRegister(), RegisterId::SP);
+        EXPECT_EQ(Memory->getRHS().getByteOffset(), 3);
+        EXPECT_EQ(Immediate.parent(), &Entry);
+        EXPECT_EQ(Memory->parent(), &Entry);
+        EXPECT_EQ(Builder.getInsertBefore(), &Anchor);
+        const std::vector<const MachineInstruction*> Expected{&Immediate, Memory, &Anchor};
+        EXPECT_EQ(blockInstructionAddresses(Entry), Expected);
+        Builder.clearInsertPoint();
+        EXPECT_EQ(Builder.tryCreate<Opcode::Je64mib>(Left, Right, BasicBlockOperand(&Target)), nullptr);
+        static_assert(CanBuildVMInstruction<Opcode::Je64mib, AddressOperand, ImmediateOperand, BasicBlockOperand>);
+        static_assert(CanBuildVMInstruction<Opcode::Jltu8mmb, AddressOperand, AddressOperand, BasicBlockOperand>);
+        static_assert(!CanBuildVMInstruction<Opcode::Je64mib, MachineBasicBlock*>);
+        static_assert(!CanBuildVMInstruction<Opcode::Je64mib, AddressOperand, ImmediateOperand, MachineBasicBlock*>);
+        static_assert(!CanBuildVMInstruction<Opcode::Je64mib, BasicBlockOperand, AddressOperand, ImmediateOperand>);
+    }
+
+    // The infallible API reports invalid target ownership, a null target, or a missing insertion point before terminating.
+    TEST(VMMachineInstructionBuilderDeathTest, ReportsInvalidCreationPreconditions)
+    {
+        MachineFunction Function;
+        MachineBasicBlock& Entry = Function.createBasicBlock();
+        MachineFunction OtherFunction;
+        MachineBasicBlock& Foreign = OtherFunction.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Entry);
+        EXPECT_DEATH(Builder.create<Opcode::Jmp>(&Foreign), "VM branch target must belong to the insertion block's function");
+        EXPECT_DEATH(Builder.create<Opcode::Jmp>(nullptr), "VM branch target must belong to the insertion block's function");
+        Builder.clearInsertPoint();
+        EXPECT_DEATH(Builder.create<Opcode::Ret>(), "VM MachineInstructionBuilder requires an insertion point");
+    }
+
+    // A module-owned function and block retain instructions after the temporary builder leaves scope.
+    TEST(VMMachineInstructionBuilderTest, IntegratesWithModuleFunctionAndBlockOwnership)
+    {
+        MachineModule ModuleValue;
+        auto& FunctionValue = ModuleValue.createFunction();
+        auto& Block = FunctionValue.createBasicBlock();
+        const MachineAdd64rriInstruction* Created = nullptr;
+        {
+            MachineInstructionBuilder Builder;
+            Builder.setInsertPoint(Block);
+            Created = &Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::SP), ImmediateOperand(16));
+        }
+        ASSERT_NE(Created, nullptr);
+        EXPECT_EQ(ModuleValue.functionCount(), 1U);
+        EXPECT_EQ(FunctionValue.parent(), &ModuleValue);
+        EXPECT_EQ(FunctionValue.basicBlockCount(), 1U);
+        EXPECT_EQ(Block.parent(), &FunctionValue);
+        EXPECT_EQ(Created->parent(), &Block);
+        EXPECT_EQ(Created->getRHS().bits(), 16U);
+    }
 } // namespace ink::vm::test

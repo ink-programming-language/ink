@@ -16,151 +16,151 @@
 
 namespace ink::ir::test
 {
-  static_assert(!std::is_constructible_v<ArrayType, IntegerType &&, std::uint64_t>);
-  static_assert(!std::is_constructible_v<ArrayType, const IntegerType &&, std::uint64_t>);
-  static_assert(!std::is_constructible_v<PointerType, IntegerType &&>);
-  static_assert(!std::is_constructible_v<PointerType, const IntegerType &&>);
+    static_assert(!std::is_constructible_v<ArrayType, IntegerType&&, std::uint64_t>);
+    static_assert(!std::is_constructible_v<ArrayType, const IntegerType&&, std::uint64_t>);
+    static_assert(!std::is_constructible_v<PointerType, IntegerType&&>);
+    static_assert(!std::is_constructible_v<PointerType, const IntegerType&&>);
 
-  // Scalar categories keep distinct spellings while different widths and signs share their category kind.
-  TEST(IRTypeTest, IdentifiesDistinctScalarTypesThroughBasePointers)
-  {
-    const IntegerType SignedInteger(IntegerType::Width::Bits8, IntegerType::Signedness::Signed);
-    const IntegerType UnsignedInteger(IntegerType::Width::Bits64, IntegerType::Signedness::Unsigned);
-    const FloatType Float32(FloatType::Width::Bits32);
-    const FloatType Float64(FloatType::Width::Bits64);
-    const BoolType Bool;
-    const VoidType Void;
-    struct Case
+    // Scalar categories keep distinct spellings while different widths and signs share their category kind.
+    TEST(IRTypeTest, IdentifiesDistinctScalarTypesThroughBasePointers)
     {
-        const Type *Value;
-        TypeKind Kind;
-        std::string_view Name;
-        bool (*Classof)(const ink::ir::Value *) noexcept;
-    };
-    const Case Cases[] = {
-        {&SignedInteger, TypeKind::Integer, "integer", IntegerType::classof},
-        {&UnsignedInteger, TypeKind::Integer, "integer", IntegerType::classof},
-        {&Float32, TypeKind::Float, "float", FloatType::classof},
-        {&Float64, TypeKind::Float, "float", FloatType::classof},
-        {&Bool, TypeKind::Bool, "bool", BoolType::classof},
-        {&Void, TypeKind::Void, "void", VoidType::classof},
-    };
-    for (const auto &Entry : Cases)
-    {
-      SCOPED_TRACE(Entry.Name);
-      EXPECT_EQ(Entry.Value->getKind(), Entry.Kind);
-      EXPECT_EQ(Entry.Value->getName(), Entry.Name);
-      EXPECT_EQ(Entry.Value->getSemantics(), TypeSemantics::Value);
-      EXPECT_EQ(typeKindName(Entry.Kind), Entry.Name);
-      EXPECT_FALSE(Entry.Classof(nullptr));
-      EXPECT_FALSE(ArrayType::classof(Entry.Value));
-      for (const auto &Other : Cases)
-      {
-        SCOPED_TRACE(Other.Name);
-        EXPECT_EQ(Entry.Classof(Other.Value), Entry.Kind == Other.Kind);
-      }
+        const IntegerType SignedInteger(IntegerType::Width::Bits8, IntegerType::Signedness::Signed);
+        const IntegerType UnsignedInteger(IntegerType::Width::Bits64, IntegerType::Signedness::Unsigned);
+        const FloatType Float32(FloatType::Width::Bits32);
+        const FloatType Float64(FloatType::Width::Bits64);
+        const BoolType Bool;
+        const VoidType Void;
+        struct Case
+        {
+                const Type* Value;
+                TypeKind Kind;
+                std::string_view Name;
+                bool (*Classof)(const ink::ir::Value*) noexcept;
+        };
+        const Case Cases[] = {
+            {&SignedInteger, TypeKind::Integer, "integer", IntegerType::classof},
+            {&UnsignedInteger, TypeKind::Integer, "integer", IntegerType::classof},
+            {&Float32, TypeKind::Float, "float", FloatType::classof},
+            {&Float64, TypeKind::Float, "float", FloatType::classof},
+            {&Bool, TypeKind::Bool, "bool", BoolType::classof},
+            {&Void, TypeKind::Void, "void", VoidType::classof},
+        };
+        for (const auto& Entry : Cases)
+        {
+            SCOPED_TRACE(Entry.Name);
+            EXPECT_EQ(Entry.Value->getKind(), Entry.Kind);
+            EXPECT_EQ(Entry.Value->getName(), Entry.Name);
+            EXPECT_EQ(Entry.Value->getSemantics(), TypeSemantics::Value);
+            EXPECT_EQ(typeKindName(Entry.Kind), Entry.Name);
+            EXPECT_FALSE(Entry.Classof(nullptr));
+            EXPECT_FALSE(ArrayType::classof(Entry.Value));
+            for (const auto& Other : Cases)
+            {
+                SCOPED_TRACE(Other.Name);
+                EXPECT_EQ(Entry.Classof(Other.Value), Entry.Kind == Other.Kind);
+            }
+        }
     }
-  }
 
-  // Every integer width supports both signs without changing its width or the shared integer category.
-  TEST(IRTypeTest, PreservesIntegerWidthsAndSignedness)
-  {
-    struct Case
+    // Every integer width supports both signs without changing its width or the shared integer category.
+    TEST(IRTypeTest, PreservesIntegerWidthsAndSignedness)
     {
-        IntegerType::Width Width;
-        IntegerType::Signedness Sign;
-        std::uint32_t ExpectedWidth;
-        bool ExpectedSigned;
-    };
-    const Case Cases[] = {
-        {IntegerType::Width::Bits8, IntegerType::Signedness::Signed, 8, true},
-        {IntegerType::Width::Bits8, IntegerType::Signedness::Unsigned, 8, false},
-        {IntegerType::Width::Bits16, IntegerType::Signedness::Signed, 16, true},
-        {IntegerType::Width::Bits16, IntegerType::Signedness::Unsigned, 16, false},
-        {IntegerType::Width::Bits32, IntegerType::Signedness::Signed, 32, true},
-        {IntegerType::Width::Bits32, IntegerType::Signedness::Unsigned, 32, false},
-        {IntegerType::Width::Bits64, IntegerType::Signedness::Signed, 64, true},
-        {IntegerType::Width::Bits64, IntegerType::Signedness::Unsigned, 64, false},
-    };
-    for (const auto &Entry : Cases)
-    {
-      SCOPED_TRACE(Entry.ExpectedWidth);
-      SCOPED_TRACE(Entry.ExpectedSigned);
-      const IntegerType Integer(Entry.Width, Entry.Sign);
-      const Type *Base = &Integer;
-      EXPECT_EQ(Integer.bitWidth(), Entry.ExpectedWidth);
-      EXPECT_EQ(Integer.isSigned(), Entry.ExpectedSigned);
-      EXPECT_EQ(Base->getKind(), TypeKind::Integer);
-      EXPECT_EQ(Base->getSemantics(), TypeSemantics::Value);
-      EXPECT_TRUE(IntegerType::classof(Base));
+        struct Case
+        {
+                IntegerType::Width Width;
+                IntegerType::Signedness Sign;
+                std::uint32_t ExpectedWidth;
+                bool ExpectedSigned;
+        };
+        const Case Cases[] = {
+            {IntegerType::Width::Bits8, IntegerType::Signedness::Signed, 8, true},
+            {IntegerType::Width::Bits8, IntegerType::Signedness::Unsigned, 8, false},
+            {IntegerType::Width::Bits16, IntegerType::Signedness::Signed, 16, true},
+            {IntegerType::Width::Bits16, IntegerType::Signedness::Unsigned, 16, false},
+            {IntegerType::Width::Bits32, IntegerType::Signedness::Signed, 32, true},
+            {IntegerType::Width::Bits32, IntegerType::Signedness::Unsigned, 32, false},
+            {IntegerType::Width::Bits64, IntegerType::Signedness::Signed, 64, true},
+            {IntegerType::Width::Bits64, IntegerType::Signedness::Unsigned, 64, false},
+        };
+        for (const auto& Entry : Cases)
+        {
+            SCOPED_TRACE(Entry.ExpectedWidth);
+            SCOPED_TRACE(Entry.ExpectedSigned);
+            const IntegerType Integer(Entry.Width, Entry.Sign);
+            const Type* Base = &Integer;
+            EXPECT_EQ(Integer.bitWidth(), Entry.ExpectedWidth);
+            EXPECT_EQ(Integer.isSigned(), Entry.ExpectedSigned);
+            EXPECT_EQ(Base->getKind(), TypeKind::Integer);
+            EXPECT_EQ(Base->getSemantics(), TypeSemantics::Value);
+            EXPECT_TRUE(IntegerType::classof(Base));
+        }
     }
-  }
 
-  // Floating point widths remain distinct within one category and bool retains its independent one-bit width.
-  TEST(IRTypeTest, PreservesFloatingPointWidthsAndBooleanWidth)
-  {
-    EXPECT_EQ(FloatType(FloatType::Width::Bits32).bitWidth(), 32U);
-    EXPECT_EQ(FloatType(FloatType::Width::Bits64).bitWidth(), 64U);
-    EXPECT_EQ(BoolType().bitWidth(), 1U);
-  }
+    // Floating point widths remain distinct within one category and bool retains its independent one-bit width.
+    TEST(IRTypeTest, PreservesFloatingPointWidthsAndBooleanWidth)
+    {
+        EXPECT_EQ(FloatType(FloatType::Width::Bits32).bitWidth(), 32U);
+        EXPECT_EQ(FloatType(FloatType::Width::Bits64).bitWidth(), 64U);
+        EXPECT_EQ(BoolType().bitWidth(), 1U);
+    }
 
-  // Nested arrays preserve the borrowed element identity and the independent length of each dimension.
-  TEST(IRTypeTest, PreservesNestedArrayElementTypesAndLengths)
-  {
-    const IntegerType Element(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
-    const ArrayType Row(Element, 4);
-    const ArrayType Matrix(Row, 3);
-    const Type *Base = &Matrix;
-    EXPECT_EQ(Base->getKind(), TypeKind::Array);
-    EXPECT_EQ(Base->getName(), "array");
-    EXPECT_EQ(Base->getSemantics(), TypeSemantics::Value);
-    EXPECT_EQ(typeKindName(TypeKind::Array), "array");
-    EXPECT_TRUE(ArrayType::classof(Base));
-    EXPECT_FALSE(ArrayType::classof(nullptr));
-    EXPECT_FALSE(IntegerType::classof(Base));
-    EXPECT_EQ(&Matrix.elementType(), &Row);
-    EXPECT_EQ(Matrix.elementCount(), 3U);
-    EXPECT_TRUE(ArrayType::classof(&Matrix.elementType()));
-    EXPECT_EQ(&Row.elementType(), &Element);
-    EXPECT_EQ(Row.elementCount(), 4U);
-    EXPECT_TRUE(IntegerType::classof(&Row.elementType()));
-  }
+    // Nested arrays preserve the borrowed element identity and the independent length of each dimension.
+    TEST(IRTypeTest, PreservesNestedArrayElementTypesAndLengths)
+    {
+        const IntegerType Element(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
+        const ArrayType Row(Element, 4);
+        const ArrayType Matrix(Row, 3);
+        const Type* Base = &Matrix;
+        EXPECT_EQ(Base->getKind(), TypeKind::Array);
+        EXPECT_EQ(Base->getName(), "array");
+        EXPECT_EQ(Base->getSemantics(), TypeSemantics::Value);
+        EXPECT_EQ(typeKindName(TypeKind::Array), "array");
+        EXPECT_TRUE(ArrayType::classof(Base));
+        EXPECT_FALSE(ArrayType::classof(nullptr));
+        EXPECT_FALSE(IntegerType::classof(Base));
+        EXPECT_EQ(&Matrix.elementType(), &Row);
+        EXPECT_EQ(Matrix.elementCount(), 3U);
+        EXPECT_TRUE(ArrayType::classof(&Matrix.elementType()));
+        EXPECT_EQ(&Row.elementType(), &Element);
+        EXPECT_EQ(Row.elementCount(), 4U);
+        EXPECT_TRUE(IntegerType::classof(&Row.elementType()));
+    }
 
-  // Zero-length arrays remain representable and large lengths are stored without narrowing to a host-sized integer.
-  TEST(IRTypeTest, PreservesEmptyAndMaximumArrayLengths)
-  {
-    const IntegerType Element(IntegerType::Width::Bits8, IntegerType::Signedness::Unsigned);
-    const ArrayType Empty(Element, 0);
-    const ArrayType Maximum(Element, std::numeric_limits<std::uint64_t>::max());
-    EXPECT_EQ(Empty.elementCount(), 0U);
-    EXPECT_EQ(&Empty.elementType(), &Element);
-    EXPECT_EQ(Maximum.elementCount(), std::numeric_limits<std::uint64_t>::max());
-    EXPECT_EQ(&Maximum.elementType(), &Element);
-  }
+    // Zero-length arrays remain representable and large lengths are stored without narrowing to a host-sized integer.
+    TEST(IRTypeTest, PreservesEmptyAndMaximumArrayLengths)
+    {
+        const IntegerType Element(IntegerType::Width::Bits8, IntegerType::Signedness::Unsigned);
+        const ArrayType Empty(Element, 0);
+        const ArrayType Maximum(Element, std::numeric_limits<std::uint64_t>::max());
+        EXPECT_EQ(Empty.elementCount(), 0U);
+        EXPECT_EQ(&Empty.elementType(), &Element);
+        EXPECT_EQ(Maximum.elementCount(), std::numeric_limits<std::uint64_t>::max());
+        EXPECT_EQ(&Maximum.elementType(), &Element);
+    }
 
-  // Pointers preserve pointee identity and their distinct kind while exposing value semantics through Type.
-  TEST(IRTypeTest, IdentifiesPointersAndPreservesNestedTargets)
-  {
-    const IntegerType Integer(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
-    const PointerType Pointer(Integer);
-    const PointerType Nested(static_cast<const Type &>(Pointer));
-    const Type *Base = &Pointer;
-    EXPECT_EQ(Base->getKind(), TypeKind::Pointer);
-    EXPECT_EQ(Base->getName(), "pointer");
-    EXPECT_EQ(typeKindName(TypeKind::Pointer), "pointer");
-    EXPECT_EQ(Base->getSemantics(), TypeSemantics::Value);
-    EXPECT_TRUE(PointerType::classof(Base));
-    EXPECT_FALSE(PointerType::classof(nullptr));
-    EXPECT_FALSE(PointerType::classof(&Integer));
-    EXPECT_FALSE(IntegerType::classof(Base));
-    EXPECT_EQ(&Pointer.pointeeType(), &Integer);
-    EXPECT_EQ(&Nested.pointeeType(), &Pointer);
-    EXPECT_EQ(Nested.getSemantics(), TypeSemantics::Value);
-  }
+    // Pointers preserve pointee identity and their distinct kind while exposing value semantics through Type.
+    TEST(IRTypeTest, IdentifiesPointersAndPreservesNestedTargets)
+    {
+        const IntegerType Integer(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
+        const PointerType Pointer(Integer);
+        const PointerType Nested(static_cast<const Type&>(Pointer));
+        const Type* Base = &Pointer;
+        EXPECT_EQ(Base->getKind(), TypeKind::Pointer);
+        EXPECT_EQ(Base->getName(), "pointer");
+        EXPECT_EQ(typeKindName(TypeKind::Pointer), "pointer");
+        EXPECT_EQ(Base->getSemantics(), TypeSemantics::Value);
+        EXPECT_TRUE(PointerType::classof(Base));
+        EXPECT_FALSE(PointerType::classof(nullptr));
+        EXPECT_FALSE(PointerType::classof(&Integer));
+        EXPECT_FALSE(IntegerType::classof(Base));
+        EXPECT_EQ(&Pointer.pointeeType(), &Integer);
+        EXPECT_EQ(&Nested.pointeeType(), &Pointer);
+        EXPECT_EQ(Nested.getSemantics(), TypeSemantics::Value);
+    }
 
-  // An unrecognized kind is named explicitly instead of being confused with a valid scalar or array.
-  TEST(IRTypeTest, NamesUnknownKindsWithoutMisclassification)
-  {
-    EXPECT_EQ(typeKindName(static_cast<TypeKind>(255)), "InvalidTypeKind");
-  }
+    // An unrecognized kind is named explicitly instead of being confused with a valid scalar or array.
+    TEST(IRTypeTest, NamesUnknownKindsWithoutMisclassification)
+    {
+        EXPECT_EQ(typeKindName(static_cast<TypeKind>(255)), "InvalidTypeKind");
+    }
 } // namespace ink::ir::test

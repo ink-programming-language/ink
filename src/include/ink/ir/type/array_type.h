@@ -7,50 +7,50 @@
 
 namespace ink::ir
 {
-  // Borrowed element type values must remain alive during use; destruction does not access them.
-  // The caller must provide a value whose type is MetaType.
-  class ArrayType final : public Type
-  {
-    public:
-      struct Key
-      {
-          const Value *ElementType;
-          std::uint64_t ElementCount;
+    // Borrowed element type values must remain alive during use; destruction does not access them.
+    // The caller must provide a value whose type is MetaType.
+    class ArrayType final : public Type
+    {
+        public:
+            struct Key
+            {
+                    const Value* ElementType;
+                    std::uint64_t ElementCount;
 
-          std::size_t hash() const noexcept;
-          constexpr bool operator==(const Key &) const noexcept = default;
-      };
+                    std::size_t hash() const noexcept;
+                    constexpr bool operator==(const Key&) const noexcept = default;
+            };
 
-      std::size_t hash() const noexcept;
-      bool operator==(const ArrayType &Other) const noexcept;
-      bool operator==(const Key &Other) const noexcept;
+            std::size_t hash() const noexcept;
+            bool operator==(const ArrayType& Other) const noexcept;
+            bool operator==(const Key& Other) const noexcept;
 
-      static constexpr TypeKind Kind = TypeKind::Array;
+            static constexpr TypeKind Kind = TypeKind::Array;
 
-      constexpr ArrayType(ValueRef ElementType, std::uint64_t ElementCount) noexcept
-          : Type(Kind),
-            ElementType(ElementType.get()),
-            ElementCount(ElementCount)
-      {
-      }
+            constexpr ArrayType(ValueRef ElementType, std::uint64_t ElementCount) noexcept
+                : Type(Kind),
+                  ElementType(ElementType.get()),
+                  ElementCount(ElementCount)
+            {
+            }
 
-      static constexpr bool classof(const Value *Value) noexcept
-      {
-        return Type::classof(Value) && static_cast<const Type *>(Value)->getKind() == Kind;
-      }
+            static constexpr bool classof(const Value* Value) noexcept
+            {
+                return Type::classof(Value) && static_cast<const Type*>(Value)->getKind() == Kind;
+            }
 
-      constexpr const Value &elementType() const noexcept
-      {
-        return ElementType;
-      }
+            constexpr const Value& elementType() const noexcept
+            {
+                return ElementType;
+            }
 
-      constexpr std::uint64_t elementCount() const noexcept
-      {
-        return ElementCount;
-      }
+            constexpr std::uint64_t elementCount() const noexcept
+            {
+                return ElementCount;
+            }
 
-    private:
-      const Value &ElementType;
-      std::uint64_t ElementCount;
-  };
+        private:
+            const Value& ElementType;
+            std::uint64_t ElementCount;
+    };
 } // namespace ink::ir

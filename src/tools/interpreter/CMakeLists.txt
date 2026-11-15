@@ -7,5 +7,5 @@ ink_disable_exceptions(ink_interpreter)
 set_target_properties(ink_interpreter PROPERTIES OUTPUT_NAME ink-interpreter)
 
 if(MSVC)
-  target_compile_options(ink_interpreter PRIVATE /utf-8)
+    target_compile_options(ink_interpreter PRIVATE /utf-8)
 endif()

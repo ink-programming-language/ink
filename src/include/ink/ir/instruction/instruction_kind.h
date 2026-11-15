@@ -5,12 +5,12 @@
 
 namespace ink::ir
 {
-  enum class InstructionKind : std::uint8_t
-  {
+    enum class InstructionKind : std::uint8_t
+    {
 #define INSTRUCTION(Kind, Number, Class, Spelling) Kind = Number,
 #include "ink/ir/instruction/instruction.def"
 #undef INSTRUCTION
-  };
+    };
 
-  std::string_view instructionKindName(InstructionKind Kind) noexcept;
+    std::string_view instructionKindName(InstructionKind Kind) noexcept;
 } // namespace ink::ir

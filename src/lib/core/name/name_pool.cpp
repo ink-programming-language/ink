@@ -2,52 +2,52 @@
 
 namespace ink::core
 {
-  NamePool::NamePool() = default;
-  NamePool::~NamePool() = default;
+    NamePool::NamePool() = default;
+    NamePool::~NamePool() = default;
 
-  Name NamePool::intern(std::string_view Text)
-  {
-    if (Text.empty())
+    Name NamePool::intern(std::string_view Text)
     {
-      return NAME_None;
+        if (Text.empty())
+        {
+            return NAME_None;
+        }
+        const auto Existing = Names.find(Text);
+        if (Existing != Names.end())
+        {
+            return Existing->second;
+        }
+        if (Spellings.size() >= Name::InvalidIndex)
+        {
+            return NAME_None;
+        }
+        const Name Result(static_cast<Name::IndexType>(Spellings.size()));
+        Spellings.emplace_back(Text);
+        Names.emplace(std::string_view(Spellings.back()), Result);
+        return Result;
     }
-    const auto Existing = Names.find(Text);
-    if (Existing != Names.end())
+
+    Name NamePool::find(std::string_view Text) const noexcept
     {
-      return Existing->second;
+        if (Text.empty())
+        {
+            return NAME_None;
+        }
+        const auto Entry = Names.find(Text);
+        return Entry == Names.end() ? NAME_None : Entry->second;
     }
-    if (Spellings.size() >= Name::InvalidIndex)
+
+    std::string_view NamePool::text(Name Value) const noexcept
     {
-      return NAME_None;
+        return contains(Value) ? std::string_view(Spellings[Value.index()]) : std::string_view{};
     }
-    const Name Result(static_cast<Name::IndexType>(Spellings.size()));
-    Spellings.emplace_back(Text);
-    Names.emplace(std::string_view(Spellings.back()), Result);
-    return Result;
-  }
 
-  Name NamePool::find(std::string_view Text) const noexcept
-  {
-    if (Text.empty())
+    bool NamePool::contains(Name Value) const noexcept
     {
-      return NAME_None;
+        return Value.valid() && Value.index() < Spellings.size();
     }
-    const auto Entry = Names.find(Text);
-    return Entry == Names.end() ? NAME_None : Entry->second;
-  }
 
-  std::string_view NamePool::text(Name Value) const noexcept
-  {
-    return contains(Value) ? std::string_view(Spellings[Value.index()]) : std::string_view{};
-  }
-
-  bool NamePool::contains(Name Value) const noexcept
-  {
-    return Value.valid() && Value.index() < Spellings.size();
-  }
-
-  std::size_t NamePool::size() const noexcept
-  {
-    return Spellings.size();
-  }
+    std::size_t NamePool::size() const noexcept
+    {
+        return Spellings.size();
+    }
 } // namespace ink::core

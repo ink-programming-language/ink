@@ -8,37 +8,37 @@
 
 namespace ink::frontend::parser
 {
-  class CallExpr final : public Expr
-  {
-    public:
-      static constexpr ASTKind Kind = ASTKind::CallExpr;
-      static bool classof(const ASTNodeBase *Node)
-      {
-        return Node && Node->getKind() == Kind;
-      }
-      CallExpr(SourceRange Range, Expr *Callee, ASTArray<Argument> Arguments, bool Optional)
-          : Expr(Kind, Range),
-            Callee(Callee),
-            Arguments(Arguments),
-            Optional(Optional)
-      {
-      }
-      auto *callee(this auto &&Self) noexcept
-      {
-        return Self.Callee ? &std::forward_like<decltype(Self) &>(*Self.Callee) : nullptr;
-      }
-      ASTArray<Argument> arguments() const noexcept
-      {
-        return Arguments;
-      }
-      bool optional() const noexcept
-      {
-        return Optional;
-      }
+    class CallExpr final : public Expr
+    {
+        public:
+            static constexpr ASTKind Kind = ASTKind::CallExpr;
+            static bool classof(const ASTNodeBase* Node)
+            {
+                return Node && Node->getKind() == Kind;
+            }
+            CallExpr(SourceRange Range, Expr* Callee, ASTArray<Argument> Arguments, bool Optional)
+                : Expr(Kind, Range),
+                  Callee(Callee),
+                  Arguments(Arguments),
+                  Optional(Optional)
+            {
+            }
+            auto* callee(this auto&& Self) noexcept
+            {
+                return Self.Callee ? &std::forward_like<decltype(Self)&>(*Self.Callee) : nullptr;
+            }
+            ASTArray<Argument> arguments() const noexcept
+            {
+                return Arguments;
+            }
+            bool optional() const noexcept
+            {
+                return Optional;
+            }
 
-    private:
-      Expr *Callee;
-      ASTArray<Argument> Arguments;
-      bool Optional;
-  };
+        private:
+            Expr* Callee;
+            ASTArray<Argument> Arguments;
+            bool Optional;
+    };
 } // namespace ink::frontend::parser

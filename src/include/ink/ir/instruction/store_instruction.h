@@ -5,39 +5,39 @@
 
 namespace ink::ir
 {
-  // Produces no value and borrows both operands and the void type; all must outlive this instruction.
-  // The destination must point to the source's exact type value; construction does not validate types.
-  class StoreInstruction final : public Instruction
-  {
-    public:
-      static constexpr InstructionKind Kind = InstructionKind::Store;
+    // Produces no value and borrows both operands and the void type; all must outlive this instruction.
+    // The destination must point to the source's exact type value; construction does not validate types.
+    class StoreInstruction final : public Instruction
+    {
+        public:
+            static constexpr InstructionKind Kind = InstructionKind::Store;
 
-      constexpr StoreInstruction(ValueRef ValueType, ValueRef Destination, ValueRef Source) noexcept
-          : Instruction(Kind, ValueType),
-            Destination(Destination),
-            Source(Source)
-      {
-      }
+            constexpr StoreInstruction(ValueRef ValueType, ValueRef Destination, ValueRef Source) noexcept
+                : Instruction(Kind, ValueType),
+                  Destination(Destination),
+                  Source(Source)
+            {
+            }
 
-      static constexpr bool classof(const Instruction *Value) noexcept
-      {
-        return Value && Value->getKind() == Kind;
-      }
+            static constexpr bool classof(const Instruction* Value) noexcept
+            {
+                return Value && Value->getKind() == Kind;
+            }
 
-      constexpr const Value &getDestination() const noexcept
-      {
-        return Destination.get();
-      }
+            constexpr const Value& getDestination() const noexcept
+            {
+                return Destination.get();
+            }
 
-      constexpr const Value &getSource() const noexcept
-      {
-        return Source.get();
-      }
+            constexpr const Value& getSource() const noexcept
+            {
+                return Source.get();
+            }
 
-    private:
-      friend struct detail::InstructionOperands<StoreInstruction>;
+        private:
+            friend struct detail::InstructionOperands<StoreInstruction>;
 
-      ValueRef Destination;
-      ValueRef Source;
-  };
+            ValueRef Destination;
+            ValueRef Source;
+    };
 } // namespace ink::ir

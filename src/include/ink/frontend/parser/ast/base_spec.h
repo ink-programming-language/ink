@@ -6,31 +6,31 @@
 
 namespace ink::frontend::parser
 {
-  class BaseSpec
-  {
-    public:
-      BaseSpec(bool Implements, TypeSyntax *Type, SourceRange Range)
-          : Implements(Implements),
-            Type(Type),
-            Range(Range)
-      {
-      }
-      bool implements() const noexcept
-      {
-        return Implements;
-      }
-      auto *type(this auto &&Self) noexcept
-      {
-        return Self.Type ? &std::forward_like<decltype(Self) &>(*Self.Type) : nullptr;
-      }
-      SourceRange range() const noexcept
-      {
-        return Range;
-      }
+    class BaseSpec
+    {
+        public:
+            BaseSpec(bool Implements, TypeSyntax* Type, SourceRange Range)
+                : Implements(Implements),
+                  Type(Type),
+                  Range(Range)
+            {
+            }
+            bool implements() const noexcept
+            {
+                return Implements;
+            }
+            auto* type(this auto&& Self) noexcept
+            {
+                return Self.Type ? &std::forward_like<decltype(Self)&>(*Self.Type) : nullptr;
+            }
+            SourceRange range() const noexcept
+            {
+                return Range;
+            }
 
-    private:
-      bool Implements;
-      TypeSyntax *Type;
-      SourceRange Range;
-  };
+        private:
+            bool Implements;
+            TypeSyntax* Type;
+            SourceRange Range;
+    };
 } // namespace ink::frontend::parser

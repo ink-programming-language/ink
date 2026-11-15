@@ -2,218 +2,218 @@
 
 namespace ink::core
 {
-  std::uint32_t diagnosticNumber(DiagnosticKind Kind) noexcept
-  {
-    switch (Kind)
+    std::uint32_t diagnosticNumber(DiagnosticKind Kind) noexcept
     {
+        switch (Kind)
+        {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                              \
-    return Number;
+    case DiagnosticKind::Name:                                                                                            \
+        return Number;
 #include "ink/core/diagnostic/diagnostic.def"
 #undef INK_DIAGNOSTIC
+        }
+        return 0;
     }
-    return 0;
-  }
 
-  const char *diagnosticCode(DiagnosticKind Kind) noexcept
-  {
-    switch (Kind)
+    const char* diagnosticCode(DiagnosticKind Kind) noexcept
     {
+        switch (Kind)
+        {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                              \
-    return Code;
+    case DiagnosticKind::Name:                                                                                            \
+        return Code;
 #include "ink/core/diagnostic/diagnostic.def"
 #undef INK_DIAGNOSTIC
+        }
+        return "INK-0000";
     }
-    return "INK-0000";
-  }
 
-  const char *diagnosticKindName(DiagnosticKind Kind) noexcept
-  {
-    switch (Kind)
+    const char* diagnosticKindName(DiagnosticKind Kind) noexcept
     {
+        switch (Kind)
+        {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                              \
-    return #Name;
+    case DiagnosticKind::Name:                                                                                            \
+        return #Name;
 #include "ink/core/diagnostic/diagnostic.def"
 #undef INK_DIAGNOSTIC
+        }
+        return "Unknown";
     }
-    return "Unknown";
-  }
 
-  const char *diagnosticDefaultMessage(DiagnosticKind Kind) noexcept
-  {
-    switch (Kind)
+    const char* diagnosticDefaultMessage(DiagnosticKind Kind) noexcept
     {
+        switch (Kind)
+        {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                              \
-    return DefaultMessage;
+    case DiagnosticKind::Name:                                                                                            \
+        return DefaultMessage;
 #include "ink/core/diagnostic/diagnostic.def"
 #undef INK_DIAGNOSTIC
+        }
+        return "unknown diagnostic";
     }
-    return "unknown diagnostic";
-  }
 
-  const char *diagnosticFormatPattern(DiagnosticKind Kind) noexcept
-  {
-    switch (Kind)
+    const char* diagnosticFormatPattern(DiagnosticKind Kind) noexcept
     {
+        switch (Kind)
+        {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                              \
-    return FormatPattern;
+    case DiagnosticKind::Name:                                                                                            \
+        return FormatPattern;
 #include "ink/core/diagnostic/diagnostic.def"
 #undef INK_DIAGNOSTIC
+        }
+        return "unknown diagnostic";
     }
-    return "unknown diagnostic";
-  }
 
-  DiagnosticDomain diagnosticDomain(DiagnosticKind Kind) noexcept
-  {
-    switch (Kind)
+    DiagnosticDomain diagnosticDomain(DiagnosticKind Kind) noexcept
     {
+        switch (Kind)
+        {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                              \
-    return DiagnosticDomain::Domain;
+    case DiagnosticKind::Name:                                                                                            \
+        return DiagnosticDomain::Domain;
 #include "ink/core/diagnostic/diagnostic.def"
 #undef INK_DIAGNOSTIC
+        }
+        return DiagnosticDomain::Unknown;
     }
-    return DiagnosticDomain::Unknown;
-  }
 
-  DiagnosticClass diagnosticClass(DiagnosticKind Kind) noexcept
-  {
-    switch (Kind)
+    DiagnosticClass diagnosticClass(DiagnosticKind Kind) noexcept
     {
+        switch (Kind)
+        {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                              \
-    return DiagnosticClass::Class;
+    case DiagnosticKind::Name:                                                                                            \
+        return DiagnosticClass::Class;
 #include "ink/core/diagnostic/diagnostic.def"
 #undef INK_DIAGNOSTIC
+        }
+        return DiagnosticClass::Unknown;
     }
-    return DiagnosticClass::Unknown;
-  }
 
-  DiagnosticSeverity diagnosticDefaultSeverity(DiagnosticKind Kind) noexcept
-  {
-    switch (Kind)
+    DiagnosticSeverity diagnosticDefaultSeverity(DiagnosticKind Kind) noexcept
     {
+        switch (Kind)
+        {
 #define INK_DIAGNOSTIC(Name, Number, Domain, Code, Class, DefaultSeverity, DefaultMessage, FormatPattern, ArgumentSchema) \
-  case DiagnosticKind::Name:                                                                                              \
-    return DiagnosticSeverity::DefaultSeverity;
+    case DiagnosticKind::Name:                                                                                            \
+        return DiagnosticSeverity::DefaultSeverity;
 #include "ink/core/diagnostic/diagnostic.def"
 #undef INK_DIAGNOSTIC
+        }
+        return DiagnosticSeverity::Unknown;
     }
-    return DiagnosticSeverity::Unknown;
-  }
 
-  const char *diagnosticClassName(DiagnosticClass Class) noexcept
-  {
-    switch (Class)
+    const char* diagnosticClassName(DiagnosticClass Class) noexcept
     {
-    case DiagnosticClass::Unknown:
-      return "unknown";
-    case DiagnosticClass::User:
-      return "user";
-    case DiagnosticClass::InternalCompilerError:
-      return "internal compiler error";
+        switch (Class)
+        {
+        case DiagnosticClass::Unknown:
+            return "unknown";
+        case DiagnosticClass::User:
+            return "user";
+        case DiagnosticClass::InternalCompilerError:
+            return "internal compiler error";
+        }
+        return "unknown";
     }
-    return "unknown";
-  }
 
-  const char *diagnosticSeverityName(DiagnosticSeverity Severity) noexcept
-  {
-    switch (Severity)
+    const char* diagnosticSeverityName(DiagnosticSeverity Severity) noexcept
     {
-    case DiagnosticSeverity::Unknown:
-      return "unknown";
-    case DiagnosticSeverity::Error:
-      return "error";
-    case DiagnosticSeverity::Warning:
-      return "warning";
-    case DiagnosticSeverity::Note:
-      return "note";
+        switch (Severity)
+        {
+        case DiagnosticSeverity::Unknown:
+            return "unknown";
+        case DiagnosticSeverity::Error:
+            return "error";
+        case DiagnosticSeverity::Warning:
+            return "warning";
+        case DiagnosticSeverity::Note:
+            return "note";
+        }
+        return "unknown";
     }
-    return "unknown";
-  }
 
-  const char *diagnosticArgumentName(DiagnosticArgumentName Name) noexcept
-  {
-    switch (Name)
+    const char* diagnosticArgumentName(DiagnosticArgumentName Name) noexcept
     {
-    case DiagnosticArgumentName::Unknown:
-      return "Unknown";
-    case DiagnosticArgumentName::Character:
-      return "Character";
-    case DiagnosticArgumentName::Context:
-      return "Context";
-    case DiagnosticArgumentName::Expected:
-      return "Expected";
-    case DiagnosticArgumentName::Actual:
-      return "Actual";
-    case DiagnosticArgumentName::Description:
-      return "Description";
-    case DiagnosticArgumentName::TypeName:
-      return "TypeName";
-    case DiagnosticArgumentName::SymbolName:
-      return "SymbolName";
-    case DiagnosticArgumentName::FunctionName:
-      return "FunctionName";
-    case DiagnosticArgumentName::ModuleName:
-      return "ModuleName";
-    case DiagnosticArgumentName::ActualValue:
-      return "ActualValue";
-    case DiagnosticArgumentName::ExpectedCount:
-      return "ExpectedCount";
-    case DiagnosticArgumentName::ActualCount:
-      return "ActualCount";
-    case DiagnosticArgumentName::Size:
-      return "Size";
+        switch (Name)
+        {
+        case DiagnosticArgumentName::Unknown:
+            return "Unknown";
+        case DiagnosticArgumentName::Character:
+            return "Character";
+        case DiagnosticArgumentName::Context:
+            return "Context";
+        case DiagnosticArgumentName::Expected:
+            return "Expected";
+        case DiagnosticArgumentName::Actual:
+            return "Actual";
+        case DiagnosticArgumentName::Description:
+            return "Description";
+        case DiagnosticArgumentName::TypeName:
+            return "TypeName";
+        case DiagnosticArgumentName::SymbolName:
+            return "SymbolName";
+        case DiagnosticArgumentName::FunctionName:
+            return "FunctionName";
+        case DiagnosticArgumentName::ModuleName:
+            return "ModuleName";
+        case DiagnosticArgumentName::ActualValue:
+            return "ActualValue";
+        case DiagnosticArgumentName::ExpectedCount:
+            return "ExpectedCount";
+        case DiagnosticArgumentName::ActualCount:
+            return "ActualCount";
+        case DiagnosticArgumentName::Size:
+            return "Size";
+        }
+        return "Unknown";
     }
-    return "Unknown";
-  }
 
-  bool operator==(const DiagnosticArgument &Left, const DiagnosticArgument &Right)
-  {
-    return Left.Name == Right.Name && Left.Value == Right.Value;
-  }
+    bool operator==(const DiagnosticArgument& Left, const DiagnosticArgument& Right)
+    {
+        return Left.Name == Right.Name && Left.Value == Right.Value;
+    }
 
-  bool operator!=(const DiagnosticArgument &Left, const DiagnosticArgument &Right)
-  {
-    return !(Left == Right);
-  }
+    bool operator!=(const DiagnosticArgument& Left, const DiagnosticArgument& Right)
+    {
+        return !(Left == Right);
+    }
 
-  bool operator==(const DiagnosticRelatedInformation &Left, const DiagnosticRelatedInformation &Right)
-  {
-    return Left.Kind == Right.Kind && Left.Span == Right.Span && Left.Arguments == Right.Arguments;
-  }
+    bool operator==(const DiagnosticRelatedInformation& Left, const DiagnosticRelatedInformation& Right)
+    {
+        return Left.Kind == Right.Kind && Left.Span == Right.Span && Left.Arguments == Right.Arguments;
+    }
 
-  bool operator!=(const DiagnosticRelatedInformation &Left, const DiagnosticRelatedInformation &Right)
-  {
-    return !(Left == Right);
-  }
+    bool operator!=(const DiagnosticRelatedInformation& Left, const DiagnosticRelatedInformation& Right)
+    {
+        return !(Left == Right);
+    }
 
-  std::uint32_t Diagnostic::number() const noexcept
-  {
-    return diagnosticNumber(Kind);
-  }
+    std::uint32_t Diagnostic::number() const noexcept
+    {
+        return diagnosticNumber(Kind);
+    }
 
-  const char *Diagnostic::code() const noexcept
-  {
-    return diagnosticCode(Kind);
-  }
+    const char* Diagnostic::code() const noexcept
+    {
+        return diagnosticCode(Kind);
+    }
 
-  DiagnosticClass Diagnostic::classification() const noexcept
-  {
-    return Class == DiagnosticClass::Unknown ? diagnosticClass(Kind) : Class;
-  }
+    DiagnosticClass Diagnostic::classification() const noexcept
+    {
+        return Class == DiagnosticClass::Unknown ? diagnosticClass(Kind) : Class;
+    }
 
-  bool operator==(const Diagnostic &Left, const Diagnostic &Right)
-  {
-    return Left.Kind == Right.Kind && Left.Source == Right.Source && Left.Span == Right.Span && Left.Arguments == Right.Arguments && Left.Related == Right.Related && Left.Class == Right.Class;
-  }
+    bool operator==(const Diagnostic& Left, const Diagnostic& Right)
+    {
+        return Left.Kind == Right.Kind && Left.Source == Right.Source && Left.Span == Right.Span && Left.Arguments == Right.Arguments && Left.Related == Right.Related && Left.Class == Right.Class;
+    }
 
-  bool operator!=(const Diagnostic &Left, const Diagnostic &Right)
-  {
-    return !(Left == Right);
-  }
+    bool operator!=(const Diagnostic& Left, const Diagnostic& Right)
+    {
+        return !(Left == Right);
+    }
 } // namespace ink::core

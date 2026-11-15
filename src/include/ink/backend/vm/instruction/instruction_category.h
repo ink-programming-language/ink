@@ -4,14 +4,14 @@
 
 namespace ink::vm
 {
-  enum class InstructionCategory : std::uint8_t
-  {
-    Load,
-    Store,
-    Add,
-    Branch,
-    ConditionalBranch,
-    Return,
-    Call,
-  };
+    enum class InstructionCategory : std::uint8_t
+    {
+        Load,
+        Store,
+        Add,
+        Branch,
+        ConditionalBranch,
+        Return,
+        Call,
+    };
 } // namespace ink::vm

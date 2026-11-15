@@ -4,15 +4,15 @@
 
 namespace ink::frontend::parser
 {
-  class MatchPattern : public ASTNodeBase
-  {
-    public:
-      static bool classof(const ASTNodeBase *Node)
-      {
-        return Node && categoryOf(Node->getKind()) == ASTCategory::MatchPattern;
-      }
+    class MatchPattern : public ASTNodeBase
+    {
+        public:
+            static bool classof(const ASTNodeBase* Node)
+            {
+                return Node && categoryOf(Node->getKind()) == ASTCategory::MatchPattern;
+            }
 
-    protected:
-      using ASTNodeBase::ASTNodeBase;
-  };
+        protected:
+            using ASTNodeBase::ASTNodeBase;
+    };
 } // namespace ink::frontend::parser

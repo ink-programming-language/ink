@@ -2,16 +2,16 @@
 
 namespace ink::ir
 {
-  std::string_view typeKindName(TypeKind Kind) noexcept
-  {
-    switch (Kind)
+    std::string_view typeKindName(TypeKind Kind) noexcept
     {
+        switch (Kind)
+        {
 #define TYPE(Kind, Class, Spelling) \
-  case TypeKind::Kind:              \
-    return Spelling;
+    case TypeKind::Kind:            \
+        return Spelling;
 #include "ink/ir/type/type.def"
 #undef TYPE
+        }
+        return "InvalidTypeKind";
     }
-    return "InvalidTypeKind";
-  }
 } // namespace ink::ir

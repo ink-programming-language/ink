@@ -28,8 +28,8 @@ target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::frontend
 ink_disable_exceptions(ink_tests)
 
 if(MSVC)
-  target_compile_options(ink_tokenizer_test_objects PRIVATE /utf-8)
-  target_compile_options(ink_tests PRIVATE /utf-8)
+    target_compile_options(ink_tokenizer_test_objects PRIVATE /utf-8)
+    target_compile_options(ink_tests PRIVATE /utf-8)
 endif()
 
 include(GoogleTest)

@@ -130,42 +130,42 @@ namespace ink::vm
                     std::memcpy(SET_REGISTER(RegisterId::PC, Frame), &Target, sizeof(Target));
                     continue;
                 }
-#define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed) \
-      case Opcode::Kind: \
-      { \
-        using ValueType = std::conditional_t<Signed, std::int##Width##_t, std::uint##Width##_t>; \
-        constexpr bool MemoryRHS = InstructionForm::Form == InstructionForm::Mmb; \
-        constexpr std::size_t TargetPosition = MemoryRHS ? 20 : 11 + sizeof(ValueType); \
-        constexpr std::size_t BranchBytes = TargetPosition + 9; \
-        const auto LeftRegister = static_cast<RegisterId>(Instruction[2]); \
-        std::uint64_t LeftAddress; \
-        std::uint64_t LeftOffset; \
-        ValueType LeftValue; \
-        ValueType RightValue; \
-        std::memcpy(&LeftAddress, GET_REGISTER(LeftRegister, Frame), sizeof(LeftAddress)); \
-        std::memcpy(&LeftOffset, Instruction + 3, sizeof(LeftOffset)); \
-        LeftAddress += LeftOffset; \
-        std::memcpy(&LeftValue, reinterpret_cast<const void *>(static_cast<std::uintptr_t>(LeftAddress)), sizeof(LeftValue)); \
-        if constexpr (MemoryRHS) \
-        { \
-          const auto RightRegister = static_cast<RegisterId>(Instruction[11]); \
-          std::uint64_t RightAddress; \
-          std::uint64_t RightOffset; \
-          std::memcpy(&RightAddress, GET_REGISTER(RightRegister, Frame), sizeof(RightAddress)); \
-          std::memcpy(&RightOffset, Instruction + 12, sizeof(RightOffset)); \
-          RightAddress += RightOffset; \
-          std::memcpy(&RightValue, reinterpret_cast<const void *>(static_cast<std::uintptr_t>(RightAddress)), sizeof(RightValue)); \
-        } \
-        else \
-        { \
-          std::memcpy(&RightValue, Instruction + 11, sizeof(RightValue)); \
-        } \
-        std::uint64_t TargetOffset; \
-        std::memcpy(&TargetOffset, Instruction + TargetPosition + 1, sizeof(TargetOffset)); \
-        const auto Target = (LeftValue Operator RightValue) ? InstructionAddress + TargetOffset : InstructionAddress + BranchBytes; \
-        std::memcpy(SET_REGISTER(RegisterId::PC, Frame), &Target, sizeof(Target)); \
-        continue; \
-      }
+#define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed)                                                         \
+    case Opcode::Kind:                                                                                                                  \
+        {                                                                                                                               \
+            using ValueType = std::conditional_t<Signed, std::int##Width##_t, std::uint##Width##_t>;                                    \
+            constexpr bool MemoryRHS = InstructionForm::Form == InstructionForm::Mmb;                                                   \
+            constexpr std::size_t TargetPosition = MemoryRHS ? 20 : 11 + sizeof(ValueType);                                             \
+            constexpr std::size_t BranchBytes = TargetPosition + 9;                                                                     \
+            const auto LeftRegister = static_cast<RegisterId>(Instruction[2]);                                                          \
+            std::uint64_t LeftAddress;                                                                                                  \
+            std::uint64_t LeftOffset;                                                                                                   \
+            ValueType LeftValue;                                                                                                        \
+            ValueType RightValue;                                                                                                       \
+            std::memcpy(&LeftAddress, GET_REGISTER(LeftRegister, Frame), sizeof(LeftAddress));                                          \
+            std::memcpy(&LeftOffset, Instruction + 3, sizeof(LeftOffset));                                                              \
+            LeftAddress += LeftOffset;                                                                                                  \
+            std::memcpy(&LeftValue, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(LeftAddress)), sizeof(LeftValue));        \
+            if constexpr (MemoryRHS)                                                                                                    \
+            {                                                                                                                           \
+                const auto RightRegister = static_cast<RegisterId>(Instruction[11]);                                                    \
+                std::uint64_t RightAddress;                                                                                             \
+                std::uint64_t RightOffset;                                                                                              \
+                std::memcpy(&RightAddress, GET_REGISTER(RightRegister, Frame), sizeof(RightAddress));                                   \
+                std::memcpy(&RightOffset, Instruction + 12, sizeof(RightOffset));                                                       \
+                RightAddress += RightOffset;                                                                                            \
+                std::memcpy(&RightValue, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(RightAddress)), sizeof(RightValue)); \
+            }                                                                                                                           \
+            else                                                                                                                        \
+            {                                                                                                                           \
+                std::memcpy(&RightValue, Instruction + 11, sizeof(RightValue));                                                         \
+            }                                                                                                                           \
+            std::uint64_t TargetOffset;                                                                                                 \
+            std::memcpy(&TargetOffset, Instruction + TargetPosition + 1, sizeof(TargetOffset));                                         \
+            const auto Target = (LeftValue Operator RightValue) ? InstructionAddress + TargetOffset : InstructionAddress + BranchBytes; \
+            std::memcpy(SET_REGISTER(RegisterId::PC, Frame), &Target, sizeof(Target));                                                  \
+            continue;                                                                                                                   \
+        }
 #include "ink/backend/vm/instruction/compare_branch.def"
 #undef COMPARE_BRANCH
             case Opcode::Ret:

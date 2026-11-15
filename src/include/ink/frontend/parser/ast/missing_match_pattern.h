@@ -5,19 +5,19 @@
 
 namespace ink::frontend::parser
 {
-  class MissingMatchPattern final : public MatchPattern
-  {
-    public:
-      static constexpr ASTKind Kind = ASTKind::MissingMatchPattern;
-      static bool classof(const ASTNodeBase *Node)
-      {
-        return Node && Node->getKind() == Kind;
-      }
-      MissingMatchPattern(SourceRange Range)
-          : MatchPattern(Kind, Range)
-      {
-      }
+    class MissingMatchPattern final : public MatchPattern
+    {
+        public:
+            static constexpr ASTKind Kind = ASTKind::MissingMatchPattern;
+            static bool classof(const ASTNodeBase* Node)
+            {
+                return Node && Node->getKind() == Kind;
+            }
+            MissingMatchPattern(SourceRange Range)
+                : MatchPattern(Kind, Range)
+            {
+            }
 
-    private:
-  };
+        private:
+    };
 } // namespace ink::frontend::parser

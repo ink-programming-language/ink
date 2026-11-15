@@ -2,6 +2,9 @@
 
 ## 代码排版
 
+- 自有 C/C++ 代码以仓库 `.clang-format` 为格式化标准，与 `src/lib/backend/vm/interpreter/dispatch.cpp` 的 CLion 排版保持一致。新增或修改代码后必须运行 `python cmake/format_sources.py`；提交前可运行 `python cmake/format_sources.py --check` 检查，工具不在 PATH 时使用 `--clang-format <可执行文件路径>`，要求 clang-format 19 或更新版本。
+- C/C++ 和 CMake 每级缩进使用 4 个空格，不使用制表符。C++ 指针和引用的 `*`、`&`、`&&` 紧贴类型，例如 `const std::uint8_t* Data`、`Frame& Value`；`case` 标签与 `switch` 同级，标签下的复合代码块再缩进一级。
+- 格式化只覆盖仓库自有源码；不得格式化 `src/third_party`、构建产物、IDE 本地配置或生成的数据片段。生成的数据片段由对应生成器维护。
 - 本仓库自有的所有代码源文件、`CMakeLists.txt` 和 `.cmake` 文件均不设置最大行宽。
 - 不得仅因行长或参数数量，把一个完整语句、函数调用、宏调用或 CMake 命令拆成多行。
 - 同一调用的名称、参数和右括号应保持在同一物理行，即使该行较长；禁止逐参数换行以及把一条消息拆成多个相邻字符串。
@@ -34,11 +37,11 @@ add_subdirectory(
 正确：
 
 ```cpp
-Impl(ExecutionContext &Context, const ir::Module &ModuleValue)
+Impl(ExecutionContext& Context, const ir::Module& ModuleValue)
     : Context(Context),
       OwnedProvider(std::make_unique<SingleModuleProvider>(ModuleValue)),
       Provider(OwnedProvider.get()),
-      EntryModule(static_cast<SingleModuleProvider &>(*Provider).id()),
+      EntryModule(static_cast<SingleModuleProvider&>(*Provider).id()),
       Loader(*Provider, *this, Context.compilationContext().targetContext())
 {
 }
@@ -47,12 +50,12 @@ Impl(ExecutionContext &Context, const ir::Module &ModuleValue)
 错误：
 
 ```cpp
-Impl(ExecutionContext &Context, const ir::Module &ModuleValue) : Context(Context), OwnedProvider(std::make_unique<SingleModuleProvider>(ModuleValue)), Provider(OwnedProvider.get()), EntryModule(static_cast<SingleModuleProvider &>(*Provider).id()), Loader(*Provider, *this, Context.compilationContext().targetContext())
+Impl(ExecutionContext& Context, const ir::Module& ModuleValue) : Context(Context), OwnedProvider(std::make_unique<SingleModuleProvider>(ModuleValue)), Provider(OwnedProvider.get()), EntryModule(static_cast<SingleModuleProvider&>(*Provider).id()), Loader(*Provider, *this, Context.compilationContext().targetContext())
 {
 }
 
-Impl(ExecutionContext &Context, const ir::Module &ModuleValue)
-    : Context(Context), OwnedProvider(std::make_unique<SingleModuleProvider>(ModuleValue)), Provider(OwnedProvider.get()), EntryModule(static_cast<SingleModuleProvider &>(*Provider).id()), Loader(*Provider, *this, Context.compilationContext().targetContext())
+Impl(ExecutionContext& Context, const ir::Module& ModuleValue)
+    : Context(Context), OwnedProvider(std::make_unique<SingleModuleProvider>(ModuleValue)), Provider(OwnedProvider.get()), EntryModule(static_cast<SingleModuleProvider&>(*Provider).id()), Loader(*Provider, *this, Context.compilationContext().targetContext())
 {
 }
 ```
@@ -92,29 +95,29 @@ Impl(ExecutionContext &Context, const ir::Module &ModuleValue)
 ```cpp
 namespace ink::core
 {
-  struct State
-  {
-    bool Ready;
-  };
+    struct State
+    {
+            bool Ready;
+    };
 
-  bool isReady()
-  {
-    return Ready;
-  }
+    bool isReady()
+    {
+        return Ready;
+    }
 } // namespace ink::core
 
 if (Condition)
 {
-  handleCondition(FirstArgument, SecondArgument, ThirdArgument);
+    handleCondition(FirstArgument, SecondArgument, ThirdArgument);
 }
 else
 {
-  recover();
+    recover();
 }
 
 auto Handler = []()
 {
-  return 1;
+    return 1;
 };
 ```
 
@@ -160,14 +163,14 @@ auto Handler = []() {
 ```cpp
 class ByteConstantId
 {
-  public:
-    constexpr bool valid() const noexcept
-    {
-      return Value != InvalidId;
-    }
+    public:
+        constexpr bool valid() const noexcept
+        {
+            return Value != InvalidId;
+        }
 
-  private:
-    std::size_t Value = InvalidId;
+    private:
+        std::size_t Value = InvalidId;
 };
 ```
 

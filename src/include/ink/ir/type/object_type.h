@@ -4,24 +4,24 @@
 
 namespace ink::ir
 {
-  class ObjectType final : public RecordType
-  {
-    public:
-      static constexpr TypeKind Kind = TypeKind::Object;
+    class ObjectType final : public RecordType
+    {
+        public:
+            static constexpr TypeKind Kind = TypeKind::Object;
 
-      constexpr ObjectType() noexcept
-          : RecordType(Kind)
-      {
-      }
+            constexpr ObjectType() noexcept
+                : RecordType(Kind)
+            {
+            }
 
-      static constexpr bool classof(const Value *Value) noexcept
-      {
-        return Type::classof(Value) && static_cast<const Type *>(Value)->getKind() == Kind;
-      }
+            static constexpr bool classof(const Value* Value) noexcept
+            {
+                return Type::classof(Value) && static_cast<const Type*>(Value)->getKind() == Kind;
+            }
 
-      constexpr TypeSemantics getSemantics() const noexcept override
-      {
-        return TypeSemantics::Reference;
-      }
-  };
+            constexpr TypeSemantics getSemantics() const noexcept override
+            {
+                return TypeSemantics::Reference;
+            }
+    };
 } // namespace ink::ir

@@ -2,9 +2,9 @@
 
 namespace ink::ir
 {
-  IRContext::IRContext()
-      : Constants(Types),
-        Builder(Types)
-  {
-  }
+    IRContext::IRContext()
+        : Constants(Types),
+          Builder(Types)
+    {
+    }
 } // namespace ink::ir

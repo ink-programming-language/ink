@@ -2,44 +2,44 @@
 #include <cstdint>
 namespace ink::frontend::parser
 {
-  enum class ASTCategory
-  {
-    Root,
-    Expr,
-    Stmt,
-    Decl,
-    SimpleItem,
-    BindingPattern,
-    MatchPattern
-  };
-  enum class ASTKind : std::uint8_t
-  {
+    enum class ASTCategory
+    {
+        Root,
+        Expr,
+        Stmt,
+        Decl,
+        SimpleItem,
+        BindingPattern,
+        MatchPattern
+    };
+    enum class ASTKind : std::uint8_t
+    {
 #define AST_NODE(Name, Base, Category, Id) Name = Id,
 #include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
-  };
-  constexpr ASTCategory categoryOf(ASTKind Kind)
-  {
-    switch (Kind)
+    };
+    constexpr ASTCategory categoryOf(ASTKind Kind)
     {
+        switch (Kind)
+        {
 #define AST_NODE(Name, Base, Category, Id) \
-  case ASTKind::Name:                      \
-    return ASTCategory::Category;
+    case ASTKind::Name:                    \
+        return ASTCategory::Category;
 #include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
+        }
+        return ASTCategory::Root;
     }
-    return ASTCategory::Root;
-  }
-  constexpr const char *astKindName(ASTKind Kind)
-  {
-    switch (Kind)
+    constexpr const char* astKindName(ASTKind Kind)
     {
+        switch (Kind)
+        {
 #define AST_NODE(Name, Base, Category, Id) \
-  case ASTKind::Name:                      \
-    return #Name;
+    case ASTKind::Name:                    \
+        return #Name;
 #include "ink/frontend/parser/ASTNodes.def"
 #undef AST_NODE
+        }
+        return "InvalidASTKind";
     }
-    return "InvalidASTKind";
-  }
 } // namespace ink::frontend::parser

@@ -7,5 +7,5 @@ ink_disable_exceptions(ink_tokenize)
 set_target_properties(ink_tokenize PROPERTIES OUTPUT_NAME ink-tokenize)
 
 if(MSVC)
-  target_compile_options(ink_tokenize PRIVATE /utf-8)
+    target_compile_options(ink_tokenize PRIVATE /utf-8)
 endif()

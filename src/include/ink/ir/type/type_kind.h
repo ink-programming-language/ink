@@ -5,12 +5,12 @@
 
 namespace ink::ir
 {
-  enum class TypeKind : std::uint8_t
-  {
+    enum class TypeKind : std::uint8_t
+    {
 #define TYPE(Kind, Class, Spelling) Kind,
 #include "ink/ir/type/type.def"
 #undef TYPE
-  };
+    };
 
-  std::string_view typeKindName(TypeKind Kind) noexcept;
+    std::string_view typeKindName(TypeKind Kind) noexcept;
 } // namespace ink::ir

@@ -11,142 +11,142 @@
 
 namespace ink::vm
 {
-  class MachineBasicBlock;
-  class MachineInstructionBuilder;
+    class MachineBasicBlock;
+    class MachineInstructionBuilder;
 
-  enum class Opcode : std::uint16_t
-  {
+    enum class Opcode : std::uint16_t
+    {
 #define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) Kind = Encoding,
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
-  };
+    };
 
-  template <Opcode OperationValue>
-  class MachineInstructionImpl;
+    template <Opcode OperationValue>
+    class MachineInstructionImpl;
 
-  class MachineInstruction
-  {
-    public:
-      constexpr Opcode getOpcode() const noexcept
-      {
-        return Operation;
-      }
+    class MachineInstruction
+    {
+        public:
+            constexpr Opcode getOpcode() const noexcept
+            {
+                return Operation;
+            }
 
-      constexpr std::string_view getName() const noexcept
-      {
-        switch (Operation)
-        {
+            constexpr std::string_view getName() const noexcept
+            {
+                switch (Operation)
+                {
 #define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
-  case Opcode::Kind:                                                                                                    \
-    return Spelling;
+    case Opcode::Kind:                                                                                       \
+        return Spelling;
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
-        }
-        return "InvalidOpcode";
-      }
+                }
+                return "InvalidOpcode";
+            }
 
-      constexpr std::uint32_t bitWidth() const noexcept
-      {
-        switch (Operation)
-        {
+            constexpr std::uint32_t bitWidth() const noexcept
+            {
+                switch (Operation)
+                {
 #define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
-  case Opcode::Kind:                                                                                                    \
-    return Width;
+    case Opcode::Kind:                                                                                       \
+        return Width;
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
-        }
-        return 0;
-      }
+                }
+                return 0;
+            }
 
-      constexpr std::size_t operandCount() const noexcept
-      {
-        switch (Operation)
-        {
+            constexpr std::size_t operandCount() const noexcept
+            {
+                switch (Operation)
+                {
 #define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
-  case Opcode::Kind:                                                                                                    \
-    return FormTraits<InstructionForm::Form>::OperandCount;
+    case Opcode::Kind:                                                                                       \
+        return FormTraits<InstructionForm::Form>::OperandCount;
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
-        }
-        return 0;
-      }
+                }
+                return 0;
+            }
 
-      constexpr InstructionCategory category() const noexcept
-      {
-        switch (Operation)
-        {
+            constexpr InstructionCategory category() const noexcept
+            {
+                switch (Operation)
+                {
 #define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
-  case Opcode::Kind:                                                                                                    \
-    return InstructionCategory::Category;
+    case Opcode::Kind:                                                                                       \
+        return InstructionCategory::Category;
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
-        }
-        return InstructionCategory::Load;
-      }
+                }
+                return InstructionCategory::Load;
+            }
 
-      constexpr bool hasDestination() const noexcept
-      {
-        return category() == InstructionCategory::Load || category() == InstructionCategory::Store || category() == InstructionCategory::Add;
-      }
+            constexpr bool hasDestination() const noexcept
+            {
+                return category() == InstructionCategory::Load || category() == InstructionCategory::Store || category() == InstructionCategory::Add;
+            }
 
-      constexpr bool isBranch() const noexcept
-      {
-        return category() == InstructionCategory::Branch || isConditionalBranch();
-      }
+            constexpr bool isBranch() const noexcept
+            {
+                return category() == InstructionCategory::Branch || isConditionalBranch();
+            }
 
-      constexpr bool isConditionalBranch() const noexcept
-      {
-        return category() == InstructionCategory::ConditionalBranch;
-      }
+            constexpr bool isConditionalBranch() const noexcept
+            {
+                return category() == InstructionCategory::ConditionalBranch;
+            }
 
-      constexpr bool isReturn() const noexcept
-      {
-        return category() == InstructionCategory::Return;
-      }
+            constexpr bool isReturn() const noexcept
+            {
+                return category() == InstructionCategory::Return;
+            }
 
-      constexpr bool isCall() const noexcept
-      {
-        return category() == InstructionCategory::Call;
-      }
+            constexpr bool isCall() const noexcept
+            {
+                return category() == InstructionCategory::Call;
+            }
 
-      constexpr bool isNativeCall() const noexcept
-      {
-        return Operation == Opcode::CallNativei || Operation == Opcode::CallNativem;
-      }
+            constexpr bool isNativeCall() const noexcept
+            {
+                return Operation == Opcode::CallNativei || Operation == Opcode::CallNativem;
+            }
 
-      constexpr bool isTerminator() const noexcept
-      {
-        return isBranch() || isReturn();
-      }
+            constexpr bool isTerminator() const noexcept
+            {
+                return isBranch() || isReturn();
+            }
 
-      // Borrows an operand in semantic order; an index outside operandCount() returns nullptr.
-      const Operand *getOperand(std::size_t Index) const noexcept;
+            // Borrows an operand in semantic order; an index outside operandCount() returns nullptr.
+            const Operand* getOperand(std::size_t Index) const noexcept;
 
-      constexpr auto *parent(this auto &&Self) noexcept
-      {
-        return Self.Parent ? &std::forward_like<decltype(Self) &>(*Self.Parent) : nullptr;
-      }
+            constexpr auto* parent(this auto&& Self) noexcept
+            {
+                return Self.Parent ? &std::forward_like<decltype(Self)&>(*Self.Parent) : nullptr;
+            }
 
-      MachineInstruction(const MachineInstruction &) = delete;
-      MachineInstruction &operator=(const MachineInstruction &) = delete;
+            MachineInstruction(const MachineInstruction&) = delete;
+            MachineInstruction& operator=(const MachineInstruction&) = delete;
 
-    protected:
-      // Instructions are destroyed through their concrete class, never through MachineInstruction.
-      ~MachineInstruction() = default;
+        protected:
+            // Instructions are destroyed through their concrete class, never through MachineInstruction.
+            ~MachineInstruction() = default;
 
-    private:
-      friend class MachineInstructionBuilder;
+        private:
+            friend class MachineInstructionBuilder;
 
-      template <Opcode OperationValue>
-      friend class MachineInstructionImpl;
+            template <Opcode OperationValue>
+            friend class MachineInstructionImpl;
 
-      // Only the final opcode-specific implementation may establish an opcode and its matching layout.
-      constexpr explicit MachineInstruction(Opcode Operation) noexcept
-          : Operation(Operation)
-      {
-      }
+            // Only the final opcode-specific implementation may establish an opcode and its matching layout.
+            constexpr explicit MachineInstruction(Opcode Operation) noexcept
+                : Operation(Operation)
+            {
+            }
 
-      Opcode Operation;
-      MachineBasicBlock *Parent = nullptr;
-  };
+            Opcode Operation;
+            MachineBasicBlock* Parent = nullptr;
+    };
 } // namespace ink::vm

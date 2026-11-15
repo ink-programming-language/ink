@@ -12,212 +12,212 @@
 
 namespace ink::vm
 {
-  Interpreter::Interpreter() noexcept
-      : Loader(*this)
-  {
-    initialize();
-  }
+    Interpreter::Interpreter() noexcept
+        : Loader(*this)
+    {
+        initialize();
+    }
 
-  Interpreter::~Interpreter()
-  {
-    std::free(CodeSegment);
-  }
+    Interpreter::~Interpreter()
+    {
+        std::free(CodeSegment);
+    }
 
-  void Interpreter::initialize()
-  {
-    if (!Initialized)
+    void Interpreter::initialize()
     {
-      reserveCodeSegment(core::ConfigManager::getSize<core::ConfigKind::VMInitialCodeSegmentBytes>());
-      const auto StackBytes = core::ConfigManager::getSize<core::ConfigKind::VMStackBytes>();
-      auto *const Stack = StackBytes != 0 ? static_cast<std::uint8_t *>(std::malloc(StackBytes)) : nullptr;
-      REPORT_ICE_IF(StackBytes != 0 && !Stack, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "stack", "runtime storage allocation failed");
-      StackAllocation.reset(Stack);
-      Initialized = true;
-    }
-    for (const auto &Symbol : NativeSymbolAddresses)
-    {
-      ExportSymbolMap.try_emplace(Symbol.Name, static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(Symbol.Address)));
-    }
-  }
-
-  bool Interpreter::execute(const void *Entry)
-  {
-    const auto EntryAddress = reinterpret_cast<std::uintptr_t>(Entry);
-    const auto CodeAddress = reinterpret_cast<std::uintptr_t>(CodeSegment);
-    if (EntryAddress < CodeAddress || EntryAddress - CodeAddress >= CodeSegmentSize)
-    {
-      Diagnostics.report<core::DiagnosticKind::VMExecutionFailed>({}, "entry", "entry address is outside the loaded code segment");
-      return false;
-    }
-    Frame = vm::Frame{};
-    *reinterpret_cast<std::uint8_t **>(SET_REGISTER(RegisterId::BP, Frame)) = static_cast<std::uint8_t *>(StackAllocation.get());
-    *reinterpret_cast<std::uint8_t **>(SET_REGISTER(RegisterId::SP, Frame)) = static_cast<std::uint8_t *>(StackAllocation.get());
-    *reinterpret_cast<std::uint8_t **>(SET_REGISTER(RegisterId::PC, Frame)) = const_cast<std::uint8_t *>(static_cast<const std::uint8_t *>(Entry));
-    return dispatch();
-  }
-
-  void *Interpreter::resolveSymbolAddress(core::Name Name) const noexcept
-  {
-    const auto Position = ExportSymbolMap.find(Name);
-    return Position == ExportSymbolMap.end() ? nullptr : reinterpret_cast<void *>(static_cast<std::uintptr_t>(Position->second));
-  }
-
-  /**
-   * Ensure at least RequiredBytes total capacity, not an additional byte count; CodeSegmentSize is unchanged.
-   * Existing capacity is reused. Growth normally doubles capacity without overflowing and always covers
-   * RequiredBytes. The initial allocation uses malloc; an existing allocation first tries realloc.
-   *
-   * If realloc fails, the old block remains valid: allocate a replacement, copy only CodeSegmentSize bytes,
-   * then release the old block. Preserve the old base as an integer because a successful realloc may also
-   * move storage and invalidate the old pointer. An in-place extension needs no address repair; either kind
-   * of move calls repatchCodeSegment after the new allocation is installed.
-   *
-   * Growth precedes the load transaction, so a subsequent link failure can retain the increased capacity
-   * and repaired addresses. External cached pointers are not repaired and must be queried again after a move.
-   */
-  void Interpreter::reserveCodeSegment(std::size_t RequiredBytes)
-  {
-    if (RequiredBytes <= CodeSegmentCapacity)
-    {
-      return;
-    }
-    const auto NewCapacity = CodeSegmentCapacity <= std::numeric_limits<std::size_t>::max() / 2 ? std::max(RequiredBytes, CodeSegmentCapacity * 2) : RequiredBytes;
-    const auto OldAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment));
-    auto *Allocation = CodeSegment ? static_cast<std::uint8_t *>(std::realloc(CodeSegment, NewCapacity)) : static_cast<std::uint8_t *>(std::malloc(NewCapacity));
-    if (!Allocation)
-    {
-      Allocation = static_cast<std::uint8_t *>(std::malloc(NewCapacity));
-      REPORT_ICE_IF(!Allocation, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "code segment", "runtime storage allocation failed");
-      if (CodeSegmentSize != 0)
-      {
-        std::memcpy(Allocation, CodeSegment, CodeSegmentSize);
-      }
-      std::free(CodeSegment);
-    }
-    CodeSegment = Allocation;
-    CodeSegmentCapacity = NewCapacity;
-    if (OldAddress != static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment)))
-    {
-      repatchCodeSegment(OldAddress, CodeSegmentSize);
-    }
-  }
-
-  /**
-   * Repair internal bindings after CodeSegment has moved and its previous bytes have been preserved.
-   * OldAddress is the former base as an integer; OldSize is the former valid byte count, not capacity.
-   * The old allocation may already be freed, so all fields are read from the current buffer.
-   *
-   * Map entries inside [OldAddress, OldAddress + OldSize) retain their offsets relative to the new base.
-   * Native host addresses lie outside that range and keep their values. Library bases and field positions
-   * are already segment-relative offsets and do not move within the buffer.
-   *
-   * For each dynamic import relocation, undo Addend with unsigned subtraction to recover the selected symbol's
-   * original base, including when Addend is INT64_MIN. Test that base against the old range: the stored
-   * address itself may lie outside the range because of Addend. Translate only code-segment targets,
-   * then reapply the checked Addend and rewrite the field:
-   *   OldAddress + Offset + Addend  ->  NewAddress + Offset + Addend
-   *
-   * Image-base address relocations are recomputed from each library's original TargetOffset and Addend:
-   *   NewAddress + Library.ImageBase + TargetOffset + Addend
-   * This also handles one-past targets and results displaced outside the image by Addend; no old-address
-   * range test is needed because the metadata already identifies the owning image.
-   *
-   * Do not resolve names again: later same-name exports must not rebind references that were already patched.
-   * This repairs registered map entries and relocation fields, not pointers cached by external callers.
-   */
-  void Interpreter::repatchCodeSegment(std::uint64_t OldAddress, std::size_t OldSize)
-  {
-    if (OldSize == 0)
-    {
-      return;
-    }
-    const auto NewAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment));
-    for (auto &Symbol : ExportSymbolMap)
-    {
-      auto &Address = Symbol.second;
-      if (Address >= OldAddress && Address - OldAddress < OldSize)
-      {
-        Address = NewAddress + (Address - OldAddress);
-      }
-    }
-    for (const auto &Entry : Libraries)
-    {
-      const auto &Library = Entry.second;
-      const auto ImageSize = Library.ExecutableFile.byteSize();
-      REPORT_ICE_IF(Library.ImageBase > OldSize || ImageSize > OldSize - Library.ImageBase, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing image", "loaded image is outside the code segment");
-      for (const auto &Relocation : Library.ExecutableFile.getDynamicImportSymbolRelocations())
-      {
-        REPORT_ICE_IF(Relocation.ImageOffset > ImageSize || DynamicImportSymbolRelocation::ByteSize > ImageSize - Relocation.ImageOffset, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing dynamic import relocation", "address field is outside the image");
-        auto *Destination = CodeSegment + Library.ImageBase + Relocation.ImageOffset;
-        check(reinterpret_cast<std::uintptr_t>(Destination) % DynamicImportSymbolRelocation::ByteSize == 0);
-        auto SymbolAddress = *reinterpret_cast<const std::uint64_t *>(Destination) - static_cast<std::uint64_t>(Relocation.Addend);
-        if (SymbolAddress >= OldAddress && SymbolAddress - OldAddress < OldSize)
+        if (!Initialized)
         {
-          SymbolAddress = NewAddress + (SymbolAddress - OldAddress);
+            reserveCodeSegment(core::ConfigManager::getSize<core::ConfigKind::VMInitialCodeSegmentBytes>());
+            const auto StackBytes = core::ConfigManager::getSize<core::ConfigKind::VMStackBytes>();
+            auto* const Stack = StackBytes != 0 ? static_cast<std::uint8_t*>(std::malloc(StackBytes)) : nullptr;
+            REPORT_ICE_IF(StackBytes != 0 && !Stack, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "stack", "runtime storage allocation failed");
+            StackAllocation.reset(Stack);
+            Initialized = true;
         }
-        *reinterpret_cast<std::uint64_t *>(Destination) = detail::addAddressOffset(SymbolAddress, Relocation.Addend, Diagnostics);
-      }
-      for (const auto &Relocation : Library.ExecutableFile.getImageBaseAddressRelocations())
-      {
-        REPORT_ICE_IF(Relocation.ImageOffset > ImageSize || ImageBaseAddressRelocation::ByteSize > ImageSize - Relocation.ImageOffset, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing image-base address relocation", "address field is outside the image");
-        REPORT_ICE_IF(Relocation.TargetOffset > ImageSize, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing image-base address relocation", "target offset is outside the image");
-        const auto TargetAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment + Library.ImageBase + Relocation.TargetOffset));
-        auto *Destination = CodeSegment + Library.ImageBase + Relocation.ImageOffset;
-        check(reinterpret_cast<std::uintptr_t>(Destination) % ImageBaseAddressRelocation::ByteSize == 0);
-        *reinterpret_cast<std::uint64_t *>(Destination) = detail::addAddressOffset(TargetAddress, Relocation.Addend, Diagnostics, "existing image-base address relocation");
-      }
+        for (const auto& Symbol : NativeSymbolAddresses)
+        {
+            ExportSymbolMap.try_emplace(Symbol.Name, static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(Symbol.Address)));
+        }
     }
-  }
 
-  std::uint32_t Interpreter::loadLibrary(ExecutableFile Executable)
-  {
-    if (NextLibraryHandle == InvalidLibraryHandle)
+    bool Interpreter::execute(const void* Entry)
     {
-      return InvalidLibraryHandle;
+        const auto EntryAddress = reinterpret_cast<std::uintptr_t>(Entry);
+        const auto CodeAddress = reinterpret_cast<std::uintptr_t>(CodeSegment);
+        if (EntryAddress < CodeAddress || EntryAddress - CodeAddress >= CodeSegmentSize)
+        {
+            Diagnostics.report<core::DiagnosticKind::VMExecutionFailed>({}, "entry", "entry address is outside the loaded code segment");
+            return false;
+        }
+        Frame = vm::Frame{};
+        *reinterpret_cast<std::uint8_t**>(SET_REGISTER(RegisterId::BP, Frame)) = static_cast<std::uint8_t*>(StackAllocation.get());
+        *reinterpret_cast<std::uint8_t**>(SET_REGISTER(RegisterId::SP, Frame)) = static_cast<std::uint8_t*>(StackAllocation.get());
+        *reinterpret_cast<std::uint8_t**>(SET_REGISTER(RegisterId::PC, Frame)) = const_cast<std::uint8_t*>(static_cast<const std::uint8_t*>(Entry));
+        return dispatch();
     }
-    REPORT_ICE_IF(Executable.getImage().size() > std::numeric_limits<std::size_t>::max() - CodeSegmentSize, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "image", "code segment size overflows");
-    reserveCodeSegment(CodeSegmentSize + Executable.getImage().size());
-    LoadTransaction Transaction(*this);
-    const std::uint32_t Handle = NextLibraryHandle++;
-    auto &Library = Libraries.try_emplace(Handle, LibraryDescriptor{static_cast<std::uint64_t>(CodeSegmentSize), std::move(Executable)}).first->second;
-    const auto &Image = Library.ExecutableFile.getImage();
-    if (!Image.empty())
-    {
-      std::memcpy(CodeSegment + CodeSegmentSize, Image.data(), Image.size());
-    }
-    CodeSegmentSize += Image.size();
-    if (!Loader.loadLibrary({CodeSegment, CodeSegmentSize}, Library.ImageBase, Library.ExecutableFile))
-    {
-      return InvalidLibraryHandle;
-    }
-    Transaction.commit();
-    return Handle;
-  }
 
-  /**
-   * Register exports from an image already present in CodeSegment. Library.ImageBase is its byte offset
-   * in the segment; each export's Offset is relative to that image. Store the actual host address:
-   *   Address = CodeSegment + Library.ImageBase + Symbol.Offset
-   *
-   * insert_or_assign gives later loaded or registered symbols precedence over earlier same-name VM or
-   * Native bindings. This provides LD_PRELOAD-style symbol interposition with a last-registration-wins rule.
-   * Subsequent name queries and import resolutions see the replacement; previously patched references
-   * retain their original targets and are not retroactively rebound.
-   */
-  void Interpreter::loadExportSymbol(const LibraryDescriptor &Library)
-  {
-    REPORT_ICE_IF(Library.ImageBase > CodeSegmentSize || Library.ExecutableFile.byteSize() > CodeSegmentSize - Library.ImageBase, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "export symbol", "library image is outside the code segment");
-    for (const auto &Symbol : Library.ExecutableFile.getExportSymbols())
+    void* Interpreter::resolveSymbolAddress(core::Name Name) const noexcept
     {
-      REPORT_ICE_IF(Symbol.Offset >= Library.ExecutableFile.byteSize(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "export symbol", "offset is outside the image");
-      const auto Address = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment + Library.ImageBase + Symbol.Offset));
-      ExportSymbolMap.insert_or_assign(Symbol.Name, Address);
+        const auto Position = ExportSymbolMap.find(Name);
+        return Position == ExportSymbolMap.end() ? nullptr : reinterpret_cast<void*>(static_cast<std::uintptr_t>(Position->second));
     }
-  }
 
-  const ExecutableFile *Interpreter::findExecutable(std::uint32_t Handle) const noexcept
-  {
-    const auto Position = Libraries.find(Handle);
-    return Position == Libraries.end() ? nullptr : &Position->second.ExecutableFile;
-  }
+    /**
+     * Ensure at least RequiredBytes total capacity, not an additional byte count; CodeSegmentSize is unchanged.
+     * Existing capacity is reused. Growth normally doubles capacity without overflowing and always covers
+     * RequiredBytes. The initial allocation uses malloc; an existing allocation first tries realloc.
+     *
+     * If realloc fails, the old block remains valid: allocate a replacement, copy only CodeSegmentSize bytes,
+     * then release the old block. Preserve the old base as an integer because a successful realloc may also
+     * move storage and invalidate the old pointer. An in-place extension needs no address repair; either kind
+     * of move calls repatchCodeSegment after the new allocation is installed.
+     *
+     * Growth precedes the load transaction, so a subsequent link failure can retain the increased capacity
+     * and repaired addresses. External cached pointers are not repaired and must be queried again after a move.
+     */
+    void Interpreter::reserveCodeSegment(std::size_t RequiredBytes)
+    {
+        if (RequiredBytes <= CodeSegmentCapacity)
+        {
+            return;
+        }
+        const auto NewCapacity = CodeSegmentCapacity <= std::numeric_limits<std::size_t>::max() / 2 ? std::max(RequiredBytes, CodeSegmentCapacity * 2) : RequiredBytes;
+        const auto OldAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment));
+        auto* Allocation = CodeSegment ? static_cast<std::uint8_t*>(std::realloc(CodeSegment, NewCapacity)) : static_cast<std::uint8_t*>(std::malloc(NewCapacity));
+        if (!Allocation)
+        {
+            Allocation = static_cast<std::uint8_t*>(std::malloc(NewCapacity));
+            REPORT_ICE_IF(!Allocation, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "code segment", "runtime storage allocation failed");
+            if (CodeSegmentSize != 0)
+            {
+                std::memcpy(Allocation, CodeSegment, CodeSegmentSize);
+            }
+            std::free(CodeSegment);
+        }
+        CodeSegment = Allocation;
+        CodeSegmentCapacity = NewCapacity;
+        if (OldAddress != static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment)))
+        {
+            repatchCodeSegment(OldAddress, CodeSegmentSize);
+        }
+    }
+
+    /**
+     * Repair internal bindings after CodeSegment has moved and its previous bytes have been preserved.
+     * OldAddress is the former base as an integer; OldSize is the former valid byte count, not capacity.
+     * The old allocation may already be freed, so all fields are read from the current buffer.
+     *
+     * Map entries inside [OldAddress, OldAddress + OldSize) retain their offsets relative to the new base.
+     * Native host addresses lie outside that range and keep their values. Library bases and field positions
+     * are already segment-relative offsets and do not move within the buffer.
+     *
+     * For each dynamic import relocation, undo Addend with unsigned subtraction to recover the selected symbol's
+     * original base, including when Addend is INT64_MIN. Test that base against the old range: the stored
+     * address itself may lie outside the range because of Addend. Translate only code-segment targets,
+     * then reapply the checked Addend and rewrite the field:
+     *   OldAddress + Offset + Addend  ->  NewAddress + Offset + Addend
+     *
+     * Image-base address relocations are recomputed from each library's original TargetOffset and Addend:
+     *   NewAddress + Library.ImageBase + TargetOffset + Addend
+     * This also handles one-past targets and results displaced outside the image by Addend; no old-address
+     * range test is needed because the metadata already identifies the owning image.
+     *
+     * Do not resolve names again: later same-name exports must not rebind references that were already patched.
+     * This repairs registered map entries and relocation fields, not pointers cached by external callers.
+     */
+    void Interpreter::repatchCodeSegment(std::uint64_t OldAddress, std::size_t OldSize)
+    {
+        if (OldSize == 0)
+        {
+            return;
+        }
+        const auto NewAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment));
+        for (auto& Symbol : ExportSymbolMap)
+        {
+            auto& Address = Symbol.second;
+            if (Address >= OldAddress && Address - OldAddress < OldSize)
+            {
+                Address = NewAddress + (Address - OldAddress);
+            }
+        }
+        for (const auto& Entry : Libraries)
+        {
+            const auto& Library = Entry.second;
+            const auto ImageSize = Library.ExecutableFile.byteSize();
+            REPORT_ICE_IF(Library.ImageBase > OldSize || ImageSize > OldSize - Library.ImageBase, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing image", "loaded image is outside the code segment");
+            for (const auto& Relocation : Library.ExecutableFile.getDynamicImportSymbolRelocations())
+            {
+                REPORT_ICE_IF(Relocation.ImageOffset > ImageSize || DynamicImportSymbolRelocation::ByteSize > ImageSize - Relocation.ImageOffset, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing dynamic import relocation", "address field is outside the image");
+                auto* Destination = CodeSegment + Library.ImageBase + Relocation.ImageOffset;
+                check(reinterpret_cast<std::uintptr_t>(Destination) % DynamicImportSymbolRelocation::ByteSize == 0);
+                auto SymbolAddress = *reinterpret_cast<const std::uint64_t*>(Destination) - static_cast<std::uint64_t>(Relocation.Addend);
+                if (SymbolAddress >= OldAddress && SymbolAddress - OldAddress < OldSize)
+                {
+                    SymbolAddress = NewAddress + (SymbolAddress - OldAddress);
+                }
+                *reinterpret_cast<std::uint64_t*>(Destination) = detail::addAddressOffset(SymbolAddress, Relocation.Addend, Diagnostics);
+            }
+            for (const auto& Relocation : Library.ExecutableFile.getImageBaseAddressRelocations())
+            {
+                REPORT_ICE_IF(Relocation.ImageOffset > ImageSize || ImageBaseAddressRelocation::ByteSize > ImageSize - Relocation.ImageOffset, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing image-base address relocation", "address field is outside the image");
+                REPORT_ICE_IF(Relocation.TargetOffset > ImageSize, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "existing image-base address relocation", "target offset is outside the image");
+                const auto TargetAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment + Library.ImageBase + Relocation.TargetOffset));
+                auto* Destination = CodeSegment + Library.ImageBase + Relocation.ImageOffset;
+                check(reinterpret_cast<std::uintptr_t>(Destination) % ImageBaseAddressRelocation::ByteSize == 0);
+                *reinterpret_cast<std::uint64_t*>(Destination) = detail::addAddressOffset(TargetAddress, Relocation.Addend, Diagnostics, "existing image-base address relocation");
+            }
+        }
+    }
+
+    std::uint32_t Interpreter::loadLibrary(ExecutableFile Executable)
+    {
+        if (NextLibraryHandle == InvalidLibraryHandle)
+        {
+            return InvalidLibraryHandle;
+        }
+        REPORT_ICE_IF(Executable.getImage().size() > std::numeric_limits<std::size_t>::max() - CodeSegmentSize, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "image", "code segment size overflows");
+        reserveCodeSegment(CodeSegmentSize + Executable.getImage().size());
+        LoadTransaction Transaction(*this);
+        const std::uint32_t Handle = NextLibraryHandle++;
+        auto& Library = Libraries.try_emplace(Handle, LibraryDescriptor{static_cast<std::uint64_t>(CodeSegmentSize), std::move(Executable)}).first->second;
+        const auto& Image = Library.ExecutableFile.getImage();
+        if (!Image.empty())
+        {
+            std::memcpy(CodeSegment + CodeSegmentSize, Image.data(), Image.size());
+        }
+        CodeSegmentSize += Image.size();
+        if (!Loader.loadLibrary({CodeSegment, CodeSegmentSize}, Library.ImageBase, Library.ExecutableFile))
+        {
+            return InvalidLibraryHandle;
+        }
+        Transaction.commit();
+        return Handle;
+    }
+
+    /**
+     * Register exports from an image already present in CodeSegment. Library.ImageBase is its byte offset
+     * in the segment; each export's Offset is relative to that image. Store the actual host address:
+     *   Address = CodeSegment + Library.ImageBase + Symbol.Offset
+     *
+     * insert_or_assign gives later loaded or registered symbols precedence over earlier same-name VM or
+     * Native bindings. This provides LD_PRELOAD-style symbol interposition with a last-registration-wins rule.
+     * Subsequent name queries and import resolutions see the replacement; previously patched references
+     * retain their original targets and are not retroactively rebound.
+     */
+    void Interpreter::loadExportSymbol(const LibraryDescriptor& Library)
+    {
+        REPORT_ICE_IF(Library.ImageBase > CodeSegmentSize || Library.ExecutableFile.byteSize() > CodeSegmentSize - Library.ImageBase, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "export symbol", "library image is outside the code segment");
+        for (const auto& Symbol : Library.ExecutableFile.getExportSymbols())
+        {
+            REPORT_ICE_IF(Symbol.Offset >= Library.ExecutableFile.byteSize(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "export symbol", "offset is outside the image");
+            const auto Address = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment + Library.ImageBase + Symbol.Offset));
+            ExportSymbolMap.insert_or_assign(Symbol.Name, Address);
+        }
+    }
+
+    const ExecutableFile* Interpreter::findExecutable(std::uint32_t Handle) const noexcept
+    {
+        const auto Position = Libraries.find(Handle);
+        return Position == Libraries.end() ? nullptr : &Position->second.ExecutableFile;
+    }
 } // namespace ink::vm
