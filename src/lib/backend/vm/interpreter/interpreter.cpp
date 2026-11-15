@@ -32,16 +32,29 @@ namespace ink::vm
       auto *const Stack = StackBytes != 0 ? static_cast<std::uint8_t *>(std::malloc(StackBytes)) : nullptr;
       REPORT_ICE_IF(StackBytes != 0 && !Stack, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "stack", "runtime storage allocation failed");
       StackAllocation.reset(Stack);
-      Frame.Register[static_cast<std::size_t>(RegisterId::BP)] = Stack;
-      Frame.Register[static_cast<std::size_t>(RegisterId::SP)] = Stack;
-      Frame.Register[static_cast<std::size_t>(RegisterId::PC)] = nullptr;
-      *reinterpret_cast<vm::EFlags *>(SET_REGISTER(RegisterId::EFLAGS, Frame)) = 0;
       Initialized = true;
     }
     for (const auto &Symbol : NativeSymbolAddresses)
     {
       ExportSymbolMap.try_emplace(Symbol.Name, static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(Symbol.Address)));
     }
+  }
+
+  bool Interpreter::execute(const void *Entry)
+  {
+    const auto EntryAddress = reinterpret_cast<std::uintptr_t>(Entry);
+    const auto CodeAddress = reinterpret_cast<std::uintptr_t>(CodeSegment);
+    if (EntryAddress < CodeAddress || EntryAddress - CodeAddress >= CodeSegmentSize)
+    {
+      Diagnostics.report<core::DiagnosticKind::VMExecutionFailed>({}, "entry", "entry address is outside the loaded code segment");
+      return false;
+    }
+    Frame = vm::Frame{};
+    *reinterpret_cast<std::uint8_t **>(SET_REGISTER(RegisterId::BP, Frame)) = static_cast<std::uint8_t *>(StackAllocation.get());
+    *reinterpret_cast<std::uint8_t **>(SET_REGISTER(RegisterId::SP, Frame)) = static_cast<std::uint8_t *>(StackAllocation.get());
+    *reinterpret_cast<std::uint8_t **>(SET_REGISTER(RegisterId::PC, Frame)) = const_cast<std::uint8_t *>(static_cast<const std::uint8_t *>(Entry));
+    *reinterpret_cast<vm::EFlags *>(SET_REGISTER(RegisterId::EFLAGS, Frame)) = 0;
+    return dispatch();
   }
 
   void *Interpreter::resolveSymbolAddress(core::Name Name) const noexcept

@@ -74,7 +74,7 @@ OPCODE(Add64mii, 0x0018, "add64mii", Mii, 64, 0, 1, 2, Add, None)
 // Address registers have 64-bit address width; arithmetic destinations may be BP or SP with zero ByteOffset, never PC.
 // For register destinations, LHS is an address and RHS is a signed 64-bit byte displacement.
 // These sources retain their address/displacement roles and must not be exchanged.
-// Address arithmetic is checked before updating the register; SP updates must also satisfy stack bounds and frame rules.
+// Valid address arithmetic, stack bounds, and frame rules are caller preconditions for the current unchecked dispatcher.
 // add64rri sp, sp, ByteCount reserves stack space; a negative displacement reclaims it.
 OPCODE(Add64rrr, 0x0019, "add64rrr", Rrr, 64, 3, 0, 0, Add, None)
 OPCODE(Add64rrm, 0x001A, "add64rrm", Rrm, 64, 2, 1, 0, Add, None)

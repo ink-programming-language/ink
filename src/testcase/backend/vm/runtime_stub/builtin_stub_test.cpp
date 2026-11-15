@@ -44,11 +44,11 @@ namespace ink::vm::test
       auto Expected = Stack;
       std::memcpy(Expected.data() + ReturnSlotOffset, &Value, sizeof(Value));
       Frame CallFrame{Stack.data() + CallEndOffset};
-      auto *const InitialSP = GET_REGISTER(RegisterId::SP, CallFrame);
+      auto *const InitialSP = *reinterpret_cast<std::uint8_t *const *>(GET_REGISTER(RegisterId::SP, CallFrame));
 
       identityStub(&CallFrame);
 
-      EXPECT_EQ(GET_REGISTER(RegisterId::SP, CallFrame), InitialSP);
+      EXPECT_EQ(*reinterpret_cast<std::uint8_t *const *>(GET_REGISTER(RegisterId::SP, CallFrame)), InitialSP);
       EXPECT_EQ(Stack, Expected);
     }
   }
@@ -77,11 +77,11 @@ namespace ink::vm::test
     auto Expected = Stack;
     std::memcpy(Expected.data() + ReturnSlotOffset, &Value, sizeof(Value));
     Frame CallFrame{Stack.data() + CallEndOffset};
-    auto *const InitialSP = GET_REGISTER(RegisterId::SP, CallFrame);
+    auto *const InitialSP = *reinterpret_cast<std::uint8_t *const *>(GET_REGISTER(RegisterId::SP, CallFrame));
 
     Stub(&CallFrame);
 
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, CallFrame), InitialSP);
+    EXPECT_EQ(*reinterpret_cast<std::uint8_t *const *>(GET_REGISTER(RegisterId::SP, CallFrame)), InitialSP);
     EXPECT_EQ(Stack, Expected);
   }
 } // namespace ink::vm::test

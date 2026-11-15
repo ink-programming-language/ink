@@ -1,6 +1,6 @@
 # VM 运行时设计讨论稿
 
-本文讨论 Ink 底层虚拟机的执行状态和栈操作。函数调用布局单独记录在 [VM 调用约定](VM-Calling-Convention.md)；下文的运行时建议不表示执行器已经实现。
+本文记录 Ink 底层虚拟机的执行状态、已实现的最小分派循环和后续栈操作规划。函数调用布局单独记录在 [VM 调用约定](VM-Calling-Convention.md)；标为建议的约定仍需后续执行器支持。
 
 ## 已确认的方向
 
@@ -10,11 +10,19 @@
 
 逻辑寄存器属于 VM 的可见执行状态，与宿主 CPU 的寄存器分配无关。解释器计算有效地址、解码操作数时使用的宿主临时变量不增加 VM 的逻辑寄存器。
 
-[VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录统一符号声明、可写或只读全局数据和栈帧描述。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号绑定和 Native 符号推导，`ExecutableFile` 提供镜像模型和结构校验。指令编码、镜像布局与发射已实现，解码、完整加载绑定及执行器仍待实现；下文描述运行时规划。
+[VM 内存模型与指令构建](VM-Module.md) 已提供 `MachineModule`、`MachineFunction`、`MachineBasicBlock` 和 `MachineInstructionBuilder`，用于持有和构建尚未编码的 VM 指令，并记录统一符号声明、可写或只读全局数据和栈帧描述。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号绑定和 Native 符号推导，`ExecutableFile` 提供镜像模型和结构校验。指令编码、镜像布局、发射和加载已实现；执行入口与分派循环当前支持 `Add64rrr`、`Add64rrm`、`Add64mrr` 和最外层 `Ret`，其他指令执行仍待实现。
 
 `interpreter` 目录中的 `Interpreter` 持有 `DiagnosticEngine` 和 `Loader`，后者借用所属解释器；`getDiagnostics()` 提供诊断引擎访问，调用方可注册 consumer。构造函数自动调用公开的 `initialize()`，以 `try_emplace` 将 `NativeSymbolAddresses` 中的名称及宿主地址登记到统一的 `ExportSymbolMap`；重复初始化保留已有同名绑定。`Interpreter::resolveSymbolAddress(Name)` 只查询此表，找到时返回真实宿主地址，找不到时返回 nullptr，不再直接搜索 Native 表。`getExportSymbolMap()` 提供只读查询，表中 `uint64_t` 值同时保存 Native 和 VM 导出的真实宿主地址，不保存代码段偏移。
 
-解释器还持有当前 `Frame`。首次 `initialize()` 预留初始代码段容量，并读取 `config.def` 中的 `VMStackBytes`，用 `malloc` 创建栈后直接初始化 BP、SP 寄存器；默认栈大小为 2 MiB（2097152 字节），可通过 `INK_VM_STACK_BYTES` 环境变量覆盖，无效的十进制值或溢出值使用默认大小。栈向高地址增长，初始 BP 和 SP 均指向分配的栈起始位置，PC 为 nullptr，EFLAGS 显式初始化为 0，ZERO 恒为 0。零字节配置不分配栈存储，BP、SP 保持 nullptr。`getFrame()` 返回当前帧的可变或只读引用，外部通过其 `Register` 数组访问寄存器及栈地址。解释器仅通过 RAII 保留原始分配地址以便销毁时释放，不另存栈段大小；修改 BP 或 SP 不影响原始栈分配的释放。栈存储地址在解释器生命周期内保持稳定；重复 `initialize()` 不重新分配栈、不重置寄存器，也不重新读取栈大小配置。
+解释器还持有当前 `Frame`。首次 `initialize()` 预留初始代码段容量，并读取 `config.def` 中的 `VMStackBytes`，用 `malloc` 创建一次栈分配。默认大小为 2 MiB（2097152 字节），可通过 `INK_VM_STACK_BYTES` 环境变量覆盖，无效的十进制值或溢出值使用默认大小；零字节配置不分配栈存储。构造后的寄存器保留 `Frame` 默认状态，BP、SP、PC 均为 nullptr。重复 `initialize()` 注册 Native 符号并保留当前帧与当前栈，不重新读取配置或重置寄存器。
+
+`Interpreter::execute(const void *Entry)` 接受已加载代码段中的宿主入口地址。入口不在有效代码字节范围内时报告 `VMExecutionFailed`（`INK-V0005`），返回 `false` 并保留此前帧和栈。有效入口会重置当前帧并复用初始化时创建的栈：栈向高地址增长，BP、SP 均指向原始栈分配的起始位置，PC 指向 `Entry`，EFLAGS 显式清零，ZERO 恒为 0；零字节栈的 BP、SP 为 nullptr。每次有效入口执行都重置这些寄存器，保留栈分配与其中的字节，随后调用单独定义于 `dispatch.cpp` 的私有 `dispatch()`。
+
+`getFrame()` 返回当前帧的可变或只读引用。`Register` 数组依次绑定到 `&BP`、`&SP`、`&PC`、`&EFlags`、`&ZERO`；表项保存寄存器存储地址，读写成员值时通过该存储完成，表项本身保持固定。构造后的 BP、SP、PC 值为 nullptr，但对应表项及 GET/SET 宏返回的存储地址有效。帧复制会复制寄存器值，并重新绑定到目标帧自身存储。解释器仅通过 RAII 保留原始栈分配地址，不另存栈段大小；修改 BP 或 SP 不影响释放原始栈分配。栈分配在解释器生命周期内保持稳定，销毁时释放。
+
+当前分派循环按小端序读取 16 位 opcode。三种已实现的 Add 形式均直接读取三个九字节操作数，并用 `memcpy` 从寄存器存储读取八字节值；ZERO 与其他寄存器使用相同读取路径，其常量存储提供 0。`r` 来源为读取的寄存器值加偏移位模式，`m` 来源在同样计算有效地址后，再从该地址读取八字节内存值。`Add64rrr` 使用两个 `r` 来源，`Add64rrm` 的右来源增加这一次内存读取。加法按 64 位位模式回绕，并更新 CF、ZF、SF、OF；`r` 目标将八字节结果写入目标寄存器的成员存储，`Add64mrr` 则将结果写入目标 `m` 有效地址指向的可写内存。三者均将 PC 前进 29 字节继续分派。
+
+调用方须提供完整有效的 Add 编码：`r` 目标为 BP 或 SP 且偏移为零，寄存器来源或内存基址为 BP、SP、PC 或 ZERO，`m` 来源指向可读的八字节区域，`m` 目标指向可写的八字节区域；这些分派路径不检查操作数长度、寄存器编号、地址溢出、SP 边界或活动帧约束。地址及栈使用的有效性属于调用前置条件。两字节 `Ret` 结束最外层执行并返回 `true`，PC 保留在该 `Ret` 的起始位置。当前不恢复普通 VM 调用帧；CALL、嵌套返回及其他 opcode 尚无执行实现。不支持的 opcode 或不足两字节的 opcode 报告 `VMExecutionFailed` 并返回 `false`，PC 保留在该位置；完整指令执行后到达代码段末尾但没有 `Ret` 时，PC 保留在代码段末尾并报告失败。完整字节码验证和访存权限检查仍属后续工作。
 
 `CodeSegment` 使用 `malloc` 管理的 `std::uint8_t *`，由解释器记录有效字节数和容量，销毁时释放。`getCodeSegment()` 返回覆盖有效字节的 `std::span<const std::uint8_t>`，`getCodeSegmentCapacity()` 返回分配容量。容量不足时优先调用 `realloc`；失败后改用 `malloc` 分配新缓冲区，复制既有有效字节，再释放旧存储。`realloc` 成功也可能搬迁地址，不能只在 fallback 分支更新绑定。
 
@@ -26,7 +34,7 @@
 
 `tools/interpreter` 中的 `ink-interpreter` 工具持有解释器实例，将输入文件原始字节读入 `ExecutableFile::Image` 后调用 `loadLibrary`，输入为 `-` 时读取标准输入。可执行文件解码器尚未实现，此时不读取入口、导入或重定位元数据。Loader 在导出循环中检查偏移，将 `CodeSegment.data() + ImageBase + Export.Offset` 对应的宿主地址写入统一符号表；同名导出覆盖当前绑定，因此本库导入也能查到本库导出。随后为完整导入表中的每项调用一次 `Interpreter::resolveSymbolAddress(Name)` 并按索引缓存地址，再遍历 `DynamicImportSymbolRelocations`，加上有符号 `Addend` 后直接通过 `uint64_t *` 写入目标字段，不构造修补数组。同次加载也绑定 `ImageBaseAddressRelocations`：将 `CodeSegment.data() + ImageBase + TargetOffset` 的宿主地址加上有符号 `Addend` 后写入字段。本表固定引用当前镜像，不查询统一符号表，也不参与同名符号覆盖；`TargetOffset` 可等于镜像字节数，表示 one-past 位置，但字段本身必须完整位于镜像内。
 
-直接地址写入要求小端宿主，Loader 通过平台字节序宏在编译时拒绝大端平台。两类重定位的每个实际修补字段都必须满足 8 字节对齐，使用 `check` 验证；关闭断言不放宽此前置条件。加载器不自动填充镜像，也不改变发射器紧排的操作数字段，因此通过结构校验的字段仍可能因不满足对齐前置条件而无法加载。镜像窗口、字段、导出偏移、导入索引、镜像基址目标偏移或地址算术违反内部不变量时报告 `VMExecutableValidationFailed` ICE；重定位重叠由上游结构校验器检查。`TargetOffset` 的 one-past 值或加上 Addend 后得到的镜像外地址不代表可解引用，访存边界和权限仍由后续执行器检查。原始 `ExecutableFile` 的镜像和记录保持不变；空镜像且没有导出、导入或任何重定位时仍接受。`CallNativei` 索引的执行绑定和执行器仍待实现。
+直接地址写入要求小端宿主，Loader 通过平台字节序宏在编译时拒绝大端平台。两类重定位的每个实际修补字段都必须满足 8 字节对齐，使用 `check` 验证；关闭断言不放宽此前置条件。加载器不自动填充镜像，也不改变发射器紧排的操作数字段，因此通过结构校验的字段仍可能因不满足对齐前置条件而无法加载。镜像窗口、字段、导出偏移、导入索引、镜像基址目标偏移或地址算术违反内部不变量时报告 `VMExecutableValidationFailed` ICE；重定位重叠由上游结构校验器检查。`TargetOffset` 的 one-past 值或加上 Addend 后得到的镜像外地址不代表可解引用，访存边界和权限仍由后续执行器检查。原始 `ExecutableFile` 的镜像和记录保持不变；空镜像且没有导出、导入或任何重定位时仍接受。`CallNativei` 索引的执行绑定仍待实现。
 
 ## 寄存器与符号操作数
 
@@ -41,13 +49,13 @@
 
 寄存器值使用上述独立编号，符号引用则通过 `core::Name` 保存链接名。符号名称与寄存器编号属于不同的表示，文本用 `@name` 或 `@"escaped name"` 标识符号。EFLAGS 的编号用于识别隐式状态；当前不能将其作为普通 `r` 来源、算术目标或内存基址。
 
-指令中的寄存器来源保存寄存器编号和有符号 `ByteOffset`，使用 `RegisterValue + ByteOffset` 的值，不访问内存。例如 PC 为 2、SP 为 0 时，`add64rrr bp, sp, pc + 2` 得到 BP 为 4；寄存器目标必须为 BP 或 SP，且偏移为零。地址操作数用于定位内存中的值，例如 `[bp + 16]` 或 `[@counter + 8]`。立即数可以保存数值，也可以保存符号地址值，例如 `@counter + 8`。内存模型还提供持有目标基本块指针的 `BasicBlockOperand`，跳转构建时直接引用同一函数的目标块。[VM 指令编码格式讨论稿](VM-Instruction-Format.md) 约定 `r` 与寄存器形式的 `m` 共用九字节的寄存器编号和偏移字段，由指令语义区分寄存器值与内存访问；操作数字段发射共用 `padRegister`，完整指令发射已实现，执行仍待实现。VM 符号内存地址和基本块目标使用 PC 相对字段，VM 符号地址立即数使用镜像基址重定位；宿主数据内存地址使用恒零的 ZERO 基址编码 `04` 及八字节动态重定位字段，`ff` 不是合法基址。
+指令中的寄存器来源保存寄存器编号和有符号 `ByteOffset`，先读取寄存器成员存储，再使用 `RegisterValue + ByteOffset` 的值，不访问该值指向的 VM 内存。例如 PC 为 2、SP 为 0 时，`add64rrr bp, sp, pc + 2` 得到 BP 为 4；寄存器目标必须为 BP 或 SP，且偏移为零。地址操作数用于定位内存中的值，例如 `[bp + 16]` 或 `[@counter + 8]`，作为来源时比 `r` 多一次 VM 内存读取。立即数可以保存数值，也可以保存符号地址值，例如 `@counter + 8`。内存模型还提供持有目标基本块指针的 `BasicBlockOperand`，跳转构建时直接引用同一函数的目标块。[VM 指令编码格式讨论稿](VM-Instruction-Format.md) 约定 `r` 与寄存器形式的 `m` 共用九字节的寄存器编号和偏移字段，由指令语义区分寄存器值与内存访问；操作数字段发射共用 `padRegister`，当前分派实现 `Add64rrr`、`Add64rrm` 和 `Add64mrr`。VM 符号内存地址和基本块目标使用 PC 相对字段，VM 符号地址立即数使用镜像基址重定位；宿主数据内存地址使用恒零的 ZERO 基址编码 `04` 及八字节动态重定位字段，`ff` 不是合法基址。
 
 VM 与其他 Ink 组件统一使用 `InkVersion`，默认值为 `0.0.1`，可通过 `INK_VERSION` 配置。当前指令集包含 EFLAGS、CMP、跳转、RET，以及 `call`、`callNative` 的立即数与内存操作数形式。函数调用的 PC 相对位移、native 导入索引和间接寻址编码见 [VM 指令编码格式](VM-Instruction-Format.md#函数调用目标与编码)。
 
 ## 算术状态与控制流
 
-EFLAGS 使用 32 位值，当前定义 CF（bit 0）、ZF（bit 6）、SF（bit 7）、OF（bit 11），其余位保留为零。执行语义规定所有 ADD 和 CMP 隐式覆盖四位；CMP 按对应位宽计算 `LHS - RHS` 并丢弃结果。普通加载、存储、跳转和 RET 保持标志不变。`eflags.h` 仅定义类型、标志掩码和 `conditionEFlagsMask()` 所表达的依赖元数据，不实现标志值生成或条件判断。解释器已持有初始化的帧和栈，执行循环及这些运行时计算函数仍待实现。
+EFLAGS 使用 32 位值，当前定义 CF（bit 0）、ZF（bit 6）、SF（bit 7）、OF（bit 11），其余位保留为零。执行语义规定所有 ADD 和 CMP 隐式覆盖四位；CMP 按对应位宽计算 `LHS - RHS` 并丢弃结果。普通加载、存储、跳转和 RET 保持标志不变。`eflags.h` 仅定义类型、标志掩码和 `conditionEFlagsMask()` 所表达的依赖元数据。当前分派循环实现三种已支持 Add 形式的四位标志生成，其他算术、比较及条件跳转的运行时计算仍待实现。
 
 跳转包括 `jmp`，以及 `je/jne`、`jb/jbe/ja/jae`、`jl/jle/jg/jge`、`jo/jno`、`js/jns`。无符号大小关系使用 CF、ZF，有符号大小关系使用 SF、OF、ZF；具体条件见 [指令编码格式](VM-Instruction-Format.md)。跳转在内存中保存非空的目标基本块指针，源块和目标块须属于同一函数；文本使用 `jne failure`、`jmp done`，支持函数内前向、后向和自引用。指令插入或块布局变化保留目标身份，调用方不需要手工维护内存中的跳转位移。
 
@@ -66,11 +74,13 @@ EFLAGS 使用 32 位值，当前定义 CF（bit 0）、ZF（bit 6）、SF（bit 
 | `sp` | 当前有效栈空间的末端；有效区间为 `[StackBegin, sp)`，可用容量为 `[sp, StackEnd)`。 |
 | `eflags` | 最近一次算术或比较指令产生的 CF、ZF、SF、OF，由条件跳转隐式读取。 |
 
-现有地址偏移和地址寄存器运算使用 64 位宽度，`bp`、`sp`、`pc` 和数据指针采用统一的 64 位宿主地址表示。`pc` 的写入仅由控制转移指令完成。当前代码段搬迁会修补登记的 VM 符号地址及两类地址重定位字段；执行中的寄存器、活动栈及调用方保留指针的地址稳定性仍须由后续执行器设计保证。
+现有地址偏移和地址寄存器运算使用 64 位宽度，`bp`、`sp`、`pc` 和数据指针采用统一的 64 位宿主地址表示。普通指令由分派循环推进 `pc`，显式控制转移由后续分支和调用指令完成。当前代码段搬迁会修补登记的 VM 符号地址及两类地址重定位字段；执行中的寄存器、活动栈及调用方保留指针的地址稳定性仍须由后续执行器设计保证。
 
 每次调用拥有独立的帧，因此递归调用不会覆盖上一层调用的参数和局部变量。函数内的长期槽位建议使用 `bp + 固定偏移` 访问，短期的调用准备区可以使用 `sp` 相对寻址。
 
 ## 栈空间调整：建议约定
+
+当前 `Add64rrr` 分派将地址有效性、栈边界和活动帧约束作为调用前置条件；以下检查描述后续完整运行时的建议。
 
 以 `sp` 为目标的寄存器加法直接调整栈顶。下例中的 `rri` 按目标、左来源、右来源的顺序表示两个寄存器操作数和一个立即数操作数：
 
@@ -91,20 +101,20 @@ add64rri sp, sp, -16    // 回收 16 字节
 
 ## 函数调用与返回
 
-当前已提供 `call`、`callNative` 指令族和零操作数 `ret` 的指令模型。直接调用复用 `ImmediateOperand`：`Calli` 保存 PC 相对 i64 位模式或 VM 函数符号，`CallNativei` 保存统一动态导入表 `DynamicImportSymbols` 的 u32 索引或未被可见 VM 定义满足的函数声明名称；调用符号的 addend 必须为零。间接调用复用 `AddressOperand`：`Callm` 读取 64 位 VM 函数地址，`CallNativem` 读取 64 位 native 可调用指针；间接地址中的符号定位存放指针的内存，不要求它是函数符号。这些指令不包含参数、结果槽或签名描述。文本读写、链接、指令编码和镜像发射已实现，解码及执行器仍待实现。
+当前已提供 `call`、`callNative` 指令族和零操作数 `ret` 的指令模型。直接调用复用 `ImmediateOperand`：`Calli` 保存 PC 相对 i64 位模式或 VM 函数符号，`CallNativei` 保存统一动态导入表 `DynamicImportSymbols` 的 u32 索引或未被可见 VM 定义满足的函数声明名称；调用符号的 addend 必须为零。间接调用复用 `AddressOperand`：`Callm` 读取 64 位 VM 函数地址，`CallNativem` 读取 64 位 native 可调用指针；间接地址中的符号定位存放指针的内存，不要求它是函数符号。这些指令不包含参数、结果槽或签名描述。文本读写、链接、指令编码和镜像发射已实现；当前执行仅支持以最外层 `Ret` 结束循环，普通调用与恢复调用帧的返回仍待实现。
 
 间接 native 目标不是 u32 导入索引，其可调用指针的 adapter 与宿主 ABI 协议仍待确定。逻辑模块通过 `MachineSymbolDeclaration` 统一保存声明，未被 VM 函数或全局定义满足的声明形成 `NativeSymbols`；符号只有一个名称，同时用于逻辑引用和宿主查找。统一动态导入表只保存实际使用的 Native 符号名称，完整调用签名与执行描述仍待实现。函数和数据的取地址用途共用 `DynamicImportSymbolRelocations`，地址重定位本身不赋予地址可调用性。增加间接指令模型不表示已经实现任意 C 函数指针调用。
 
-参数与返回槽的 8 字节对齐、仅可变参数调用包含的 24 字节预留区、CALL/RET 状态转换及完整示例统一见 [VM 调用约定](VM-Calling-Convention.md)。`ret` 从 `[bp]`、`[bp + 8]` 恢复旧 BP 和返回 PC，将 SP 恢复为返回前的 BP；调用区由调用方回收。RET 保持 EFLAGS 不变。
+参数与返回槽的 8 字节对齐、仅可变参数调用包含的 24 字节预留区、CALL/RET 状态转换及完整示例统一见 [VM 调用约定](VM-Calling-Convention.md)。普通调用的返回约定要求 `ret` 从 `[bp]`、`[bp + 8]` 恢复旧 BP 和返回 PC，将 SP 恢复为返回前的 BP，调用区由调用方回收；当前最外层 `Ret` 直接结束执行。RET 保持 EFLAGS 不变。
 
 ## 执行边界与失败：建议约定
 
 `pc` 必须指向合法指令起点。解码需要验证操作码、操作数长度以及目标指令边界；普通指令成功后执行 `pc = NextPC`，调用保存的也是 `NextPC`。程序入口可以使用专用的初始调用帧，最外层返回结束执行，不将任意地址当作退出哨兵。
 
-栈容量不足、地址运算溢出、非法访存、非法指令和无效跳转目标建议通过 VM 的显式执行结果或 trap 状态报告。trap 是 VM 的停止状态，不使用宿主 C++ 异常；失败前完成必要检查，避免只更新一部分寄存器或调用帧。退出值和错误信息的对外接口仍待运行时 API 设计确定。
+当前 `execute()` 和 `dispatch()` 通过 `bool` 返回执行是否成功，入口、PC 范围、opcode 长度及不支持的 opcode 错误通过诊断引擎报告 `VMExecutionFailed`。Add 操作数有效性和栈使用约束由调用方保证。更完整的栈容量不足、地址运算溢出、非法访存和无效跳转目标处理仍建议通过 VM 的显式执行结果或 trap 状态报告。trap 是 VM 的停止状态，不使用宿主 C++ 异常；失败前完成必要检查，避免只更新一部分寄存器或调用帧。程序退出值和完整执行错误状态的对外接口仍待设计。
 
-可执行镜像结构验证与执行验证分开处理。现有 `ExecutableFileValidator` 检查入口在镜像内以及统一导入、地址重定位和导出符号的结构，不解码指令。镜像固定使用小端序，不保存字节序配置；也不保存段表，导出符号只记录名称及镜像内偏移。代码范围识别、指令边界建立及数据权限策略仍待确定。指令编码、镜像布局与发射已实现，解码和独立模块 validator 仍待实现。现有镜像结构校验不提供运行时调用约定或访存验证；后续加载器及执行器仍须完成指令边界、地址、栈和权限检查。
+可执行镜像结构验证与执行验证分开处理。现有 `ExecutableFileValidator` 检查入口在镜像内以及统一导入、地址重定位和导出符号的结构，不解码指令。镜像固定使用小端序，不保存字节序配置；也不保存段表，导出符号只记录名称及镜像内偏移。代码范围识别、指令边界建立及数据权限策略仍待确定。指令编码、镜像布局与发射已实现，其他 opcode 的解码和独立模块 validator 仍待实现。现有镜像结构校验不提供运行时调用约定或访存验证；后续执行器仍须补全指令边界、活动帧、地址和权限检查。
 
 ## 后续讨论
 
-按 [VM 调用约定](VM-Calling-Convention.md) 生成调用区布局、执行 CALL、RET 与控制流的功能尚未实现。`opcode.def` 中已有形式的操作数编码以 [VM 指令编码格式](VM-Instruction-Format.md) 为准；镜像生成、程序入口退出及宿主 ABI adapter 仍需落实。
+按 [VM 调用约定](VM-Calling-Convention.md) 生成调用区布局、执行 CALL、恢复调用帧的 RET 与分支控制流尚未实现。`opcode.def` 中已有形式的操作数编码以 [VM 指令编码格式](VM-Instruction-Format.md) 为准；当前可通过指定宿主入口地址执行 `Add64rrr`、`Add64rrm`、`Add64mrr` 序列并以 `Ret` 结束，完整程序调用与宿主 ABI adapter 仍需落实。

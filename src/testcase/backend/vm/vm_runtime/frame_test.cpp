@@ -81,22 +81,32 @@ namespace ink::vm::test
     static_assert(std::is_same_v<decltype(GET_REGISTER(RegisterId::SP, std::declval<const Frame &>())), const std::uint8_t *>);
     static_assert(std::is_same_v<decltype(SET_REGISTER(RegisterId::SP, std::declval<Frame &>())), std::uint8_t *>);
     static_assert(!std::is_assignable_v<decltype((GET_REGISTER(RegisterId::ZERO, std::declval<Frame &>()))), const std::uint8_t *>);
+
+    std::uint8_t *readAddressRegister(const Frame &Value, RegisterId Id) noexcept
+    {
+      return *reinterpret_cast<std::uint8_t *const *>(GET_REGISTER(Id, Value));
+    }
+
+    void writeAddressRegister(Frame &Value, RegisterId Id, std::uint8_t *Address) noexcept
+    {
+      *reinterpret_cast<std::uint8_t **>(SET_REGISTER(Id, Value)) = Address;
+    }
   }
 
-  // Register slots retain pointer values and member addresses, mutable lookup writes their pointees, and copied frames rebind their own flag address.
-  TEST(VMFrameTest, InitializesRegisterAddressesAndRebindsIndependentCopies)
+  // Every slot points to register storage; copies own independent address and flag storage while sharing the immutable ZERO object.
+  TEST(VMFrameTest, InitializesRegisterStorageAndRebindsIndependentCopies)
   {
-    constexpr RegisterId RegisterIds[] = {
+    constexpr RegisterId AddressRegisters[] = {
         RegisterId::BP,
         RegisterId::SP,
         RegisterId::PC,
-        RegisterId::EFLAGS,
-        RegisterId::ZERO,
     };
     Frame Initial;
-    EXPECT_EQ(GET_REGISTER(RegisterId::BP, Initial), nullptr);
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, Initial), nullptr);
-    EXPECT_EQ(GET_REGISTER(RegisterId::PC, Initial), nullptr);
+    for (const auto Id : AddressRegisters)
+    {
+      ASSERT_NE(GET_REGISTER(Id, Initial), nullptr);
+      EXPECT_EQ(readAddressRegister(Initial, Id), nullptr);
+    }
     ASSERT_NE(GET_REGISTER(RegisterId::EFLAGS, Initial), nullptr);
     EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Initial)), 0U);
     ASSERT_NE(GET_REGISTER(RegisterId::ZERO, Initial), nullptr);
@@ -105,36 +115,18 @@ namespace ink::vm::test
     std::array<std::uint8_t, 16> Stack{};
     std::array<std::uint8_t, 8> Code{};
     Frame Original{Stack.data() + 12};
-    Original.Register[static_cast<std::size_t>(RegisterId::BP)] = Stack.data() + 4;
-    Original.Register[static_cast<std::size_t>(RegisterId::PC)] = Code.data() + 1;
+    const auto OriginalBindings = Original.Register;
+    writeAddressRegister(Original, RegisterId::BP, Stack.data() + 4);
+    writeAddressRegister(Original, RegisterId::PC, Code.data() + 1);
     *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, Original)) = ArithmeticEFlagsMask;
-    const std::array<const void *, 5> Expected = {
-        Stack.data() + 4,
-        Stack.data() + 12,
-        Code.data() + 1,
-        GET_REGISTER(RegisterId::EFLAGS, Original),
-        GET_REGISTER(RegisterId::ZERO, Initial),
-    };
-    for (const auto Id : RegisterIds)
+    EXPECT_EQ(readAddressRegister(Original, RegisterId::BP), Stack.data() + 4);
+    EXPECT_EQ(readAddressRegister(Original, RegisterId::SP), Stack.data() + 12);
+    EXPECT_EQ(readAddressRegister(Original, RegisterId::PC), Code.data() + 1);
+    EXPECT_EQ(Original.Register, OriginalBindings);
+    for (const auto Id : AddressRegisters)
     {
-      const auto Index = static_cast<std::size_t>(Id);
-      EXPECT_EQ(GET_REGISTER(Id, Original), Expected[Index]);
-      EXPECT_EQ(SET_REGISTER(Id, Original), const_cast<void *>(Expected[Index]));
-      EXPECT_EQ(Original.Register[Index], Expected[Index]);
+      EXPECT_EQ(SET_REGISTER(Id, Original), const_cast<std::uint8_t *>(GET_REGISTER(Id, Original)));
     }
-
-    *SET_REGISTER(RegisterId::BP, Original) = 0xB1;
-    *SET_REGISTER(RegisterId::SP, Original) = 0xA2;
-    *SET_REGISTER(RegisterId::PC, Original) = 0xC3;
-    *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, Original)) = eflagMask(EFlag::CF) | eflagMask(EFlag::ZF);
-    EXPECT_EQ(Stack[4], 0xB1);
-    EXPECT_EQ(Stack[12], 0xA2);
-    EXPECT_EQ(Code[1], 0xC3);
-    EXPECT_EQ(GET_REGISTER(RegisterId::BP, Original), Stack.data() + 4);
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, Original), Stack.data() + 12);
-    EXPECT_EQ(GET_REGISTER(RegisterId::PC, Original), Code.data() + 1);
-    const EFlags OriginalFlags = *reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Original));
-    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Original)), OriginalFlags);
 
     Frame Copied = Original;
     Frame Assigned;
@@ -151,25 +143,31 @@ namespace ink::vm::test
     EFlags CopyFlags = eflagMask(EFlag::SF);
     for (auto *Value : Copies)
     {
-      EXPECT_EQ(GET_REGISTER(RegisterId::BP, *Value), GET_REGISTER(RegisterId::BP, Original));
-      EXPECT_EQ(GET_REGISTER(RegisterId::SP, *Value), GET_REGISTER(RegisterId::SP, Original));
-      EXPECT_EQ(GET_REGISTER(RegisterId::PC, *Value), GET_REGISTER(RegisterId::PC, Original));
+      const auto CopyBindings = Value->Register;
+      for (const auto Id : AddressRegisters)
+      {
+        EXPECT_NE(GET_REGISTER(Id, *Value), GET_REGISTER(Id, Original));
+        EXPECT_EQ(readAddressRegister(*Value, Id), readAddressRegister(Original, Id));
+      }
       EXPECT_NE(GET_REGISTER(RegisterId::EFLAGS, *Value), GET_REGISTER(RegisterId::EFLAGS, Original));
+      EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, *Value)), ArithmeticEFlagsMask);
       EXPECT_EQ(GET_REGISTER(RegisterId::ZERO, *Value), GET_REGISTER(RegisterId::ZERO, Initial));
       EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, *Value)), 0U);
-      EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, *Value)), OriginalFlags);
+      writeAddressRegister(*Value, RegisterId::BP, Stack.data() + 2);
+      writeAddressRegister(*Value, RegisterId::SP, Stack.data() + 3);
+      writeAddressRegister(*Value, RegisterId::PC, Code.data() + 2);
       *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, *Value)) = CopyFlags++;
-      EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Original)), OriginalFlags);
+      EXPECT_EQ(Value->Register, CopyBindings);
+      EXPECT_EQ(readAddressRegister(Original, RegisterId::BP), Stack.data() + 4);
+      EXPECT_EQ(readAddressRegister(Original, RegisterId::SP), Stack.data() + 12);
+      EXPECT_EQ(readAddressRegister(Original, RegisterId::PC), Code.data() + 1);
+      EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Original)), ArithmeticEFlagsMask);
     }
-    Copied.Register[static_cast<std::size_t>(RegisterId::BP)] = Stack.data() + 2;
-    Copied.Register[static_cast<std::size_t>(RegisterId::SP)] = Stack.data() + 3;
-    Copied.Register[static_cast<std::size_t>(RegisterId::PC)] = Code.data() + 2;
-    EXPECT_EQ(GET_REGISTER(RegisterId::BP, Copied), Stack.data() + 2);
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, Copied), Stack.data() + 3);
-    EXPECT_EQ(GET_REGISTER(RegisterId::PC, Copied), Code.data() + 2);
-    EXPECT_EQ(GET_REGISTER(RegisterId::BP, Original), Stack.data() + 4);
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, Original), Stack.data() + 12);
-    EXPECT_EQ(GET_REGISTER(RegisterId::PC, Original), Code.data() + 1);
+    EXPECT_EQ(readAddressRegister(Copied, RegisterId::BP), Stack.data() + 2);
+    EXPECT_EQ(readAddressRegister(Copied, RegisterId::SP), Stack.data() + 3);
+    EXPECT_EQ(readAddressRegister(Copied, RegisterId::PC), Code.data() + 2);
+    EXPECT_EQ(Stack, (std::array<std::uint8_t, 16>{}));
+    EXPECT_EQ(Code, (std::array<std::uint8_t, 8>{}));
 
     std::size_t IdEvaluations = 0;
     std::size_t FrameEvaluations = 0;
@@ -198,8 +196,8 @@ namespace ink::vm::test
     EXPECT_EQ(GET_REGISTER(RegisterId::ZERO, View), GET_REGISTER(RegisterId::ZERO, Initial));
   }
 
-  // Updating SP through Register changes native argument and return locations, and copies preserve current slots while owning their flags.
-  TEST(VMFrameTest, UsesUpdatedRegisterSlotsForNativeCallsAndCopies)
+  // Writing the stored SP changes native argument and return locations without changing slot bindings, and copied flags remain independent.
+  TEST(VMFrameTest, UsesStoredRegisterValuesForNativeCallsAndCopies)
   {
     alignas(8) std::array<std::uint8_t, 48> Stack;
     Stack.fill(0xA7);
@@ -207,9 +205,9 @@ namespace ink::vm::test
     std::memcpy(Stack.data() + 32, &Argument, sizeof(Argument));
     auto Expected = Stack;
     Frame CallFrame{Stack.data() + 16};
-    CallFrame.Register[static_cast<std::size_t>(RegisterId::SP)] = Stack.data() + 40;
-    EFlags Flags = ArithmeticEFlagsMask;
-    CallFrame.Register[static_cast<std::size_t>(RegisterId::EFLAGS)] = &Flags;
+    const auto Bindings = CallFrame.Register;
+    writeAddressRegister(CallFrame, RegisterId::SP, Stack.data() + 40);
+    *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, CallFrame)) = ArithmeticEFlagsMask;
 
     const auto Actual = CallFrame.getArgument<0, std::uint64_t>();
     EXPECT_EQ(Actual, Argument);
@@ -220,18 +218,20 @@ namespace ink::vm::test
     {
       const auto CopiedArgument = Value->getArgument<0, std::uint64_t>();
       EXPECT_EQ(CopiedArgument, Argument);
-      EXPECT_EQ(GET_REGISTER(RegisterId::SP, *Value), Stack.data() + 40);
-      EXPECT_NE(GET_REGISTER(RegisterId::EFLAGS, *Value), reinterpret_cast<const std::uint8_t *>(&Flags));
-      EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, *Value)), Flags);
+      EXPECT_NE(GET_REGISTER(RegisterId::SP, *Value), GET_REGISTER(RegisterId::SP, CallFrame));
+      EXPECT_EQ(readAddressRegister(*Value, RegisterId::SP), Stack.data() + 40);
+      EXPECT_NE(GET_REGISTER(RegisterId::EFLAGS, *Value), GET_REGISTER(RegisterId::EFLAGS, CallFrame));
+      EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, *Value)), ArithmeticEFlagsMask);
       *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, *Value)) = 0;
     }
-    EXPECT_EQ(Flags, ArithmeticEFlagsMask);
+    EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), ArithmeticEFlagsMask);
 
     const std::uint64_t Result = 0xFEDCBA9876543210;
     std::memcpy(Expected.data() + 24, &Result, sizeof(Result));
     CallFrame.setReturnValue<std::uint64_t, std::uint64_t>(Result);
     EXPECT_EQ(Stack, Expected);
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, CallFrame), Stack.data() + 40);
+    EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::SP), Stack.data() + 40);
+    EXPECT_EQ(CallFrame.Register, Bindings);
   }
 
   // Mixed arguments and a one-byte result preserve the runtime registers, argument order, and all slot padding.
@@ -250,11 +250,11 @@ namespace ink::vm::test
     std::memcpy(Stack.data() + 40, &Pointer, sizeof(Pointer));
     const auto InitialStack = Stack;
     Frame MutableCallFrame{Stack.data() + 48};
-    MutableCallFrame.Register[static_cast<std::size_t>(RegisterId::BP)] = Stack.data() + 16;
-    MutableCallFrame.Register[static_cast<std::size_t>(RegisterId::PC)] = Code.data();
+    writeAddressRegister(MutableCallFrame, RegisterId::BP, Stack.data() + 16);
+    writeAddressRegister(MutableCallFrame, RegisterId::PC, Code.data());
     *reinterpret_cast<EFlags *>(SET_REGISTER(RegisterId::EFLAGS, MutableCallFrame)) = ArithmeticEFlagsMask;
     const Frame CallFrame = MutableCallFrame;
-    auto *const InitialSP = GET_REGISTER(RegisterId::SP, CallFrame);
+    auto *const InitialSP = readAddressRegister(CallFrame, RegisterId::SP);
 
     const auto ActualSmall = CallFrame.getArgument<0, std::int16_t, TwelveByteValue, const std::uint64_t *>();
     const auto ActualAggregate = CallFrame.getArgument<1, std::int16_t, TwelveByteValue, const std::uint64_t *>();
@@ -264,9 +264,9 @@ namespace ink::vm::test
     EXPECT_EQ(ActualAggregate, Aggregate);
     EXPECT_EQ(ActualPointer, Pointer);
     EXPECT_EQ(Stack, InitialStack);
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, CallFrame), InitialSP);
-    EXPECT_EQ(GET_REGISTER(RegisterId::BP, CallFrame), Stack.data() + 16);
-    EXPECT_EQ(GET_REGISTER(RegisterId::PC, CallFrame), Code.data());
+    EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::SP), InitialSP);
+    EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::BP), Stack.data() + 16);
+    EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::PC), Code.data());
     EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), ArithmeticEFlagsMask);
     EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, CallFrame)), 0U);
 
@@ -276,9 +276,9 @@ namespace ink::vm::test
     CallFrame.setReturnValue<std::uint8_t, std::int16_t, TwelveByteValue, const std::uint64_t *>(Result);
 
     EXPECT_EQ(Stack, Expected);
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, CallFrame), InitialSP);
-    EXPECT_EQ(GET_REGISTER(RegisterId::BP, CallFrame), Stack.data() + 16);
-    EXPECT_EQ(GET_REGISTER(RegisterId::PC, CallFrame), Code.data());
+    EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::SP), InitialSP);
+    EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::BP), Stack.data() + 16);
+    EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::PC), Code.data());
     EXPECT_EQ(*reinterpret_cast<const EFlags *>(GET_REGISTER(RegisterId::EFLAGS, CallFrame)), ArithmeticEFlagsMask);
     EXPECT_EQ(*reinterpret_cast<const std::uint64_t *>(GET_REGISTER(RegisterId::ZERO, CallFrame)), 0U);
   }
@@ -295,7 +295,7 @@ namespace ink::vm::test
     std::memcpy(Stack.data() + 48, &Small, sizeof(Small));
     const auto InitialStack = Stack;
     Frame CallFrame{Stack.data() + 56};
-    auto *const InitialSP = GET_REGISTER(RegisterId::SP, CallFrame);
+    auto *const InitialSP = readAddressRegister(CallFrame, RegisterId::SP);
 
     const auto ActualLarge = CallFrame.getArgument<0, TwentyFourByteValue, std::int32_t>();
     const auto ActualSmall = CallFrame.getArgument<1, TwentyFourByteValue, std::int32_t>();
@@ -310,7 +310,7 @@ namespace ink::vm::test
     CallFrame.setReturnValue<TwelveByteValue, TwentyFourByteValue, std::int32_t>(Result);
 
     EXPECT_EQ(Stack, Expected);
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, CallFrame), InitialSP);
+    EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::SP), InitialSP);
   }
 
   // A void call contains only its one-byte, twelve-byte, and twenty-four-byte argument slots and reading them leaves the complete stack unchanged.
@@ -327,7 +327,7 @@ namespace ink::vm::test
     std::memcpy(Stack.data() + 32, &Large, sizeof(Large));
     const auto InitialStack = Stack;
     Frame CallFrame{Stack.data() + 56};
-    auto *const InitialSP = GET_REGISTER(RegisterId::SP, CallFrame);
+    auto *const InitialSP = readAddressRegister(CallFrame, RegisterId::SP);
 
     const auto ActualSmall = CallFrame.getArgument<0, std::uint8_t, TwelveByteValue, TwentyFourByteValue>();
     const auto ActualMedium = CallFrame.getArgument<1, std::uint8_t, TwelveByteValue, TwentyFourByteValue>();
@@ -337,7 +337,7 @@ namespace ink::vm::test
     EXPECT_EQ(ActualMedium, Medium);
     EXPECT_EQ(ActualLarge, Large);
     EXPECT_EQ(Stack, InitialStack);
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, CallFrame), InitialSP);
+    EXPECT_EQ(readAddressRegister(CallFrame, RegisterId::SP), InitialSP);
   }
 
   // Trivially copyable arguments need no default constructor, and a zero-argument call writes its return slot immediately below SP.
@@ -349,13 +349,13 @@ namespace ink::vm::test
     std::memcpy(ArgumentStack.data() + 8, &Argument, sizeof(Argument));
     const auto InitialArgumentStack = ArgumentStack;
     const Frame ArgumentFrame{ArgumentStack.data() + 16};
-    auto *const InitialArgumentSP = GET_REGISTER(RegisterId::SP, ArgumentFrame);
+    auto *const InitialArgumentSP = readAddressRegister(ArgumentFrame, RegisterId::SP);
 
     const auto Actual = ArgumentFrame.getArgument<0, NonDefaultConstructibleValue>();
 
     EXPECT_EQ(Actual.Value, Argument.Value);
     EXPECT_EQ(ArgumentStack, InitialArgumentStack);
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, ArgumentFrame), InitialArgumentSP);
+    EXPECT_EQ(readAddressRegister(ArgumentFrame, RegisterId::SP), InitialArgumentSP);
 
     alignas(8) std::array<std::uint8_t, 24> ReturnStack;
     ReturnStack.fill(0xB4);
@@ -363,11 +363,11 @@ namespace ink::vm::test
     auto Expected = ReturnStack;
     std::memcpy(Expected.data() + 8, &Result, sizeof(Result));
     const Frame ReturnFrame{ReturnStack.data() + 16};
-    auto *const InitialReturnSP = GET_REGISTER(RegisterId::SP, ReturnFrame);
+    auto *const InitialReturnSP = readAddressRegister(ReturnFrame, RegisterId::SP);
 
     ReturnFrame.setReturnValue<NonDefaultConstructibleValue>(Result);
 
     EXPECT_EQ(ReturnStack, Expected);
-    EXPECT_EQ(GET_REGISTER(RegisterId::SP, ReturnFrame), InitialReturnSP);
+    EXPECT_EQ(readAddressRegister(ReturnFrame, RegisterId::SP), InitialReturnSP);
   }
 } // namespace ink::vm::test

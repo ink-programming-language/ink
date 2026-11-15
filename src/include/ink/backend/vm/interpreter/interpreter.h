@@ -35,8 +35,11 @@ namespace ink::vm
       Interpreter(Interpreter &&) = delete;
       Interpreter &operator=(Interpreter &&) = delete;
 
-      // Creates the stack and default registers once; registers native addresses without overwriting existing symbols.
+      // Creates runtime storage once; registers native addresses without overwriting existing symbols.
       void initialize();
+
+      // Resets the frame on the existing stack and starts at a loaded host address; Add operands must be valid and complete.
+      [[nodiscard]] bool execute(const void *Entry);
 
       // Returned code addresses must be queried again after a load attempt that moves the code segment.
       [[nodiscard]] void *resolveSymbolAddress(core::Name Name) const noexcept;
@@ -86,6 +89,8 @@ namespace ink::vm
     private:
       friend class vm::Loader;
       class LoadTransaction;
+
+      bool dispatch();
 
       /** Ensure RequiredBytes total capacity without changing CodeSegmentSize; repatch if storage moves. */
       void reserveCodeSegment(std::size_t RequiredBytes);

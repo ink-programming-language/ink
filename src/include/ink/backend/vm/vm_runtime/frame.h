@@ -21,8 +21,8 @@ namespace ink::vm
   struct Frame
   {
     public:
-      // Address values in register-number order: BP, SP, PC, &EFlags, &ZERO.
-      // Address slots are authoritative after construction; native stubs leave them unchanged.
+      // Register storage addresses in number order: &BP, &SP, &PC, &EFlags, &ZERO.
+      // Write register values through these addresses; keep the bindings unchanged.
       std::array<const void *, static_cast<std::size_t>(RegisterId::ZERO) + 1> Register{};
 
       Frame() noexcept
@@ -37,20 +37,20 @@ namespace ink::vm
       }
 
       Frame(const Frame &Other) noexcept
-          : SP(const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::SP, Other))),
-            BP(const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::BP, Other))),
-            PC(const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::PC, Other))),
-            EFlags(*reinterpret_cast<const vm::EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Other)))
+          : SP(Other.SP),
+            BP(Other.BP),
+            PC(Other.PC),
+            EFlags(Other.EFlags)
       {
         initializeRegisters();
       }
 
       Frame &operator=(const Frame &Other) noexcept
       {
-        SP = const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::SP, Other));
-        BP = const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::BP, Other));
-        PC = const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::PC, Other));
-        EFlags = *reinterpret_cast<const vm::EFlags *>(GET_REGISTER(RegisterId::EFLAGS, Other));
+        SP = Other.SP;
+        BP = Other.BP;
+        PC = Other.PC;
+        EFlags = Other.EFlags;
         initializeRegisters();
         return *this;
       }
@@ -63,7 +63,7 @@ namespace ink::vm
         using ValueType = std::tuple_element_t<Index, std::tuple<ArgumentTypes...>>;
         constexpr std::size_t ByteOffset = getArgumentByteOffset<Index, ArgumentTypes...>();
         std::array<std::byte, sizeof(ValueType)> Bytes;
-        std::memcpy(Bytes.data(), GET_REGISTER(RegisterId::SP, *this) - ByteOffset, sizeof(ValueType));
+        std::memcpy(Bytes.data(), SP - ByteOffset, sizeof(ValueType));
         return std::bit_cast<ValueType>(Bytes);
       }
 
@@ -72,11 +72,11 @@ namespace ink::vm
       void setReturnValue(const ReturnType &Value) const noexcept
       {
         constexpr std::size_t ByteOffset = getSlotByteSize<ReturnType>() + (getSlotByteSize<ArgumentTypes>() + ... + std::size_t{0});
-        std::memcpy(const_cast<std::uint8_t *>(GET_REGISTER(RegisterId::SP, *this)) - ByteOffset, &Value, sizeof(ReturnType));
+        std::memcpy(SP - ByteOffset, &Value, sizeof(ReturnType));
       }
 
     private:
-      // Construction seeds the address slots; subsequent access goes through Register.
+      // Register binds to these values, so external writes also update native-call state.
       std::uint8_t *SP = nullptr;
       std::uint8_t *BP = nullptr;
       std::uint8_t *PC = nullptr;
@@ -86,9 +86,9 @@ namespace ink::vm
       void initializeRegisters() noexcept
       {
         Register = {
-            BP,
-            SP,
-            PC,
+            &BP,
+            &SP,
+            &PC,
             &EFlags,
             &ZERO,
         };
