@@ -1,12 +1,12 @@
 #include "ink/backend/vm/interpreter/interpreter.h"
 #include "ink/backend/vm/instruction/instruction_encoding.h"
+#include "ink/core/config/config_manager.h"
 #include "ink/core/support/core_define.h"
 
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <string_view>
 #include <type_traits>
 
 namespace ink::vm
@@ -14,18 +14,14 @@ namespace ink::vm
     bool Interpreter::dispatch()
     {
         static_assert(sizeof(std::uintptr_t) == sizeof(std::uint64_t), "VM address registers require a 64-bit host");
-        const auto Fail = [this](std::string_view Description)
-        {
-            Diagnostics.report<core::DiagnosticKind::VMExecutionFailed>({}, "instruction", Description);
-            return false;
-        };
         const auto CodeAddress = reinterpret_cast<std::uintptr_t>(CodeSegment);
         const auto StackAddress = reinterpret_cast<std::uintptr_t>(StackAllocation.get());
+        const auto MaxRecursionDepth = core::ConfigManager::getSize<core::ConfigKind::VMMaxRecursionDepth>();
         const auto IsInstructionAddress = [this, CodeAddress](std::uint64_t Address)
         {
             return Address >= CodeAddress && Address - CodeAddress < CodeSegmentSize && (Address - CodeAddress) % InstructionEncoding::WordBytes == 0 && CodeSegmentSize - static_cast<std::size_t>(Address - CodeAddress) >= InstructionEncoding::WordBytes;
         };
-        const auto IsStackPosition = [this, StackAddress](std::uint64_t Address)
+        [[maybe_unused]] const auto IsStackPosition = [this, StackAddress](std::uint64_t Address)
         {
             return Address >= StackAddress && Address - StackAddress <= StackSize && (Address - StackAddress) % InstructionEncoding::WordBytes == 0;
         };
@@ -145,19 +141,21 @@ namespace ink::vm
                     const auto NextPC = InstructionAddress + InstructionBytes;
                     const auto StackPointer = READ_REGISTER(RegisterId::SP, Frame);
                     const auto BasePointer = READ_REGISTER(RegisterId::BP, Frame);
-                    if (!IsInstructionAddress(NextPC))
-                    {
-                        return Fail("call return address is outside the loaded instruction storage or is unaligned");
-                    }
-                    if (!IsStackPosition(StackPointer) || !IsStackPosition(BasePointer) || BasePointer > StackPointer || (CallDepth != 0 && StackPointer - BasePointer < SaveAreaBytes))
-                    {
-                        return Fail("call BP or SP is outside the aligned stack storage or active frame");
-                    }
+                    check(IsInstructionAddress(NextPC));
+                    check(IsStackPosition(StackPointer) && IsStackPosition(BasePointer) && BasePointer <= StackPointer && (CallDepth == 0 || StackPointer - BasePointer >= SaveAreaBytes));
                     if (IsInstructionAddress(TargetAddress))
                     {
-                        if (SaveAreaBytes > StackSize - static_cast<std::size_t>(StackPointer - StackAddress))
+                        const bool RecursionDepthExceeded = CallDepth >= MaxRecursionDepth;
+                        REPORT_IF(RecursionDepthExceeded, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "call", fmt::format("maximum recursion depth exceeded (limit: {})", MaxRecursionDepth));
+                        if (RecursionDepthExceeded)
                         {
-                            return Fail("call save area is outside the stack storage");
+                            return false;
+                        }
+                        const bool StackOverflow = SaveAreaBytes > StackSize - static_cast<std::size_t>(StackPointer - StackAddress);
+                        REPORT_IF(StackOverflow, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "call", "stack overflow");
+                        if (StackOverflow)
+                        {
+                            return false;
                         }
                         auto* const SaveArea = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(StackPointer));
                         std::memcpy(SaveArea, &BasePointer, sizeof(BasePointer));
@@ -170,10 +168,7 @@ namespace ink::vm
                     }
                     else
                     {
-                        if (!NativeStubAddresses.contains(TargetAddress))
-                        {
-                            return Fail("call target is neither a loaded instruction address nor a registered native stub");
-                        }
+                        check(NativeStubAddresses.contains(TargetAddress));
                         const auto Stub = reinterpret_cast<void (*)(vm::Frame*)>(static_cast<std::uintptr_t>(TargetAddress));
                         Stub(&Frame);
                         WRITE_REGISTER(RegisterId::PC, Frame, NextPC);
@@ -211,21 +206,15 @@ namespace ink::vm
                     {
                         return true;
                     }
-                    const auto StackPointer = READ_REGISTER(RegisterId::SP, Frame);
+                    [[maybe_unused]] const auto StackPointer = READ_REGISTER(RegisterId::SP, Frame);
                     const auto BasePointer = READ_REGISTER(RegisterId::BP, Frame);
-                    if (!IsStackPosition(StackPointer) || !IsStackPosition(BasePointer) || BasePointer > StackPointer || StackPointer - BasePointer < SaveAreaBytes)
-                    {
-                        return Fail("return save area is outside the active aligned stack frame");
-                    }
+                    check(IsStackPosition(StackPointer) && IsStackPosition(BasePointer) && BasePointer <= StackPointer && StackPointer - BasePointer >= SaveAreaBytes);
                     const auto* const SaveArea = reinterpret_cast<const std::uint8_t*>(static_cast<std::uintptr_t>(BasePointer));
                     std::uint64_t SavedBP;
                     std::uint64_t SavedPC;
                     std::memcpy(&SavedBP, SaveArea, sizeof(SavedBP));
                     std::memcpy(&SavedPC, SaveArea + InstructionEncoding::WordBytes, sizeof(SavedPC));
-                    if (!IsStackPosition(SavedBP) || SavedBP > BasePointer || !IsInstructionAddress(SavedPC))
-                    {
-                        return Fail("return saved BP or PC is outside its valid aligned storage");
-                    }
+                    check(IsStackPosition(SavedBP) && SavedBP <= BasePointer && IsInstructionAddress(SavedPC));
                     WRITE_REGISTER(RegisterId::SP, Frame, BasePointer);
                     WRITE_REGISTER(RegisterId::BP, Frame, SavedBP);
                     WRITE_REGISTER(RegisterId::PC, Frame, SavedPC);
@@ -233,7 +222,8 @@ namespace ink::vm
                     continue;
                 }
             default:
-                return Fail("unsupported instruction opcode");
+                REPORT_IF(true, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "instruction", "unsupported instruction opcode");
+                return false;
             }
         }
     }

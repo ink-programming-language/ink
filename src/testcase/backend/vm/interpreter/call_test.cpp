@@ -6,6 +6,7 @@
 #include "ink/backend/vm/linker/module_linker.h"
 #include "ink/backend/vm/serialization/machine_module_text.h"
 #include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_formatter.h"
 #include "ink/core/name/name_pool.h"
 
 #include <gtest/gtest.h>
@@ -17,6 +18,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <limits>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -59,10 +61,11 @@ namespace ink::vm::test
             return Value;
         }
 
-        void expectCallFailure(const core::CollectingDiagnosticConsumer& Collector)
+        void expectCallFailure(const core::CollectingDiagnosticConsumer& Collector, std::string_view Description)
         {
             ASSERT_EQ(Collector.diagnostics().size(), 1U);
             EXPECT_EQ(Collector.diagnostics().front().Kind, core::DiagnosticKind::VMExecutionFailed);
+            EXPECT_NE(core::DiagnosticFormatter{}.format(Collector.diagnostics().front()).Message.find(Description), std::string::npos);
         }
     } // namespace
 
@@ -297,8 +300,9 @@ entry:
         EXPECT_EQ(readWord(reinterpret_cast<const void*>(static_cast<std::uintptr_t>(Stack + 8))), addressOf(VM.getCodeSegment().data() + CallerBase + 16));
     }
 
-    // Invalid direct-call targets and a missing return instruction fail before changing registers or writing an Ink save area.
-    TEST(VMInterpreterCallTest, RejectsInvalidCallTargetsWithoutCommittingFrameOrStack)
+#if INK_ENABLE_ASSERTIONS
+    // Invalid direct-call targets and missing return instructions violate the trusted executable contract.
+    TEST(VMInterpreterCallDeathTest, ChecksInvalidCallTargetsAndReturnAddresses)
     {
         core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
         ASSERT_TRUE(StackEnvironment.set("32"));
@@ -319,29 +323,12 @@ entry:
                 Executable.getImageBaseAddressRelocations().push_back({Call + 8, InvalidKind == 2 ? 1 : TargetOffset, 0});
             }
             ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
-            ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
-            const auto Stack = READ_REGISTER(RegisterId::SP, VM.getFrame());
-            auto* StackBytes = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(Stack));
-            std::fill_n(StackBytes, 32, 0xA5);
-            core::CollectingDiagnosticConsumer Collector;
-            VM.getDiagnostics().addConsumer(Collector);
-
-            EXPECT_FALSE(VM.execute(VM.getCodeSegment().data() + Call));
-
-            EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack);
-            EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack);
-            EXPECT_EQ(READ_REGISTER(RegisterId::PC, VM.getFrame()), addressOf(VM.getCodeSegment().data() + Call));
-            EXPECT_TRUE(std::all_of(StackBytes, StackBytes + 32, [](std::uint8_t Byte)
-                                    {
-                                        return Byte == 0xA5;
-                                    }));
-            expectCallFailure(Collector);
-            VM.getDiagnostics().removeConsumer(Collector);
+            EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data() + Call)), "check failed");
         }
     }
 
-    // CALL rejects out-of-stack or unaligned BP/SP and an insufficient Ink save area without partially writing that area.
-    TEST(VMInterpreterCallTest, ChecksCallStackBoundsBeforeCommittingFrame)
+    // Unaligned registers, an out-of-stack BP, and BP above SP indicate an invalid call frame for either call target kind.
+    TEST(VMInterpreterCallDeathTest, ChecksInvalidCallFrameInvariants)
     {
         core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
         ASSERT_TRUE(StackEnvironment.set("32"));
@@ -353,16 +340,10 @@ entry:
         };
         constexpr InvalidFrame Cases[] = {
             {1, 0, false},
-            {-8, 0, false},
-            {40, 0, false},
-            {24, 0, false},
-            {32, 0, false},
             {0, 1, false},
             {0, 40, false},
             {0, 8, false},
             {1, 0, true},
-            {-8, 0, true},
-            {40, 0, true},
             {0, 1, true},
             {0, 40, true},
             {0, 8, true},
@@ -390,33 +371,16 @@ entry:
                 Executable.getImageBaseAddressRelocations().push_back({Call + 8, 0, 0});
             }
             ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
-            ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
-            const auto Stack = READ_REGISTER(RegisterId::SP, VM.getFrame());
-            auto* StackBytes = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(Stack));
-            std::fill_n(StackBytes, 32, 0x6D);
-            core::CollectingDiagnosticConsumer Collector;
-            VM.getDiagnostics().addConsumer(Collector);
-
-            EXPECT_FALSE(VM.execute(VM.getCodeSegment().data() + Entry));
-
-            EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack + static_cast<std::uint64_t>(Invalid.SP));
-            EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack + static_cast<std::uint64_t>(Invalid.BP));
-            EXPECT_EQ(READ_REGISTER(RegisterId::PC, VM.getFrame()), addressOf(VM.getCodeSegment().data() + Call));
-            EXPECT_TRUE(std::all_of(StackBytes, StackBytes + 32, [](std::uint8_t Byte)
-                                    {
-                                        return Byte == 0x6D;
-                                    }));
-            expectCallFailure(Collector);
-            VM.getDiagnostics().removeConsumer(Collector);
+            EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data() + Entry)), "check failed");
         }
     }
 
-    // RET validates its active save area and both saved registers before restoring any caller register.
-    TEST(VMInterpreterCallTest, RejectsCorruptReturnStateWithoutPartiallyRestoringCaller)
+    // Corrupted saved BP/PC, misaligned BP, and a truncated active save area violate the return-frame contract.
+    TEST(VMInterpreterCallDeathTest, ChecksCorruptReturnState)
     {
         core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
         ASSERT_TRUE(StackEnvironment.set("32"));
-        for (std::size_t InvalidKind = 0; InvalidKind < 5; ++InvalidKind)
+        for (std::size_t InvalidKind = 0; InvalidKind < 4; ++InvalidKind)
         {
             SCOPED_TRACE(InvalidKind);
             Interpreter VM;
@@ -435,26 +399,168 @@ entry:
             }
             else
             {
-                appendRegisterOffset(Executable, RegisterId::SP, InvalidKind == 3 ? -8 : 24);
+                appendRegisterOffset(Executable, RegisterId::SP, -8);
             }
-            const auto Return = appendCallInstruction(Executable, Opcode::Ret);
+            appendCallInstruction(Executable, Opcode::Ret);
             Executable.getImageBaseAddressRelocations().push_back({Main + 8, Callee, 0});
+            ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+            EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data() + Main)), "check failed");
+        }
+    }
+#endif
+
+    // Recursive calls consume complete save areas and report stack exhaustion before writing into the remaining partial area.
+    TEST(VMInterpreterCallTest, ReportsRecursiveStackOverflowWithoutPartialSaveArea)
+    {
+        struct StackCase
+        {
+                const char* Setting;
+                std::size_t Bytes;
+        };
+        constexpr StackCase Cases[] = {
+            {"0", 0},
+            {"8", 8},
+            {"15", 15},
+            {"16", 16},
+            {"17", 17},
+            {"32", 32},
+        };
+        core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
+        core::test::ScopedEnvironmentVariable DepthEnvironment("INK_VM_MAX_RECURSION_DEPTH");
+        ASSERT_TRUE(DepthEnvironment.set("100"));
+        for (const auto& Case : Cases)
+        {
+            SCOPED_TRACE(Case.Bytes);
+            ASSERT_TRUE(StackEnvironment.set(Case.Setting));
+            Interpreter VM;
+            ExecutableFile Executable;
+            appendCallInstruction(Executable, Opcode::Ret);
+            const auto Call = appendCallInstruction(Executable, Opcode::Calli, {0});
+            const auto Return = appendCallInstruction(Executable, Opcode::Ret);
+            Executable.getImageBaseAddressRelocations().push_back({Call + 8, Call, 0});
             ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
             ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
             const auto Stack = READ_REGISTER(RegisterId::SP, VM.getFrame());
+            auto* const StackBytes = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(Stack));
+            if (Case.Bytes != 0)
+            {
+                std::fill_n(StackBytes, Case.Bytes, 0x6D);
+            }
             core::CollectingDiagnosticConsumer Collector;
             VM.getDiagnostics().addConsumer(Collector);
 
-            EXPECT_FALSE(VM.execute(VM.getCodeSegment().data() + Main));
+            EXPECT_FALSE(VM.execute(VM.getCodeSegment().data() + Call));
 
-            EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack + (InvalidKind == 2 ? 1 : 0));
-            const auto ExpectedStackOffset = InvalidKind == 4 ? 40U : 16U;
-            const auto ExpectedStackPointer = InvalidKind == 3 ? Stack + 8 : Stack + ExpectedStackOffset;
-            EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), ExpectedStackPointer);
-            EXPECT_EQ(READ_REGISTER(RegisterId::PC, VM.getFrame()), addressOf(VM.getCodeSegment().data() + Return));
-            expectCallFailure(Collector);
+            const auto SavedBytes = Case.Bytes / 16 * 16;
+            EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack + SavedBytes);
+            EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack + (SavedBytes == 0 ? 0 : SavedBytes - 16));
+            EXPECT_EQ(READ_REGISTER(RegisterId::PC, VM.getFrame()), addressOf(VM.getCodeSegment().data() + Call));
+            for (std::size_t Offset = 0; Offset < SavedBytes; Offset += 16)
+            {
+                EXPECT_EQ(readWord(StackBytes + Offset), Stack + (Offset == 0 ? 0 : Offset - 16));
+                EXPECT_EQ(readWord(StackBytes + Offset + 8), addressOf(VM.getCodeSegment().data() + Return));
+            }
+            for (auto Offset = SavedBytes; Offset < Case.Bytes; ++Offset)
+            {
+                EXPECT_EQ(StackBytes[Offset], 0x6D);
+            }
+            expectCallFailure(Collector, "stack overflow");
             VM.getDiagnostics().removeConsumer(Collector);
         }
+    }
+
+    // The depth limit counts active Ink calls, releases depth on RET, and is re-read when the same interpreter executes again.
+    TEST(VMInterpreterCallTest, EnforcesConfiguredDepthAndResetsAfterReturnAndExecute)
+    {
+        core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
+        core::test::ScopedEnvironmentVariable DepthEnvironment("INK_VM_MAX_RECURSION_DEPTH");
+        ASSERT_TRUE(StackEnvironment.set("128"));
+        ASSERT_TRUE(DepthEnvironment.set("2"));
+        Interpreter VM;
+        ExecutableFile Executable;
+        const auto Main = appendCallInstruction(Executable, Opcode::Calli, {0});
+        const auto SecondCall = appendCallInstruction(Executable, Opcode::Calli, {0});
+        appendCallInstruction(Executable, Opcode::Ret);
+        const auto Middle = appendCallInstruction(Executable, Opcode::Calli, {0});
+        appendCallInstruction(Executable, Opcode::Ret);
+        const auto Leaf = appendCallInstruction(Executable, Opcode::Ret);
+        Executable.getImageBaseAddressRelocations() = {
+            {Main + 8, Middle, 0},
+            {SecondCall + 8, Middle, 0},
+            {Middle + 8, Leaf, 0},
+        };
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+        core::CollectingDiagnosticConsumer Collector;
+        VM.getDiagnostics().addConsumer(Collector);
+
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Main));
+        const auto Stack = READ_REGISTER(RegisterId::SP, VM.getFrame());
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Main));
+        EXPECT_TRUE(Collector.diagnostics().empty());
+
+        ASSERT_TRUE(DepthEnvironment.set("1"));
+        auto* const StackBytes = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(Stack));
+        std::fill_n(StackBytes, 128, 0xA5);
+        EXPECT_FALSE(VM.execute(VM.getCodeSegment().data() + Main));
+        EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack + 16);
+        EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack);
+        EXPECT_EQ(READ_REGISTER(RegisterId::PC, VM.getFrame()), addressOf(VM.getCodeSegment().data() + Middle));
+        EXPECT_TRUE(std::all_of(StackBytes + 16, StackBytes + 128, [](std::uint8_t Byte)
+                                {
+                                    return Byte == 0xA5;
+                                }));
+        expectCallFailure(Collector, "maximum recursion depth exceeded");
+
+        ASSERT_TRUE(DepthEnvironment.set("2"));
+        Collector.clear();
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Main));
+        EXPECT_TRUE(Collector.diagnostics().empty());
+        EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack);
+        VM.getDiagnostics().removeConsumer(Collector);
+    }
+
+    // A zero depth limit rejects the first Ink call without writing a save area while still allowing direct native calls.
+    TEST(VMInterpreterCallTest, ZeroDepthLimitRejectsInkCallsButAllowsNativeCalls)
+    {
+        core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
+        core::test::ScopedEnvironmentVariable DepthEnvironment("INK_VM_MAX_RECURSION_DEPTH");
+        ASSERT_TRUE(StackEnvironment.set("16"));
+        ASSERT_TRUE(DepthEnvironment.set("0"));
+        Interpreter VM;
+        ExecutableFile Executable;
+        const auto Return = appendCallInstruction(Executable, Opcode::Ret);
+        const auto InkCall = appendCallInstruction(Executable, Opcode::Calli, {0});
+        appendCallInstruction(Executable, Opcode::Ret);
+        const auto NativeEntry = Executable.byteSize();
+        appendRegisterOffset(Executable, RegisterId::SP, 16);
+        appendCallInstruction(Executable, Opcode::Store64i, {static_cast<std::uint64_t>(-8), 41}, RegisterId::SP);
+        const auto NativeCall = appendCallInstruction(Executable, Opcode::Calli, {0});
+        appendCallInstruction(Executable, Opcode::Ret);
+        Executable.getImageBaseAddressRelocations().push_back({InkCall + 8, Return, 0});
+        Executable.getDynamicImportSymbols().push_back({core::NamePool::instance().intern("identity")});
+        Executable.getDynamicImportSymbolRelocations().push_back({NativeCall + 8, 0, 0});
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Return));
+        const auto Stack = READ_REGISTER(RegisterId::SP, VM.getFrame());
+        auto* const StackBytes = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(Stack));
+        std::fill_n(StackBytes, 16, 0xA5);
+        core::CollectingDiagnosticConsumer Collector;
+        VM.getDiagnostics().addConsumer(Collector);
+
+        EXPECT_FALSE(VM.execute(VM.getCodeSegment().data() + InkCall));
+        EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack);
+        EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack);
+        EXPECT_TRUE(std::all_of(StackBytes, StackBytes + 16, [](std::uint8_t Byte)
+                                {
+                                    return Byte == 0xA5;
+                                }));
+        expectCallFailure(Collector, "maximum recursion depth exceeded");
+
+        Collector.clear();
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + NativeEntry));
+        EXPECT_EQ(readWord(StackBytes), 41U);
+        EXPECT_TRUE(Collector.diagnostics().empty());
+        VM.getDiagnostics().removeConsumer(Collector);
     }
 
     // The outermost RET remains a successful completion even when no VM stack allocation is configured.
