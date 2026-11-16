@@ -7,9 +7,6 @@
 .global message, 14, 1 readonly
     .byte 0x68, 0x65, 0x6C, 0x6C, 0x6F, 0x2C, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x0D, 0x0A
 .endglobal
-.global written, 4, 4
-    .byte 0x00, 0x00, 0x00, 0x00
-.endglobal
 
 .section .text
 .function main external
@@ -19,7 +16,13 @@ entry:
 .endfunction
 
 .function hello
+    .stackslot 4, 4 ; written: offset 16
+    .frame 16
 entry:
+    ; Reserve written and four padding bytes to keep native calls eight-byte aligned.
+    add64rri sp, sp, 8
+    store32i [bp + 16], 0
+
     ; GetStdHandle(u32) -> HANDLE: an eight-byte return slot, then one argument slot.
     add64rri sp, sp, 16
     store32i [sp - 8], 0xFFFFFFF5
@@ -30,10 +33,10 @@ entry:
     load64 [sp - 40], [sp - 64]
     store64i [sp - 32], @message
     store32i [sp - 24], 14
-    store64i [sp - 16], @written
+    add64mrr [sp - 16], bp + 16, zero
     store64i [sp - 8], 0
     call @WriteFile
 
-    add64rri sp, sp, -64
+    add64rri sp, sp, -72
     ret
 .endfunction
