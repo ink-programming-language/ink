@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.20)
+project(lua_benchmark LANGUAGES C)
+
+set(LUA_SOURCE_DIR "" CACHE PATH "Path to the extracted Lua source directory containing lua.c")
+if(NOT EXISTS "${LUA_SOURCE_DIR}/lua.c")
+    message(FATAL_ERROR "Set LUA_SOURCE_DIR to the src directory from an official Lua source archive")
+endif()
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+file(GLOB LUA_SOURCES CONFIGURE_DEPENDS "${LUA_SOURCE_DIR}/*.c")
+list(FILTER LUA_SOURCES EXCLUDE REGEX "/(lua|luac)\\.c$")
+
+add_library(lua55 SHARED ${LUA_SOURCES})
+target_include_directories(lua55 PUBLIC "${LUA_SOURCE_DIR}")
+target_compile_definitions(lua55 PRIVATE _CRT_SECURE_NO_WARNINGS)
+if(WIN32)
+    target_compile_definitions(lua55 PUBLIC LUA_BUILD_AS_DLL)
+endif()
+if(UNIX)
+    target_compile_definitions(lua55 PRIVATE LUA_USE_POSIX LUA_USE_DLOPEN)
+    target_link_libraries(lua55 PRIVATE ${CMAKE_DL_LIBS} m)
+endif()
+
+add_executable(lua "${LUA_SOURCE_DIR}/lua.c")
+target_link_libraries(lua PRIVATE lua55)
+target_compile_definitions(lua PRIVATE _CRT_SECURE_NO_WARNINGS)
+
+add_library(benchmark_clock MODULE "${CMAKE_CURRENT_SOURCE_DIR}/../lua_clock.c")
+target_link_libraries(benchmark_clock PRIVATE lua55)
+set_target_properties(benchmark_clock PROPERTIES PREFIX "")

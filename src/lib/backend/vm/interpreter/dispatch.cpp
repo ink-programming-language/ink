@@ -90,6 +90,31 @@ namespace ink::vm
                     WRITE_REGISTER(RegisterId::PC, Frame, InstructionAddress + InstructionBytes);
                     continue;
                 }
+            case Opcode::Add64mmi:
+                {
+                    const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
+                    const auto LeftAddress = READ_REGISTER(LeftRegister, Frame) + Instruction[2];
+                    std::uint64_t Left;
+                    std::memcpy(&Left, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(LeftAddress)), sizeof(Left));
+                    const auto Result = Left + Instruction[3];
+                    std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Result, sizeof(Result));
+                    WRITE_REGISTER(RegisterId::PC, Frame, InstructionAddress + InstructionBytes);
+                    continue;
+                }
+            case Opcode::Add64mmm:
+                {
+                    const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
+                    const auto LeftAddress = READ_REGISTER(LeftRegister, Frame) + Instruction[2];
+                    const auto RightAddress = READ_REGISTER(RightRegister, Frame) + Instruction[3];
+                    std::uint64_t Left;
+                    std::uint64_t Right;
+                    std::memcpy(&Left, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(LeftAddress)), sizeof(Left));
+                    std::memcpy(&Right, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(RightAddress)), sizeof(Right));
+                    const auto Result = Left + Right;
+                    std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Result, sizeof(Result));
+                    WRITE_REGISTER(RegisterId::PC, Frame, InstructionAddress + InstructionBytes);
+                    continue;
+                }
             case Opcode::Jmp:
             case Opcode::Jmpr:
                 {

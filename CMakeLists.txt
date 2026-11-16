@@ -76,6 +76,11 @@ add_custom_target(ink_llvm_components DEPENDS LLVMSupport)
 add_subdirectory(src/lib)
 add_subdirectory(src/tools)
 
+option(INK_BUILD_VM_BENCHMARKS "Build the Fibonacci VM and native comparison benchmarks" OFF)
+if(INK_BUILD_VM_BENCHMARKS)
+    add_subdirectory(examples/vm/benchmark)
+endif()
+
 if(BUILD_TESTING)
     set(INSTALL_GTEST OFF CACHE BOOL "Disable GoogleTest installation" FORCE)
     set(BUILD_GMOCK ON CACHE BOOL "Build GoogleMock with GoogleTest" FORCE)
