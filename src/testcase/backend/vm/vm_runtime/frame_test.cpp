@@ -115,6 +115,38 @@ namespace ink::vm::test
         EXPECT_EQ(Value.Register, Bindings);
     }
 
+    // Direct PC access shares the live register object with typed and byte-storage aliases, including after independent frame copies.
+    TEST(VMFrameTest, KeepsDirectPCAccessCoherentWithRegisterAliasesAndCopies)
+    {
+        Frame Value;
+        const Frame& View = Value;
+        const auto Bindings = Value.Register;
+        constexpr std::uint64_t Bits = 0xFEDCBA9876543210;
+        Value.setPC(std::numeric_limits<std::uint64_t>::max());
+        EXPECT_EQ(READ_REGISTER(RegisterId::PC, View), std::numeric_limits<std::uint64_t>::max());
+        EXPECT_EQ(*reinterpret_cast<const std::uint64_t*>(GET_REGISTER(RegisterId::PC, View)), std::numeric_limits<std::uint64_t>::max());
+
+        WRITE_REGISTER(RegisterId::PC, Value, Bits);
+        EXPECT_EQ(View.getPC(), Bits);
+        constexpr std::uint64_t AliasBits = 0x0123456789ABCDEF;
+        std::memcpy(SET_REGISTER(RegisterId::PC, Value), &AliasBits, sizeof(AliasBits));
+        EXPECT_EQ(View.getPC(), AliasBits);
+        EXPECT_EQ(Value.Register, Bindings);
+
+        Frame Copied = Value;
+        Frame Assigned;
+        Assigned = Value;
+        EXPECT_NE(GET_REGISTER(RegisterId::PC, Copied), GET_REGISTER(RegisterId::PC, View));
+        EXPECT_NE(GET_REGISTER(RegisterId::PC, Assigned), GET_REGISTER(RegisterId::PC, View));
+        Copied.setPC(17);
+        WRITE_REGISTER(RegisterId::PC, Assigned, 23);
+        Value.setPC(42);
+        EXPECT_EQ(READ_REGISTER(RegisterId::PC, Copied), 17U);
+        EXPECT_EQ(Assigned.getPC(), 23U);
+        EXPECT_EQ(View.getPC(), 42U);
+        EXPECT_EQ(Value.Register, Bindings);
+    }
+
     // Value macros accept a const read view and evaluate every register, frame, and written-value expression once.
     TEST(VMFrameTest, EvaluatesRegisterValueMacroArgumentsOnce)
     {

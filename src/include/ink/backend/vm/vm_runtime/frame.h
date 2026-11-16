@@ -70,6 +70,17 @@ namespace ink::vm
                 return *this;
             }
 
+            // Access the same live storage exposed by Register[PC], without caching its value.
+            [[nodiscard]] FORCE_INLINE std::uint64_t getPC() const noexcept
+            {
+                return PC;
+            }
+
+            FORCE_INLINE void setPC(std::uint64_t Value) noexcept
+            {
+                PC = Value;
+            }
+
             // ArgumentTypes must list every parameter in declaration order, using types whose host and VM representations match.
             template <std::size_t Index, typename... ArgumentTypes>
             [[nodiscard]] auto getArgument() const noexcept
