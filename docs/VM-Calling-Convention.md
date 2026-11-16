@@ -1,6 +1,6 @@
 # VM 调用约定
 
-本文定义 Ink VM 函数和 Native stub 的调用布局。解释器已实现地址型 `Calli` 和普通 CALL/RET：目标命中 Native stub 地址集合时按 `void(Frame*)` 调用，否则进入 Ink 函数。调用区自动生成、间接调用和通用宿主 ABI 映射仍待实现。
+本文定义 Ink VM 函数和 Native stub 的调用布局。解释器已实现地址型 `Calli`、内存间接 `Callm` 和普通 CALL/RET：两种调用按最终目标地址共用 Ink 函数和已注册 Native stub 的分派逻辑。调用区自动生成和通用宿主 ABI 映射仍待实现。
 
 ## 基本规则
 

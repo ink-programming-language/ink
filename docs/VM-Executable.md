@@ -63,7 +63,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 符号在 `DynamicImportSymbols` 中的位置是重定位元数据引用的 u32 索引，不作为调用操作数写入指令。`Calli` 的操作数是八字节地址字段；外部函数调用与取地址按同一名称复用导入项，各自生成 `DynamicImportSymbolRelocation`。Loader 将实际绑定地址写入每个字段，调用执行时不读取导入索引。
 
-`Callm` 复用 `AddressOperand`，从有效地址读取 64 位函数地址，其内存操作数定位存放函数指针的槽位。该形式的逻辑模型、文本及发射已实现，执行暂未实现。当前先实现 `Calli`：代码段内对齐目标直接按 Ink 调用协议执行，其他目标必须命中 Native stub 地址集合才按 `void(Frame*)` 调用。
+`Callm` 复用 `AddressOperand`，从寄存器基址加编码偏移指向的内存槽读取 64 位函数地址，允许未对齐槽位，调用方须保证内存可读。取得目标地址后与 `Calli` 共用调用逻辑：代码段内对齐目标直接按 Ink 调用协议执行，其他目标必须命中 Native stub 地址集合才按 `void(Frame*)` 调用。
 
 逻辑模块使用 `MachineSymbolDeclaration` 保存名称、函数或数据种类及只读属性。未由当前镜像定义满足的声明形成 `ImportSymbols`；不能据此认定目标是 Native。实际使用的外部符号按名称进入统一导入表。现有 Native 调用仅支持已注册的 `Frame*` stub，完整调用签名及通用宿主 ABI adapter 仍待扩展。
 
@@ -83,7 +83,7 @@ VM 镜像固定使用小端序，操作码、偏移、立即数及两类地址�
 
 `Interpreter` 持有 `DiagnosticEngine`，可通过 `getDiagnostics()` 注册诊断 consumer。找不到导入地址时报告 `VMLibraryLinkFailed`（`INK-V0004`）并返回 `false`。容量增长和既有地址修补发生在加载事务之前；事务恢复本次登记前的符号表、有效代码段长度及 handle，删除新增库记录，但已完成的容量增长和地址搬迁保留。既有有效字节中的非地址内容保持不变，既有地址绑定与当前存储一致，不保证失败后恢复原指针、容量或地址字段的原位模式。直接调用 Loader 的调用方自行负责回滚代码段逻辑状态及符号表；Loader 不保存修补快照。原始 `Image`、导入和重定位记录始终保持未绑定状态。
 
-镜像窗口、源镜像与目标存储重叠、导出偏移、导入索引、完整修补字段、镜像基址目标偏移和地址加减溢出属于内部不变量，失败报告 `VMExecutableValidationFailed`（`INK-V0002`）并终止进程。重定位范围重叠由 `ExecutableFileValidator` 校验。Loader 只填写地址，不改写调用 opcode；`Calli` 在执行时按最终地址区分 stub 与 Ink。
+镜像窗口、源镜像与目标存储重叠、导出偏移、导入索引、完整修补字段、镜像基址目标偏移和地址加减溢出属于内部不变量，失败报告 `VMExecutableValidationFailed`（`INK-V0002`）并终止进程。重定位范围重叠由 `ExecutableFileValidator` 校验。Loader 只填写地址，不改写调用 opcode；`Calli` 和 `Callm` 在执行时按最终地址区分 stub 与 Ink。
 
 ## 镜像基址地址重定位
 

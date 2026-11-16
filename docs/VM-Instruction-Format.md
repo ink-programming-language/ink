@@ -185,7 +185,7 @@ call [@function_pointer_slot]
 
 `Calli` 的数值目标按完整 u64 地址位模式写入。符号目标要求零 addend：本镜像函数生成 `ImageBaseAddressRelocation`，外部函数生成 `DynamicImportSymbolRelocation`。前向本镜像函数先记录 ZERO 地址静态引用，布局完成后生成镜像基址重定位。导入索引只存在于重定位元数据，不写入调用操作数。
 
-链接器允许 `call @name` 绑定可见 VM 函数定义或显式函数声明，拒绝数据目标；未满足的声明在加载时可由其他 Ink 库或 Native stub 提供。`Callm` 的符号只定位指针槽，不要求该槽本身为函数符号；槽内目标的执行支持仍待实现。
+链接器允许 `call @name` 绑定可见 VM 函数定义或显式函数声明，拒绝数据目标；未满足的声明在加载时可由其他 Ink 库或 Native stub 提供。`Callm` 的符号只定位指针槽，不要求该槽本身为函数符号；执行时按字节复制读取槽内的 64 位目标地址，槽位无需对齐，调用方须保证内存可读。
 
 | C++ 操作码 | 文本 | 编码 | 操作数字段 | 总长度 |
 | --- | --- | --- | --- | --- |
@@ -194,7 +194,7 @@ call [@function_pointer_slot]
 
 `003c`、`003e` 保留未分配，旧 `callNative` 文本被拒绝。两条指令均属于 `InstructionCategory::Call`，`isCall()` 识别两者，没有显式结果目标，也不是基本块终结指令。
 
-解释器先实现 `Calli`。目标位于有效代码段且按八字节对齐时直接走 Ink 快路径，不查询 hash set；保存旧 BP 与 `NextPC = PC + 16` 后转入 VM 函数。段外目标必须命中从 `NativeSymbolAddresses` 建立的 stub 地址 hash set，才按 `void(Frame*)` 调用，不建立 Ink 保存区；未命中时报执行错误。普通 `Ret` 恢复调用方，最外层 `Ret` 结束本次执行。Native 参数及返回槽由调用方按已有 stub 契约准备，完整调用区自动生成、通用宿主 ABI adapter 和 `Callm` 执行仍待实现。
+解释器中 `Calli` 直接使用操作数地址，`Callm` 先从寄存器基址加编码偏移指向的内存槽读取地址，随后共用调用逻辑。目标位于有效代码段且按八字节对齐时直接走 Ink 快路径，不查询 hash set；保存旧 BP 与 `NextPC = PC + 16` 后转入 VM 函数。其他目标必须命中从 `NativeSymbolAddresses` 建立的 stub 地址 hash set，才按 `void(Frame*)` 调用，不建立 Ink 保存区；未命中属于内部不变量失败，使用 `check`。保存区容量不足和递归超限通过 `REPORT_IF` 报告后返回失败。普通 `Ret` 恢复调用方，最外层 `Ret` 结束本次执行。Native 参数及返回槽由调用方按已有 stub 契约准备，完整调用区自动生成和通用宿主 ABI adapter 仍待实现。
 
 ## C++ 指令模型
 
@@ -230,7 +230,7 @@ namespace ink::vm
 
 ## 编码、解码与预解码边界
 
-`InstructionEmitter::padInstruction` 已提供 opcode 写入、操作数字段分派、基本块目标、跳转和直接调用编码；解释器已实现三种 ADD 形式、四种无条件跳转、80 种显式比较条件跳转、地址型 Calli 及普通和最外层 Ret，公共解码接口仍待实现，也没有已解析字节指令的公共 API。当前模块发射流程完成全局布局、函数名入口偏移登记、基本块偏移登记、指令字节追加、重定位处理及显式入口和导出元数据生成。`MachineInstruction` 及操作数属于逻辑内存模型，`MachineModule` 文本读写不等同于指令字节编码。独立模块 validator 尚未实现。
+`InstructionEmitter::padInstruction` 已提供 opcode 写入、操作数字段分派、基本块目标、跳转和直接及间接调用编码；解释器已实现三种 ADD 形式、四种无条件跳转、80 种显式比较条件跳转、地址型 Calli、内存间接 Callm 及普通和最外层 Ret，公共解码接口仍待实现，也没有已解析字节指令的公共 API。当前模块发射流程完成全局布局、函数名入口偏移登记、基本块偏移登记、指令字节追加、重定位处理及显式入口和导出元数据生成。`MachineInstruction` 及操作数属于逻辑内存模型，`MachineModule` 文本读写不等同于指令字节编码。独立模块 validator 尚未实现。
 
 指令编码有效与运行时可执行是不同层次的检查。VM 符号须由链接阶段解析，宿主导入由加载阶段绑定；寄存器写权限、指令边界、有效地址计算、访存范围和栈规则也须按执行语义检查。当前操作数构造函数不完成这些检查。
 

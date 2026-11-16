@@ -50,6 +50,33 @@ entry:
 execute_process(COMMAND "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_success("Entry after globals and helper")
 
+# Indirect calls load both Ink and native function addresses from relocated global pointer slots.
+file(WRITE "${Input}" [=[.module "indirect-calls"
+.declare function @identity
+.section .data
+.global pointers, 16, 8
+    .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+.endglobal
+.section .text
+.function main
+entry:
+    store64i [@pointers], @helper
+    store64i [@pointers + 8], @identity
+    call [@pointers]
+    add64rri sp, sp, 16
+    store64i [sp - 8], 41
+    call [@pointers + 8]
+    add64rri sp, sp, -16
+    ret
+.endfunction
+.function helper
+entry:
+    ret
+.endfunction
+]=])
+execute_process(COMMAND "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_success("Indirect Ink and native calls")
+
 # Malformed and empty inputs must report the parser diagnostic before emission or execution.
 file(WRITE "${Input}" "not MachineModule assembly\n")
 execute_process(COMMAND "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)

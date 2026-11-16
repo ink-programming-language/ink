@@ -135,46 +135,59 @@ namespace ink::vm
                     WRITE_REGISTER(RegisterId::PC, Frame, Target);
                     continue;
                 }
+#define EXECUTE_CALL(Target)                                                                                                                                                                     \
+    do                                                                                                                                                                                           \
+    {                                                                                                                                                                                            \
+        const std::uint64_t CallTarget = (Target);                                                                                                                                               \
+        const auto NextPC = InstructionAddress + InstructionBytes;                                                                                                                               \
+        const auto StackPointer = READ_REGISTER(RegisterId::SP, Frame);                                                                                                                          \
+        const auto BasePointer = READ_REGISTER(RegisterId::BP, Frame);                                                                                                                           \
+        check(IsInstructionAddress(NextPC));                                                                                                                                                     \
+        check(IsStackPosition(StackPointer) && IsStackPosition(BasePointer) && BasePointer <= StackPointer && (CallDepth == 0 || StackPointer - BasePointer >= SaveAreaBytes));                  \
+        if (IsInstructionAddress(CallTarget))                                                                                                                                                    \
+        {                                                                                                                                                                                        \
+            const bool RecursionDepthExceeded = CallDepth >= MaxRecursionDepth;                                                                                                                  \
+            REPORT_IF(RecursionDepthExceeded, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "call", fmt::format("maximum recursion depth exceeded (limit: {})", MaxRecursionDepth)); \
+            if (RecursionDepthExceeded)                                                                                                                                                          \
+            {                                                                                                                                                                                    \
+                return false;                                                                                                                                                                    \
+            }                                                                                                                                                                                    \
+            const bool StackOverflow = SaveAreaBytes > StackSize - static_cast<std::size_t>(StackPointer - StackAddress);                                                                        \
+            REPORT_IF(StackOverflow, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "call", "stack overflow");                                                                        \
+            if (StackOverflow)                                                                                                                                                                   \
+            {                                                                                                                                                                                    \
+                return false;                                                                                                                                                                    \
+            }                                                                                                                                                                                    \
+            auto* const SaveArea = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(StackPointer));                                                                                   \
+            std::memcpy(SaveArea, &BasePointer, sizeof(BasePointer));                                                                                                                            \
+            std::memcpy(SaveArea + InstructionEncoding::WordBytes, &NextPC, sizeof(NextPC));                                                                                                     \
+            WRITE_REGISTER(RegisterId::BP, Frame, StackPointer);                                                                                                                                 \
+            WRITE_REGISTER(RegisterId::SP, Frame, StackPointer + SaveAreaBytes);                                                                                                                 \
+            WRITE_REGISTER(RegisterId::PC, Frame, CallTarget);                                                                                                                                   \
+            ++CallDepth;                                                                                                                                                                         \
+        }                                                                                                                                                                                        \
+        else                                                                                                                                                                                     \
+        {                                                                                                                                                                                        \
+            check(NativeStubAddresses.contains(CallTarget));                                                                                                                                     \
+            const auto Stub = reinterpret_cast<void (*)(vm::Frame*)>(static_cast<std::uintptr_t>(CallTarget));                                                                                   \
+            Stub(&Frame);                                                                                                                                                                        \
+            WRITE_REGISTER(RegisterId::PC, Frame, NextPC);                                                                                                                                       \
+        }                                                                                                                                                                                        \
+    } while (false)
             case Opcode::Calli:
                 {
-                    const auto TargetAddress = Instruction[1];
-                    const auto NextPC = InstructionAddress + InstructionBytes;
-                    const auto StackPointer = READ_REGISTER(RegisterId::SP, Frame);
-                    const auto BasePointer = READ_REGISTER(RegisterId::BP, Frame);
-                    check(IsInstructionAddress(NextPC));
-                    check(IsStackPosition(StackPointer) && IsStackPosition(BasePointer) && BasePointer <= StackPointer && (CallDepth == 0 || StackPointer - BasePointer >= SaveAreaBytes));
-                    if (IsInstructionAddress(TargetAddress))
-                    {
-                        const bool RecursionDepthExceeded = CallDepth >= MaxRecursionDepth;
-                        REPORT_IF(RecursionDepthExceeded, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "call", fmt::format("maximum recursion depth exceeded (limit: {})", MaxRecursionDepth));
-                        if (RecursionDepthExceeded)
-                        {
-                            return false;
-                        }
-                        const bool StackOverflow = SaveAreaBytes > StackSize - static_cast<std::size_t>(StackPointer - StackAddress);
-                        REPORT_IF(StackOverflow, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "call", "stack overflow");
-                        if (StackOverflow)
-                        {
-                            return false;
-                        }
-                        auto* const SaveArea = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(StackPointer));
-                        std::memcpy(SaveArea, &BasePointer, sizeof(BasePointer));
-                        std::memcpy(SaveArea + InstructionEncoding::WordBytes, &NextPC, sizeof(NextPC));
-                        WRITE_REGISTER(RegisterId::BP, Frame, StackPointer);
-                        WRITE_REGISTER(RegisterId::SP, Frame, StackPointer + SaveAreaBytes);
-                        WRITE_REGISTER(RegisterId::PC, Frame, TargetAddress);
-                        ++CallDepth;
-                        continue;
-                    }
-                    else
-                    {
-                        check(NativeStubAddresses.contains(TargetAddress));
-                        const auto Stub = reinterpret_cast<void (*)(vm::Frame*)>(static_cast<std::uintptr_t>(TargetAddress));
-                        Stub(&Frame);
-                        WRITE_REGISTER(RegisterId::PC, Frame, NextPC);
-                        continue;
-                    }
+                    EXECUTE_CALL(Instruction[1]);
+                    continue;
                 }
+            case Opcode::Callm:
+                {
+                    const auto Address = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
+                    std::uint64_t TargetAddress;
+                    std::memcpy(&TargetAddress, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(Address)), sizeof(TargetAddress));
+                    EXECUTE_CALL(TargetAddress);
+                    continue;
+                }
+#undef EXECUTE_CALL
 #define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed)                                                                \
     case Opcode::Kind:                                                                                                                         \
         {                                                                                                                                      \

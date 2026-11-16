@@ -105,6 +105,107 @@ namespace ink::vm::test
         EXPECT_EQ(readWord(StackBytes + 24), addressOf(VM.getCodeSegment().data() + MiddleReturn));
     }
 
+    // A direct call followed by an indirect call through an unaligned absolute pointer slot restores both Ink frames.
+    TEST(VMInterpreterCallTest, MixesDirectAndUnalignedIndirectInkCalls)
+    {
+        core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
+        ASSERT_TRUE(StackEnvironment.set("64"));
+        std::array<std::uint8_t, 16> TargetStorage;
+        TargetStorage.fill(0xA5);
+        Interpreter VM;
+        ExecutableFile Executable;
+        Executable.getImage().resize(8);
+        const auto Main = appendCallInstruction(Executable, Opcode::Calli, {0});
+        const auto MainReturn = appendCallInstruction(Executable, Opcode::Ret);
+        const auto Middle = appendCallInstruction(Executable, Opcode::Callm, {addressOf(TargetStorage.data() + 1)});
+        const auto MiddleReturn = appendCallInstruction(Executable, Opcode::Ret);
+        const auto Leaf = Executable.byteSize();
+        appendRegisterOffset(Executable, RegisterId::SP, 24);
+        const auto Store = Executable.byteSize();
+        appendCallInstruction(Executable, Opcode::Store64i, {std::uint64_t{0} - Store, 0x123456789ABCDEF0ULL}, RegisterId::PC);
+        appendCallInstruction(Executable, Opcode::Ret);
+        Executable.getImageBaseAddressRelocations().push_back({Main + 8, Middle, 0});
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+        const auto Target = addressOf(VM.getCodeSegment().data() + Leaf);
+        std::memcpy(TargetStorage.data() + 1, &Target, sizeof(Target));
+        const auto ExpectedTargetStorage = TargetStorage;
+
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Main));
+
+        const auto Stack = READ_REGISTER(RegisterId::SP, VM.getFrame());
+        const auto* StackBytes = reinterpret_cast<const std::uint8_t*>(static_cast<std::uintptr_t>(Stack));
+        EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack);
+        EXPECT_EQ(READ_REGISTER(RegisterId::PC, VM.getFrame()), addressOf(VM.getCodeSegment().data() + MainReturn));
+        EXPECT_EQ(readWord(VM.getCodeSegment().data()), 0x123456789ABCDEF0ULL);
+        EXPECT_EQ(readWord(StackBytes), Stack);
+        EXPECT_EQ(readWord(StackBytes + 8), addressOf(VM.getCodeSegment().data() + MainReturn));
+        EXPECT_EQ(readWord(StackBytes + 16), Stack);
+        EXPECT_EQ(readWord(StackBytes + 24), addressOf(VM.getCodeSegment().data() + MiddleReturn));
+        EXPECT_EQ(TargetStorage, ExpectedTargetStorage);
+    }
+
+    // An SP-relative indirect target is read before the Ink save area overwrites the same stack slot.
+    TEST(VMInterpreterCallTest, ReadsIndirectTargetBeforeWritingAliasedSaveArea)
+    {
+        core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
+        ASSERT_TRUE(StackEnvironment.set("16"));
+        Interpreter VM;
+        ExecutableFile Executable;
+        const auto Leaf = appendCallInstruction(Executable, Opcode::Ret);
+        const auto Main = appendCallInstruction(Executable, Opcode::Callm, {0}, RegisterId::SP);
+        const auto MainReturn = appendCallInstruction(Executable, Opcode::Ret);
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Leaf));
+        const auto Stack = READ_REGISTER(RegisterId::SP, VM.getFrame());
+        auto* const StackBytes = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(Stack));
+        const auto Target = addressOf(VM.getCodeSegment().data() + Leaf);
+        std::memcpy(StackBytes, &Target, sizeof(Target));
+
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Main));
+
+        EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack);
+        EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack);
+        EXPECT_EQ(READ_REGISTER(RegisterId::PC, VM.getFrame()), addressOf(VM.getCodeSegment().data() + MainReturn));
+        EXPECT_EQ(readWord(StackBytes), Stack);
+        EXPECT_EQ(readWord(StackBytes + 8), addressOf(VM.getCodeSegment().data() + MainReturn));
+    }
+
+    // A PC-relative pointer slot resolves a native stub, which returns through caller slots without consuming Ink recursion depth.
+    TEST(VMInterpreterCallTest, CallsNativeThroughPCRelativePointerSlotAtZeroDepthLimit)
+    {
+        core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
+        core::test::ScopedEnvironmentVariable DepthEnvironment("INK_VM_MAX_RECURSION_DEPTH");
+        ASSERT_TRUE(StackEnvironment.set("16"));
+        ASSERT_TRUE(DepthEnvironment.set("0"));
+        Interpreter VM;
+        ExecutableFile Executable;
+        Executable.getImage().resize(16);
+        const auto Main = Executable.byteSize();
+        appendRegisterOffset(Executable, RegisterId::SP, 16);
+        appendCallInstruction(Executable, Opcode::Store64i, {static_cast<std::uint64_t>(-8), 73}, RegisterId::SP);
+        const auto Call = Executable.byteSize();
+        appendCallInstruction(Executable, Opcode::Callm, {std::uint64_t{0} - Call}, RegisterId::PC);
+        const auto Copy = Executable.byteSize();
+        appendCallInstruction(Executable, Opcode::Load64, {std::uint64_t{8} - Copy, static_cast<std::uint64_t>(-16)}, RegisterId::PC, RegisterId::SP);
+        appendRegisterOffset(Executable, RegisterId::SP, -16);
+        const auto Return = appendCallInstruction(Executable, Opcode::Ret);
+        const auto Identity = core::NamePool::instance().intern("identity");
+        Executable.getDynamicImportSymbols().push_back({Identity});
+        Executable.getDynamicImportSymbolRelocations().push_back({0, 0, 0});
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+        core::CollectingDiagnosticConsumer Collector;
+        VM.getDiagnostics().addConsumer(Collector);
+
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Main));
+
+        EXPECT_EQ(readWord(VM.getCodeSegment().data()), addressOf(VM.resolveSymbolAddress(Identity)));
+        EXPECT_EQ(readWord(VM.getCodeSegment().data() + 8), 73U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), READ_REGISTER(RegisterId::SP, VM.getFrame()));
+        EXPECT_EQ(READ_REGISTER(RegisterId::PC, VM.getFrame()), addressOf(VM.getCodeSegment().data() + Return));
+        EXPECT_TRUE(Collector.diagnostics().empty());
+        VM.getDiagnostics().removeConsumer(Collector);
+    }
+
     // A direct native call passes the existing Frame to identity without reserving an Ink save area, then resumes at its next instruction.
     TEST(VMInterpreterCallTest, CallsIdentityStubUsingCallerPreparedArgumentAndReturnSlots)
     {
@@ -327,6 +428,46 @@ entry:
         }
     }
 
+    // Indirect calls apply the same checks to decoded targets and require a valid instruction after the call.
+    TEST(VMInterpreterCallDeathTest, ChecksIndirectTargetsAndReturnAddresses)
+    {
+        core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
+        ASSERT_TRUE(StackEnvironment.set("32"));
+        for (std::size_t InvalidKind = 0; InvalidKind < 5; ++InvalidKind)
+        {
+            SCOPED_TRACE(InvalidKind);
+            std::uint64_t Target = 0;
+            Interpreter VM;
+            ExecutableFile Executable;
+            appendCallInstruction(Executable, Opcode::Ret);
+            const auto Call = appendCallInstruction(Executable, Opcode::Callm, {addressOf(&Target)});
+            if (InvalidKind != 4)
+            {
+                appendCallInstruction(Executable, Opcode::Ret);
+            }
+            ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+            if (InvalidKind == 1)
+            {
+                Target = std::numeric_limits<std::uint64_t>::max();
+            }
+            else if (InvalidKind >= 2)
+            {
+                std::size_t TargetOffset = 0;
+                if (InvalidKind == 2)
+                {
+                    TargetOffset = 1;
+                }
+                else if (InvalidKind == 3)
+                {
+                    TargetOffset = VM.getCodeSegment().size();
+                }
+                Target = addressOf(VM.getCodeSegment().data() + TargetOffset);
+            }
+
+            EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data() + Call)), "check failed");
+        }
+    }
+
     // Unaligned registers, an out-of-stack BP, and BP above SP indicate an invalid call frame for either call target kind.
     TEST(VMInterpreterCallDeathTest, ChecksInvalidCallFrameInvariants)
     {
@@ -465,6 +606,68 @@ entry:
                 EXPECT_EQ(StackBytes[Offset], 0x6D);
             }
             expectCallFailure(Collector, "stack overflow");
+            VM.getDiagnostics().removeConsumer(Collector);
+        }
+    }
+
+    // Indirect recursion reports depth or stack exhaustion before changing the failing frame or writing a partial save area.
+    TEST(VMInterpreterCallTest, ReportsIndirectRecursionLimitsWithoutPartialSaveArea)
+    {
+        struct LimitCase
+        {
+                const char* StackSetting;
+                std::size_t StackBytes;
+                const char* DepthSetting;
+                std::size_t SavedBytes;
+                std::string_view Description;
+        };
+        constexpr LimitCase Cases[] = {
+            {"64", 64, "2", 32, "maximum recursion depth exceeded"},
+            {"64", 64, "0", 0, "maximum recursion depth exceeded"},
+            {"17", 17, "100", 16, "stack overflow"},
+            {"0", 0, "100", 0, "stack overflow"},
+        };
+        core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
+        core::test::ScopedEnvironmentVariable DepthEnvironment("INK_VM_MAX_RECURSION_DEPTH");
+        for (const auto& Case : Cases)
+        {
+            SCOPED_TRACE(Case.StackBytes);
+            SCOPED_TRACE(Case.DepthSetting);
+            ASSERT_TRUE(StackEnvironment.set(Case.StackSetting));
+            ASSERT_TRUE(DepthEnvironment.set(Case.DepthSetting));
+            std::uint64_t Target = 0;
+            Interpreter VM;
+            ExecutableFile Executable;
+            appendCallInstruction(Executable, Opcode::Ret);
+            const auto Call = appendCallInstruction(Executable, Opcode::Callm, {addressOf(&Target)});
+            const auto Return = appendCallInstruction(Executable, Opcode::Ret);
+            ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+            Target = addressOf(VM.getCodeSegment().data() + Call);
+            ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
+            const auto Stack = READ_REGISTER(RegisterId::SP, VM.getFrame());
+            auto* const StackBytes = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(Stack));
+            if (Case.StackBytes != 0)
+            {
+                std::fill_n(StackBytes, Case.StackBytes, 0x6D);
+            }
+            core::CollectingDiagnosticConsumer Collector;
+            VM.getDiagnostics().addConsumer(Collector);
+
+            EXPECT_FALSE(VM.execute(VM.getCodeSegment().data() + Call));
+
+            EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack + Case.SavedBytes);
+            EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack + (Case.SavedBytes == 0 ? 0 : Case.SavedBytes - 16));
+            EXPECT_EQ(READ_REGISTER(RegisterId::PC, VM.getFrame()), Target);
+            for (std::size_t Offset = 0; Offset < Case.SavedBytes; Offset += 16)
+            {
+                EXPECT_EQ(readWord(StackBytes + Offset), Stack + (Offset == 0 ? 0 : Offset - 16));
+                EXPECT_EQ(readWord(StackBytes + Offset + 8), addressOf(VM.getCodeSegment().data() + Return));
+            }
+            for (auto Offset = Case.SavedBytes; Offset < Case.StackBytes; ++Offset)
+            {
+                EXPECT_EQ(StackBytes[Offset], 0x6D);
+            }
+            expectCallFailure(Collector, Case.Description);
             VM.getDiagnostics().removeConsumer(Collector);
         }
     }

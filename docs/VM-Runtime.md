@@ -10,13 +10,13 @@
 
 逻辑寄存器属于 VM 的可见执行状态，与宿主 CPU 的寄存器分配无关。解释器计算有效地址、解码操作数时使用的宿主临时变量不增加 VM 的逻辑寄存器。
 
-[VM 内存模型与指令构建](VM-Module.md) 提供逻辑模块与指令构建，[模块链接器](VM-Linker.md) 合并模块并绑定可见定义，未满足的声明留待加载解析。镜像布局、发射与加载已实现；解释器支持部分 Add、Load、Store、四种无条件跳转、显式比较分支、地址型 `Calli` 以及普通和最外层 `Ret`，其余指令执行仍待实现。
+[VM 内存模型与指令构建](VM-Module.md) 提供逻辑模块与指令构建，[模块链接器](VM-Linker.md) 合并模块并绑定可见定义，未满足的声明留待加载解析。镜像布局、发射与加载已实现；解释器支持部分 Add、Load、Store、四种无条件跳转、显式比较分支、地址型 `Calli`、内存间接 `Callm` 以及普通和最外层 `Ret`，其余指令执行仍待实现。
 
 `vm_runtime` 和 `runtime_stub` 分别构建为独立静态库 `ink_vm_runtime`（`ink::vm_runtime`）和 `ink_runtime_stub`（`ink::runtime_stub`）。前者提供 `NativeSymbolAddresses` 并链接后者，后者提供通用 Native 桩并链接共享 C Runtime `ink::runtime`；依赖链为 `ink::vm → ink::vm_runtime → ink::runtime_stub → ink::runtime`。
 
 `runtime_stub/windows` 仅在 CMake 的 `WIN32` 目标上加入，构建独立平台库 `ink_runtime_stub_windows`（`ink::runtime_stub_windows`）。Windows 上的 `ink::runtime_stub` 链接该平台库，平台库链接 `kernel32`；其他目标不编译或链接 Windows 桩。
 
-`Interpreter` 持有诊断引擎和 Loader。`initialize()` 以 `try_emplace` 将 `NativeSymbolAddresses` 登记到统一 `ExportSymbolMap`，同时将 stub 地址加入 hash set。重复初始化保留已有同名绑定。名称查询只查统一符号表；`Calli` 按最终地址查询 stub 集合，同名 Ink 导出覆盖不会把它误判为 stub。
+`Interpreter` 持有诊断引擎和 Loader。`initialize()` 以 `try_emplace` 将 `NativeSymbolAddresses` 登记到统一 `ExportSymbolMap`，同时将 stub 地址加入 hash set。重复初始化保留已有同名绑定。名称查询只查统一符号表；`Calli` 和 `Callm` 按最终地址查询 stub 集合，同名 Ink 导出覆盖不会把它误判为 stub。
 
 解释器还持有当前 `Frame`。首次 `initialize()` 预留初始代码段容量，并读取 `config.def` 中的 `VMStackBytes`，用 `malloc` 创建一次栈分配。默认大小为 2 MiB（2097152 字节），可通过 `INK_VM_STACK_BYTES` 环境变量覆盖，无效的十进制值或溢出值使用默认大小；零字节配置不分配栈存储。构造后的寄存器保留 `Frame` 默认状态，BP、SP、PC 的整数值均为 0。重复 `initialize()` 注册 Native 符号并保留当前帧与当前栈，不重新读取配置或重置寄存器。
 
@@ -26,7 +26,7 @@
 
 当前分派循环读取八字节对齐的头字，从低 16 位提取 opcode，从其后三个字节提取寄存器编号。三种已实现的 Add 形式均直接读取三个八字节操作数槽，并通过 `READ_REGISTER` 从整数寄存器存储读取八字节值；ZERO 与其他寄存器使用相同读取路径，其常量存储提供 0。`r` 来源为读取的寄存器值加偏移位模式，`m` 来源在同样计算有效地址后，再从该地址读取八字节内存值。`Add64rrr` 使用两个 `r` 来源，`Add64rrm` 的右来源增加这一次内存读取。加法按 64 位位模式回绕；`r` 目标将八字节结果写入目标寄存器的成员存储，`Add64mrr` 则将结果写入目标 `m` 有效地址指向的可写内存。三者均将 PC 前进 32 字节继续分派。指令编码的对齐不要求数据有效地址对齐，内存来源与目标仍按字节复制。
 
-调用方须提供完整有效的指令编码及有效访存地址。分派通过 `check` 表达头部、指令长度和寄存器编号的内部前置条件。`Calli` 和普通返回在提交状态前通过 `check` 检查代码目标范围与八字节对齐、栈寄存器和返回帧结构；CALL 保存区容量不足与递归超限通过 `REPORT_IF` 报告 `VMExecutionFailed` 并返回 `false`。最外层 `Ret` 成功结束执行并将 PC 保留在该指令。已知但未实现的 opcode 同样报告执行失败。完整指令边界、数据权限和一般访存验证仍属后续工作。
+调用方须提供完整有效的指令编码及有效访存地址。分派通过 `check` 表达头部、指令长度和寄存器编号的内部前置条件。`Calli`、`Callm` 和普通返回在提交状态前通过 `check` 检查代码目标范围与八字节对齐、栈寄存器和返回帧结构；CALL 保存区容量不足与递归超限通过 `REPORT_IF` 报告 `VMExecutionFailed` 并返回 `false`。最外层 `Ret` 成功结束执行并将 PC 保留在该指令。已知但未实现的 opcode 同样报告执行失败。完整指令边界、数据权限和一般访存验证仍属后续工作。
 
 `CodeWords` 使用 `std::vector<std::uint64_t>` 拥有完整整数槽，`CodeSegment` 是同一存储的字节视图；指令直接按整数槽读取，数据访问保留按字节复制。解释器另存逻辑有效字节数和按八字节取整的容量。`getCodeSegment()` 返回覆盖有效字节的 `std::span<const std::uint8_t>`，`getCodeSegmentCapacity()` 返回分配容量。容量不足时通常倍增并向上取整，创建新的整数槽数组，复制覆盖有效字节的完整槽，再安装新存储并修补既有宿主地址。尾槽的额外字节不计入逻辑有效长度。
 
@@ -122,15 +122,15 @@ add64rri sp, sp, -16    // 回收 16 字节
 
 ## 函数调用与返回
 
-调用族统一为 `Calli` 和 `Callm`，文本均为 `call`。`Calli` 保存完整 64 位函数地址，本镜像符号使用镜像基址重定位，外部符号使用动态导入重定位；符号 addend 为零。`Callm` 的逻辑模型、文本和发射保留，执行暂未实现。
+调用族统一为 `Calli` 和 `Callm`，文本均为 `call`。`Calli` 保存完整 64 位函数地址，本镜像符号使用镜像基址重定位，外部符号使用动态导入重定位；符号 addend 为零。`Callm` 按寄存器基址加编码偏移计算指针槽地址，再按字节复制读取 64 位函数地址；槽位无需对齐，调用方须保证这八字节内存可读。
 
-解释器从 `NativeSymbolAddresses` 建立 stub 地址 hash set。`Calli` 先检查目标是否位于有效代码段且按八字节对齐，满足时直接执行 Ink 调用；只有其他地址查询 stub 集合。命中时按 `void(Frame*)` 调用已注册 stub，stub 返回后继续 `NextPC`，不创建 Ink 保存区；未命中属于内部不变量失败，使用 `check`。调用方保证参数和返回槽满足各 stub 的既有契约；此集合不允许任意原始 C 函数指针自动进入宿主调用。
+解释器从 `NativeSymbolAddresses` 建立 stub 地址 hash set。`Calli` 和 `Callm` 取得目标地址后共用调用逻辑：先检查目标是否位于有效代码段且按八字节对齐，满足时直接执行 Ink 调用；只有其他地址查询 stub 集合。命中时按 `void(Frame*)` 调用已注册 stub，stub 返回后继续 `NextPC`，不创建 Ink 保存区；未命中属于内部不变量失败，使用 `check`。调用方保证参数和返回槽满足各 stub 的既有契约；此集合不允许任意原始 C 函数指针自动进入宿主调用。
 
 Ink 目标通过范围与对齐及栈保存区检查后，在 SP 处写入旧 BP 和返回 PC，再令 BP 为旧 SP、SP 前进 16 字节、PC 指向目标。普通 `Ret` 从保存区恢复 BP、PC，并将 SP 恢复到当前 BP；调用区由调用方回收。没有活动 Ink 调用时，`Ret` 结束本次执行。
 
 每次执行读取 `config.def` 中的 `VMMaxRecursionDepth`，默认最多同时保留 8096 个 Ink 调用帧，可通过 `INK_VM_MAX_RECURSION_DEPTH` 覆盖。入口函数深度为零，Native stub 不增加深度；零限制禁止建立 Ink 调用帧，仍允许最外层返回和 Native 调用。到达限制时，下一次 Ink 调用通过 `REPORT_IF` 报告 `maximum recursion depth exceeded`；保存区容量不足时报告 `stack overflow`。两种情况均返回 `false`，保留失败调用前的寄存器和栈字节。
 
-布局公式、参数及返回槽、可变参数预留区见 [VM 调用约定](VM-Calling-Convention.md)。当前尚无调用区自动生成、完整调用签名检查或间接调用执行。
+布局公式、参数及返回槽、可变参数预留区见 [VM 调用约定](VM-Calling-Convention.md)。当前尚无调用区自动生成或完整调用签名检查。
 
 ## 执行边界与失败：建议约定
 
@@ -142,4 +142,4 @@ Ink 目标通过范围与对齐及栈保存区检查后，在 SP 处写入旧 BP
 
 ## 后续讨论
 
-按 [VM 调用约定](VM-Calling-Convention.md) 生成调用区布局、执行 CALL、恢复调用帧的 RET 与分支控制流尚未实现。`opcode.def` 中已有形式的操作数编码以 [VM 指令编码格式](VM-Instruction-Format.md) 为准；当前可通过指定宿主入口地址执行 `Add64rrr`、`Add64rrm`、`Add64mrr` 序列并以 `Ret` 结束，完整程序调用与宿主 ABI adapter 仍需落实。
+按 [VM 调用约定](VM-Calling-Convention.md) 自动生成调用区布局和通用宿主 ABI adapter 尚未实现。`opcode.def` 中已有形式的操作数编码以 [VM 指令编码格式](VM-Instruction-Format.md) 为准；当前已支持 `Calli`、`Callm`、恢复调用帧的 `Ret` 与分支控制流，其他指令执行仍需补全。
