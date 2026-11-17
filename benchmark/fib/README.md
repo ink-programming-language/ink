@@ -7,7 +7,7 @@
 ## 计时口径
 
 - Ink 只计时 `Interpreter::execute`；其他运行时只计时递归 `fib(n)` 调用。
-- 不计入 ASM/脚本解析、代码生成、装载、JIT 编译、预热、结果校验、进程启动、输出和 trace 序列化。
+- 不计入 ASM/脚本解析、代码生成、装载、显式预热、结果校验、进程启动、输出和 trace 序列化。Daslang 显式 LLVM JIT 编译在计时前完成；V8 自行管理分层编译，不能保证后续或后台 JIT 活动全部发生在计时之外。
 - 每个进程先预热 3 次，再记录 11 次；运行 3 轮，每项共 33 个样本，报告合并样本的中位数。
 - Windows 子进程绑定逻辑 CPU 2，使用 High 优先级；每轮轮换运行顺序，所有结果在计时区间之后校验。
 - 源码算法一致，原生编译器和 JIT 可以优化递归，因此机器级调用次数不保证相同。
@@ -16,7 +16,7 @@
 
 ## Windows 构建与运行
 
-先初始化仓库子模块。准备 Python 3.14.4、Node.js 20.20.0，以及 Lua 5.5.1 官方源码；以下假定 Lua 的 `src` 目录位于 `build/fib-benchmark/tools/lua-5.5.1/src`。Daslang 为可选项，使用官方 0.6.5 Windows release 包，以下假定其程序位于 `build/fib-benchmark/tools/daslang-0.6.5/daslang/_sdk/bin/daslang.exe`。这些外部运行时不会由 Ink 的 CMake 自动下载。
+先初始化仓库子模块。准备 Python 3.14.4、Node.js 20.20.0，以及 Lua 5.5.1 官方源码；以下假定 Lua 的 `src` 目录位于 `build/benchmark/tools/lua-5.5.1/src`。Daslang 为可选项，使用官方 0.6.5 Windows release 包，以下假定其程序位于 `build/benchmark/tools/daslang-0.6.5/daslang/_sdk/bin/daslang.exe`。这些外部运行时不会由 Ink 的 CMake 自动下载。
 
 在 VS 2022 的 **x64 Native Tools Command Prompt** 中启动 PowerShell，使编译器继承 Windows SDK 和 MSVC 标准库环境，然后从仓库根目录执行。按安装位置调整变量；测量使用的 clang-cl 版本为 19.1.5。
 
@@ -28,9 +28,9 @@ $Clang = "$VsRoot/VC/Tools/Llvm/x64/bin/clang-cl.exe"
 $Ninja = "$VsRoot/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe"
 $Build = "build/benchmark/o3-shipping"
 $LuaBuild = "build/benchmark/tools/lua"
-$LuaSource = (Resolve-Path "build/fib-benchmark/tools/lua-5.5.1/src").Path
+$LuaSource = (Resolve-Path "build/benchmark/tools/lua-5.5.1/src").Path
 $Python = "C:/Python314/python.exe"
-$Daslang = "build/fib-benchmark/tools/daslang-0.6.5/daslang/_sdk/bin/daslang.exe"
+$Daslang = "build/benchmark/tools/daslang-0.6.5/daslang/_sdk/bin/daslang.exe"
 
 & $Clang --version
 cmake -S . -B $Build -G Ninja "-DCMAKE_MAKE_PROGRAM=$Ninja" "-DCMAKE_C_COMPILER=$Clang" "-DCMAKE_CXX_COMPILER=$Clang" -DCMAKE_BUILD_TYPE=Release -DINK_BUILD_MODE=shipping -DINK_BUILD_VM_BENCHMARKS=ON -DBUILD_TESTING=OFF "-DCMAKE_C_FLAGS_RELEASE=/clang:-O3 /DNDEBUG" "-DCMAKE_CXX_FLAGS_RELEASE=/clang:-O3 /DNDEBUG"
@@ -51,35 +51,25 @@ $env:PYTHON_JIT = "0"
 
 ## 测量结果（2026-11-17）
 
-以下结果使用 PC 局部变量优化前的 switch 实现及上述配置测量。
+以下为当前主线运行时（`05f6a712`）在上述配置下重新测量的正式结果。
 
 - 环境：Intel Core i9-13900K，Windows 11 22631，逻辑 CPU 2，High 优先级。
 - 工作量：`n=32`，每轮预热 3 次、采样 11 次，共 3 轮；各项均为 33 个执行样本的中位数。
-- Ink、C++ 和 Lua：clang-cl 19.1.5，O3；Ink 为 Shipping、check 关闭。
+- Ink、C++ 和 Lua：clang-cl 19.1.5，O3；Ink 为 Shipping，`INK_ENABLE_ASSERTIONS=0`，switch 分派。
 - Python 3.14.4 的 JIT 未启用；JavaScript 使用 Node.js 20.20.0 / V8 11.3.244.8-node.33，分别测量默认模式和 `--jitless`。
-- Daslang 0.6.5 使用官方 Windows release 包，宿主编译器优化参数未知；不能据此声称与本地 C++ 使用了相同的 O3 参数。解释器和 LLVM JIT 分开列出。
+- Daslang 0.6.5 使用官方 Windows release 包，宿主编译器优化参数未知；解释器和 LLVM JIT 分开列出。
 
 | 实现 | 执行模式 | 中位耗时（ms） |
-|---|---|---:|
-| Ink switch | 当前保留的分派实现，O3 / Shipping / check 关闭 | 65.9266 |
-| C++ | 原生编译，O3 | 4.5326 |
-| Python 3.14.4 | CPython 解释器，JIT 未启用 | 211.3313 |
-| Lua 5.5.1 | 解释器，宿主 O3 构建 | 101.9600 |
-| JavaScript 默认模式 | Node.js / V8，允许 JIT 优化 | 15.0292 |
-| JavaScript `--jitless` | Node.js / V8，JIT 禁用 | 136.0454 |
-| Daslang 0.6.5 | 解释器 | 37.9089 |
-| Daslang 0.6.5 | LLVM JIT，编译时间不计入 | 4.6521 |
+| --- | --- | ---: |
+| Ink | switch 解释器，O3 / Shipping | 53.7309 |
+| C++ | 原生编译，O3 | 4.1159 |
+| Python | CPython 解释器，JIT 未启用 | 189.4603 |
+| Lua | 解释器，宿主 O3 构建 | 92.2885 |
+| JavaScript 默认模式 | V8，允许 JIT 优化 | 13.8248 |
+| JavaScript `--jitless` | V8，禁用 JIT | 122.6070 |
+| Daslang | 解释器 | 35.0263 |
+| Daslang | LLVM JIT | 4.2284 |
 
-该结果只描述此递归 Fibonacci 工作量和上述工具链，不能推广为各语言的整体性能排名。运行命令的 `--output` 路径保存原始样本、完整命令和版本信息；上例为 `build/benchmark/fib/results.json`。
+全部 24 次正式运行的 264 个测量样本完成结果校验，`fib(32)` 均为 `2178309`，Ink execute trace 校验通过。结果只描述此递归 Fibonacci 工作量和上述工具链。
 
-## PC 局部变量优化对比（2026-11-17）
-
-以 `905d7053` 的解释器为基线，与本次 PC 局部变量实现做同批 A/B。指令编码及 `fib.asm` 保持一致；解释器每条指令开始前同步 `Frame.PC`，取指直接使用局部 PC。两版均使用 clang-cl 19.1.5、O3 / Shipping，`INK_ENABLE_ASSERTIONS=0`。
-
-在上述同一机器上绑定逻辑 CPU 2、High 优先级，前后版本交替串行运行 5 轮，每轮每进程预热 3 次、采样 11 次。只计时 `Interpreter::execute()`，每版汇总 55 个样本的中位数。
-
-| 工作量 | 优化前（ms） | 优化后（ms） | 耗时减少 |
-| --- | ---: | ---: | ---: |
-| `fib(32)` | 70.0476 | 61.3847 | 12.37% |
-
-五轮的中位数均有改善，全部结果为 `2178309`。原始样本、逐轮统计、命令、可执行文件和源码哈希保存在 `build/pc-local-validation/comparison.json`，同目录保留每轮 execute trace；比较脚本为 `build/pc-local-validation/compare.py`。这些本地验证产物不纳入源码提交。
+原始样本、完整命令、运行时版本和汇总统计保存于 `build/benchmark/fib/results.json`，Ink 的三份 execute trace 位于同目录。复现命令见上文；原始数据和构建产物不纳入源码提交。

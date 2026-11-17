@@ -16,11 +16,11 @@
 $VsRoot = "C:/Program Files/Microsoft Visual Studio/2022/Community"
 $Clang = "$VsRoot/VC/Tools/Llvm/x64/bin/clang-cl.exe"
 $Ninja = "$VsRoot/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe"
-$Build = "build/fib-benchmark/o3-shipping"
+$Build = "build/benchmark/o3-shipping"
 $LuaBuild = "build/benchmark/tools/lua"
-$LuaSource = (Resolve-Path "build/fib-benchmark/tools/lua-5.5.1/src").Path
+$LuaSource = (Resolve-Path "build/benchmark/tools/lua-5.5.1/src").Path
 $Python = "C:/Python314/python.exe"
-$Daslang = "build/fib-benchmark/tools/daslang-0.6.5/daslang/_sdk/bin/daslang.exe"
+$Daslang = "build/benchmark/tools/daslang-0.6.5/daslang/_sdk/bin/daslang.exe"
 
 cmake -S . -B $Build -G Ninja "-DCMAKE_MAKE_PROGRAM=$Ninja" "-DCMAKE_C_COMPILER=$Clang" "-DCMAKE_CXX_COMPILER=$Clang" -DCMAKE_BUILD_TYPE=Release -DINK_BUILD_MODE=shipping -DINK_BUILD_VM_BENCHMARKS=ON -DBUILD_TESTING=OFF "-DCMAKE_C_FLAGS_RELEASE=/clang:-O3 /DNDEBUG" "-DCMAKE_CXX_FLAGS_RELEASE=/clang:-O3 /DNDEBUG"
 cmake --build $Build --target ink_nbody_benchmark cpp_nbody_benchmark --parallel 8
@@ -65,37 +65,23 @@ VM 单元测试复用此汇编，覆盖 `0`、`1`、`10`、`1000` 步及同一�
 
 ## 测量结果（2026-11-17）
 
-以下为 PC 局部变量优化前的跨运行时测量；本次优化的同批前后比较见下一节。
-
-- 环境：Intel Core i9-13900K，Windows 11 22631，逻辑 CPU 2，High 优先级。
+- 环境：Intel Core i9-13900K，Windows 11 22631，逻辑 CPU 2，High 优先级。Ink 源码基于 `05f6a712`。
 - 工作量：100,000 步，`dt=0.01`；每轮每进程显式预热 3 次、采样 11 次，共 3 轮。下表为各项 33 个样本的中位数。
-- Ink、C++ 和 Lua：clang-cl 19.1.5，O3；Ink 为 Shipping，`check` 关闭，switch 分派。
+- Ink、C++ 和 Lua：clang-cl 19.1.5，O3；Ink 为 Shipping，`INK_ENABLE_ASSERTIONS=0`，switch 分派。
 - Python 3.14.4，`PYTHON_JIT=0`；JavaScript 为 Node.js 20.20.0 / V8 11.3.244.8-node.33；Lua 5.5.1。
 - Daslang 0.6.5 使用预编译运行时，宿主编译参数未知；解释器与 LLVM JIT 分开报告。
 
 | 实现 | 执行模式 | 中位耗时（ms） |
 | --- | --- | ---: |
-| Ink | switch 解释器，O3 / Shipping | 99.7204 |
-| C++ | 原生编译，O3 | 3.0974 |
-| Python | CPython 解释器，JIT 关闭 | 419.2683 |
-| Lua | 解释器，宿主 O3 构建 | 125.5929 |
-| JavaScript 默认模式 | V8，允许 JIT 优化 | 5.3592 |
-| JavaScript `--jitless` | V8，禁用 JIT | 294.5411 |
-| Daslang | 解释器 | 88.4076 |
-| Daslang | LLVM JIT | 2.9326 |
+| Ink | switch 解释器，O3 / Shipping | 76.1502 |
+| C++ | 原生编译，O3 | 3.0075 |
+| Python | CPython 解释器，JIT 关闭 | 410.1737 |
+| Lua | 解释器，宿主 O3 构建 | 123.6814 |
+| JavaScript 默认模式 | V8，允许 JIT 优化 | 5.2703 |
+| JavaScript `--jitless` | V8，禁用 JIT | 289.1166 |
+| Daslang | 解释器 | 81.9975 |
+| Daslang | LLVM JIT | 3.0250 |
 
-全部 24 次正式运行的 264 个测量样本完成校验，最终能量为 `-0.1690798593916664`，初始能量为 `-0.16907516382852447`。Ink 的中位耗时为 C++ 的约 32.19 倍、Daslang 解释器的约 1.13 倍；Python、Lua 和 JavaScript jitless 的中位耗时分别为 Ink 的约 4.20、1.26 和 2.95 倍。结果仅描述这个五天体标量工作负载及上述环境。
+全部 24 次正式运行的 264 个测量样本完成校验，初始能量为 `-0.16907516382852447`，最终能量为 `-0.1690798593916664`。Ink 的中位耗时为 C++ 的约 25.32 倍、Daslang 解释器的约 0.93 倍；Python、Lua 和 JavaScript jitless 的中位耗时分别为 Ink 的约 5.39、1.62 和 3.80 倍。结果仅描述这个五天体标量工作负载及上述环境。
 
 原始样本、命令、版本、源码哈希和汇总保存在 `build/benchmark/nbody/results.json`，Ink 的三份 execute trace 位于同目录。复现命令见上文；原始数据与构建产物不纳入源码提交。
-
-## PC 局部变量优化对比（2026-11-17）
-
-以 `905d7053` 的解释器为基线，与本次 PC 局部变量实现做同批 A/B。`nbody.asm`、指令编码、浮点运算顺序均保持一致；解释器每条指令开始前同步 `Frame.PC`，取指直接使用局部 PC。两版均为 clang-cl 19.1.5、O3 / Shipping，`INK_ENABLE_ASSERTIONS=0`。
-
-同一机器绑定逻辑 CPU 2、High 优先级，前后版本交替串行运行 5 轮，每轮每进程预热 3 次、采样 11 次。计时范围仍为完整模拟的 `Interpreter::execute()`，每版汇总 55 个样本的中位数。
-
-| 工作量 | 优化前（ms） | 优化后（ms） | 耗时减少 |
-| --- | ---: | ---: | ---: |
-| 五天体，100,000 步 | 118.4044 | 92.9074 | 21.53% |
-
-五轮的中位数均有改善。两版每次预热和采样均完成两项能量、全部 35 个状态值校验，跨版本也与同一 C++ 参考结果比较通过。原始样本、逐轮统计、命令、源码与可执行文件哈希位于 `build/pc-local-validation/comparison.json`，同目录保留 execute trace 与 `compare.py`；这些本地验证产物不纳入源码提交。
