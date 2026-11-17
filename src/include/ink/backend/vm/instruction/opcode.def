@@ -72,10 +72,9 @@ OPCODE(Add64mmm, 0x0016, "add64mmm", Mmm, 64, 0, 3, 0, Add)
 OPCODE(Add64mmi, 0x0017, "add64mmi", Mmi, 64, 0, 2, 1, Add)
 OPCODE(Add64mii, 0x0018, "add64mii", Mii, 64, 0, 1, 2, Add)
 
-// Address registers have 64-bit address width; arithmetic destinations may be BP or SP with zero ByteOffset, never PC.
-// For register destinations, LHS is an address and RHS is a signed 64-bit byte displacement.
-// These sources retain their address/displacement roles and must not be exchanged.
-// Valid address arithmetic, stack bounds, and frame rules are caller preconditions.
+// Registers hold 64-bit value bits; arithmetic destinations may be BP, SP, or R0-R9 with zero ByteOffset, never PC or ZERO.
+// Register addition wraps to 64 bits; BP/SP results retain their address, stack, and frame preconditions.
+// Register and memory sources keep their declared order and byte displacements.
 // add64rri sp, sp, ByteCount reserves stack space; a negative displacement reclaims it.
 OPCODE(Add64rrr, 0x0019, "add64rrr", Rrr, 64, 3, 0, 0, Add)
 OPCODE(Add64rrm, 0x001A, "add64rrm", Rrm, 64, 2, 1, 0, Add)

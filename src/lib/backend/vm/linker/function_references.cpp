@@ -42,7 +42,7 @@ namespace ink::vm::detail
                                 const auto& Destination = Typed.getDestination();
                                 if (!isWritableAddressRegister(Destination.getRegister()) || Destination.getByteOffset() != 0)
                                 {
-                                    return std::expected<void, std::string>(std::unexpected("register destination must be BP or SP with zero byte offset"));
+                                    return std::expected<void, std::string>(std::unexpected("register destination must be BP, SP, or R0-R9 with zero byte offset"));
                                 }
                             }
                         }

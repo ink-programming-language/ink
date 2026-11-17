@@ -25,14 +25,19 @@ namespace ink::vm
         return "InvalidRegister";
     }
 
+    constexpr bool isGeneralPurposeRegister(RegisterId Register) noexcept
+    {
+        return Register >= RegisterId::R0 && Register <= RegisterId::R9;
+    }
+
     constexpr bool isAddressRegister(RegisterId Register) noexcept
     {
-        return Register == RegisterId::BP || Register == RegisterId::SP || Register == RegisterId::PC || Register == RegisterId::ZERO;
+        return Register == RegisterId::BP || Register == RegisterId::SP || Register == RegisterId::PC || Register == RegisterId::ZERO || isGeneralPurposeRegister(Register);
     }
 
     constexpr bool isWritableAddressRegister(RegisterId Register) noexcept
     {
-        return Register == RegisterId::BP || Register == RegisterId::SP;
+        return Register == RegisterId::BP || Register == RegisterId::SP || isGeneralPurposeRegister(Register);
     }
 
     constexpr bool isArithmeticRegister(RegisterId Register) noexcept

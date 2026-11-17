@@ -110,7 +110,7 @@ namespace ink::vm
 
     void InstructionEmitter::padRegister(RegisterId Register, std::int64_t ByteOffset)
     {
-        REPORT_ICE_IF(!isAddressRegister(Register), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "register operand", "register must be BP, SP, PC, or ZERO");
+        REPORT_ICE_IF(!isAddressRegister(Register), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "register operand", "register must be BP, SP, PC, ZERO, or R0-R9");
         Context.padInteger(static_cast<std::uint64_t>(ByteOffset), 64);
     }
 

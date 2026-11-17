@@ -91,6 +91,43 @@ namespace ink::vm::test
 #undef COMPARE_BRANCH
     }
 
+    // General-purpose register IDs occupy the existing header bytes without changing opcode values or operand-word offsets.
+    TEST(VMFunctionEmitterTest, PreservesOpcodeAndOperandWordsForGeneralPurposeRegisters)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        ExecutableEmissionContext Context(Diagnostics);
+        MachineFunction Function;
+        auto& Block = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        Builder.create<Opcode::Add64rrr>(RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::R1, 8), RegisterOperand(RegisterId::R9, -8));
+        Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::R9), RegisterOperand(RegisterId::ZERO), ImmediateOperand(0xFFEEDDCCBBAA9988ULL));
+        Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::R9, 8), ImmediateOperand(42));
+        Builder.create<Opcode::Load64>(AddressOperand(RegisterId::R9, 16), AddressOperand(RegisterId::R0, -8));
+        Builder.create<Opcode::Ret>();
+        FunctionEmitter Emitter(Context);
+        Emitter.emit(Function);
+
+        ASSERT_EQ(Context.byteSize(), 120U);
+        EXPECT_EQ(readLittleEndian(Context, 0), 0x0000000D05040019ULL);
+        EXPECT_EQ(readLittleEndian(Context, 8), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 16), 8U);
+        EXPECT_EQ(readLittleEndian(Context, 24), static_cast<std::uint64_t>(-8));
+        EXPECT_EQ(readLittleEndian(Context, 32), 0x00000003030D001BULL);
+        EXPECT_EQ(readLittleEndian(Context, 40), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 48), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 56), 0xFFEEDDCCBBAA9988ULL);
+        EXPECT_EQ(readLittleEndian(Context, 64), 0x00000003030D000CULL);
+        EXPECT_EQ(readLittleEndian(Context, 72), 8U);
+        EXPECT_EQ(readLittleEndian(Context, 80), 42U);
+        EXPECT_EQ(readLittleEndian(Context, 88), 0x00000003040D0004ULL);
+        EXPECT_EQ(readLittleEndian(Context, 96), 16U);
+        EXPECT_EQ(readLittleEndian(Context, 104), static_cast<std::uint64_t>(-8));
+        EXPECT_EQ(readLittleEndian(Context, 112), 0x000000030303003AULL);
+        EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
+        EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
+    }
+
     // Explicit block emission aligns its first instruction and resolves each block at its header in the complete image.
     TEST(VMFunctionEmitterTest, AppendsOrderedInstructionsAndResolvesImageOffsets)
     {

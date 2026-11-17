@@ -514,6 +514,64 @@ entry:
         expectEqualModules(**Parsed, **Reparsed);
     }
 
+    // All ten general-purpose registers round-trip as arithmetic destinations, value sources, and memory bases.
+    TEST(VMMachineModuleTextTest, RoundTripsGeneralPurposeRegistersInExistingInstructionForms)
+    {
+        constexpr std::string_view Text = R"(.module ""
+.section .text
+.function F
+entry:
+    add64rri r0, zero, 0
+    add64rri r1, zero, 1
+    add64rri r2, zero, 2
+    add64rri r3, zero, 3
+    add64rri r4, zero, 4
+    add64rri r5, zero, 5
+    add64rri r6, zero, 6
+    add64rri r7, zero, 7
+    add64rri r8, zero, 8
+    add64rri r9, zero, 9
+    add64rrr r0, r8 - 8, r9 + 16
+    add64rrm r9, r0, [r1 + 8]
+    add64mrr [r2 + 16], r3, r4
+    store64i [r5], 42
+    jmpr r6 + 8
+    call [r7]
+    je64mib [r8], 0, done
+done:
+    ret
+.endfunction
+)";
+        const auto Parsed = readMachineModuleText(Text);
+        ASSERT_TRUE(Parsed.has_value());
+        const auto Instructions = (*Parsed)->functions().begin()->basicBlocks().begin()->instructions();
+        ASSERT_EQ(std::ranges::distance(Instructions), 17);
+        auto Position = Instructions.begin();
+        for (std::uint8_t Index = 0; Index < 10; ++Index, ++Position)
+        {
+            const auto& Add = static_cast<const MachineAdd64rriInstruction&>(*Position);
+            EXPECT_EQ(Add.getDestination().getRegister(), static_cast<RegisterId>(0x04 + Index));
+            EXPECT_EQ(Add.getRHS().bits(), Index);
+        }
+        const auto& Add = static_cast<const MachineAdd64rrrInstruction&>(*Position);
+        EXPECT_EQ(Add.getLHS().getRegister(), RegisterId::R8);
+        EXPECT_EQ(Add.getLHS().getByteOffset(), -8);
+        EXPECT_EQ(Add.getRHS().getRegister(), RegisterId::R9);
+        EXPECT_EQ(Add.getRHS().getByteOffset(), 16);
+        const auto Written = writeMachineModuleText(**Parsed);
+        ASSERT_TRUE(Written.has_value());
+        EXPECT_NE(Written->find("add64rrr r0, r8 - 8, r9 + 16\n"), std::string::npos);
+        EXPECT_NE(Written->find("add64rrm r9, r0, [r1 + 8]\n"), std::string::npos);
+        EXPECT_NE(Written->find("add64mrr [r2 + 16], r3, r4\n"), std::string::npos);
+        EXPECT_NE(Written->find("store64i [r5], 0x2a\n"), std::string::npos);
+        EXPECT_NE(Written->find("jmpr r6 + 8\n"), std::string::npos);
+        EXPECT_NE(Written->find("call [r7]\n"), std::string::npos);
+        EXPECT_NE(Written->find("je64mib [r8], 0x0, done\n"), std::string::npos);
+        const auto Reparsed = readMachineModuleText(*Written);
+        ASSERT_TRUE(Reparsed.has_value());
+        expectEqualModules(**Parsed, **Reparsed);
+    }
+
     // Register expressions reject missing, repeated, overflowing displacements and unknown register names.
     TEST(VMMachineModuleTextTest, RejectsMalformedRegisterDisplacements)
     {
@@ -527,6 +585,8 @@ entry:
             "pc + 18446744073709551616",
             "pc + 1 + 2",
             "invalid + 1",
+            "r10",
+            "r255",
         };
         for (const auto OperandText : InvalidOperands)
         {
@@ -538,7 +598,7 @@ entry:
         }
     }
 
-    // Register destinations accept BP and SP only without an offset, for both parsed assembly and directly constructed modules.
+    // Writable registers reject destination offsets, while PC and ZERO remain read-only arithmetic destinations.
     TEST(VMMachineModuleTextTest, RejectsNonzeroOrReadOnlyRegisterDestinations)
     {
         constexpr std::string_view InvalidDestinations[] = {
@@ -548,6 +608,9 @@ entry:
             "pc + 2",
             "zero",
             "zero + 8",
+            "r0 + 1",
+            "r9 - 8",
+            "r10",
         };
         for (const auto DestinationText : InvalidDestinations)
         {
@@ -564,6 +627,9 @@ entry:
             RegisterOperand(RegisterId::PC, 2),
             RegisterOperand(RegisterId::ZERO),
             RegisterOperand(RegisterId::ZERO, 8),
+            RegisterOperand(RegisterId::R0, 1),
+            RegisterOperand(RegisterId::R9, -8),
+            RegisterOperand(static_cast<RegisterId>(0x0E)),
         };
         for (const auto& Destination : Destinations)
         {
@@ -673,6 +739,8 @@ entry:
         }
         constexpr std::string_view InvalidAddresses[] = {
             "[ref0]",
+            "[r10]",
+            "[r255 + 8]",
             "[@]",
             "[@\"\"]",
             "[external]",
@@ -1277,21 +1345,21 @@ entry:
         }
     }
 
-    // Undefined register encoding 0x04 is rejected when writing either direct register sources or memory bases.
+    // The first undefined register encoding after R9 is rejected for direct sources and memory bases.
     TEST(VMMachineModuleTextTest, RejectsUndefinedRegisterEncodingWhenWriting)
     {
         MachineModule Module;
         auto& Block = Module.createFunction().createBasicBlock();
         MachineInstructionBuilder Builder;
         Builder.setInsertPoint(Block);
-        Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::BP), RegisterOperand(static_cast<RegisterId>(0x04)), ImmediateOperand(0));
+        Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::BP), RegisterOperand(static_cast<RegisterId>(0x0E)), ImmediateOperand(0));
         const auto RegisterText = writeMachineModuleText(Module);
         ASSERT_FALSE(RegisterText.has_value());
         EXPECT_EQ(RegisterText.error().Kind, core::DiagnosticKind::VMTextInvalid);
         MachineModule AddressModule;
         auto& AddressBlock = AddressModule.createFunction().createBasicBlock();
         Builder.setInsertPoint(AddressBlock);
-        Builder.create<Opcode::Store32i>(AddressOperand(static_cast<RegisterId>(0x04)), ImmediateOperand(1));
+        Builder.create<Opcode::Store32i>(AddressOperand(static_cast<RegisterId>(0x0E)), ImmediateOperand(1));
         const auto AddressText = writeMachineModuleText(AddressModule);
         ASSERT_FALSE(AddressText.has_value());
         EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMTextInvalid);

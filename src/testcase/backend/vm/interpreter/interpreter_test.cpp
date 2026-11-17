@@ -123,7 +123,7 @@ namespace ink::vm::test
         ASSERT_TRUE(Environment.set(nullptr));
         Interpreter VM;
         const auto InitialBindings = VM.getFrame().Register;
-        ASSERT_EQ(InitialBindings.size(), 4U);
+        ASSERT_EQ(InitialBindings.size(), 14U);
         EXPECT_EQ(InitialBindings[3], GET_REGISTER(RegisterId::ZERO, VM.getFrame()));
         EXPECT_NE(GET_REGISTER(RegisterId::BP, VM.getFrame()), nullptr);
         EXPECT_NE(GET_REGISTER(RegisterId::SP, VM.getFrame()), nullptr);

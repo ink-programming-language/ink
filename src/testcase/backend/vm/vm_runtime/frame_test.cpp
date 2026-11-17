@@ -15,6 +15,19 @@ namespace ink::vm::test
 {
     namespace
     {
+        constexpr std::array GeneralPurposeRegisters = {
+            RegisterId::R0,
+            RegisterId::R1,
+            RegisterId::R2,
+            RegisterId::R3,
+            RegisterId::R4,
+            RegisterId::R5,
+            RegisterId::R6,
+            RegisterId::R7,
+            RegisterId::R8,
+            RegisterId::R9,
+        };
+
         struct TwelveByteValue
         {
                 std::uint32_t First;
@@ -115,6 +128,105 @@ namespace ink::vm::test
         EXPECT_EQ(Value.Register, Bindings);
     }
 
+    // All ten GPRs start at zero and preserve complete 64-bit values through typed access and byte-storage aliases.
+    TEST(VMFrameTest, InitializesAndPreservesGeneralPurposeRegisterBitPatterns)
+    {
+        constexpr std::array<std::uint64_t, 10> Patterns = {
+            0,
+            1,
+            std::numeric_limits<std::uint64_t>::max(),
+            0x8000000000000000,
+            0x7FFFFFFFFFFFFFFF,
+            0xFFFFFFFFFFFFFFFE,
+            0x0123456789ABCDEF,
+            0xFEDCBA9876543210,
+            0xAAAAAAAAAAAAAAAA,
+            0x5555555555555555,
+        };
+        std::array<std::uint8_t, 8> Stack{};
+        Frame Value;
+        Frame WithStack{Stack.data() + Stack.size()};
+        const auto Bindings = Value.Register;
+        for (std::size_t Index = 0; Index < GeneralPurposeRegisters.size(); ++Index)
+        {
+            const auto Id = GeneralPurposeRegisters[Index];
+            EXPECT_EQ(READ_REGISTER(Id, Value), 0U);
+            EXPECT_EQ(READ_REGISTER(Id, WithStack), 0U);
+            WRITE_REGISTER(Id, Value, Patterns[Index]);
+        }
+        const Frame& View = Value;
+        for (std::size_t Index = 0; Index < GeneralPurposeRegisters.size(); ++Index)
+        {
+            const auto Id = GeneralPurposeRegisters[Index];
+            EXPECT_EQ(READ_REGISTER(Id, View), Patterns[Index]);
+            EXPECT_EQ(*reinterpret_cast<const std::uint64_t*>(GET_REGISTER(Id, View)), Patterns[Index]);
+            const auto AliasBits = ~Patterns[Index];
+            std::memcpy(SET_REGISTER(Id, Value), &AliasBits, sizeof(AliasBits));
+            EXPECT_EQ(READ_REGISTER(Id, View), AliasBits);
+        }
+        EXPECT_EQ(Value.Register, Bindings);
+        EXPECT_EQ(READ_REGISTER(RegisterId::BP, View), 0U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::SP, View), 0U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::PC, View), 0U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::ZERO, View), 0U);
+    }
+
+    // Copying, assigning, self-assigning, and resetting a frame retain independent GPR storage and correctly rebound aliases.
+    TEST(VMFrameTest, RebindsGeneralPurposeStorageAcrossCopiesAssignmentsAndReset)
+    {
+        Frame Original;
+        constexpr std::uint64_t Seed = 0xFEDCBA9876543210;
+        for (std::size_t Index = 0; Index < GeneralPurposeRegisters.size(); ++Index)
+        {
+            WRITE_REGISTER(GeneralPurposeRegisters[Index], Original, Seed + Index);
+        }
+        Frame Copied = Original;
+        Frame Assigned;
+        Assigned = Original;
+        Frame RvalueCopied = std::move(Original);
+        Frame RvalueAssigned;
+        RvalueAssigned = std::move(Original);
+        const std::array<Frame*, 4> Copies = {
+            &Copied,
+            &Assigned,
+            &RvalueCopied,
+            &RvalueAssigned,
+        };
+        for (std::size_t CopyIndex = 0; CopyIndex < Copies.size(); ++CopyIndex)
+        {
+            auto& Value = *Copies[CopyIndex];
+            const auto Bindings = Value.Register;
+            for (std::size_t Index = 0; Index < GeneralPurposeRegisters.size(); ++Index)
+            {
+                const auto Id = GeneralPurposeRegisters[Index];
+                EXPECT_NE(GET_REGISTER(Id, Value), GET_REGISTER(Id, Original));
+                EXPECT_EQ(READ_REGISTER(Id, Value), Seed + Index);
+                WRITE_REGISTER(Id, Value, CopyIndex * GeneralPurposeRegisters.size() + Index);
+                EXPECT_EQ(READ_REGISTER(Id, Original), Seed + Index);
+            }
+            Frame& SameValue = Value;
+            Value = SameValue;
+            EXPECT_EQ(Value.Register, Bindings);
+            for (std::size_t Index = 0; Index < GeneralPurposeRegisters.size(); ++Index)
+            {
+                EXPECT_EQ(READ_REGISTER(GeneralPurposeRegisters[Index], Value), CopyIndex * GeneralPurposeRegisters.size() + Index);
+            }
+        }
+        const auto CopiedBindings = Copied.Register;
+        Copied = Frame{};
+        EXPECT_EQ(Copied.Register, CopiedBindings);
+        for (std::size_t Index = 0; Index < GeneralPurposeRegisters.size(); ++Index)
+        {
+            const auto Id = GeneralPurposeRegisters[Index];
+            EXPECT_EQ(READ_REGISTER(Id, Copied), 0U);
+            EXPECT_EQ(READ_REGISTER(Id, Original), Seed + Index);
+            EXPECT_EQ(READ_REGISTER(Id, Assigned), GeneralPurposeRegisters.size() + Index);
+            EXPECT_EQ(READ_REGISTER(Id, RvalueCopied), 2 * GeneralPurposeRegisters.size() + Index);
+            EXPECT_EQ(READ_REGISTER(Id, RvalueAssigned), 3 * GeneralPurposeRegisters.size() + Index);
+        }
+        EXPECT_EQ(READ_REGISTER(RegisterId::ZERO, Copied), 0U);
+    }
+
     // Direct PC access shares the live register object with typed and byte-storage aliases, including after independent frame copies.
     TEST(VMFrameTest, KeepsDirectPCAccessCoherentWithRegisterAliasesAndCopies)
     {
@@ -192,9 +304,11 @@ namespace ink::vm::test
     TEST(VMFrameTest, RejectsInvalidRegisterAccessAndZeroWrites)
     {
         Frame Value;
-        const auto Invalid = static_cast<RegisterId>(0xFF);
-        EXPECT_DEATH(static_cast<void>(READ_REGISTER(Invalid, Value)), "check failed");
-        EXPECT_DEATH(WRITE_REGISTER(Invalid, Value, 1), "check failed");
+        for (const auto Invalid : {static_cast<RegisterId>(0x0E), static_cast<RegisterId>(0xFF)})
+        {
+            EXPECT_DEATH(static_cast<void>(READ_REGISTER(Invalid, Value)), "check failed");
+            EXPECT_DEATH(WRITE_REGISTER(Invalid, Value, 1), "check failed");
+        }
         EXPECT_DEATH(WRITE_REGISTER(RegisterId::ZERO, Value, 1), "check failed");
         EXPECT_EQ(READ_REGISTER(RegisterId::ZERO, Value), 0U);
     }
@@ -209,7 +323,7 @@ namespace ink::vm::test
             RegisterId::PC,
         };
         Frame Initial;
-        EXPECT_EQ(Initial.Register.size(), 4U);
+        EXPECT_EQ(Initial.Register.size(), 14U);
         EXPECT_EQ(Initial.Register[3], GET_REGISTER(RegisterId::ZERO, Initial));
         for (const auto* Storage : Initial.Register)
         {
@@ -253,7 +367,7 @@ namespace ink::vm::test
         for (auto* Value : Copies)
         {
             const auto CopyBindings = Value->Register;
-            EXPECT_EQ(Value->Register.size(), 4U);
+            EXPECT_EQ(Value->Register.size(), 14U);
             EXPECT_EQ(Value->Register[3], GET_REGISTER(RegisterId::ZERO, Initial));
             for (const auto Id : AddressRegisters)
             {

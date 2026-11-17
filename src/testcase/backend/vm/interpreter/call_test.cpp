@@ -69,6 +69,26 @@ namespace ink::vm::test
         }
     } // namespace
 
+    // Ink calls share caller-saved general-purpose storage and RET does not restore overwritten general-purpose values.
+    TEST(VMInterpreterCallTest, SharesCallerSavedGeneralPurposeRegistersAcrossInkCalls)
+    {
+        Interpreter VM;
+        ExecutableFile Executable;
+        appendCallInstruction(Executable, Opcode::Add64rri, {0, 0, 17}, RegisterId::R0, RegisterId::ZERO);
+        appendCallInstruction(Executable, Opcode::Add64rri, {0, 0, 23}, RegisterId::R9, RegisterId::ZERO);
+        const auto Call = appendCallInstruction(Executable, Opcode::Calli, {0});
+        appendCallInstruction(Executable, Opcode::Ret);
+        const auto Callee = appendCallInstruction(Executable, Opcode::Add64rri, {0, 0, 99}, RegisterId::R0, RegisterId::ZERO);
+        appendCallInstruction(Executable, Opcode::Ret);
+        Executable.getImageBaseAddressRelocations().push_back({Call + 8, Callee, 0});
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
+
+        EXPECT_EQ(READ_REGISTER(RegisterId::R0, VM.getFrame()), 99U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::R9, VM.getFrame()), 23U);
+    }
+
     // Nested Ink calls save each caller's BP and next PC, and RET discards callee locals before restoring its caller.
     TEST(VMInterpreterCallTest, NestedInkCallsRestoreFramesAndContinueAfterEachCall)
     {

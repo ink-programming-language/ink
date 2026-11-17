@@ -74,8 +74,20 @@ Payload[OperandIndex]: ByteOffset:i64
 | `01` | `SP` |
 | `02` | `PC` |
 | `03` | `ZERO`，文本拼写为 `zero`，恒为零且不可写 |
+| `04` | `R0`，文本拼写为 `r0` |
+| `05` | `R1`，文本拼写为 `r1` |
+| `06` | `R2`，文本拼写为 `r2` |
+| `07` | `R3`，文本拼写为 `r3` |
+| `08` | `R4`，文本拼写为 `r4` |
+| `09` | `R5`，文本拼写为 `r5` |
+| `0a` | `R6`，文本拼写为 `r6` |
+| `0b` | `R7`，文本拼写为 `r7` |
+| `0c` | `R8`，文本拼写为 `r8` |
+| `0d` | `R9`，文本拼写为 `r9` |
 
-当前普通寄存器来源接受 BP、SP、PC、ZERO；寄存器加法的目标仅接受 BP、SP，目标的 `ByteOffset` 必须为零，PC 和 ZERO 均不可作为普通写入目标。PC 保存当前指令起始位置的宿主地址，`pc + 2` 表示该地址之后第二个字节的地址；BP、SP 保存栈中的宿主地址。ZERO 每次读取都为零，`zero + N` 表示偏移 N 的位模式，不改变 ZERO。
+普通寄存器来源接受 BP、SP、PC、ZERO 和 R0–R9；寄存器加法的目标接受 BP、SP 和 R0–R9，目标的 `ByteOffset` 必须为零，PC 和 ZERO 均不可作为普通写入目标。PC 保存当前指令起始位置的宿主地址，`pc + 2` 表示该地址之后第二个字节的地址；BP、SP 保存栈中的宿主地址。ZERO 每次读取都为零，`zero + N` 表示偏移 N 的位模式，不改变 ZERO。R0–R9 保存普通 64 位位模式，既可用于整数计算，也可保存宿主地址并作为内存基址；地址有效性仍由调用方保证。
+
+R0–R9 使用原有头中的八位寄存器字段，BP、SP、PC、ZERO 的编号及所有 opcode 编号保持不变。头仍为八字节，每个语义操作数仍占八字节槽，寄存器编号与 opcode 分开编码。`0e` 至 `ff` 是无效寄存器编号。
 
 `InstructionEmitter::padOperand(const RegisterOperand& Operand)` 与寄存器形式的地址操作数共用 `padRegister`，追加八字节偏移；寄存器编号由 `padInstruction` 写入头中。两者的槽布局相同；操作码及操作数位置决定取寄存器值加偏移，还是访问该地址处的内存。
 
@@ -89,7 +101,7 @@ Payload[OperandIndex]: OffsetBits:u64
 EffectiveAddress = Registers[RegisterId] + OffsetBits
 ```
 
-地址操作数的偏移固定占一个八字节槽，基址编号保存在头中，基址只接受 BP、SP、PC、ZERO，未知编号不是有效基址。BP、SP、PC 的有符号字节位移按 `i64` 补码保存为 `OffsetBits`；ZERO 相对字段可保存完整的 `u64` 绝对地址位模式，无需将地址限制在 `i64` 正数范围内。执行器可直接按寄存器编号索引基址并执行统一的 64 位地址计算，无需按 PC 相对或绝对寻址分支；地址运算、范围与权限检查仍须独立完成。`ff` 不再表示绝对地址基址，也不是有效寄存器编号。
+地址操作数的偏移固定占一个八字节槽，基址编号保存在头中，基址接受 BP、SP、PC、ZERO 和 R0–R9，未知编号不是有效基址。有符号字节位移按 `i64` 补码保存为 `OffsetBits`；ZERO 相对字段可保存完整的 `u64` 绝对地址位模式，无需将地址限制在 `i64` 正数范围内。执行器可直接按寄存器编号索引基址并执行统一的 64 位地址计算，无需按 PC 相对或绝对寻址分支；地址运算、范围与权限检查仍须独立完成。`ff` 不再表示绝对地址基址，也不是有效寄存器编号。
 
 符号内存地址统一使用 ZERO 基址和八字节地址占位字段。本镜像内符号生成 `ImageBaseAddressRelocation`，外部符号生成 `DynamicImportSymbolRelocation`，加载后字段保存完整运行时地址加 addend。函数和数据共享地址重定位。寄存器相对内存寻址不变，基本块目标仍使用 PC 相对位移。进程内的 `core::Name` 索引不进入指令字节。
 
@@ -114,7 +126,7 @@ EffectiveAddress = Registers[RegisterId] + OffsetBits
 | `32` | 4 | 8 |
 | `64` | 8 | 8 |
 
-`ImmediateOperand::getValueKind()` 区分两种形式。`bits()` 只在数值形式返回位模式；`getSymbol()` 和 `getByteOffset()` 只在符号形式返回名称与偏移，各访问器用 `std::optional` 表示不适用的情况。负数值先截断为相应位宽的二进制补码，再零扩展；执行器按 opcode 指定的位宽与符号语义解释低位。当前寄存器目标的 64 位加法将右来源解释为有符号 64 位字节位移；普通整数结果的加法仍遵循操作码规定的位宽回绕语义。
+`ImmediateOperand::getValueKind()` 区分两种形式。`bits()` 只在数值形式返回位模式；`getSymbol()` 和 `getByteOffset()` 只在符号形式返回名称与偏移，各访问器用 `std::optional` 表示不适用的情况。负数值先截断为相应位宽的二进制补码，再零扩展；执行器按 opcode 指定的位宽与符号语义解释低位。64 位寄存器加法按完整位模式相加并回绕到 64 位；写入 BP、SP 时仍须满足地址、栈和活动帧约束。普通整数结果的加法遵循操作码规定的位宽回绕语义。
 
 符号立即数表示 `AddressOf(Symbol) + ByteOffset`，不读取该地址处的内存。文本采用 `@name` 或 `@"escaped name"`，并可附加 `+ Offset` 或 `- Offset`。例如 `add64mii [bp + 16], @counter + 8, 1` 的左来源是 counter 地址加 8。文本读写保留完整的名称和 `i64` 偏移。普通符号取地址统一要求 64 位字段。VM 符号通过 `ImageBaseAddressRelocation` 在加载时填写 `ImageBase + TargetOffset + Addend`；宿主符号通过动态导入符号地址重定位填写绑定后的宿主地址加 Addend。两者在加载后都得到完整的运行时地址，不能截断保留地址低位。Native 函数地址的可调用表示及 adapter 协议尚未确定。
 
@@ -137,6 +149,17 @@ Header:(Opcode:u16, DestinationReg:u8, LHSReg:u8, RHSReg:u8, Reserved:u24) | Des
 ```
 
 将右来源改为 `-16` 时，立即数的小端字节为 `f0 ff ff ff ff ff ff ff`。
+
+现有 64 位 ADD 形式也可构造通用寄存器的常量赋值、复制、内存读取和内存写回：
+
+```text
+add64rri r0, zero, 42
+add64rrr r1, r0, zero
+add64rrm r2, zero, [bp + 16]
+add64mrr [bp + 24], r2, zero
+```
+
+这些指令分别令 R0 为 42、将 R0 复制到 R1、读取八字节内存到 R2、将 R2 写回八字节内存。寄存器来源仍可带有符号字节偏移，其值按 64 位位模式相加。调用期间的寄存器保存规则见 [VM 调用约定](VM-Calling-Convention.md)。
 
 ## 无条件跳转与返回
 

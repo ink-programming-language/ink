@@ -351,7 +351,7 @@ namespace ink::vm::test
         }
     }
 
-    // Register destinations require plain BP/SP, while explicit sources reject undefined identifiers starting at encoding 0x04.
+    // Register destinations reject PC, ZERO, and displacements, while undefined register identifiers start at encoding 0x0E.
     TEST(VMModuleLinkerTest, RejectsInvalidRegisterDestinationsAndSources)
     {
         const std::array<std::pair<RegisterOperand, RegisterOperand>, 8> InvalidOperands = {{
@@ -359,9 +359,9 @@ namespace ink::vm::test
             {RegisterOperand(RegisterId::ZERO), RegisterOperand(RegisterId::SP, -8)},
             {RegisterOperand(RegisterId::BP, std::numeric_limits<std::int64_t>::min()), RegisterOperand(RegisterId::PC, 8)},
             {RegisterOperand(RegisterId::SP, std::numeric_limits<std::int64_t>::max()), RegisterOperand(RegisterId::BP, -8)},
-            {RegisterOperand(static_cast<RegisterId>(0x04)), RegisterOperand(RegisterId::PC, 8)},
+            {RegisterOperand(static_cast<RegisterId>(0x0E)), RegisterOperand(RegisterId::PC, 8)},
             {RegisterOperand(static_cast<RegisterId>(255)), RegisterOperand(RegisterId::SP, -8)},
-            {RegisterOperand(RegisterId::BP), RegisterOperand(static_cast<RegisterId>(0x04), -8)},
+            {RegisterOperand(RegisterId::BP), RegisterOperand(static_cast<RegisterId>(0x0E), -8)},
             {RegisterOperand(RegisterId::SP), RegisterOperand(static_cast<RegisterId>(255), 8)},
         }};
         for (const auto& [Destination, Source] : InvalidOperands)
@@ -377,6 +377,29 @@ namespace ink::vm::test
             EXPECT_EQ(Original.getLHS().getRegister(), Source.getRegister());
             EXPECT_EQ(Original.getLHS().getByteOffset(), Source.getByteOffset());
         }
+    }
+
+    // Linking preserves general-purpose register destinations, displaced sources, and memory bases in cloned instructions.
+    TEST(VMModuleLinkerTest, AcceptsGeneralPurposeRegisterOperands)
+    {
+        MachineModule Input;
+        auto& Block = Input.createFunction().createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::R9, -8), ImmediateOperand(1));
+        Builder.create<Opcode::Store64m>(AddressOperand(RegisterId::R0, 16), AddressOperand(RegisterId::R9, -8));
+        const auto Result = link({&Input});
+        ASSERT_NE(Result, nullptr);
+        const auto& OutputBlock = *Result->functions().begin()->basicBlocks().begin();
+        const auto& Add = static_cast<const MachineAdd64rriInstruction&>(instructionAt(OutputBlock, 0));
+        EXPECT_EQ(Add.getDestination().getRegister(), RegisterId::R0);
+        EXPECT_EQ(Add.getLHS().getRegister(), RegisterId::R9);
+        EXPECT_EQ(Add.getLHS().getByteOffset(), -8);
+        const auto& Store = static_cast<const MachineStore64mInstruction&>(instructionAt(OutputBlock, 1));
+        EXPECT_EQ(Store.getDestination().getRegister(), RegisterId::R0);
+        EXPECT_EQ(Store.getDestination().getByteOffset(), 16);
+        EXPECT_EQ(Store.getSource().getRegister(), RegisterId::R9);
+        EXPECT_EQ(Store.getSource().getByteOffset(), -8);
     }
 
     // ZERO remains a valid read-only source and memory base when linking clones instruction operands.

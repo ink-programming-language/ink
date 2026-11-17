@@ -214,7 +214,7 @@ namespace ink::vm
                         const auto& Destination = static_cast<const RegisterOperand&>(*Instruction.getOperand(0));
                         if (!isWritableAddressRegister(Destination.getRegister()) || Destination.getByteOffset() != 0)
                         {
-                            Error = "a register destination must be BP or SP with zero displacement";
+                            Error = "a register destination must be BP, SP, or R0-R9 with zero displacement";
                             return false;
                         }
                     }

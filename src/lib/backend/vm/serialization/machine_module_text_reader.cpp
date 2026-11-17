@@ -836,7 +836,7 @@ namespace ink::vm
                             const auto* Destination = std::get_if<RegisterOperand>(&Pending.Operands[0]);
                             if (Destination && (!isWritableAddressRegister(Destination->getRegister()) || Destination->getByteOffset() != 0))
                             {
-                                return std::unexpected(textError(Mnemonic.Offset, "a register destination must be BP or SP with zero displacement"));
+                                return std::unexpected(textError(Mnemonic.Offset, "a register destination must be BP, SP, or R0-R9 with zero displacement"));
                             }
                         }
                         if constexpr (Operation == Opcode::Jmpi)

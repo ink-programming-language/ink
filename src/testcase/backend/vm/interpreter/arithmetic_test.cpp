@@ -56,6 +56,71 @@ namespace ink::vm::test
         }
     } // namespace
 
+    // Every general-purpose register uses the existing immediate-add encoding and is reset before the next execution.
+    TEST(VMArithmeticTest, WritesAllGeneralPurposeRegistersAndResetsBetweenExecutions)
+    {
+        Interpreter VM;
+        ExecutableFile Executable;
+        for (std::size_t Index = 0; Index < 10; ++Index)
+        {
+            const auto Register = static_cast<RegisterId>(static_cast<std::uint8_t>(RegisterId::R0) + Index);
+            appendInstruction(Executable, Opcode::Add64rri, {0, 0, Index + 1}, Register, RegisterId::ZERO);
+        }
+        appendInstruction(Executable, Opcode::Ret);
+        const auto ResetEntry = appendInstruction(Executable, Opcode::Ret);
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+        const auto Bindings = VM.getFrame().Register;
+
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
+
+        for (std::size_t Index = 0; Index < 10; ++Index)
+        {
+            const auto Register = static_cast<RegisterId>(static_cast<std::uint8_t>(RegisterId::R0) + Index);
+            EXPECT_EQ(READ_REGISTER(Register, VM.getFrame()), Index + 1);
+        }
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + ResetEntry));
+        for (std::size_t Index = 0; Index < 10; ++Index)
+        {
+            const auto Register = static_cast<RegisterId>(static_cast<std::uint8_t>(RegisterId::R0) + Index);
+            EXPECT_EQ(READ_REGISTER(Register, VM.getFrame()), 0U);
+        }
+        EXPECT_EQ(VM.getFrame().Register, Bindings);
+    }
+
+    // General-purpose values wrap, support aliased destinations and source offsets, and serve as unaligned memory bases.
+    TEST(VMArithmeticTest, UsesGeneralPurposeRegistersForValuesAndMemoryBases)
+    {
+        std::array<std::uint8_t, 40> Memory{};
+        constexpr std::uint64_t Input = 11;
+        std::memcpy(Memory.data() + 1, &Input, sizeof(Input));
+        Interpreter VM;
+        ExecutableFile Executable;
+        appendInstruction(Executable, Opcode::Add64rri, {0, 0, std::numeric_limits<std::uint64_t>::max()}, RegisterId::R0, RegisterId::ZERO);
+        appendInstruction(Executable, Opcode::Add64rri, {0, 0, 7}, RegisterId::R1, RegisterId::ZERO);
+        appendInstruction(Executable, Opcode::Add64rrr, {0, 0, 0}, RegisterId::R0, RegisterId::R0, RegisterId::R1);
+        appendInstruction(Executable, Opcode::Add64rri, {0, 0, addressOf(Memory.data())}, RegisterId::R9, RegisterId::ZERO);
+        appendInstruction(Executable, Opcode::Add64rrm, {0, 0, 1}, RegisterId::R2, RegisterId::R0, RegisterId::R9);
+        appendInstruction(Executable, Opcode::Add64rrr, {0, 1, negativeOffset(2)}, RegisterId::R3, RegisterId::R2, RegisterId::R0);
+        appendInstruction(Executable, Opcode::Store64i, {9, 123}, RegisterId::R9);
+        appendInstruction(Executable, Opcode::Load64, {17, 9}, RegisterId::R9, RegisterId::R9);
+        appendInstruction(Executable, Opcode::Add64mrr, {25, 0, 0}, RegisterId::R9, RegisterId::R2, RegisterId::R0);
+        appendInstruction(Executable, Opcode::Ret);
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
+
+        EXPECT_EQ(READ_REGISTER(RegisterId::R0, VM.getFrame()), 6U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::R1, VM.getFrame()), 7U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::R2, VM.getFrame()), 17U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::R3, VM.getFrame()), 22U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::R9, VM.getFrame()), addressOf(Memory.data()));
+        EXPECT_EQ(readWord(Memory.data() + 1), Input);
+        EXPECT_EQ(readWord(Memory.data() + 9), 123U);
+        EXPECT_EQ(readWord(Memory.data() + 17), 123U);
+        EXPECT_EQ(readWord(Memory.data() + 25), 23U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::ZERO, VM.getFrame()), 0U);
+    }
+
     // Immediate memory addition wraps at 64 bits and reads an unaligned aliased source before writing its destination.
     TEST(VMArithmeticTest, AddsImmediateToUnalignedAliasedMemoryWithWrapping)
     {

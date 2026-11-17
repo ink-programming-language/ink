@@ -38,9 +38,9 @@ namespace ink::vm
         public:
             static_assert(sizeof(std::uintptr_t) == sizeof(std::uint64_t), "VM address registers require a 64-bit host");
 
-            // Register storage addresses in number order: &BP, &SP, &PC, &ZERO.
+            // Register storage addresses in number order: BP, SP, PC, ZERO, then R0 through R9.
             // Every slot points to a uint64_t object; keep the bindings unchanged.
-            std::array<const void*, static_cast<std::size_t>(RegisterId::ZERO) + 1> Register{};
+            std::array<const void*, static_cast<std::size_t>(RegisterId::R9) + 1> Register{};
 
             Frame() noexcept
             {
@@ -56,7 +56,8 @@ namespace ink::vm
             Frame(const Frame& Other) noexcept
                 : SP(Other.SP),
                   BP(Other.BP),
-                  PC(Other.PC)
+                  PC(Other.PC),
+                  GeneralPurpose(Other.GeneralPurpose)
             {
                 initializeRegisters();
             }
@@ -66,6 +67,7 @@ namespace ink::vm
                 SP = Other.SP;
                 BP = Other.BP;
                 PC = Other.PC;
+                GeneralPurpose = Other.GeneralPurpose;
                 initializeRegisters();
                 return *this;
             }
@@ -108,6 +110,7 @@ namespace ink::vm
             std::uint64_t SP = 0;
             std::uint64_t BP = 0;
             std::uint64_t PC = 0;
+            std::array<std::uint64_t, 10> GeneralPurpose{};
             inline static constexpr std::uint64_t ZERO = 0;
 
             void initializeRegisters() noexcept
@@ -117,6 +120,16 @@ namespace ink::vm
                     &SP,
                     &PC,
                     &ZERO,
+                    &GeneralPurpose[0],
+                    &GeneralPurpose[1],
+                    &GeneralPurpose[2],
+                    &GeneralPurpose[3],
+                    &GeneralPurpose[4],
+                    &GeneralPurpose[5],
+                    &GeneralPurpose[6],
+                    &GeneralPurpose[7],
+                    &GeneralPurpose[8],
+                    &GeneralPurpose[9],
                 };
             }
 
