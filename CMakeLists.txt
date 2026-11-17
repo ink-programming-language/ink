@@ -76,7 +76,7 @@ add_custom_target(ink_llvm_components DEPENDS LLVMSupport)
 add_subdirectory(src/lib)
 add_subdirectory(src/tools)
 
-option(INK_BUILD_VM_BENCHMARKS "Build the Fibonacci VM and native comparison benchmarks" OFF)
+option(INK_BUILD_VM_BENCHMARKS "Build the VM benchmark cases and native comparison benchmarks" OFF)
 if(INK_BUILD_VM_BENCHMARKS)
     add_subdirectory(benchmark)
 endif()

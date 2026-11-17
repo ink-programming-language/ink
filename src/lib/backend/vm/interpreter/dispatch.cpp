@@ -4,9 +4,11 @@
 #include "ink/core/support/core_define.h"
 
 #include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <type_traits>
 
 namespace ink::vm
@@ -14,6 +16,7 @@ namespace ink::vm
     bool Interpreter::dispatch()
     {
         static_assert(sizeof(std::uintptr_t) == sizeof(std::uint64_t), "VM address registers require a 64-bit host");
+        static_assert(sizeof(double) == sizeof(std::uint64_t) && std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53, "VM FP64 instructions require IEEE 754 binary64");
         const auto CodeAddress = reinterpret_cast<std::uintptr_t>(CodeSegment);
         const auto StackAddress = reinterpret_cast<std::uintptr_t>(StackAllocation.get());
         const auto MaxRecursionDepth = core::ConfigManager::getSize<core::ConfigKind::VMMaxRecursionDepth>();
@@ -44,9 +47,19 @@ namespace ink::vm
             check(EncodedInstructionBytes != 0);
             check(CodeSegmentSize - InstructionOffset >= EncodedInstructionBytes);
             check((Header & InstructionEncoding::ReservedMask) == 0);
+            const bool FloatingPointOperation = Operation == Opcode::Fadd64rrr || Operation == Opcode::Fsub64rrr || Operation == Opcode::Fmul64rrr || Operation == Opcode::Fdiv64rrr || Operation == Opcode::Fsqrt64rr;
             for (std::size_t Index = 0; Index < InstructionEncoding::operandCount(Operation); ++Index)
             {
-                check(isAddressRegister(InstructionEncoding::decodeRegister(Header, Index)));
+                const auto Register = InstructionEncoding::decodeRegister(Header, Index);
+                if (FloatingPointOperation)
+                {
+                    check(Index == 0 ? isGeneralPurposeRegister(Register) : isFloatingPointSourceRegister(Register));
+                    check(Instruction[Index + 1] == 0);
+                }
+                else
+                {
+                    check(isAddressRegister(Register));
+                }
             }
 #endif
             const auto DestinationRegister = InstructionEncoding::decodeRegister(Header, 0);
@@ -54,6 +67,31 @@ namespace ink::vm
             const auto RightRegister = InstructionEncoding::decodeRegister(Header, 2);
             switch (Operation)
             {
+#define EXECUTE_FLOATING_BINARY(Kind, Operator)                                                                                       \
+    case Opcode::Kind:                                                                                                                \
+        {                                                                                                                             \
+            constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Kind>::OperandCount + 1) * InstructionEncoding::WordBytes; \
+            const auto Left = std::bit_cast<double>(READ_REGISTER(LeftRegister, Frame));                                              \
+            const auto Right = std::bit_cast<double>(READ_REGISTER(RightRegister, Frame));                                            \
+            const auto Result = Left Operator Right;                                                                                  \
+            WRITE_REGISTER(DestinationRegister, Frame, std::bit_cast<std::uint64_t>(Result));                                         \
+            Frame.setPC(InstructionAddress + InstructionBytes);                                                                       \
+            continue;                                                                                                                 \
+        }
+                EXECUTE_FLOATING_BINARY(Fadd64rrr, +)
+                EXECUTE_FLOATING_BINARY(Fsub64rrr, -)
+                EXECUTE_FLOATING_BINARY(Fmul64rrr, *)
+                EXECUTE_FLOATING_BINARY(Fdiv64rrr, /)
+#undef EXECUTE_FLOATING_BINARY
+            case Opcode::Fsqrt64rr:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Fsqrt64rr>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    const auto Source = std::bit_cast<double>(READ_REGISTER(LeftRegister, Frame));
+                    const auto Result = std::sqrt(Source);
+                    WRITE_REGISTER(DestinationRegister, Frame, std::bit_cast<std::uint64_t>(Result));
+                    Frame.setPC(InstructionAddress + InstructionBytes);
+                    continue;
+                }
             case Opcode::Add64rrr:
                 {
                     constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Add64rrr>::OperandCount + 1) * InstructionEncoding::WordBytes;

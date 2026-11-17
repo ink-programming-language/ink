@@ -65,6 +65,10 @@ namespace ink::vm::test
         {
             if constexpr (std::is_same_v<OperandType, RegisterOperand>)
             {
+                if constexpr (OpcodeTraits<Operation>::Category == InstructionCategory::FloatingPoint)
+                {
+                    return RegisterOperand(Index == 0 ? RegisterId::R0 : RegisterId::R9);
+                }
                 if (OpcodeTraits<Operation>::HasDestination && Index == 0)
                 {
                     return RegisterOperand(Operation == Opcode::Add64rrr ? RegisterId::SP : RegisterId::BP);
@@ -400,6 +404,40 @@ namespace ink::vm::test
         EXPECT_EQ(Store.getDestination().getByteOffset(), 16);
         EXPECT_EQ(Store.getSource().getRegister(), RegisterId::R9);
         EXPECT_EQ(Store.getSource().getByteOffset(), -8);
+    }
+
+    // Linking rejects malformed floating-point operands even when the instruction was constructed without the text reader.
+    TEST(VMModuleLinkerTest, RejectsFloatingPointDisplacementsAndAddressRegisters)
+    {
+        constexpr RegisterOperand InvalidOperands[] = {
+            RegisterOperand(RegisterId::R0, 1),
+            RegisterOperand(RegisterId::BP),
+            RegisterOperand(RegisterId::SP),
+            RegisterOperand(RegisterId::PC),
+            RegisterOperand(static_cast<RegisterId>(0x0E)),
+        };
+        for (const auto& Invalid : InvalidOperands)
+        {
+            for (std::size_t Index = 0; Index < 3; ++Index)
+            {
+                std::array Operands{RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::R1), RegisterOperand(RegisterId::ZERO)};
+                Operands[Index] = Invalid;
+                MachineModule Module;
+                auto& Block = Module.createFunction().createBasicBlock();
+                MachineInstructionBuilder Builder;
+                Builder.setInsertPoint(Block);
+                Builder.create<Opcode::Fadd64rrr>(Operands[0], Operands[1], Operands[2]);
+                expectLinkFailure({&Module});
+                if (Index < 2)
+                {
+                    MachineModule UnaryModule;
+                    auto& UnaryBlock = UnaryModule.createFunction().createBasicBlock();
+                    Builder.setInsertPoint(UnaryBlock);
+                    Builder.create<Opcode::Fsqrt64rr>(Operands[0], Operands[1]);
+                    expectLinkFailure({&UnaryModule});
+                }
+            }
+        }
     }
 
     // ZERO remains a valid read-only source and memory base when linking clones instruction operands.

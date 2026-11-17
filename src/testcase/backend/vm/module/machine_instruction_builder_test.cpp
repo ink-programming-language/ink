@@ -41,7 +41,7 @@ namespace ink::vm::test
         {
             if constexpr (std::is_same_v<OperandType, RegisterOperand>)
             {
-                return RegisterOperand(static_cast<RegisterId>(Index % 3));
+                return RegisterOperand(static_cast<RegisterId>(static_cast<std::uint8_t>(RegisterId::R0) + Index));
             }
             else if constexpr (std::is_same_v<OperandType, AddressOperand>)
             {

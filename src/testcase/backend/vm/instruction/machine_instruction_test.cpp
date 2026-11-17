@@ -27,7 +27,7 @@ namespace ink::vm::test
         {
             if constexpr (std::is_same_v<OperandType, RegisterOperand>)
             {
-                return RegisterOperand(static_cast<RegisterId>(Index % 3));
+                return RegisterOperand(static_cast<RegisterId>(static_cast<std::uint8_t>(RegisterId::R0) + Index));
             }
             else if constexpr (std::is_same_v<OperandType, AddressOperand>)
             {
@@ -125,6 +125,7 @@ namespace ink::vm::test
             EXPECT_EQ(Base.operandCount(), RegisterCount + AddressCount + ImmediateCount + Traits::BlockCount);
             EXPECT_EQ(Base.category(), Category);
             EXPECT_EQ(Traits::Category, Category);
+            EXPECT_EQ(Base.isFloatingPoint(), Category == InstructionCategory::FloatingPoint);
             EXPECT_EQ(Base.isConditionalBranch(), Category == InstructionCategory::ConditionalBranch);
             EXPECT_EQ(Base.isBranch(), Category == InstructionCategory::Branch || Category == InstructionCategory::ConditionalBranch);
             EXPECT_EQ(Base.isTerminator(), Category == InstructionCategory::Branch || Category == InstructionCategory::ConditionalBranch || Category == InstructionCategory::Return);
@@ -290,6 +291,11 @@ namespace ink::vm::test
         static_assert(!HasInstructionLHS<MachineLoad64Instruction> && !HasInstructionRHS<MachineStore8iInstruction>);
         static_assert(HasInstructionLHS<MachineAdd64rriInstruction> && HasInstructionRHS<MachineAdd64rriInstruction>);
         static_assert(!HasInstructionSource<MachineAdd64rriInstruction>);
+        static_assert(HasInstructionDestination<MachineFadd64rrrInstruction> && HasInstructionDestination<MachineFsqrt64rrInstruction>);
+        static_assert(HasInstructionLHS<MachineFadd64rrrInstruction> && HasInstructionRHS<MachineFadd64rrrInstruction>);
+        static_assert(!HasInstructionSource<MachineFadd64rrrInstruction>);
+        static_assert(HasInstructionSource<MachineFsqrt64rrInstruction>);
+        static_assert(!HasInstructionLHS<MachineFsqrt64rrInstruction> && !HasInstructionRHS<MachineFsqrt64rrInstruction>);
         SUCCEED();
     }
 

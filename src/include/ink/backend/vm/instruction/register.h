@@ -35,6 +35,11 @@ namespace ink::vm
         return Register == RegisterId::BP || Register == RegisterId::SP || Register == RegisterId::PC || Register == RegisterId::ZERO || isGeneralPurposeRegister(Register);
     }
 
+    constexpr bool isFloatingPointSourceRegister(RegisterId Register) noexcept
+    {
+        return isGeneralPurposeRegister(Register) || Register == RegisterId::ZERO;
+    }
+
     constexpr bool isWritableAddressRegister(RegisterId Register) noexcept
     {
         return Register == RegisterId::BP || Register == RegisterId::SP || isGeneralPurposeRegister(Register);

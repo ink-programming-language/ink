@@ -35,6 +35,18 @@ namespace ink::vm::detail
                     const auto VisitInstruction = [&](const auto& Typed) -> std::optional<std::expected<void, std::string>>
                     {
                         using InstructionType = std::remove_cvref_t<decltype(Typed)>;
+                        if constexpr (OpcodeTraits<InstructionType::Operation>::Category == InstructionCategory::FloatingPoint)
+                        {
+                            for (std::size_t Index = 0; Index < Typed.operandCount(); ++Index)
+                            {
+                                const auto& Operand = static_cast<const RegisterOperand&>(*Typed.getOperand(Index));
+                                const bool ValidRegister = Index == 0 ? isGeneralPurposeRegister(Operand.getRegister()) : isFloatingPointSourceRegister(Operand.getRegister());
+                                if (!ValidRegister || Operand.getByteOffset() != 0)
+                                {
+                                    return std::expected<void, std::string>(std::unexpected("floating-point operands require a GPR destination and GPR or ZERO sources, all with zero byte offset"));
+                                }
+                            }
+                        }
                         if constexpr (OpcodeTraits<InstructionType::Operation>::HasDestination)
                         {
                             if constexpr (std::is_same_v<std::remove_cvref_t<decltype(Typed.getDestination())>, RegisterOperand>)

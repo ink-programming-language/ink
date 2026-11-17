@@ -161,6 +161,33 @@ add64mrr [bp + 24], r2, zero
 
 这些指令分别令 R0 为 42、将 R0 复制到 R1、读取八字节内存到 R2、将 R2 写回八字节内存。寄存器来源仍可带有符号字节偏移，其值按 64 位位模式相加。调用期间的寄存器保存规则见 [VM 调用约定](VM-Calling-Convention.md)。
 
+## 双精度浮点寄存器运算
+
+以下五条指令使用 GPR 保存的 IEEE 754 binary64 原始位模式。解释器要求宿主 `double` 为八字节且满足 `std::numeric_limits<double>::is_iec559`，使用 `std::bit_cast<double>` 读取来源，运算后以 `std::bit_cast<std::uint64_t>` 写回。整数 ADD 的位模式加法与浮点数值加法是两种不同语义。
+
+| opcode | 文本 | 形式 | 运算 | 总长度 |
+| --- | --- | --- | --- | --- |
+| `0092` | `fadd64rrr dst, lhs, rhs` | `Rrr` | `dst = lhs + rhs` | 32 字节 |
+| `0093` | `fsub64rrr dst, lhs, rhs` | `Rrr` | `dst = lhs - rhs` | 32 字节 |
+| `0094` | `fmul64rrr dst, lhs, rhs` | `Rrr` | `dst = lhs * rhs` | 32 字节 |
+| `0095` | `fdiv64rrr dst, lhs, rhs` | `Rrr` | `dst = lhs / rhs` | 32 字节 |
+| `0096` | `fsqrt64rr dst, src` | `Rr` | `dst = sqrt(src)` | 24 字节 |
+
+目的寄存器仅接受 R0–R9；来源接受 R0–R9 和 ZERO，ZERO 表示 binary64 的 `+0.0`。BP、SP、PC 不作为浮点值寄存器。所有显式浮点寄存器操作数（包括目标与来源）的 `ByteOffset` 必须为零，且八字节操作数槽仍保留、写入零，不缩短指令。头中的寄存器编号仍按原有语义操作数位置编码；`fsqrt64rr` 未使用的第三个寄存器字段保持 ZERO。目标可与任一来源相同，执行器先读取全部来源再写入结果。
+
+浮点来源的偏移限制只针对这些五条指令；整数寄存器来源的非零位移和 `[r0 + 8]` 等内存地址偏移保持原有语义。浮点常量先以 binary64 位模式放入 GPR，不能用整数数值转换替代位模式解释。例如：
+
+```text
+add64rri r0, zero, 0x3ff0000000000000
+add64rri r1, zero, 0x4000000000000000
+fadd64rrr r2, r0, r1
+fsqrt64rr r3, r2
+```
+
+前两条分别构造 `1.0` 和 `2.0`，浮点加法得到 `3.0`，最后对其求平方根。现有 `add64rrm` 与 `add64mrr` 的加零形式可在内存与 GPR 之间无损传送八字节浮点位模式。
+
+浮点数值结果采用宿主双精度运算和 `std::sqrt` 的行为，包含有符号零、无穷大和 NaN；除以零或负数开平方不转换为 VM 诊断，不承诺 NaN 的具体 payload。解释器不另行建立浮点异常或舍入模式协议。操作数契约错误由文本读取、写出、链接和发射阶段检查。运行时仅在 `INK_ENABLE_ASSERTIONS` 开启时使用 `check` 验证浮点寄存器类别和零偏移契约；违反契约会触发断言，不作为可恢复的 `VMExecutionFailed` 返回。Shipping 关闭这些检查，依赖前置阶段和调用方保证字节码有效；非法寄存器或非零偏移槽不具有合法的执行语义。
+
 ## 无条件跳转与返回
 
 四种跳转均不包含条件码，也不依赖隐式状态：
@@ -227,7 +254,7 @@ call [@function_pointer_slot]
 
 `machine_instructions.h` 根据 `opcode.def` 为每个操作码生成 `OpcodeTraits`，将操作码绑定到对应的 `Form`、`BitWidth` 和操作数布局。`MachineInstructionImpl<Opcode>` 按值持有该布局的 `std::tuple`，并为每个现有操作码提供对应的指令别名，例如 `MachineAdd64rriInstruction`。构造函数要求操作数的数量和具体类型匹配布局，操作数存储随指令对象一起分配。
 
-只有 Load、Store、Add 提供 `getDestination()`；具有目标和单个来源的形式提供 `getSource()`。Add 的 `getLHS()`、`getRHS()` 分别访问索引 1、2，条件跳转的同名访问器访问索引 0、1。具有块目标的跳转由 `getTarget()` 返回最后一个操作数的基本块指针，`getTargetOperand()` 返回块操作数引用；其他跳转和调用的目标访问器返回对应立即数、寄存器或地址操作数的常量引用。Ret 没有这些访问器。
+Load、Store、Add 和 FloatingPoint 提供 `getDestination()`；具有目标和单个来源的形式提供 `getSource()`，包含 `Fsqrt64rr`。Add 和浮点二元运算的 `getLHS()`、`getRHS()` 分别访问索引 1、2，条件跳转的同名访问器访问索引 0、1。`isFloatingPoint()` 识别五条浮点指令。具有块目标的跳转由 `getTarget()` 返回最后一个操作数的基本块指针，`getTargetOperand()` 返回块操作数引用；其他跳转和调用的目标访问器返回对应立即数、寄存器或地址操作数的常量引用。Ret 没有这些访问器。
 
 ```cpp
 #include "ink/backend/vm/instruction/machine_instructions.h"

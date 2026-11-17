@@ -14,15 +14,15 @@ namespace ink::vm
     template <Opcode OperationValue>
     struct OpcodeTraits;
 
-#define OPCODE(Kind, Encoding, Spelling, FormValue, WidthValue, RegisterCountValue, AddressCountValue, ImmediateCountValue, CategoryValue)                                  \
-    template <>                                                                                                                                                             \
-    struct OpcodeTraits<Opcode::Kind> : FormTraits<InstructionForm::FormValue>                                                                                              \
-    {                                                                                                                                                                       \
-            static constexpr InstructionForm Form = InstructionForm::FormValue;                                                                                             \
-            static constexpr InstructionCategory Category = InstructionCategory::CategoryValue;                                                                             \
-            static constexpr bool HasDestination = Category == InstructionCategory::Load || Category == InstructionCategory::Store || Category == InstructionCategory::Add; \
-            static constexpr std::uint32_t BitWidth = WidthValue;                                                                                                           \
-            static_assert(RegisterCount == RegisterCountValue && AddressCount == AddressCountValue && ImmediateCount == ImmediateCountValue);                               \
+#define OPCODE(Kind, Encoding, Spelling, FormValue, WidthValue, RegisterCountValue, AddressCountValue, ImmediateCountValue, CategoryValue)                                                                                    \
+    template <>                                                                                                                                                                                                               \
+    struct OpcodeTraits<Opcode::Kind> : FormTraits<InstructionForm::FormValue>                                                                                                                                                \
+    {                                                                                                                                                                                                                         \
+            static constexpr InstructionForm Form = InstructionForm::FormValue;                                                                                                                                               \
+            static constexpr InstructionCategory Category = InstructionCategory::CategoryValue;                                                                                                                               \
+            static constexpr bool HasDestination = Category == InstructionCategory::Load || Category == InstructionCategory::Store || Category == InstructionCategory::Add || Category == InstructionCategory::FloatingPoint; \
+            static constexpr std::uint32_t BitWidth = WidthValue;                                                                                                                                                             \
+            static_assert(RegisterCount == RegisterCountValue && AddressCount == AddressCountValue && ImmediateCount == ImmediateCountValue);                                                                                 \
     };
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
@@ -66,14 +66,14 @@ namespace ink::vm
                 return std::get<1>(Operands);
             }
 
-            constexpr const auto& getLHS() const noexcept requires(Traits::Category == InstructionCategory::Add || Traits::Category == InstructionCategory::ConditionalBranch)
+            constexpr const auto& getLHS() const noexcept requires(Traits::Category == InstructionCategory::Add || Traits::Category == InstructionCategory::ConditionalBranch || (Traits::Category == InstructionCategory::FloatingPoint && Traits::OperandCount == 3))
             {
-                return std::get<(Traits::Category == InstructionCategory::Add ? 1 : 0)>(Operands);
+                return std::get<(Traits::Category == InstructionCategory::ConditionalBranch ? 0 : 1)>(Operands);
             }
 
-            constexpr const auto& getRHS() const noexcept requires(Traits::Category == InstructionCategory::Add || Traits::Category == InstructionCategory::ConditionalBranch)
+            constexpr const auto& getRHS() const noexcept requires(Traits::Category == InstructionCategory::Add || Traits::Category == InstructionCategory::ConditionalBranch || (Traits::Category == InstructionCategory::FloatingPoint && Traits::OperandCount == 3))
             {
-                return std::get<(Traits::Category == InstructionCategory::Add ? 2 : 1)>(Operands);
+                return std::get<(Traits::Category == InstructionCategory::ConditionalBranch ? 1 : 2)>(Operands);
             }
 
             constexpr const MachineBasicBlock* getTarget() const noexcept requires(Traits::BlockCount == 1)

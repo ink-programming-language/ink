@@ -86,7 +86,12 @@ namespace ink::vm
 
             constexpr bool hasDestination() const noexcept
             {
-                return category() == InstructionCategory::Load || category() == InstructionCategory::Store || category() == InstructionCategory::Add;
+                return category() == InstructionCategory::Load || category() == InstructionCategory::Store || category() == InstructionCategory::Add || isFloatingPoint();
+            }
+
+            constexpr bool isFloatingPoint() const noexcept
+            {
+                return category() == InstructionCategory::FloatingPoint;
             }
 
             constexpr bool isBranch() const noexcept

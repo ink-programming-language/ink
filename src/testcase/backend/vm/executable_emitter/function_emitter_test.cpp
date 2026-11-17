@@ -128,6 +128,59 @@ namespace ink::vm::test
         EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
     }
 
+    // Floating-point opcodes reuse register header bytes and zero offset words, including the unused unary ZERO field.
+    TEST(VMFunctionEmitterTest, EncodesFloatingPointRegistersInExistingHeaderAndOperandSlots)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        ExecutableEmissionContext Context(Diagnostics);
+        MachineFunction Function;
+        auto& Block = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        Builder.create<Opcode::Fadd64rrr>(RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::R1), RegisterOperand(RegisterId::R9));
+        Builder.create<Opcode::Fsub64rrr>(RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::R1), RegisterOperand(RegisterId::R9));
+        Builder.create<Opcode::Fmul64rrr>(RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::R1), RegisterOperand(RegisterId::R9));
+        Builder.create<Opcode::Fdiv64rrr>(RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::R1), RegisterOperand(RegisterId::R9));
+        Builder.create<Opcode::Fsqrt64rr>(RegisterOperand(RegisterId::R9), RegisterOperand(RegisterId::ZERO));
+        Builder.create<Opcode::Ret>();
+        FunctionEmitter Emitter(Context);
+        Emitter.emit(Function);
+
+        ASSERT_EQ(Context.byteSize(), 160U);
+        for (std::size_t Index = 0; Index < 4; ++Index)
+        {
+            const auto Offset = Index * 32;
+            EXPECT_EQ(readLittleEndian(Context, Offset), 0x0000000D05040092ULL + Index);
+            EXPECT_EQ(readLittleEndian(Context, Offset + 8), 0U);
+            EXPECT_EQ(readLittleEndian(Context, Offset + 16), 0U);
+            EXPECT_EQ(readLittleEndian(Context, Offset + 24), 0U);
+        }
+        EXPECT_EQ(readLittleEndian(Context, 128), 0x00000003030D0096ULL);
+        EXPECT_EQ(readLittleEndian(Context, 136), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 144), 0U);
+        EXPECT_EQ(readLittleEndian(Context, 152), 0x000000030303003AULL);
+    }
+
+    // Direct floating-point emission rejects a displaced source and an address-register destination before writing bytes.
+    TEST(VMFunctionEmitterTest, RejectsInvalidFloatingPointRegistersAndOffsets)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        ExecutableEmissionContext Context(Diagnostics);
+        MachineFunction Function;
+        auto& Block = Function.createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        Builder.create<Opcode::Fadd64rrr>(RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::R1, 8), RegisterOperand(RegisterId::ZERO));
+        FunctionEmitter Emitter(Context);
+        EXPECT_DEATH(Emitter.emit(Function), "floating-point operands");
+        MachineFunction UnaryFunction;
+        auto& UnaryBlock = UnaryFunction.createBasicBlock();
+        Builder.setInsertPoint(UnaryBlock);
+        Builder.create<Opcode::Fsqrt64rr>(RegisterOperand(RegisterId::BP), RegisterOperand(RegisterId::R0));
+        EXPECT_DEATH(Emitter.emit(UnaryFunction), "floating-point operands");
+        EXPECT_EQ(Context.byteSize(), 0U);
+    }
+
     // Explicit block emission aligns its first instruction and resolves each block at its header in the complete image.
     TEST(VMFunctionEmitterTest, AppendsOrderedInstructionsAndResolvesImageOffsets)
     {

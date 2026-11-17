@@ -34,6 +34,10 @@ namespace ink::vm::test
         {
             if constexpr (std::is_same_v<OperandType, RegisterOperand>)
             {
+                if constexpr (OpcodeTraits<Operation>::Category == InstructionCategory::FloatingPoint)
+                {
+                    return RegisterOperand(Index == 0 ? RegisterId::R0 : RegisterId::R9);
+                }
                 constexpr std::array Registers{RegisterId::BP, RegisterId::SP, RegisterId::PC};
                 constexpr std::array<std::int64_t, 3> Offsets{0, std::numeric_limits<std::int64_t>::min(), std::numeric_limits<std::int64_t>::max()};
                 return RegisterOperand(Registers[Index], Offsets[Index]);
@@ -570,6 +574,124 @@ done:
         const auto Reparsed = readMachineModuleText(*Written);
         ASSERT_TRUE(Reparsed.has_value());
         expectEqualModules(**Parsed, **Reparsed);
+    }
+
+    // All five floating-point mnemonics round-trip GPR values and the read-only ZERO source without changing operand forms.
+    TEST(VMMachineModuleTextTest, RoundTripsFloatingPointRegisterInstructions)
+    {
+        constexpr std::string_view Text = R"(.module ""
+.section .text
+.function F
+entry:
+    fadd64rrr r0, r1, r9
+    fsub64rrr r1, r0, zero
+    fmul64rrr r2, r1, r2
+    fdiv64rrr r9, r2, r0
+    fsqrt64rr r0, r9
+    fsqrt64rr r1, zero
+    ret
+.endfunction
+)";
+        const auto Parsed = readMachineModuleText(Text);
+        ASSERT_TRUE(Parsed.has_value());
+        const auto Written = writeMachineModuleText(**Parsed);
+        ASSERT_TRUE(Written.has_value());
+        EXPECT_NE(Written->find("fadd64rrr r0, r1, r9\n"), std::string::npos);
+        EXPECT_NE(Written->find("fsub64rrr r1, r0, zero\n"), std::string::npos);
+        EXPECT_NE(Written->find("fmul64rrr r2, r1, r2\n"), std::string::npos);
+        EXPECT_NE(Written->find("fdiv64rrr r9, r2, r0\n"), std::string::npos);
+        EXPECT_NE(Written->find("fsqrt64rr r0, r9\n"), std::string::npos);
+        const auto Reparsed = readMachineModuleText(*Written);
+        ASSERT_TRUE(Reparsed.has_value());
+        expectEqualModules(**Parsed, **Reparsed);
+    }
+
+    // Floating-point sources and destinations reject every nonzero displacement, address register, and memory operand.
+    TEST(VMMachineModuleTextTest, RejectsFloatingPointDisplacementsAndNonValueRegisters)
+    {
+        constexpr std::string_view BinaryMnemonics[] = {
+            "fadd64rrr",
+            "fsub64rrr",
+            "fmul64rrr",
+            "fdiv64rrr",
+        };
+        constexpr std::string_view BinaryOperands[] = {
+            "r0 + 1, r1, r2",
+            "r0, r1 - 1, r2",
+            "r0, r1, r2 + 8",
+            "bp, r1, r2",
+            "sp, r1, r2",
+            "pc, r1, r2",
+            "zero, r1, r2",
+            "r0, bp, r2",
+            "r0, sp, r2",
+            "r0, pc, r2",
+            "r0, r1, bp",
+            "r0, r1, sp",
+            "r0, r1, pc",
+            "r0, r1, [r2]",
+        };
+        for (const auto Mnemonic : BinaryMnemonics)
+        {
+            for (const auto Operands : BinaryOperands)
+            {
+                const std::string Text = ".section .text\n.function F\nentry:\n    " + std::string(Mnemonic) + " " + std::string(Operands) + "\n.endfunction\n";
+                SCOPED_TRACE(Text);
+                EXPECT_FALSE(readMachineModuleText(Text).has_value());
+            }
+        }
+        constexpr std::string_view UnaryOperands[] = {
+            "r0 + 1, r1",
+            "r0, r1 - 8",
+            "bp, r1",
+            "sp, r1",
+            "pc, r1",
+            "zero, r1",
+            "r0, bp",
+            "r0, sp",
+            "r0, pc",
+            "r0, [r1]",
+        };
+        for (const auto Operands : UnaryOperands)
+        {
+            const std::string Text = ".section .text\n.function F\nentry:\n    fsqrt64rr " + std::string(Operands) + "\n.endfunction\n";
+            SCOPED_TRACE(Text);
+            EXPECT_FALSE(readMachineModuleText(Text).has_value());
+        }
+    }
+
+    // Directly constructed floating-point modules cannot bypass the writer's zero-offset and value-register validation.
+    TEST(VMMachineModuleTextTest, RejectsInvalidFloatingPointOperandsWhenWriting)
+    {
+        constexpr RegisterOperand InvalidOperands[] = {
+            RegisterOperand(RegisterId::R0, 1),
+            RegisterOperand(RegisterId::BP),
+            RegisterOperand(RegisterId::SP),
+            RegisterOperand(RegisterId::PC),
+            RegisterOperand(static_cast<RegisterId>(0x0E)),
+        };
+        for (const auto& Invalid : InvalidOperands)
+        {
+            for (std::size_t Index = 0; Index < 3; ++Index)
+            {
+                std::array Operands{RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::R1), RegisterOperand(RegisterId::R9)};
+                Operands[Index] = Invalid;
+                MachineModule Module;
+                auto& Block = Module.createFunction().createBasicBlock();
+                MachineInstructionBuilder Builder;
+                Builder.setInsertPoint(Block);
+                Builder.create<Opcode::Fadd64rrr>(Operands[0], Operands[1], Operands[2]);
+                EXPECT_FALSE(writeMachineModuleText(Module).has_value());
+                if (Index < 2)
+                {
+                    MachineModule UnaryModule;
+                    auto& UnaryBlock = UnaryModule.createFunction().createBasicBlock();
+                    Builder.setInsertPoint(UnaryBlock);
+                    Builder.create<Opcode::Fsqrt64rr>(Operands[0], Operands[1]);
+                    EXPECT_FALSE(writeMachineModuleText(UnaryModule).has_value());
+                }
+            }
+        }
     }
 
     // Register expressions reject missing, repeated, overflowing displacements and unknown register names.

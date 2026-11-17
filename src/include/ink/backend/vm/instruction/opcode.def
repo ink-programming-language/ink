@@ -109,6 +109,14 @@ OPCODE(Jmpm, 0x0041, "jmpm", M, 64, 0, 1, 0, Branch)
 #undef INK_COMPARE_BRANCH_Mib
 #undef INK_COMPARE_BRANCH_Mmb
 
+// FP64 operands use GPR bit patterns, with ZERO permitted as a positive-zero source; all register displacements are zero.
+// Floating-point destinations are R0-R9 only. The existing Rrr/Rr encodings retain every operand word.
+OPCODE(Fadd64rrr, 0x0092, "fadd64rrr", Rrr, 64, 3, 0, 0, FloatingPoint)
+OPCODE(Fsub64rrr, 0x0093, "fsub64rrr", Rrr, 64, 3, 0, 0, FloatingPoint)
+OPCODE(Fmul64rrr, 0x0094, "fmul64rrr", Rrr, 64, 3, 0, 0, FloatingPoint)
+OPCODE(Fdiv64rrr, 0x0095, "fdiv64rrr", Rrr, 64, 3, 0, 0, FloatingPoint)
+OPCODE(Fsqrt64rr, 0x0096, "fsqrt64rr", Rr, 64, 2, 0, 0, FloatingPoint)
+
 #ifdef INK_VM_OPCODE_DEF_UNDEF_FORM
 #undef INK_VM_OPCODE_DEF_UNDEF_FORM
 #undef OPCODE_FORM

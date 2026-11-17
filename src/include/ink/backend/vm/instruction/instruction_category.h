@@ -13,5 +13,6 @@ namespace ink::vm
         ConditionalBranch,
         Return,
         Call,
+        FloatingPoint,
     };
 } // namespace ink::vm

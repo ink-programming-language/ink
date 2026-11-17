@@ -24,6 +24,15 @@ namespace ink::vm
 
     void InstructionEmitter::padInstruction(const MachineInstruction& Instruction)
     {
+        if (Instruction.isFloatingPoint())
+        {
+            for (std::size_t Index = 0; Index < Instruction.operandCount(); ++Index)
+            {
+                const auto& Operand = static_cast<const RegisterOperand&>(*Instruction.getOperand(Index));
+                const bool ValidRegister = Index == 0 ? isGeneralPurposeRegister(Operand.getRegister()) : isFloatingPointSourceRegister(Operand.getRegister());
+                REPORT_ICE_IF(!ValidRegister || Operand.getByteOffset() != 0, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "floating-point operand", "floating-point operands require a GPR destination and GPR or ZERO sources, all with zero byte offset");
+            }
+        }
         Context.padAlignment(InstructionEncoding::WordBytes);
         const auto InstructionOffset = Context.byteSize();
         auto Header = InstructionEncoding::encodeOpcode(Instruction.getOpcode());

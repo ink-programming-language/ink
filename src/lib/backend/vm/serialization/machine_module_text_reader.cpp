@@ -831,6 +831,18 @@ namespace ink::vm
                         {
                             return std::unexpected(textError(Mnemonic.Offset, "instruction operands do not match the opcode form"));
                         }
+                        if constexpr (OpcodeTraits<Operation>::Category == InstructionCategory::FloatingPoint)
+                        {
+                            for (std::size_t Index = 0; Index < Count; ++Index)
+                            {
+                                const auto& Operand = std::get<RegisterOperand>(Pending.Operands[Index]);
+                                const bool ValidRegister = Index == 0 ? isGeneralPurposeRegister(Operand.getRegister()) : isFloatingPointSourceRegister(Operand.getRegister());
+                                if (!ValidRegister || Operand.getByteOffset() != 0)
+                                {
+                                    return std::unexpected(textError(Mnemonic.Offset, "floating-point operands require a GPR destination and GPR or ZERO sources, all with zero displacement"));
+                                }
+                            }
+                        }
                         if constexpr (OpcodeTraits<Operation>::HasDestination)
                         {
                             const auto* Destination = std::get_if<RegisterOperand>(&Pending.Operands[0]);
