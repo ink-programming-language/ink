@@ -1,10 +1,11 @@
 """Compare execution-only Fibonacci timings and save reproducible JSON.
 
 Example (after building both C++ targets):
-    python examples/vm/benchmark/run.py --ink PATH --cpp PATH --lua PATH
+    python benchmark/fib/run.py --ink PATH --cpp PATH --lua PATH
 
 All runtimes use fib(n) = n if n < 2 else fib(n - 1) + fib(n - 2).
 Each runtime performs its own untimed warmup. Processes run sequentially.
+JavaScript runs with both the default V8 settings and --jitless.
 """
 
 from __future__ import annotations
@@ -99,6 +100,11 @@ def main() -> int:
     parser.add_argument("--lua-clock", type=Path)
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--node", default="node")
+    parser.add_argument("--daslang", type=Path)
+    parser.add_argument(
+        "--daslang-mode", choices=["interpreter", "jit", "both"],
+        default="interpreter",
+    )
     parser.add_argument("--n", type=int, default=30)
     parser.add_argument("--samples", type=int, default=11)
     parser.add_argument("--warmup", type=int, default=3)
@@ -110,13 +116,15 @@ def main() -> int:
         help="Temporary child process priority; elevated options need Windows",
     )
     parser.add_argument(
-        "--output", type=Path, default=Path("build/fib-benchmark/results.json")
+        "--output", type=Path, default=Path("build/benchmark/fib/results.json")
     )
     arguments = parser.parse_args()
     if bool(arguments.ink_before) != bool(arguments.asm_before):
         parser.error("--ink-before and --asm-before must be supplied together")
     if arguments.priority != "normal" and os.name != "nt":
         parser.error("Child priority options require Windows")
+    if arguments.daslang_mode != "interpreter" and not arguments.daslang:
+        parser.error("--daslang-mode requires --daslang")
     if (
         not 0 <= arguments.n <= 40
         or not 1 <= arguments.samples <= 1000
@@ -146,7 +154,7 @@ def main() -> int:
         ]
     commands[ink_name] = [
         str(arguments.ink.resolve()),
-        str(directory.parent / "fib.asm"), *parameters,
+        str(directory / "fib.asm"), *parameters,
     ]
     ink_names = set(commands)
     commands.update({
@@ -157,7 +165,23 @@ def main() -> int:
             *parameters,
         ],
         "JavaScript": [arguments.node, str(directory / "fib.js"), *parameters],
+        "JavaScript jitless": [
+            arguments.node, "--jitless", str(directory / "fib.js"), *parameters,
+        ],
     })
+    if arguments.daslang:
+        daslang_command = [
+            str(arguments.daslang.resolve()), str(directory / "fib.das"),
+            "-no-module-cache",
+        ]
+        if arguments.daslang_mode in {"interpreter", "both"}:
+            commands["Daslang interpreter"] = [
+                *daslang_command, "--", *parameters,
+            ]
+        if arguments.daslang_mode in {"jit", "both"}:
+            commands["Daslang LLVM JIT"] = [
+                *daslang_command, "-jit", "-jit-no-cache", "--", *parameters,
+            ]
     versions = {
         "Python": capture([arguments.python, "--version"]),
         "Lua": capture([str(arguments.lua.resolve()), "-v"]),
@@ -165,6 +189,10 @@ def main() -> int:
             arguments.node, "-p", "JSON.stringify(process.versions)",
         ]),
     }
+    if arguments.daslang:
+        versions["Daslang"] = capture([
+            str(arguments.daslang.resolve()), "--version",
+        ])
     runs = []
     expected = reference_fib(arguments.n)
     with pin_cpu(arguments.cpu):
@@ -226,6 +254,14 @@ def main() -> int:
                     name=name, round=round_index + 1, command=command,
                     priority=arguments.priority,
                 )
+                if name == "JavaScript":
+                    value["execution_mode"] = "V8 default JIT"
+                elif name == "JavaScript jitless":
+                    value["execution_mode"] = "V8 jitless"
+                elif name.startswith("Daslang "):
+                    value["execution_mode"] = (
+                        "LLVM JIT" if name.endswith("JIT") else "interpreter"
+                    )
                 runs.append(value)
     summary = []
     for name in commands:

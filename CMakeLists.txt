@@ -78,7 +78,7 @@ add_subdirectory(src/tools)
 
 option(INK_BUILD_VM_BENCHMARKS "Build the Fibonacci VM and native comparison benchmarks" OFF)
 if(INK_BUILD_VM_BENCHMARKS)
-    add_subdirectory(examples/vm/benchmark)
+    add_subdirectory(benchmark)
 endif()
 
 if(BUILD_TESTING)

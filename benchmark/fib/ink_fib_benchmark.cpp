@@ -181,6 +181,11 @@ int main(int ArgumentCount, char** ArgumentValues)
     {
         Timings += fmt::format("{}{:.9f}", Timings.empty() ? "" : ",", std::chrono::duration<double, std::milli>(Value.End - Value.Start).count());
     }
-    Output.info("{{\"runtime\":\"Ink\",\"n\":{},\"result\":{},\"samples_ms\":[{}],\"warmup\":{},\"build_mode\":\"{}\",\"checks_enabled\":{},\"compiler\":\"{} {}\"}}", N, Result, Timings, WarmupCount, INK_BUILD_MODE_NAME, INK_ENABLE_ASSERTIONS ? "true" : "false", INK_COMPILER_ID, INK_COMPILER_VERSION);
+#if defined(INK_VM_USE_COMPUTED_GOTO) && INK_VM_USE_COMPUTED_GOTO
+    constexpr std::string_view DispatchName = "computed-goto";
+#else
+    constexpr std::string_view DispatchName = "switch";
+#endif
+    Output.info("{{\"runtime\":\"Ink\",\"n\":{},\"result\":{},\"samples_ms\":[{}],\"warmup\":{},\"build_mode\":\"{}\",\"checks_enabled\":{},\"compiler\":\"{} {}\",\"dispatch\":\"{}\"}}", N, Result, Timings, WarmupCount, INK_BUILD_MODE_NAME, INK_ENABLE_ASSERTIONS ? "true" : "false", INK_COMPILER_ID, INK_COMPILER_VERSION, DispatchName);
     return 0;
 }

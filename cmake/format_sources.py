@@ -34,7 +34,7 @@ def run_captured(command: list[str], repository: Path) -> subprocess.CompletedPr
 
 def is_owned_source(relative_path: Path) -> bool:
     parts = relative_path.parts
-    if not parts or parts[0] not in {"src", "examples"}:
+    if not parts or parts[0] not in {"src", "examples", "benchmark"}:
         return False
     if any(part in {"third_party", ".git", ".idea", "build"} or part.startswith("cmake-build-") for part in parts[:-1]):
         return False
@@ -45,7 +45,7 @@ def collect_sources(repository: Path, requested_paths: list[str]) -> list[Path]:
     git = shutil.which("git")
     if git is None:
         raise FormatError("git was not found on PATH")
-    result = run_captured([git, "-C", str(repository), "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "src", "examples"], repository)
+    result = run_captured([git, "-C", str(repository), "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "src", "examples", "benchmark"], repository)
     sources = set()
     for entry in result.stdout.split(b"\0"):
         if not entry:
