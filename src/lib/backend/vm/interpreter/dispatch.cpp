@@ -30,9 +30,13 @@ namespace ink::vm
         };
         constexpr std::size_t SaveAreaBytes = 2 * InstructionEncoding::WordBytes;
         std::size_t CallDepth = 0;
+        // Keep instruction fetch independent of writes through the exposed register storage.
+        auto LocalPC = Frame.getPC();
         for (;;)
         {
-            const auto InstructionAddress = Frame.getPC();
+            // PC operands, native calls and failure paths observe this instruction's start address.
+            Frame.setPC(LocalPC);
+            const auto InstructionAddress = LocalPC;
 #if INK_ENABLE_ASSERTIONS
             check(InstructionAddress >= CodeAddress && InstructionAddress - CodeAddress < CodeSegmentSize);
             const auto InstructionOffset = static_cast<std::size_t>(InstructionAddress - CodeAddress);
@@ -75,7 +79,7 @@ namespace ink::vm
             const auto Right = std::bit_cast<double>(READ_REGISTER(RightRegister, Frame));                                            \
             const auto Result = Left Operator Right;                                                                                  \
             WRITE_REGISTER(DestinationRegister, Frame, std::bit_cast<std::uint64_t>(Result));                                         \
-            Frame.setPC(InstructionAddress + InstructionBytes);                                                                       \
+            LocalPC = InstructionAddress + InstructionBytes;                                                                          \
             continue;                                                                                                                 \
         }
                 EXECUTE_FLOATING_BINARY(Fadd64rrr, +)
@@ -89,7 +93,7 @@ namespace ink::vm
                     const auto Source = std::bit_cast<double>(READ_REGISTER(LeftRegister, Frame));
                     const auto Result = std::sqrt(Source);
                     WRITE_REGISTER(DestinationRegister, Frame, std::bit_cast<std::uint64_t>(Result));
-                    Frame.setPC(InstructionAddress + InstructionBytes);
+                    LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
             case Opcode::Add64rrr:
@@ -100,7 +104,7 @@ namespace ink::vm
                     const auto Result = Left + Right;
                     check(isWritableAddressRegister(DestinationRegister));
                     WRITE_REGISTER(DestinationRegister, Frame, Result);
-                    Frame.setPC(InstructionAddress + InstructionBytes);
+                    LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
             case Opcode::Add64rrm:
@@ -113,7 +117,7 @@ namespace ink::vm
                     const auto Result = Left + Right;
                     check(isWritableAddressRegister(DestinationRegister));
                     WRITE_REGISTER(DestinationRegister, Frame, Result);
-                    Frame.setPC(InstructionAddress + InstructionBytes);
+                    LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
             case Opcode::Add64rri:
@@ -122,7 +126,7 @@ namespace ink::vm
                     const auto Left = READ_REGISTER(LeftRegister, Frame) + Instruction[2];
                     check(isWritableAddressRegister(DestinationRegister));
                     WRITE_REGISTER(DestinationRegister, Frame, Left + Instruction[3]);
-                    Frame.setPC(InstructionAddress + InstructionBytes);
+                    LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
             case Opcode::Add64mrr:
@@ -133,7 +137,7 @@ namespace ink::vm
                     const auto Right = READ_REGISTER(RightRegister, Frame) + Instruction[3];
                     const auto Result = Left + Right;
                     std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Result, sizeof(Result));
-                    Frame.setPC(InstructionAddress + InstructionBytes);
+                    LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
             case Opcode::Add64mmi:
@@ -145,7 +149,7 @@ namespace ink::vm
                     std::memcpy(&Left, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(LeftAddress)), sizeof(Left));
                     const auto Result = Left + Instruction[3];
                     std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Result, sizeof(Result));
-                    Frame.setPC(InstructionAddress + InstructionBytes);
+                    LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
             case Opcode::Add64mmm:
@@ -160,13 +164,13 @@ namespace ink::vm
                     std::memcpy(&Right, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(RightAddress)), sizeof(Right));
                     const auto Result = Left + Right;
                     std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Result, sizeof(Result));
-                    Frame.setPC(InstructionAddress + InstructionBytes);
+                    LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
             case Opcode::Jmp:
             case Opcode::Jmpr:
                 {
-                    Frame.setPC(READ_REGISTER(DestinationRegister, Frame) + Instruction[1]);
+                    LocalPC = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
                     continue;
                 }
             case Opcode::Load64:
@@ -177,7 +181,7 @@ namespace ink::vm
                     std::uint64_t Value;
                     std::memcpy(&Value, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(SourceAddress)), sizeof(Value));
                     std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Value, sizeof(Value));
-                    Frame.setPC(InstructionAddress + InstructionBytes);
+                    LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
             case Opcode::Store32i:
@@ -186,7 +190,7 @@ namespace ink::vm
                     const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
                     const auto Value = static_cast<std::uint32_t>(Instruction[2]);
                     std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Value, sizeof(Value));
-                    Frame.setPC(InstructionAddress + InstructionBytes);
+                    LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
             case Opcode::Store64i:
@@ -195,12 +199,12 @@ namespace ink::vm
                     const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
                     const auto Value = Instruction[2];
                     std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Value, sizeof(Value));
-                    Frame.setPC(InstructionAddress + InstructionBytes);
+                    LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
             case Opcode::Jmpi:
                 {
-                    Frame.setPC(InstructionAddress + Instruction[1]);
+                    LocalPC = InstructionAddress + Instruction[1];
                     continue;
                 }
             case Opcode::Jmpm:
@@ -208,7 +212,7 @@ namespace ink::vm
                     const auto Address = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
                     std::uint64_t Target;
                     std::memcpy(&Target, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(Address)), sizeof(Target));
-                    Frame.setPC(Target);
+                    LocalPC = Target;
                     continue;
                 }
 #define EXECUTE_CALL(Target)                                                                                                                                                                     \
@@ -239,7 +243,7 @@ namespace ink::vm
             std::memcpy(SaveArea + InstructionEncoding::WordBytes, &NextPC, sizeof(NextPC));                                                                                                     \
             WRITE_REGISTER(RegisterId::BP, Frame, StackPointer);                                                                                                                                 \
             WRITE_REGISTER(RegisterId::SP, Frame, StackPointer + SaveAreaBytes);                                                                                                                 \
-            Frame.setPC(CallTarget);                                                                                                                                                             \
+            LocalPC = CallTarget;                                                                                                                                                                \
             ++CallDepth;                                                                                                                                                                         \
         }                                                                                                                                                                                        \
         else                                                                                                                                                                                     \
@@ -247,7 +251,7 @@ namespace ink::vm
             check(NativeStubAddresses.contains(CallTarget));                                                                                                                                     \
             const auto Stub = reinterpret_cast<void (*)(vm::Frame*)>(static_cast<std::uintptr_t>(CallTarget));                                                                                   \
             Stub(&Frame);                                                                                                                                                                        \
-            Frame.setPC(NextPC);                                                                                                                                                                 \
+            LocalPC = NextPC;                                                                                                                                                                    \
         }                                                                                                                                                                                        \
     } while (false)
             case Opcode::Calli:
@@ -287,7 +291,7 @@ namespace ink::vm
                 RightValue = std::bit_cast<ValueType>(static_cast<UnsignedValueType>(Instruction[2]));                                         \
             }                                                                                                                                  \
             const auto Target = (LeftValue Operator RightValue) ? InstructionAddress + Instruction[3] : InstructionAddress + InstructionBytes; \
-            Frame.setPC(Target);                                                                                                               \
+            LocalPC = Target;                                                                                                                  \
             continue;                                                                                                                          \
         }
 #include "ink/backend/vm/instruction/compare_branch.def"
@@ -309,7 +313,7 @@ namespace ink::vm
                     check(IsStackPosition(SavedBP) && SavedBP <= BasePointer && IsInstructionAddress(SavedPC));
                     WRITE_REGISTER(RegisterId::SP, Frame, BasePointer);
                     WRITE_REGISTER(RegisterId::BP, Frame, SavedBP);
-                    Frame.setPC(SavedPC);
+                    LocalPC = SavedPC;
                     --CallDepth;
                     continue;
                 }

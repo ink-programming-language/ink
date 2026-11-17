@@ -51,7 +51,7 @@ $env:PYTHON_JIT = "0"
 
 ## 测量结果（2026-11-17）
 
-以下结果使用当前 switch 实现及上述配置测量。
+以下结果使用 PC 局部变量优化前的 switch 实现及上述配置测量。
 
 - 环境：Intel Core i9-13900K，Windows 11 22631，逻辑 CPU 2，High 优先级。
 - 工作量：`n=32`，每轮预热 3 次、采样 11 次，共 3 轮；各项均为 33 个执行样本的中位数。
@@ -71,3 +71,15 @@ $env:PYTHON_JIT = "0"
 | Daslang 0.6.5 | LLVM JIT，编译时间不计入 | 4.6521 |
 
 该结果只描述此递归 Fibonacci 工作量和上述工具链，不能推广为各语言的整体性能排名。运行命令的 `--output` 路径保存原始样本、完整命令和版本信息；上例为 `build/benchmark/fib/results.json`。
+
+## PC 局部变量优化对比（2026-11-17）
+
+以 `905d7053` 的解释器为基线，与本次 PC 局部变量实现做同批 A/B。指令编码及 `fib.asm` 保持一致；解释器每条指令开始前同步 `Frame.PC`，取指直接使用局部 PC。两版均使用 clang-cl 19.1.5、O3 / Shipping，`INK_ENABLE_ASSERTIONS=0`。
+
+在上述同一机器上绑定逻辑 CPU 2、High 优先级，前后版本交替串行运行 5 轮，每轮每进程预热 3 次、采样 11 次。只计时 `Interpreter::execute()`，每版汇总 55 个样本的中位数。
+
+| 工作量 | 优化前（ms） | 优化后（ms） | 耗时减少 |
+| --- | ---: | ---: | ---: |
+| `fib(32)` | 70.0476 | 61.3847 | 12.37% |
+
+五轮的中位数均有改善，全部结果为 `2178309`。原始样本、逐轮统计、命令、可执行文件和源码哈希保存在 `build/pc-local-validation/comparison.json`，同目录保留每轮 execute trace；比较脚本为 `build/pc-local-validation/compare.py`。这些本地验证产物不纳入源码提交。

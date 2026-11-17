@@ -3,6 +3,7 @@
 #include "ink/backend/vm/instruction/address_operand.h"
 #include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/backend/vm/interpreter/interpreter.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
 
 #include <gtest/gtest.h>
 
@@ -136,6 +137,58 @@ namespace ink::vm::test
 
         EXPECT_EQ(registerAddress(VM, RegisterId::BP), reinterpret_cast<std::uintptr_t>(Entry + 7));
         EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + PCProgramOffset + Add64Bytes));
+    }
+
+    // A memory write to the live PC storage is superseded by normal advancement before either a PC source or its memory alias is read.
+    TEST(VMDispatchTest, AdvancesPastAliasedPCWriteAndSynchronizesBothReadForms)
+    {
+        Interpreter VM;
+        const auto PCStorage = static_cast<std::int64_t>(reinterpret_cast<std::uintptr_t>(GET_REGISTER(RegisterId::PC, VM.getFrame())));
+        ExecutableFile Executable;
+        auto& Bytes = Executable.getImage();
+        appendAdd64rrr(Bytes, RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::ZERO, PCStorage), RegisterOperand(RegisterId::ZERO));
+        appendHeader(Bytes, 0x0C, RegisterId::R0);
+        appendWord(Bytes, 0);
+        appendWord(Bytes, 0);
+        const auto MemoryReadOffset = Bytes.size();
+        appendAdd64rrm(Bytes, RegisterOperand(RegisterId::R1), RegisterOperand(RegisterId::ZERO), AddressOperand(RegisterId::R0));
+        const auto RegisterReadOffset = Bytes.size();
+        appendAdd64rrr(Bytes, RegisterOperand(RegisterId::R2), RegisterOperand(RegisterId::PC), RegisterOperand(RegisterId::ZERO));
+        const auto ReturnOffset = Bytes.size();
+        appendRet(Bytes);
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+        const auto* Entry = VM.getCodeSegment().data();
+
+        ASSERT_TRUE(VM.execute(Entry));
+
+        EXPECT_EQ(registerAddress(VM, RegisterId::R1), reinterpret_cast<std::uintptr_t>(Entry + MemoryReadOffset));
+        EXPECT_EQ(registerAddress(VM, RegisterId::R2), reinterpret_cast<std::uintptr_t>(Entry + RegisterReadOffset));
+        EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + ReturnOffset));
+    }
+
+    // An unsupported opcode reached after a completed instruction reports failure with PC at the failing instruction rather than its predecessor.
+    TEST(VMDispatchTest, PreservesAdvancedPCWhenFollowingInstructionIsUnsupported)
+    {
+        Interpreter VM;
+        ExecutableFile Executable;
+        auto& Bytes = Executable.getImage();
+        appendAdd64rrr(Bytes, RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::ZERO, 19), RegisterOperand(RegisterId::ZERO));
+        const auto UnsupportedOffset = Bytes.size();
+        appendHeader(Bytes, 0x01);
+        appendWord(Bytes, 0);
+        appendWord(Bytes, 0);
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+        const auto* Entry = VM.getCodeSegment().data();
+        core::CollectingDiagnosticConsumer Collector;
+        VM.getDiagnostics().addConsumer(Collector);
+
+        EXPECT_FALSE(VM.execute(Entry));
+
+        VM.getDiagnostics().removeConsumer(Collector);
+        ASSERT_EQ(Collector.diagnostics().size(), 1U);
+        EXPECT_EQ(Collector.diagnostics().front().Kind, core::DiagnosticKind::VMExecutionFailed);
+        EXPECT_EQ(registerAddress(VM, RegisterId::R0), 19U);
+        EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + UnsupportedOffset));
     }
 
     // ZERO-relative integer bit patterns exercise 64-bit wrapping arithmetic without changing register storage bindings.
