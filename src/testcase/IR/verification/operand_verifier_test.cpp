@@ -216,4 +216,25 @@ namespace ink::ir::test
         static_cast<void>(Builder.createReturn());
         EXPECT_DEATH(verifyFunction(Owner, Engine), "INK-I0001");
     }
+
+    // Directly constructed integer and float constants with bits outside their declared width are rejected during verification.
+    TEST(IROperandVerifierDeathTest, ReportsNumericConstantsWithOutOfRangeBitPatterns)
+    {
+        const core::DiagnosticEngine Engine;
+        TypePool Types;
+        InstructionBuilder Builder(Types);
+        const IntegerType& UInt8 = Types.getIntegerType(IntegerType::Width::Bits8, IntegerType::Signedness::Unsigned);
+        const IntegerConstant OverflowInt(UInt8, 256);
+        Function IntOwner(Types.getFunctionType(UInt8));
+        Builder.setInsertPoint(IntOwner.createBasicBlock());
+        static_cast<void>(Builder.createReturn(OverflowInt));
+        EXPECT_DEATH(verifyFunction(IntOwner, Engine), "INK-I0001.*Integer constant has bits outside its declared width");
+
+        const FloatType& Float32 = Types.getFloatType(FloatType::Width::Bits32);
+        const FloatConstant OverflowFloat(Float32, 1ULL << 32);
+        Function FloatOwner(Types.getFunctionType(Float32));
+        Builder.setInsertPoint(FloatOwner.createBasicBlock());
+        static_cast<void>(Builder.createReturn(OverflowFloat));
+        EXPECT_DEATH(verifyFunction(FloatOwner, Engine), "INK-I0001.*Floating-point constant has bits outside its declared width");
+    }
 } // namespace ink::ir::test

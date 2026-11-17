@@ -1,6 +1,7 @@
 #include "ink/ir/function/function.h"
 
 #include "ink/core/support/core_define.h"
+#include "ink/ir/verification/verifier.h"
 
 namespace ink::ir
 {
@@ -46,5 +47,15 @@ namespace ink::ir
             }
         }
         return true;
+    }
+
+    void Function::verify(const core::DiagnosticEngine& Diagnostics) const
+    {
+        verifyFunction(*this, Diagnostics);
+    }
+
+    bool Function::verify(std::string* Error) const
+    {
+        return verifyFunction(*this, Error);
     }
 } // namespace ink::ir

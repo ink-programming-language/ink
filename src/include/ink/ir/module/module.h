@@ -11,7 +11,13 @@
 #include <iterator>
 #include <list>
 #include <ranges>
+#include <string>
 #include <type_traits>
+
+namespace ink::core
+{
+    class DiagnosticEngine;
+} // namespace ink::core
 
 namespace ink::ir
 {
@@ -155,6 +161,9 @@ namespace ink::ir
             {
                 return GlobalVariables.size();
             }
+
+            void verify(const core::DiagnosticEngine& Diagnostics) const;
+            [[nodiscard]] bool verify(std::string* Error = nullptr) const;
 
         private:
             core::Name Name = core::NAME_None;

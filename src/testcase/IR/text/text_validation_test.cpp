@@ -42,22 +42,36 @@ namespace ink::ir::test
     // Self inheritance and two-record inheritance cycles are recoverable input errors even when storage would be reference-shaped.
     TEST(IRTextValidationTest, RejectsDirectAndMutualInheritanceCycles)
     {
-        expectGraphError(R"(module "" { %t0 = type struct extends (%t0) {} })", "inheritance contains a cycle");
-        expectGraphError(R"(module "" { %t0 = type class extends (%t1) {} %t1 = type class extends (%t0) {} })", "inheritance contains a cycle");
+        expectGraphError(R"(source_filename = ""
+%t0 = type struct extends (%t0) {})",
+                         "inheritance contains a cycle");
+        expectGraphError(R"(source_filename = ""
+%t0 = type class extends (%t1) {}
+%t1 = type class extends (%t0) {})",
+                         "inheritance contains a cycle");
     }
 
     // Struct instance fields cannot form direct, mutual, or array-mediated recursive by-value layouts.
     TEST(IRTextValidationTest, RejectsRecursiveByValueRecordStorage)
     {
-        expectGraphError(R"(module "" { %t0 = type struct { field public instance "Self": %t0; } })", "recursive by-value layout");
-        expectGraphError(R"(module "" { %t0 = type struct { field public instance "Next": %t1; } %t1 = type struct { field public instance "Previous": %t0; } })", "recursive by-value layout");
-        expectGraphError(R"(module "" { %t0 = type struct { field public instance "Items": [1 x %t0]; } })", "recursive by-value layout");
+        expectGraphError(R"(source_filename = ""
+%t0 = type struct { field public instance %t0 "Self" })",
+                         "recursive by-value layout");
+        expectGraphError(R"(source_filename = ""
+%t0 = type struct { field public instance %t1 "Next" }
+%t1 = type struct { field public instance %t0 "Previous" })",
+                         "recursive by-value layout");
+        expectGraphError(R"(source_filename = ""
+%t0 = type struct { field public instance [1 x %t0] "Items" })",
+                         "recursive by-value layout");
     }
 
     // A class field is a reference and a static struct field is outside instance layout, so both may refer to their own nominal type.
     TEST(IRTextValidationTest, AcceptsReferenceAndStaticSelfReferences)
     {
-        constexpr std::string_view Text = R"(module "" { %t0 = type class { field public instance "Self": %t0; } %t1 = type struct { field public static "Shared": %t1; } })";
+        constexpr std::string_view Text = R"(source_filename = ""
+%t0 = type class { field public instance %t0 "Self" }
+%t1 = type struct { field public static %t1 "Shared" })";
         auto Parsed = readModuleText(Text);
         ASSERT_TRUE(Parsed.has_value()) << validationDescription(Parsed.error());
         EXPECT_EQ((*Parsed)->module().objectTypeCount(), 1U);
@@ -67,16 +81,14 @@ namespace ink::ir::test
     // Two CFG edges from one predecessor require two phi entries carrying the same value identity.
     TEST(IRTextValidationTest, RejectsConflictingValuesOnRepeatedPhiPredecessors)
     {
-        constexpr std::string_view Text = R"(module ""
+        constexpr std::string_view Text = R"(source_filename = ""
+define private i32 @f0(bool %a0)
 {
-  define private none i32 @f0 name ""(positional bool %a0 name "") abi ink cc default fixed
-  {
-    %bb0 name "":
-      cond_branch %a0, %bb1, %bb1;
-    %bb1 name "":
-      %v0 = phi [int<i32>(1), %bb0], [int<i32>(2), %bb0]: i32;
-      return %v0;
-  }
+  %bb0:
+    br bool %a0, label %bb1, label %bb1
+  %bb1:
+    %v0 = phi i32 [1, %bb0], [2, %bb0]
+    ret i32 %v0
 })";
         expectGraphError(Text, "different values for repeated predecessor edges");
     }
@@ -84,16 +96,14 @@ namespace ink::ir::test
     // A repeated destination edge must not be deduplicated when comparing phi incoming counts against the CFG.
     TEST(IRTextValidationTest, RequiresOnePhiEntryPerRepeatedCfgEdge)
     {
-        constexpr std::string_view Text = R"(module ""
+        constexpr std::string_view Text = R"(source_filename = ""
+define private i32 @f0(bool %a0)
 {
-  define private none i32 @f0 name ""(positional bool %a0 name "") abi ink cc default fixed
-  {
-    %bb0 name "":
-      cond_branch %a0, %bb1, %bb1;
-    %bb1 name "":
-      %v0 = phi [int<i32>(1), %bb0]: i32;
-      return %v0;
-  }
+  %bb0:
+    br bool %a0, label %bb1, label %bb1
+  %bb1:
+    %v0 = phi i32 [1, %bb0]
+    ret i32 %v0
 })";
         expectGraphError(Text, "phi incoming edges do not match CFG predecessors");
     }
@@ -101,16 +111,14 @@ namespace ink::ir::test
     // Equal repeated phi inputs remain distinct edge entries while pooled constants preserve their shared value identity.
     TEST(IRTextValidationTest, AcceptsEqualValuesOnRepeatedPhiPredecessors)
     {
-        constexpr std::string_view Text = R"(module ""
+        constexpr std::string_view Text = R"(source_filename = ""
+define private i32 @f0(bool %a0)
 {
-  define private none i32 @f0 name ""(positional bool %a0 name "") abi ink cc default fixed
-  {
-    %bb0 name "":
-      cond_branch %a0, %bb1, %bb1;
-    %bb1 name "":
-      %v0 = phi [int<i32>(1), %bb0], [int<i32>(1), %bb0]: i32;
-      return %v0;
-  }
+  %bb0:
+    br bool %a0, label %bb1, label %bb1
+  %bb1:
+    %v0 = phi i32 [1, %bb0], [1, %bb0]
+    ret i32 %v0
 })";
         auto Parsed = readModuleText(Text);
         ASSERT_TRUE(Parsed.has_value()) << validationDescription(Parsed.error());
@@ -119,17 +127,15 @@ namespace ink::ir::test
     // A phi edge use is checked at its predecessor terminator, so a value defined only in the destination cannot flow backward onto that edge.
     TEST(IRTextValidationTest, RejectsPhiValuesThatDoNotDominateTheirIncomingEdges)
     {
-        constexpr std::string_view Text = R"(module ""
+        constexpr std::string_view Text = R"(source_filename = ""
+define private i32 @f0()
 {
-  define private none i32 @f0 name ""() abi ink cc default fixed
-  {
-    %bb0 name "":
-      branch %bb1;
-    %bb1 name "":
-      %v0 = phi [%v1, %bb0]: i32;
-      %v1 = add int<i32>(1), int<i32>(2): i32;
-      return %v0;
-  }
+  %bb0:
+    br label %bb1
+  %bb1:
+    %v0 = phi i32 [%v1, %bb0]
+    %v1 = add i32 1, 2
+    ret i32 %v0
 })";
         expectGraphError(Text, "definition does not dominate its use");
     }
@@ -137,40 +143,36 @@ namespace ink::ir::test
     // Type-valued instruction references nested in pointer metadata cannot borrow SSA definitions from a different function.
     TEST(IRTextValidationTest, RejectsForeignInstructionsHiddenInTypeMetadata)
     {
-        constexpr std::string_view Text = R"(module ""
+        constexpr std::string_view Text = R"(source_filename = ""
+define private void @f0(ptr<type> %a0)
 {
-  define private none void @f0 name ""(positional ptr<type> %a0 name "") abi ink cc default fixed
-  {
-    %bb0 name "":
-      %v0 = load %a0: type;
-      return;
-  }
-  define private none void @f1 name ""() abi ink cc default fixed
-  {
-    %bb1 name "":
-      %v1 = alloca ptr<%v0>: ptr<ptr<%v0>>;
-      return;
-  }
+  %bb0:
+    %v0 = load type, ptr<type> %a0
+    ret void
+}
+define private void @f1()
+{
+  %bb1:
+    %v1 = alloca ptr<%v0>
+    ret void
 })";
-        expectGraphError(Text, "operand instruction is not owned by this function");
+        expectGraphError(Text, "operand belongs to another function");
     }
 
     // A type-producing definition in one branch does not dominate a sibling branch that embeds it in allocation metadata.
     TEST(IRTextValidationTest, ChecksDominanceInsideNestedTypeExpressions)
     {
-        constexpr std::string_view Text = R"(module ""
+        constexpr std::string_view Text = R"(source_filename = ""
+define private void @f0(bool %a0, ptr<type> %a1)
 {
-  define private none void @f0 name ""(positional bool %a0 name "", positional ptr<type> %a1 name "") abi ink cc default fixed
-  {
-    %bb0 name "":
-      cond_branch %a0, %bb1, %bb2;
-    %bb1 name "":
-      %v0 = load %a1: type;
-      return;
-    %bb2 name "":
-      %v1 = alloca [2 x ptr<%v0>]: ptr<[2 x ptr<%v0>]>;
-      return;
-  }
+  %bb0:
+    br bool %a0, label %bb1, label %bb2
+  %bb1:
+    %v0 = load type, ptr<type> %a1
+    ret void
+  %bb2:
+    %v1 = alloca [2 x ptr<%v0>]
+    ret void
 })";
         expectGraphError(Text, "definition does not dominate its use");
     }
@@ -178,41 +180,39 @@ namespace ink::ir::test
     // Flat record declarations can encode a much deeper type graph than any individual expression, and must hit a recoverable graph-depth limit.
     TEST(IRTextValidationTest, BoundsDepthAcrossFlatNominalReferenceChains)
     {
-        std::string Text = "module \"\" {\n";
+        std::string Text = "source_filename = \"\"\n";
         constexpr std::size_t Count = 160;
         for (std::size_t Index = 0; Index < Count; ++Index)
         {
             Text += "%t" + std::to_string(Index) + " = type struct { ";
             if (Index + 1 < Count)
             {
-                Text += "field public instance \"Next\": ptr<%t" + std::to_string(Index + 1) + ">; ";
+                Text += "field public instance ptr<%t" + std::to_string(Index + 1) + "> \"Next\" ";
             }
             Text += "}\n";
         }
-        Text += "}";
         expectGraphError(Text, "type graph exceeds supported validation depth");
     }
 
     // A shallow static index of a long by-value chain must still be bounded during layout traversal after type nodes have been cached.
     TEST(IRTextValidationTest, BoundsDepthOfPreviouslyVisitedStorageGraphs)
     {
-        std::string Text = "module \"\" {\n%root = type struct {\n";
+        std::string Text = "source_filename = \"\"\n%root = type struct {\n";
         constexpr std::size_t Count = 160;
         for (std::size_t Index = Count; Index != 0; --Index)
         {
-            Text += "field public static \"Cached\": %t" + std::to_string(Index - 1) + ";\n";
+            Text += "field public static %t" + std::to_string(Index - 1) + " \"Cached\"\n";
         }
-        Text += "field public instance \"Root\": %t0;\n}\n";
+        Text += "field public instance %t0 \"Root\"\n}\n";
         for (std::size_t Index = 0; Index < Count; ++Index)
         {
             Text += "%t" + std::to_string(Index) + " = type struct { ";
             if (Index + 1 < Count)
             {
-                Text += "field public instance \"Next\": %t" + std::to_string(Index + 1) + "; ";
+                Text += "field public instance %t" + std::to_string(Index + 1) + " \"Next\" ";
             }
             Text += "}\n";
         }
-        Text += "}";
         expectGraphError(Text, "storage graph exceeds supported validation depth");
     }
 

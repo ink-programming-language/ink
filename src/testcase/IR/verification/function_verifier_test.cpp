@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <string>
 
 namespace ink::ir::test
 {
@@ -448,5 +449,39 @@ namespace ink::ir::test
         static_cast<void>(Context.Builder.createAlloca(Wrapped));
         static_cast<void>(Context.Builder.createReturn());
         EXPECT_DEATH(verifyFunction(Owner, Context.Engine), "INK-I0001");
+    }
+
+    // Non-fatal function verification and member verify overloads report CFG and SSA errors without terminating the process.
+    TEST(IRFunctionVerifierTest, SupportsRecoverableVerificationAndMemberVerifyOverloads)
+    {
+        FunctionVerificationContext Context;
+        Function Valid(Context.Types.getFunctionType(Context.Int32));
+        Context.Builder.setInsertPoint(Valid.createBasicBlock());
+        static_cast<void>(Context.Builder.createReturn(Context.One));
+        Valid.verify(Context.Engine);
+        std::string Error = "stale";
+        EXPECT_TRUE(Valid.verify(&Error));
+        EXPECT_TRUE(Error.empty());
+        EXPECT_FALSE(checkFunction(Valid).has_value());
+
+        Function Incomplete(Context.Types.getFunctionType(Context.Int32));
+        static_cast<void>(Incomplete.createBasicBlock());
+        EXPECT_FALSE(Incomplete.verify(&Error));
+        EXPECT_NE(Error.find("basic block is missing a terminator"), std::string::npos);
+        const auto Structured = checkFunction(Incomplete);
+        ASSERT_TRUE(Structured.has_value());
+        EXPECT_EQ(Structured->Description, "basic block is missing a terminator");
+
+        const Value* DeepArray = &Context.Int32;
+        for (std::size_t Index = 0; Index < 128; ++Index)
+        {
+            DeepArray = &Context.Types.getArrayType(*DeepArray, 1);
+        }
+        Function DeepArrayFunction(Context.Types.getFunctionType(Context.Types.getVoidType()));
+        Context.Builder.setInsertPoint(DeepArrayFunction.createBasicBlock());
+        static_cast<void>(Context.Builder.createAlloca(*DeepArray));
+        static_cast<void>(Context.Builder.createReturn());
+        EXPECT_FALSE(DeepArrayFunction.verify(&Error));
+        EXPECT_NE(Error.find("storage graph exceeds supported validation depth"), std::string::npos);
     }
 } // namespace ink::ir::test

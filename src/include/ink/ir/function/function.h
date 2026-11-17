@@ -11,8 +11,14 @@
 #include <list>
 #include <memory>
 #include <ranges>
+#include <string>
 #include <utility>
 #include <vector>
+
+namespace ink::core
+{
+    class DiagnosticEngine;
+} // namespace ink::core
 
 namespace ink::ir
 {
@@ -115,6 +121,9 @@ namespace ink::ir
 
             // A declaration with no blocks is valid; every definition block must end in exactly one terminator.
             bool hasValidControlFlow() const noexcept;
+
+            void verify(const core::DiagnosticEngine& Diagnostics) const;
+            [[nodiscard]] bool verify(std::string* Error = nullptr) const;
 
         private:
             friend class Module;

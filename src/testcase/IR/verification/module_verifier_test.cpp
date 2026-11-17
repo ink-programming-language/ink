@@ -8,7 +8,9 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace ink::ir::test
 {
@@ -289,5 +291,86 @@ namespace ink::ir::test
         Module RecordModule;
         RecordModule.addStructType(Record);
         EXPECT_DEATH(verifyModule(RecordModule, Engine), "INK-I0001");
+    }
+
+    // Unregistered borrowed records reached through globals or function bodies still have their method bodies verified.
+    TEST(IRModuleVerifierDeathTest, ReportsIncompleteMethodBodiesInBorrowedReachableRecords)
+    {
+        const core::DiagnosticEngine Engine;
+        TypePool Types;
+        StructType Borrowed;
+        Method& IncompleteMethod = Borrowed.addMethod(Types.getFunctionType(Types.getVoidType()));
+        static_cast<void>(IncompleteMethod.function().createBasicBlock());
+        Module ModuleValue;
+        static_cast<void>(ModuleValue.createGlobalVariable(Types.getPointerType(Borrowed)));
+        EXPECT_DEATH(verifyModule(ModuleValue, Engine), "INK-I0001.*basic block is missing a terminator");
+    }
+
+    // Non-fatal module verification reports structured errors and clears stale messages on valid graphs without aborting.
+    TEST(IRModuleVerifierTest, SupportsRecoverableVerificationAndMemberVerifyOverloads)
+    {
+        const core::DiagnosticEngine Engine;
+        TypePool Types;
+        Module ValidModule;
+        StructType Record;
+        ValidModule.addStructType(Record);
+        Function& FunctionValue = ValidModule.createFunction(Types.getFunctionType(Types.getVoidType()));
+        InstructionBuilder Builder(Types);
+        Builder.setInsertPoint(FunctionValue.createBasicBlock());
+        static_cast<void>(Builder.createReturn());
+        ValidModule.verify(Engine);
+        std::string Error = "stale";
+        EXPECT_TRUE(ValidModule.verify(&Error));
+        EXPECT_TRUE(Error.empty());
+        EXPECT_FALSE(checkModule(ValidModule).has_value());
+
+        ValidModule.addStructType(Record);
+        EXPECT_FALSE(ValidModule.verify(&Error));
+        EXPECT_NE(Error.find("Record type is registered more than once"), std::string::npos);
+        const auto Structured = checkModule(ValidModule);
+        ASSERT_TRUE(Structured.has_value());
+        EXPECT_EQ(Structured->Context, "module");
+        EXPECT_EQ(Structured->Description, "Record type is registered more than once");
+    }
+
+    // Module verification enforces bounded traversal depth across deep nominal type and by-value layout chains.
+    TEST(IRModuleVerifierTest, RejectsExcessiveTypeAndStorageLayoutDepthWithoutStackOverflow)
+    {
+        TypePool Types;
+        std::vector<StructType*> Chain;
+        constexpr std::size_t Count = 160;
+        Chain.reserve(Count);
+        for (std::size_t Index = 0; Index < Count; ++Index)
+        {
+            Chain.push_back(&Types.createStructType());
+        }
+        for (std::size_t Index = 0; Index + 1 < Count; ++Index)
+        {
+            Chain[Index]->addField(core::NAME_None, Types.getPointerType(*Chain[Index + 1]));
+        }
+        Module DeepTypeModule;
+        DeepTypeModule.addStructType(*Chain.front());
+        std::string Error;
+        EXPECT_FALSE(DeepTypeModule.verify(&Error));
+        EXPECT_NE(Error.find("type graph exceeds supported validation depth"), std::string::npos);
+
+        const Value* DeepArray = &Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
+        for (std::size_t Index = 0; Index < 128; ++Index)
+        {
+            DeepArray = &Types.getArrayType(*DeepArray, 1);
+        }
+        Module GlobalArrayModule;
+        static_cast<void>(GlobalArrayModule.createGlobalVariable(Types.getPointerType(*DeepArray)));
+        EXPECT_FALSE(GlobalArrayModule.verify(&Error));
+        EXPECT_NE(Error.find("storage graph exceeds supported validation depth"), std::string::npos);
+
+        Module BodyArrayModule;
+        Function& BodyFunction = BodyArrayModule.createFunction(Types.getFunctionType(Types.getVoidType()));
+        InstructionBuilder Builder(Types);
+        Builder.setInsertPoint(BodyFunction.createBasicBlock());
+        static_cast<void>(Builder.createAlloca(*DeepArray));
+        static_cast<void>(Builder.createReturn());
+        EXPECT_FALSE(BodyArrayModule.verify(&Error));
+        EXPECT_NE(Error.find("storage graph exceeds supported validation depth"), std::string::npos);
     }
 } // namespace ink::ir::test
