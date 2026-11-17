@@ -117,7 +117,7 @@ Builder.create<Opcode::Callm>(AddressOperand(RegisterId::BP, 16));
 
 导入候选由 `ImportSymbols = SymbolDeclarations - (Functions + Globals)` 推导。声明先尝试绑定本模块或本次链接中可见的 VM 定义；未满足的声明留待加载时解析，可以由其他 Ink 库或 Native 提供，不能提前认定为 Native。函数和数据共用符号声明和动态导入表，每个名称同时用于逻辑引用和加载查找。
 
-`serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；基本块跳转使用 `jmp done`；其他跳转显式写为 `jmpi`、`jmpr`、`jmpm`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
+`serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；当节点为匿名、重名或包含非标识符字节时，写出器分配不冲突的文本标签并在其后紧跟引号包裹的原始名称覆盖（如 `.global .G0 "", 0, 1`、`.function sum.1 "sum"`、`entry.1: "entry"`）。基本块跳转使用 `jmp done`；其他跳转显式写为 `jmpi`、`jmpr`、`jmpm`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
 
 `RegisterOperand(RegisterId Register, std::int64_t ByteOffset = 0)` 保存寄存器编号和有符号字节偏移，通过 `getRegister()` 和 `getByteOffset()` 查询。来源文本 `pc + 2` 表示寄存器值加 2，`[pc + 2]` 则表示该地址处的内存；文本读写和指令克隆保留完整的 `i64` 偏移。寄存器来源和地址基址接受 BP、SP、PC、ZERO 及 R0–R9；ZERO 编码为 `03`、文本拼写为 `zero`，恒为零且不可写。R0–R9 编码为 `04`–`0d`，保存任意 64 位位模式。寄存器目标接受 BP、SP 和 R0–R9，且偏移必须为零，PC 与 ZERO 均不能作为普通写入目标。新增寄存器沿用现有八位编号字段，不改变 opcode、头部或操作数槽的编码格式。
 

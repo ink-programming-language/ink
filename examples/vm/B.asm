@@ -1,5 +1,5 @@
 .module "B"
-.native_data @buffer_b, @host_buffer
+.declare global @buffer_b
 
 .section .data
 .global counter, 8, 8 external

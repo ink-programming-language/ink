@@ -1,7 +1,7 @@
 .module "A"
 .declare global @counter
 .declare function @helper
-.native_data @buffer_a, @host_buffer
+.declare global @buffer_a
 
 .section .data
 .global scratch, 8, 8

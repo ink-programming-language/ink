@@ -1,5 +1,6 @@
 .module "A_B"
-.native_data @buffer_a, @host_buffer
+.declare global @buffer_a
+.declare global @buffer_b
 
 .section .data
 .global .__ink_link_local_0, 8, 8
@@ -26,6 +27,6 @@ done:
 .function helper external
 entry:
     load64 [bp], [@.__ink_link_local_1]
-    load64 [bp + 16], [@buffer_a + 8]
+    load64 [bp + 16], [@buffer_b + 8]
     ret
 .endfunction

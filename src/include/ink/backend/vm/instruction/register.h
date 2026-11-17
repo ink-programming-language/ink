@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string_view>
 
 namespace ink::vm
@@ -23,6 +24,30 @@ namespace ink::vm
 #undef REGISTER
         }
         return "InvalidRegister";
+    }
+
+    constexpr std::optional<RegisterId> parseRegister(std::string_view Text) noexcept
+    {
+        struct RegisterEntry
+        {
+                RegisterId Id;
+                std::string_view Spelling;
+        };
+
+        constexpr RegisterEntry Entries[] = {
+#define REGISTER(Kind, Encoding, Spelling) {RegisterId::Kind, Spelling},
+#include "ink/backend/vm/instruction/register.def"
+#undef REGISTER
+        };
+
+        for (const RegisterEntry& Entry : Entries)
+        {
+            if (Entry.Spelling == Text)
+            {
+                return Entry.Id;
+            }
+        }
+        return std::nullopt;
     }
 
     constexpr bool isGeneralPurposeRegister(RegisterId Register) noexcept

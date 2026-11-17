@@ -26,7 +26,6 @@ int main()
     const auto Helper = Names.intern("helper");
     const auto BufferA = Names.intern("buffer_a");
     const auto BufferB = Names.intern("buffer_b");
-    const NativeDataImport HostBuffer{Names.intern("host_buffer")};
     MachineModule A(Names.intern("A"));
     MachineModule B(Names.intern("B"));
     const std::array<std::uint8_t, 8> FirstBytes{1};
@@ -39,8 +38,8 @@ int main()
     }
     A.declareSymbol(Counter, MachineSymbolKind::GlobalVariable);
     A.declareSymbol(Helper, MachineSymbolKind::Function);
-    A.declareNativeData(BufferA, HostBuffer);
-    B.declareNativeData(BufferB, HostBuffer);
+    A.declareSymbol(BufferA, MachineSymbolKind::GlobalVariable);
+    B.declareSymbol(BufferB, MachineSymbolKind::GlobalVariable);
 
     MachineInstructionBuilder Builder;
     auto& Main = A.createFunction(Names.intern("main"), MachineSymbolLinkage::External);

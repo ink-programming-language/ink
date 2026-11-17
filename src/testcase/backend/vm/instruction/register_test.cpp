@@ -80,6 +80,26 @@ namespace ink::vm::test
         EXPECT_EQ(getRegisterName(static_cast<RegisterId>(0xFF)), std::string_view("InvalidRegister"));
     }
 
+    // Register parsing resolves exact lowercase spellings and rejects unknown or uppercase names.
+    TEST(VMRegisterTest, ParsesRegisteredSpellingsAndRejectsUnknownNames)
+    {
+        static_assert(parseRegister("bp") == RegisterId::BP);
+        static_assert(parseRegister("sp") == RegisterId::SP);
+        static_assert(parseRegister("pc") == RegisterId::PC);
+        static_assert(parseRegister("zero") == RegisterId::ZERO);
+        static_assert(parseRegister("r0") == RegisterId::R0);
+        static_assert(parseRegister("r9") == RegisterId::R9);
+        static_assert(!parseRegister("r10").has_value());
+        static_assert(!parseRegister("BP").has_value());
+        for (std::size_t Index = 0; Index < GeneralPurposeRegisters.size(); ++Index)
+        {
+            EXPECT_EQ(parseRegister(GeneralPurposeSpellings[Index]), GeneralPurposeRegisters[Index]);
+        }
+        EXPECT_FALSE(parseRegister("").has_value());
+        EXPECT_FALSE(parseRegister("r10").has_value());
+        EXPECT_FALSE(parseRegister("InvalidRegister").has_value());
+    }
+
     // Only BP, SP, and general-purpose registers are ordinary writable targets; undefined IDs are never operands.
     TEST(VMRegisterTest, DistinguishesWritableAndUndefinedRegisters)
     {

@@ -295,13 +295,13 @@ namespace ink::vm::test
         Module.createFunction(Unusual).createBasicBlock(Unusual);
         const auto Text = writeMachineModuleText(Module);
         ASSERT_TRUE(Text.has_value());
-        EXPECT_NE(Text->find(".global .G1, \"\", 0, 1 readonly\n"), std::string::npos);
+        EXPECT_NE(Text->find(".global .G1 \"\", 0, 1 readonly\n"), std::string::npos);
         EXPECT_NE(Text->find(".global .G0, 0, 1 readonly\n"), std::string::npos);
-        EXPECT_NE(Text->find(".global .G3, \"\", 0, 1\n"), std::string::npos);
+        EXPECT_NE(Text->find(".global .G3 \"\", 0, 1\n"), std::string::npos);
         EXPECT_NE(Text->find(".global .G2, 0, 1\n"), std::string::npos);
-        EXPECT_NE(Text->find(".function .F1, \"\"\n"), std::string::npos);
+        EXPECT_NE(Text->find(".function .F1 \"\"\n"), std::string::npos);
         EXPECT_NE(Text->find(".function .F0\n"), std::string::npos);
-        EXPECT_NE(Text->find(".function sum.2, \"sum\"\n"), std::string::npos);
+        EXPECT_NE(Text->find(".function sum.2 \"sum\"\n"), std::string::npos);
         EXPECT_NE(Text->find("entry.2: \"entry\"\n"), std::string::npos);
         EXPECT_NE(Text->find("entry.1:\n"), std::string::npos);
         EXPECT_NE(Text->find(".L1: \"\"\n"), std::string::npos);
@@ -320,12 +320,12 @@ namespace ink::vm::test
     {
         constexpr std::string_view Text = R"(.module "aliases"
 .section .data
-.global C, "shared", 0, 1 readonly
+.global C "shared", 0, 1 readonly
 .endglobal
-.global G, "shared", 8, 8
+.global G "shared", 8, 8
 .endglobal
 .section .text
-.function F, "shared"
+.function F "shared"
 entry:
 entry.1: "entry"
 .L0: ""
@@ -357,10 +357,10 @@ entry:
     {
         std::string Text = R"(.module "demo;name" ; a semicolon within the string remains part of its name
 .section .data
-.global message, "A\00\FF\"\\", 2, 4 readonly
+.global message "A\00\FF\"\\", 2, 4 readonly
     .byte 0x48, 105
 .endglobal
-.global buffer, "", 64, 8
+.global buffer "", 64, 8
     .byte 1
 .endglobal
 .section .text
@@ -406,7 +406,7 @@ entry: ""
     {
         constexpr std::string_view Text = R"(.module ""
 .section .text
-.function F, ""
+.function F ""
 B: ""
 store64i [bp], 0
 store64i [bp], 18446744073709551615
@@ -1569,9 +1569,11 @@ entry:
             ".section .text\n.function F invalid\n.endfunction",
             ".section .text\n.function F readonly\n.endfunction",
             ".section .text\n.function F external local\n.endfunction",
+            ".section .text\n.function F \"\" external\n.endfunction",
             ".section .text\n.function F, \"\" external\n.endfunction",
             ".section .text\n.function F\n.declare function @name\n.endfunction",
-            ".section .rodata\n.constant C, \"\", 1 external\n.endconstant",
+            ".section .rodata\n.constant C \"\", 1 external\n.endconstant",
+            ".section .data\n.global G \"\", 0, 1 external\n.endglobal",
             ".section .data\n.global G, 0, 1 weak\n.endglobal",
             ".section .data\n.global G, 0, 1 external readonly\n.endglobal",
             ".section .data\n.global G, 0, 1 readonly readonly\n.endglobal",

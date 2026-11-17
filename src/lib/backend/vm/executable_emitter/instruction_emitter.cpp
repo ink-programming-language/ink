@@ -7,6 +7,7 @@
 #include "ink/backend/vm/instruction/immediate_operand.h"
 #include "ink/backend/vm/instruction/instruction_encoding.h"
 #include "ink/backend/vm/instruction/machine_instruction.h"
+#include "ink/backend/vm/instruction/machine_instruction_validator.h"
 #include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/name/name_pool.h"
@@ -24,14 +25,9 @@ namespace ink::vm
 
     void InstructionEmitter::padInstruction(const MachineInstruction& Instruction)
     {
-        if (Instruction.isFloatingPoint())
+        if (const auto FloatingPointError = validateFloatingPointOperands(Instruction))
         {
-            for (std::size_t Index = 0; Index < Instruction.operandCount(); ++Index)
-            {
-                const auto& Operand = static_cast<const RegisterOperand&>(*Instruction.getOperand(Index));
-                const bool ValidRegister = Index == 0 ? isGeneralPurposeRegister(Operand.getRegister()) : isFloatingPointSourceRegister(Operand.getRegister());
-                REPORT_ICE_IF(!ValidRegister || Operand.getByteOffset() != 0, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "floating-point operand", "floating-point operands require a GPR destination and GPR or ZERO sources, all with zero byte offset");
-            }
+            REPORT_ICE_IF(true, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "floating-point operand", *FloatingPointError);
         }
         Context.padAlignment(InstructionEncoding::WordBytes);
         const auto InstructionOffset = Context.byteSize();
@@ -98,7 +94,7 @@ namespace ink::vm
 
         const auto Symbol = Operand.getSymbol();
         REPORT_ICE_IF(!Symbol || !core::NamePool::instance().contains(*Symbol), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "PC-relative target", "VM function target name must be registered and nonempty");
-        REPORT_ICE_IF(*Operand.getByteOffset() != 0, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "PC-relative target", "VM function target must have a zero symbol byte offset");
+        REPORT_ICE_IF(!isValidDirectFunctionTarget(Operand), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "PC-relative target", "VM function target must have a zero symbol byte offset");
         if (const auto Position = Context.resolvedSymbolOffset(*Symbol))
         {
             const auto Bits = Context.resolveRegisterRelativeOffset(RegisterId::PC, *Position, 0, InstructionOffset);
@@ -113,7 +109,7 @@ namespace ink::vm
 
     void InstructionEmitter::padCallTarget(const ImmediateOperand& Operand)
     {
-        REPORT_ICE_IF(Operand.getSymbol() && *Operand.getByteOffset() != 0, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "call", "function target must have a zero symbol byte offset");
+        REPORT_ICE_IF(!isValidDirectFunctionTarget(Operand), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "call", "function target must have a zero symbol byte offset");
         padOperand(Operand, 64);
     }
 

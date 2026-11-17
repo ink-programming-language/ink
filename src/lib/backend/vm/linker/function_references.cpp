@@ -1,5 +1,6 @@
 #include "function_references.h"
 
+#include "ink/backend/vm/instruction/machine_instruction_validator.h"
 #include "ink/backend/vm/instruction/machine_instruction_visitor.h"
 #include "ink/core/name/name_pool.h"
 
@@ -34,29 +35,9 @@ namespace ink::vm::detail
                     }
                     const auto VisitInstruction = [&](const auto& Typed) -> std::optional<std::expected<void, std::string>>
                     {
-                        using InstructionType = std::remove_cvref_t<decltype(Typed)>;
-                        if constexpr (OpcodeTraits<InstructionType::Operation>::Category == InstructionCategory::FloatingPoint)
+                        if (const auto Error = validateInstructionConstraints(Typed))
                         {
-                            for (std::size_t Index = 0; Index < Typed.operandCount(); ++Index)
-                            {
-                                const auto& Operand = static_cast<const RegisterOperand&>(*Typed.getOperand(Index));
-                                const bool ValidRegister = Index == 0 ? isGeneralPurposeRegister(Operand.getRegister()) : isFloatingPointSourceRegister(Operand.getRegister());
-                                if (!ValidRegister || Operand.getByteOffset() != 0)
-                                {
-                                    return std::expected<void, std::string>(std::unexpected("floating-point operands require a GPR destination and GPR or ZERO sources, all with zero byte offset"));
-                                }
-                            }
-                        }
-                        if constexpr (OpcodeTraits<InstructionType::Operation>::HasDestination)
-                        {
-                            if constexpr (std::is_same_v<std::remove_cvref_t<decltype(Typed.getDestination())>, RegisterOperand>)
-                            {
-                                const auto& Destination = Typed.getDestination();
-                                if (!isWritableAddressRegister(Destination.getRegister()) || Destination.getByteOffset() != 0)
-                                {
-                                    return std::expected<void, std::string>(std::unexpected("register destination must be BP, SP, or R0-R9 with zero byte offset"));
-                                }
-                            }
+                            return std::expected<void, std::string>(std::unexpected(std::string(*Error)));
                         }
                         const auto VisitOperands = [&](const auto&... Operands)
                         {
@@ -119,10 +100,6 @@ namespace ink::vm::detail
                     }
                     if (Operation == Opcode::Calli || Operation == Opcode::Jmpi)
                     {
-                        if (*Value.getByteOffset() != 0)
-                        {
-                            return std::unexpected("direct function symbol target must have a zero byte offset");
-                        }
                         return VisitReference(*Value.getSymbol(), Operation == Opcode::Calli ? SymbolReferenceTarget::Function : SymbolReferenceTarget::VMFunction);
                     }
                     return VisitReference(*Value.getSymbol(), SymbolReferenceTarget::Any);
