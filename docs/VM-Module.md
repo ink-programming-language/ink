@@ -144,4 +144,4 @@ Builder.create<Opcode::Callm>(AddressOperand(RegisterId::BP, 16));
 
 `executable` 目录提供可执行镜像的内存模型 `ExecutableFile`，保存小端镜像字节、入口偏移、统一动态导入符号表 `DynamicImportSymbols`、动态导入符号地址重定位 `DynamicImportSymbolRelocations`、镜像基址地址重定位 `ImageBaseAddressRelocations`，以及记录导出名称和镜像内偏移的 `ExportSymbols`，并提供结构校验；模型不保存段表或字节序配置，接口和约束见 [VM 可执行镜像模型](VM-Executable.md)。`ModuleLinker` 输出仍是逻辑模块，不生成上述镜像内容。
 
-当前已实现镜像发射、加载及部分指令执行；lowering pass、公共解码器、镜像磁盘读写、通用 native adapter 和完整 VM 执行仍待实现；创建和链接逻辑模块不会自行生成指令字节，须显式调用发射器。编码方案见 [VM 指令编码格式讨论稿](VM-Instruction-Format.md)，运行时规划见 [VM 运行时设计](VM-Runtime.md)，参数、返回槽和可变参数调用预留区布局约定见 [VM 调用约定](VM-Calling-Convention.md)。
+当前已实现镜像发射、加载及当前指令集的执行。lowering pass、公共解码器、镜像磁盘读写和通用 native adapter 仍待实现。创建和链接逻辑模块后须显式调用发射器生成指令字节。编码方案见 [VM 指令编码格式讨论稿](VM-Instruction-Format.md)，运行时规划见 [VM 运行时设计](VM-Runtime.md)，参数、返回槽和可变参数调用预留区布局约定见 [VM 调用约定](VM-Calling-Convention.md)。

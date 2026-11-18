@@ -37,12 +37,12 @@
 ### 现状瓶颈
 
 1. **单一间接跳转点的分支预测冲突**：`for (;;) { switch (Operation) { ... } }` 会被编译为所有操作码共享的单一宿主间接跳转指令。现代 CPU 的间接分支预测器（BTB / ITTAGE）以跳转指令 PC 结合分支历史作为索引，所有 VM 指令共用同一间接跳转点会导致不同字节码序列互相覆盖预测项。
-2. **稀疏操作码区间的多级跳转检查**：`Opcode` 底层为 `std::uint16_t`，有效编码位于 `0x0000`–`0x0096`，但中间存在未分配或尚未实现分派的编号空洞（如 `0x0001`–`0x0003`、`0x001F`–`0x002A`、`0x002C`–`0x0039` 等），编译器容易生成多段范围比较加子跳转表，而非单次索引跳转。
+2. **稀疏操作码区间的多级跳转检查**：`Opcode` 底层为 `std::uint16_t`，有效编码位于 `0x0001`–`0x0096`，其中存在未分配的编号（如 `0x001F`–`0x002A`、`0x002C`–`0x0039` 等），编译器容易生成多段范围比较加子跳转表，而非单次索引跳转。
 
 ### 优化方案
 
 1. **Direct-Threaded / Token-Threaded Computed Goto（Clang / GCC）**：
-   利用所有合法操作码均小于 256 的特性，构建固定 256 项的标签地址表 `static constexpr const void* DispatchTable[256]`（未分配与未实现项统一指向错误处理标签 `&&HandleUnsupported`）。在每个指令 handler 末尾直接预取下一条指令头并按标签跳转：
+   利用所有合法操作码均小于 256 的特性，构建固定 256 项的标签地址表 `static constexpr const void* DispatchTable[256]`（未分配项指向错误处理标签 `&&HandleUnsupported`）。在每个指令 handler 末尾直接预取下一条指令头并按标签跳转：
    ```cpp
    #define DISPATCH_NEXT()                                                                    \
        do                                                                                     \

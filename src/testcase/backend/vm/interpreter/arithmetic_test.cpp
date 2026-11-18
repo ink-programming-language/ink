@@ -1,8 +1,13 @@
+#include "ink/backend/vm/executable_emitter/executable_emitter.h"
 #include "ink/backend/vm/instruction/instruction_encoding.h"
 #include "ink/backend/vm/interpreter/interpreter.h"
+#include "ink/backend/vm/module/machine_instruction_builder.h"
+#include "ink/backend/vm/module/machine_module.h"
+#include "ink/core/name/name_pool.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -53,6 +58,25 @@ namespace ink::vm::test
             std::uint64_t Value;
             std::memcpy(&Value, Address, sizeof(Value));
             return Value;
+        }
+
+        template <typename BuildFunction>
+        void executeBuiltInstructions(BuildFunction Build)
+        {
+            const auto EntryName = core::NamePool::instance().intern("arithmetic-test-entry");
+            MachineModule Module;
+            auto& Block = Module.createFunction(EntryName).createBasicBlock();
+            MachineInstructionBuilder Builder;
+            Builder.setInsertPoint(Block);
+            Build(Builder);
+            Builder.create<Opcode::Ret>();
+
+            Interpreter VM;
+            ExecutableEmitter Emitter(VM.getDiagnostics());
+            auto Executable = Emitter.emit(Module, EntryName, {});
+            const auto EntryOffset = Executable.getEntryOffset();
+            ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+            ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + EntryOffset));
         }
     } // namespace
 
@@ -119,6 +143,123 @@ namespace ink::vm::test
         EXPECT_EQ(readWord(Memory.data() + 17), 123U);
         EXPECT_EQ(readWord(Memory.data() + 25), 23U);
         EXPECT_EQ(READ_REGISTER(RegisterId::ZERO, VM.getFrame()), 0U);
+    }
+
+    // All narrow loads and the remaining stores copy only their encoded width at unaligned register-relative addresses.
+    TEST(VMArithmeticTest, CopiesExactWidthWithMemoryAndImmediateOperands)
+    {
+        alignas(8) std::array<std::uint8_t, 100> Memory;
+        Memory.fill(0xA5);
+        constexpr std::array<std::uint8_t, 8> Input{0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
+        std::ranges::copy(Input, Memory.begin() + 1);
+        auto ExpectedMemory = Memory;
+        constexpr std::array<std::size_t, 7> CopyWidths{1, 2, 4, 1, 2, 4, 8};
+        for (std::size_t Index = 0; Index < CopyWidths.size(); ++Index)
+        {
+            std::copy_n(Input.begin(), CopyWidths[Index], ExpectedMemory.begin() + 11 + Index * 10);
+        }
+        ExpectedMemory[81] = 0xAB;
+        ExpectedMemory[91] = 0xEF;
+        ExpectedMemory[92] = 0xBE;
+
+        const auto Build = [&](MachineInstructionBuilder& Builder)
+        {
+            const auto At = [](std::int64_t Offset)
+            {
+                return AddressOperand(RegisterId::R9, Offset - 3);
+            };
+            const auto Source = At(1);
+            Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::R9), RegisterOperand(RegisterId::ZERO), ImmediateOperand(addressOf(Memory.data() + 3)));
+            Builder.create<Opcode::Load8>(At(11), Source);
+            Builder.create<Opcode::Load16>(At(21), Source);
+            Builder.create<Opcode::Load32>(At(31), Source);
+            Builder.create<Opcode::Store8m>(At(41), Source);
+            Builder.create<Opcode::Store16m>(At(51), Source);
+            Builder.create<Opcode::Store32m>(At(61), Source);
+            Builder.create<Opcode::Store64m>(At(71), Source);
+            Builder.create<Opcode::Store8i>(At(81), ImmediateOperand(0x1AB));
+            Builder.create<Opcode::Store16i>(At(91), ImmediateOperand(0x1BEEF));
+        };
+        ASSERT_NO_FATAL_FAILURE(executeBuiltInstructions(Build));
+
+        EXPECT_EQ(Memory, ExpectedMemory);
+    }
+
+    // Each narrow addition form wraps at its own width and leaves the surrounding destination bytes unchanged.
+    TEST(VMArithmeticTest, WrapsEveryNarrowMemoryAdditionForm)
+    {
+        alignas(8) std::array<std::uint8_t, 70> Memory;
+        Memory.fill(0xA5);
+        std::fill_n(Memory.begin() + 1, 4, 0xFF);
+        std::fill_n(Memory.begin() + 7, 4, 0);
+        Memory[7] = 2;
+        auto ExpectedMemory = Memory;
+        constexpr std::array<std::size_t, 9> ResultWidths{1, 1, 1, 2, 2, 2, 4, 4, 4};
+        for (std::size_t Index = 0; Index < ResultWidths.size(); ++Index)
+        {
+            const auto Offset = 15 + Index * 6;
+            std::fill_n(ExpectedMemory.begin() + Offset, ResultWidths[Index], 0);
+            ExpectedMemory[Offset] = static_cast<std::uint8_t>(1 + Index % 3);
+        }
+
+        const auto Build = [&](MachineInstructionBuilder& Builder)
+        {
+            const auto At = [](std::int64_t Offset)
+            {
+                return AddressOperand(RegisterId::R9, Offset);
+            };
+            const auto Left = At(1);
+            const auto Right = At(7);
+            const ImmediateOperand Max(std::numeric_limits<std::uint64_t>::max());
+            const ImmediateOperand Three(3);
+            const ImmediateOperand Four(4);
+            Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::R9), RegisterOperand(RegisterId::ZERO), ImmediateOperand(addressOf(Memory.data())));
+            Builder.create<Opcode::Add8mmm>(At(15), Left, Right);
+            Builder.create<Opcode::Add8mmi>(At(21), Left, Three);
+            Builder.create<Opcode::Add8mii>(At(27), Max, Four);
+            Builder.create<Opcode::Add16mmm>(At(33), Left, Right);
+            Builder.create<Opcode::Add16mmi>(At(39), Left, Three);
+            Builder.create<Opcode::Add16mii>(At(45), Max, Four);
+            Builder.create<Opcode::Add32mmm>(At(51), Left, Right);
+            Builder.create<Opcode::Add32mmi>(At(57), Left, Three);
+            Builder.create<Opcode::Add32mii>(At(63), Max, Four);
+        };
+        ASSERT_NO_FATAL_FAILURE(executeBuiltInstructions(Build));
+
+        EXPECT_EQ(Memory, ExpectedMemory);
+    }
+
+    // The remaining 64-bit memory additions apply signed register offsets and read an aliased source before writing.
+    TEST(VMArithmeticTest, Adds64BitImmediatesAndDisplacedRegisterSources)
+    {
+        alignas(8) std::array<std::uint8_t, 32> Memory;
+        Memory.fill(0xA5);
+        constexpr std::uint64_t Input = 7;
+        std::memcpy(Memory.data() + 11, &Input, sizeof(Input));
+        auto ExpectedMemory = Memory;
+        constexpr std::uint64_t ImmediateSum = 41;
+        constexpr std::uint64_t AliasedSum = 2;
+        constexpr std::uint64_t RegisterSum = 5;
+        std::memcpy(ExpectedMemory.data() + 1, &ImmediateSum, sizeof(ImmediateSum));
+        std::memcpy(ExpectedMemory.data() + 11, &AliasedSum, sizeof(AliasedSum));
+        std::memcpy(ExpectedMemory.data() + 21, &RegisterSum, sizeof(RegisterSum));
+
+        const auto Build = [&](MachineInstructionBuilder& Builder)
+        {
+            const auto At = [](std::int64_t Offset)
+            {
+                return AddressOperand(RegisterId::R9, Offset);
+            };
+            const ImmediateOperand Max(std::numeric_limits<std::uint64_t>::max());
+            Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::R9), RegisterOperand(RegisterId::ZERO), ImmediateOperand(addressOf(Memory.data())));
+            Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::ZERO), ImmediateOperand(2));
+            Builder.create<Opcode::Add64mii>(At(1), Max, ImmediateOperand(42));
+            Builder.create<Opcode::Add64mrm>(At(11), RegisterOperand(RegisterId::R0, -7), At(11));
+            Builder.create<Opcode::Add64mri>(At(21), RegisterOperand(RegisterId::R0, 4), Max);
+        };
+        ASSERT_NO_FATAL_FAILURE(executeBuiltInstructions(Build));
+
+        EXPECT_EQ(Memory, ExpectedMemory);
     }
 
     // Immediate memory addition wraps at 64 bits and reads an unaligned aliased source before writing its destination.

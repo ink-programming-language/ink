@@ -9,10 +9,73 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <tuple>
 #include <type_traits>
 
 namespace ink::vm
 {
+    namespace
+    {
+        template <typename ValueType, typename OperandType>
+        FORCE_INLINE std::uint64_t readIntegerOperand(const Frame& FrameValue, RegisterId Register, std::uint64_t Word) noexcept
+        {
+            if constexpr (std::is_same_v<OperandType, ImmediateOperand>)
+            {
+                return Word;
+            }
+            else
+            {
+                // When assertions are enabled, dispatch validates operand register IDs before calling the handler.
+                std::uint64_t RegisterValue;
+                std::memcpy(&RegisterValue, GET_REGISTER(Register, FrameValue), sizeof(RegisterValue));
+                const auto ValueWithOffset = RegisterValue + Word;
+                if constexpr (std::is_same_v<OperandType, RegisterOperand>)
+                {
+                    return ValueWithOffset;
+                }
+                else
+                {
+                    static_assert(std::is_same_v<OperandType, AddressOperand>);
+                    ValueType Value;
+                    std::memcpy(&Value, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(ValueWithOffset)), sizeof(Value));
+                    return Value;
+                }
+            }
+        }
+
+        template <typename ValueType>
+        FORCE_INLINE void writeIntegerMemory(std::uint64_t Address, std::uint64_t Bits) noexcept
+        {
+            const auto Value = static_cast<ValueType>(Bits);
+            std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(Address)), &Value, sizeof(Value));
+        }
+
+        template <Opcode Operation, typename ValueType>
+        FORCE_INLINE void executeIntegerMemoryTransfer(const Frame& FrameValue, const std::uint64_t* Instruction, RegisterId DestinationRegister, RegisterId SourceRegister) noexcept
+        {
+            using Traits = OpcodeTraits<Operation>;
+            using Operands = typename Traits::OperandTuple;
+            static_assert(Traits::Category == InstructionCategory::Load || Traits::Category == InstructionCategory::Store);
+            static_assert(std::is_same_v<std::tuple_element_t<0, Operands>, AddressOperand> && Traits::BitWidth == sizeof(ValueType) * 8);
+            const auto DestinationAddress = readIntegerOperand<std::uint64_t, RegisterOperand>(FrameValue, DestinationRegister, Instruction[1]);
+            const auto Value = readIntegerOperand<ValueType, std::tuple_element_t<1, Operands>>(FrameValue, SourceRegister, Instruction[2]);
+            writeIntegerMemory<ValueType>(DestinationAddress, Value);
+        }
+
+        template <Opcode Operation, typename ValueType>
+        FORCE_INLINE void executeIntegerMemoryAdd(const Frame& FrameValue, const std::uint64_t* Instruction, RegisterId DestinationRegister, RegisterId LeftRegister, RegisterId RightRegister) noexcept
+        {
+            using Traits = OpcodeTraits<Operation>;
+            using Operands = typename Traits::OperandTuple;
+            static_assert(Traits::Category == InstructionCategory::Add);
+            static_assert(std::is_same_v<std::tuple_element_t<0, Operands>, AddressOperand> && Traits::BitWidth == sizeof(ValueType) * 8);
+            const auto DestinationAddress = readIntegerOperand<std::uint64_t, RegisterOperand>(FrameValue, DestinationRegister, Instruction[1]);
+            auto Result = readIntegerOperand<ValueType, std::tuple_element_t<1, Operands>>(FrameValue, LeftRegister, Instruction[2]);
+            Result += readIntegerOperand<ValueType, std::tuple_element_t<2, Operands>>(FrameValue, RightRegister, Instruction[3]);
+            writeIntegerMemory<ValueType>(DestinationAddress, Result);
+        }
+    } // namespace
+
     bool Interpreter::dispatch()
     {
         static_assert(sizeof(std::uintptr_t) == sizeof(std::uint64_t), "VM address registers require a 64-bit host");
@@ -96,6 +159,33 @@ namespace ink::vm
                     LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
+
+#define EXECUTE_MEMORY_TRANSFER(Kind, Width)                                                                                          \
+    case Opcode::Kind:                                                                                                                \
+        {                                                                                                                             \
+            constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Kind>::OperandCount + 1) * InstructionEncoding::WordBytes; \
+            executeIntegerMemoryTransfer<Opcode::Kind, std::uint##Width##_t>(Frame, Instruction, DestinationRegister, LeftRegister);  \
+            LocalPC = InstructionAddress + InstructionBytes;                                                                          \
+            continue;                                                                                                                 \
+        }
+                // Load
+                EXECUTE_MEMORY_TRANSFER(Load8, 8)
+                EXECUTE_MEMORY_TRANSFER(Load16, 16)
+                EXECUTE_MEMORY_TRANSFER(Load32, 32)
+                EXECUTE_MEMORY_TRANSFER(Load64, 64)
+
+                // Store
+                EXECUTE_MEMORY_TRANSFER(Store8m, 8)
+                EXECUTE_MEMORY_TRANSFER(Store8i, 8)
+                EXECUTE_MEMORY_TRANSFER(Store16m, 16)
+                EXECUTE_MEMORY_TRANSFER(Store16i, 16)
+                EXECUTE_MEMORY_TRANSFER(Store32m, 32)
+                EXECUTE_MEMORY_TRANSFER(Store32i, 32)
+                EXECUTE_MEMORY_TRANSFER(Store64m, 64)
+                EXECUTE_MEMORY_TRANSFER(Store64i, 64)
+#undef EXECUTE_MEMORY_TRANSFER
+
+            // Add
             case Opcode::Add64rrr:
                 {
                     constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Add64rrr>::OperandCount + 1) * InstructionEncoding::WordBytes;
@@ -129,77 +219,34 @@ namespace ink::vm
                     LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
-            case Opcode::Add64mrr:
-                {
-                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Add64mrr>::OperandCount + 1) * InstructionEncoding::WordBytes;
-                    const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
-                    const auto Left = READ_REGISTER(LeftRegister, Frame) + Instruction[2];
-                    const auto Right = READ_REGISTER(RightRegister, Frame) + Instruction[3];
-                    const auto Result = Left + Right;
-                    std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Result, sizeof(Result));
-                    LocalPC = InstructionAddress + InstructionBytes;
-                    continue;
-                }
-            case Opcode::Add64mmi:
-                {
-                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Add64mmi>::OperandCount + 1) * InstructionEncoding::WordBytes;
-                    const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
-                    const auto LeftAddress = READ_REGISTER(LeftRegister, Frame) + Instruction[2];
-                    std::uint64_t Left;
-                    std::memcpy(&Left, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(LeftAddress)), sizeof(Left));
-                    const auto Result = Left + Instruction[3];
-                    std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Result, sizeof(Result));
-                    LocalPC = InstructionAddress + InstructionBytes;
-                    continue;
-                }
-            case Opcode::Add64mmm:
-                {
-                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Add64mmm>::OperandCount + 1) * InstructionEncoding::WordBytes;
-                    const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
-                    const auto LeftAddress = READ_REGISTER(LeftRegister, Frame) + Instruction[2];
-                    const auto RightAddress = READ_REGISTER(RightRegister, Frame) + Instruction[3];
-                    std::uint64_t Left;
-                    std::uint64_t Right;
-                    std::memcpy(&Left, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(LeftAddress)), sizeof(Left));
-                    std::memcpy(&Right, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(RightAddress)), sizeof(Right));
-                    const auto Result = Left + Right;
-                    std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Result, sizeof(Result));
-                    LocalPC = InstructionAddress + InstructionBytes;
-                    continue;
-                }
+#define EXECUTE_MEMORY_ADD(Kind, Width)                                                                                                        \
+    case Opcode::Kind:                                                                                                                         \
+        {                                                                                                                                      \
+            constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Kind>::OperandCount + 1) * InstructionEncoding::WordBytes;          \
+            executeIntegerMemoryAdd<Opcode::Kind, std::uint##Width##_t>(Frame, Instruction, DestinationRegister, LeftRegister, RightRegister); \
+            LocalPC = InstructionAddress + InstructionBytes;                                                                                   \
+            continue;                                                                                                                          \
+        }
+                EXECUTE_MEMORY_ADD(Add8mmm, 8)
+                EXECUTE_MEMORY_ADD(Add8mmi, 8)
+                EXECUTE_MEMORY_ADD(Add8mii, 8)
+                EXECUTE_MEMORY_ADD(Add16mmm, 16)
+                EXECUTE_MEMORY_ADD(Add16mmi, 16)
+                EXECUTE_MEMORY_ADD(Add16mii, 16)
+                EXECUTE_MEMORY_ADD(Add32mmm, 32)
+                EXECUTE_MEMORY_ADD(Add32mmi, 32)
+                EXECUTE_MEMORY_ADD(Add32mii, 32)
+                EXECUTE_MEMORY_ADD(Add64mmm, 64)
+                EXECUTE_MEMORY_ADD(Add64mmi, 64)
+                EXECUTE_MEMORY_ADD(Add64mii, 64)
+                EXECUTE_MEMORY_ADD(Add64mrr, 64)
+                EXECUTE_MEMORY_ADD(Add64mrm, 64)
+                EXECUTE_MEMORY_ADD(Add64mri, 64)
+#undef EXECUTE_MEMORY_ADD
             case Opcode::Jmp:
             case Opcode::Jmpr:
                 {
                     LocalPC = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
-                    continue;
-                }
-            case Opcode::Load64:
-                {
-                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Load64>::OperandCount + 1) * InstructionEncoding::WordBytes;
-                    const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
-                    const auto SourceAddress = READ_REGISTER(LeftRegister, Frame) + Instruction[2];
-                    std::uint64_t Value;
-                    std::memcpy(&Value, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(SourceAddress)), sizeof(Value));
-                    std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Value, sizeof(Value));
-                    LocalPC = InstructionAddress + InstructionBytes;
-                    continue;
-                }
-            case Opcode::Store32i:
-                {
-                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Store32i>::OperandCount + 1) * InstructionEncoding::WordBytes;
-                    const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
-                    const auto Value = static_cast<std::uint32_t>(Instruction[2]);
-                    std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Value, sizeof(Value));
-                    LocalPC = InstructionAddress + InstructionBytes;
-                    continue;
-                }
-            case Opcode::Store64i:
-                {
-                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Store64i>::OperandCount + 1) * InstructionEncoding::WordBytes;
-                    const auto DestinationAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
-                    const auto Value = Instruction[2];
-                    std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(DestinationAddress)), &Value, sizeof(Value));
-                    LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
             case Opcode::Jmpi:

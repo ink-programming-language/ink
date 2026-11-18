@@ -271,12 +271,13 @@ namespace ink::vm::test
         VM.getDiagnostics().removeConsumer(Collector);
     }
 
-    // A complete known opcode without an execution implementation reports failure without changing PC or the image.
-    TEST(VMInterpreterTest, ReportsUnsupportedOpcodeWithoutAdvancingPC)
+#if !INK_ENABLE_ASSERTIONS
+    // A reserved opcode reports execution failure without changing PC or the image when encoding assertions are disabled.
+    TEST(VMInterpreterTest, ReportsReservedOpcodeWithoutAdvancingPC)
     {
         Interpreter VM;
         ExecutableFile Executable;
-        const std::vector<std::uint8_t> Image{0x01, 0x00, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        const std::vector<std::uint8_t> Image{0x00, 0x00, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00};
         Executable.getImage() = Image;
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
         const auto* Entry = VM.getCodeSegment().data();
@@ -290,8 +291,7 @@ namespace ink::vm::test
         EXPECT_EQ(readAddressRegister(VM.getFrame(), RegisterId::PC), Entry);
         expectCodeBytes(VM, Image);
     }
-
-#if INK_ENABLE_ASSERTIONS
+#else
     // Unknown opcode bits violate the instruction encoding contract before operand decoding.
     TEST(VMInterpreterDeathTest, RejectsUnknownOpcodeBits)
     {

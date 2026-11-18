@@ -1,29 +1,15 @@
-ink_ir 0.0.1
-target(pointer_bits = 64, byte_order = little, native_abi = 1, alignments = [1, 4, 8, 16, 8])
-module ["main"]
+source_filename = "main"
+; On Windows x64, the array address points to the first byte and u64 0 supplies the null OVERLAPPED pointer bits.
+declare public import c ptr<void> @f0 "GetStdHandle"(u32 %a0 "StandardHandle")
+declare public import c i32 @f1 "WriteFile"(ptr<void> %a1 "File", ptr<[14 x u8]> %a2 "Buffer", u32 %a3 "BytesToWrite", ptr<u32> %a4 "BytesWritten", u64 %a5 "Overlapped")
+define public export i32 @f2 "main"()
 {
-  @0 = global *const [14 x u8] = [14 x u8] c"hello, world\0D\0A" [string_storage]
-
-  declare import "C" *void @GetStdHandle(u32 %StandardHandle)
-
-  declare import "C" i32 @WriteFile(*void %File, *const u8 %Buffer, u32 %BytesToWrite, *u32 %BytesWritten, *void %Overlapped)
-
-  define i32 @main()
-  {
-  entry:
-    %StdOutputHandle = alloca const u32 [initialized]
-    store u32 4294967285, *const u32 %StdOutputHandle
-    %0 = load u32, *const u32 %StdOutputHandle
-    %1 = call *void @GetStdHandle(u32 %0)
-    %Output = alloca *void [initialized]
-    store *void %1, **void %Output
-    %Written = alloca u32 [initialized]
-    store u32 0, *u32 %Written
-    %2 = load *void, **void %Output
-    %3 = getelementptr const [14 x u8], *const [14 x u8] @0, u32 0, u32 0
-    %4 = call i32 @WriteFile(*void %2, *const u8 %3, u32 14, *u32 %Written, nullptr null)
-    ret i32 %4
-  }
-
-  export @main as "main"
+  %bb0 "entry":
+    %v0 = call ptr<void> @f0(u32 4294967285)
+    %v1 = alloca [14 x u8]
+    store [14 x u8] c"hello, world\0D\0A", ptr<[14 x u8]> %v1
+    %v2 = alloca u32
+    store u32 0, ptr<u32> %v2
+    %v3 = call i32 @f1(ptr<void> %v0, ptr<[14 x u8]> %v1, u32 14, ptr<u32> %v2, u64 0)
+    ret i32 %v3
 }

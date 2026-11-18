@@ -166,17 +166,16 @@ namespace ink::vm::test
         EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + ReturnOffset));
     }
 
-    // An unsupported opcode reached after a completed instruction reports failure with PC at the failing instruction rather than its predecessor.
-    TEST(VMDispatchTest, PreservesAdvancedPCWhenFollowingInstructionIsUnsupported)
+#if !INK_ENABLE_ASSERTIONS
+    // A reserved opcode reached after a completed instruction leaves PC at the reserved instruction.
+    TEST(VMDispatchTest, PreservesAdvancedPCWhenFollowingOpcodeIsReserved)
     {
         Interpreter VM;
         ExecutableFile Executable;
         auto& Bytes = Executable.getImage();
         appendAdd64rrr(Bytes, RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::ZERO, 19), RegisterOperand(RegisterId::ZERO));
-        const auto UnsupportedOffset = Bytes.size();
-        appendHeader(Bytes, 0x01);
-        appendWord(Bytes, 0);
-        appendWord(Bytes, 0);
+        const auto ReservedOffset = Bytes.size();
+        appendHeader(Bytes, 0x0000);
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
         const auto* Entry = VM.getCodeSegment().data();
         core::CollectingDiagnosticConsumer Collector;
@@ -188,8 +187,9 @@ namespace ink::vm::test
         ASSERT_EQ(Collector.diagnostics().size(), 1U);
         EXPECT_EQ(Collector.diagnostics().front().Kind, core::DiagnosticKind::VMExecutionFailed);
         EXPECT_EQ(registerAddress(VM, RegisterId::R0), 19U);
-        EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + UnsupportedOffset));
+        EXPECT_EQ(registerAddress(VM, RegisterId::PC), reinterpret_cast<std::uintptr_t>(Entry + ReservedOffset));
     }
+#endif
 
     // ZERO-relative integer bit patterns exercise 64-bit wrapping arithmetic without changing register storage bindings.
     TEST(VMDispatchTest, WrapsRegisterArithmeticAt64BitBoundaries)

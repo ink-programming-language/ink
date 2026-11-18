@@ -1,8 +1,8 @@
 # VM 指令编码格式讨论稿
 
-本文记录 Ink VM 指令及操作数编码。逻辑指令、模块链接、镜像布局、发射与加载已实现，解释器支持部分指令执行，公共解码器仍待实现。操作码来自 `src/include/ink/backend/vm/instruction/opcode.def`，寄存器编号来自 `register.def`。调用族统一为 `Calli`、`Callm`，文本都写 `call`；Native stub 与 Ink 函数的差别由执行时的目标地址分派处理。
+本文记录 Ink VM 指令及操作数编码。逻辑指令、模块链接、镜像布局、发射与加载已实现，解释器支持当前指令集的全部操作码，公共解码器仍待实现。操作码来自 `src/include/ink/backend/vm/instruction/opcode.def`，寄存器编号来自 `register.def`。调用族统一为 `Calli`、`Callm`，文本都写 `call`；Native stub 与 Ink 函数的差别由执行时的目标地址分派处理。
 
-当前实现提供 `Operand` 基类以及 `RegisterOperand`、`AddressOperand`、`ImmediateOperand`、`BasicBlockOperand` 四种逻辑操作数，并通过强类型指令布局将操作数接入 `MachineInstruction`。基本块操作数在内存中持有目标块指针；调用复用立即数和地址操作数，分别表达直接目标和存放间接目标的内存位置。[VM 内存模型与指令构建](VM-Module.md) 提供模块、函数、基本块的所有权结构和 `MachineInstructionBuilder`，供 lowering 构建逻辑指令。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号解析和深克隆，`executable` 目录提供镜像模型与结构校验。加载和部分执行分派已实现，预解码缓存及其余指令执行仍待实现。
+当前实现提供 `Operand` 基类以及 `RegisterOperand`、`AddressOperand`、`ImmediateOperand`、`BasicBlockOperand` 四种逻辑操作数，并通过强类型指令布局将操作数接入 `MachineInstruction`。基本块操作数在内存中持有目标块指针；调用复用立即数和地址操作数，分别表达直接目标和存放间接目标的内存位置。[VM 内存模型与指令构建](VM-Module.md) 提供模块、函数、基本块的所有权结构和 `MachineInstructionBuilder`，供 lowering 构建逻辑指令。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号解析和深克隆，`executable` 目录提供镜像模型与结构校验。加载与执行分派已实现，预解码缓存仍待实现。
 
 发射代码分为 `ExecutableEmitter`、`FunctionEmitter` 和 `InstructionEmitter`。共享上下文保存模块布局、`ImportSymbols` 和待解析重定位；未被本镜像定义满足的声明形成导入候选，可以在加载时绑定到其他 Ink 库或 Native。指令采用八字节头和逐操作数八字节槽。基本块目标和直接跳转保持 PC 相对位移；普通符号地址和直接调用地址通过镜像基址或动态导入重定位填写。
 
@@ -280,7 +280,7 @@ namespace ink::vm
 
 ## 编码、解码与预解码边界
 
-`InstructionEmitter::padInstruction` 已提供 opcode 写入、操作数字段分派、基本块目标、跳转和直接及间接调用编码；解释器已实现三种 ADD 形式、四种无条件跳转、80 种显式比较条件跳转、地址型 Calli、内存间接 Callm 及普通和最外层 Ret，公共解码接口仍待实现，也没有已解析字节指令的公共 API。当前模块发射流程完成全局布局、函数名入口偏移登记、基本块偏移登记、指令字节追加、重定位处理及显式入口和导出元数据生成。`MachineInstruction` 及操作数属于逻辑内存模型，`MachineModule` 文本读写不等同于指令字节编码。独立模块 validator 尚未实现。
+`InstructionEmitter::padInstruction` 已提供 opcode 写入、操作数字段分派、基本块目标、跳转和直接及间接调用编码。解释器执行已定义的全部操作码。公共指令解码接口仍待实现。当前模块发射流程完成全局布局、函数名入口偏移登记、基本块偏移登记、指令字节追加、重定位处理及显式入口和导出元数据生成。`MachineInstruction` 及操作数属于逻辑内存模型，`MachineModule` 文本读写不等同于指令字节编码。独立模块 validator 尚未实现。
 
 指令编码有效与运行时可执行是不同层次的检查。VM 符号须由链接阶段解析，宿主导入由加载阶段绑定；寄存器写权限、指令边界、有效地址计算、访存范围和栈规则也须按执行语义检查。当前操作数构造函数不完成这些检查。
 
