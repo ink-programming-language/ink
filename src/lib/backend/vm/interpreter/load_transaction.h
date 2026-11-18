@@ -24,7 +24,7 @@ namespace ink::vm
         private:
             Interpreter& Owner;
             std::size_t SavedCodeSize;
-            std::unordered_map<core::Name, std::uint64_t> SavedExportSymbolMap;
+            std::unordered_map<core::Name, RuntimeSymbol> SavedExportSymbolMap;
             std::uint32_t SavedNextLibraryHandle;
             bool Committed = false;
     };

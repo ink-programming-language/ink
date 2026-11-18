@@ -1,6 +1,5 @@
 #include "ink/backend/vm/interpreter/interpreter.h"
 #include "ink/backend/vm/instruction/instruction_encoding.h"
-#include "ink/core/config/config_manager.h"
 #include "ink/core/support/core_define.h"
 
 #include <bit>
@@ -82,7 +81,6 @@ namespace ink::vm
         static_assert(sizeof(double) == sizeof(std::uint64_t) && std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53, "VM FP64 instructions require IEEE 754 binary64");
         const auto CodeAddress = reinterpret_cast<std::uintptr_t>(CodeSegment);
         const auto StackAddress = reinterpret_cast<std::uintptr_t>(StackAllocation.get());
-        const auto MaxRecursionDepth = core::ConfigManager::getSize<core::ConfigKind::VMMaxRecursionDepth>();
         const auto IsInstructionAddress = [this, CodeAddress](std::uint64_t Address)
         {
             return Address >= CodeAddress && Address - CodeAddress < CodeSegmentSize && (Address - CodeAddress) % InstructionEncoding::WordBytes == 0 && CodeSegmentSize - static_cast<std::size_t>(Address - CodeAddress) >= InstructionEncoding::WordBytes;
@@ -262,49 +260,56 @@ namespace ink::vm
                     LocalPC = Target;
                     continue;
                 }
-#define EXECUTE_CALL(Target)                                                                                                                                                                     \
-    do                                                                                                                                                                                           \
-    {                                                                                                                                                                                            \
-        const std::uint64_t CallTarget = (Target);                                                                                                                                               \
-        const auto NextPC = InstructionAddress + InstructionBytes;                                                                                                                               \
-        const auto StackPointer = READ_REGISTER(RegisterId::SP, Frame);                                                                                                                          \
-        const auto BasePointer = READ_REGISTER(RegisterId::BP, Frame);                                                                                                                           \
-        check(IsInstructionAddress(NextPC));                                                                                                                                                     \
-        check(IsStackPosition(StackPointer) && IsStackPosition(BasePointer) && BasePointer <= StackPointer && (CallDepth == 0 || StackPointer - BasePointer >= SaveAreaBytes));                  \
-        if (IsInstructionAddress(CallTarget))                                                                                                                                                    \
-        {                                                                                                                                                                                        \
-            const bool RecursionDepthExceeded = CallDepth >= MaxRecursionDepth;                                                                                                                  \
-            REPORT_IF(RecursionDepthExceeded, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "call", fmt::format("maximum recursion depth exceeded (limit: {})", MaxRecursionDepth)); \
-            if (RecursionDepthExceeded)                                                                                                                                                          \
-            {                                                                                                                                                                                    \
-                return false;                                                                                                                                                                    \
-            }                                                                                                                                                                                    \
-            const bool StackOverflow = SaveAreaBytes > StackSize - static_cast<std::size_t>(StackPointer - StackAddress);                                                                        \
-            REPORT_IF(StackOverflow, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "call", "stack overflow");                                                                        \
-            if (StackOverflow)                                                                                                                                                                   \
-            {                                                                                                                                                                                    \
-                return false;                                                                                                                                                                    \
-            }                                                                                                                                                                                    \
-            auto* const SaveArea = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(StackPointer));                                                                                   \
-            std::memcpy(SaveArea, &BasePointer, sizeof(BasePointer));                                                                                                                            \
-            std::memcpy(SaveArea + InstructionEncoding::WordBytes, &NextPC, sizeof(NextPC));                                                                                                     \
-            WRITE_REGISTER(RegisterId::BP, Frame, StackPointer);                                                                                                                                 \
-            WRITE_REGISTER(RegisterId::SP, Frame, StackPointer + SaveAreaBytes);                                                                                                                 \
-            LocalPC = CallTarget;                                                                                                                                                                \
-            ++CallDepth;                                                                                                                                                                         \
-        }                                                                                                                                                                                        \
-        else                                                                                                                                                                                     \
-        {                                                                                                                                                                                        \
-            check(NativeStubAddresses.contains(CallTarget));                                                                                                                                     \
-            const auto Stub = reinterpret_cast<void (*)(vm::Frame*)>(static_cast<std::uintptr_t>(CallTarget));                                                                                   \
-            Stub(&Frame);                                                                                                                                                                        \
-            LocalPC = NextPC;                                                                                                                                                                    \
-        }                                                                                                                                                                                        \
+#define EXECUTE_VM_CALL(Target)                                                                                                                                                 \
+    do                                                                                                                                                                          \
+    {                                                                                                                                                                           \
+        const std::uint64_t CallTarget = (Target);                                                                                                                              \
+        const auto NextPC = InstructionAddress + InstructionBytes;                                                                                                              \
+        const auto StackPointer = READ_REGISTER(RegisterId::SP, Frame);                                                                                                         \
+        const auto BasePointer = READ_REGISTER(RegisterId::BP, Frame);                                                                                                          \
+        check(IsInstructionAddress(NextPC));                                                                                                                                    \
+        check(IsStackPosition(StackPointer) && IsStackPosition(BasePointer) && BasePointer <= StackPointer && (CallDepth == 0 || StackPointer - BasePointer >= SaveAreaBytes)); \
+        check(IsInstructionAddress(CallTarget));                                                                                                                                \
+        const bool StackOverflow = SaveAreaBytes > StackSize - static_cast<std::size_t>(StackPointer - StackAddress);                                                           \
+        if (StackOverflow) [[unlikely]]                                                                                                                                         \
+        {                                                                                                                                                                       \
+            REPORT_IF(true, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "call", "stack overflow");                                                                \
+            return false;                                                                                                                                                       \
+        }                                                                                                                                                                       \
+        auto* const SaveArea = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(StackPointer));                                                                      \
+        std::memcpy(SaveArea, &BasePointer, sizeof(BasePointer));                                                                                                               \
+        std::memcpy(SaveArea + InstructionEncoding::WordBytes, &NextPC, sizeof(NextPC));                                                                                        \
+        WRITE_REGISTER(RegisterId::BP, Frame, StackPointer);                                                                                                                    \
+        WRITE_REGISTER(RegisterId::SP, Frame, StackPointer + SaveAreaBytes);                                                                                                    \
+        LocalPC = CallTarget;                                                                                                                                                   \
+        ++CallDepth;                                                                                                                                                            \
     } while (false)
+
+#define EXECUTE_NATIVE_CALL(Target)                                                                                                                                             \
+    do                                                                                                                                                                          \
+    {                                                                                                                                                                           \
+        const std::uint64_t CallTarget = (Target);                                                                                                                              \
+        const auto NextPC = InstructionAddress + InstructionBytes;                                                                                                              \
+        [[maybe_unused]] const auto StackPointer = READ_REGISTER(RegisterId::SP, Frame);                                                                                        \
+        [[maybe_unused]] const auto BasePointer = READ_REGISTER(RegisterId::BP, Frame);                                                                                         \
+        check(IsInstructionAddress(NextPC));                                                                                                                                    \
+        check(IsStackPosition(StackPointer) && IsStackPosition(BasePointer) && BasePointer <= StackPointer && (CallDepth == 0 || StackPointer - BasePointer >= SaveAreaBytes)); \
+        check(NativeStubAddresses.contains(CallTarget));                                                                                                                        \
+        const auto Stub = reinterpret_cast<void (*)(vm::Frame*)>(static_cast<std::uintptr_t>(CallTarget));                                                                      \
+        Stub(&Frame);                                                                                                                                                           \
+        LocalPC = NextPC;                                                                                                                                                       \
+    } while (false)
+
             case Opcode::Calli:
                 {
                     constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Calli>::OperandCount + 1) * InstructionEncoding::WordBytes;
-                    EXECUTE_CALL(Instruction[1]);
+                    EXECUTE_NATIVE_CALL(Instruction[1]);
+                    continue;
+                }
+            case Opcode::Callvmi:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Callvmi>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    EXECUTE_VM_CALL(Instruction[1]);
                     continue;
                 }
             case Opcode::Callm:
@@ -313,10 +318,18 @@ namespace ink::vm
                     const auto Address = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
                     std::uint64_t TargetAddress;
                     std::memcpy(&TargetAddress, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(Address)), sizeof(TargetAddress));
-                    EXECUTE_CALL(TargetAddress);
+                    if (IsInstructionAddress(TargetAddress))
+                    {
+                        EXECUTE_VM_CALL(TargetAddress);
+                    }
+                    else
+                    {
+                        EXECUTE_NATIVE_CALL(TargetAddress);
+                    }
                     continue;
                 }
-#undef EXECUTE_CALL
+#undef EXECUTE_NATIVE_CALL
+#undef EXECUTE_VM_CALL
 #define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed)                                                                \
     case Opcode::Kind:                                                                                                                         \
         {                                                                                                                                      \

@@ -1,6 +1,7 @@
 #include "../../../core/support/environment_test_support.h"
 
 #include "ink/backend/vm/executable/executable_file.h"
+#include "ink/backend/vm/instruction/instruction_encoding.h"
 #include "ink/backend/vm/interpreter/interpreter.h"
 #include "ink/backend/vm/interpreter/loader.h"
 #include "ink/backend/vm/runtime_stub/builtin_stub.h"
@@ -74,35 +75,10 @@ namespace ink::vm::test
         {
             EXPECT_EQ(Actual.getImage(), Expected.getImage());
             EXPECT_EQ(Actual.getEntryOffset(), Expected.getEntryOffset());
-            ASSERT_EQ(Actual.getDynamicImportSymbols().size(), Expected.getDynamicImportSymbols().size());
-            for (std::size_t Index = 0; Index < Expected.getDynamicImportSymbols().size(); ++Index)
-            {
-                EXPECT_EQ(Actual.getDynamicImportSymbols()[Index].Name, Expected.getDynamicImportSymbols()[Index].Name);
-            }
-            ASSERT_EQ(Actual.getDynamicImportSymbolRelocations().size(), Expected.getDynamicImportSymbolRelocations().size());
-            for (std::size_t Index = 0; Index < Expected.getDynamicImportSymbolRelocations().size(); ++Index)
-            {
-                const auto& ActualRelocation = Actual.getDynamicImportSymbolRelocations()[Index];
-                const auto& ExpectedRelocation = Expected.getDynamicImportSymbolRelocations()[Index];
-                EXPECT_EQ(ActualRelocation.ImageOffset, ExpectedRelocation.ImageOffset);
-                EXPECT_EQ(ActualRelocation.SymbolIndex, ExpectedRelocation.SymbolIndex);
-                EXPECT_EQ(ActualRelocation.Addend, ExpectedRelocation.Addend);
-            }
-            ASSERT_EQ(Actual.getImageBaseAddressRelocations().size(), Expected.getImageBaseAddressRelocations().size());
-            for (std::size_t Index = 0; Index < Expected.getImageBaseAddressRelocations().size(); ++Index)
-            {
-                const auto& ActualRelocation = Actual.getImageBaseAddressRelocations()[Index];
-                const auto& ExpectedRelocation = Expected.getImageBaseAddressRelocations()[Index];
-                EXPECT_EQ(ActualRelocation.ImageOffset, ExpectedRelocation.ImageOffset);
-                EXPECT_EQ(ActualRelocation.TargetOffset, ExpectedRelocation.TargetOffset);
-                EXPECT_EQ(ActualRelocation.Addend, ExpectedRelocation.Addend);
-            }
-            ASSERT_EQ(Actual.getExportSymbols().size(), Expected.getExportSymbols().size());
-            for (std::size_t Index = 0; Index < Expected.getExportSymbols().size(); ++Index)
-            {
-                EXPECT_EQ(Actual.getExportSymbols()[Index].Name, Expected.getExportSymbols()[Index].Name);
-                EXPECT_EQ(Actual.getExportSymbols()[Index].Offset, Expected.getExportSymbols()[Index].Offset);
-            }
+            EXPECT_EQ(Actual.getDynamicImportSymbols(), Expected.getDynamicImportSymbols());
+            EXPECT_EQ(Actual.getDynamicImportSymbolRelocations(), Expected.getDynamicImportSymbolRelocations());
+            EXPECT_EQ(Actual.getImageBaseAddressRelocations(), Expected.getImageBaseAddressRelocations());
+            EXPECT_EQ(Actual.getExportSymbols(), Expected.getExportSymbols());
         }
 
         void expectLibraryLinkDiagnostic(const core::CollectingDiagnosticConsumer& Collector, std::string_view SymbolName)
@@ -273,7 +249,7 @@ namespace ink::vm::test
         EXPECT_EQ(VM.resolveSymbolAddress(SelfName), static_cast<void*>(CodeSegment.data() + 24));
         const auto Position = VM.getExportSymbolMap().find(SelfName);
         ASSERT_NE(Position, VM.getExportSymbolMap().end());
-        EXPECT_EQ(Position->second, Address);
+        EXPECT_EQ(Position->second, RuntimeSymbol{Address});
         expectExecutableUnchanged(Executable, OriginalExecutable);
     }
 
@@ -486,7 +462,7 @@ namespace ink::vm::test
         EXPECT_TRUE(std::ranges::equal(VM.getCodeSegment(), OriginalBytes));
         EXPECT_GT(VM.getCodeSegmentCapacity(), OriginalCapacity);
         auto RestoredExports = OriginalExports;
-        RestoredExports[ExportName] = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(VM.getCodeSegment().data()));
+        RestoredExports[ExportName] = {static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(VM.getCodeSegment().data()))};
         EXPECT_EQ(VM.getExportSymbolMap(), RestoredExports);
         EXPECT_EQ(VM.findExecutable(FirstHandle), StoredFirst);
         EXPECT_EQ(VM.findExecutable(2), nullptr);
@@ -505,9 +481,82 @@ namespace ink::vm::test
         EXPECT_EQ(VM.findExecutable(FirstHandle), StoredFirst);
         EXPECT_EQ(StoredFirst->getImage(), OriginalBytes);
         auto ExpectedExports = OriginalExports;
-        ExpectedExports[ExportName] = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(VM.getCodeSegment().data() + 16));
+        ExpectedExports[ExportName] = {static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(VM.getCodeSegment().data() + 16))};
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedExports);
         EXPECT_EQ(VM.getExportSymbolMap().find(FailedExportName), VM.getExportSymbolMap().end());
+    }
+
+    // DirectCall relocations rewrite Calli headers to Callvmi for VM targets and keep Calli for native targets without altering AbsoluteAddress fields.
+    TEST(VMLoaderTest, RewritesDirectCallHeadersForVMFunctionsAndPreservesNativeAndAddressRelocations)
+    {
+        Interpreter VM;
+        Loader LibraryLoader(VM);
+        const auto VMFuncName = core::NamePool::instance().intern("loader-direct-call-vm-func");
+        const auto IdentityName = core::NamePool::instance().intern("identity");
+        ExecutableFile Executable;
+        Executable.getImage().assign(56, 0);
+        storeLittleEndian(Executable.getImage(), 0, InstructionEncoding::encodeOpcode(Opcode::Calli));
+        storeLittleEndian(Executable.getImage(), 16, InstructionEncoding::encodeOpcode(Opcode::Calli));
+        storeLittleEndian(Executable.getImage(), 32, InstructionEncoding::encodeOpcode(Opcode::Calli));
+        Executable.getExportSymbols().push_back({VMFuncName, 48, ExecutableSymbolKind::Function});
+        Executable.getDynamicImportSymbols() = {
+            {VMFuncName, ExecutableSymbolKind::Function},
+            {IdentityName, ExecutableSymbolKind::Function},
+        };
+        Executable.getDynamicImportSymbolRelocations() = {
+            {8, 0, 0, RelocationKind::DirectCall},
+            {24, 1, 0, RelocationKind::DirectCall},
+            {48, 0, 0, RelocationKind::AbsoluteAddress},
+        };
+        Executable.getImageBaseAddressRelocations().push_back({40, 48, 0, RelocationKind::DirectCall});
+        const auto OriginalExecutable = Executable;
+        auto CodeSegment = makeCodeSegment(Executable);
+        const auto BaseAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment.data() + 8));
+
+        ASSERT_TRUE(LibraryLoader.loadLibrary(CodeSegment, 8, Executable));
+
+        EXPECT_EQ(readLittleEndian(CodeSegment, 8), InstructionEncoding::encodeOpcode(Opcode::Callvmi));
+        EXPECT_EQ(readLittleEndian(CodeSegment, 16), BaseAddress + 48);
+        EXPECT_EQ(readLittleEndian(CodeSegment, 24), InstructionEncoding::encodeOpcode(Opcode::Calli));
+        EXPECT_EQ(readLittleEndian(CodeSegment, 32), identityAddress());
+        EXPECT_EQ(readLittleEndian(CodeSegment, 40), InstructionEncoding::encodeOpcode(Opcode::Callvmi));
+        EXPECT_EQ(readLittleEndian(CodeSegment, 48), BaseAddress + 48);
+        EXPECT_EQ(readLittleEndian(CodeSegment, 56), BaseAddress + 48);
+        expectExecutableUnchanged(Executable, OriginalExecutable);
+    }
+
+    // Mismatched symbol kinds, data read-only flags, or function calling conventions fail linking before any patch is written.
+    TEST(VMLoaderTest, RejectsMismatchedSymbolKindAndContractAttributesWithoutWriting)
+    {
+        Interpreter VM;
+        Loader LibraryLoader(VM);
+        auto& Names = core::NamePool::instance();
+        const auto FuncName = Names.intern("loader-contract-func");
+        const auto DataName = Names.intern("loader-contract-data");
+        ExecutableFile Provider;
+        Provider.getImage().assign(16, 0x11);
+        Provider.getExportSymbols() = {
+            {FuncName, 0, ExecutableSymbolKind::Function, {}, {CallingConvention::StdCall, false}},
+            {DataName, 8, ExecutableSymbolKind::Data, {true}, {}},
+        };
+        ASSERT_NE(VM.loadLibrary(std::move(Provider)), Interpreter::InvalidLibraryHandle);
+
+        const DynamicImportSymbol MismatchedImports[] = {
+            {FuncName, ExecutableSymbolKind::Data, {false}, {}},
+            {DataName, ExecutableSymbolKind::Function, {}, {}},
+            {DataName, ExecutableSymbolKind::Data, {false}, {}},
+            {FuncName, ExecutableSymbolKind::Function, {}, {CallingConvention::Default, false}},
+            {FuncName, ExecutableSymbolKind::Function, {}, {CallingConvention::StdCall, true}},
+        };
+        for (const auto& Import : MismatchedImports)
+        {
+            ExecutableFile Consumer;
+            Consumer.getImage().assign(16, 0xD6);
+            Consumer.getDynamicImportSymbols().push_back(Import);
+            Consumer.getDynamicImportSymbolRelocations().push_back({0, 0, 0});
+            auto CodeSegment = makeCodeSegment(Consumer);
+            expectLinkFailureWithoutWrites(VM, LibraryLoader, CodeSegment, 8, Consumer, Names.text(Import.Name));
+        }
     }
 
     // Export offsets at or beyond the image end are fatal executable invariants, including exporting from an empty image.

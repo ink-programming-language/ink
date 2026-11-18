@@ -77,7 +77,7 @@ def capture(
         }
         process_options["creationflags"] = flags[priority]
     result = subprocess.run(
-        command, text=True, capture_output=True, encoding="utf-8",
+        command, text=True, capture_output=True, encoding="utf-8-sig",
         env=env, **process_options,
     )
     if result.returncode:
@@ -142,6 +142,8 @@ def main() -> int:
     parser.add_argument("--lua-clock", type=Path)
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--node", default="node")
+    parser.add_argument("--mono", type=Path, help="Mono runtime executable")
+    parser.add_argument("--csharp", type=Path, help="Compiled C# benchmark assembly")
     parser.add_argument("--daslang", type=Path)
     parser.add_argument(
         "--daslang-mode", choices=["interpreter", "jit", "both"],
@@ -161,6 +163,8 @@ def main() -> int:
         default=Path("build/benchmark/nbody/results.json"),
     )
     args = parser.parse_args()
+    if bool(args.mono) != bool(args.csharp):
+        parser.error("--mono and --csharp must be supplied together")
     if args.priority != "normal" and os.name != "nt":
         parser.error("Child priority options require Windows")
     if args.daslang_mode != "interpreter" and not args.daslang:
@@ -202,6 +206,14 @@ def main() -> int:
             args.node, "--jitless", str(directory / "nbody.js"), *parameters,
         ],
     }
+    mono_environment = None
+    if args.mono:
+        mono = str(args.mono.resolve())
+        csharp = str(args.csharp.resolve())
+        mono_environment = os.environ.copy()
+        mono_environment.pop("MONO_ENV_OPTIONS", None)
+        commands["C# interpreter"] = [mono, "--interp", csharp, *parameters]
+        commands["C# JIT"] = [mono, csharp, *parameters]
     if args.daslang:
         daslang_command = [
             str(args.daslang.resolve()), str(directory / "nbody.das"),
@@ -226,6 +238,8 @@ def main() -> int:
             args.node, "-p", "JSON.stringify(process.versions)",
         ]),
     }
+    if args.mono:
+        versions["Mono"] = capture([mono, "--version"], mono_environment)
     if args.daslang:
         versions["Daslang"] = capture([
             str(args.daslang.resolve()), "--version",
@@ -259,6 +273,8 @@ def main() -> int:
                     environment = python_environment
                 elif name == "Lua":
                     environment = lua_environment
+                elif name.startswith("C# "):
+                    environment = mono_environment
                 value = json.loads(capture(
                     command, environment, args.priority,
                 ))
@@ -297,6 +313,8 @@ def main() -> int:
                     value["execution_mode"] = "V8 default JIT"
                 elif name == "JavaScript jitless":
                     value["execution_mode"] = "V8 jitless"
+                elif name in {"C# interpreter", "C# JIT"}:
+                    value["execution_mode"] = "Mono " + name.removeprefix("C# ")
                 elif name.startswith("Daslang "):
                     value["execution_mode"] = (
                         "LLVM JIT" if name.endswith("JIT") else "interpreter"
@@ -333,9 +351,10 @@ def main() -> int:
     source_files = [
         path for path in directory.iterdir()
         if path.is_file() and path.suffix in {
-            ".asm", ".cpp", ".h", ".py", ".js", ".lua", ".das",
+            ".asm", ".cpp", ".h", ".py", ".js", ".lua", ".das", ".cs",
         }
     ]
+    source_files.extend((repository / "benchmark/csharp").glob("*.cs"))
     for folder in ("src/include/ink/backend/vm", "src/lib/backend/vm"):
         source_files.extend(
             path for path in (repository / folder).rglob("*")
@@ -363,7 +382,7 @@ def main() -> int:
         ]),
         "source_worktree_status": capture([
             "git", "-C", str(repository), "status", "--short", "--",
-            "benchmark/nbody", "src/include/ink/backend/vm",
+            "benchmark/nbody", "benchmark/csharp", "src/include/ink/backend/vm",
             "src/lib/backend/vm",
         ]),
         "source_hashes_sha256": source_hashes,

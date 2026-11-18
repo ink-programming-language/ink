@@ -88,7 +88,7 @@
    };
    ```
 2. **冷路径标记与外提**：
-   为 `if (RecursionDepthExceeded) [[unlikely]]`、`if (StackOverflow) [[unlikely]]` 及 `default: [[unlikely]]` 标注冷分支属性，并将诊断构造逻辑提取到独立的不内联冷函数中。
+   栈溢出分支已标注 `[[unlikely]]`。建议为 `default` 分支加上相同属性，并将诊断构造逻辑提取到独立的不内联冷函数中。
 
 ## 5. 降低 80 条比较条件跳转（`compare_branch.def`）的 I-Cache 压力
 

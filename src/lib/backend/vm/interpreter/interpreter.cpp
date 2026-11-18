@@ -38,7 +38,7 @@ namespace ink::vm
         {
             const auto Address = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(Symbol.Address));
             NativeStubAddresses.insert(Address);
-            ExportSymbolMap.try_emplace(Symbol.Name, Address);
+            ExportSymbolMap.try_emplace(Symbol.Name, RuntimeSymbol{Address, ExecutableSymbolKind::Function, SymbolProviderKind::Native});
         }
     }
 
@@ -65,7 +65,7 @@ namespace ink::vm
     void* Interpreter::resolveSymbolAddress(core::Name Name) const noexcept
     {
         const auto Position = ExportSymbolMap.find(Name);
-        return Position == ExportSymbolMap.end() ? nullptr : reinterpret_cast<void*>(static_cast<std::uintptr_t>(Position->second));
+        return Position == ExportSymbolMap.end() ? nullptr : reinterpret_cast<void*>(static_cast<std::uintptr_t>(Position->second.Address));
     }
 
     /**
@@ -132,7 +132,7 @@ namespace ink::vm
         const auto NewAddress = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment));
         for (auto& Symbol : ExportSymbolMap)
         {
-            auto& Address = Symbol.second;
+            auto& Address = Symbol.second.Address;
             if (Address >= OldAddress && Address - OldAddress < OldSize)
             {
                 Address = NewAddress + (Address - OldAddress);
@@ -216,7 +216,7 @@ namespace ink::vm
         {
             REPORT_ICE_IF(Symbol.Offset >= Library.ExecutableFile.byteSize(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "export symbol", "offset is outside the image");
             const auto Address = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(CodeSegment + Library.ImageBase + Symbol.Offset));
-            ExportSymbolMap.insert_or_assign(Symbol.Name, Address);
+            ExportSymbolMap.insert_or_assign(Symbol.Name, RuntimeSymbol{Address, Symbol.Kind, SymbolProviderKind::VM, Symbol.Data, Symbol.Function});
         }
     }
 

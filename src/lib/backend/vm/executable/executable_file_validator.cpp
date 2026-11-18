@@ -42,6 +42,53 @@ namespace ink::vm
             return Count != 0 && Count - 1 > std::numeric_limits<std::uint32_t>::max();
         }
 
+        constexpr bool isValidSymbolKind(ExecutableSymbolKind Kind) noexcept
+        {
+            return Kind == ExecutableSymbolKind::Function || Kind == ExecutableSymbolKind::Data;
+        }
+
+        constexpr bool isValidCallingConvention(CallingConvention Convention) noexcept
+        {
+            switch (Convention)
+            {
+            case CallingConvention::Default:
+            case CallingConvention::CDecl:
+            case CallingConvention::StdCall:
+            case CallingConvention::FastCall:
+            case CallingConvention::VectorCall:
+                return true;
+            }
+            return false;
+        }
+
+        constexpr bool isValidRelocationKind(RelocationKind Kind) noexcept
+        {
+            return Kind == RelocationKind::AbsoluteAddress || Kind == RelocationKind::DirectCall;
+        }
+
+        void validateSymbolMetadata(std::string_view KindName, std::size_t Index, ExecutableSymbolKind Kind, const DataSymbolInfo& Data, const FunctionSymbolInfo& Function, const core::DiagnosticEngine& Diagnostics)
+        {
+            if (!isValidSymbolKind(Kind))
+            {
+                failRecord(Diagnostics, KindName, Index, "symbol kind is invalid");
+            }
+            if (Kind == ExecutableSymbolKind::Function)
+            {
+                if (Data.IsConstant)
+                {
+                    failRecord(Diagnostics, KindName, Index, "function symbol cannot be marked read-only");
+                }
+                if (!isValidCallingConvention(Function.Convention))
+                {
+                    failRecord(Diagnostics, KindName, Index, "function calling convention is invalid");
+                }
+            }
+            else if (Function != FunctionSymbolInfo{})
+            {
+                failRecord(Diagnostics, KindName, Index, "data symbol cannot specify function call attributes");
+            }
+        }
+
         void validateImports(const std::vector<DynamicImportSymbol>& Imports, const core::DiagnosticEngine& Diagnostics)
         {
             const core::NamePool& Names = core::NamePool::instance();
@@ -57,6 +104,7 @@ namespace ink::vm
                 {
                     failRecord(Diagnostics, "dynamic import symbol", Index, "name is duplicated");
                 }
+                validateSymbolMetadata("dynamic import symbol", Index, Import.Kind, Import.Data, Import.Function, Diagnostics);
             }
         }
 
@@ -80,6 +128,7 @@ namespace ink::vm
                 {
                     failRecord(Diagnostics, "export symbol", Index, "offset is outside the image");
                 }
+                validateSymbolMetadata("export symbol", Index, Export.Kind, Export.Data, Export.Function, Diagnostics);
             }
         }
     } // namespace
@@ -115,15 +164,38 @@ namespace ink::vm
             {
                 failRecord(Diagnostics, "dynamic import symbol relocation", Index, "symbol index does not name a dynamic import symbol");
             }
+            if (!isValidRelocationKind(Relocation.Kind))
+            {
+                failRecord(Diagnostics, "dynamic import symbol relocation", Index, "relocation kind is invalid");
+            }
             if (Relocation.ImageOffset > ImageSize || DynamicImportSymbolRelocation::ByteSize > ImageSize - Relocation.ImageOffset)
             {
                 failRecord(Diagnostics, "dynamic import symbol relocation", Index, "address field is outside the image");
+            }
+            if (Relocation.Kind == RelocationKind::DirectCall)
+            {
+                if (Imports[Relocation.SymbolIndex].Kind != ExecutableSymbolKind::Function)
+                {
+                    failRecord(Diagnostics, "dynamic import symbol relocation", Index, "direct call relocation must reference a function symbol");
+                }
+                if (Relocation.Addend != 0)
+                {
+                    failRecord(Diagnostics, "dynamic import symbol relocation", Index, "direct call relocation must have a zero addend");
+                }
+                if (Relocation.ImageOffset < sizeof(std::uint64_t))
+                {
+                    failRecord(Diagnostics, "dynamic import symbol relocation", Index, "direct call relocation has no preceding instruction header");
+                }
             }
             Ranges.push_back({Relocation.ImageOffset, Relocation.ImageOffset + DynamicImportSymbolRelocation::ByteSize, Index, "dynamic import symbol relocation", Ranges.size()});
         }
         for (std::size_t Index = 0; Index < ImageBaseRelocations.size(); ++Index)
         {
             const ImageBaseAddressRelocation& Relocation = ImageBaseRelocations[Index];
+            if (!isValidRelocationKind(Relocation.Kind))
+            {
+                failRecord(Diagnostics, "image base address relocation", Index, "relocation kind is invalid");
+            }
             if (Relocation.ImageOffset > ImageSize || ImageBaseAddressRelocation::ByteSize > ImageSize - Relocation.ImageOffset)
             {
                 failRecord(Diagnostics, "image base address relocation", Index, "address field is outside the image");
@@ -131,6 +203,17 @@ namespace ink::vm
             if (Relocation.TargetOffset > ImageSize)
             {
                 failRecord(Diagnostics, "image base address relocation", Index, "target offset exceeds the image end");
+            }
+            if (Relocation.Kind == RelocationKind::DirectCall)
+            {
+                if (Relocation.Addend != 0)
+                {
+                    failRecord(Diagnostics, "image base address relocation", Index, "direct call relocation must have a zero addend");
+                }
+                if (Relocation.ImageOffset < sizeof(std::uint64_t))
+                {
+                    failRecord(Diagnostics, "image base address relocation", Index, "direct call relocation has no preceding instruction header");
+                }
             }
             Ranges.push_back({Relocation.ImageOffset, Relocation.ImageOffset + ImageBaseAddressRelocation::ByteSize, Index, "image base address relocation", Ranges.size()});
         }

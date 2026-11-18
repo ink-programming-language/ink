@@ -78,7 +78,7 @@ def capture(
         process_options["creationflags"] = priority_flags[priority]
     completed = subprocess.run(
         command, text=True, capture_output=True, check=True,
-        encoding="utf-8", env=env, **process_options,
+        encoding="utf-8-sig", env=env, **process_options,
     )
     return completed.stdout.strip()
 
@@ -100,6 +100,8 @@ def main() -> int:
     parser.add_argument("--lua-clock", type=Path)
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--node", default="node")
+    parser.add_argument("--mono", type=Path, help="Mono runtime executable")
+    parser.add_argument("--csharp", type=Path, help="Compiled C# benchmark assembly")
     parser.add_argument("--daslang", type=Path)
     parser.add_argument(
         "--daslang-mode", choices=["interpreter", "jit", "both"],
@@ -121,6 +123,8 @@ def main() -> int:
     arguments = parser.parse_args()
     if bool(arguments.ink_before) != bool(arguments.asm_before):
         parser.error("--ink-before and --asm-before must be supplied together")
+    if bool(arguments.mono) != bool(arguments.csharp):
+        parser.error("--mono and --csharp must be supplied together")
     if arguments.priority != "normal" and os.name != "nt":
         parser.error("Child priority options require Windows")
     if arguments.daslang_mode != "interpreter" and not arguments.daslang:
@@ -169,6 +173,14 @@ def main() -> int:
             arguments.node, "--jitless", str(directory / "fib.js"), *parameters,
         ],
     })
+    mono_environment = None
+    if arguments.mono:
+        mono = str(arguments.mono.resolve())
+        csharp = str(arguments.csharp.resolve())
+        mono_environment = os.environ.copy()
+        mono_environment.pop("MONO_ENV_OPTIONS", None)
+        commands["C# interpreter"] = [mono, "--interp", csharp, *parameters]
+        commands["C# JIT"] = [mono, csharp, *parameters]
     if arguments.daslang:
         daslang_command = [
             str(arguments.daslang.resolve()), str(directory / "fib.das"),
@@ -189,6 +201,8 @@ def main() -> int:
             arguments.node, "-p", "JSON.stringify(process.versions)",
         ]),
     }
+    if arguments.mono:
+        versions["Mono"] = capture([mono, "--version"], mono_environment)
     if arguments.daslang:
         versions["Daslang"] = capture([
             str(arguments.daslang.resolve()), "--version",
@@ -213,7 +227,11 @@ def main() -> int:
                 print(
                     f"Running {name}, round {round_index + 1}...", flush=True
                 )
-                child_environment = lua_environment if name == "Lua" else None
+                child_environment = None
+                if name == "Lua":
+                    child_environment = lua_environment
+                elif name.startswith("C# "):
+                    child_environment = mono_environment
                 value = json.loads(capture(
                     command, child_environment, arguments.priority,
                 ))
@@ -258,6 +276,8 @@ def main() -> int:
                     value["execution_mode"] = "V8 default JIT"
                 elif name == "JavaScript jitless":
                     value["execution_mode"] = "V8 jitless"
+                elif name in {"C# interpreter", "C# JIT"}:
+                    value["execution_mode"] = "Mono " + name.removeprefix("C# ")
                 elif name.startswith("Daslang "):
                     value["execution_mode"] = (
                         "LLVM JIT" if name.endswith("JIT") else "interpreter"

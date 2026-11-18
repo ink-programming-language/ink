@@ -8,28 +8,16 @@
 
 ## 构建与运行
 
-本目录提供 Ink、C++、Python、Lua、JavaScript 和 Daslang 的标量双精度实现。JavaScript 分别运行默认模式和 `--jitless`，Daslang 分别运行解释器和 LLVM JIT。
+本目录提供 Ink、C++、C#、Python、Lua、JavaScript 和 Daslang 的标量双精度实现。JavaScript 分别运行默认模式和 `--jitless`。C# 和 Daslang 分别运行解释器及 JIT。
 
-主项目配置启用 `INK_BUILD_VM_BENCHMARKS=ON`，构建 `ink_nbody_benchmark` 和 `cpp_nbody_benchmark`。在 VS 2022 的 x64 Native Tools 环境启动 PowerShell，从仓库根目录执行：
+先按 [Fibonacci 构建说明](../fib/README.md#windows-构建与运行) 配置 `$Build`、构建 Lua、准备 Mono 和其余运行时。在同一 PowerShell 会话中从仓库根目录构建并运行 n-body。
 
 ```powershell
-$VsRoot = "C:/Program Files/Microsoft Visual Studio/2022/Community"
-$Clang = "$VsRoot/VC/Tools/Llvm/x64/bin/clang-cl.exe"
-$Ninja = "$VsRoot/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe"
-$Build = "build/benchmark/o3-shipping"
-$LuaBuild = "build/benchmark/tools/lua"
-$LuaSource = (Resolve-Path "build/benchmark/tools/lua-5.5.1/src").Path
-$Python = "C:/Python314/python.exe"
-$Daslang = "build/benchmark/tools/daslang-0.6.5/daslang/_sdk/bin/daslang.exe"
-
-cmake -S . -B $Build -G Ninja "-DCMAKE_MAKE_PROGRAM=$Ninja" "-DCMAKE_C_COMPILER=$Clang" "-DCMAKE_CXX_COMPILER=$Clang" -DCMAKE_BUILD_TYPE=Release -DINK_BUILD_MODE=shipping -DINK_BUILD_VM_BENCHMARKS=ON -DBUILD_TESTING=OFF "-DCMAKE_C_FLAGS_RELEASE=/clang:-O3 /DNDEBUG" "-DCMAKE_CXX_FLAGS_RELEASE=/clang:-O3 /DNDEBUG"
 cmake --build $Build --target ink_nbody_benchmark cpp_nbody_benchmark --parallel 8
 
-# Reuse fib's Lua build and monotonic benchmark_clock module.
-cmake -S benchmark/fib/lua -B $LuaBuild -G Ninja "-DCMAKE_MAKE_PROGRAM=$Ninja" "-DCMAKE_C_COMPILER=$Clang" -DCMAKE_BUILD_TYPE=Release "-DCMAKE_C_FLAGS_RELEASE=/clang:-O3 /DNDEBUG" "-DLUA_SOURCE_DIR=$LuaSource"
-cmake --build $LuaBuild --target lua benchmark_clock --parallel 8
+& $Mono $Mcs -optimize+ "-out:$CsharpBuild/nbody.exe" benchmark/csharp/Benchmark.cs benchmark/nbody/nbody.cs
 
-& $Python benchmark/nbody/run.py --ink "$Build/benchmark/nbody/ink_nbody_benchmark.exe" --cpp "$Build/benchmark/nbody/cpp_nbody_benchmark.exe" --lua "$LuaBuild/bin/lua.exe" --lua-clock "$LuaBuild/bin/benchmark_clock.dll" --python $Python --node node --daslang $Daslang --daslang-mode both --steps 100000 --rounds 3 --samples 11 --warmup 3 --cpu 2 --priority high --output build/benchmark/nbody/results.json
+& $Python benchmark/nbody/run.py --ink "$Build/benchmark/nbody/ink_nbody_benchmark.exe" --cpp "$Build/benchmark/nbody/cpp_nbody_benchmark.exe" --lua "$LuaBuild/bin/lua.exe" --lua-clock "$LuaBuild/bin/benchmark_clock.dll" --python $Python --node $Node --daslang $Daslang --daslang-mode both --mono $Mono --csharp "$CsharpBuild/nbody.exe" --steps 100000 --rounds 3 --samples 11 --warmup 3 --cpu 2 --priority high --output build/benchmark/nbody/results.json
 ```
 
 外部运行时不随 CMake 自动下载。Lua 需要现有 `benchmark/fib/lua_clock.c` 构建的模块；脚本通过 `NBODY_BENCHMARK_CLOCK` 指定其位置，Windows 下使用 `QueryPerformanceCounter`。不安装 Daslang 时，删去 `--daslang` 与 `--daslang-mode both`。`--daslang-mode interpreter`、`jit`、`both` 分别选择解释器、LLVM JIT 或两者。Python 子进程固定设置 `PYTHON_JIT=0`。
@@ -45,7 +33,7 @@ Ink 命令格式为 `ink_nbody_benchmark FILE.asm [STEPS=100000] [SAMPLES=11] [W
 - 每次预热和采样均在计时后校验两项能量及全部 35 个状态值；跨运行时也比较这些值，要求有限并满足 `abs(actual - expected) <= 1e-12 * max(1, abs(expected))`。任意不匹配都会终止运行，不能只凭能量接近判断状态正确。
 - 数据结构和分配采用各语言的自然实现；运行时 GC、边界检查和编译器自动优化属于各实现的成本。这是同一算法的实现比较，并不保证相同的机器指令流。
 
-Ink、C++ 和 Lua 按上述配置使用 clang-cl、O3，Ink 为 Shipping，关闭 `check`；Ink 自有 C++ 目标关闭异常。Daslang 使用已安装的预编译运行时，其宿主编译器参数未知，不将其标成相同的 O3 构建。
+Ink、C++ 和 Lua 使用 GCC `-O3 -DNDEBUG`。Ink 为 Shipping，`INK_ENABLE_ASSERTIONS=0`。C# 的 Mono 解释器和 JIT 运行同一个程序集，用 `Stopwatch.GetTimestamp()` 计时。Daslang 使用官方预编译运行时。
 
 `run.py` 将所有样本、完整命令、运行时版本、机器信息、源码哈希、数值参考结果和汇总统计保存在 `build/benchmark/nbody/results.json`。同目录的 `execute-round-*.trace.json` 为 Ink 的 Chrome Trace，各事件只覆盖一次测量的 `Interpreter::execute()`。
 
@@ -63,25 +51,27 @@ VM 单元测试复用此汇编，覆盖 `0`、`1`、`10`、`1000` 步及同一�
 
 宿主可在同一已加载镜像上修改步数并再次执行，不需自行恢复天体数组。R0–R9 按现有调用者保存约定使用；函数之间不依赖 GPR 保留值，能量结果通过镜像内的结果槽传递。
 
-## 测量结果（2026-11-17）
+## 测量结果（2026-11-18）
 
-- 环境：Intel Core i9-13900K，Windows 11 22631，逻辑 CPU 2，High 优先级。Ink 源码基于 `05f6a712`。
-- 工作量：100,000 步，`dt=0.01`；每轮每进程显式预热 3 次、采样 11 次，共 3 轮。下表为各项 33 个样本的中位数。
-- Ink、C++ 和 Lua：clang-cl 19.1.5，O3；Ink 为 Shipping，`INK_ENABLE_ASSERTIONS=0`，switch 分派。
-- Python 3.14.4，`PYTHON_JIT=0`；JavaScript 为 Node.js 20.20.0 / V8 11.3.244.8-node.33；Lua 5.5.1。
-- Daslang 0.6.5 使用预编译运行时，宿主编译参数未知；解释器与 LLVM JIT 分开报告。
+- AMD Ryzen 9 9950X3D，Windows 11 26200，逻辑 CPU 2，High 优先级。Ink 使用基于 `dab46447b62a` 的当前工作区代码。
+- 工作量为 100,000 步，`dt=0.01`。每轮预热 3 次、采样 11 次，共 3 轮，各项报告 33 个样本的中位数。
+- Ink、C++ 和 Lua 5.5.1 使用 GCC 16.1.0 和 `-O3 -DNDEBUG`。Ink 为 Shipping，`INK_ENABLE_ASSERTIONS=0`，使用 switch 分派。
+- CPython 3.13.2 设置 `PYTHON_JIT=0`。JavaScript 使用 Node.js 24.13.0 / V8 13.6.233.17-node.37。
+- C# 使用 Mono 6.12.0.206 x64。Daslang 使用官方 0.6.5 Windows x64 wheel。
 
 | 实现 | 执行模式 | 中位耗时（ms） |
 | --- | --- | ---: |
-| Ink | switch 解释器，O3 / Shipping | 76.1502 |
-| C++ | 原生编译，O3 | 3.0075 |
-| Python | CPython 解释器，JIT 关闭 | 410.1737 |
-| Lua | 解释器，宿主 O3 构建 | 123.6814 |
-| JavaScript 默认模式 | V8，允许 JIT 优化 | 5.2703 |
-| JavaScript `--jitless` | V8，禁用 JIT | 289.1166 |
-| Daslang | 解释器 | 81.9975 |
-| Daslang | LLVM JIT | 3.0250 |
+| Ink | switch 解释器，O3 / Shipping | 74.8610 |
+| C++ | 原生编译，O3 | 3.3144 |
+| C# | Mono IL 解释器 | 93.2336 |
+| C# | Mono JIT | 7.2492 |
+| Python | CPython 解释器，JIT 关闭 | 354.2849 |
+| Lua | 解释器，宿主 O3 构建 | 95.5465 |
+| JavaScript 默认模式 | V8，允许 JIT 优化 | 4.5277 |
+| JavaScript `--jitless` | V8，禁用 JIT | 239.6431 |
+| Daslang | 解释器 | 91.4571 |
+| Daslang | LLVM JIT | 4.0825 |
 
-全部 24 次正式运行的 264 个测量样本完成校验，初始能量为 `-0.16907516382852447`，最终能量为 `-0.1690798593916664`。Ink 的中位耗时为 C++ 的约 25.32 倍、Daslang 解释器的约 0.93 倍；Python、Lua 和 JavaScript jitless 的中位耗时分别为 Ink 的约 5.39、1.62 和 3.80 倍。结果仅描述这个五天体标量工作负载及上述环境。
+全部 30 次正式运行的 330 个测量样本通过校验。初始能量为 `-0.16907516382852447`，最终能量为 `-0.1690798593916664`。Ink 的中位耗时约为 C++ 的 22.59 倍、Daslang 解释器的 0.82 倍。Python、Lua 和 JavaScript jitless 的中位耗时分别约为 Ink 的 4.73、1.28 和 3.20 倍。
 
 原始样本、命令、版本、源码哈希和汇总保存在 `build/benchmark/nbody/results.json`，Ink 的三份 execute trace 位于同目录。复现命令见上文；原始数据与构建产物不纳入源码提交。

@@ -17,6 +17,23 @@
 
 namespace ink::vm
 {
+    enum class SymbolProviderKind : std::uint8_t
+    {
+        VM,
+        Native,
+    };
+
+    struct RuntimeSymbol
+    {
+            std::uint64_t Address = 0;
+            ExecutableSymbolKind Kind = ExecutableSymbolKind::Function;
+            SymbolProviderKind Provider = SymbolProviderKind::VM;
+            DataSymbolInfo Data{};
+            FunctionSymbolInfo Function{};
+
+            constexpr bool operator==(const RuntimeSymbol& Other) const noexcept = default;
+    };
+
     struct LibraryDescriptor
     {
             // The image's byte offset in CodeSegment, preserved when runtime storage moves.
@@ -83,7 +100,7 @@ namespace ink::vm
                 return CodeSegmentCapacity;
             }
 
-            const std::unordered_map<core::Name, std::uint64_t>& getExportSymbolMap() const noexcept
+            const std::unordered_map<core::Name, RuntimeSymbol>& getExportSymbolMap() const noexcept
             {
                 return ExportSymbolMap;
             }
@@ -110,7 +127,7 @@ namespace ink::vm
             std::unique_ptr<void, decltype(&std::free)> StackAllocation{nullptr, &std::free};
             std::size_t StackSize = 0;
             std::unordered_set<std::uint64_t> NativeStubAddresses;
-            std::unordered_map<core::Name, std::uint64_t> ExportSymbolMap;
+            std::unordered_map<core::Name, RuntimeSymbol> ExportSymbolMap;
             core::DiagnosticEngine Diagnostics;
             vm::Loader Loader;
             std::uint32_t NextLibraryHandle = 1;

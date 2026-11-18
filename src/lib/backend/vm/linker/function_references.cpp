@@ -98,9 +98,9 @@ namespace ink::vm::detail
                     {
                         return {};
                     }
-                    if (Operation == Opcode::Calli || Operation == Opcode::Jmpi)
+                    if (Operation == Opcode::Calli || Operation == Opcode::Callvmi || Operation == Opcode::Jmpi)
                     {
-                        return VisitReference(*Value.getSymbol(), Operation == Opcode::Calli ? SymbolReferenceTarget::Function : SymbolReferenceTarget::VMFunction);
+                        return VisitReference(*Value.getSymbol(), (Operation == Opcode::Calli || Operation == Opcode::Callvmi) ? SymbolReferenceTarget::Function : SymbolReferenceTarget::VMFunction);
                     }
                     return VisitReference(*Value.getSymbol(), SymbolReferenceTarget::Any);
                 }

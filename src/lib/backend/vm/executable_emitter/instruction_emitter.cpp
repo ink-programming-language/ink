@@ -68,7 +68,7 @@ namespace ink::vm
                 {
                     padPCRelativeTarget(static_cast<const ImmediateOperand&>(Operand), InstructionOffset);
                 }
-                else if (Instruction.getOpcode() == Opcode::Calli)
+                else if (Instruction.getOpcode() == Opcode::Calli || Instruction.getOpcode() == Opcode::Callvmi)
                 {
                     padCallTarget(static_cast<const ImmediateOperand&>(Operand));
                 }
@@ -110,7 +110,7 @@ namespace ink::vm
     void InstructionEmitter::padCallTarget(const ImmediateOperand& Operand)
     {
         REPORT_ICE_IF(!isValidDirectFunctionTarget(Operand), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "call", "function target must have a zero symbol byte offset");
-        padOperand(Operand, 64);
+        padImmediateOperand(Operand, 64, RelocationKind::DirectCall);
     }
 
     void InstructionEmitter::padRegister(RegisterId Register, std::int64_t ByteOffset)
@@ -152,6 +152,11 @@ namespace ink::vm
 
     void InstructionEmitter::padOperand(const ImmediateOperand& Operand, std::uint32_t Width)
     {
+        padImmediateOperand(Operand, Width, RelocationKind::AbsoluteAddress);
+    }
+
+    void InstructionEmitter::padImmediateOperand(const ImmediateOperand& Operand, std::uint32_t Width, RelocationKind Kind)
+    {
         Context.padAlignment(InstructionEncoding::WordBytes);
         REPORT_ICE_IF(Width != 8 && Width != 16 && Width != 32 && Width != 64, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "integer encoding requires a supported width");
         if (const auto Bits = Operand.bits())
@@ -170,21 +175,33 @@ namespace ink::vm
         REPORT_ICE_IF(Import && (Position || Context.hasUnResolvedSymbol(*Symbol)), Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has both image and import definitions");
         if (Position)
         {
-            Context.addImageBaseAddressRelocation({Context.byteSize(), *Position, Addend});
+            if (Kind == RelocationKind::DirectCall)
+            {
+                const auto Metadata = Context.findDefinedSymbolMetadata(*Symbol);
+                REPORT_ICE_IF(Metadata && Metadata->Kind != ExecutableSymbolKind::Function, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "call", "direct call target must be a function symbol");
+            }
+            Context.addImageBaseAddressRelocation({Context.byteSize(), *Position, Addend, Kind});
             Context.padZero(8);
             return;
         }
 
         if (Context.hasUnResolvedSymbol(*Symbol))
         {
-            Context.addStaticRelocation({Context.byteSize(), *Symbol, 0, Addend, RegisterId::ZERO});
+            if (Kind == RelocationKind::DirectCall)
+            {
+                const auto Metadata = Context.findDefinedSymbolMetadata(*Symbol);
+                REPORT_ICE_IF(Metadata && Metadata->Kind != ExecutableSymbolKind::Function, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "call", "direct call target must be a function symbol");
+            }
+            Context.addStaticRelocation({Context.byteSize(), *Symbol, 0, Addend, RegisterId::ZERO, Kind});
             Context.padZero(8);
             return;
         }
 
-        REPORT_ICE_IF(!Import, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has no resolved VM offset or unresolved symbol declaration");
-        const auto Index = Context.getOrAddImportSymbol(DynamicImportSymbol{*Symbol});
-        Context.addDynamicImportSymbolRelocation({Context.byteSize(), Index, Addend});
+        const auto ImportSymbol = Context.findImportSymbol(*Symbol);
+        REPORT_ICE_IF(!ImportSymbol, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has no resolved VM offset or unresolved symbol declaration");
+        REPORT_ICE_IF(Kind == RelocationKind::DirectCall && ImportSymbol->Kind != ExecutableSymbolKind::Function, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "call", "direct call target must be a function symbol");
+        const auto Index = Context.getOrAddImportSymbol(*ImportSymbol);
+        Context.addDynamicImportSymbolRelocation({Context.byteSize(), Index, Addend, Kind});
         Context.padZero(8);
     }
 
@@ -214,8 +231,9 @@ namespace ink::vm
             return;
         }
 
-        REPORT_ICE_IF(!Import, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has no resolved VM offset or unresolved symbol declaration");
-        padImportSymbol(DynamicImportSymbol{*Symbol}, Operand.getByteOffset());
+        const auto ImportSymbol = Context.findImportSymbol(*Symbol);
+        REPORT_ICE_IF(!ImportSymbol, Context.getDiagnostics(), core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "symbol has no resolved VM offset or unresolved symbol declaration");
+        padImportSymbol(*ImportSymbol, Operand.getByteOffset());
     }
 
     void InstructionEmitter::padOperand(const BasicBlockOperand& Operand, std::uint64_t InstructionOffset)

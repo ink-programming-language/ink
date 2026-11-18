@@ -365,4 +365,65 @@ namespace ink::vm::test
         Relocation.ImageOffset = 8;
         expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*address field overlaps dynamic import symbol relocation #0");
     }
+
+    // Symbol records validate kind, read-only data flags, and function calling conventions for both imports and exports.
+    TEST(VMExecutableFileDeathTest, ValidatesSymbolKindAndContractAttributes)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        core::NamePool& Names = core::NamePool::instance();
+        ExecutableFile Executable = makeValidExecutableFile();
+        Executable.getDynamicImportSymbols()[0].Kind = ExecutableSymbolKind::Data;
+        Executable.getDynamicImportSymbols()[0].Data.IsConstant = true;
+        Executable.getDynamicImportSymbols()[1].Kind = ExecutableSymbolKind::Function;
+        Executable.getDynamicImportSymbols()[1].Function = {CallingConvention::FastCall, true};
+        Executable.getExportSymbols()[0].Kind = ExecutableSymbolKind::Data;
+        Executable.getExportSymbols()[0].Data.IsConstant = true;
+        Executable.getExportSymbols()[1].Kind = ExecutableSymbolKind::Function;
+        Executable.getExportSymbols()[1].Function = {CallingConvention::VectorCall, false};
+        ExecutableFileValidator::validate(Executable, Diagnostics);
+
+        Executable.getDynamicImportSymbols()[1].Data.IsConstant = true;
+        expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol #1.*function symbol cannot be marked read-only");
+        Executable.getDynamicImportSymbols()[1].Data.IsConstant = false;
+        Executable.getDynamicImportSymbols()[0].Function.IsVariadic = true;
+        expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol #0.*data symbol cannot specify function call attributes");
+        Executable.getDynamicImportSymbols()[0].Function = {};
+        Executable.getExportSymbols()[1].Data.IsConstant = true;
+        expectExecutableICE(Executable, "INK-V0002.*export symbol #1.*function symbol cannot be marked read-only");
+        Executable.getExportSymbols()[1].Data.IsConstant = false;
+        Executable.getExportSymbols()[0].Function.Convention = CallingConvention::CDecl;
+        expectExecutableICE(Executable, "INK-V0002.*export symbol #0.*data symbol cannot specify function call attributes");
+    }
+
+    // DirectCall relocations require a function import, zero addend, and a preceding eight-byte instruction header slot.
+    TEST(VMExecutableFileDeathTest, ValidatesDirectCallRelocationConstraints)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        core::NamePool& Names = core::NamePool::instance();
+        ExecutableFile Executable;
+        Executable.getImage().resize(32);
+        Executable.getDynamicImportSymbols() = {
+            {Names.intern("imported_func"), ExecutableSymbolKind::Function},
+            {Names.intern("imported_data"), ExecutableSymbolKind::Data},
+        };
+        Executable.getDynamicImportSymbolRelocations().push_back({8, 0, 0, RelocationKind::DirectCall});
+        Executable.getImageBaseAddressRelocations().push_back({24, 0, 0, RelocationKind::DirectCall});
+        ExecutableFileValidator::validate(Executable, Diagnostics);
+
+        Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex = 1;
+        expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #0.*direct call relocation must reference a function symbol");
+        Executable.getDynamicImportSymbolRelocations()[0].SymbolIndex = 0;
+        Executable.getDynamicImportSymbolRelocations()[0].Addend = 8;
+        expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #0.*direct call relocation must have a zero addend");
+        Executable.getDynamicImportSymbolRelocations()[0].Addend = 0;
+        Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = 0;
+        expectExecutableICE(Executable, "INK-V0002.*dynamic import symbol relocation #0.*direct call relocation has no preceding instruction header");
+        Executable.getDynamicImportSymbolRelocations()[0].ImageOffset = 8;
+
+        Executable.getImageBaseAddressRelocations()[0].Addend = -8;
+        expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*direct call relocation must have a zero addend");
+        Executable.getImageBaseAddressRelocations()[0].Addend = 0;
+        Executable.getImageBaseAddressRelocations()[0].ImageOffset = 0;
+        expectExecutableICE(Executable, "INK-V0002.*image base address relocation #0.*direct call relocation has no preceding instruction header");
+    }
 } // namespace ink::vm::test

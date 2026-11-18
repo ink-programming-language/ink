@@ -17,5 +17,3 @@ INK_CONFIG(InkVersion, "INK_VERSION", "0.0.1")
 INK_CONFIG(VMInitialCodeSegmentBytes, "INK_VM_INITIAL_CODE_SEGMENT_BYTES", "1048576")
 // VM stack capacity: 2 MiB = 2 * 1024 * 1024 bytes.
 INK_CONFIG(VMStackBytes, "INK_VM_STACK_BYTES", "2097152")
-// Maximum active Ink call frames, excluding the entry function and native stubs; zero disallows Ink calls.
-INK_CONFIG(VMMaxRecursionDepth, "INK_VM_MAX_RECURSION_DEPTH", "8096")

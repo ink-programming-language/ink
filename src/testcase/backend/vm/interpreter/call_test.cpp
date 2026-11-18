@@ -80,8 +80,9 @@ namespace ink::vm::test
         appendCallInstruction(Executable, Opcode::Ret);
         const auto Callee = appendCallInstruction(Executable, Opcode::Add64rri, {0, 0, 99}, RegisterId::R0, RegisterId::ZERO);
         appendCallInstruction(Executable, Opcode::Ret);
-        Executable.getImageBaseAddressRelocations().push_back({Call + 8, Callee, 0});
+        Executable.getImageBaseAddressRelocations().push_back({Call + 8, Callee, 0, RelocationKind::DirectCall});
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+        EXPECT_EQ(readWord(VM.getCodeSegment().data() + Call), InstructionEncoding::encodeOpcode(Opcode::Callvmi));
 
         ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
 
@@ -107,8 +108,8 @@ namespace ink::vm::test
         appendCallInstruction(Executable, Opcode::Store64i, {std::uint64_t{0} - Store, 0x123456789ABCDEF0ULL}, RegisterId::PC);
         appendCallInstruction(Executable, Opcode::Ret);
         Executable.getImageBaseAddressRelocations() = {
-            {Main + 8, Middle, 0},
-            {Middle + 8, Leaf, 0},
+            {Main + 8, Middle, 0, RelocationKind::DirectCall},
+            {Middle + 8, Leaf, 0, RelocationKind::DirectCall},
         };
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
 
@@ -144,7 +145,7 @@ namespace ink::vm::test
         const auto Store = Executable.byteSize();
         appendCallInstruction(Executable, Opcode::Store64i, {std::uint64_t{0} - Store, 0x123456789ABCDEF0ULL}, RegisterId::PC);
         appendCallInstruction(Executable, Opcode::Ret);
-        Executable.getImageBaseAddressRelocations().push_back({Main + 8, Middle, 0});
+        Executable.getImageBaseAddressRelocations().push_back({Main + 8, Middle, 0, RelocationKind::DirectCall});
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
         const auto Target = addressOf(VM.getCodeSegment().data() + Leaf);
         std::memcpy(TargetStorage.data() + 1, &Target, sizeof(Target));
@@ -190,13 +191,11 @@ namespace ink::vm::test
         EXPECT_EQ(readWord(StackBytes + 8), addressOf(VM.getCodeSegment().data() + MainReturn));
     }
 
-    // A PC-relative pointer slot resolves a native stub, which returns through caller slots without consuming Ink recursion depth.
-    TEST(VMInterpreterCallTest, CallsNativeThroughPCRelativePointerSlotAtZeroDepthLimit)
+    // A PC-relative pointer slot resolves a native stub that uses caller slots even when the stack has no space for an Ink save area.
+    TEST(VMInterpreterCallTest, CallsNativeThroughPCRelativePointerSlotWithFullStack)
     {
         core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
-        core::test::ScopedEnvironmentVariable DepthEnvironment("INK_VM_MAX_RECURSION_DEPTH");
         ASSERT_TRUE(StackEnvironment.set("16"));
-        ASSERT_TRUE(DepthEnvironment.set("0"));
         Interpreter VM;
         ExecutableFile Executable;
         Executable.getImage().resize(16);
@@ -243,8 +242,9 @@ namespace ink::vm::test
         appendRegisterOffset(Executable, RegisterId::SP, -16);
         const auto Return = appendCallInstruction(Executable, Opcode::Ret);
         Executable.getDynamicImportSymbols().push_back({core::NamePool::instance().intern("identity")});
-        Executable.getDynamicImportSymbolRelocations().push_back({Call + 8, 0, 0});
+        Executable.getDynamicImportSymbolRelocations().push_back({Call + 8, 0, 0, RelocationKind::DirectCall});
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+        EXPECT_EQ(readWord(VM.getCodeSegment().data() + Call), InstructionEncoding::encodeOpcode(Opcode::Calli));
 
         ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Main));
 
@@ -278,10 +278,12 @@ namespace ink::vm::test
         const auto NativeCall = appendCallInstruction(Executable, Opcode::Calli, {0});
         appendCallInstruction(Executable, Opcode::Load64, {static_cast<std::uint64_t>(-16), static_cast<std::uint64_t>(-16)}, RegisterId::BP, RegisterId::SP);
         appendCallInstruction(Executable, Opcode::Ret);
-        Executable.getImageBaseAddressRelocations().push_back({InkCall + 8, Callee, 0});
+        Executable.getImageBaseAddressRelocations().push_back({InkCall + 8, Callee, 0, RelocationKind::DirectCall});
         Executable.getDynamicImportSymbols().push_back({core::NamePool::instance().intern("identity")});
-        Executable.getDynamicImportSymbolRelocations().push_back({NativeCall + 8, 0, 0});
+        Executable.getDynamicImportSymbolRelocations().push_back({NativeCall + 8, 0, 0, RelocationKind::DirectCall});
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+        EXPECT_EQ(readWord(VM.getCodeSegment().data() + InkCall), InstructionEncoding::encodeOpcode(Opcode::Callvmi));
+        EXPECT_EQ(readWord(VM.getCodeSegment().data() + NativeCall), InstructionEncoding::encodeOpcode(Opcode::Calli));
 
         ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Main));
 
@@ -378,14 +380,16 @@ entry:
         appendCallInstruction(Caller, Opcode::Calli, {0});
         appendCallInstruction(Caller, Opcode::Ret);
         Caller.getDynamicImportSymbols().push_back({TargetName});
-        Caller.getDynamicImportSymbolRelocations().push_back({8, 0, 0});
+        Caller.getDynamicImportSymbolRelocations().push_back({8, 0, 0, RelocationKind::DirectCall});
         Caller.getExportSymbols().push_back({CallerName, 0});
         ASSERT_NE(VM.loadLibrary(std::move(Caller)), Interpreter::InvalidLibraryHandle);
+        EXPECT_EQ(readWord(VM.getCodeSegment().data() + CallerBase), InstructionEncoding::encodeOpcode(Opcode::Callvmi));
         const auto OldAddress = addressOf(VM.getCodeSegment().data());
         ExecutableFile Growth;
         Growth.getImage().resize(VM.getCodeSegmentCapacity() + 1);
         ASSERT_NE(VM.loadLibrary(std::move(Growth)), Interpreter::InvalidLibraryHandle);
         ASSERT_NE(addressOf(VM.getCodeSegment().data()), OldAddress);
+        EXPECT_EQ(readWord(VM.getCodeSegment().data() + CallerBase), InstructionEncoding::encodeOpcode(Opcode::Callvmi));
         EXPECT_EQ(readWord(VM.getCodeSegment().data() + CallerBase + 8), addressOf(VM.resolveSymbolAddress(TargetName)));
 
         ASSERT_TRUE(VM.execute(VM.resolveSymbolAddress(CallerName)));
@@ -411,8 +415,9 @@ entry:
         appendCallInstruction(Caller, Opcode::Calli, {0});
         appendCallInstruction(Caller, Opcode::Ret);
         Caller.getDynamicImportSymbols().push_back({Identity});
-        Caller.getDynamicImportSymbolRelocations().push_back({8, 0, 0});
+        Caller.getDynamicImportSymbolRelocations().push_back({8, 0, 0, RelocationKind::DirectCall});
         ASSERT_NE(VM.loadLibrary(std::move(Caller)), Interpreter::InvalidLibraryHandle);
+        EXPECT_EQ(readWord(VM.getCodeSegment().data() + CallerBase), InstructionEncoding::encodeOpcode(Opcode::Callvmi));
 
         ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + CallerBase));
 
@@ -441,7 +446,7 @@ entry:
             if (InvalidKind >= 2)
             {
                 const auto TargetOffset = InvalidKind == 3 ? Executable.byteSize() : 0;
-                Executable.getImageBaseAddressRelocations().push_back({Call + 8, InvalidKind == 2 ? 1 : TargetOffset, 0});
+                Executable.getImageBaseAddressRelocations().push_back({Call + 8, InvalidKind == 2 ? 1 : TargetOffset, 0, RelocationKind::DirectCall});
             }
             ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
             EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data() + Call)), "check failed");
@@ -525,11 +530,11 @@ entry:
             if (Invalid.Native)
             {
                 Executable.getDynamicImportSymbols().push_back({core::NamePool::instance().intern("identity")});
-                Executable.getDynamicImportSymbolRelocations().push_back({Call + 8, 0, 0});
+                Executable.getDynamicImportSymbolRelocations().push_back({Call + 8, 0, 0, RelocationKind::DirectCall});
             }
             else
             {
-                Executable.getImageBaseAddressRelocations().push_back({Call + 8, 0, 0});
+                Executable.getImageBaseAddressRelocations().push_back({Call + 8, 0, 0, RelocationKind::DirectCall});
             }
             ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
             EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data() + Entry)), "check failed");
@@ -563,14 +568,14 @@ entry:
                 appendRegisterOffset(Executable, RegisterId::SP, -8);
             }
             appendCallInstruction(Executable, Opcode::Ret);
-            Executable.getImageBaseAddressRelocations().push_back({Main + 8, Callee, 0});
+            Executable.getImageBaseAddressRelocations().push_back({Main + 8, Callee, 0, RelocationKind::DirectCall});
             ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
             EXPECT_DEATH(static_cast<void>(VM.execute(VM.getCodeSegment().data() + Main)), "check failed");
         }
     }
 #endif
 
-    // Recursive calls consume complete save areas and report stack exhaustion before writing into the remaining partial area.
+    // Recursive calls can exceed the former 8096-call limit and report stack exhaustion before writing a partial save area.
     TEST(VMInterpreterCallTest, ReportsRecursiveStackOverflowWithoutPartialSaveArea)
     {
         struct StackCase
@@ -585,10 +590,9 @@ entry:
             {"16", 16},
             {"17", 17},
             {"32", 32},
+            {"131073", 131073},
         };
         core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
-        core::test::ScopedEnvironmentVariable DepthEnvironment("INK_VM_MAX_RECURSION_DEPTH");
-        ASSERT_TRUE(DepthEnvironment.set("100"));
         for (const auto& Case : Cases)
         {
             SCOPED_TRACE(Case.Bytes);
@@ -598,7 +602,7 @@ entry:
             appendCallInstruction(Executable, Opcode::Ret);
             const auto Call = appendCallInstruction(Executable, Opcode::Calli, {0});
             const auto Return = appendCallInstruction(Executable, Opcode::Ret);
-            Executable.getImageBaseAddressRelocations().push_back({Call + 8, Call, 0});
+            Executable.getImageBaseAddressRelocations().push_back({Call + 8, Call, 0, RelocationKind::DirectCall});
             ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
             ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
             const auto Stack = READ_REGISTER(RegisterId::SP, VM.getFrame());
@@ -630,31 +634,25 @@ entry:
         }
     }
 
-    // Indirect recursion reports depth or stack exhaustion before changing the failing frame or writing a partial save area.
-    TEST(VMInterpreterCallTest, ReportsIndirectRecursionLimitsWithoutPartialSaveArea)
+    // Indirect recursion reports stack exhaustion before changing the failing frame or writing a partial save area.
+    TEST(VMInterpreterCallTest, ReportsIndirectRecursiveStackOverflowWithoutPartialSaveArea)
     {
-        struct LimitCase
+        struct StackCase
         {
                 const char* StackSetting;
                 std::size_t StackBytes;
-                const char* DepthSetting;
                 std::size_t SavedBytes;
-                std::string_view Description;
         };
-        constexpr LimitCase Cases[] = {
-            {"64", 64, "2", 32, "maximum recursion depth exceeded"},
-            {"64", 64, "0", 0, "maximum recursion depth exceeded"},
-            {"17", 17, "100", 16, "stack overflow"},
-            {"0", 0, "100", 0, "stack overflow"},
+        constexpr StackCase Cases[] = {
+            {"64", 64, 64},
+            {"17", 17, 16},
+            {"0", 0, 0},
         };
         core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
-        core::test::ScopedEnvironmentVariable DepthEnvironment("INK_VM_MAX_RECURSION_DEPTH");
         for (const auto& Case : Cases)
         {
             SCOPED_TRACE(Case.StackBytes);
-            SCOPED_TRACE(Case.DepthSetting);
             ASSERT_TRUE(StackEnvironment.set(Case.StackSetting));
-            ASSERT_TRUE(DepthEnvironment.set(Case.DepthSetting));
             std::uint64_t Target = 0;
             Interpreter VM;
             ExecutableFile Executable;
@@ -687,18 +685,16 @@ entry:
             {
                 EXPECT_EQ(StackBytes[Offset], 0x6D);
             }
-            expectCallFailure(Collector, Case.Description);
+            expectCallFailure(Collector, "stack overflow");
             VM.getDiagnostics().removeConsumer(Collector);
         }
     }
 
-    // The depth limit counts active Ink calls, releases depth on RET, and is re-read when the same interpreter executes again.
-    TEST(VMInterpreterCallTest, EnforcesConfiguredDepthAndResetsAfterReturnAndExecute)
+    // RET releases stack space for later calls, and execute resets the stack after overflow.
+    TEST(VMInterpreterCallTest, ReusesCallStackAfterReturnAndResetsAfterOverflow)
     {
         core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
-        core::test::ScopedEnvironmentVariable DepthEnvironment("INK_VM_MAX_RECURSION_DEPTH");
-        ASSERT_TRUE(StackEnvironment.set("128"));
-        ASSERT_TRUE(DepthEnvironment.set("2"));
+        ASSERT_TRUE(StackEnvironment.set("32"));
         Interpreter VM;
         ExecutableFile Executable;
         const auto Main = appendCallInstruction(Executable, Opcode::Calli, {0});
@@ -707,10 +703,13 @@ entry:
         const auto Middle = appendCallInstruction(Executable, Opcode::Calli, {0});
         appendCallInstruction(Executable, Opcode::Ret);
         const auto Leaf = appendCallInstruction(Executable, Opcode::Ret);
+        const auto OverflowEntry = appendCallInstruction(Executable, Opcode::Calli, {0});
+        appendCallInstruction(Executable, Opcode::Ret);
         Executable.getImageBaseAddressRelocations() = {
-            {Main + 8, Middle, 0},
-            {SecondCall + 8, Middle, 0},
-            {Middle + 8, Leaf, 0},
+            {Main + 8, Middle, 0, RelocationKind::DirectCall},
+            {SecondCall + 8, Middle, 0, RelocationKind::DirectCall},
+            {Middle + 8, Leaf, 0, RelocationKind::DirectCall},
+            {OverflowEntry + 8, Main, 0, RelocationKind::DirectCall},
         };
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
         core::CollectingDiagnosticConsumer Collector;
@@ -718,71 +717,18 @@ entry:
 
         ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Main));
         const auto Stack = READ_REGISTER(RegisterId::SP, VM.getFrame());
-        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Main));
         EXPECT_TRUE(Collector.diagnostics().empty());
 
-        ASSERT_TRUE(DepthEnvironment.set("1"));
-        auto* const StackBytes = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(Stack));
-        std::fill_n(StackBytes, 128, 0xA5);
-        EXPECT_FALSE(VM.execute(VM.getCodeSegment().data() + Main));
-        EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack + 16);
-        EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack);
+        EXPECT_FALSE(VM.execute(VM.getCodeSegment().data() + OverflowEntry));
+        EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack + 32);
+        EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack + 16);
         EXPECT_EQ(READ_REGISTER(RegisterId::PC, VM.getFrame()), addressOf(VM.getCodeSegment().data() + Middle));
-        EXPECT_TRUE(std::all_of(StackBytes + 16, StackBytes + 128, [](std::uint8_t Byte)
-                                {
-                                    return Byte == 0xA5;
-                                }));
-        expectCallFailure(Collector, "maximum recursion depth exceeded");
+        expectCallFailure(Collector, "stack overflow");
 
-        ASSERT_TRUE(DepthEnvironment.set("2"));
         Collector.clear();
         ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Main));
         EXPECT_TRUE(Collector.diagnostics().empty());
         EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack);
-        VM.getDiagnostics().removeConsumer(Collector);
-    }
-
-    // A zero depth limit rejects the first Ink call without writing a save area while still allowing direct native calls.
-    TEST(VMInterpreterCallTest, ZeroDepthLimitRejectsInkCallsButAllowsNativeCalls)
-    {
-        core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
-        core::test::ScopedEnvironmentVariable DepthEnvironment("INK_VM_MAX_RECURSION_DEPTH");
-        ASSERT_TRUE(StackEnvironment.set("16"));
-        ASSERT_TRUE(DepthEnvironment.set("0"));
-        Interpreter VM;
-        ExecutableFile Executable;
-        const auto Return = appendCallInstruction(Executable, Opcode::Ret);
-        const auto InkCall = appendCallInstruction(Executable, Opcode::Calli, {0});
-        appendCallInstruction(Executable, Opcode::Ret);
-        const auto NativeEntry = Executable.byteSize();
-        appendRegisterOffset(Executable, RegisterId::SP, 16);
-        appendCallInstruction(Executable, Opcode::Store64i, {static_cast<std::uint64_t>(-8), 41}, RegisterId::SP);
-        const auto NativeCall = appendCallInstruction(Executable, Opcode::Calli, {0});
-        appendCallInstruction(Executable, Opcode::Ret);
-        Executable.getImageBaseAddressRelocations().push_back({InkCall + 8, Return, 0});
-        Executable.getDynamicImportSymbols().push_back({core::NamePool::instance().intern("identity")});
-        Executable.getDynamicImportSymbolRelocations().push_back({NativeCall + 8, 0, 0});
-        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
-        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + Return));
-        const auto Stack = READ_REGISTER(RegisterId::SP, VM.getFrame());
-        auto* const StackBytes = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(Stack));
-        std::fill_n(StackBytes, 16, 0xA5);
-        core::CollectingDiagnosticConsumer Collector;
-        VM.getDiagnostics().addConsumer(Collector);
-
-        EXPECT_FALSE(VM.execute(VM.getCodeSegment().data() + InkCall));
-        EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), Stack);
-        EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), Stack);
-        EXPECT_TRUE(std::all_of(StackBytes, StackBytes + 16, [](std::uint8_t Byte)
-                                {
-                                    return Byte == 0xA5;
-                                }));
-        expectCallFailure(Collector, "maximum recursion depth exceeded");
-
-        Collector.clear();
-        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data() + NativeEntry));
-        EXPECT_EQ(readWord(StackBytes), 41U);
-        EXPECT_TRUE(Collector.diagnostics().empty());
         VM.getDiagnostics().removeConsumer(Collector);
     }
 

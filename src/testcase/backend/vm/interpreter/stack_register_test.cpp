@@ -197,7 +197,7 @@ namespace ink::vm::test
         appendInstruction(Executable, Opcode::Add64rrm, {0, 0, std::uint64_t{0} - 48}, RegisterId::R2, RegisterId::ZERO, RegisterId::SP);
         const auto ReturnOffset = appendInstruction(Executable, Opcode::Ret);
         Executable.getDynamicImportSymbols().push_back({core::NamePool::instance().intern("WriteFile")});
-        Executable.getDynamicImportSymbolRelocations().push_back({Call + 8, 0, 0});
+        Executable.getDynamicImportSymbolRelocations().push_back({Call + 8, 0, 0, RelocationKind::DirectCall});
         ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
         const auto* Entry = VM.getCodeSegment().data();
         ASSERT_TRUE(VM.execute(Entry));

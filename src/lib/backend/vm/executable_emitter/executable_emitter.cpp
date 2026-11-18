@@ -44,7 +44,7 @@ namespace ink::vm
             const auto InitialBytes = Global.initialBytes();
             Context.pad(InitialBytes.data(), InitialBytes.size());
             Context.padZero(static_cast<std::size_t>(Global.byteSize() - InitialBytes.size()));
-            Context.resolveSymbol(Global.name(), Offset);
+            Context.resolveSymbol(Global.name(), Offset, {ExecutableSymbolKind::Data, DataSymbolInfo{Global.isConstant()}, {}});
         }
     }
 
@@ -53,7 +53,7 @@ namespace ink::vm
         for (const MachineFunction& Function : Module.functions())
         {
             Context.padAlignment(InstructionEncoding::WordBytes);
-            Context.resolveSymbol(Function.name(), Context.byteSize());
+            Context.resolveSymbol(Function.name(), Context.byteSize(), {ExecutableSymbolKind::Function, {}, FunctionSymbolInfo{}});
             FunctionEmitter.emit(Function);
         }
     }
@@ -103,7 +103,8 @@ namespace ink::vm
             const auto Offset = Context.resolvedSymbolOffset(Name);
             REPORT_ICE_IF(!Offset, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "export symbol", "export symbol has no VM image offset");
             REPORT_ICE_IF(*Offset >= Context.byteSize(), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "export symbol", "export symbol offset is outside the image");
-            Context.addExportSymbol({Name, *Offset});
+            const auto Metadata = Context.findDefinedSymbolMetadata(Name).value_or(ExecutableEmissionContext::SymbolMetadata{});
+            Context.addExportSymbol({Name, *Offset, Metadata.Kind, Metadata.Data, Metadata.Function});
         }
     }
 } // namespace ink::vm

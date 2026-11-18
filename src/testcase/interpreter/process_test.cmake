@@ -93,13 +93,9 @@ if(Error MATCHES "cannot load")
     message(FATAL_ERROR "A link diagnostic must not be followed by a generic load error: ${Error}")
 endif()
 
-# Valid recursion reports configured depth exhaustion before another call frame is created.
+# Valid recursion reports stack exhaustion when a call frame cannot fit.
 file(WRITE "${Input}" ".module \"recursive-call\"\n.section .text\n.function main\nentry:\n    call @main\n    ret\n.endfunction\n")
-execute_process(COMMAND "${CMAKE_COMMAND}" -E env "INK_VM_STACK_BYTES=128" "INK_VM_MAX_RECURSION_DEPTH=2" "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
-expect_diagnostic("Maximum recursion depth" "1" "INK-V0005" "maximum recursion depth exceeded")
-
-# The same valid program reports stack exhaustion when its save area reaches the configured capacity first.
-execute_process(COMMAND "${CMAKE_COMMAND}" -E env "INK_VM_STACK_BYTES=16" "INK_VM_MAX_RECURSION_DEPTH=100" "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+execute_process(COMMAND "${CMAKE_COMMAND}" -E env "INK_VM_STACK_BYTES=16" "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_diagnostic("Call stack overflow" "1" "INK-V0005" "stack overflow")
 
 # File-reading failures retain the invocation error status without generating a VM execution diagnostic.

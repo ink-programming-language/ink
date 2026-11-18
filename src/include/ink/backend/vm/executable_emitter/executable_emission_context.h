@@ -24,6 +24,15 @@ namespace ink::vm
     class ExecutableEmissionContext
     {
         public:
+            struct SymbolMetadata
+            {
+                    ExecutableSymbolKind Kind = ExecutableSymbolKind::Function;
+                    DataSymbolInfo Data{};
+                    FunctionSymbolInfo Function{};
+
+                    constexpr bool operator==(const SymbolMetadata& Other) const noexcept = default;
+            };
+
             struct StaticRelocationSymbol
             {
                     std::uint64_t ImageOffset = 0;
@@ -31,6 +40,7 @@ namespace ink::vm
                     std::uint64_t InstructionOffset = 0;
                     std::int64_t Addend = 0;
                     RegisterId Register = RegisterId::PC;
+                    RelocationKind Kind = RelocationKind::AbsoluteAddress;
             };
 
             // The borrowed diagnostic engine must outlive this context and every emitter that borrows it.
@@ -63,10 +73,13 @@ namespace ink::vm
             // Resolved image offsets are retained until reset.
             void scanUnResolvedSymbol(const MachineModule& Module);
             void resolveSymbol(core::Name Name, std::uint64_t ImageOffset);
+            void resolveSymbol(core::Name Name, std::uint64_t ImageOffset, SymbolMetadata Metadata);
             std::optional<std::uint64_t> resolvedSymbolOffset(core::Name Name) const noexcept;
+            std::optional<SymbolMetadata> findDefinedSymbolMetadata(core::Name Name) const noexcept;
             bool hasUnResolvedSymbol(core::Name Name) const noexcept;
 
             bool isImportSymbol(core::Name Name) const noexcept;
+            std::optional<DynamicImportSymbol> findImportSymbol(core::Name Name) const noexcept;
 
             // Appends Count readable bytes from outside the image; zero Count permits a null source.
             void pad(const void* Src, std::size_t Count);
@@ -95,7 +108,8 @@ namespace ink::vm
             ExecutableFile Executable;
             std::unordered_map<core::Name, std::uint64_t> UnresolvedSymbol;
             std::unordered_map<core::Name, std::uint64_t> ResolvedSymbol;
-            std::unordered_set<core::Name> ImportSymbols;
+            std::unordered_map<core::Name, SymbolMetadata> DefinedSymbolMetadata;
+            std::unordered_map<core::Name, SymbolMetadata> ImportSymbols;
             std::vector<StaticRelocationSymbol> PendingStaticRelocationSymbol;
     };
 } // namespace ink::vm

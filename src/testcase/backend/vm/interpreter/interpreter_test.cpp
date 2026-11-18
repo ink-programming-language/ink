@@ -481,7 +481,7 @@ namespace ink::vm::test
         {
             const auto Position = VM.getExportSymbolMap().find(Symbol.Name);
             ASSERT_NE(Position, VM.getExportSymbolMap().end());
-            EXPECT_EQ(Position->second, hostAddress(Symbol.Address));
+            EXPECT_EQ(Position->second, (RuntimeSymbol{hostAddress(Symbol.Address), ExecutableSymbolKind::Function, SymbolProviderKind::Native}));
             EXPECT_EQ(VM.resolveSymbolAddress(Symbol.Name), Symbol.Address);
         }
         const auto NativeSymbols = VM.getExportSymbolMap();
@@ -529,7 +529,7 @@ namespace ink::vm::test
         ASSERT_NE(Stored, nullptr);
         EXPECT_EQ(Stored->getImage(), (std::vector<std::uint8_t>{0x22}));
         auto ExpectedSymbols = InitialSymbols;
-        ExpectedSymbols[ExportName] = codeAddress(VM, 0);
+        ExpectedSymbols[ExportName] = {codeAddress(VM, 0)};
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
     }
 
@@ -566,8 +566,8 @@ namespace ink::vm::test
         expectCodeBytes(VM, FirstImage);
         EXPECT_GT(VM.getCodeSegmentCapacity(), OriginalCapacity);
         auto RestoredSymbols = OriginalSymbols;
-        RestoredSymbols[SharedName] = codeAddress(VM, 0);
-        RestoredSymbols[FirstOnlyName] = codeAddress(VM, 2);
+        RestoredSymbols[SharedName] = {codeAddress(VM, 0)};
+        RestoredSymbols[FirstOnlyName] = {codeAddress(VM, 2)};
         EXPECT_EQ(VM.getExportSymbolMap(), RestoredSymbols);
         EXPECT_EQ(VM.findExecutable(FirstHandle), StoredFirst);
         EXPECT_EQ(StoredFirst->getImage(), FirstImage);
@@ -582,9 +582,9 @@ namespace ink::vm::test
         EXPECT_EQ(VM.findExecutable(FirstHandle), StoredFirst);
         expectCodeBytes(VM, (std::vector<std::uint8_t>{0x11, 0x22, 0x33, 0, 0, 0, 0, 0, 0x55, 0x66}));
         auto ExpectedSymbols = OriginalSymbols;
-        ExpectedSymbols[SharedName] = codeAddress(VM, 9);
-        ExpectedSymbols[FirstOnlyName] = codeAddress(VM, 2);
-        ExpectedSymbols[NewName] = codeAddress(VM, 8);
+        ExpectedSymbols[SharedName] = {codeAddress(VM, 9)};
+        ExpectedSymbols[FirstOnlyName] = {codeAddress(VM, 2)};
+        ExpectedSymbols[NewName] = {codeAddress(VM, 8)};
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
     }
 
@@ -605,8 +605,8 @@ namespace ink::vm::test
         First.ExecutableFile.getExportSymbols().push_back({FirstName, 3});
         First.ExecutableFile.getExportSymbols().push_back({SecondName, 17});
         VM.loadExportSymbol(First);
-        ExpectedSymbols[FirstName] = codeAddress(VM, 131);
-        ExpectedSymbols[SecondName] = codeAddress(VM, 145);
+        ExpectedSymbols[FirstName] = {codeAddress(VM, 131)};
+        ExpectedSymbols[SecondName] = {codeAddress(VM, 145)};
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
 
         LibraryDescriptor Second;
@@ -614,7 +614,7 @@ namespace ink::vm::test
         Second.ExecutableFile.getImage().resize(8);
         Second.ExecutableFile.getExportSymbols().push_back({FirstName, 7});
         VM.loadExportSymbol(Second);
-        ExpectedSymbols[FirstName] = codeAddress(VM, 263);
+        ExpectedSymbols[FirstName] = {codeAddress(VM, 263)};
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
     }
 
@@ -638,8 +638,8 @@ namespace ink::vm::test
         First.getExportSymbols().push_back({FirstOnlyName, 2});
         const auto FirstHandle = VM.loadLibrary(std::move(First));
         ASSERT_NE(FirstHandle, Interpreter::InvalidLibraryHandle);
-        ExpectedSymbols[SharedName] = codeAddress(VM, 0);
-        ExpectedSymbols[FirstOnlyName] = codeAddress(VM, 2);
+        ExpectedSymbols[SharedName] = {codeAddress(VM, 0)};
+        ExpectedSymbols[FirstOnlyName] = {codeAddress(VM, 2)};
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
 
         ExecutableFile Second;
@@ -650,9 +650,9 @@ namespace ink::vm::test
         ASSERT_NE(SecondHandle, Interpreter::InvalidLibraryHandle);
         EXPECT_NE(FirstHandle, SecondHandle);
         EXPECT_GT(VM.getCodeSegmentCapacity(), InitialCapacity);
-        ExpectedSymbols[SharedName] = codeAddress(VM, 9);
-        ExpectedSymbols[FirstOnlyName] = codeAddress(VM, 2);
-        ExpectedSymbols[SecondOnlyName] = codeAddress(VM, 8);
+        ExpectedSymbols[SharedName] = {codeAddress(VM, 9)};
+        ExpectedSymbols[FirstOnlyName] = {codeAddress(VM, 2)};
+        ExpectedSymbols[SecondOnlyName] = {codeAddress(VM, 8)};
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedSymbols);
     }
 
@@ -733,9 +733,9 @@ namespace ink::vm::test
         storeExpectedAddress(ExpectedAfterFailedGrowth, 24, codeAddress(VM, 24));
         storeExpectedAddress(ExpectedAfterFailedGrowth, 40, codeAddress(VM, 37));
         expectCodeBytes(VM, ExpectedAfterFailedGrowth);
-        ExpectedAfterFailedGrowthSymbols[SharedName] = codeAddress(VM, 40);
-        ExpectedAfterFailedGrowthSymbols[IdentityName] = codeAddress(VM, 48);
-        ExpectedAfterFailedGrowthSymbols[StableName] = codeAddress(VM, 24);
+        ExpectedAfterFailedGrowthSymbols[SharedName] = {codeAddress(VM, 40)};
+        ExpectedAfterFailedGrowthSymbols[IdentityName] = {codeAddress(VM, 48)};
+        ExpectedAfterFailedGrowthSymbols[StableName] = {codeAddress(VM, 24)};
         EXPECT_EQ(VM.getExportSymbolMap(), ExpectedAfterFailedGrowthSymbols);
         EXPECT_EQ(VM.findExecutable(3), nullptr);
 

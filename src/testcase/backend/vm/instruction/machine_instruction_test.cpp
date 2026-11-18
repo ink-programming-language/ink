@@ -541,13 +541,14 @@ namespace ink::vm::test
         EXPECT_EQ(Base.getOperand(std::numeric_limits<std::size_t>::max()), nullptr);
     }
 
-    // Immediate and memory calls share one mnemonic and full-width targets without terminating their block.
+    // Immediate, VM-direct, and memory calls share full-width targets without terminating their block.
     TEST(VMMachineInstructionTest, ModelsImmediateAndIndirectCalls)
     {
         const core::Name Target = core::NamePool::instance().intern("instruction.call.target");
         const MachineCalliInstruction Direct{ImmediateOperand(Target)};
+        const MachineCallvmiInstruction DirectVM{ImmediateOperand(Target)};
         constexpr MachineCallmInstruction Indirect{AddressOperand(RegisterId::SP, 8)};
-        const MachineInstruction* Calls[] = {&Direct, &Indirect};
+        const MachineInstruction* Calls[] = {&Direct, &DirectVM, &Indirect};
         for (const auto* Value : Calls)
         {
             EXPECT_TRUE(Value->isCall());
@@ -560,17 +561,22 @@ namespace ink::vm::test
             EXPECT_EQ(Value->bitWidth(), 64U);
             ASSERT_NE(Value->getOperand(0), nullptr);
             EXPECT_EQ(Value->getOperand(1), nullptr);
-            EXPECT_EQ(Value->getName(), "call");
+            EXPECT_EQ(Value->getName(), Value == &DirectVM ? "callvm" : "call");
         }
         EXPECT_EQ(Direct.getTarget().getSymbol(), Target);
+        EXPECT_EQ(DirectVM.getTarget().getSymbol(), Target);
         EXPECT_EQ(Direct.getTargetOperand().getKind(), OperandKind::Immediate);
+        EXPECT_EQ(DirectVM.getTargetOperand().getKind(), OperandKind::Immediate);
         EXPECT_EQ(Indirect.getTargetOperand().getKind(), OperandKind::Address);
         EXPECT_EQ(Direct.getOperand(0), &Direct.getTarget());
+        EXPECT_EQ(DirectVM.getOperand(0), &DirectVM.getTarget());
         EXPECT_EQ(Indirect.getOperand(0), &Indirect.getTarget());
         static_assert(Indirect.getTarget().getRegister() == RegisterId::SP);
         static_assert(Indirect.getTarget().getByteOffset() == 8);
         static_assert(OpcodeTraits<Opcode::Calli>::Form == InstructionForm::I);
         static_assert(OpcodeTraits<Opcode::Calli>::ImmediateCount == 1);
+        static_assert(OpcodeTraits<Opcode::Callvmi>::Form == InstructionForm::I);
+        static_assert(OpcodeTraits<Opcode::Callvmi>::ImmediateCount == 1);
         static_assert(OpcodeTraits<Opcode::Callm>::Form == InstructionForm::M);
         static_assert(OpcodeTraits<Opcode::Callm>::AddressCount == 1);
         static_assert(std::is_same_v<decltype(Direct.getTarget()), const ImmediateOperand&>);

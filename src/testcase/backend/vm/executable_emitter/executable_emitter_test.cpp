@@ -159,12 +159,13 @@ namespace ink::vm::test
             {88, 0, 16},
             {96, 24, 0},
         }};
-        for (const auto& [ImageOffset, TargetOffset, Addend] : ExpectedRelocations)
+        for (const auto& [ImageOffset, TargetOffset, Addend, Kind] : ExpectedRelocations)
         {
             const auto Position = std::ranges::find(Relocations, ImageOffset, &ImageBaseAddressRelocation::ImageOffset);
             ASSERT_NE(Position, Relocations.end());
             EXPECT_EQ(Position->TargetOffset, TargetOffset);
             EXPECT_EQ(Position->Addend, Addend);
+            EXPECT_EQ(Position->Kind, Kind);
             EXPECT_EQ(readLittleEndian(Executable, ImageOffset), 0U);
         }
         EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
@@ -208,9 +209,9 @@ namespace ink::vm::test
         const auto& Relocations = Executable.getImageBaseAddressRelocations();
         ASSERT_EQ(Relocations.size(), 3U);
         constexpr std::array<ImageBaseAddressRelocation, 3> ExpectedRelocations{{
-            {16, 48, 0},
-            {32, 8, 0},
-            {56, 8, 0},
+            {16, 48, 0, RelocationKind::DirectCall},
+            {32, 8, 0, RelocationKind::DirectCall},
+            {56, 8, 0, RelocationKind::DirectCall},
         }};
         for (const auto& Expected : ExpectedRelocations)
         {
@@ -218,6 +219,7 @@ namespace ink::vm::test
             ASSERT_NE(Position, Relocations.end());
             EXPECT_EQ(Position->TargetOffset, Expected.TargetOffset);
             EXPECT_EQ(Position->Addend, 0);
+            EXPECT_EQ(Position->Kind, Expected.Kind);
         }
         EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
@@ -389,6 +391,7 @@ namespace ink::vm::test
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].ImageOffset, 16U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].TargetOffset, 24U);
         EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Addend, 0);
+        EXPECT_EQ(Executable.getImageBaseAddressRelocations()[0].Kind, RelocationKind::DirectCall);
         EXPECT_TRUE(Executable.getDynamicImportSymbols().empty());
         EXPECT_TRUE(Executable.getDynamicImportSymbolRelocations().empty());
     }
@@ -424,20 +427,23 @@ namespace ink::vm::test
         EXPECT_EQ(readLittleEndian(Executable, 48), 0U);
         ASSERT_EQ(Executable.getDynamicImportSymbols().size(), 2U);
         EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Name, SharedSymbol);
+        EXPECT_EQ(Executable.getDynamicImportSymbols()[0].Kind, ExecutableSymbolKind::Function);
         EXPECT_EQ(Executable.getDynamicImportSymbols()[1].Name, OtherSymbol);
+        EXPECT_EQ(Executable.getDynamicImportSymbols()[1].Kind, ExecutableSymbolKind::Function);
         const auto& Relocations = Executable.getDynamicImportSymbolRelocations();
         ASSERT_EQ(Relocations.size(), 4U);
         constexpr std::array<DynamicImportSymbolRelocation, 4> ExpectedRelocations{{
-            {0, 0, 0},
-            {16, 0, 0},
-            {32, 1, 0},
-            {48, 0, 0},
+            {0, 0, 0, RelocationKind::AbsoluteAddress},
+            {16, 0, 0, RelocationKind::DirectCall},
+            {32, 1, 0, RelocationKind::DirectCall},
+            {48, 0, 0, RelocationKind::DirectCall},
         }};
         for (std::size_t Index = 0; Index < ExpectedRelocations.size(); ++Index)
         {
             EXPECT_EQ(Relocations[Index].ImageOffset, ExpectedRelocations[Index].ImageOffset);
             EXPECT_EQ(Relocations[Index].SymbolIndex, ExpectedRelocations[Index].SymbolIndex);
             EXPECT_EQ(Relocations[Index].Addend, 0);
+            EXPECT_EQ(Relocations[Index].Kind, ExpectedRelocations[Index].Kind);
         }
         EXPECT_TRUE(Executable.getImageBaseAddressRelocations().empty());
         ExecutableFileValidator::validate(Executable, Diagnostics);
@@ -837,8 +843,11 @@ namespace ink::vm::test
         ASSERT_EQ(Executable.getExportSymbols().size(), 2U);
         EXPECT_EQ(Executable.getExportSymbols()[0].Name, EntryName);
         EXPECT_EQ(Executable.getExportSymbols()[0].Offset, 24U);
+        EXPECT_EQ(Executable.getExportSymbols()[0].Kind, ExecutableSymbolKind::Function);
         EXPECT_EQ(Executable.getExportSymbols()[1].Name, GlobalName);
         EXPECT_EQ(Executable.getExportSymbols()[1].Offset, 8U);
+        EXPECT_EQ(Executable.getExportSymbols()[1].Kind, ExecutableSymbolKind::Data);
+        EXPECT_FALSE(Executable.getExportSymbols()[1].Data.IsConstant);
         ExecutableFileValidator::validate(Executable, Diagnostics);
     }
 

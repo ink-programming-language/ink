@@ -27,31 +27,44 @@ namespace ink::vm
     {
         Executable = ExecutableFile{};
         ResolvedSymbol.clear();
+        DefinedSymbolMetadata.clear();
         PendingStaticRelocationSymbol.clear();
     }
 
     void ExecutableEmissionContext::scanUnResolvedSymbol(const MachineModule& Module)
     {
         UnresolvedSymbol.clear();
+        DefinedSymbolMetadata.clear();
         ImportSymbols.clear();
-        const auto AddUnResolvedSymbol = [&](core::Name Name)
+        const auto AddUnResolvedSymbol = [&](core::Name Name, SymbolMetadata Metadata)
         {
             const auto [Position, Inserted] = UnresolvedSymbol.try_emplace(Name, 0);
             REPORT_ICE_IF(!Inserted && Position->first != core::NAME_None, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "scanUnResolvedSymbol", "VM symbol name has multiple definitions");
+            if (Name != core::NAME_None)
+            {
+                DefinedSymbolMetadata.insert_or_assign(Name, Metadata);
+            }
         };
         for (const MachineFunction& Function : Module.functions())
         {
-            AddUnResolvedSymbol(Function.name());
+            AddUnResolvedSymbol(Function.name(), {ExecutableSymbolKind::Function, {}, FunctionSymbolInfo{}});
         }
         for (const MachineGlobalVariable& Global : Module.globalVariables())
         {
-            AddUnResolvedSymbol(Global.name());
+            AddUnResolvedSymbol(Global.name(), {ExecutableSymbolKind::Data, DataSymbolInfo{Global.isConstant()}, {}});
         }
         for (const MachineSymbolDeclaration& Declaration : Module.symbolDeclarations())
         {
-            if (!UnresolvedSymbol.contains(Declaration.Name))
+            REPORT_ICE_IF((Declaration.Kind != MachineSymbolKind::Function && Declaration.Kind != MachineSymbolKind::GlobalVariable) || (Declaration.Kind == MachineSymbolKind::Function && Declaration.IsConstant), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "scanUnResolvedSymbol", "symbol declaration has invalid kind or read-only attribute");
+            const SymbolMetadata Metadata = Declaration.Kind == MachineSymbolKind::Function ? SymbolMetadata{ExecutableSymbolKind::Function, {}, FunctionSymbolInfo{}} : SymbolMetadata{ExecutableSymbolKind::Data, DataSymbolInfo{Declaration.IsConstant}, {}};
+            if (const auto DefinedPosition = DefinedSymbolMetadata.find(Declaration.Name); DefinedPosition != DefinedSymbolMetadata.end())
             {
-                ImportSymbols.insert(Declaration.Name);
+                REPORT_ICE_IF(DefinedPosition->second != Metadata, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "scanUnResolvedSymbol", "symbol declaration does not match definition metadata");
+            }
+            else if (!UnresolvedSymbol.contains(Declaration.Name))
+            {
+                const auto [ImportPosition, Inserted] = ImportSymbols.try_emplace(Declaration.Name, Metadata);
+                REPORT_ICE_IF(!Inserted && ImportPosition->second != Metadata, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "scanUnResolvedSymbol", "symbol declaration has conflicting import metadata");
             }
         }
     }
@@ -59,6 +72,20 @@ namespace ink::vm
     void ExecutableEmissionContext::resolveSymbol(core::Name Name, std::uint64_t ImageOffset)
     {
         ResolvedSymbol.insert_or_assign(Name, ImageOffset);
+        if (Name != core::NAME_None)
+        {
+            DefinedSymbolMetadata.try_emplace(Name, SymbolMetadata{});
+        }
+        UnresolvedSymbol.erase(Name);
+    }
+
+    void ExecutableEmissionContext::resolveSymbol(core::Name Name, std::uint64_t ImageOffset, SymbolMetadata Metadata)
+    {
+        ResolvedSymbol.insert_or_assign(Name, ImageOffset);
+        if (Name != core::NAME_None)
+        {
+            DefinedSymbolMetadata.insert_or_assign(Name, Metadata);
+        }
         UnresolvedSymbol.erase(Name);
     }
 
@@ -66,6 +93,16 @@ namespace ink::vm
     {
         const auto Position = ResolvedSymbol.find(Name);
         if (Position == ResolvedSymbol.end())
+        {
+            return std::nullopt;
+        }
+        return Position->second;
+    }
+
+    std::optional<ExecutableEmissionContext::SymbolMetadata> ExecutableEmissionContext::findDefinedSymbolMetadata(core::Name Name) const noexcept
+    {
+        const auto Position = DefinedSymbolMetadata.find(Name);
+        if (Position == DefinedSymbolMetadata.end())
         {
             return std::nullopt;
         }
@@ -80,6 +117,16 @@ namespace ink::vm
     bool ExecutableEmissionContext::isImportSymbol(core::Name Name) const noexcept
     {
         return ImportSymbols.contains(Name);
+    }
+
+    std::optional<DynamicImportSymbol> ExecutableEmissionContext::findImportSymbol(core::Name Name) const noexcept
+    {
+        const auto Position = ImportSymbols.find(Name);
+        if (Position == ImportSymbols.end())
+        {
+            return std::nullopt;
+        }
+        return DynamicImportSymbol{Name, Position->second.Kind, Position->second.Data, Position->second.Function};
     }
 
     void ExecutableEmissionContext::pad(const void* Src, std::size_t Count)
@@ -166,6 +213,10 @@ namespace ink::vm
         {
             Imports.push_back(Import);
         }
+        else
+        {
+            REPORT_ICE_IF(Imports[Index] != Import, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "pad", "dynamic import metadata conflicts with existing entry");
+        }
         return static_cast<std::uint32_t>(Index);
     }
 
@@ -198,7 +249,7 @@ namespace ink::vm
 
             if (Relocation.Register == RegisterId::ZERO)
             {
-                addImageBaseAddressRelocation({Relocation.ImageOffset, Position->second, Relocation.Addend});
+                addImageBaseAddressRelocation({Relocation.ImageOffset, Position->second, Relocation.Addend, Relocation.Kind});
             }
             else
             {

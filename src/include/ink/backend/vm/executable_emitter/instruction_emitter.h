@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ink/backend/vm/executable/executable_file_type.h"
 #include "ink/backend/vm/instruction/register.h"
 #include "ink/core/name/name.h"
 
@@ -14,7 +15,6 @@ namespace ink::vm
     class RegisterOperand;
     class ImmediateOperand;
     class BasicBlockOperand;
-    struct DynamicImportSymbol;
 
     class InstructionEmitter
     {
@@ -41,6 +41,7 @@ namespace ink::vm
         private:
             void padPCRelativeTarget(const ImmediateOperand& Operand, std::uint64_t InstructionOffset);
             void padCallTarget(const ImmediateOperand& Operand);
+            void padImmediateOperand(const ImmediateOperand& Operand, std::uint32_t Width, RelocationKind Kind);
             void padRegister(RegisterId Register, std::int64_t ByteOffset);
             void padUnresolvedSymbol(RegisterId Register, core::Name Symbol, std::int64_t Addend, std::uint64_t InstructionOffset);
             void padRegisterRelativeSymbol(RegisterId Register, std::uint64_t SymbolOffset, std::int64_t Addend, std::uint64_t InstructionOffset);

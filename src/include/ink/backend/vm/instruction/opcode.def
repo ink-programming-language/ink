@@ -91,9 +91,10 @@ OPCODE(Jmp, 0x002B, "jmp", B, 0, 0, 0, 0, Branch)
 OPCODE(Ret, 0x003A, "ret", None, 0, 0, 0, 0, Return)
 
 // Immediate calls supply a 64-bit callable address; memory calls read a 64-bit callable pointer.
-// The text form selects the opcode from the immediate or address operand while preserving the shared mnemonic.
+// Loading rewrites direct calls that resolve to VM functions from Calli to Callvmi.
 OPCODE(Calli, 0x003B, "call", I, 64, 0, 0, 1, Call)
-// Removed native-only call encodings 0x003C and 0x003E remain unassigned.
+OPCODE(Callvmi, 0x003C, "callvm", I, 64, 0, 0, 1, Call)
+// Removed native-only call encoding 0x003E remains unassigned.
 OPCODE(Callm, 0x003D, "call", M, 64, 0, 1, 0, Call)
 
 // Explicit jump forms use PC-relative immediates, register values, or target pointers loaded from memory.

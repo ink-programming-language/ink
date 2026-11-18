@@ -244,7 +244,7 @@ call [@function_pointer_slot]
 
 `003c`、`003e` 保留未分配，旧 `callNative` 文本被拒绝。两条指令均属于 `InstructionCategory::Call`，`isCall()` 识别两者，没有显式结果目标，也不是基本块终结指令。
 
-解释器中 `Calli` 直接使用操作数地址，`Callm` 先从寄存器基址加编码偏移指向的内存槽读取地址，随后共用调用逻辑。目标位于有效代码段且按八字节对齐时直接走 Ink 快路径，不查询 hash set；保存旧 BP 与 `NextPC = PC + 16` 后转入 VM 函数。其他目标必须命中从 `NativeSymbolAddresses` 建立的 stub 地址 hash set，才按 `void(Frame*)` 调用，不建立 Ink 保存区；未命中属于内部不变量失败，使用 `check`。保存区容量不足和递归超限通过 `REPORT_IF` 报告后返回失败。普通 `Ret` 恢复调用方，最外层 `Ret` 结束本次执行。Native 参数及返回槽由调用方按已有 stub 契约准备，完整调用区自动生成和通用宿主 ABI adapter 仍待实现。
+解释器中 `Calli` 直接使用操作数地址，`Callm` 先从寄存器基址加编码偏移指向的内存槽读取地址，随后共用调用逻辑。目标位于有效代码段且按八字节对齐时直接走 Ink 快路径，不查询 hash set；保存旧 BP 与 `NextPC = PC + 16` 后转入 VM 函数。其他目标必须命中从 `NativeSymbolAddresses` 建立的 stub 地址 hash set，才按 `void(Frame*)` 调用，不建立 Ink 保存区；未命中属于内部不变量失败，使用 `check`。保存区容量不足时通过 `REPORT_IF` 报告栈溢出并返回失败。普通 `Ret` 恢复调用方，最外层 `Ret` 结束本次执行。Native 参数及返回槽由调用方按已有 stub 契约准备，完整调用区自动生成和通用宿主 ABI adapter 仍待实现。
 
 ## C++ 指令模型
 
