@@ -6,18 +6,18 @@
 
 namespace ink::ir
 {
-    Module::Module(core::Name Name) noexcept
-        : Name(Name)
+    Module::Module(ModulePath Path) noexcept
+        : Path(std::move(Path))
     {
     }
 
-    ModuleImport& Module::addImport(ModulePath Path)
+    ModuleImport& Module::addImport(ModulePath PathValue)
     {
-        if (ModuleImport* Existing = findImport(Path))
+        if (ModuleImport* Existing = findImport(PathValue))
         {
             return *Existing;
         }
-        ModuleImport& Created = Imports.emplace_back(std::move(Path));
+        ModuleImport& Created = Imports.emplace_back(std::move(PathValue));
         Created.Parent = this;
         return Created;
     }

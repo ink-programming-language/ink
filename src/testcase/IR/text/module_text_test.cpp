@@ -84,8 +84,8 @@ namespace ink::ir::test
         std::string Text;
         auto Parsed = roundTrip(Original, &Text);
         ASSERT_NE(Parsed, nullptr);
-        EXPECT_EQ(Text, "source_filename = \"\"\n");
-        EXPECT_EQ(Parsed->module().name(), core::NAME_None);
+        EXPECT_EQ(Text, "module_path = \"\"\n");
+        EXPECT_TRUE(Parsed->module().path().empty());
         EXPECT_EQ(Parsed->module().structTypeCount(), 0U);
         EXPECT_EQ(Parsed->module().objectTypeCount(), 0U);
         EXPECT_EQ(Parsed->module().globalVariableCount(), 0U);
@@ -99,7 +99,7 @@ namespace ink::ir::test
         core::NamePool& Names = core::NamePool::instance();
         const std::string Spelling = std::string("quote\" slash\\\n") + '\0' + "\xe5\x90\x8d";
         const core::Name Name = Names.intern(Spelling);
-        Module Original(Name);
+        Module Original(ModulePath({Name}));
         Function& FunctionValue = Original.createFunction(Types.getFunctionType(Types.getBoolType(), std::array{Parameter(Types.getBoolType())}), Name);
         FunctionValue.argument(0).setName(Name);
         InstructionBuilder Builder(Types);
@@ -107,7 +107,7 @@ namespace ink::ir::test
         static_cast<void>(Builder.createReturn(FunctionValue.argument(0)));
         auto Parsed = roundTrip(Original);
         ASSERT_NE(Parsed, nullptr);
-        EXPECT_EQ(Names.text(Parsed->module().name()), Spelling);
+        EXPECT_EQ(Names.text(Parsed->module().path().qualifiedName()), Spelling);
         ASSERT_EQ(Parsed->module().functionCount(), 1U);
         const Function& Copy = *Parsed->module().functions().begin();
         EXPECT_EQ(Names.text(Copy.name()), Spelling);
@@ -127,7 +127,7 @@ namespace ink::ir::test
         StructType& First = Types.createStructType();
         StructType& Second = Types.createStructType();
         ObjectType& Object = Types.createObjectType();
-        Module Original(Names.intern("Records"));
+        Module Original(ModulePath::parse("Records"));
         Original.addStructType(First);
         Original.addStructType(Second);
         Original.addObjectType(Object);
@@ -197,7 +197,7 @@ namespace ink::ir::test
         TypePool Types;
         core::NamePool& Names = core::NamePool::instance();
         const IntegerType& Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
-        Module Original(Names.intern("Demo"));
+        Module Original(ModulePath::parse("Demo"));
         StructType& Record = Types.createStructType();
         ObjectType& Object = Types.createObjectType();
         Original.addStructType(Record);
@@ -211,7 +211,7 @@ namespace ink::ir::test
         Builder.setInsertPoint(MethodFunction.createBasicBlock(Names.intern("entry")));
         AddInstruction& Sum = Builder.createAdd(MethodFunction.argument(0), MethodFunction.argument(1));
         static_cast<void>(Builder.createReturn(Sum));
-        const std::string Expected = R"(source_filename = "Demo"
+        const std::string Expected = R"(module_path = "Demo"
 %t0 = type struct
 {
   field public instance i32 "X"
@@ -824,50 +824,50 @@ namespace ink::ir::test
     TEST(IRModuleTextTest, RejectsInvalidCallSignaturesAndArgumentLists)
     {
         constexpr std::string_view InvalidTexts[] = {
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0() { %bb0: call void 0() ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0(ptr<fn() -> void> %a0) { %bb0: call void %a0() ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private i32 @callee()
 define private void @f0() { %bb0: call i32 @callee() ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private void @callee()
 define private void @f0() { %bb0: %v0 = call void @callee() ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private i32 @callee()
 define private void @f0() { %bb0: %v0 = call i64 @callee() ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private void @callee(i32 %a0)
 define private void @f0() { %bb0: call void @callee() ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private void @callee()
 define private void @f0() { %bb0: call void @callee(i32 0) ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private void @callee(i32 %a0)
 define private void @f0() { %bb0: call void @callee(i64 0) ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private c cdecl void @callee(i32 %a0, ...)
 define private void @f0() { %bb0: call void @callee() ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private c cdecl void @callee(i32 %a0, ...)
 define private void @f0() { %bb0: call void @callee(i64 0) ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0() { %bb0: call void @missing() ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0() { %bb0: call void () ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0() { %bb0: call void @f0 ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private void @callee(i32 %a0)
 define private void @f0() { %bb0: call void @callee(i32 0,) ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private void @callee(i32 %a0, i32 %a1)
 define private void @f0() { %bb0: call void @callee(i32 0 i32 1) ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0(fn() -> void %a0) { %bb0: ret void }
 define private void @f1() { %bb1: call void %a0() ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private fn() -> void @factory()
 define private void @f0() { %bb0: call void %v0() %v0 = call fn() -> void @factory() ret void })",
         };
@@ -897,25 +897,25 @@ define private void @f0() { %bb0: call void %v0() %v0 = call fn() -> void @facto
         ASSERT_NE(ReturnPosition, std::string::npos);
         UnknownInstruction.replace(ReturnPosition, 3, "unknown_instruction");
         expectReadError(UnknownInstruction);
-        expectReadError("source_filename = \"unterminated");
+        expectReadError("module_path = \"unterminated");
     }
 
     // Undefined and duplicate value, function, and block identifiers are diagnosed without constructing dangling references.
     TEST(IRModuleTextTest, RejectsUndefinedAndDuplicateIdentifiers)
     {
         constexpr std::string_view InvalidTexts[] = {
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0() { %bb0: ret i32 %missing })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private void @f0()
 declare private void @f0())",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0(i32 %v0) { %bb0: %v0 = add i32 1, 2 ret i32 %v0 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0() { %bb0: br label %missing })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0() { %bb0: ret void %bb0: ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 %t0 = type struct {}
 %t0 = type class {})",
         };
@@ -930,21 +930,21 @@ define private void @f0() { %bb0: ret void %bb0: ret void })",
     TEST(IRModuleTextTest, RejectsInvalidTypesAndOutOfRangeConstants)
     {
         constexpr std::string_view InvalidTexts[] = {
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0(i64 %a0) { %bb0: %v0 = add i32 1, %a0 ret i32 %v0 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0(i32 %a0) { %bb0: %v0 = add i64 %a0, 2 ret i32 0 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private void @f0(void %a0))",
-            R"(source_filename = ""
+            R"(module_path = ""
 @g0 = private global void)",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private u8 @f0() { %bb0: ret u8 256 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private f32 @f0() { %bb0: ret f32 4294967296 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 %t0 = type struct { field public instance 1 "Bad" })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0() { %bb0: %v0 = phi void ret void })",
         };
         for (std::string_view Text : InvalidTexts)
@@ -958,25 +958,25 @@ define private void @f0() { %bb0: %v0 = phi void ret void })",
     TEST(IRModuleTextTest, RejectsInvalidControlFlowAndSsa)
     {
         constexpr std::string_view InvalidTexts[] = {
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0() { %bb0: %v0 = add i32 1, 2 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0() { %bb0: ret void %v0 = add i32 1, 2 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0() { %bb0: %v0 = add i32 %v1, 1 %v1 = add i32 1, 2 ret i32 %v0 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0() { %bb0: ret void }
 define private void @f1() { %bb1: br label %bb0 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0(i32 %a0) { %bb0: ret i32 %a0 }
 define private i32 @f1() { %bb1: ret i32 %a0 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0() { %bb0: br label %bb0 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0() { %bb0: br label %bb1 %bb1: %v0 = phi i32 ret i32 %v0 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0(i64 %a0) { %bb0: br label %bb1 %bb1: %v0 = phi i32 [%a0, %bb0] ret i32 %v0 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0(bool %a0) { %bb0: br bool %a0, label %bb1, label %bb2 %bb1: %v0 = add i32 1, 2 br label %bb3 %bb2: %v1 = add i32 %v0, 1 br label %bb3 %bb3: ret i32 0 })",
         };
         for (std::string_view Text : InvalidTexts)
@@ -990,7 +990,7 @@ define private i32 @f0(bool %a0) { %bb0: br bool %a0, label %bb1, label %bb2 %bb
     TEST(IRModuleTextTest, CanonicalizesWhitespaceAndLineComments)
     {
         constexpr std::string_view Input = R"(; module heading
-source_filename = "Layout" ; declarations
+module_path = "Layout" ; declarations
 declare public import c cdecl void @decl "native" ( ) ; end
 )";
         auto Parsed = readModuleText(Input);
@@ -1002,24 +1002,24 @@ declare public import c cdecl void @decl "native" ( ) ; end
         EXPECT_EQ(Declaration.abi(), ABIKind::C);
         auto Written = writeModuleText((*Parsed)->module());
         ASSERT_TRUE(Written.has_value());
-        EXPECT_EQ(*Written, "source_filename = \"Layout\"\ndeclare public import c cdecl void @f0 \"native\"()\n");
+        EXPECT_EQ(*Written, "module_path = \"Layout\"\ndeclare public import c cdecl void @f0 \"native\"()\n");
     }
 
     // Quoted byte escapes and numeric tokens reject malformed or overflowing encodings before graph construction.
     TEST(IRModuleTextTest, RejectsInvalidEscapesAndUnsignedNumericOverflow)
     {
         constexpr std::string_view InvalidTexts[] = {
-            R"(source_filename = "\GG")",
-            R"(source_filename = "\0")",
-            R"(source_filename = "\x00")",
-            "source_filename = \"line\nbreak\"",
-            R"(source_filename = ""
+            R"(module_path = "\GG")",
+            R"(module_path = "\0")",
+            R"(module_path = "\x00")",
+            "module_path = \"line\nbreak\"",
+            R"(module_path = ""
 define private u64 @f0() { %bb0: ret u64 18446744073709551616 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private u64 @f0() { %bb0: ret u64 0x10000000000000000 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 %t0 = type struct { field public instance i24 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 %t0 = type struct { field public instance f16 })",
         };
         for (std::string_view Text : InvalidTexts)
@@ -1032,7 +1032,7 @@ define private u64 @f0() { %bb0: ret u64 0x10000000000000000 })",
     // A maximal hexadecimal uint64 constant is accepted and canonicalized without signed conversion or bit loss.
     TEST(IRModuleTextTest, AcceptsTheFullUnsignedHexadecimalRange)
     {
-        constexpr std::string_view Input = R"(source_filename = ""
+        constexpr std::string_view Input = R"(module_path = ""
 define private u64 @f0() { %bb0: ret u64 0xffffffffffffffff })";
         auto Parsed = readModuleText(Input);
         ASSERT_TRUE(Parsed.has_value()) << describeDiagnostic(Parsed.error());
@@ -1052,15 +1052,15 @@ define private u64 @f0() { %bb0: ret u64 0xffffffffffffffff })";
     TEST(IRModuleTextTest, RejectsMissingListSeparatorsAndTrailingPhiCommas)
     {
         constexpr std::string_view InvalidTexts[] = {
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private void @f0(i32 %a0 i32 %a1))",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private void @f0(i32 %a0,))",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare private c cdecl void @f0(..., i32 %a0))",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0() { %bb0: br label %bb1 %bb1: %v0 = phi i32 [1, %bb0], ret i32 %v0 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0() { %bb0: br label %bb1 %bb1: %v0 = phi i32 [1 %bb0] ret i32 %v0 })",
         };
         for (std::string_view Text : InvalidTexts)
@@ -1114,10 +1114,10 @@ define private i32 @f0() { %bb0: br label %bb1 %bb1: %v0 = phi i32 [1 %bb0] ret 
         {
             TypeExpression = "ptr<" + TypeExpression + ">";
         }
-        expectReadError("source_filename = \"\"\n%t0 = type struct { field public instance " + TypeExpression + " }");
-        expectReadError("source_filename = \"\"\ndeclare private " + TypeExpression + " @f0()");
-        expectReadError("source_filename = \"\"\ndeclare private void @f0(" + TypeExpression + " %a0)");
-        expectReadError("source_filename = \"\"\ndefine private void @f0() { %bb0: %v0 = alloca " + TypeExpression + " ret void }");
+        expectReadError("module_path = \"\"\n%t0 = type struct { field public instance " + TypeExpression + " }");
+        expectReadError("module_path = \"\"\ndeclare private " + TypeExpression + " @f0()");
+        expectReadError("module_path = \"\"\ndeclare private void @f0(" + TypeExpression + " %a0)");
+        expectReadError("module_path = \"\"\ndefine private void @f0() { %bb0: %v0 = alloca " + TypeExpression + " ret void }");
     }
 
     // External function operands are explicitly rejected because an independent parsed module cannot borrow their original owners.
@@ -1139,7 +1139,7 @@ define private i32 @f0() { %bb0: br label %bb1 %bb1: %v0 = phi i32 [1 %bb0] ret 
     // Explicit default linkage, ABI, convention, parameter kind, and empty name annotations normalize to canonical LLVM-style output.
     TEST(IRModuleTextTest, NormalizesExplicitDefaultAttributesAndEmptyNames)
     {
-        constexpr std::string_view Input = R"(source_filename = ""
+        constexpr std::string_view Input = R"(module_path = ""
 @g0 "" = private none global i32
 define public none ink default fn<ink default>(positional i32) -> i32 @f0 ""(positional fn<ink default>(positional i32) -> i32 %a0 "")
 {
@@ -1151,7 +1151,7 @@ define public none ink default fn<ink default>(positional i32) -> i32 @f0 ""(pos
         ASSERT_TRUE(Parsed.has_value()) << describeDiagnostic(Parsed.error());
         auto Written = writeModuleText((*Parsed)->module());
         ASSERT_TRUE(Written.has_value()) << describeDiagnostic(Written.error());
-        const std::string Expected = R"(source_filename = ""
+        const std::string Expected = R"(module_path = ""
 @g0 = private global i32
 define public fn(i32) -> i32 @f0(fn(i32) -> i32 %a0)
 {
@@ -1198,19 +1198,19 @@ define public fn(i32) -> i32 @f0(fn(i32) -> i32 %a0)
     TEST(IRModuleTextTest, RejectsMismatchedOperandTypeAnnotations)
     {
         constexpr std::string_view InvalidTexts[] = {
-            R"(source_filename = ""
+            R"(module_path = ""
 define private i32 @f0() { %bb0: %v0 = alloca i32 %v1 = load i32, ptr<i64> %v0 ret i32 %v1 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0(i32 %a0) { %bb0: %v0 = alloca i32 store i64 %a0, ptr<i32> %v0 ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0(i32 %a0) { %bb0: %v0 = alloca i32 store i32 %a0, ptr<i64> %v0 ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0(i32 %a0) { %bb0: br i32 %a0, label %bb1, label %bb1 %bb1: ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private void @f0() { %bb0: br label @f0 })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private [4 x u8] @f0() { %bb0: ret [4 x u8] c"abc" })",
-            R"(source_filename = ""
+            R"(module_path = ""
 define private [3 x i8] @f0() { %bb0: ret [3 x i8] c"abc" })",
         };
         for (std::string_view Text : InvalidTexts)
@@ -1223,7 +1223,7 @@ define private [3 x i8] @f0() { %bb0: ret [3 x i8] c"abc" })",
     // Complete LLVM-style assembly with structs, classes, static/instance methods, control flow, phi, memory operations, and globals round-trips identically.
     TEST(IRModuleTextTest, RoundTripsCompleteRecordsAndMethodsAssemblyFixture)
     {
-        constexpr std::string_view Expected = R"(source_filename = "RecordsAndMethods"
+        constexpr std::string_view Expected = R"(module_path = "RecordsAndMethods"
 %t0 = type struct
 {
   field public instance i32 "X"
@@ -1274,7 +1274,7 @@ define private [3 x i8] @f0() { %bb0: ret [3 x i8] c"abc" })",
     // Module imports, imported structs/classes, imported globals, and imported function declarations round-trip identically.
     TEST(IRModuleTextTest, RoundTripsModuleImportsAndImportedDeclarations)
     {
-        constexpr std::string_view Expected = R"(source_filename = "app/main.ink"
+        constexpr std::string_view Expected = R"(module_path = "app.main"
 import #0 = "pkg.math.vec"
 import #1 = "std.io"
 %t0 = type struct from #0 "Vec"
@@ -1301,6 +1301,8 @@ define public f64 @f1 "main"()
         ASSERT_TRUE(Parsed.has_value()) << describeDiagnostic(Parsed.error());
         const Module& ModuleValue = (*Parsed)->module();
         EXPECT_TRUE(ModuleValue.verify());
+        EXPECT_TRUE(ModuleValue.hasPath());
+        EXPECT_EQ(ModuleValue.path(), ModulePath::parse("app.main"));
         ASSERT_EQ(ModuleValue.importCount(), 2U);
         const ModuleImport& VecImport = *ModuleValue.imports().begin();
         const ModuleImport& IoImport = *std::next(ModuleValue.imports().begin());
@@ -1333,58 +1335,68 @@ define public f64 @f1 "main"()
     TEST(IRModuleTextTest, RejectsMalformedModuleImportsAndImportedDeclarations)
     {
         constexpr std::string_view InvalidTexts[] = {
-            R"(source_filename = ""
+            R"(module_path = "app..main")",
+            R"(module_path = ".app.main")",
+            R"(module_path = "app.main.")",
+            R"(module_path = "app.main"
+module_path = "app.other")",
+            R"(module_path = ""
+import #0 = "pkg.math"
+module_path = "app.main")",
+            R"(module_path = "pkg.math"
+import #0 = "pkg.math")",
+            R"(module_path = ""
 import # = "pkg.math")",
-            R"(source_filename = ""
+            R"(module_path = ""
 import %0 = "pkg.math")",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "")",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = ".pkg.math")",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg..math")",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 import #0 = "std.io")",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 import #1 = "pkg.math")",
-            R"(source_filename = ""
+            R"(module_path = ""
 declare public from #0 void @f0 "missing"())",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 declare private from #0 void @f0 "secret"())",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 declare public import from #0 void @f0 "conflict"())",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 declare public from #0 void @f0())",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 define public from #0 void @f0 "defined"() { %bb0: ret void })",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 @g0 "x" = private from #0 global i32)",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 @g0 "x" = public import from #0 global i32)",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 @g0 = public from #0 global i32)",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 %t0 = type struct from #0 {})",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 %t0 = type struct borrowed from #0 "Vec" {})",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 %t0 = type struct from #0 borrowed "Vec" {})",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 %t0 = type struct "Vec" { method instance declare public from #0 void @f0 "m"() })",
-            R"(source_filename = ""
+            R"(module_path = ""
 import #0 = "pkg.math"
 declare public from #0 void @f0 "dup"()
 declare public from #0 void @f1 "dup"())",

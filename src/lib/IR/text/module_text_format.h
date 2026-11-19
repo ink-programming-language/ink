@@ -16,7 +16,7 @@
 // Formal Ink IR Text Grammar (LLVM IR style):
 //
 //   Module             := ModuleHeader TopLevelDeclaration*
-//   ModuleHeader       := 'source_filename' '=' QuotedString
+//   ModuleHeader       := 'module_path' '=' QuotedString
 //   TopLevelDeclaration:= ImportDeclaration | RecordDeclaration | GlobalDeclaration | FunctionDeclaration
 //   ImportDeclaration  := 'import' ImportId '=' QuotedString
 //   RecordDeclaration  := LocalId '=' 'type' ('struct' | 'class') ['borrowed' | 'from' ImportId] [QuotedString]
@@ -59,7 +59,7 @@ namespace ink::ir::detail
 {
     inline constexpr std::size_t MaxTypeExpressionDepth = 128;
 
-    inline constexpr std::string_view SourceFilenameKeyword = "source_filename";
+    inline constexpr std::string_view ModulePathKeyword = "module_path";
     inline constexpr std::string_view ImportKeyword = "import";
     inline constexpr std::string_view FromKeyword = "from";
     inline constexpr std::string_view TypeKeyword = "type";

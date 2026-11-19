@@ -103,27 +103,42 @@ namespace ink::ir
             };
 
         public:
-            explicit Module(core::Name Name = core::NAME_None) noexcept;
+            explicit Module(ModulePath Path = {}) noexcept;
 
             Module(const Module&) = delete;
             Module& operator=(const Module&) = delete;
             Module(Module&&) = delete;
             Module& operator=(Module&&) = delete;
 
-            core::Name name() const noexcept
+            const ModulePath& path() const noexcept
             {
-                return Name;
+                return Path;
+            }
+
+            bool hasPath() const noexcept
+            {
+                return Path.valid();
+            }
+
+            void setPath(ModulePath Value) noexcept
+            {
+                Path = std::move(Value);
+            }
+
+            [[nodiscard]] core::Name qualifiedSymbolName(core::Name SymbolName) const
+            {
+                return Path.qualifiedSymbolName(SymbolName);
             }
 
             // Deduplicates module paths and preserves existing ModuleImport addresses and iterators.
-            ModuleImport& addImport(ModulePath Path);
+            ModuleImport& addImport(ModulePath PathValue);
 
-            auto* findImport(this auto&& Self, const ModulePath& Path) noexcept
+            auto* findImport(this auto&& Self, const ModulePath& PathValue) noexcept
             {
                 using Pointer = std::conditional_t<std::is_const_v<std::remove_reference_t<decltype(Self)>>, const ModuleImport*, ModuleImport*>;
                 for (auto& Entry : Self.Imports)
                 {
-                    if (Entry.path() == Path)
+                    if (Entry.path() == PathValue)
                     {
                         return &Entry;
                     }
@@ -207,7 +222,7 @@ namespace ink::ir
             [[nodiscard]] bool verify(std::string* Error = nullptr) const;
 
         private:
-            core::Name Name = core::NAME_None;
+            ModulePath Path = {};
             std::list<ModuleImport> Imports = {};
             std::list<StructType*> StructTypes = {};
             std::list<ObjectType*> ObjectTypes = {};

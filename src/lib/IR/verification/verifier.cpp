@@ -102,6 +102,11 @@ namespace ink::ir
                 std::optional<VerificationError> verifyModuleGraph(const Module& ModuleValue)
                 {
                     CurrentModule = &ModuleValue;
+                    if (!ModuleValue.path().empty() && !ModuleValue.path().valid())
+                    {
+                        fail("module", "Module path is invalid");
+                        return Failure;
+                    }
                     std::unordered_set<core::Name> ImportPaths;
                     std::size_t ImportIndex = 0;
                     for (const ModuleImport& Import : ModuleValue.imports())
@@ -115,6 +120,11 @@ namespace ink::ir
                         if (!Import.path().valid())
                         {
                             fail(Context, "Module import path is invalid");
+                            return Failure;
+                        }
+                        if (ModuleValue.path().valid() && Import.path() == ModuleValue.path())
+                        {
+                            fail(Context, "Module cannot import its own module path");
                             return Failure;
                         }
                         if (!ImportPaths.insert(Import.path().qualifiedName()).second)

@@ -57,14 +57,14 @@ namespace ink::ir
                 Bases.push_back(&Base.get());
             }
 
-            void addField(core::Name Name, ValueRef FieldType, MemberKind KindValue = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Public)
+            void addField(core::Name FieldName, ValueRef FieldType, MemberKind KindValue = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Public)
             {
-                Fields.emplace_back(Name, FieldType, KindValue, Visibility);
+                Fields.emplace_back(FieldName, FieldType, KindValue, Visibility);
             }
 
-            Method& addMethod(const FunctionType& Signature, core::Name Name = core::NAME_None, MemberKind KindValue = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None)
+            Method& addMethod(const FunctionType& Signature, core::Name MethodName = core::NAME_None, MemberKind KindValue = MemberKind::Instance, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None)
             {
-                return Methods.emplace_back(Signature, Name, KindValue, Visibility, Linkage);
+                return Methods.emplace_back(Signature, MethodName, KindValue, Visibility, Linkage);
             }
 
             Method& addMethod(const FunctionType&&, core::Name = core::NAME_None, MemberKind = MemberKind::Instance, SymbolVisibility = SymbolVisibility::Private, NativeLinkage = NativeLinkage::None) = delete;

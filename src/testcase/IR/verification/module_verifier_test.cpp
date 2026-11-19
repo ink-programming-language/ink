@@ -386,6 +386,15 @@ namespace ink::ir::test
         const FunctionType& Signature = Types.getFunctionType(Int32);
         std::string Error;
 
+        Module InvalidSelfPathModule(ModulePath({core::NAME_None}));
+        EXPECT_FALSE(InvalidSelfPathModule.verify(&Error));
+        EXPECT_NE(Error.find("Module path is invalid"), std::string::npos);
+
+        Module SelfImportingModule(ModulePath::parse("pkg.math"));
+        static_cast<void>(SelfImportingModule.addImport(ModulePath::parse("pkg.math")));
+        EXPECT_FALSE(SelfImportingModule.verify(&Error));
+        EXPECT_NE(Error.find("Module cannot import its own module path"), std::string::npos);
+
         Module InvalidPathModule;
         static_cast<void>(InvalidPathModule.addImport(ModulePath{}));
         EXPECT_FALSE(InvalidPathModule.verify(&Error));

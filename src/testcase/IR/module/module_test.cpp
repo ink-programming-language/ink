@@ -111,10 +111,10 @@ namespace ink::ir::test
         core::NamePool& Names = core::NamePool::instance();
         const FunctionType& Signature = Types.getFunctionType(Types.getVoidType());
         const PointerType& GlobalType = Types.getPointerType(Types.getBoolType());
-        const core::Name ModuleName = Names.intern("application");
+        const ModulePath ModulePathValue = ModulePath::parse("application");
         const core::Name SharedName = Names.intern("declaration");
-        Module ModuleValue(ModuleName);
-        EXPECT_EQ(ModuleValue.name(), ModuleName);
+        Module ModuleValue(ModulePathValue);
+        EXPECT_EQ(ModuleValue.path(), ModulePathValue);
         EXPECT_EQ(ModuleValue.functionCount(), 0U);
         EXPECT_EQ(ModuleValue.globalVariableCount(), 0U);
         EXPECT_EQ(ModuleValue.structTypeCount(), 0U);
@@ -189,7 +189,7 @@ namespace ink::ir::test
     {
         TypePool Types;
         Module ModuleValue;
-        EXPECT_EQ(ModuleValue.name(), core::NAME_None);
+        EXPECT_TRUE(ModuleValue.path().empty());
         StructType& FirstStruct = Types.createStructType();
         ObjectType& FirstObject = Types.createObjectType();
         ModuleValue.addStructType(FirstStruct);
@@ -439,8 +439,18 @@ namespace ink::ir::test
     {
         TypePool Types;
         core::NamePool& Names = core::NamePool::instance();
-        Module ExportingModule(Names.intern("pkg/math/vec.ink"));
-        Module ImportingModule(Names.intern("app/main.ink"));
+        Module ExportingModule(ModulePath::parse("pkg.math.vec"));
+        Module ImportingModule;
+        EXPECT_TRUE(ExportingModule.hasPath());
+        EXPECT_EQ(ExportingModule.path(), ModulePath::parse("pkg.math.vec"));
+        EXPECT_EQ(ExportingModule.qualifiedSymbolName(Names.intern("length")), Names.intern("pkg.math.vec::length"));
+        EXPECT_FALSE(ImportingModule.hasPath());
+        EXPECT_TRUE(ImportingModule.path().empty());
+        EXPECT_EQ(ImportingModule.qualifiedSymbolName(Names.intern("main")), core::NAME_None);
+        ImportingModule.setPath(ModulePath::parse("app.main"));
+        EXPECT_TRUE(ImportingModule.hasPath());
+        EXPECT_EQ(ImportingModule.path(), ModulePath::parse("app.main"));
+        EXPECT_EQ(ImportingModule.qualifiedSymbolName(Names.intern("main")), Names.intern("app.main::main"));
         EXPECT_EQ(ImportingModule.importCount(), 0U);
         EXPECT_TRUE(std::ranges::empty(ImportingModule.imports()));
 

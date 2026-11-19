@@ -1173,12 +1173,21 @@ namespace ink::ir
 
                 bool parseModule()
                 {
-                    if (!consume(detail::SourceFilenameKeyword) || !consume("=") || !parseQuoted(ModuleName))
+                    if (!consume(detail::ModulePathKeyword) || !consume("="))
+                    {
+                        return false;
+                    }
+                    ModulePathOffset = Input.current().Offset;
+                    if (!parseQuoted(ModulePathText))
                     {
                         return false;
                     }
                     while (!Input.hasError() && Input.current().Kind != TokenKind::End)
                     {
+                        if (peek(detail::ModulePathKeyword))
+                        {
+                            return Input.failCurrent("duplicate or misplaced 'module_path' header");
+                        }
                         if (peek(detail::ImportKeyword))
                         {
                             ImportNode ImportValue;
@@ -1879,12 +1888,16 @@ namespace ink::ir
 
                 bool buildModuleGraph()
                 {
-                    core::Name InternedModuleName = core::NAME_None;
-                    if (!internName(ModuleName, 0, InternedModuleName))
+                    ModulePath ParsedPath;
+                    if (!ModulePathText.empty())
                     {
-                        return false;
+                        ParsedPath = ModulePath::parse(ModulePathText);
+                        if (!ParsedPath.valid())
+                        {
+                            return Input.fail(ModulePathOffset, "module_path must be a dot-separated list of non-empty identifiers");
+                        }
                     }
-                    Owned = std::make_unique<ParsedModule>(InternedModuleName);
+                    Owned = std::make_unique<ParsedModule>(std::move(ParsedPath));
                     if (!indexDefinitions())
                     {
                         return false;
@@ -2172,7 +2185,8 @@ namespace ink::ir
 
                 Lexer Input;
                 std::size_t TypeParseDepth = 0;
-                std::string ModuleName = {};
+                std::string ModulePathText = {};
+                std::size_t ModulePathOffset = 0;
                 std::vector<ImportNode> ParsedImports = {};
                 std::vector<RecordNode> ParsedRecords = {};
                 std::vector<GlobalNode> ParsedGlobals = {};

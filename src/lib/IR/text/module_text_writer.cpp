@@ -231,9 +231,9 @@ namespace ink::ir
 
                 std::expected<std::string, core::Diagnostic> write()
                 {
-                    Output += detail::SourceFilenameKeyword;
+                    Output += detail::ModulePathKeyword;
                     Output += " = ";
-                    detail::appendQuotedBytes(Output, {}, detail::nameText(ModuleValue.name()));
+                    detail::appendQuotedBytes(Output, {}, detail::nameText(ModuleValue.path().qualifiedName()));
                     Output.push_back('\n');
 
                     for (const ModuleImport& Import : ModuleValue.imports())

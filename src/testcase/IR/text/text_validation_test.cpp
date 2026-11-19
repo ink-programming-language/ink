@@ -42,10 +42,10 @@ namespace ink::ir::test
     // Self inheritance and two-record inheritance cycles are recoverable input errors even when storage would be reference-shaped.
     TEST(IRTextValidationTest, RejectsDirectAndMutualInheritanceCycles)
     {
-        expectGraphError(R"(source_filename = ""
+        expectGraphError(R"(module_path = ""
 %t0 = type struct extends (%t0) {})",
                          "inheritance contains a cycle");
-        expectGraphError(R"(source_filename = ""
+        expectGraphError(R"(module_path = ""
 %t0 = type class extends (%t1) {}
 %t1 = type class extends (%t0) {})",
                          "inheritance contains a cycle");
@@ -54,14 +54,14 @@ namespace ink::ir::test
     // Struct instance fields cannot form direct, mutual, or array-mediated recursive by-value layouts.
     TEST(IRTextValidationTest, RejectsRecursiveByValueRecordStorage)
     {
-        expectGraphError(R"(source_filename = ""
+        expectGraphError(R"(module_path = ""
 %t0 = type struct { field public instance %t0 "Self" })",
                          "recursive by-value layout");
-        expectGraphError(R"(source_filename = ""
+        expectGraphError(R"(module_path = ""
 %t0 = type struct { field public instance %t1 "Next" }
 %t1 = type struct { field public instance %t0 "Previous" })",
                          "recursive by-value layout");
-        expectGraphError(R"(source_filename = ""
+        expectGraphError(R"(module_path = ""
 %t0 = type struct { field public instance [1 x %t0] "Items" })",
                          "recursive by-value layout");
     }
@@ -69,7 +69,7 @@ namespace ink::ir::test
     // A class field is a reference and a static struct field is outside instance layout, so both may refer to their own nominal type.
     TEST(IRTextValidationTest, AcceptsReferenceAndStaticSelfReferences)
     {
-        constexpr std::string_view Text = R"(source_filename = ""
+        constexpr std::string_view Text = R"(module_path = ""
 %t0 = type class { field public instance %t0 "Self" }
 %t1 = type struct { field public static %t1 "Shared" })";
         auto Parsed = readModuleText(Text);
@@ -81,7 +81,7 @@ namespace ink::ir::test
     // Two CFG edges from one predecessor require two phi entries carrying the same value identity.
     TEST(IRTextValidationTest, RejectsConflictingValuesOnRepeatedPhiPredecessors)
     {
-        constexpr std::string_view Text = R"(source_filename = ""
+        constexpr std::string_view Text = R"(module_path = ""
 define private i32 @f0(bool %a0)
 {
   %bb0:
@@ -96,7 +96,7 @@ define private i32 @f0(bool %a0)
     // A repeated destination edge must not be deduplicated when comparing phi incoming counts against the CFG.
     TEST(IRTextValidationTest, RequiresOnePhiEntryPerRepeatedCfgEdge)
     {
-        constexpr std::string_view Text = R"(source_filename = ""
+        constexpr std::string_view Text = R"(module_path = ""
 define private i32 @f0(bool %a0)
 {
   %bb0:
@@ -111,7 +111,7 @@ define private i32 @f0(bool %a0)
     // Equal repeated phi inputs remain distinct edge entries while pooled constants preserve their shared value identity.
     TEST(IRTextValidationTest, AcceptsEqualValuesOnRepeatedPhiPredecessors)
     {
-        constexpr std::string_view Text = R"(source_filename = ""
+        constexpr std::string_view Text = R"(module_path = ""
 define private i32 @f0(bool %a0)
 {
   %bb0:
@@ -127,7 +127,7 @@ define private i32 @f0(bool %a0)
     // A phi edge use is checked at its predecessor terminator, so a value defined only in the destination cannot flow backward onto that edge.
     TEST(IRTextValidationTest, RejectsPhiValuesThatDoNotDominateTheirIncomingEdges)
     {
-        constexpr std::string_view Text = R"(source_filename = ""
+        constexpr std::string_view Text = R"(module_path = ""
 define private i32 @f0()
 {
   %bb0:
@@ -143,7 +143,7 @@ define private i32 @f0()
     // Type-valued instruction references nested in pointer metadata cannot borrow SSA definitions from a different function.
     TEST(IRTextValidationTest, RejectsForeignInstructionsHiddenInTypeMetadata)
     {
-        constexpr std::string_view Text = R"(source_filename = ""
+        constexpr std::string_view Text = R"(module_path = ""
 define private void @f0(ptr<type> %a0)
 {
   %bb0:
@@ -162,7 +162,7 @@ define private void @f1()
     // A type-producing definition in one branch does not dominate a sibling branch that embeds it in allocation metadata.
     TEST(IRTextValidationTest, ChecksDominanceInsideNestedTypeExpressions)
     {
-        constexpr std::string_view Text = R"(source_filename = ""
+        constexpr std::string_view Text = R"(module_path = ""
 define private void @f0(bool %a0, ptr<type> %a1)
 {
   %bb0:
@@ -180,7 +180,7 @@ define private void @f0(bool %a0, ptr<type> %a1)
     // Flat record declarations can encode a much deeper type graph than any individual expression, and must hit a recoverable graph-depth limit.
     TEST(IRTextValidationTest, BoundsDepthAcrossFlatNominalReferenceChains)
     {
-        std::string Text = "source_filename = \"\"\n";
+        std::string Text = "module_path = \"\"\n";
         constexpr std::size_t Count = 160;
         for (std::size_t Index = 0; Index < Count; ++Index)
         {
@@ -197,7 +197,7 @@ define private void @f0(bool %a0, ptr<type> %a1)
     // A shallow static index of a long by-value chain must still be bounded during layout traversal after type nodes have been cached.
     TEST(IRTextValidationTest, BoundsDepthOfPreviouslyVisitedStorageGraphs)
     {
-        std::string Text = "source_filename = \"\"\n%root = type struct {\n";
+        std::string Text = "module_path = \"\"\n%root = type struct {\n";
         constexpr std::size_t Count = 160;
         for (std::size_t Index = Count; Index != 0; --Index)
         {

@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace ink::ir
 {
@@ -16,8 +17,8 @@ namespace ink::ir
     class ParsedModule final
     {
         public:
-            explicit ParsedModule(core::Name Name = core::NAME_None)
-                : ModuleValue(Name)
+            explicit ParsedModule(ModulePath Path = {}) noexcept
+                : ModuleValue(std::move(Path))
             {
             }
 
