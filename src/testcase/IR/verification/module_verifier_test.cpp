@@ -1,4 +1,5 @@
 #include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/name/name_pool.h"
 #include "ink/ir/constant/integer_constant.h"
 #include "ink/ir/instruction/instruction_builder.h"
 #include "ink/ir/module/module.h"
@@ -372,5 +373,88 @@ namespace ink::ir::test
         static_cast<void>(Builder.createReturn());
         EXPECT_FALSE(BodyArrayModule.verify(&Error));
         EXPECT_NE(Error.find("storage graph exceeds supported validation depth"), std::string::npos);
+    }
+
+    // Module verification enforces import path validity, import ownership, symbol uniqueness, and imported declaration invariants.
+    TEST(IRModuleVerifierTest, EnforcesModuleImportAndCrossModuleOperandInvariants)
+    {
+        TypePool Types;
+        core::NamePool& Names = core::NamePool::instance();
+        const IntegerType& Int32 = Types.getIntegerType(IntegerType::Width::Bits32, IntegerType::Signedness::Signed);
+        const IntegerConstant Zero(Int32, 0);
+        const PointerType& Int32Pointer = Types.getPointerType(Int32);
+        const FunctionType& Signature = Types.getFunctionType(Int32);
+        std::string Error;
+
+        Module InvalidPathModule;
+        static_cast<void>(InvalidPathModule.addImport(ModulePath{}));
+        EXPECT_FALSE(InvalidPathModule.verify(&Error));
+        EXPECT_NE(Error.find("Module import path is invalid"), std::string::npos);
+
+        Module OtherModule;
+        const ModuleImport& ForeignImport = OtherModule.addImport(ModulePath::parse("pkg.foreign"));
+        Module ForeignImportFunctionModule;
+        static_cast<void>(ForeignImportFunctionModule.declareImportedFunction(ForeignImport, Signature, Names.intern("compute")));
+        EXPECT_FALSE(ForeignImportFunctionModule.verify(&Error));
+        EXPECT_NE(Error.find("Imported declaration references a foreign or unregistered module import"), std::string::npos);
+
+        Module UnnamedImportModule;
+        const ModuleImport& ValidImport = UnnamedImportModule.addImport(ModulePath::parse("pkg.math"));
+        static_cast<void>(UnnamedImportModule.declareImportedFunction(ValidImport, Signature, core::NAME_None));
+        EXPECT_FALSE(UnnamedImportModule.verify(&Error));
+        EXPECT_NE(Error.find("Imported declaration requires a valid symbol name"), std::string::npos);
+
+        Module DuplicateImportedSymbolModule;
+        const ModuleImport& DupImport = DuplicateImportedSymbolModule.addImport(ModulePath::parse("pkg.math"));
+        static_cast<void>(DuplicateImportedSymbolModule.declareImportedFunction(DupImport, Signature, Names.intern("shared")));
+        static_cast<void>(DuplicateImportedSymbolModule.declareImportedGlobal(DupImport, Int32Pointer, Names.intern("shared")));
+        EXPECT_FALSE(DuplicateImportedSymbolModule.verify(&Error));
+        EXPECT_NE(Error.find("Imported symbol is declared more than once from the same module"), std::string::npos);
+
+        Module BodyOnImportedFunctionModule;
+        const ModuleImport& BodyImport = BodyOnImportedFunctionModule.addImport(ModulePath::parse("pkg.math"));
+        Function& ImportedWithBody = BodyOnImportedFunctionModule.declareImportedFunction(BodyImport, Signature, Names.intern("compute"));
+        InstructionBuilder Builder(Types);
+        Builder.setInsertPoint(ImportedWithBody.createBasicBlock());
+        static_cast<void>(Builder.createReturn(Zero));
+        EXPECT_FALSE(BodyOnImportedFunctionModule.verify(&Error));
+        EXPECT_NE(Error.find("imported function declaration cannot have a body"), std::string::npos);
+
+        Module PrivateImportedGlobalModule;
+        const ModuleImport& GlobalImport = PrivateImportedGlobalModule.addImport(ModulePath::parse("pkg.math"));
+        GlobalVariable& PrivateImportedGlobal = PrivateImportedGlobalModule.declareImportedGlobal(GlobalImport, Int32Pointer, Names.intern("counter"));
+        PrivateImportedGlobal.setVisibility(SymbolVisibility::Private);
+        EXPECT_FALSE(PrivateImportedGlobalModule.verify(&Error));
+        EXPECT_NE(Error.find("Imported global variable must have public visibility"), std::string::npos);
+
+        Module NativeLinkageImportedGlobalModule;
+        const ModuleImport& LinkageImport = NativeLinkageImportedGlobalModule.addImport(ModulePath::parse("pkg.math"));
+        GlobalVariable& NativeImportedGlobal = NativeLinkageImportedGlobalModule.declareImportedGlobal(LinkageImport, Int32Pointer, Names.intern("counter"));
+        NativeImportedGlobal.setNativeLinkage(NativeLinkage::Import);
+        EXPECT_FALSE(NativeLinkageImportedGlobalModule.verify(&Error));
+        EXPECT_NE(Error.find("Imported global variable must not specify native linkage"), std::string::npos);
+
+        Function& ForeignFunction = OtherModule.createFunction(Signature, Names.intern("remote"), SymbolVisibility::Public);
+        GlobalVariable& ForeignGlobal = OtherModule.createGlobalVariable(Int32Pointer, Names.intern("remoteGlobal"), SymbolVisibility::Public);
+
+        Module CrossModuleCall;
+        Function& CallOwner = CrossModuleCall.createFunction(Signature);
+        Builder.setInsertPoint(CallOwner.createBasicBlock());
+        CallInstruction& BadCall = Builder.createCall(ForeignFunction);
+        static_cast<void>(Builder.createReturn(BadCall));
+        EXPECT_FALSE(CrossModuleCall.verify(&Error));
+        EXPECT_NE(Error.find("function operand belongs to another module"), std::string::npos);
+        EXPECT_FALSE(CallOwner.verify(&Error));
+        EXPECT_NE(Error.find("function operand belongs to another module"), std::string::npos);
+
+        Module CrossModuleLoad;
+        Function& LoadOwner = CrossModuleLoad.createFunction(Signature);
+        Builder.setInsertPoint(LoadOwner.createBasicBlock());
+        LoadInstruction& BadLoad = Builder.createLoad(ForeignGlobal);
+        static_cast<void>(Builder.createReturn(BadLoad));
+        EXPECT_FALSE(CrossModuleLoad.verify(&Error));
+        EXPECT_NE(Error.find("global variable operand belongs to another module"), std::string::npos);
+        EXPECT_FALSE(LoadOwner.verify(&Error));
+        EXPECT_NE(Error.find("global variable operand belongs to another module"), std::string::npos);
     }
 } // namespace ink::ir::test

@@ -10,6 +10,7 @@
 namespace ink::ir
 {
     class Module;
+    class ModuleImport;
 
     // Models module-level storage as an address value of PointerType(T).
     // The pointer type and its stored type value must outlive this declaration and its uses.
@@ -54,6 +55,16 @@ namespace ink::ir
                 return Self.Parent ? &std::forward_like<decltype(Self)&>(*Self.Parent) : nullptr;
             }
 
+            const ModuleImport* importSource() const noexcept
+            {
+                return ImportSource;
+            }
+
+            bool isImported() const noexcept
+            {
+                return ImportSource != nullptr;
+            }
+
         private:
             friend class Module;
 
@@ -61,5 +72,6 @@ namespace ink::ir
             SymbolVisibility Visibility = SymbolVisibility::Private;
             NativeLinkage Linkage = NativeLinkage::None;
             Module* Parent = nullptr;
+            const ModuleImport* ImportSource = nullptr;
     };
 } // namespace ink::ir

@@ -17,14 +17,15 @@
 //
 //   Module             := ModuleHeader TopLevelDeclaration*
 //   ModuleHeader       := 'source_filename' '=' QuotedString
-//   TopLevelDeclaration:= RecordDeclaration | GlobalDeclaration | FunctionDeclaration
-//   RecordDeclaration  := LocalId '=' 'type' ('struct' | 'class') ['borrowed']
+//   TopLevelDeclaration:= ImportDeclaration | RecordDeclaration | GlobalDeclaration | FunctionDeclaration
+//   ImportDeclaration  := 'import' ImportId '=' QuotedString
+//   RecordDeclaration  := LocalId '=' 'type' ('struct' | 'class') ['borrowed' | 'from' ImportId] [QuotedString]
 //                         ['extends' '(' Type (',' Type)* ')']
 //                         '{' FieldDeclaration* MethodDeclaration* '}'
 //   FieldDeclaration   := 'field' Visibility MemberKind Type [QuotedString]
 //   MethodDeclaration  := 'method' MemberKind FunctionDeclaration
-//   GlobalDeclaration  := GlobalId [QuotedString] '=' Visibility [Linkage] 'global' Type
-//   FunctionDeclaration:= 'declare' Visibility [Linkage] [ABI] [CallingConvention]
+//   GlobalDeclaration  := GlobalId [QuotedString] '=' Visibility [Linkage | 'from' ImportId] 'global' Type
+//   FunctionDeclaration:= 'declare' Visibility [Linkage | 'from' ImportId] [ABI] [CallingConvention]
 //                         Type GlobalId [QuotedString] '(' BoundParameterList ')'
 //                       | 'define' Visibility [Linkage] [ABI] [CallingConvention]
 //                         Type GlobalId [QuotedString] '(' BoundParameterList ')'
@@ -59,6 +60,8 @@ namespace ink::ir::detail
     inline constexpr std::size_t MaxTypeExpressionDepth = 128;
 
     inline constexpr std::string_view SourceFilenameKeyword = "source_filename";
+    inline constexpr std::string_view ImportKeyword = "import";
+    inline constexpr std::string_view FromKeyword = "from";
     inline constexpr std::string_view TypeKeyword = "type";
     inline constexpr std::string_view BorrowedKeyword = "borrowed";
     inline constexpr std::string_view ExtendsKeyword = "extends";

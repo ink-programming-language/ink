@@ -22,6 +22,16 @@ namespace ink::ir
                 return Type::classof(Value) && (static_cast<const Type*>(Value)->getKind() == TypeKind::Struct || static_cast<const Type*>(Value)->getKind() == TypeKind::Object);
             }
 
+            constexpr core::Name name() const noexcept
+            {
+                return Name;
+            }
+
+            constexpr void setName(core::Name Value) noexcept
+            {
+                Name = Value;
+            }
+
             std::span<const Value* const> bases() const noexcept
             {
                 return Bases;
@@ -60,8 +70,9 @@ namespace ink::ir
             Method& addMethod(const FunctionType&&, core::Name = core::NAME_None, MemberKind = MemberKind::Instance, SymbolVisibility = SymbolVisibility::Private, NativeLinkage = NativeLinkage::None) = delete;
 
         protected:
-            constexpr explicit RecordType(TypeKind Kind) noexcept
-                : Type(Kind)
+            constexpr explicit RecordType(TypeKind Kind, core::Name Name = core::NAME_None) noexcept
+                : Type(Kind),
+                  Name(Name)
             {
             }
 
@@ -69,6 +80,7 @@ namespace ink::ir
             ~RecordType() = default;
 
         private:
+            core::Name Name = core::NAME_None;
             std::vector<const Value*> Bases = {};
             std::vector<Field> Fields = {};
             std::vector<Method> Methods = {};

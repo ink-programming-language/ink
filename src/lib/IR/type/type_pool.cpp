@@ -119,14 +119,14 @@ namespace ink::ir
         return MetaType::instance();
     }
 
-    StructType& TypePool::createStructType()
+    StructType& TypePool::createStructType(core::Name Name)
     {
-        return Structs.emplace_back();
+        return Structs.emplace_back(Name);
     }
 
-    ObjectType& TypePool::createObjectType()
+    ObjectType& TypePool::createObjectType(core::Name Name)
     {
-        return Objects.emplace_back();
+        return Objects.emplace_back(Name);
     }
 
     const ArrayType& TypePool::getArrayType(ValueRef ElementType, std::uint64_t ElementCount)

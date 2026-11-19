@@ -2,11 +2,24 @@
 
 #include "ink/ir/verification/verifier.h"
 
+#include <utility>
+
 namespace ink::ir
 {
     Module::Module(core::Name Name) noexcept
         : Name(Name)
     {
+    }
+
+    ModuleImport& Module::addImport(ModulePath Path)
+    {
+        if (ModuleImport* Existing = findImport(Path))
+        {
+            return *Existing;
+        }
+        ModuleImport& Created = Imports.emplace_back(std::move(Path));
+        Created.Parent = this;
+        return Created;
     }
 
     void Module::addStructType(StructType& TypeValue)
@@ -19,6 +32,29 @@ namespace ink::ir
         ObjectTypes.push_back(&TypeValue);
     }
 
+    void Module::addImportedStructType(const ModuleImport& Source, StructType& TypeValue)
+    {
+        StructTypes.push_back(&TypeValue);
+        RecordImports.insert_or_assign(&TypeValue, &Source);
+    }
+
+    void Module::addImportedObjectType(const ModuleImport& Source, ObjectType& TypeValue)
+    {
+        ObjectTypes.push_back(&TypeValue);
+        RecordImports.insert_or_assign(&TypeValue, &Source);
+    }
+
+    const ModuleImport* Module::findRecordImportSource(const RecordType& TypeValue) const noexcept
+    {
+        const auto Found = RecordImports.find(&TypeValue);
+        return Found != RecordImports.end() ? Found->second : nullptr;
+    }
+
+    bool Module::isImportedRecord(const RecordType& TypeValue) const noexcept
+    {
+        return findRecordImportSource(TypeValue) != nullptr;
+    }
+
     Function& Module::createFunction(ValueRef Signature, core::Name FunctionName, SymbolVisibility Visibility, NativeLinkage Linkage)
     {
         Function& Created = Functions.emplace_back(Signature, FunctionName, Visibility, Linkage);
@@ -26,10 +62,26 @@ namespace ink::ir
         return Created;
     }
 
+    Function& Module::declareImportedFunction(const ModuleImport& Source, ValueRef Signature, core::Name SymbolName)
+    {
+        Function& Created = Functions.emplace_back(Signature, SymbolName, SymbolVisibility::Public, NativeLinkage::None);
+        Created.Parent = this;
+        Created.ImportSource = &Source;
+        return Created;
+    }
+
     GlobalVariable& Module::createGlobalVariable(const PointerType& ResultType, core::Name GlobalName, SymbolVisibility Visibility, NativeLinkage Linkage)
     {
         GlobalVariable& Created = GlobalVariables.emplace_back(ResultType, GlobalName, Visibility, Linkage);
         Created.Parent = this;
+        return Created;
+    }
+
+    GlobalVariable& Module::declareImportedGlobal(const ModuleImport& Source, const PointerType& ResultType, core::Name SymbolName)
+    {
+        GlobalVariable& Created = GlobalVariables.emplace_back(ResultType, SymbolName, SymbolVisibility::Public, NativeLinkage::None);
+        Created.Parent = this;
+        Created.ImportSource = &Source;
         return Created;
     }
 

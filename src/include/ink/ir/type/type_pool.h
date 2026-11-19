@@ -41,8 +41,8 @@ namespace ink::ir
             const MetaType& getMetaType() const noexcept;
 
             // Each call creates a distinct record definition; filling its body does not change its identity.
-            StructType& createStructType();
-            ObjectType& createObjectType();
+            StructType& createStructType(core::Name Name = core::NAME_None);
+            ObjectType& createObjectType(core::Name Name = core::NAME_None);
 
             // Composite types are interned by borrowed type identities, parameter metadata, and function call ABI.
             // Passing a value whose type is not MetaType is a programming error.

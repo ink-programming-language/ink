@@ -28,6 +28,10 @@ namespace ink::ir
             public:
                 explicit SlotTracker(const Module& ModuleValue)
                 {
+                    for (const ModuleImport& Import : ModuleValue.imports())
+                    {
+                        ImportIds.emplace(&Import, "#" + std::to_string(ImportCount++));
+                    }
                     for (const StructType& Record : ModuleValue.structTypes())
                     {
                         RegisteredRecords.insert(&Record);
@@ -68,6 +72,12 @@ namespace ink::ir
                 bool isRegistered(const RecordType& Record) const noexcept
                 {
                     return RegisteredRecords.contains(&Record);
+                }
+
+                const std::string* findImportId(const ModuleImport& Import) const noexcept
+                {
+                    const auto Found = ImportIds.find(&Import);
+                    return Found == ImportIds.end() ? nullptr : &Found->second;
                 }
 
                 const std::string* findValueId(const Value& Node) const noexcept
@@ -195,12 +205,14 @@ namespace ink::ir
                     }
                 }
 
+                std::unordered_map<const ModuleImport*, std::string> ImportIds = {};
                 std::unordered_map<const Value*, std::string> ValueIds = {};
                 std::unordered_map<const BasicBlock*, std::string> BlockIds = {};
                 std::unordered_set<const Value*> CollectedTypes = {};
                 std::unordered_set<const RecordType*> RegisteredRecords = {};
                 std::unordered_set<const RecordType*> IndexedRecords = {};
                 std::vector<const RecordType*> OrderedRecords = {};
+                std::size_t ImportCount = 0;
                 std::size_t FunctionCount = 0;
                 std::size_t GlobalCount = 0;
                 std::size_t ArgumentCount = 0;
@@ -224,6 +236,13 @@ namespace ink::ir
                     detail::appendQuotedBytes(Output, {}, detail::nameText(ModuleValue.name()));
                     Output.push_back('\n');
 
+                    for (const ModuleImport& Import : ModuleValue.imports())
+                    {
+                        if (!writeImport(Import))
+                        {
+                            return std::unexpected(std::move(*Failure));
+                        }
+                    }
                     for (const RecordType* Record : Slots.records())
                     {
                         if (!writeRecord(*Record))
@@ -483,6 +502,31 @@ namespace ink::ir
                     }
                 }
 
+                bool writeImportReference(const ModuleImport& Import)
+                {
+                    const std::string* Id = Slots.findImportId(Import);
+                    if (!Id)
+                    {
+                        return fail("module text cannot represent a module import owned outside the module");
+                    }
+                    Output += *Id;
+                    return true;
+                }
+
+                bool writeImport(const ModuleImport& Import)
+                {
+                    Output += detail::ImportKeyword;
+                    Output.push_back(' ');
+                    if (!writeImportReference(Import))
+                    {
+                        return false;
+                    }
+                    Output += " = ";
+                    detail::appendQuotedBytes(Output, {}, detail::nameText(Import.qualifiedName()));
+                    Output.push_back('\n');
+                    return true;
+                }
+
                 bool writeValueReference(const Value& Node)
                 {
                     const std::string* Id = Slots.findValueId(Node);
@@ -568,11 +612,22 @@ namespace ink::ir
                     Output += detail::TypeKeyword;
                     Output.push_back(' ');
                     Output += detail::enumSpelling(ObjectType::classof(&Record), detail::RecordKindEntries);
-                    if (!Slots.isRegistered(Record))
+                    if (const ModuleImport* ImportSource = ModuleValue.findRecordImportSource(Record))
+                    {
+                        Output.push_back(' ');
+                        Output += detail::FromKeyword;
+                        Output.push_back(' ');
+                        if (!writeImportReference(*ImportSource))
+                        {
+                            return false;
+                        }
+                    }
+                    else if (!Slots.isRegistered(Record))
                     {
                         Output.push_back(' ');
                         Output += detail::BorrowedKeyword;
                     }
+                    appendOptionalName(Record.name());
                     const auto Bases = Record.bases();
                     if (!Bases.empty())
                     {
@@ -634,7 +689,17 @@ namespace ink::ir
                     appendOptionalName(Global.name());
                     Output += " = ";
                     Output += detail::enumSpelling(Global.visibility(), detail::VisibilityEntries);
-                    if (Global.nativeLinkage() != NativeLinkage::None)
+                    if (const ModuleImport* ImportSource = Global.importSource())
+                    {
+                        Output.push_back(' ');
+                        Output += detail::FromKeyword;
+                        Output.push_back(' ');
+                        if (!writeImportReference(*ImportSource))
+                        {
+                            return false;
+                        }
+                    }
+                    else if (Global.nativeLinkage() != NativeLinkage::None)
                     {
                         Output.push_back(' ');
                         Output += detail::enumSpelling(Global.nativeLinkage(), detail::LinkageEntries);
@@ -660,7 +725,17 @@ namespace ink::ir
                     Output += detail::enumSpelling(HasBody, detail::FunctionKindEntries);
                     Output.push_back(' ');
                     Output += detail::enumSpelling(FunctionValue.visibility(), detail::VisibilityEntries);
-                    if (FunctionValue.nativeLinkage() != NativeLinkage::None)
+                    if (const ModuleImport* ImportSource = FunctionValue.importSource())
+                    {
+                        Output.push_back(' ');
+                        Output += detail::FromKeyword;
+                        Output.push_back(' ');
+                        if (!writeImportReference(*ImportSource))
+                        {
+                            return false;
+                        }
+                    }
+                    else if (FunctionValue.nativeLinkage() != NativeLinkage::None)
                     {
                         Output.push_back(' ');
                         Output += detail::enumSpelling(FunctionValue.nativeLinkage(), detail::LinkageEntries);

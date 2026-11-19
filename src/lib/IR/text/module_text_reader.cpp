@@ -215,7 +215,7 @@ namespace ink::ir
                             ++Position;
                             return lexQuoted(Start, TokenKind::String);
                         }
-                        if (Character == '%' || Character == '@')
+                        if (Character == '%' || Character == '@' || Character == '#')
                         {
                             ++Position;
                             while (Position < Input.size() && isWord(Input[Position]))
@@ -224,7 +224,7 @@ namespace ink::ir
                             }
                             if (Position == Start + 1)
                             {
-                                fail(Start, "expected an identifier after '%' or '@'");
+                                fail(Start, "expected an identifier after '%', '@', or '#'");
                                 return {TokenKind::End, {}, Position};
                             }
                             return {TokenKind::Reference, std::string(Input.substr(Start, Position - Start)), Start};
@@ -336,15 +336,25 @@ namespace ink::ir
                 std::size_t Offset = 0;
         };
 
+        struct ImportNode
+        {
+                std::string Id = {};
+                std::string Path = {};
+                std::size_t Offset = 0;
+                std::size_t PathOffset = 0;
+        };
+
         struct FunctionNode
         {
                 std::string Id = {};
                 std::string Name = {};
+                std::string ImportId = {};
                 TypeNode Signature = {};
                 SymbolVisibility Visibility = SymbolVisibility::Private;
                 NativeLinkage Linkage = NativeLinkage::None;
                 std::vector<BlockNode> Blocks = {};
                 std::size_t Offset = 0;
+                std::size_t ImportOffset = 0;
         };
 
         struct FieldNode
@@ -366,22 +376,27 @@ namespace ink::ir
         struct RecordNode
         {
                 std::string Id = {};
+                std::string Name = {};
+                std::string ImportId = {};
                 bool IsObject = false;
                 bool Registered = true;
                 std::vector<TypeNode> Bases = {};
                 std::vector<FieldNode> Fields = {};
                 std::vector<MethodNode> Methods = {};
                 std::size_t Offset = 0;
+                std::size_t ImportOffset = 0;
         };
 
         struct GlobalNode
         {
                 std::string Id = {};
                 std::string Name = {};
+                std::string ImportId = {};
                 TypeNode StoredType = {};
                 SymbolVisibility Visibility = SymbolVisibility::Private;
                 NativeLinkage Linkage = NativeLinkage::None;
                 std::size_t Offset = 0;
+                std::size_t ImportOffset = 0;
         };
 
         TypeNode cloneTypeNode(const TypeNode& Source)
@@ -536,9 +551,20 @@ namespace ink::ir
 
                 bool parseReference(std::string& Out)
                 {
-                    if (Input.hasError() || Input.current().Kind != TokenKind::Reference)
+                    if (Input.hasError() || Input.current().Kind != TokenKind::Reference || Input.current().Text.starts_with('#'))
                     {
                         return Input.failCurrent("expected a textual identifier");
+                    }
+                    Out = Input.current().Text;
+                    Input.advance();
+                    return true;
+                }
+
+                bool parseImportReference(std::string& Out)
+                {
+                    if (Input.hasError() || Input.current().Kind != TokenKind::Reference || !Input.current().Text.starts_with('#'))
+                    {
+                        return Input.failCurrent("expected a '#' module import identifier");
                     }
                     Out = Input.current().Text;
                     Input.advance();
@@ -910,7 +936,7 @@ namespace ink::ir
                     return true;
                 }
 
-                bool parseFunction(FunctionNode& Out)
+                bool parseFunction(FunctionNode& Out, bool IsRecordMethod = false)
                 {
                     Out = {};
                     Out.Offset = Input.current().Offset;
@@ -919,7 +945,44 @@ namespace ink::ir
                     {
                         return false;
                     }
-                    parseOptionalEnum(Out.Linkage, NativeLinkage::None, detail::LinkageEntries);
+                    bool SawExplicitLinkage = false;
+                    if (Input.current().Kind == TokenKind::Word)
+                    {
+                        if (const auto Parsed = detail::parseEnum(Input.current().Text, detail::LinkageEntries))
+                        {
+                            Out.Linkage = *Parsed;
+                            SawExplicitLinkage = true;
+                            Input.advance();
+                        }
+                    }
+                    if (consumeIf(detail::FromKeyword))
+                    {
+                        if (IsRecordMethod)
+                        {
+                            return Input.failCurrent("a record method cannot specify a module import source");
+                        }
+                        if (HasBody)
+                        {
+                            return Input.fail(Out.Offset, "an imported function declaration cannot have a body");
+                        }
+                        if (SawExplicitLinkage)
+                        {
+                            return Input.failCurrent("an imported function declaration cannot specify native linkage");
+                        }
+                        if (Out.Visibility != SymbolVisibility::Public)
+                        {
+                            return Input.fail(Out.Offset, "an imported function declaration must have public visibility");
+                        }
+                        Out.ImportOffset = Input.current().Offset;
+                        if (!parseImportReference(Out.ImportId))
+                        {
+                            return false;
+                        }
+                        if (Input.current().Kind == TokenKind::Word && detail::parseEnum(Input.current().Text, detail::LinkageEntries).has_value())
+                        {
+                            return Input.failCurrent("an imported function declaration cannot specify native linkage");
+                        }
+                    }
 
                     Out.Signature.Kind = TypeSyntaxKind::Function;
                     Out.Signature.Offset = Out.Offset;
@@ -929,6 +992,10 @@ namespace ink::ir
                     if (!parseType(*Out.Signature.Element) || !parseReference(Out.Id) || !parseOptionalName(Out.Name) || !consume("(") || !parseParameterList(Out.Signature, true) || !consume(")"))
                     {
                         return false;
+                    }
+                    if (!Out.ImportId.empty() && Out.Name.empty())
+                    {
+                        return Input.fail(Out.Offset, "an imported function declaration requires a non-empty symbol name");
                     }
                     if (!HasBody)
                     {
@@ -960,7 +1027,34 @@ namespace ink::ir
                     {
                         return false;
                     }
-                    Out.Registered = !consumeIf(detail::BorrowedKeyword);
+                    if (consumeIf(detail::BorrowedKeyword))
+                    {
+                        if (consumeIf(detail::FromKeyword))
+                        {
+                            return Input.failCurrent("borrowed records cannot specify an import source");
+                        }
+                        Out.Registered = false;
+                    }
+                    else if (consumeIf(detail::FromKeyword))
+                    {
+                        Out.ImportOffset = Input.current().Offset;
+                        if (!parseImportReference(Out.ImportId))
+                        {
+                            return false;
+                        }
+                        if (consumeIf(detail::BorrowedKeyword))
+                        {
+                            return Input.failCurrent("imported records cannot be marked borrowed");
+                        }
+                    }
+                    if (!parseOptionalName(Out.Name))
+                    {
+                        return false;
+                    }
+                    if (!Out.ImportId.empty() && Out.Name.empty())
+                    {
+                        return Input.fail(Out.Offset, "an imported record requires a non-empty symbol name");
+                    }
                     if (consumeIf(detail::ExtendsKeyword))
                     {
                         if (!consume("("))
@@ -1006,7 +1100,7 @@ namespace ink::ir
                     {
                         MethodNode MethodValue;
                         MethodValue.Offset = Input.current().Offset;
-                        if (!parseRequiredEnum(MethodValue.Kind, detail::MemberKindEntries, "expected 'instance' or 'static'") || !parseFunction(MethodValue.Function))
+                        if (!parseRequiredEnum(MethodValue.Kind, detail::MemberKindEntries, "expected 'instance' or 'static'") || !parseFunction(MethodValue.Function, true))
                         {
                             return false;
                         }
@@ -1021,7 +1115,40 @@ namespace ink::ir
                     {
                         return false;
                     }
-                    parseOptionalEnum(Out.Linkage, NativeLinkage::None, detail::LinkageEntries);
+                    bool SawExplicitLinkage = false;
+                    if (Input.current().Kind == TokenKind::Word)
+                    {
+                        if (const auto Parsed = detail::parseEnum(Input.current().Text, detail::LinkageEntries))
+                        {
+                            Out.Linkage = *Parsed;
+                            SawExplicitLinkage = true;
+                            Input.advance();
+                        }
+                    }
+                    if (consumeIf(detail::FromKeyword))
+                    {
+                        if (SawExplicitLinkage)
+                        {
+                            return Input.failCurrent("an imported global variable cannot specify native linkage");
+                        }
+                        if (Out.Visibility != SymbolVisibility::Public)
+                        {
+                            return Input.fail(Out.Offset, "an imported global variable must have public visibility");
+                        }
+                        if (Out.Name.empty())
+                        {
+                            return Input.fail(Out.Offset, "an imported global variable requires a non-empty symbol name");
+                        }
+                        Out.ImportOffset = Input.current().Offset;
+                        if (!parseImportReference(Out.ImportId))
+                        {
+                            return false;
+                        }
+                        if (Input.current().Kind == TokenKind::Word && detail::parseEnum(Input.current().Text, detail::LinkageEntries).has_value())
+                        {
+                            return Input.failCurrent("an imported global variable cannot specify native linkage");
+                        }
+                    }
                     return consume(detail::GlobalKeyword) && parseType(Out.StoredType);
                 }
 
@@ -1032,6 +1159,18 @@ namespace ink::ir
                     return parseReference(Out.Id) && parseOptionalName(Out.Name) && consume("=") && parseGlobalAfterEquals(Out);
                 }
 
+                bool parseImport(ImportNode& Out)
+                {
+                    Out = {};
+                    Out.Offset = Input.current().Offset;
+                    if (!consume(detail::ImportKeyword) || !parseImportReference(Out.Id) || !consume("="))
+                    {
+                        return false;
+                    }
+                    Out.PathOffset = Input.current().Offset;
+                    return parseQuoted(Out.Path);
+                }
+
                 bool parseModule()
                 {
                     if (!consume(detail::SourceFilenameKeyword) || !consume("=") || !parseQuoted(ModuleName))
@@ -1040,7 +1179,16 @@ namespace ink::ir
                     }
                     while (!Input.hasError() && Input.current().Kind != TokenKind::End)
                     {
-                        if (Input.current().Kind == TokenKind::Word && detail::parseEnum(Input.current().Text, detail::FunctionKindEntries).has_value())
+                        if (peek(detail::ImportKeyword))
+                        {
+                            ImportNode ImportValue;
+                            if (!parseImport(ImportValue))
+                            {
+                                return false;
+                            }
+                            ParsedImports.push_back(std::move(ImportValue));
+                        }
+                        else if (Input.current().Kind == TokenKind::Word && detail::parseEnum(Input.current().Text, detail::FunctionKindEntries).has_value())
                         {
                             FunctionNode FunctionValue;
                             if (!parseFunction(FunctionValue))
@@ -1537,6 +1685,15 @@ namespace ink::ir
                     {
                         State.Value = &State.Record->addMethod(Signature, FunctionName, State.Kind, Node.Visibility, Node.Linkage).function();
                     }
+                    else if (!Node.ImportId.empty())
+                    {
+                        const auto FoundImport = Imports.find(Node.ImportId);
+                        if (FoundImport == Imports.end())
+                        {
+                            return Input.fail(Node.ImportOffset, "reference names an undefined module import ID");
+                        }
+                        State.Value = &Owned->module().declareImportedFunction(*FoundImport->second, Signature, FunctionName);
+                    }
                     else
                     {
                         State.Value = &Owned->module().createFunction(Signature, FunctionName, Node.Visibility, Node.Linkage);
@@ -1735,23 +1892,64 @@ namespace ink::ir
 
                     TypePool& Types = Owned->types();
                     Module& ModuleValue = Owned->module();
+                    for (const ImportNode& Node : ParsedImports)
+                    {
+                        if (Imports.contains(Node.Id))
+                        {
+                            return Input.fail(Node.Offset, "module import IDs must be unique throughout the module");
+                        }
+                        ModulePath Path = ModulePath::parse(Node.Path);
+                        if (!Path.valid())
+                        {
+                            return Input.fail(Node.PathOffset, "module import path must be a dot-separated list of non-empty identifiers");
+                        }
+                        if (ModuleValue.findImport(Path) != nullptr)
+                        {
+                            return Input.fail(Node.PathOffset, "module import path is duplicated");
+                        }
+                        ModuleImport& Created = ModuleValue.addImport(std::move(Path));
+                        Imports.emplace(Node.Id, &Created);
+                    }
                     for (const RecordNode& Node : ParsedRecords)
                     {
+                        core::Name RecordName = core::NAME_None;
+                        if (!internName(Node.Name, Node.Offset, RecordName))
+                        {
+                            return false;
+                        }
+                        const ModuleImport* ImportSource = nullptr;
+                        if (!Node.ImportId.empty())
+                        {
+                            const auto FoundImport = Imports.find(Node.ImportId);
+                            if (FoundImport == Imports.end())
+                            {
+                                return Input.fail(Node.ImportOffset, "reference names an undefined module import ID");
+                            }
+                            ImportSource = FoundImport->second;
+                        }
                         RecordType* Record = nullptr;
                         if (Node.IsObject)
                         {
-                            ObjectType& Object = Types.createObjectType();
+                            ObjectType& Object = Types.createObjectType(RecordName);
                             Record = &Object;
-                            if (Node.Registered)
+                            if (ImportSource)
+                            {
+                                ModuleValue.addImportedObjectType(*ImportSource, Object);
+                            }
+                            else if (Node.Registered)
                             {
                                 ModuleValue.addObjectType(Object);
                             }
                         }
                         else
                         {
-                            StructType& Struct = Types.createStructType();
+                            StructType& Struct = Types.createStructType(RecordName);
                             Record = &Struct;
-                            if (Node.Registered)
+                            if (ImportSource)
+                            {
+                                ModuleValue.addImportedStructType(*ImportSource, Struct);
+                            }
+                            else if (Node.Registered)
                             {
                                 ModuleValue.addStructType(Struct);
                             }
@@ -1816,8 +2014,21 @@ namespace ink::ir
                             {
                                 return false;
                             }
-                            GlobalVariable& Global = ModuleValue.createGlobalVariable(Types.getPointerType(*StoredType), GlobalName, Node.Visibility, Node.Linkage);
-                            Values.emplace(Node.Id, &Global);
+                            GlobalVariable* Global = nullptr;
+                            if (!Node.ImportId.empty())
+                            {
+                                const auto FoundImport = Imports.find(Node.ImportId);
+                                if (FoundImport == Imports.end())
+                                {
+                                    return Input.fail(Node.ImportOffset, "reference names an undefined module import ID");
+                                }
+                                Global = &ModuleValue.declareImportedGlobal(*FoundImport->second, Types.getPointerType(*StoredType), GlobalName);
+                            }
+                            else
+                            {
+                                Global = &ModuleValue.createGlobalVariable(Types.getPointerType(*StoredType), GlobalName, Node.Visibility, Node.Linkage);
+                            }
+                            Values.emplace(Node.Id, Global);
                             ++NextGlobal;
                             --RemainingDeclarations;
                         }
@@ -1962,11 +2173,13 @@ namespace ink::ir
                 Lexer Input;
                 std::size_t TypeParseDepth = 0;
                 std::string ModuleName = {};
+                std::vector<ImportNode> ParsedImports = {};
                 std::vector<RecordNode> ParsedRecords = {};
                 std::vector<GlobalNode> ParsedGlobals = {};
                 std::vector<FunctionNode> ParsedFunctions = {};
                 std::unique_ptr<ParsedModule> Owned = nullptr;
                 std::unordered_map<std::string_view, DefinitionEntry> Definitions = {};
+                std::unordered_map<std::string_view, const ModuleImport*> Imports = {};
                 std::unordered_map<std::string_view, const Value*> Values = {};
                 std::unordered_map<std::string_view, BasicBlock*> Blocks = {};
                 std::unordered_map<const RecordNode*, RecordType*> Records = {};

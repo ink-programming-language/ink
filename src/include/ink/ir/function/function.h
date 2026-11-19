@@ -23,6 +23,7 @@ namespace ink::core
 namespace ink::ir
 {
     class Module;
+    class ModuleImport;
 
     // Borrows a FunctionType value and owns distinct arguments and named basic blocks; the signature must outlive this function.
     // Argument types borrow the exact signature type values, without rebinding generic dependencies.
@@ -47,6 +48,16 @@ namespace ink::ir
             auto* parent(this auto&& Self) noexcept
             {
                 return Self.Parent ? &std::forward_like<decltype(Self)&>(*Self.Parent) : nullptr;
+            }
+
+            const ModuleImport* importSource() const noexcept
+            {
+                return ImportSource;
+            }
+
+            bool isImported() const noexcept
+            {
+                return ImportSource != nullptr;
             }
 
             SymbolVisibility visibility() const noexcept
@@ -135,6 +146,7 @@ namespace ink::ir
             SymbolVisibility Visibility = SymbolVisibility::Private;
             NativeLinkage Linkage = NativeLinkage::None;
             Module* Parent = nullptr;
+            const ModuleImport* ImportSource = nullptr;
             std::vector<std::unique_ptr<Argument>> Arguments = {};
             std::list<BasicBlock> Blocks = {};
     };

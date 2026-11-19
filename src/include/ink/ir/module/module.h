@@ -4,6 +4,7 @@
 #include "ink/ir/enums.h"
 #include "ink/ir/function/function.h"
 #include "ink/ir/module/global_variable.h"
+#include "ink/ir/module/module_import.h"
 #include "ink/ir/type/object_type.h"
 #include "ink/ir/type/struct_type.h"
 
@@ -13,6 +14,7 @@
 #include <ranges>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
 
 namespace ink::core
 {
@@ -113,12 +115,46 @@ namespace ink::ir
                 return Name;
             }
 
+            // Deduplicates module paths and preserves existing ModuleImport addresses and iterators.
+            ModuleImport& addImport(ModulePath Path);
+
+            auto* findImport(this auto&& Self, const ModulePath& Path) noexcept
+            {
+                using Pointer = std::conditional_t<std::is_const_v<std::remove_reference_t<decltype(Self)>>, const ModuleImport*, ModuleImport*>;
+                for (auto& Entry : Self.Imports)
+                {
+                    if (Entry.path() == Path)
+                    {
+                        return &Entry;
+                    }
+                }
+                return static_cast<Pointer>(nullptr);
+            }
+
             // Registers existing nominal types without transferring ownership or validating duplicate definitions.
             void addStructType(StructType& TypeValue);
             void addObjectType(ObjectType& TypeValue);
+            void addImportedStructType(const ModuleImport& Source, StructType& TypeValue);
+            void addImportedStructType(const ModuleImport&&, StructType&) = delete;
+            void addImportedObjectType(const ModuleImport& Source, ObjectType& TypeValue);
+            void addImportedObjectType(const ModuleImport&&, ObjectType&) = delete;
+            const ModuleImport* findRecordImportSource(const RecordType& TypeValue) const noexcept;
+            bool isImportedRecord(const RecordType& TypeValue) const noexcept;
+
             Function& createFunction(ValueRef Signature, core::Name FunctionName = core::NAME_None, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None);
+            Function& declareImportedFunction(const ModuleImport& Source, ValueRef Signature, core::Name SymbolName);
+            Function& declareImportedFunction(const ModuleImport&&, ValueRef, core::Name) = delete;
+
             GlobalVariable& createGlobalVariable(const PointerType& ResultType, core::Name GlobalName = core::NAME_None, SymbolVisibility Visibility = SymbolVisibility::Private, NativeLinkage Linkage = NativeLinkage::None);
             GlobalVariable& createGlobalVariable(const PointerType&&, core::Name = core::NAME_None, SymbolVisibility = SymbolVisibility::Private, NativeLinkage = NativeLinkage::None) = delete;
+            GlobalVariable& declareImportedGlobal(const ModuleImport& Source, const PointerType& ResultType, core::Name SymbolName);
+            GlobalVariable& declareImportedGlobal(const ModuleImport&&, const PointerType&, core::Name) = delete;
+            GlobalVariable& declareImportedGlobal(const ModuleImport&, const PointerType&&, core::Name) = delete;
+
+            auto imports(this auto&& Self) noexcept
+            {
+                return std::ranges::subrange(Self.Imports.begin(), Self.Imports.end());
+            }
 
             auto structTypes(this auto&& Self) noexcept
             {
@@ -140,6 +176,11 @@ namespace ink::ir
             auto globalVariables(this auto&& Self) noexcept
             {
                 return std::ranges::subrange(Self.GlobalVariables.begin(), Self.GlobalVariables.end());
+            }
+
+            std::size_t importCount() const noexcept
+            {
+                return Imports.size();
             }
 
             std::size_t structTypeCount() const noexcept
@@ -167,8 +208,10 @@ namespace ink::ir
 
         private:
             core::Name Name = core::NAME_None;
+            std::list<ModuleImport> Imports = {};
             std::list<StructType*> StructTypes = {};
             std::list<ObjectType*> ObjectTypes = {};
+            std::unordered_map<const RecordType*, const ModuleImport*> RecordImports = {};
             std::list<GlobalVariable> GlobalVariables = {};
             std::list<Function> Functions = {};
     };

@@ -9,8 +9,8 @@ namespace ink::ir
         public:
             static constexpr TypeKind Kind = TypeKind::Struct;
 
-            constexpr StructType() noexcept
-                : RecordType(Kind)
+            constexpr explicit StructType(core::Name Name = core::NAME_None) noexcept
+                : RecordType(Kind, Name)
             {
             }
 

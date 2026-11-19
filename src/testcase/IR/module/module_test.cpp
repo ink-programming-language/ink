@@ -30,6 +30,45 @@ namespace ink::ir::test
     static_assert(std::ranges::bidirectional_range<decltype(std::declval<const Module&>().objectTypes())>);
     static_assert(std::is_same_v<decltype(std::declval<Function&>().parent()), Module*>);
     static_assert(std::is_same_v<decltype(std::declval<const Function&>().parent()), const Module*>);
+    static_assert(!std::is_copy_constructible_v<ModuleImport> && !std::is_copy_assignable_v<ModuleImport>);
+    static_assert(!std::is_move_constructible_v<ModuleImport> && !std::is_move_assignable_v<ModuleImport>);
+    static_assert(std::is_same_v<std::ranges::range_reference_t<decltype(std::declval<Module&>().imports())>, ModuleImport&>);
+    static_assert(std::is_same_v<std::ranges::range_reference_t<decltype(std::declval<const Module&>().imports())>, const ModuleImport&>);
+    static_assert(std::is_same_v<decltype(std::declval<ModuleImport&>().parent()), Module*>);
+    static_assert(std::is_same_v<decltype(std::declval<const ModuleImport&>().parent()), const ModuleImport*> == false);
+    static_assert(std::is_same_v<decltype(std::declval<const ModuleImport&>().parent()), const Module*>);
+    static_assert(std::is_same_v<decltype(std::declval<Module&>().findImport(std::declval<const ModulePath&>())), ModuleImport*>);
+    static_assert(std::is_same_v<decltype(std::declval<const Module&>().findImport(std::declval<const ModulePath&>())), const ModuleImport*>);
+
+    template <typename ImportType>
+    concept ModuleAcceptsImportedFunctionSource = requires(Module& Value, ImportType&& Source, const FunctionType& Signature, core::Name Name) {
+        Value.declareImportedFunction(std::forward<ImportType>(Source), Signature, Name);
+    };
+
+    template <typename ImportType, typename ResultType>
+    concept ModuleAcceptsImportedGlobal = requires(Module& Value, ImportType&& Source, ResultType&& TypeValue, core::Name Name) {
+        Value.declareImportedGlobal(std::forward<ImportType>(Source), std::forward<ResultType>(TypeValue), Name);
+    };
+
+    template <typename ImportType, typename Record>
+    concept ModuleAcceptsImportedStruct = requires(Module& Value, ImportType&& Source, Record&& TypeValue) {
+        Value.addImportedStructType(std::forward<ImportType>(Source), std::forward<Record>(TypeValue));
+    };
+
+    template <typename ImportType, typename Record>
+    concept ModuleAcceptsImportedObject = requires(Module& Value, ImportType&& Source, Record&& TypeValue) {
+        Value.addImportedObjectType(std::forward<ImportType>(Source), std::forward<Record>(TypeValue));
+    };
+
+    static_assert(ModuleAcceptsImportedFunctionSource<const ModuleImport&> && ModuleAcceptsImportedFunctionSource<ModuleImport&>);
+    static_assert(!ModuleAcceptsImportedFunctionSource<ModuleImport> && !ModuleAcceptsImportedFunctionSource<const ModuleImport>);
+    static_assert(ModuleAcceptsImportedGlobal<const ModuleImport&, const PointerType&>);
+    static_assert(!ModuleAcceptsImportedGlobal<ModuleImport, const PointerType&>);
+    static_assert(!ModuleAcceptsImportedGlobal<const ModuleImport&, PointerType>);
+    static_assert(ModuleAcceptsImportedStruct<const ModuleImport&, StructType&>);
+    static_assert(!ModuleAcceptsImportedStruct<ModuleImport, StructType&> && !ModuleAcceptsImportedStruct<const ModuleImport&, StructType>);
+    static_assert(ModuleAcceptsImportedObject<const ModuleImport&, ObjectType&>);
+    static_assert(!ModuleAcceptsImportedObject<ModuleImport, ObjectType&> && !ModuleAcceptsImportedObject<const ModuleImport&, ObjectType>);
 
     template <typename ResultType>
     concept ModuleAcceptsGlobalResult = requires(Module& Value, ResultType&& TypeValue) {
@@ -354,5 +393,122 @@ namespace ink::ir::test
         AnotherRegistry.addObjectType(Object);
         EXPECT_EQ(&*AnotherRegistry.structTypes().begin(), &Record);
         EXPECT_EQ(&*AnotherRegistry.objectTypes().begin(), &Object);
+    }
+
+    // ModulePath validates dot-separated component lists, round-trips qualified spellings, and formats mangled symbol names.
+    TEST(IRModuleTest, ConstructsValidAndInvalidModulePathsAndMangledSymbolNames)
+    {
+        core::NamePool& Names = core::NamePool::instance();
+        const core::Name Pkg = Names.intern("pkg");
+        const core::Name Math = Names.intern("math");
+        const core::Name Vec = Names.intern("vec");
+        const core::Name Length = Names.intern("length");
+        const ModulePath EmptyPath;
+        EXPECT_TRUE(EmptyPath.empty());
+        EXPECT_FALSE(EmptyPath.valid());
+        EXPECT_EQ(EmptyPath.componentCount(), 0U);
+        EXPECT_EQ(EmptyPath.qualifiedName(), core::NAME_None);
+        EXPECT_EQ(EmptyPath.qualifiedSymbolName(Length), core::NAME_None);
+
+        const ModulePath Constructed({Pkg, Math, Vec});
+        const ModulePath Parsed = ModulePath::parse("pkg.math.vec");
+        ASSERT_TRUE(Constructed.valid());
+        ASSERT_TRUE(Parsed.valid());
+        EXPECT_FALSE(Constructed.empty());
+        EXPECT_EQ(Constructed, Parsed);
+        EXPECT_EQ(Constructed.hash(), Parsed.hash());
+        EXPECT_EQ(std::hash<ModulePath>{}(Constructed), core::Hash<ModulePath>{}(Parsed));
+        ASSERT_EQ(Constructed.componentCount(), 3U);
+        EXPECT_EQ(Constructed.components()[0], Pkg);
+        EXPECT_EQ(Constructed.components()[1], Math);
+        EXPECT_EQ(Constructed.components()[2], Vec);
+        EXPECT_EQ(Constructed.qualifiedName(), Names.intern("pkg.math.vec"));
+        EXPECT_EQ(Constructed.qualifiedSymbolName(Length), Names.intern("pkg.math.vec::length"));
+        EXPECT_EQ(Constructed.qualifiedSymbolName(core::NAME_None), core::NAME_None);
+
+        EXPECT_FALSE(ModulePath::parse("").valid());
+        EXPECT_FALSE(ModulePath::parse(".pkg").valid());
+        EXPECT_FALSE(ModulePath::parse("pkg.").valid());
+        EXPECT_FALSE(ModulePath::parse("pkg..vec").valid());
+        EXPECT_FALSE(ModulePath({Pkg, core::NAME_None}).valid());
+        EXPECT_FALSE(ModulePath({Names.intern("pkg.math"), Vec}).valid());
+    }
+
+    // Module deduplicates import paths, keeps import addresses stable while growing, and binds local declarations to their import source.
+    TEST(IRModuleTest, DeduplicatesModuleImportsAndBindsLocalImportedDeclarations)
+    {
+        TypePool Types;
+        core::NamePool& Names = core::NamePool::instance();
+        Module ExportingModule(Names.intern("pkg/math/vec.ink"));
+        Module ImportingModule(Names.intern("app/main.ink"));
+        EXPECT_EQ(ImportingModule.importCount(), 0U);
+        EXPECT_TRUE(std::ranges::empty(ImportingModule.imports()));
+
+        const ModulePath VecPath = ModulePath::parse("pkg.math.vec");
+        const ModulePath IoPath = ModulePath::parse("std.io");
+        ModuleImport& FirstVecImport = ImportingModule.addImport(VecPath);
+        ModuleImport& DuplicateVecImport = ImportingModule.addImport(ModulePath({Names.intern("pkg"), Names.intern("math"), Names.intern("vec")}));
+        ModuleImport& IoImport = ImportingModule.addImport(IoPath);
+        EXPECT_EQ(&FirstVecImport, &DuplicateVecImport);
+        EXPECT_NE(&FirstVecImport, &IoImport);
+        EXPECT_EQ(ImportingModule.importCount(), 2U);
+        EXPECT_EQ(ImportingModule.findImport(VecPath), &FirstVecImport);
+        EXPECT_EQ(ImportingModule.findImport(IoPath), &IoImport);
+        EXPECT_EQ(ImportingModule.findImport(ModulePath::parse("missing.mod")), nullptr);
+        EXPECT_EQ(FirstVecImport.parent(), &ImportingModule);
+        EXPECT_EQ(FirstVecImport.qualifiedName(), Names.intern("pkg.math.vec"));
+        EXPECT_EQ(FirstVecImport.qualifiedSymbolName(Names.intern("length")), Names.intern("pkg.math.vec::length"));
+
+        const FloatType& Float64 = Types.getFloatType(FloatType::Width::Bits64);
+        StructType& VecStruct = Types.createStructType(Names.intern("Vec"));
+        VecStruct.addField(Names.intern("x"), Float64);
+        VecStruct.addField(Names.intern("y"), Float64);
+        ObjectType& StreamObject = Types.createObjectType(Names.intern("Stream"));
+        ExportingModule.addStructType(VecStruct);
+        ExportingModule.addObjectType(StreamObject);
+        ImportingModule.addImportedStructType(FirstVecImport, VecStruct);
+        ImportingModule.addImportedObjectType(IoImport, StreamObject);
+        EXPECT_FALSE(ExportingModule.isImportedRecord(VecStruct));
+        EXPECT_EQ(ExportingModule.findRecordImportSource(VecStruct), nullptr);
+        EXPECT_TRUE(ImportingModule.isImportedRecord(VecStruct));
+        EXPECT_EQ(ImportingModule.findRecordImportSource(VecStruct), &FirstVecImport);
+        EXPECT_TRUE(ImportingModule.isImportedRecord(StreamObject));
+        EXPECT_EQ(ImportingModule.findRecordImportSource(StreamObject), &IoImport);
+
+        const PointerType& VecPointer = Types.getPointerType(VecStruct);
+        const FunctionType& LengthSignature = Types.getFunctionType(Float64, std::array{Parameter(VecPointer)});
+        Function& ImportedLength = ImportingModule.declareImportedFunction(FirstVecImport, LengthSignature, Names.intern("length"));
+        GlobalVariable& ImportedOrigin = ImportingModule.declareImportedGlobal(FirstVecImport, VecPointer, Names.intern("Origin"));
+        EXPECT_TRUE(ImportedLength.isImported());
+        EXPECT_EQ(ImportedLength.importSource(), &FirstVecImport);
+        EXPECT_EQ(ImportedLength.parent(), &ImportingModule);
+        EXPECT_EQ(ImportedLength.visibility(), SymbolVisibility::Public);
+        EXPECT_EQ(ImportedLength.nativeLinkage(), NativeLinkage::None);
+        EXPECT_TRUE(ImportedOrigin.isImported());
+        EXPECT_EQ(ImportedOrigin.importSource(), &FirstVecImport);
+        EXPECT_EQ(ImportedOrigin.parent(), &ImportingModule);
+        EXPECT_EQ(ImportedOrigin.visibility(), SymbolVisibility::Public);
+        EXPECT_EQ(ImportedOrigin.nativeLinkage(), NativeLinkage::None);
+
+        Function& Caller = ImportingModule.createFunction(Types.getFunctionType(Float64));
+        EXPECT_FALSE(Caller.isImported());
+        EXPECT_EQ(Caller.importSource(), nullptr);
+        InstructionBuilder Builder(Types);
+        Builder.setInsertPoint(Caller.createBasicBlock());
+        CallInstruction& Call = Builder.createCall(ImportedLength, std::array<ValueRef, 1>{ImportedOrigin});
+        static_cast<void>(Builder.createReturn(Call));
+
+        auto ImportPosition = ImportingModule.imports().begin();
+        for (unsigned Index = 0; Index < 64; ++Index)
+        {
+            ImportingModule.addImport(ModulePath::parse("pkg.extra.mod_" + std::to_string(Index)));
+        }
+        EXPECT_EQ(ImportingModule.importCount(), 66U);
+        EXPECT_EQ(&*ImportPosition, &FirstVecImport);
+        EXPECT_EQ(ImportedLength.importSource(), &FirstVecImport);
+        EXPECT_EQ(ImportedOrigin.importSource(), &FirstVecImport);
+        EXPECT_EQ(ImportingModule.findRecordImportSource(VecStruct), &FirstVecImport);
+        EXPECT_TRUE(ImportingModule.verify());
+        EXPECT_TRUE(ExportingModule.verify());
     }
 } // namespace ink::ir::test

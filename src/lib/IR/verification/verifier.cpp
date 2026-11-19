@@ -101,6 +101,29 @@ namespace ink::ir
             public:
                 std::optional<VerificationError> verifyModuleGraph(const Module& ModuleValue)
                 {
+                    CurrentModule = &ModuleValue;
+                    std::unordered_set<core::Name> ImportPaths;
+                    std::size_t ImportIndex = 0;
+                    for (const ModuleImport& Import : ModuleValue.imports())
+                    {
+                        const std::string Context = fmt::format("module / import #{}", ImportIndex++);
+                        if (Import.parent() != &ModuleValue)
+                        {
+                            fail(Context, "Module import has an incorrect parent");
+                            return Failure;
+                        }
+                        if (!Import.path().valid())
+                        {
+                            fail(Context, "Module import path is invalid");
+                            return Failure;
+                        }
+                        if (!ImportPaths.insert(Import.path().qualifiedName()).second)
+                        {
+                            fail(Context, "Module import path is duplicated");
+                            return Failure;
+                        }
+                        KnownImports.insert(&Import);
+                    }
                     std::unordered_set<const RecordType*> Registered;
                     std::size_t RecordIndex = 0;
                     for (const StructType& Record : ModuleValue.structTypes())
@@ -110,7 +133,15 @@ namespace ink::ir
                             fail("module", "Record type is registered more than once");
                             return Failure;
                         }
-                        if (!checkType(Record, false, fmt::format("module / record #{}", RecordIndex++)))
+                        const std::string RecordContext = fmt::format("module / record #{}", RecordIndex++);
+                        if (const ModuleImport* Source = ModuleValue.findRecordImportSource(Record))
+                        {
+                            if (!checkImportedDeclaration(*Source, Record.name(), RecordContext))
+                            {
+                                return Failure;
+                            }
+                        }
+                        if (!checkType(Record, false, RecordContext))
                         {
                             return Failure;
                         }
@@ -122,7 +153,15 @@ namespace ink::ir
                             fail("module", "Record type is registered more than once");
                             return Failure;
                         }
-                        if (!checkType(Record, false, fmt::format("module / record #{}", RecordIndex++)))
+                        const std::string RecordContext = fmt::format("module / record #{}", RecordIndex++);
+                        if (const ModuleImport* Source = ModuleValue.findRecordImportSource(Record))
+                        {
+                            if (!checkImportedDeclaration(*Source, Record.name(), RecordContext))
+                            {
+                                return Failure;
+                            }
+                        }
+                        if (!checkType(Record, false, RecordContext))
                         {
                             return Failure;
                         }
@@ -135,6 +174,23 @@ namespace ink::ir
                         {
                             fail(Context, "Global variable has an invalid parent, visibility, or native linkage");
                             return Failure;
+                        }
+                        if (Global.isImported())
+                        {
+                            if (!checkImportedDeclaration(*Global.importSource(), Global.name(), Context))
+                            {
+                                return Failure;
+                            }
+                            if (Global.visibility() != SymbolVisibility::Public)
+                            {
+                                fail(Context, "Imported global variable must have public visibility");
+                                return Failure;
+                            }
+                            if (Global.nativeLinkage() != NativeLinkage::None)
+                            {
+                                fail(Context, "Imported global variable must not specify native linkage");
+                                return Failure;
+                            }
                         }
                         if (!checkType(Global.getType(), false, Context))
                         {
@@ -158,6 +214,10 @@ namespace ink::ir
                         if (FunctionValue.parent() != &ModuleValue)
                         {
                             fail(Context, "Module-owned function has an incorrect parent");
+                            return Failure;
+                        }
+                        if (FunctionValue.isImported() && !checkImportedDeclaration(*FunctionValue.importSource(), FunctionValue.name(), Context))
+                        {
                             return Failure;
                         }
                         if (!checkFunctionAttributes(FunctionValue, Context) || !FunctionVerifier(*this, FunctionValue, Context).verify())
@@ -525,6 +585,33 @@ namespace ink::ir
                             {
                                 return fail("function has invalid native linkage");
                             }
+                            if (FunctionValue.isImported())
+                            {
+                                if (!FunctionValue.parent() || FunctionValue.importSource()->parent() != FunctionValue.parent())
+                                {
+                                    return fail("imported function has an invalid module import owner");
+                                }
+                                if (!FunctionValue.importSource()->path().valid())
+                                {
+                                    return fail("imported function references an invalid module import path");
+                                }
+                                if (!core::NamePool::instance().contains(FunctionValue.name()))
+                                {
+                                    return fail("imported function requires a valid symbol name");
+                                }
+                                if (FunctionValue.visibility() != SymbolVisibility::Public)
+                                {
+                                    return fail("imported function must have public visibility");
+                                }
+                                if (FunctionValue.nativeLinkage() != NativeLinkage::None)
+                                {
+                                    return fail("imported function must not specify native linkage");
+                                }
+                                if (FunctionValue.basicBlockCount() != 0)
+                                {
+                                    return fail("imported function declaration cannot have a body");
+                                }
+                            }
                             const auto Parameters = FunctionValue.signature().parameters();
                             if (FunctionValue.argumentCount() != Parameters.size())
                             {
@@ -806,13 +893,37 @@ namespace ink::ir
                             case ValueKind::StringConstant:
                                 return Owner.checkConstant(Operand, OperandContext);
                             case ValueKind::Function:
-                                return FunctionType::classof(&Operand.getType()) || Reject("function operand has an invalid signature");
-                            case ValueKind::GlobalVariable:
-                                if (!PointerType::classof(&Operand.getType()))
                                 {
-                                    return Reject("global variable operand must have pointer type");
+                                    if (!FunctionType::classof(&Operand.getType()))
+                                    {
+                                        return Reject("function operand has an invalid signature");
+                                    }
+                                    const auto& ReferencedFunction = static_cast<const Function&>(Operand);
+                                    const Module* ExpectedModule = Owner.CurrentModule ? Owner.CurrentModule : FunctionValue.parent();
+                                    if (ExpectedModule && ReferencedFunction.parent() != nullptr && ReferencedFunction.parent() != ExpectedModule)
+                                    {
+                                        return Reject("function operand belongs to another module");
+                                    }
+                                    return true;
                                 }
-                                return !VoidType::classof(&static_cast<const PointerType&>(Operand.getType()).pointeeType()) || Reject("global variable cannot store void");
+                            case ValueKind::GlobalVariable:
+                                {
+                                    if (!PointerType::classof(&Operand.getType()))
+                                    {
+                                        return Reject("global variable operand must have pointer type");
+                                    }
+                                    if (VoidType::classof(&static_cast<const PointerType&>(Operand.getType()).pointeeType()))
+                                    {
+                                        return Reject("global variable cannot store void");
+                                    }
+                                    const auto& ReferencedGlobal = static_cast<const GlobalVariable&>(Operand);
+                                    const Module* ExpectedModule = Owner.CurrentModule ? Owner.CurrentModule : FunctionValue.parent();
+                                    if (ExpectedModule && ReferencedGlobal.parent() != ExpectedModule)
+                                    {
+                                        return Reject("global variable operand belongs to another module");
+                                    }
+                                    return true;
+                                }
                             case ValueKind::Argument:
                                 return Arguments.contains(static_cast<const Argument*>(&Operand)) || Reject("operand belongs to another function");
                             case ValueKind::Instruction:
@@ -965,7 +1076,7 @@ namespace ink::ir
                             return false;
                         }
                         const Function& FunctionValue = MethodValue.function();
-                        if (!require(FunctionValue.parent() == nullptr, RecordContext, "Record-owned method function must not have a module parent") || !checkFunctionAttributes(FunctionValue, RecordContext) || !require(FunctionType::classof(&FunctionValue.getType()), RecordContext, "Method requires a concrete function signature") || !checkType(FunctionValue.getType(), false, RecordContext))
+                        if (!require(FunctionValue.parent() == nullptr, RecordContext, "Record-owned method function must not have a module parent") || !require(!FunctionValue.isImported(), RecordContext, "Record-owned method function must not have a module import source") || !checkFunctionAttributes(FunctionValue, RecordContext) || !require(FunctionType::classof(&FunctionValue.getType()), RecordContext, "Method requires a concrete function signature") || !checkType(FunctionValue.getType(), false, RecordContext))
                         {
                             return false;
                         }
@@ -1190,12 +1301,54 @@ namespace ink::ir
                     return true;
                 }
 
+                struct ImportedSymbolKey
+                {
+                        const ModuleImport* Source = nullptr;
+                        core::Name Name = core::NAME_None;
+
+                        bool operator==(const ImportedSymbolKey&) const noexcept = default;
+                };
+
+                struct ImportedSymbolKeyHash
+                {
+                        std::size_t operator()(const ImportedSymbolKey& Value) const noexcept
+                        {
+                            const std::size_t First = std::hash<const ModuleImport*>{}(Value.Source);
+                            const std::size_t Second = std::hash<core::Name>{}(Value.Name);
+                            return First ^ (Second + std::size_t{0x9e3779b9} + (First << 6) + (First >> 2));
+                        }
+                };
+
+                bool checkImportedDeclaration(const ModuleImport& Source, core::Name SymbolName, std::string_view Context)
+                {
+                    if (Source.parent() != CurrentModule || !KnownImports.contains(&Source))
+                    {
+                        return fail(Context, "Imported declaration references a foreign or unregistered module import");
+                    }
+                    if (!Source.path().valid())
+                    {
+                        return fail(Context, "Imported declaration references an invalid module import path");
+                    }
+                    if (!core::NamePool::instance().contains(SymbolName))
+                    {
+                        return fail(Context, "Imported declaration requires a valid symbol name");
+                    }
+                    if (!ImportedSymbols.insert(ImportedSymbolKey{&Source, SymbolName}).second)
+                    {
+                        return fail(Context, "Imported symbol is declared more than once from the same module");
+                    }
+                    return true;
+                }
+
+                const Module* CurrentModule = nullptr;
                 std::optional<VerificationError> Failure = std::nullopt;
                 std::size_t TypeDepth = 0;
                 std::size_t InheritanceDepth = 0;
                 std::size_t LayoutDepth = 0;
                 bool CurrentAllowInstructions = false;
                 std::string_view CurrentContext = {};
+                std::unordered_set<const ModuleImport*> KnownImports = {};
+                std::unordered_set<ImportedSymbolKey, ImportedSymbolKeyHash> ImportedSymbols = {};
                 std::unordered_set<const Type*> DeclarationTypes = {};
                 std::unordered_set<const Type*> BodyTypes = {};
                 std::vector<const Type*> OrderedBodyTypes = {};

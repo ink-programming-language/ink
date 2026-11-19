@@ -1270,4 +1270,129 @@ define private [3 x i8] @f0() { %bb0: ret [3 x i8] c"abc" })",
         ASSERT_TRUE(Rewritten.has_value()) << describeDiagnostic(Rewritten.error());
         EXPECT_EQ(*Rewritten, Expected);
     }
+
+    // Module imports, imported structs/classes, imported globals, and imported function declarations round-trip identically.
+    TEST(IRModuleTextTest, RoundTripsModuleImportsAndImportedDeclarations)
+    {
+        constexpr std::string_view Expected = R"(source_filename = "app/main.ink"
+import #0 = "pkg.math.vec"
+import #1 = "std.io"
+%t0 = type struct from #0 "Vec"
+{
+  field public instance f64 "x"
+  field public instance f64 "y"
+  method instance declare public f64 @f2 "length"(ptr<%t0> %a2 "self")
+}
+%t1 = type class from #1 "Writer"
+{
+}
+@g0 "Origin" = public from #0 global %t0
+declare public from #0 f64 @f0 "dot"(ptr<%t0> %a0 "lhs", ptr<%t0> %a1 "rhs")
+define public f64 @f1 "main"()
+{
+  %bb0 "entry":
+    %v0 = call f64 @f2(ptr<%t0> @g0)
+    %v1 = call f64 @f0(ptr<%t0> @g0, ptr<%t0> @g0)
+    %v2 = add f64 %v0, %v1
+    ret f64 %v2
+}
+)";
+        auto Parsed = readModuleText(Expected);
+        ASSERT_TRUE(Parsed.has_value()) << describeDiagnostic(Parsed.error());
+        const Module& ModuleValue = (*Parsed)->module();
+        EXPECT_TRUE(ModuleValue.verify());
+        ASSERT_EQ(ModuleValue.importCount(), 2U);
+        const ModuleImport& VecImport = *ModuleValue.imports().begin();
+        const ModuleImport& IoImport = *std::next(ModuleValue.imports().begin());
+        EXPECT_EQ(VecImport.path(), ModulePath::parse("pkg.math.vec"));
+        EXPECT_EQ(IoImport.path(), ModulePath::parse("std.io"));
+        ASSERT_EQ(ModuleValue.structTypeCount(), 1U);
+        ASSERT_EQ(ModuleValue.objectTypeCount(), 1U);
+        const StructType& VecRecord = *ModuleValue.structTypes().begin();
+        const ObjectType& WriterRecord = *ModuleValue.objectTypes().begin();
+        EXPECT_EQ(VecRecord.name(), core::NamePool::instance().intern("Vec"));
+        EXPECT_EQ(WriterRecord.name(), core::NamePool::instance().intern("Writer"));
+        EXPECT_EQ(ModuleValue.findRecordImportSource(VecRecord), &VecImport);
+        EXPECT_EQ(ModuleValue.findRecordImportSource(WriterRecord), &IoImport);
+        ASSERT_EQ(ModuleValue.globalVariableCount(), 1U);
+        const GlobalVariable& Origin = *ModuleValue.globalVariables().begin();
+        EXPECT_TRUE(Origin.isImported());
+        EXPECT_EQ(Origin.importSource(), &VecImport);
+        ASSERT_EQ(ModuleValue.functionCount(), 2U);
+        const Function& Dot = *ModuleValue.functions().begin();
+        const Function& Main = *std::next(ModuleValue.functions().begin());
+        EXPECT_TRUE(Dot.isImported());
+        EXPECT_EQ(Dot.importSource(), &VecImport);
+        EXPECT_FALSE(Main.isImported());
+        auto Rewritten = writeModuleText(ModuleValue);
+        ASSERT_TRUE(Rewritten.has_value()) << describeDiagnostic(Rewritten.error());
+        EXPECT_EQ(*Rewritten, Expected);
+    }
+
+    // Malformed import headers, undefined import references, and invalid imported declaration attributes return recoverable diagnostics.
+    TEST(IRModuleTextTest, RejectsMalformedModuleImportsAndImportedDeclarations)
+    {
+        constexpr std::string_view InvalidTexts[] = {
+            R"(source_filename = ""
+import # = "pkg.math")",
+            R"(source_filename = ""
+import %0 = "pkg.math")",
+            R"(source_filename = ""
+import #0 = "")",
+            R"(source_filename = ""
+import #0 = ".pkg.math")",
+            R"(source_filename = ""
+import #0 = "pkg..math")",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+import #0 = "std.io")",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+import #1 = "pkg.math")",
+            R"(source_filename = ""
+declare public from #0 void @f0 "missing"())",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+declare private from #0 void @f0 "secret"())",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+declare public import from #0 void @f0 "conflict"())",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+declare public from #0 void @f0())",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+define public from #0 void @f0 "defined"() { %bb0: ret void })",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+@g0 "x" = private from #0 global i32)",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+@g0 "x" = public import from #0 global i32)",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+@g0 = public from #0 global i32)",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+%t0 = type struct from #0 {})",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+%t0 = type struct borrowed from #0 "Vec" {})",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+%t0 = type struct from #0 borrowed "Vec" {})",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+%t0 = type struct "Vec" { method instance declare public from #0 void @f0 "m"() })",
+            R"(source_filename = ""
+import #0 = "pkg.math"
+declare public from #0 void @f0 "dup"()
+declare public from #0 void @f1 "dup"())",
+        };
+        for (std::string_view Text : InvalidTexts)
+        {
+            SCOPED_TRACE(Text);
+            expectReadError(Text);
+        }
+    }
 } // namespace ink::ir::test

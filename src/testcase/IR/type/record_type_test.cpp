@@ -25,8 +25,11 @@ namespace ink::ir::test
     // Empty records retain their existing constant-expression construction and semantics.
     static_assert(StructType().getKind() == TypeKind::Struct);
     static_assert(StructType().getSemantics() == TypeSemantics::Value);
+    static_assert(StructType().name() == core::NAME_None);
     static_assert(ObjectType().getKind() == TypeKind::Object);
     static_assert(ObjectType().getSemantics() == TypeSemantics::Reference);
+    static_assert(ObjectType().name() == core::NAME_None);
+    static_assert(std::is_same_v<decltype(std::declval<const RecordType&>().name()), core::Name>);
     static_assert(std::is_base_of_v<RecordType, StructType>);
     static_assert(std::is_base_of_v<RecordType, ObjectType>);
     static_assert(!std::is_destructible_v<RecordType>);
@@ -382,5 +385,21 @@ namespace ink::ir::test
         EXPECT_TRUE(PointerType::classof(&Node.fields()[0].type()));
         const auto& NextType = static_cast<const PointerType&>(Node.fields()[0].type());
         EXPECT_EQ(&NextType.pointeeType(), &Node);
+    }
+
+    // Struct and object types preserve optional interned nominal names through direct and pooled construction.
+    TEST(IRTypeTest, StoresAndUpdatesOptionalRecordNames)
+    {
+        core::NamePool& Names = core::NamePool::instance();
+        TypePool Types;
+        const core::Name VecName = Names.intern("Vec");
+        const core::Name StreamName = Names.intern("Stream");
+        const core::Name Renamed = Names.intern("Vec2");
+        StructType& PooledStruct = Types.createStructType(VecName);
+        ObjectType& PooledObject = Types.createObjectType(StreamName);
+        EXPECT_EQ(PooledStruct.name(), VecName);
+        EXPECT_EQ(PooledObject.name(), StreamName);
+        PooledStruct.setName(Renamed);
+        EXPECT_EQ(PooledStruct.name(), Renamed);
     }
 } // namespace ink::ir::test
