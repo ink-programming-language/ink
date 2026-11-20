@@ -41,6 +41,8 @@ Header:u64 | Operand0:u64 | Operand1:u64 | ...
 | `Mii` | `m, i, i` |
 | `Mmb` | `m, m, b`；条件跳转的左来源、右来源、目标块 |
 | `Mib` | `m, i, b`；条件跳转的左来源、右来源、目标块 |
+| `Rrb` | `r, r, b`；寄存器条件跳转的左来源、右来源、目标块 |
+| `Rib` | `r, i, b`；寄存器条件跳转的左来源、立即数右来源、目标块 |
 | `Rrr` | `r, r, r` |
 | `Rrm` | `r, r, m` |
 | `Rri` | `r, r, i` |
@@ -172,8 +174,29 @@ add64mrr [bp + 24], r2, zero
 | `0094` | `fmul64rrr dst, lhs, rhs` | `Rrr` | `dst = lhs * rhs` | 32 字节 |
 | `0095` | `fdiv64rrr dst, lhs, rhs` | `Rrr` | `dst = lhs / rhs` | 32 字节 |
 | `0096` | `fsqrt64rr dst, src` | `Rr` | `dst = sqrt(src)` | 24 字节 |
+| `00e0` | `fneg64rr dst, src` | `Rr` | `dst = src ^ (1ULL << 63)`（翻转符号位） | 24 字节 |
+| `00e1`–`00ee` | `fcmp64<pred>rrr dst, lhs, rhs` | `Rrr` | IEEE 754 ordered/unordered 比较（写入 `0`/`1`） | 32 字节 |
+| `00ef` | `sitof64rr dst, src` | `Rr` | 有符号 `i64` 转 `f64` | 24 字节 |
+| `00f0` | `uitof64rr dst, src` | `Rr` | 无符号 `u64` 转 `f64` | 24 字节 |
+| `00f1` | `f64tosi64rr dst, src` | `Rr` | `f64` 向零饱和截断转 `i64`（NaN → 0） | 24 字节 |
+| `00f2` | `f64toui64rr dst, src` | `Rr` | `f64` 向零饱和截断转 `u64`（NaN/负数 → 0） | 24 字节 |
 
-目的寄存器仅接受 R0–R9；来源接受 R0–R9 和 ZERO，ZERO 表示 binary64 的 `+0.0`。BP、SP、PC 不作为浮点值寄存器。所有显式浮点寄存器操作数（包括目标与来源）的 `ByteOffset` 必须为零，且八字节操作数槽仍保留、写入零，不缩短指令。头中的寄存器编号仍按原有语义操作数位置编码；`fsqrt64rr` 未使用的第三个寄存器字段保持 ZERO。目标可与任一来源相同，执行器先读取全部来源再写入结果。
+`float_compare.def` 定义全部 14 个非平凡 IEEE 754 谓词：`oeq`、`one`、`olt`、`ole`、`ogt`、`oge`、`ord`、`uno`、`ueq`、`une`、`ult`、`ule`、`ugt`、`uge`。
+
+目的寄存器仅接受 R0–R9；来源接受 R0–R9 和 ZERO，ZERO 表示 binary64 的 `+0.0`（整型转浮点时表示整数 `0`）。BP、SP、PC 不作为浮点值寄存器。所有显式浮点寄存器操作数（包括目标与来源）的 `ByteOffset` 必须为零，且八字节操作数槽仍保留、写入零，不缩短指令。头中的寄存器编号仍按原有语义操作数位置编码；二元/一元指令未使用的第三个寄存器字段保持 ZERO。目标可与任一来源相同，执行器先读取全部来源再写入结果。
+
+## 寄存器传送、加载存储、算术、位运算与比较置值
+
+为满足 LLVM 寄存器后端代码生成需要，`0097` 至 `00cb` 定义以下寄存器级操作码（沿用既有寄存器与地址寻址约定：目标寄存器须为 `BP`/`SP`/`R0`–`R9` 且位移为零；来源寄存器计算 `Reg + ByteOffset`）：
+
+| 编码范围 | 操作码组 | 形式 | 语义 |
+| --- | --- | --- | --- |
+| `0097`–`0098` | `mov64rr`、`mov64ri` | `Rr`、`Ri` | 64 位寄存器传送与立即数/符号地址加载 |
+| `0099`–`009f` | `load8urm`/`load16urm`/`load32urm`、`load8srm`/`load16srm`/`load32srm`、`load64rm` | `Rm` | 按宽度从内存零扩展、符号扩展或 64 位加载至寄存器 |
+| `00a0`–`00a3` | `store8mr`、`store16mr`、`store32mr`、`store64mr` | `Mr` | 将寄存器低 8/16/32/64 位写入内存 |
+| `00a4`–`00ab` | `sub64rrr`/`rri`、`mul64rrr`/`rri`、`sdiv64rrr`、`udiv64rrr`、`srem64rrr`、`urem64rrr` | `Rrr`、`Rri` | 64 位回绕减乘及有/无符号除余；除零或 `INT64_MIN / -1`、`% -1` 报告 `VMExecutionFailed` 且保持目标与 PC 不变 |
+| `00ac`–`00b7` | `and64*`、`or64*`、`xor64*`、`shl64*`、`lshr64*`、`ashr64*`（各含 `rrr`/`rri`） | `Rrr`、`Rri` | 64 位按位运算与移位；移位量按 `rhs & 63` 取模 |
+| `00b8`–`00cb` | `integer_compare.def`：`cmpeq64*` 至 `cmpgeu64*`（10 关系 × `rrr`/`rri`） | `Rrr`、`Rri` | 64 位有/无符号比较，成立写 `1`，否则写 `0` |
 
 浮点来源的偏移限制只针对这些五条指令；整数寄存器来源的非零位移和 `[r0 + 8]` 等内存地址偏移保持原有语义。浮点常量先以 binary64 位模式放入 GPR，不能用整数数值转换替代位模式解释。例如：
 
@@ -222,25 +245,30 @@ Mib: Header:u64 | LHSOffset:u64 | ZeroExtendedRHS:u64 | TargetOffset:i64
 
 例如 `je64mib [bp + 16], 42, done` 的 opcode 为 `0049`，`jlt64mib` 为 `0059`，`jltu64mib` 为 `0079`。目标块按与 `Jmp` 相同的八字节 PC 相对位移槽形式发射，但放在整条指令的最后。目标位移相对当前指令起点；成立时执行 `PC = InstructionPC + ByteOffset`，否则执行 `PC = InstructionPC + InstructionBytes`。目标只接受同一函数中的基本块，不为每种比较再展开立即数、寄存器、内存目标变体。
 
+`register_compare_branch.def` 以 `REGISTER_COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Operator, Signed)` 补充 20 种 64 位寄存器比较条件跳转，编码范围为 `00cc` 至 `00df`，涵盖全部 10 种有/无符号关系及 `rrb`/`rib` 两种形式，指令长度同样为 32 字节。
+
 ## 函数调用目标与编码
 
-调用族只保留 `Calli` 和 `Callm`，文本统一写 `call`。直接调用使用 `ImmediateOperand`，间接调用使用 `AddressOperand`；参数和返回槽不作为显式操作数。
+调用族包含 `Calli`、`Callvmi`、`Callm` 和 `Callr`，其中 `Calli`/`Callm`/`Callr` 文本统一写 `call`。直接调用使用 `ImmediateOperand`，内存间接调用使用 `AddressOperand`，寄存器间接调用使用 `RegisterOperand`；参数和返回槽不作为显式操作数。
 
 ```text
 call @sum
 call @host_log
 call [bp + 16]
 call [@function_pointer_slot]
+call r0
 ```
 
 `Calli` 的数值目标按完整 u64 地址位模式写入。符号目标要求零 addend：本镜像函数生成 `ImageBaseAddressRelocation`，外部函数生成 `DynamicImportSymbolRelocation`。前向本镜像函数先记录 ZERO 地址静态引用，布局完成后生成镜像基址重定位。导入索引只存在于重定位元数据，不写入调用操作数。
 
-链接器允许 `call @name` 绑定可见 VM 函数定义或显式函数声明，拒绝数据目标；未满足的声明在加载时可由其他 Ink 库或 Native stub 提供。`Callm` 的符号只定位指针槽，不要求该槽本身为函数符号；执行时按字节复制读取槽内的 64 位目标地址，槽位无需对齐，调用方须保证内存可读。
+链接器允许 `call @name` 绑定可见 VM 函数定义或显式函数声明，拒绝数据目标；未满足的声明在加载时可由其他 Ink 库或 Native stub 提供。`Callm` 的符号只定位指针槽，不要求该槽本身为函数符号；执行时按字节复制读取槽内的 64 位目标地址，槽位无需对齐，调用方须保证内存可读。`Callr` 直接计算 `Register + ByteOffset` 作为 64 位目标地址，与 `Callm` 共用 Ink / Native stub 分派逻辑。
 
 | C++ 操作码 | 文本 | 编码 | 操作数字段 | 总长度 |
 | --- | --- | --- | --- | --- |
 | `Calli` | `call` | `003b` | `TargetAddress:u64`，完整运行时函数地址 | 16 字节 |
+| `Callvmi` | `callvm` | `003c` | `TargetAddress:u64`，加载期特化的 VM 函数入口地址 | 16 字节 |
 | `Callm` | `call` | `003d` | 寄存器相对内存地址，槽内保存完整函数地址 | 16 字节 |
+| `Callr` | `call` | `00f3` | 寄存器值加有符号位移作为完整运行时函数地址 | 16 字节 |
 
 `003c`、`003e` 保留未分配，旧 `callNative` 文本被拒绝。两条指令均属于 `InstructionCategory::Call`，`isCall()` 识别两者，没有显式结果目标，也不是基本块终结指令。
 

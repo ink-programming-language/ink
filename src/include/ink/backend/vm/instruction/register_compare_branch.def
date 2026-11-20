@@ -1,0 +1,24 @@
+// REGISTER_COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Operator, Signed).
+// Intentionally has no include guard: callers define REGISTER_COMPARE_BRANCH before inclusion.
+// Explicit 64-bit register comparisons branch to a block target without storing condition state.
+
+REGISTER_COMPARE_BRANCH(Je64rrb, 0x00CC, "je64rrb", Rrb, ==, false)
+REGISTER_COMPARE_BRANCH(Je64rib, 0x00CD, "je64rib", Rib, ==, false)
+REGISTER_COMPARE_BRANCH(Jne64rrb, 0x00CE, "jne64rrb", Rrb, !=, false)
+REGISTER_COMPARE_BRANCH(Jne64rib, 0x00CF, "jne64rib", Rib, !=, false)
+REGISTER_COMPARE_BRANCH(Jlt64rrb, 0x00D0, "jlt64rrb", Rrb, <, true)
+REGISTER_COMPARE_BRANCH(Jlt64rib, 0x00D1, "jlt64rib", Rib, <, true)
+REGISTER_COMPARE_BRANCH(Jle64rrb, 0x00D2, "jle64rrb", Rrb, <=, true)
+REGISTER_COMPARE_BRANCH(Jle64rib, 0x00D3, "jle64rib", Rib, <=, true)
+REGISTER_COMPARE_BRANCH(Jgt64rrb, 0x00D4, "jgt64rrb", Rrb, >, true)
+REGISTER_COMPARE_BRANCH(Jgt64rib, 0x00D5, "jgt64rib", Rib, >, true)
+REGISTER_COMPARE_BRANCH(Jge64rrb, 0x00D6, "jge64rrb", Rrb, >=, true)
+REGISTER_COMPARE_BRANCH(Jge64rib, 0x00D7, "jge64rib", Rib, >=, true)
+REGISTER_COMPARE_BRANCH(Jltu64rrb, 0x00D8, "jltu64rrb", Rrb, <, false)
+REGISTER_COMPARE_BRANCH(Jltu64rib, 0x00D9, "jltu64rib", Rib, <, false)
+REGISTER_COMPARE_BRANCH(Jleu64rrb, 0x00DA, "jleu64rrb", Rrb, <=, false)
+REGISTER_COMPARE_BRANCH(Jleu64rib, 0x00DB, "jleu64rib", Rib, <=, false)
+REGISTER_COMPARE_BRANCH(Jgtu64rrb, 0x00DC, "jgtu64rrb", Rrb, >, false)
+REGISTER_COMPARE_BRANCH(Jgtu64rib, 0x00DD, "jgtu64rib", Rib, >, false)
+REGISTER_COMPARE_BRANCH(Jgeu64rrb, 0x00DE, "jgeu64rrb", Rrb, >=, false)
+REGISTER_COMPARE_BRANCH(Jgeu64rib, 0x00DF, "jgeu64rib", Rib, >=, false)

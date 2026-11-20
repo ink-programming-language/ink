@@ -230,7 +230,7 @@ namespace ink::vm::test
         ASSERT_TRUE(Rewritten.has_value());
         EXPECT_EQ(*Rewritten, *Text);
         EXPECT_EQ((*Parsed)->functions().begin()->basicBlocks().begin()->instructionCount(), std::size(RegisteredOpcodes));
-        EXPECT_LT(Text->size(), 10000U);
+        EXPECT_LT(Text->size(), 20000U);
     }
 
     // Empty anonymous modules serialize deterministically and do not acquire declarations or a frame during parsing.
@@ -601,6 +601,47 @@ entry:
         EXPECT_NE(Written->find("fmul64rrr r2, r1, r2\n"), std::string::npos);
         EXPECT_NE(Written->find("fdiv64rrr r9, r2, r0\n"), std::string::npos);
         EXPECT_NE(Written->find("fsqrt64rr r0, r9\n"), std::string::npos);
+        const auto Reparsed = readMachineModuleText(*Written);
+        ASSERT_TRUE(Reparsed.has_value());
+        expectEqualModules(**Parsed, **Reparsed);
+    }
+
+    // P0 register moves, loads, stores, ALU, comparisons, register branches, FP64 conversions/comparisons, and register calls round-trip cleanly.
+    TEST(VMMachineModuleTextTest, RoundTripsP0RegisterInstructionsAndRegisterCalls)
+    {
+        constexpr std::string_view Text = R"(.module "p0"
+.declare function @target
+.section .text
+.function main
+entry:
+    mov64ri r0, @target
+    mov64rr r1, bp + 16
+    load8urm r2, [r1]
+    load16srm r3, [r1 + 8]
+    store32mr [bp + 24], r3 - 1
+    sub64rrr r4, r2, r3
+    mul64rri r4, r4, 3
+    sdiv64rrr r5, r4, r2
+    ashr64rri r5, r5, 2
+    cmplt64rri r6, r5, 10
+    jge64rib r6, 1, done
+    sitof64rr r7, r5
+    fneg64rr r7, r7
+    fcmp64oltrrr r8, r7, zero
+    f64tosi64rr r9, r7
+    call r0
+    call bp + 8
+done:
+    ret
+.endfunction
+)";
+        const auto Parsed = readMachineModuleText(Text);
+        ASSERT_TRUE(Parsed.has_value());
+        const auto Written = writeMachineModuleText(**Parsed);
+        ASSERT_TRUE(Written.has_value());
+        EXPECT_NE(Written->find("call r0\n"), std::string::npos);
+        EXPECT_NE(Written->find("call bp + 8\n"), std::string::npos);
+        EXPECT_NE(Written->find("jge64rib r6, 0x1, done\n"), std::string::npos);
         const auto Reparsed = readMachineModuleText(*Written);
         ASSERT_TRUE(Reparsed.has_value());
         expectEqualModules(**Parsed, **Reparsed);
@@ -1145,7 +1186,7 @@ entry:
         EXPECT_EQ(*StableText, *Rewritten);
     }
 
-    // Calls reject registers, nonzero symbol displacements, malformed memory, missing targets and extra operands.
+    // Calls reject unknown registers, nonzero symbol displacements, malformed memory, missing targets and extra operands.
     TEST(VMMachineModuleTextTest, RejectsMalformedCallTargets)
     {
         constexpr std::string_view Mnemonics[] = {
@@ -1153,9 +1194,7 @@ entry:
         };
         constexpr std::string_view InvalidTargets[] = {
             "",
-            "bp",
-            "sp",
-            "pc",
+            "r10",
             "reserved",
             "[reserved]",
             "[ref0]",

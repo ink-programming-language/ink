@@ -1,0 +1,18 @@
+// FLOAT_COMPARE(Kind, Encoding, Spelling, Expression).
+// Intentionally has no include guard: callers define FLOAT_COMPARE before inclusion.
+// Expression may evaluate Left, Right, and Unordered (std::isnan(Left) || std::isnan(Right)) to produce a bool.
+
+FLOAT_COMPARE(Fcmp64oeqrrr, 0x00E1, "fcmp64oeqrrr", !Unordered && Left == Right)
+FLOAT_COMPARE(Fcmp64onerrr, 0x00E2, "fcmp64onerrr", !Unordered && Left != Right)
+FLOAT_COMPARE(Fcmp64oltrrr, 0x00E3, "fcmp64oltrrr", !Unordered && Left < Right)
+FLOAT_COMPARE(Fcmp64olerrr, 0x00E4, "fcmp64olerrr", !Unordered && Left <= Right)
+FLOAT_COMPARE(Fcmp64ogtrrr, 0x00E5, "fcmp64ogtrrr", !Unordered && Left > Right)
+FLOAT_COMPARE(Fcmp64ogerrr, 0x00E6, "fcmp64ogerrr", !Unordered && Left >= Right)
+FLOAT_COMPARE(Fcmp64ordrrr, 0x00E7, "fcmp64ordrrr", !Unordered)
+FLOAT_COMPARE(Fcmp64unorrr, 0x00E8, "fcmp64unorrr", Unordered)
+FLOAT_COMPARE(Fcmp64ueqrrr, 0x00E9, "fcmp64ueqrrr", Unordered || Left == Right)
+FLOAT_COMPARE(Fcmp64unerrr, 0x00EA, "fcmp64unerrr", Unordered || Left != Right)
+FLOAT_COMPARE(Fcmp64ultrrr, 0x00EB, "fcmp64ultrrr", Unordered || Left < Right)
+FLOAT_COMPARE(Fcmp64ulerrr, 0x00EC, "fcmp64ulerrr", Unordered || Left <= Right)
+FLOAT_COMPARE(Fcmp64ugtrrr, 0x00ED, "fcmp64ugtrrr", Unordered || Left > Right)
+FLOAT_COMPARE(Fcmp64ugerrr, 0x00EE, "fcmp64ugerrr", Unordered || Left >= Right)

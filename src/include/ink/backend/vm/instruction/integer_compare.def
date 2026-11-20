@@ -1,0 +1,24 @@
+// INTEGER_COMPARE(Kind, Encoding, Spelling, Form, Operator, Signed).
+// Intentionally has no include guard: callers define INTEGER_COMPARE before inclusion.
+// Explicit 64-bit register comparisons write 1 when the relation holds and 0 otherwise without implicit flag state.
+
+INTEGER_COMPARE(Cmpeq64rrr, 0x00B8, "cmpeq64rrr", Rrr, ==, false)
+INTEGER_COMPARE(Cmpeq64rri, 0x00B9, "cmpeq64rri", Rri, ==, false)
+INTEGER_COMPARE(Cmpne64rrr, 0x00BA, "cmpne64rrr", Rrr, !=, false)
+INTEGER_COMPARE(Cmpne64rri, 0x00BB, "cmpne64rri", Rri, !=, false)
+INTEGER_COMPARE(Cmplt64rrr, 0x00BC, "cmplt64rrr", Rrr, <, true)
+INTEGER_COMPARE(Cmplt64rri, 0x00BD, "cmplt64rri", Rri, <, true)
+INTEGER_COMPARE(Cmple64rrr, 0x00BE, "cmple64rrr", Rrr, <=, true)
+INTEGER_COMPARE(Cmple64rri, 0x00BF, "cmple64rri", Rri, <=, true)
+INTEGER_COMPARE(Cmpgt64rrr, 0x00C0, "cmpgt64rrr", Rrr, >, true)
+INTEGER_COMPARE(Cmpgt64rri, 0x00C1, "cmpgt64rri", Rri, >, true)
+INTEGER_COMPARE(Cmpge64rrr, 0x00C2, "cmpge64rrr", Rrr, >=, true)
+INTEGER_COMPARE(Cmpge64rri, 0x00C3, "cmpge64rri", Rri, >=, true)
+INTEGER_COMPARE(Cmpltu64rrr, 0x00C4, "cmpltu64rrr", Rrr, <, false)
+INTEGER_COMPARE(Cmpltu64rri, 0x00C5, "cmpltu64rri", Rri, <, false)
+INTEGER_COMPARE(Cmpleu64rrr, 0x00C6, "cmpleu64rrr", Rrr, <=, false)
+INTEGER_COMPARE(Cmpleu64rri, 0x00C7, "cmpleu64rri", Rri, <=, false)
+INTEGER_COMPARE(Cmpgtu64rrr, 0x00C8, "cmpgtu64rrr", Rrr, >, false)
+INTEGER_COMPARE(Cmpgtu64rri, 0x00C9, "cmpgtu64rri", Rri, >, false)
+INTEGER_COMPARE(Cmpgeu64rrr, 0x00CA, "cmpgeu64rrr", Rrr, >=, false)
+INTEGER_COMPARE(Cmpgeu64rri, 0x00CB, "cmpgeu64rri", Rri, >=, false)

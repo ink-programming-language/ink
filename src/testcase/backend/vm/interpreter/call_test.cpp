@@ -748,4 +748,63 @@ entry:
         EXPECT_EQ(READ_REGISTER(RegisterId::SP, VM.getFrame()), 0U);
         EXPECT_EQ(READ_REGISTER(RegisterId::PC, VM.getFrame()), addressOf(VM.getCodeSegment().data()));
     }
+
+    // Register indirect calls dispatch both VM functions (with register displacements) and native stubs from GPR target addresses.
+    TEST(VMInterpreterCallTest, CallsVMAndNativeTargetsThroughRegisterIndirectCall)
+    {
+        core::test::ScopedEnvironmentVariable StackEnvironment("INK_VM_STACK_BYTES");
+        ASSERT_TRUE(StackEnvironment.set("64"));
+        constexpr std::string_view Text = R"(.module "register-call"
+.declare function @identity
+.section .data
+.global result, 8, 8 external
+    .byte 0, 0, 0, 0, 0, 0, 0, 0
+.endglobal
+.section .text
+.function main external
+entry:
+    mov64ri r0, @helper
+    add64rri sp, sp, 16
+    store64i [sp - 8], 1234
+    call r0
+    load64rm r1, [sp - 16]
+    add64rri sp, sp, -16
+    mov64ri r2, @identity
+    add64rri sp, sp, 16
+    store64mr [sp - 8], r1
+    call r2
+    load64rm r3, [sp - 16]
+    add64rri sp, sp, -16
+    store64mr [@result], r3
+    ret
+.endfunction
+.function helper
+entry:
+    load64rm r4, [bp - 8]
+    add64rri r4, r4, 6
+    store64mr [bp - 16], r4
+    ret
+.endfunction
+)";
+        auto Parsed = readMachineModuleText(Text);
+        ASSERT_TRUE(Parsed.has_value());
+        Interpreter VM;
+        core::CollectingDiagnosticConsumer Collector;
+        VM.getDiagnostics().addConsumer(Collector);
+        auto& Names = core::NamePool::instance();
+        const auto Main = Names.intern("main");
+        const auto Result = Names.intern("result");
+        const std::array Exports{Main, Result};
+        ExecutableEmitter Emitter(VM.getDiagnostics());
+        auto Executable = Emitter.emit(**Parsed, Main, Exports);
+        ASSERT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+
+        ASSERT_TRUE(VM.execute(VM.resolveSymbolAddress(Main)));
+
+        EXPECT_EQ(readWord(VM.resolveSymbolAddress(Result)), 1240U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::R3, VM.getFrame()), 1240U);
+        EXPECT_EQ(READ_REGISTER(RegisterId::BP, VM.getFrame()), READ_REGISTER(RegisterId::SP, VM.getFrame()));
+        EXPECT_TRUE(Collector.diagnostics().empty());
+        VM.getDiagnostics().removeConsumer(Collector);
+    }
 } // namespace ink::vm::test

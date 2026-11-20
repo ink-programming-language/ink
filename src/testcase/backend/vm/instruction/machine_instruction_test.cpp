@@ -14,7 +14,7 @@
 #include <type_traits>
 #include <utility>
 
-#if defined(OPCODE) || defined(OPCODE_FORM) || defined(INK_VM_OPCODE_DEF_UNDEF_FORM) || defined(COMPARE_BRANCH) || defined(INK_COMPARE_BRANCH_Mmb) || defined(INK_COMPARE_BRANCH_Mib)
+#if defined(OPCODE) || defined(OPCODE_FORM) || defined(INK_VM_OPCODE_DEF_UNDEF_FORM) || defined(COMPARE_BRANCH) || defined(INK_COMPARE_BRANCH_Mmb) || defined(INK_COMPARE_BRANCH_Mib) || defined(INTEGER_COMPARE) || defined(INK_INTEGER_COMPARE_Rrr) || defined(INK_INTEGER_COMPARE_Rri) || defined(REGISTER_COMPARE_BRANCH) || defined(INK_REGISTER_COMPARE_BRANCH_Rrb) || defined(INK_REGISTER_COMPARE_BRANCH_Rib) || defined(FLOAT_COMPARE)
 #error "VM instruction headers must not leak opcode definition macros"
 #endif
 
@@ -100,6 +100,10 @@ namespace ink::vm::test
                 return {OperandKind::Address, OperandKind::Address, OperandKind::BasicBlock};
             case InstructionForm::Mib:
                 return {OperandKind::Address, OperandKind::Immediate, OperandKind::BasicBlock};
+            case InstructionForm::Rrb:
+                return {OperandKind::Register, OperandKind::Register, OperandKind::BasicBlock};
+            case InstructionForm::Rib:
+                return {OperandKind::Register, OperandKind::Immediate, OperandKind::BasicBlock};
             }
             return {};
         }
@@ -591,6 +595,62 @@ namespace ink::vm::test
         constexpr MachineCalliInstruction Numeric{ImmediateOperand(std::numeric_limits<std::uint64_t>::max())};
         static_assert(Numeric.getTarget().bits() == std::numeric_limits<std::uint64_t>::max());
         static_assert(Numeric.isCall());
+        constexpr MachineCallrInstruction RegisterIndirect{RegisterOperand(RegisterId::R0, 16)};
+        static_assert(OpcodeTraits<Opcode::Callr>::Form == InstructionForm::R);
+        static_assert(OpcodeTraits<Opcode::Callr>::RegisterCount == 1);
+        static_assert(std::is_same_v<decltype(RegisterIndirect.getTarget()), const RegisterOperand&>);
+        static_assert(RegisterIndirect.getTarget().getRegister() == RegisterId::R0 && RegisterIndirect.getTarget().getByteOffset() == 16);
+        static_assert(!HasInstructionDestination<MachineCallrInstruction> && !HasInstructionSource<MachineCallrInstruction>);
+        static_assert(!std::is_constructible_v<MachineCallrInstruction, AddressOperand>);
+        static_assert(!std::is_constructible_v<MachineCallrInstruction, ImmediateOperand>);
+        EXPECT_TRUE(RegisterIndirect.isCall());
+        EXPECT_FALSE(RegisterIndirect.isTerminator());
+        EXPECT_EQ(RegisterIndirect.getName(), "call");
+        EXPECT_EQ(RegisterIndirect.getOperand(0), &RegisterIndirect.getTarget());
+    }
+
+    // P0 comparison, register-branch, and floating-point comparison manifests occupy contiguous non-overlapping opcode ranges.
+    TEST(VMMachineInstructionTest, RegistersContiguousP0ManifestEncodings)
+    {
+        constexpr Opcode IntegerCompares[] = {
+#define INTEGER_COMPARE(Kind, Encoding, Spelling, Form, Operator, Signed) Opcode::Kind,
+#include "ink/backend/vm/instruction/integer_compare.def"
+#undef INTEGER_COMPARE
+        };
+        static_assert(std::size(IntegerCompares) == 20);
+        for (std::size_t Index = 0; Index < std::size(IntegerCompares); ++Index)
+        {
+            EXPECT_EQ(static_cast<std::uint16_t>(IntegerCompares[Index]), 0x00B8U + Index);
+        }
+        constexpr Opcode RegisterBranches[] = {
+#define REGISTER_COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Operator, Signed) Opcode::Kind,
+#include "ink/backend/vm/instruction/register_compare_branch.def"
+#undef REGISTER_COMPARE_BRANCH
+        };
+        static_assert(std::size(RegisterBranches) == 20);
+        for (std::size_t Index = 0; Index < std::size(RegisterBranches); ++Index)
+        {
+            EXPECT_EQ(static_cast<std::uint16_t>(RegisterBranches[Index]), 0x00CCU + Index);
+        }
+        constexpr Opcode FloatCompares[] = {
+#define FLOAT_COMPARE(Kind, Encoding, Spelling, Expression) Opcode::Kind,
+#include "ink/backend/vm/instruction/float_compare.def"
+#undef FLOAT_COMPARE
+        };
+        static_assert(std::size(FloatCompares) == 14);
+        for (std::size_t Index = 0; Index < std::size(FloatCompares); ++Index)
+        {
+            EXPECT_EQ(static_cast<std::uint16_t>(FloatCompares[Index]), 0x00E1U + Index);
+        }
+        static_assert(OpcodeTraits<Opcode::Mov64rr>::Category == InstructionCategory::Move && OpcodeTraits<Opcode::Mov64rr>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Load8srm>::Category == InstructionCategory::Load && OpcodeTraits<Opcode::Load8srm>::BitWidth == 8);
+        static_assert(OpcodeTraits<Opcode::Store32mr>::Category == InstructionCategory::Store && OpcodeTraits<Opcode::Store32mr>::BitWidth == 32);
+        static_assert(OpcodeTraits<Opcode::Sdiv64rrr>::Category == InstructionCategory::Arithmetic && OpcodeTraits<Opcode::Sdiv64rrr>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Ashr64rri>::Category == InstructionCategory::Bitwise && OpcodeTraits<Opcode::Ashr64rri>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Cmplt64rrr>::Category == InstructionCategory::Compare && OpcodeTraits<Opcode::Cmplt64rrr>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Je64rrb>::Category == InstructionCategory::ConditionalBranch && !OpcodeTraits<Opcode::Je64rrb>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Fcmp64oeqrrr>::Category == InstructionCategory::FloatingPoint && OpcodeTraits<Opcode::Fcmp64oeqrrr>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::F64tosi64rr>::Category == InstructionCategory::FloatingPoint && OpcodeTraits<Opcode::F64tosi64rr>::HasDestination);
     }
 
 } // namespace ink::vm::test

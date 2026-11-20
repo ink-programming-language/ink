@@ -73,5 +73,18 @@ namespace ink::vm
                 const auto Count = operandCount(Operation);
                 return Count <= MaxOperands ? (Count + 1) * WordBytes : 0;
             }
+
+            static FORCE_INLINE constexpr bool isFloatingPoint(Opcode Operation) noexcept
+            {
+                switch (Operation)
+                {
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
+    case Opcode::Kind:                                                                                       \
+        return InstructionCategory::Category == InstructionCategory::FloatingPoint;
+#include "ink/backend/vm/instruction/opcode.def"
+#undef OPCODE
+                }
+                return false;
+            }
     };
 } // namespace ink::vm

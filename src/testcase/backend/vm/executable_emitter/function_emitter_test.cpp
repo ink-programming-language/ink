@@ -78,6 +78,53 @@ namespace ink::vm::test
             EXPECT_TRUE(Context.getExecutable().getImageBaseAddressRelocations().empty());
             EXPECT_TRUE(Context.getExecutable().getDynamicImportSymbolRelocations().empty());
         }
+
+        template <Opcode Operation>
+        void verifyRegisterComparisonBranchEncoding(std::uint16_t Encoding)
+        {
+            SCOPED_TRACE(Encoding);
+            constexpr bool RegisterRHS = OpcodeTraits<Operation>::Form == InstructionForm::Rrb;
+            constexpr auto InstructionBytes = InstructionEncoding::byteSize(Operation);
+            constexpr std::uint64_t ImmediateBits = 0xFFEEDDCCBBAA9988ULL;
+            const core::DiagnosticEngine Diagnostics;
+            ExecutableEmissionContext Context(Diagnostics);
+            Context.padZero(1);
+            MachineFunction Function;
+            auto& Source = Function.createBasicBlock();
+            auto& Target = Function.createBasicBlock();
+            MachineInstructionBuilder Builder;
+            Builder.setInsertPoint(Source);
+            if constexpr (RegisterRHS)
+            {
+                Builder.create<Operation>(RegisterOperand(RegisterId::R0, -3), RegisterOperand(RegisterId::R1, 5), BasicBlockOperand(&Target));
+            }
+            else
+            {
+                Builder.create<Operation>(RegisterOperand(RegisterId::R0, -3), ImmediateOperand(ImmediateBits), BasicBlockOperand(&Target));
+            }
+            Builder.setInsertPoint(Target);
+            Builder.create<Opcode::Ret>();
+            FunctionEmitter Emitter(Context);
+            Emitter.emit(Function);
+
+            ASSERT_EQ(Context.byteSize(), InstructionBytes + 16);
+            EXPECT_EQ(readLittleEndian(Context, 8, 2), Encoding);
+            EXPECT_EQ(Context.getExecutable().getImage()[10], static_cast<std::uint8_t>(RegisterId::R0));
+            EXPECT_EQ(readLittleEndian(Context, 16), static_cast<std::uint64_t>(-3));
+            if constexpr (RegisterRHS)
+            {
+                EXPECT_EQ(Context.getExecutable().getImage()[11], static_cast<std::uint8_t>(RegisterId::R1));
+                EXPECT_EQ(readLittleEndian(Context, 24), 5U);
+            }
+            else
+            {
+                EXPECT_EQ(Context.getExecutable().getImage()[11], static_cast<std::uint8_t>(RegisterId::ZERO));
+                EXPECT_EQ(readLittleEndian(Context, 24), ImmediateBits);
+            }
+            EXPECT_EQ(Context.getExecutable().getImage()[12], static_cast<std::uint8_t>(RegisterId::PC));
+            EXPECT_EQ(readLittleEndian(Context, 32), InstructionBytes);
+            EXPECT_EQ(readLittleEndian(Context, 8 + InstructionBytes, 2), 0x003AU);
+        }
     } // namespace
 
     static_assert(std::is_same_v<decltype(std::declval<FunctionEmitter&>().getContext()), FunctionEmissionContext&>);
@@ -89,6 +136,14 @@ namespace ink::vm::test
 #define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed) verifyComparisonBranchEncoding<Opcode::Kind>(Encoding);
 #include "ink/backend/vm/instruction/compare_branch.def"
 #undef COMPARE_BRANCH
+    }
+
+    // All twenty register comparison branch opcodes encode register or 64-bit immediate sources and PC-relative block targets.
+    TEST(VMFunctionEmitterTest, EncodesEveryRegisterComparisonBranchForm)
+    {
+#define REGISTER_COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Operator, Signed) verifyRegisterComparisonBranchEncoding<Opcode::Kind>(Encoding);
+#include "ink/backend/vm/instruction/register_compare_branch.def"
+#undef REGISTER_COMPARE_BRANCH
     }
 
     // General-purpose register IDs occupy the existing header bytes without changing opcode values or operand-word offsets.

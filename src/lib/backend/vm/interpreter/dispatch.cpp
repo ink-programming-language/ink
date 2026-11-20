@@ -62,6 +62,25 @@ namespace ink::vm
         }
 
         template <Opcode Operation, typename ValueType>
+        FORCE_INLINE void executeRegisterLoad(Frame& FrameValue, const std::uint64_t* Instruction, RegisterId DestinationRegister, RegisterId SourceRegister) noexcept
+        {
+            using Traits = OpcodeTraits<Operation>;
+            static_assert(Traits::Category == InstructionCategory::Load && Traits::Form == InstructionForm::Rm && Traits::BitWidth == sizeof(ValueType) * 8);
+            const auto Address = READ_REGISTER(SourceRegister, FrameValue) + Instruction[2];
+            ValueType Value;
+            std::memcpy(&Value, reinterpret_cast<const void*>(static_cast<std::uintptr_t>(Address)), sizeof(Value));
+            check(isWritableAddressRegister(DestinationRegister) && Instruction[1] == 0);
+            if constexpr (std::is_signed_v<ValueType>)
+            {
+                WRITE_REGISTER(DestinationRegister, FrameValue, static_cast<std::uint64_t>(static_cast<std::int64_t>(Value)));
+            }
+            else
+            {
+                WRITE_REGISTER(DestinationRegister, FrameValue, static_cast<std::uint64_t>(Value));
+            }
+        }
+
+        template <Opcode Operation, typename ValueType>
         FORCE_INLINE void executeIntegerMemoryAdd(const Frame& FrameValue, const std::uint64_t* Instruction, RegisterId DestinationRegister, RegisterId LeftRegister, RegisterId RightRegister) noexcept
         {
             using Traits = OpcodeTraits<Operation>;
@@ -112,7 +131,7 @@ namespace ink::vm
             check(EncodedInstructionBytes != 0);
             check(CodeSegmentSize - InstructionOffset >= EncodedInstructionBytes);
             check((Header & InstructionEncoding::ReservedMask) == 0);
-            const bool FloatingPointOperation = Operation == Opcode::Fadd64rrr || Operation == Opcode::Fsub64rrr || Operation == Opcode::Fmul64rrr || Operation == Opcode::Fdiv64rrr || Operation == Opcode::Fsqrt64rr;
+            const bool FloatingPointOperation = InstructionEncoding::isFloatingPoint(Operation);
             for (std::size_t Index = 0; Index < InstructionEncoding::operandCount(Operation); ++Index)
             {
                 const auto Register = InstructionEncoding::decodeRegister(Header, Index);
@@ -157,6 +176,122 @@ namespace ink::vm
                     LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
+            case Opcode::Fneg64rr:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Fneg64rr>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    const auto Source = READ_REGISTER(LeftRegister, Frame);
+                    WRITE_REGISTER(DestinationRegister, Frame, Source ^ (std::uint64_t{1} << 63));
+                    LocalPC = InstructionAddress + InstructionBytes;
+                    continue;
+                }
+#define FLOAT_COMPARE(Kind, Encoding, Spelling, Expression)                                                                           \
+    case Opcode::Kind:                                                                                                                \
+        {                                                                                                                             \
+            constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Kind>::OperandCount + 1) * InstructionEncoding::WordBytes; \
+            const auto Left = std::bit_cast<double>(READ_REGISTER(LeftRegister, Frame));                                              \
+            const auto Right = std::bit_cast<double>(READ_REGISTER(RightRegister, Frame));                                            \
+            const bool Unordered = std::isnan(Left) || std::isnan(Right);                                                             \
+            WRITE_REGISTER(DestinationRegister, Frame, static_cast<std::uint64_t>(Expression));                                       \
+            LocalPC = InstructionAddress + InstructionBytes;                                                                          \
+            continue;                                                                                                                 \
+        }
+#include "ink/backend/vm/instruction/float_compare.def"
+#undef FLOAT_COMPARE
+            case Opcode::Sitof64rr:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Sitof64rr>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    const auto Source = static_cast<std::int64_t>(READ_REGISTER(LeftRegister, Frame));
+                    WRITE_REGISTER(DestinationRegister, Frame, std::bit_cast<std::uint64_t>(static_cast<double>(Source)));
+                    LocalPC = InstructionAddress + InstructionBytes;
+                    continue;
+                }
+            case Opcode::Uitof64rr:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Uitof64rr>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    const auto Source = READ_REGISTER(LeftRegister, Frame);
+                    WRITE_REGISTER(DestinationRegister, Frame, std::bit_cast<std::uint64_t>(static_cast<double>(Source)));
+                    LocalPC = InstructionAddress + InstructionBytes;
+                    continue;
+                }
+            case Opcode::F64tosi64rr:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::F64tosi64rr>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    const auto Source = std::bit_cast<double>(READ_REGISTER(LeftRegister, Frame));
+                    std::int64_t Result = 0;
+                    if (std::isnan(Source))
+                    {
+                        Result = 0;
+                    }
+                    else if (Source >= 0x1p63)
+                    {
+                        Result = std::numeric_limits<std::int64_t>::max();
+                    }
+                    else if (Source <= -0x1p63)
+                    {
+                        Result = std::numeric_limits<std::int64_t>::min();
+                    }
+                    else
+                    {
+                        Result = static_cast<std::int64_t>(Source);
+                    }
+                    WRITE_REGISTER(DestinationRegister, Frame, static_cast<std::uint64_t>(Result));
+                    LocalPC = InstructionAddress + InstructionBytes;
+                    continue;
+                }
+            case Opcode::F64toui64rr:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::F64toui64rr>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    const auto Source = std::bit_cast<double>(READ_REGISTER(LeftRegister, Frame));
+                    std::uint64_t Result = 0;
+                    if (std::isnan(Source) || Source <= 0.0)
+                    {
+                        Result = 0;
+                    }
+                    else if (Source >= 0x1p64)
+                    {
+                        Result = std::numeric_limits<std::uint64_t>::max();
+                    }
+                    else
+                    {
+                        Result = static_cast<std::uint64_t>(Source);
+                    }
+                    WRITE_REGISTER(DestinationRegister, Frame, Result);
+                    LocalPC = InstructionAddress + InstructionBytes;
+                    continue;
+                }
+            case Opcode::Mov64rr:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Mov64rr>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    const auto Value = READ_REGISTER(LeftRegister, Frame) + Instruction[2];
+                    check(isWritableAddressRegister(DestinationRegister) && Instruction[1] == 0);
+                    WRITE_REGISTER(DestinationRegister, Frame, Value);
+                    LocalPC = InstructionAddress + InstructionBytes;
+                    continue;
+                }
+            case Opcode::Mov64ri:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Mov64ri>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    check(isWritableAddressRegister(DestinationRegister) && Instruction[1] == 0);
+                    WRITE_REGISTER(DestinationRegister, Frame, Instruction[2]);
+                    LocalPC = InstructionAddress + InstructionBytes;
+                    continue;
+                }
+#define EXECUTE_REGISTER_LOAD(Kind, ValueType)                                                                                        \
+    case Opcode::Kind:                                                                                                                \
+        {                                                                                                                             \
+            constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Kind>::OperandCount + 1) * InstructionEncoding::WordBytes; \
+            executeRegisterLoad<Opcode::Kind, ValueType>(Frame, Instruction, DestinationRegister, LeftRegister);                      \
+            LocalPC = InstructionAddress + InstructionBytes;                                                                          \
+            continue;                                                                                                                 \
+        }
+                EXECUTE_REGISTER_LOAD(Load8urm, std::uint8_t)
+                EXECUTE_REGISTER_LOAD(Load16urm, std::uint16_t)
+                EXECUTE_REGISTER_LOAD(Load32urm, std::uint32_t)
+                EXECUTE_REGISTER_LOAD(Load8srm, std::int8_t)
+                EXECUTE_REGISTER_LOAD(Load16srm, std::int16_t)
+                EXECUTE_REGISTER_LOAD(Load32srm, std::int32_t)
+                EXECUTE_REGISTER_LOAD(Load64rm, std::uint64_t)
+#undef EXECUTE_REGISTER_LOAD
 
 #define EXECUTE_MEMORY_TRANSFER(Kind, Width)                                                                                          \
     case Opcode::Kind:                                                                                                                \
@@ -181,6 +316,10 @@ namespace ink::vm
                 EXECUTE_MEMORY_TRANSFER(Store32i, 32)
                 EXECUTE_MEMORY_TRANSFER(Store64m, 64)
                 EXECUTE_MEMORY_TRANSFER(Store64i, 64)
+                EXECUTE_MEMORY_TRANSFER(Store8mr, 8)
+                EXECUTE_MEMORY_TRANSFER(Store16mr, 16)
+                EXECUTE_MEMORY_TRANSFER(Store32mr, 32)
+                EXECUTE_MEMORY_TRANSFER(Store64mr, 64)
 #undef EXECUTE_MEMORY_TRANSFER
 
             // Add
@@ -241,6 +380,107 @@ namespace ink::vm
                 EXECUTE_MEMORY_ADD(Add64mrm, 64)
                 EXECUTE_MEMORY_ADD(Add64mri, 64)
 #undef EXECUTE_MEMORY_ADD
+
+#define EXECUTE_REGISTER_BINARY(Kind, Operator)                                                                                       \
+    case Opcode::Kind:                                                                                                                \
+        {                                                                                                                             \
+            constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Kind>::OperandCount + 1) * InstructionEncoding::WordBytes; \
+            constexpr bool RegisterRHS = OpcodeTraits<Opcode::Kind>::Form == InstructionForm::Rrr;                                    \
+            const auto Left = READ_REGISTER(LeftRegister, Frame) + Instruction[2];                                                    \
+            const auto Right = RegisterRHS ? READ_REGISTER(RightRegister, Frame) + Instruction[3] : Instruction[3];                   \
+            check(isWritableAddressRegister(DestinationRegister) && Instruction[1] == 0);                                             \
+            WRITE_REGISTER(DestinationRegister, Frame, Left Operator Right);                                                          \
+            LocalPC = InstructionAddress + InstructionBytes;                                                                          \
+            continue;                                                                                                                 \
+        }
+                EXECUTE_REGISTER_BINARY(Sub64rrr, -)
+                EXECUTE_REGISTER_BINARY(Sub64rri, -)
+                EXECUTE_REGISTER_BINARY(Mul64rrr, *)
+                EXECUTE_REGISTER_BINARY(Mul64rri, *)
+                EXECUTE_REGISTER_BINARY(And64rrr, &)
+                EXECUTE_REGISTER_BINARY(And64rri, &)
+                EXECUTE_REGISTER_BINARY(Or64rrr, |)
+                EXECUTE_REGISTER_BINARY(Or64rri, |)
+                EXECUTE_REGISTER_BINARY(Xor64rrr, ^)
+                EXECUTE_REGISTER_BINARY(Xor64rri, ^)
+#undef EXECUTE_REGISTER_BINARY
+
+            case Opcode::Sdiv64rrr:
+            case Opcode::Srem64rrr:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Sdiv64rrr>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    const auto Left = static_cast<std::int64_t>(READ_REGISTER(LeftRegister, Frame) + Instruction[2]);
+                    const auto Right = static_cast<std::int64_t>(READ_REGISTER(RightRegister, Frame) + Instruction[3]);
+                    if (Right == 0) [[unlikely]]
+                    {
+                        REPORT_IF(true, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "division", "division by zero");
+                        return false;
+                    }
+                    if (Left == std::numeric_limits<std::int64_t>::min() && Right == -1) [[unlikely]]
+                    {
+                        REPORT_IF(true, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "division", "signed integer division overflow");
+                        return false;
+                    }
+                    check(isWritableAddressRegister(DestinationRegister) && Instruction[1] == 0);
+                    const auto Result = Operation == Opcode::Sdiv64rrr ? Left / Right : Left % Right;
+                    WRITE_REGISTER(DestinationRegister, Frame, static_cast<std::uint64_t>(Result));
+                    LocalPC = InstructionAddress + InstructionBytes;
+                    continue;
+                }
+            case Opcode::Udiv64rrr:
+            case Opcode::Urem64rrr:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Udiv64rrr>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    const auto Left = READ_REGISTER(LeftRegister, Frame) + Instruction[2];
+                    const auto Right = READ_REGISTER(RightRegister, Frame) + Instruction[3];
+                    if (Right == 0) [[unlikely]]
+                    {
+                        REPORT_IF(true, Diagnostics, core::DiagnosticKind::VMExecutionFailed, {}, "division", "division by zero");
+                        return false;
+                    }
+                    check(isWritableAddressRegister(DestinationRegister) && Instruction[1] == 0);
+                    const auto Result = Operation == Opcode::Udiv64rrr ? Left / Right : Left % Right;
+                    WRITE_REGISTER(DestinationRegister, Frame, Result);
+                    LocalPC = InstructionAddress + InstructionBytes;
+                    continue;
+                }
+
+#define EXECUTE_REGISTER_SHIFT(Kind, ValueType, Operator)                                                                             \
+    case Opcode::Kind:                                                                                                                \
+        {                                                                                                                             \
+            constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Kind>::OperandCount + 1) * InstructionEncoding::WordBytes; \
+            constexpr bool RegisterRHS = OpcodeTraits<Opcode::Kind>::Form == InstructionForm::Rrr;                                    \
+            const auto Left = static_cast<ValueType>(READ_REGISTER(LeftRegister, Frame) + Instruction[2]);                            \
+            const auto Right = RegisterRHS ? READ_REGISTER(RightRegister, Frame) + Instruction[3] : Instruction[3];                   \
+            const auto Shift = Right & 63U;                                                                                           \
+            check(isWritableAddressRegister(DestinationRegister) && Instruction[1] == 0);                                             \
+            WRITE_REGISTER(DestinationRegister, Frame, static_cast<std::uint64_t>(Left Operator Shift));                              \
+            LocalPC = InstructionAddress + InstructionBytes;                                                                          \
+            continue;                                                                                                                 \
+        }
+                EXECUTE_REGISTER_SHIFT(Shl64rrr, std::uint64_t, <<)
+                EXECUTE_REGISTER_SHIFT(Shl64rri, std::uint64_t, <<)
+                EXECUTE_REGISTER_SHIFT(Lshr64rrr, std::uint64_t, >>)
+                EXECUTE_REGISTER_SHIFT(Lshr64rri, std::uint64_t, >>)
+                EXECUTE_REGISTER_SHIFT(Ashr64rrr, std::int64_t, >>)
+                EXECUTE_REGISTER_SHIFT(Ashr64rri, std::int64_t, >>)
+#undef EXECUTE_REGISTER_SHIFT
+
+#define INTEGER_COMPARE(Kind, Encoding, Spelling, Form, Operator, Signed)                                                                   \
+    case Opcode::Kind:                                                                                                                      \
+        {                                                                                                                                   \
+            constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Kind>::OperandCount + 1) * InstructionEncoding::WordBytes;       \
+            using ValueType = std::conditional_t<Signed, std::int64_t, std::uint64_t>;                                                      \
+            constexpr bool RegisterRHS = InstructionForm::Form == InstructionForm::Rrr;                                                     \
+            const auto Left = static_cast<ValueType>(READ_REGISTER(LeftRegister, Frame) + Instruction[2]);                                  \
+            const auto Right = static_cast<ValueType>(RegisterRHS ? READ_REGISTER(RightRegister, Frame) + Instruction[3] : Instruction[3]); \
+            check(isWritableAddressRegister(DestinationRegister) && Instruction[1] == 0);                                                   \
+            WRITE_REGISTER(DestinationRegister, Frame, static_cast<std::uint64_t>(Left Operator Right));                                    \
+            LocalPC = InstructionAddress + InstructionBytes;                                                                                \
+            continue;                                                                                                                       \
+        }
+#include "ink/backend/vm/instruction/integer_compare.def"
+#undef INTEGER_COMPARE
             case Opcode::Jmp:
             case Opcode::Jmpr:
                 {
@@ -328,6 +568,20 @@ namespace ink::vm
                     }
                     continue;
                 }
+            case Opcode::Callr:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Callr>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    const auto TargetAddress = READ_REGISTER(DestinationRegister, Frame) + Instruction[1];
+                    if (IsInstructionAddress(TargetAddress))
+                    {
+                        EXECUTE_VM_CALL(TargetAddress);
+                    }
+                    else
+                    {
+                        EXECUTE_NATIVE_CALL(TargetAddress);
+                    }
+                    continue;
+                }
 #undef EXECUTE_NATIVE_CALL
 #undef EXECUTE_VM_CALL
 #define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed)                                                                \
@@ -356,6 +610,20 @@ namespace ink::vm
         }
 #include "ink/backend/vm/instruction/compare_branch.def"
 #undef COMPARE_BRANCH
+#define REGISTER_COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Operator, Signed)                                                               \
+    case Opcode::Kind:                                                                                                                          \
+        {                                                                                                                                       \
+            constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Kind>::OperandCount + 1) * InstructionEncoding::WordBytes;           \
+            using ValueType = std::conditional_t<Signed, std::int64_t, std::uint64_t>;                                                          \
+            constexpr bool RegisterRHS = InstructionForm::Form == InstructionForm::Rrb;                                                         \
+            const auto LeftValue = static_cast<ValueType>(READ_REGISTER(DestinationRegister, Frame) + Instruction[1]);                          \
+            const auto RightValue = static_cast<ValueType>(RegisterRHS ? READ_REGISTER(LeftRegister, Frame) + Instruction[2] : Instruction[2]); \
+            const auto Target = (LeftValue Operator RightValue) ? InstructionAddress + Instruction[3] : InstructionAddress + InstructionBytes;  \
+            LocalPC = Target;                                                                                                                   \
+            continue;                                                                                                                           \
+        }
+#include "ink/backend/vm/instruction/register_compare_branch.def"
+#undef REGISTER_COMPARE_BRANCH
             case Opcode::Ret:
                 {
                     if (CallDepth == 0)

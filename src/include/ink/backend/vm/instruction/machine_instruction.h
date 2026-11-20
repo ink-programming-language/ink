@@ -86,7 +86,8 @@ namespace ink::vm
 
             constexpr bool hasDestination() const noexcept
             {
-                return category() == InstructionCategory::Load || category() == InstructionCategory::Store || category() == InstructionCategory::Add || isFloatingPoint();
+                const auto Kind = category();
+                return Kind == InstructionCategory::Load || Kind == InstructionCategory::Store || Kind == InstructionCategory::Move || Kind == InstructionCategory::Add || Kind == InstructionCategory::Arithmetic || Kind == InstructionCategory::Bitwise || Kind == InstructionCategory::Compare || Kind == InstructionCategory::FloatingPoint;
             }
 
             constexpr bool isFloatingPoint() const noexcept

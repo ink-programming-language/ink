@@ -21,6 +21,14 @@ namespace ink::vm::test
             Opcode::Fmul64rrr,
             Opcode::Fdiv64rrr,
             Opcode::Fsqrt64rr,
+            Opcode::Fneg64rr,
+#define FLOAT_COMPARE(Kind, Encoding, Spelling, Expression) Opcode::Kind,
+#include "ink/backend/vm/instruction/float_compare.def"
+#undef FLOAT_COMPARE
+            Opcode::Sitof64rr,
+            Opcode::Uitof64rr,
+            Opcode::F64tosi64rr,
+            Opcode::F64toui64rr,
         };
 
         constexpr std::uint64_t DestinationSentinel = 0x7FF8000000000099ULL;
@@ -65,6 +73,14 @@ namespace ink::vm::test
         }
 
 #if INK_ENABLE_ASSERTIONS
+        constexpr std::array FloatingPointContractOperations = {
+            Opcode::Fadd64rrr,
+            Opcode::Fsqrt64rr,
+            Opcode::Fneg64rr,
+            Opcode::Fcmp64oeqrrr,
+            Opcode::F64tosi64rr,
+        };
+
         void expectFloatingPointContractFailure(Opcode Operation, std::array<RegisterId, 3> Registers, std::array<std::uint64_t, 3> Offsets)
         {
             constexpr auto Left = std::bit_cast<std::uint64_t>(4.0);
@@ -110,9 +126,27 @@ namespace ink::vm::test
         }
     }
 
-    // ZERO supplies positive floating zero, and all five operations can read it without writable ZERO storage.
+    // ZERO supplies positive floating zero or integer zero, and all FP64 operations can read it without writable ZERO storage.
     TEST(VMFloatingPointTest, AcceptsZeroAsFloatingPointSource)
     {
+        const auto ExpectedForZero = [](Opcode Operation) -> std::uint64_t
+        {
+            switch (Operation)
+            {
+            case Opcode::Fneg64rr:
+                return std::uint64_t{1} << 63;
+            case Opcode::Fcmp64oeqrrr:
+            case Opcode::Fcmp64olerrr:
+            case Opcode::Fcmp64ogerrr:
+            case Opcode::Fcmp64ordrrr:
+            case Opcode::Fcmp64ueqrrr:
+            case Opcode::Fcmp64ulerrr:
+            case Opcode::Fcmp64ugerrr:
+                return 1U;
+            default:
+                return 0U;
+            }
+        };
         for (const auto Operation : FloatingPointOperations)
         {
             SCOPED_TRACE(static_cast<unsigned>(Operation));
@@ -123,9 +157,114 @@ namespace ink::vm::test
 
             ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
 
-            EXPECT_EQ(READ_REGISTER(RegisterId::R9, VM.getFrame()), 0U);
+            EXPECT_EQ(READ_REGISTER(RegisterId::R9, VM.getFrame()), ExpectedForZero(Operation));
             EXPECT_EQ(READ_REGISTER(RegisterId::ZERO, VM.getFrame()), 0U);
         }
+    }
+
+    // fneg64rr flips only the IEEE 754 sign bit across finite values, signed zeros, infinities, and NaN payloads.
+    TEST(VMFloatingPointTest, NegatesBinary64BitPatternsPreservingSignedZeroAndNaNPayload)
+    {
+        constexpr std::uint64_t NaNPayload = 0x7FF8000000001234ULL;
+        constexpr std::uint64_t Inputs[] = {
+            std::bit_cast<std::uint64_t>(0.0),
+            std::bit_cast<std::uint64_t>(-0.0),
+            std::bit_cast<std::uint64_t>(3.5),
+            std::bit_cast<std::uint64_t>(-3.5),
+            std::bit_cast<std::uint64_t>(std::numeric_limits<double>::infinity()),
+            std::bit_cast<std::uint64_t>(-std::numeric_limits<double>::infinity()),
+            NaNPayload,
+            NaNPayload | (std::uint64_t{1} << 63),
+        };
+        for (const auto Input : Inputs)
+        {
+            SCOPED_TRACE(Input);
+            Interpreter VM;
+            ASSERT_NE(VM.loadLibrary(makeFloatingPointExecutable(Opcode::Fneg64rr, Input, 0, {RegisterId::R0, RegisterId::R0, RegisterId::ZERO})), Interpreter::InvalidLibraryHandle);
+
+            ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
+
+            EXPECT_EQ(READ_REGISTER(RegisterId::R0, VM.getFrame()), Input ^ (std::uint64_t{1} << 63));
+        }
+    }
+
+    // All fourteen FP64 comparison predicates distinguish ordered and unordered relations for finite values, signed zeros, infinities, and NaNs.
+    TEST(VMFloatingPointTest, EvaluatesAllOrderedAndUnorderedFloatingPointComparisons)
+    {
+        constexpr auto Inf = std::numeric_limits<double>::infinity();
+        constexpr auto NaN = std::numeric_limits<double>::quiet_NaN();
+        constexpr std::array<double, 2> Pairs[] = {
+            {1.5, 1.5},
+            {1.5, 2.5},
+            {2.5, 1.5},
+            {0.0, -0.0},
+            {-Inf, Inf},
+            {NaN, 1.0},
+            {1.0, NaN},
+            {NaN, NaN},
+        };
+        for (const auto& Pair : Pairs)
+        {
+            const double Left = Pair[0];
+            const double Right = Pair[1];
+            const bool Unordered = std::isnan(Left) || std::isnan(Right);
+#define FLOAT_COMPARE(Kind, Encoding, Spelling, Expression)                                                                                                                                                                                 \
+    {                                                                                                                                                                                                                                       \
+        SCOPED_TRACE(Spelling);                                                                                                                                                                                                             \
+        Interpreter VM;                                                                                                                                                                                                                     \
+        ASSERT_NE(VM.loadLibrary(makeFloatingPointExecutable(Opcode::Kind, std::bit_cast<std::uint64_t>(Left), std::bit_cast<std::uint64_t>(Right), {RegisterId::R0, RegisterId::R0, RegisterId::R1})), Interpreter::InvalidLibraryHandle); \
+        ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));                                                                                                                                                                                \
+        EXPECT_EQ(READ_REGISTER(RegisterId::R0, VM.getFrame()), static_cast<std::uint64_t>(Expression));                                                                                                                                    \
+    }
+#include "ink/backend/vm/instruction/float_compare.def"
+#undef FLOAT_COMPARE
+        }
+    }
+
+    // Integer-to-FP64 and saturating FP64-to-integer conversions handle signed, unsigned, zero, infinity, NaN, and out-of-range boundaries without host UB.
+    TEST(VMFloatingPointTest, ConvertsBetween64BitIntegersAndBinary64WithSaturation)
+    {
+        constexpr auto SignedMin = std::numeric_limits<std::int64_t>::min();
+        constexpr auto SignedMax = std::numeric_limits<std::int64_t>::max();
+        constexpr auto UnsignedMax = std::numeric_limits<std::uint64_t>::max();
+        constexpr auto Inf = std::numeric_limits<double>::infinity();
+        constexpr auto NaN = std::numeric_limits<double>::quiet_NaN();
+
+        const auto RunUnary = [](Opcode Operation, std::uint64_t Input) -> std::uint64_t
+        {
+            Interpreter VM;
+            auto Executable = makeFloatingPointExecutable(Operation, Input, 0, {RegisterId::R0, RegisterId::R0, RegisterId::ZERO});
+            EXPECT_NE(VM.loadLibrary(std::move(Executable)), Interpreter::InvalidLibraryHandle);
+            EXPECT_TRUE(VM.execute(VM.getCodeSegment().data()));
+            return READ_REGISTER(RegisterId::R0, VM.getFrame());
+        };
+
+        EXPECT_EQ(RunUnary(Opcode::Sitof64rr, 0), std::bit_cast<std::uint64_t>(0.0));
+        EXPECT_EQ(RunUnary(Opcode::Sitof64rr, static_cast<std::uint64_t>(-42)), std::bit_cast<std::uint64_t>(-42.0));
+        EXPECT_EQ(RunUnary(Opcode::Sitof64rr, static_cast<std::uint64_t>(SignedMin)), std::bit_cast<std::uint64_t>(static_cast<double>(SignedMin)));
+        EXPECT_EQ(RunUnary(Opcode::Sitof64rr, static_cast<std::uint64_t>(SignedMax)), std::bit_cast<std::uint64_t>(static_cast<double>(SignedMax)));
+
+        EXPECT_EQ(RunUnary(Opcode::Uitof64rr, 0), std::bit_cast<std::uint64_t>(0.0));
+        EXPECT_EQ(RunUnary(Opcode::Uitof64rr, 42), std::bit_cast<std::uint64_t>(42.0));
+        EXPECT_EQ(RunUnary(Opcode::Uitof64rr, UnsignedMax), std::bit_cast<std::uint64_t>(static_cast<double>(UnsignedMax)));
+
+        EXPECT_EQ(RunUnary(Opcode::F64tosi64rr, std::bit_cast<std::uint64_t>(3.9)), 3U);
+        EXPECT_EQ(RunUnary(Opcode::F64tosi64rr, std::bit_cast<std::uint64_t>(-3.9)), static_cast<std::uint64_t>(-3));
+        EXPECT_EQ(RunUnary(Opcode::F64tosi64rr, std::bit_cast<std::uint64_t>(-0.0)), 0U);
+        EXPECT_EQ(RunUnary(Opcode::F64tosi64rr, std::bit_cast<std::uint64_t>(NaN)), 0U);
+        EXPECT_EQ(RunUnary(Opcode::F64tosi64rr, std::bit_cast<std::uint64_t>(0x1p63)), static_cast<std::uint64_t>(SignedMax));
+        EXPECT_EQ(RunUnary(Opcode::F64tosi64rr, std::bit_cast<std::uint64_t>(Inf)), static_cast<std::uint64_t>(SignedMax));
+        EXPECT_EQ(RunUnary(Opcode::F64tosi64rr, std::bit_cast<std::uint64_t>(-0x1p63)), static_cast<std::uint64_t>(SignedMin));
+        EXPECT_EQ(RunUnary(Opcode::F64tosi64rr, std::bit_cast<std::uint64_t>(-Inf)), static_cast<std::uint64_t>(SignedMin));
+
+        EXPECT_EQ(RunUnary(Opcode::F64toui64rr, std::bit_cast<std::uint64_t>(3.9)), 3U);
+        EXPECT_EQ(RunUnary(Opcode::F64toui64rr, std::bit_cast<std::uint64_t>(-0.0)), 0U);
+        EXPECT_EQ(RunUnary(Opcode::F64toui64rr, std::bit_cast<std::uint64_t>(-1.5)), 0U);
+        EXPECT_EQ(RunUnary(Opcode::F64toui64rr, std::bit_cast<std::uint64_t>(-Inf)), 0U);
+        EXPECT_EQ(RunUnary(Opcode::F64toui64rr, std::bit_cast<std::uint64_t>(NaN)), 0U);
+        EXPECT_EQ(RunUnary(Opcode::F64toui64rr, std::bit_cast<std::uint64_t>(0x1p63)), std::uint64_t{1} << 63);
+        EXPECT_EQ(RunUnary(Opcode::F64toui64rr, std::bit_cast<std::uint64_t>(0x1p64)), UnsignedMax);
+        EXPECT_EQ(RunUnary(Opcode::F64toui64rr, std::bit_cast<std::uint64_t>(Inf)), UnsignedMax);
     }
 
     // FP64 exceptional values remain numeric results: division by zero, invalid roots, signed zeros, and NaN propagation do not fail execution.
@@ -181,10 +320,14 @@ namespace ink::vm::test
     }
 
 #if INK_ENABLE_ASSERTIONS
-    // Assertion-enabled dispatch rejects positive and negative displacements at every explicit floating register position.
+    // Assertion-enabled dispatch classifies every floating-point opcode uniformly and rejects positive and negative displacements at every explicit operand position.
     TEST(VMFloatingPointTest, ChecksNonzeroDisplacementsAtEveryOperandPosition)
     {
         for (const auto Operation : FloatingPointOperations)
+        {
+            EXPECT_TRUE(InstructionEncoding::isFloatingPoint(Operation));
+        }
+        for (const auto Operation : FloatingPointContractOperations)
         {
             const auto OperandCount = InstructionEncoding::operandCount(Operation);
             for (std::size_t Index = 0; Index < OperandCount; ++Index)
@@ -202,7 +345,7 @@ namespace ink::vm::test
         }
     }
 
-    // Assertion-enabled dispatch rejects control registers, immutable destinations, and undefined floating register IDs.
+    // Assertion-enabled dispatch rejects control registers, immutable destinations, and undefined floating register IDs across binary, unary, compare, and conversion forms.
     TEST(VMFloatingPointTest, ChecksInvalidFloatingPointRegisters)
     {
         constexpr RegisterId InvalidDestinations[] = {
@@ -220,7 +363,7 @@ namespace ink::vm::test
             static_cast<RegisterId>(0x0E),
             static_cast<RegisterId>(0xFF),
         };
-        for (const auto Operation : FloatingPointOperations)
+        for (const auto Operation : {Opcode::Fadd64rrr, Opcode::Fsqrt64rr})
         {
             SCOPED_TRACE(static_cast<unsigned>(Operation));
             for (const auto Destination : InvalidDestinations)
@@ -239,6 +382,12 @@ namespace ink::vm::test
                     expectFloatingPointContractFailure(Operation, Registers, {});
                 }
             }
+        }
+        for (const auto Operation : {Opcode::Fneg64rr, Opcode::Fcmp64oeqrrr, Opcode::Sitof64rr, Opcode::F64tosi64rr})
+        {
+            SCOPED_TRACE(static_cast<unsigned>(Operation));
+            expectFloatingPointContractFailure(Operation, {RegisterId::ZERO, RegisterId::R0, RegisterId::R1}, {});
+            expectFloatingPointContractFailure(Operation, {RegisterId::R9, RegisterId::SP, RegisterId::R1}, {});
         }
     }
 #endif

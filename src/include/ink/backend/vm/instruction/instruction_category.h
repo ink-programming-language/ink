@@ -8,7 +8,11 @@ namespace ink::vm
     {
         Load,
         Store,
+        Move,
         Add,
+        Arithmetic,
+        Bitwise,
+        Compare,
         Branch,
         ConditionalBranch,
         Return,
