@@ -319,7 +319,7 @@ namespace ink::vm::test
         MachineInstructionBuilder Builder;
         Builder.setInsertPoint(Block);
         std::size_t ExpectedCount = 0;
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category)                        \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain)                \
     buildRegisteredInstruction<Opcode::Kind>(Builder, Block, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{}); \
     ++ExpectedCount;
 #include "ink/backend/vm/instruction/opcode.def"

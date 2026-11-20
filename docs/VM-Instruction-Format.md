@@ -270,19 +270,19 @@ call r0
 | `Callm` | `call` | `003d` | 寄存器相对内存地址，槽内保存完整函数地址 | 16 字节 |
 | `Callr` | `call` | `00f3` | 寄存器值加有符号位移作为完整运行时函数地址 | 16 字节 |
 
-`003c`、`003e` 保留未分配，旧 `callNative` 文本被拒绝。两条指令均属于 `InstructionCategory::Call`，`isCall()` 识别两者，没有显式结果目标，也不是基本块终结指令。
+`003e` 保留未分配，旧 `callNative` 文本被拒绝。`Calli`、`Callvmi`、`Callm` 和 `Callr` 均属于 `InstructionCategory::Call` 与 `InstructionDomain::None`，`isCall()` 识别四者，没有显式结果目标，也不是基本块终结指令。
 
-解释器中 `Calli` 直接使用操作数地址，`Callm` 先从寄存器基址加编码偏移指向的内存槽读取地址，随后共用调用逻辑。目标位于有效代码段且按八字节对齐时直接走 Ink 快路径，不查询 hash set；保存旧 BP 与 `NextPC = PC + 16` 后转入 VM 函数。其他目标必须命中从 `NativeSymbolAddresses` 建立的 stub 地址 hash set，才按 `void(Frame*)` 调用，不建立 Ink 保存区；未命中属于内部不变量失败，使用 `check`。保存区容量不足时通过 `REPORT_IF` 报告栈溢出并返回失败。普通 `Ret` 恢复调用方，最外层 `Ret` 结束本次执行。Native 参数及返回槽由调用方按已有 stub 契约准备，完整调用区自动生成和通用宿主 ABI adapter 仍待实现。
+解释器中 `Calli` 直接使用操作数地址，`Callm` 先从寄存器基址加编码偏移指向的内存槽读取地址，`Callr` 直接以寄存器值加有符号位移作为地址，随后共用调用逻辑。目标位于有效代码段且按八字节对齐时直接走 Ink 快路径，不查询 hash set；保存旧 BP 与 `NextPC = PC + 16` 后转入 VM 函数。其他目标必须命中从 `NativeSymbolAddresses` 建立的 stub 地址 hash set，才按 `void(Frame*)` 调用，不建立 Ink 保存区；未命中属于内部不变量失败，使用 `check`。保存区容量不足时通过 `REPORT_IF` 报告栈溢出并返回失败。普通 `Ret` 恢复调用方，最外层 `Ret` 结束本次执行。Native 参数及返回槽由调用方按已有 stub 契约准备，完整调用区自动生成和通用宿主 ABI adapter 仍待实现。
 
 ## C++ 指令模型
 
 `MachineModule` 的临时文本读写由 `backend/vm/serialization` 提供。文本保留寄存器来源的完整 `i64` 偏移、数值立即数的完整 `u64` 位模式，或符号立即数的名称和完整 `i64` 偏移；本节的数值字节格式则由操作码位宽决定立即数槽中有效低位的宽度。
 
-`opcode.def` 通过 `OPCODE_FORM(Kind, ...)` 集中定义操作数签名，`OPCODE` 记录引用其中的签名和指令类别。形式名称仅描述操作数类型及顺序，不包含指令语义或位宽，例如 `Add64rri` 引用 `Rri`，`Load64` 和 `Store64m` 共同引用 `Mm`。`instruction_form.h` 直接从同一份 `opcode.def` 生成 `InstructionForm` 枚举和 `FormTraits` 特化，每种签名只展开一次。每种形式提供 `OperandTuple` 和寄存器、地址、立即数、基本块的计数，包括 `BlockCount`；`None` 对应空元组，`B` 对应单个 `BasicBlockOperand`，`I`、`R` 和 `M` 分别对应单个 `ImmediateOperand`、`RegisterOperand` 和 `AddressOperand`。顺序来自签名定义；操作数计数用于一致性校验，不能单独推导顺序，例如 `Rrm` 和 `Mrr` 的计数相同而顺序不同。
+`opcode.def` 通过 `OPCODE_FORM(Kind, ...)` 集中定义操作数签名，`OPCODE` 记录引用其中的签名，并用正交的两个属性描述指令语义：`InstructionCategory`（操作语义：`Load`、`Store`、`Move`、`Arithmetic`、`Bitwise`、`Compare`、`Convert`、`Branch`、`ConditionalBranch`、`Return`、`Call`）与 `InstructionDomain`（操作数/执行域：`None`、`Integer`、`FloatingPoint`）。例如 `Add64rrr` 为 `(Arithmetic, Integer)`，`Fadd64rrr` 与 `Fneg64rr` 为 `(Arithmetic, FloatingPoint)`，`Fcmp64*rrr` 为 `(Compare, FloatingPoint)`，`Sitof64rr`–`F64toui64rr` 为 `(Convert, FloatingPoint)`，控制流指令为 `None`（条件比较跳转则按比较域标记为 `Integer`）。形式名称仅描述操作数类型及顺序，不包含指令语义或位宽，例如 `Add64rri` 引用 `Rri`，`Load64` 和 `Store64m` 共同引用 `Mm`。`instruction_form.h` 直接从同一份 `opcode.def` 生成 `InstructionForm` 枚举和 `FormTraits` 特化，每种签名只展开一次。每种形式提供 `OperandTuple` 和寄存器、地址、立即数、基本块的计数，包括 `BlockCount`；`None` 对应空元组，`B` 对应单个 `BasicBlockOperand`，`I`、`R` 和 `M` 分别对应单个 `ImmediateOperand`、`RegisterOperand` 和 `AddressOperand`。顺序来自签名定义；操作数计数用于一致性校验，不能单独推导顺序，例如 `Rrm` 和 `Mrr` 的计数相同而顺序不同。
 
-`machine_instructions.h` 根据 `opcode.def` 为每个操作码生成 `OpcodeTraits`，将操作码绑定到对应的 `Form`、`BitWidth` 和操作数布局。`MachineInstructionImpl<Opcode>` 按值持有该布局的 `std::tuple`，并为每个现有操作码提供对应的指令别名，例如 `MachineAdd64rriInstruction`。构造函数要求操作数的数量和具体类型匹配布局，操作数存储随指令对象一起分配。
+`machine_instructions.h` 根据 `opcode.def` 为每个操作码生成 `OpcodeTraits`，将操作码绑定到对应的 `Form`、`Category`、`Domain`、`HasDestination`、`IsFloatingPoint`、`BitWidth` 和操作数布局。`MachineInstructionImpl<Opcode>` 按值持有该布局的 `std::tuple`，并为每个现有操作码提供对应的指令别名，例如 `MachineAdd64rriInstruction`。构造函数要求操作数的数量和具体类型匹配布局，操作数存储随指令对象一起分配。
 
-Load、Store、Add 和 FloatingPoint 提供 `getDestination()`；具有目标和单个来源的形式提供 `getSource()`，包含 `Fsqrt64rr`。Add 和浮点二元运算的 `getLHS()`、`getRHS()` 分别访问索引 1、2，条件跳转的同名访问器访问索引 0、1。`isFloatingPoint()` 识别五条浮点指令。具有块目标的跳转由 `getTarget()` 返回最后一个操作数的基本块指针，`getTargetOperand()` 返回块操作数引用；其他跳转和调用的目标访问器返回对应立即数、寄存器或地址操作数的常量引用。Ret 没有这些访问器。
+`Load`、`Store`、`Move`、`Arithmetic`、`Bitwise`、`Compare` 和 `Convert` 提供 `getDestination()`；具有目标和单个来源的形式提供 `getSource()`（包含 `Load*`、`Store*`、`Mov64*`、`Fsqrt64rr`、`Fneg64rr` 与四条整数/浮点转换指令）。三操作数目标指令的 `getLHS()`、`getRHS()` 分别访问索引 1、2，条件跳转的同名访问器访问索引 0、1。`domain()` 返回 `InstructionDomain`，`isFloatingPoint()` 与 `InstructionEncoding::isFloatingPoint()` 均按 `InstructionDomain::FloatingPoint` 识别全部 24 条浮点域指令（6 条浮点算术、14 条浮点比较、4 条整数/浮点转换）。具有块目标的跳转由 `getTarget()` 返回最后一个操作数的基本块指针，`getTargetOperand()` 返回块操作数引用；其他跳转和调用的目标访问器返回对应立即数、寄存器或地址操作数的常量引用。`Ret` 没有这些访问器。
 
 ```cpp
 #include "ink/backend/vm/instruction/machine_instructions.h"
@@ -302,7 +302,7 @@ namespace ink::vm
 
 `MachineInstruction::operandCount()` 返回包含目标在内的操作数数量；`getOperand(Index)` 按相同的语义顺序返回 `const Operand* `，越界返回 `nullptr`。统一访问在实现文件中通过操作码分派到对应的具体指令布局；这是一层供编码器、打印器和校验器使用的模型遍历接口，不规定未来执行器的热路径。
 
-`category()`、`hasDestination()`、`isBranch()`、`isCall()`、`isReturn()`、`isTerminator()` 描述指令语义；无条件跳转和比较条件跳转均为终结指令，后者还通过 `isConditionalBranch()` 标识。
+`category()`、`domain()`、`hasDestination()`、`isFloatingPoint()`、`isBranch()`、`isCall()`、`isReturn()`、`isTerminator()` 描述指令语义；无条件跳转和比较条件跳转均为终结指令，后者还通过 `isConditionalBranch()` 标识。
 
 具体指令通过 `MachineInstructionImpl` 构造函数绑定操作码与布局，该模板为 `final`，保证用于分派的具体类型一致。`MachineInstructionBuilder` 在将新指令交给基本块后设置其 `parent()`。指令对象禁止复制，使用具体类型销毁；基类没有虚函数或虚析构函数。构造函数在编译期约束操作数种类和数量，PC 写入限制、寄存器编号有效性、立即数范围等语义约束仍须由后续指令校验处理。
 

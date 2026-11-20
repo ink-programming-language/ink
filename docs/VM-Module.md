@@ -58,11 +58,11 @@ Builder.create<Opcode::Jmpm>(AddressOperand(RegisterId::BP, 8));
 
 `Jmpi` 使用 `I` 形式，立即数是相对当前指令 PC 的有符号 64 位位移；函数符号由链接器绑定为 VM 函数，发射器计算相对位移。`Jmpr` 使用单个 `RegisterOperand` 的 `R` 形式，目标为寄存器值加偏移。`Jmpm` 使用 `M` 形式，从有效地址处读取八字节目标宿主地址；操作数中的符号定位指针槽，按普通地址符号解析。三者的 `getTarget()` 和 `getTargetOperand()` 返回具体操作数的常量引用。
 
-`isBranch()`、`isReturn()`、`isTerminator()` 提供控制流分类；四种跳转均为无条件终结指令。只有 Load、Store、Add 提供 `getDestination()`，Add 的 `getLHS()`、`getRHS()` 分别访问索引 1、2；Ret 没有目标或来源操作数。
+`isBranch()`、`isReturn()`、`isTerminator()` 提供控制流分类；四种跳转均为无条件终结指令。`Load`、`Store`、`Move`、`Arithmetic`、`Bitwise`、`Compare` 和 `Convert` 提供 `getDestination()`，三操作数目标指令的 `getLHS()`、`getRHS()` 分别访问索引 1、2；`Ret` 没有目标或来源操作数。
 
 ## 显式比较条件跳转
 
-`ConditionalBranch` 类别同时描述比较来源和跳转目标，不依赖隐式寄存器。`Mmb` 的布局为 `AddressOperand, AddressOperand, BasicBlockOperand`，`Mib` 为 `AddressOperand, ImmediateOperand, BasicBlockOperand`。比较关系与有符号属性记录在 `compare_branch.def`，操作码经 `opcode.def` 接入同一套强类型模型。
+`ConditionalBranch` 类别同时描述比较来源和跳转目标，不依赖隐式寄存器。`Mmb` 的布局为 `AddressOperand, AddressOperand, BasicBlockOperand`，`Mib` 为 `AddressOperand, ImmediateOperand, BasicBlockOperand`，`Rrb` 为 `RegisterOperand, RegisterOperand, BasicBlockOperand`，`Rib` 为 `RegisterOperand, ImmediateOperand, BasicBlockOperand`。比较关系与有符号属性分别记录在 `compare_branch.def` 与 `register_compare_branch.def`，操作码经 `opcode.def` 接入同一套强类型模型（`InstructionDomain::Integer`）。
 
 ```cpp
 Builder.create<Opcode::Je64mib>(AddressOperand(RegisterId::BP, 16), ImmediateOperand(42), BasicBlockOperand(&Done));
@@ -75,7 +75,7 @@ Builder.create<Opcode::Jlt32mmb>(AddressOperand(RegisterId::BP, 16), AddressOper
 
 ## 函数调用指令
 
-`Calli` 使用单个 `ImmediateOperand`，`Callm` 使用单个 `AddressOperand`，两者均属于 `InstructionCategory::Call`，文本统一为 `call`。`getTarget()` 和 `getTargetOperand()` 返回具体目标操作数的常量引用。
+`Calli` 使用单个 `ImmediateOperand`，`Callm` 使用单个 `AddressOperand`，`Callr` 使用单个 `RegisterOperand`，均属于 `InstructionCategory::Call` 与 `InstructionDomain::None`，文本统一为 `call`。`getTarget()` 和 `getTargetOperand()` 返回具体目标操作数的常量引用。
 
 ```cpp
 Builder.create<Opcode::Calli>(ImmediateOperand(FunctionName));

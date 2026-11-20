@@ -24,7 +24,7 @@ namespace ink::vm::test
     namespace
     {
         constexpr Opcode RegisteredOpcodes[] = {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) Opcode::Kind,
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) Opcode::Kind,
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
         };
@@ -34,7 +34,7 @@ namespace ink::vm::test
         {
             if constexpr (std::is_same_v<OperandType, RegisterOperand>)
             {
-                if constexpr (OpcodeTraits<Operation>::Category == InstructionCategory::FloatingPoint)
+                if constexpr (OpcodeTraits<Operation>::IsFloatingPoint)
                 {
                     return RegisterOperand(Index == 0 ? RegisterId::R0 : RegisterId::R9);
                 }
@@ -214,7 +214,7 @@ namespace ink::vm::test
         auto& Target = Function.createBasicBlock();
         MachineInstructionBuilder Builder;
         Builder.setInsertPoint(Block);
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) appendExampleInstruction<Opcode::Kind>(Builder, &Target, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{});
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) appendExampleInstruction<Opcode::Kind>(Builder, &Target, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{});
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
         auto& UnlaidFunction = Module.createFunction(SharedName);

@@ -9,14 +9,13 @@ namespace ink::vm
         Load,
         Store,
         Move,
-        Add,
         Arithmetic,
         Bitwise,
         Compare,
+        Convert,
         Branch,
         ConditionalBranch,
         Return,
         Call,
-        FloatingPoint,
     };
 } // namespace ink::vm

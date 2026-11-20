@@ -78,9 +78,9 @@ namespace ink::vm
             {
                 switch (Operation)
                 {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
-    case Opcode::Kind:                                                                                       \
-        return InstructionCategory::Category == InstructionCategory::FloatingPoint;
+#define OPCODE(Kind, ...) \
+    case Opcode::Kind:    \
+        return OpcodeTraits<Opcode::Kind>::IsFloatingPoint;
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
                 }

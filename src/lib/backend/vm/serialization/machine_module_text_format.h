@@ -349,6 +349,7 @@ namespace ink::vm::detail
             Opcode Operation;
             std::string_view Spelling;
             InstructionCategory Category;
+            InstructionDomain Domain;
             bool HasDestination;
             bool HasBlockTarget;
             std::span<const OperandKind> OperandKinds;
@@ -356,8 +357,8 @@ namespace ink::vm::detail
     };
 
     inline constexpr OpcodeDescriptor OpcodeDescriptors[] = {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
-    {Opcode::Kind, Spelling, InstructionCategory::Category, OpcodeTraits<Opcode::Kind>::HasDestination, OpcodeTraits<Opcode::Kind>::BlockCount == 1, OpcodeDescriptorAdapter<Opcode::Kind>::OperandKinds, &OpcodeDescriptorAdapter<Opcode::Kind>::create},
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) \
+    {Opcode::Kind, Spelling, InstructionCategory::Category, InstructionDomain::Domain, OpcodeTraits<Opcode::Kind>::HasDestination, OpcodeTraits<Opcode::Kind>::BlockCount == 1, OpcodeDescriptorAdapter<Opcode::Kind>::OperandKinds, &OpcodeDescriptorAdapter<Opcode::Kind>::create},
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
     };
@@ -406,7 +407,7 @@ namespace ink::vm::detail
 
     inline std::optional<std::string_view> validateParsedInstruction(const OpcodeDescriptor& Descriptor, const std::array<ParsedOperand, 3>& Operands) noexcept
     {
-        if (Descriptor.Category == InstructionCategory::FloatingPoint)
+        if (Descriptor.Domain == InstructionDomain::FloatingPoint)
         {
             for (std::size_t Index = 0; Index < Descriptor.OperandKinds.size(); ++Index)
             {

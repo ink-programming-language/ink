@@ -65,7 +65,7 @@ namespace ink::vm::test
         {
             if constexpr (std::is_same_v<OperandType, RegisterOperand>)
             {
-                if constexpr (OpcodeTraits<Operation>::Category == InstructionCategory::FloatingPoint)
+                if constexpr (OpcodeTraits<Operation>::IsFloatingPoint)
                 {
                     return RegisterOperand(Index == 0 ? RegisterId::R0 : RegisterId::R9);
                 }
@@ -332,7 +332,7 @@ namespace ink::vm::test
         Input.declareSymbol(linkName("link.registered.native"), MachineSymbolKind::Function);
         MachineInstructionBuilder Builder;
         Builder.setInsertPoint(Block);
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) appendRegisteredInstruction<Opcode::Kind>(Builder, Block, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{});
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) appendRegisteredInstruction<Opcode::Kind>(Builder, Block, std::make_index_sequence<OpcodeTraits<Opcode::Kind>::OperandCount>{});
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
         const auto Result = link({&Input});

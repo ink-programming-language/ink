@@ -1,5 +1,5 @@
 // OPCODE_FORM(Kind, ...): explicit operand types in semantic order, including a destination when present.
-// OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category).
+// OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain).
 // Intentionally has no include guard: callers define OPCODE and optionally OPCODE_FORM before inclusion.
 // Opcode values occupy 16 bits. Counts include explicit destinations; see docs/VM-Instruction-Format.md for byte encodings.
 // 0x0000, 0x001F-0x002A, and 0x002C-0x0039 are reserved after instruction removals.
@@ -36,76 +36,76 @@ OPCODE_FORM(Rrb, RegisterOperand, RegisterOperand, BasicBlockOperand)
 OPCODE_FORM(Rib, RegisterOperand, ImmediateOperand, BasicBlockOperand)
 
 // Loads read a value of the specified bit width from memory.
-OPCODE(Load8, 0x0001, "load8", Mm, 8, 0, 2, 0, Load)
-OPCODE(Load16, 0x0002, "load16", Mm, 16, 0, 2, 0, Load)
-OPCODE(Load32, 0x0003, "load32", Mm, 32, 0, 2, 0, Load)
-OPCODE(Load64, 0x0004, "load64", Mm, 64, 0, 2, 0, Load)
+OPCODE(Load8, 0x0001, "load8", Mm, 8, 0, 2, 0, Load, Integer)
+OPCODE(Load16, 0x0002, "load16", Mm, 16, 0, 2, 0, Load, Integer)
+OPCODE(Load32, 0x0003, "load32", Mm, 32, 0, 2, 0, Load, Integer)
+OPCODE(Load64, 0x0004, "load64", Mm, 64, 0, 2, 0, Load, Integer)
 
 // Stores write to memory; the suffix describes the source: m reads memory, i supplies an immediate.
-OPCODE(Store8m, 0x0005, "store8m", Mm, 8, 0, 2, 0, Store)
-OPCODE(Store8i, 0x0006, "store8i", Mi, 8, 0, 1, 1, Store)
+OPCODE(Store8m, 0x0005, "store8m", Mm, 8, 0, 2, 0, Store, Integer)
+OPCODE(Store8i, 0x0006, "store8i", Mi, 8, 0, 1, 1, Store, Integer)
 
-OPCODE(Store16m, 0x0007, "store16m", Mm, 16, 0, 2, 0, Store)
-OPCODE(Store16i, 0x0008, "store16i", Mi, 16, 0, 1, 1, Store)
+OPCODE(Store16m, 0x0007, "store16m", Mm, 16, 0, 2, 0, Store, Integer)
+OPCODE(Store16i, 0x0008, "store16i", Mi, 16, 0, 1, 1, Store, Integer)
 
-OPCODE(Store32m, 0x0009, "store32m", Mm, 32, 0, 2, 0, Store)
-OPCODE(Store32i, 0x000A, "store32i", Mi, 32, 0, 1, 1, Store)
+OPCODE(Store32m, 0x0009, "store32m", Mm, 32, 0, 2, 0, Store, Integer)
+OPCODE(Store32i, 0x000A, "store32i", Mi, 32, 0, 1, 1, Store, Integer)
 
-OPCODE(Store64m, 0x000B, "store64m", Mm, 64, 0, 2, 0, Store)
-OPCODE(Store64i, 0x000C, "store64i", Mi, 64, 0, 1, 1, Store)
+OPCODE(Store64m, 0x000B, "store64m", Mm, 64, 0, 2, 0, Store, Integer)
+OPCODE(Store64i, 0x000C, "store64i", Mi, 64, 0, 1, 1, Store, Integer)
 
 // Add suffixes describe destination, LHS, RHS: r is a logical register, m is memory, i is an immediate.
 // Register sources use the RegisterId values from register.def plus a signed ByteOffset without reading memory.
 // Logical memory operands retain register-relative or named-symbol-relative addresses until executable emission.
 // For memory destinations, addition wraps to Width bits and interchangeable sources use r before m before i.
-OPCODE(Add8mmm, 0x000D, "add8mmm", Mmm, 8, 0, 3, 0, Add)
-OPCODE(Add8mmi, 0x000E, "add8mmi", Mmi, 8, 0, 2, 1, Add)
-OPCODE(Add8mii, 0x000F, "add8mii", Mii, 8, 0, 1, 2, Add)
+OPCODE(Add8mmm, 0x000D, "add8mmm", Mmm, 8, 0, 3, 0, Arithmetic, Integer)
+OPCODE(Add8mmi, 0x000E, "add8mmi", Mmi, 8, 0, 2, 1, Arithmetic, Integer)
+OPCODE(Add8mii, 0x000F, "add8mii", Mii, 8, 0, 1, 2, Arithmetic, Integer)
 
-OPCODE(Add16mmm, 0x0010, "add16mmm", Mmm, 16, 0, 3, 0, Add)
-OPCODE(Add16mmi, 0x0011, "add16mmi", Mmi, 16, 0, 2, 1, Add)
-OPCODE(Add16mii, 0x0012, "add16mii", Mii, 16, 0, 1, 2, Add)
+OPCODE(Add16mmm, 0x0010, "add16mmm", Mmm, 16, 0, 3, 0, Arithmetic, Integer)
+OPCODE(Add16mmi, 0x0011, "add16mmi", Mmi, 16, 0, 2, 1, Arithmetic, Integer)
+OPCODE(Add16mii, 0x0012, "add16mii", Mii, 16, 0, 1, 2, Arithmetic, Integer)
 
-OPCODE(Add32mmm, 0x0013, "add32mmm", Mmm, 32, 0, 3, 0, Add)
-OPCODE(Add32mmi, 0x0014, "add32mmi", Mmi, 32, 0, 2, 1, Add)
-OPCODE(Add32mii, 0x0015, "add32mii", Mii, 32, 0, 1, 2, Add)
+OPCODE(Add32mmm, 0x0013, "add32mmm", Mmm, 32, 0, 3, 0, Arithmetic, Integer)
+OPCODE(Add32mmi, 0x0014, "add32mmi", Mmi, 32, 0, 2, 1, Arithmetic, Integer)
+OPCODE(Add32mii, 0x0015, "add32mii", Mii, 32, 0, 1, 2, Arithmetic, Integer)
 
-OPCODE(Add64mmm, 0x0016, "add64mmm", Mmm, 64, 0, 3, 0, Add)
-OPCODE(Add64mmi, 0x0017, "add64mmi", Mmi, 64, 0, 2, 1, Add)
-OPCODE(Add64mii, 0x0018, "add64mii", Mii, 64, 0, 1, 2, Add)
+OPCODE(Add64mmm, 0x0016, "add64mmm", Mmm, 64, 0, 3, 0, Arithmetic, Integer)
+OPCODE(Add64mmi, 0x0017, "add64mmi", Mmi, 64, 0, 2, 1, Arithmetic, Integer)
+OPCODE(Add64mii, 0x0018, "add64mii", Mii, 64, 0, 1, 2, Arithmetic, Integer)
 
 // Registers hold 64-bit value bits; arithmetic destinations may be BP, SP, or R0-R9 with zero ByteOffset, never PC or ZERO.
 // Register addition wraps to 64 bits; BP/SP results retain their address, stack, and frame preconditions.
 // Register and memory sources keep their declared order and byte displacements.
 // add64rri sp, sp, ByteCount reserves stack space; a negative displacement reclaims it.
-OPCODE(Add64rrr, 0x0019, "add64rrr", Rrr, 64, 3, 0, 0, Add)
-OPCODE(Add64rrm, 0x001A, "add64rrm", Rrm, 64, 2, 1, 0, Add)
-OPCODE(Add64rri, 0x001B, "add64rri", Rri, 64, 2, 0, 1, Add)
+OPCODE(Add64rrr, 0x0019, "add64rrr", Rrr, 64, 3, 0, 0, Arithmetic, Integer)
+OPCODE(Add64rrm, 0x001A, "add64rrm", Rrm, 64, 2, 1, 0, Arithmetic, Integer)
+OPCODE(Add64rri, 0x001B, "add64rri", Rri, 64, 2, 0, 1, Arithmetic, Integer)
 
 // These forms consume logical register values and write ordinary integer results to memory.
-OPCODE(Add64mrr, 0x001C, "add64mrr", Mrr, 64, 2, 1, 0, Add)
-OPCODE(Add64mrm, 0x001D, "add64mrm", Mrm, 64, 1, 2, 0, Add)
-OPCODE(Add64mri, 0x001E, "add64mri", Mri, 64, 1, 1, 1, Add)
+OPCODE(Add64mrr, 0x001C, "add64mrr", Mrr, 64, 2, 1, 0, Arithmetic, Integer)
+OPCODE(Add64mrm, 0x001D, "add64mrm", Mrm, 64, 1, 2, 0, Arithmetic, Integer)
+OPCODE(Add64mri, 0x001E, "add64mri", Mri, 64, 1, 1, 1, Arithmetic, Integer)
 
 // Branches borrow logical block targets; executable emission resolves their PC-relative wire addresses.
-OPCODE(Jmp, 0x002B, "jmp", B, 0, 0, 0, 0, Branch)
+OPCODE(Jmp, 0x002B, "jmp", B, 0, 0, 0, 0, Branch, None)
 
-OPCODE(Ret, 0x003A, "ret", None, 0, 0, 0, 0, Return)
+OPCODE(Ret, 0x003A, "ret", None, 0, 0, 0, 0, Return, None)
 
 // Immediate calls supply a 64-bit callable address; memory calls read a 64-bit callable pointer.
 // Loading rewrites direct calls that resolve to VM functions from Calli to Callvmi.
-OPCODE(Calli, 0x003B, "call", I, 64, 0, 0, 1, Call)
-OPCODE(Callvmi, 0x003C, "callvm", I, 64, 0, 0, 1, Call)
+OPCODE(Calli, 0x003B, "call", I, 64, 0, 0, 1, Call, None)
+OPCODE(Callvmi, 0x003C, "callvm", I, 64, 0, 0, 1, Call, None)
 // Removed native-only call encoding 0x003E remains unassigned.
-OPCODE(Callm, 0x003D, "call", M, 64, 0, 1, 0, Call)
+OPCODE(Callm, 0x003D, "call", M, 64, 0, 1, 0, Call, None)
 
 // Explicit jump forms use PC-relative immediates, register values, or target pointers loaded from memory.
-OPCODE(Jmpi, 0x003F, "jmpi", I, 64, 0, 0, 1, Branch)
-OPCODE(Jmpr, 0x0040, "jmpr", R, 64, 1, 0, 0, Branch)
-OPCODE(Jmpm, 0x0041, "jmpm", M, 64, 0, 1, 0, Branch)
+OPCODE(Jmpi, 0x003F, "jmpi", I, 64, 0, 0, 1, Branch, None)
+OPCODE(Jmpr, 0x0040, "jmpr", R, 64, 1, 0, 0, Branch, None)
+OPCODE(Jmpm, 0x0041, "jmpm", M, 64, 0, 1, 0, Branch, None)
 
-#define INK_COMPARE_BRANCH_Mmb(Kind, Encoding, Spelling, Width) OPCODE(Kind, Encoding, Spelling, Mmb, Width, 0, 2, 0, ConditionalBranch)
-#define INK_COMPARE_BRANCH_Mib(Kind, Encoding, Spelling, Width) OPCODE(Kind, Encoding, Spelling, Mib, Width, 0, 1, 1, ConditionalBranch)
+#define INK_COMPARE_BRANCH_Mmb(Kind, Encoding, Spelling, Width) OPCODE(Kind, Encoding, Spelling, Mmb, Width, 0, 2, 0, ConditionalBranch, Integer)
+#define INK_COMPARE_BRANCH_Mib(Kind, Encoding, Spelling, Width) OPCODE(Kind, Encoding, Spelling, Mib, Width, 0, 1, 1, ConditionalBranch, Integer)
 #define COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Width, Operator, Signed) INK_COMPARE_BRANCH_##Form(Kind, Encoding, Spelling, Width)
 #include "ink/backend/vm/instruction/compare_branch.def"
 #undef COMPARE_BRANCH
@@ -114,61 +114,61 @@ OPCODE(Jmpm, 0x0041, "jmpm", M, 64, 0, 1, 0, Branch)
 
 // FP64 operands use GPR bit patterns, with ZERO permitted as a positive-zero source; all register displacements are zero.
 // Floating-point destinations are R0-R9 only. The existing Rrr/Rr encodings retain every operand word.
-OPCODE(Fadd64rrr, 0x0092, "fadd64rrr", Rrr, 64, 3, 0, 0, FloatingPoint)
-OPCODE(Fsub64rrr, 0x0093, "fsub64rrr", Rrr, 64, 3, 0, 0, FloatingPoint)
-OPCODE(Fmul64rrr, 0x0094, "fmul64rrr", Rrr, 64, 3, 0, 0, FloatingPoint)
-OPCODE(Fdiv64rrr, 0x0095, "fdiv64rrr", Rrr, 64, 3, 0, 0, FloatingPoint)
-OPCODE(Fsqrt64rr, 0x0096, "fsqrt64rr", Rr, 64, 2, 0, 0, FloatingPoint)
+OPCODE(Fadd64rrr, 0x0092, "fadd64rrr", Rrr, 64, 3, 0, 0, Arithmetic, FloatingPoint)
+OPCODE(Fsub64rrr, 0x0093, "fsub64rrr", Rrr, 64, 3, 0, 0, Arithmetic, FloatingPoint)
+OPCODE(Fmul64rrr, 0x0094, "fmul64rrr", Rrr, 64, 3, 0, 0, Arithmetic, FloatingPoint)
+OPCODE(Fdiv64rrr, 0x0095, "fdiv64rrr", Rrr, 64, 3, 0, 0, Arithmetic, FloatingPoint)
+OPCODE(Fsqrt64rr, 0x0096, "fsqrt64rr", Rr, 64, 2, 0, 0, Arithmetic, FloatingPoint)
 
 // Register moves, multi-width register loads (unsigned zero-extending and signed sign-extending), and register stores.
-OPCODE(Mov64rr, 0x0097, "mov64rr", Rr, 64, 2, 0, 0, Move)
-OPCODE(Mov64ri, 0x0098, "mov64ri", Ri, 64, 1, 0, 1, Move)
-OPCODE(Load8urm, 0x0099, "load8urm", Rm, 8, 1, 1, 0, Load)
-OPCODE(Load16urm, 0x009A, "load16urm", Rm, 16, 1, 1, 0, Load)
-OPCODE(Load32urm, 0x009B, "load32urm", Rm, 32, 1, 1, 0, Load)
-OPCODE(Load8srm, 0x009C, "load8srm", Rm, 8, 1, 1, 0, Load)
-OPCODE(Load16srm, 0x009D, "load16srm", Rm, 16, 1, 1, 0, Load)
-OPCODE(Load32srm, 0x009E, "load32srm", Rm, 32, 1, 1, 0, Load)
-OPCODE(Load64rm, 0x009F, "load64rm", Rm, 64, 1, 1, 0, Load)
-OPCODE(Store8mr, 0x00A0, "store8mr", Mr, 8, 1, 1, 0, Store)
-OPCODE(Store16mr, 0x00A1, "store16mr", Mr, 16, 1, 1, 0, Store)
-OPCODE(Store32mr, 0x00A2, "store32mr", Mr, 32, 1, 1, 0, Store)
-OPCODE(Store64mr, 0x00A3, "store64mr", Mr, 64, 1, 1, 0, Store)
+OPCODE(Mov64rr, 0x0097, "mov64rr", Rr, 64, 2, 0, 0, Move, Integer)
+OPCODE(Mov64ri, 0x0098, "mov64ri", Ri, 64, 1, 0, 1, Move, Integer)
+OPCODE(Load8urm, 0x0099, "load8urm", Rm, 8, 1, 1, 0, Load, Integer)
+OPCODE(Load16urm, 0x009A, "load16urm", Rm, 16, 1, 1, 0, Load, Integer)
+OPCODE(Load32urm, 0x009B, "load32urm", Rm, 32, 1, 1, 0, Load, Integer)
+OPCODE(Load8srm, 0x009C, "load8srm", Rm, 8, 1, 1, 0, Load, Integer)
+OPCODE(Load16srm, 0x009D, "load16srm", Rm, 16, 1, 1, 0, Load, Integer)
+OPCODE(Load32srm, 0x009E, "load32srm", Rm, 32, 1, 1, 0, Load, Integer)
+OPCODE(Load64rm, 0x009F, "load64rm", Rm, 64, 1, 1, 0, Load, Integer)
+OPCODE(Store8mr, 0x00A0, "store8mr", Mr, 8, 1, 1, 0, Store, Integer)
+OPCODE(Store16mr, 0x00A1, "store16mr", Mr, 16, 1, 1, 0, Store, Integer)
+OPCODE(Store32mr, 0x00A2, "store32mr", Mr, 32, 1, 1, 0, Store, Integer)
+OPCODE(Store64mr, 0x00A3, "store64mr", Mr, 64, 1, 1, 0, Store, Integer)
 
 // 64-bit register integer arithmetic. Division and remainder report VMExecutionFailed on zero divisor or signed MIN / -1 overflow.
-OPCODE(Sub64rrr, 0x00A4, "sub64rrr", Rrr, 64, 3, 0, 0, Arithmetic)
-OPCODE(Sub64rri, 0x00A5, "sub64rri", Rri, 64, 2, 0, 1, Arithmetic)
-OPCODE(Mul64rrr, 0x00A6, "mul64rrr", Rrr, 64, 3, 0, 0, Arithmetic)
-OPCODE(Mul64rri, 0x00A7, "mul64rri", Rri, 64, 2, 0, 1, Arithmetic)
-OPCODE(Sdiv64rrr, 0x00A8, "sdiv64rrr", Rrr, 64, 3, 0, 0, Arithmetic)
-OPCODE(Udiv64rrr, 0x00A9, "udiv64rrr", Rrr, 64, 3, 0, 0, Arithmetic)
-OPCODE(Srem64rrr, 0x00AA, "srem64rrr", Rrr, 64, 3, 0, 0, Arithmetic)
-OPCODE(Urem64rrr, 0x00AB, "urem64rrr", Rrr, 64, 3, 0, 0, Arithmetic)
+OPCODE(Sub64rrr, 0x00A4, "sub64rrr", Rrr, 64, 3, 0, 0, Arithmetic, Integer)
+OPCODE(Sub64rri, 0x00A5, "sub64rri", Rri, 64, 2, 0, 1, Arithmetic, Integer)
+OPCODE(Mul64rrr, 0x00A6, "mul64rrr", Rrr, 64, 3, 0, 0, Arithmetic, Integer)
+OPCODE(Mul64rri, 0x00A7, "mul64rri", Rri, 64, 2, 0, 1, Arithmetic, Integer)
+OPCODE(Sdiv64rrr, 0x00A8, "sdiv64rrr", Rrr, 64, 3, 0, 0, Arithmetic, Integer)
+OPCODE(Udiv64rrr, 0x00A9, "udiv64rrr", Rrr, 64, 3, 0, 0, Arithmetic, Integer)
+OPCODE(Srem64rrr, 0x00AA, "srem64rrr", Rrr, 64, 3, 0, 0, Arithmetic, Integer)
+OPCODE(Urem64rrr, 0x00AB, "urem64rrr", Rrr, 64, 3, 0, 0, Arithmetic, Integer)
 
 // 64-bit register bitwise operations and shifts; shift amounts are masked by 63.
-OPCODE(And64rrr, 0x00AC, "and64rrr", Rrr, 64, 3, 0, 0, Bitwise)
-OPCODE(And64rri, 0x00AD, "and64rri", Rri, 64, 2, 0, 1, Bitwise)
-OPCODE(Or64rrr, 0x00AE, "or64rrr", Rrr, 64, 3, 0, 0, Bitwise)
-OPCODE(Or64rri, 0x00AF, "or64rri", Rri, 64, 2, 0, 1, Bitwise)
-OPCODE(Xor64rrr, 0x00B0, "xor64rrr", Rrr, 64, 3, 0, 0, Bitwise)
-OPCODE(Xor64rri, 0x00B1, "xor64rri", Rri, 64, 2, 0, 1, Bitwise)
-OPCODE(Shl64rrr, 0x00B2, "shl64rrr", Rrr, 64, 3, 0, 0, Bitwise)
-OPCODE(Shl64rri, 0x00B3, "shl64rri", Rri, 64, 2, 0, 1, Bitwise)
-OPCODE(Lshr64rrr, 0x00B4, "lshr64rrr", Rrr, 64, 3, 0, 0, Bitwise)
-OPCODE(Lshr64rri, 0x00B5, "lshr64rri", Rri, 64, 2, 0, 1, Bitwise)
-OPCODE(Ashr64rrr, 0x00B6, "ashr64rrr", Rrr, 64, 3, 0, 0, Bitwise)
-OPCODE(Ashr64rri, 0x00B7, "ashr64rri", Rri, 64, 2, 0, 1, Bitwise)
+OPCODE(And64rrr, 0x00AC, "and64rrr", Rrr, 64, 3, 0, 0, Bitwise, Integer)
+OPCODE(And64rri, 0x00AD, "and64rri", Rri, 64, 2, 0, 1, Bitwise, Integer)
+OPCODE(Or64rrr, 0x00AE, "or64rrr", Rrr, 64, 3, 0, 0, Bitwise, Integer)
+OPCODE(Or64rri, 0x00AF, "or64rri", Rri, 64, 2, 0, 1, Bitwise, Integer)
+OPCODE(Xor64rrr, 0x00B0, "xor64rrr", Rrr, 64, 3, 0, 0, Bitwise, Integer)
+OPCODE(Xor64rri, 0x00B1, "xor64rri", Rri, 64, 2, 0, 1, Bitwise, Integer)
+OPCODE(Shl64rrr, 0x00B2, "shl64rrr", Rrr, 64, 3, 0, 0, Bitwise, Integer)
+OPCODE(Shl64rri, 0x00B3, "shl64rri", Rri, 64, 2, 0, 1, Bitwise, Integer)
+OPCODE(Lshr64rrr, 0x00B4, "lshr64rrr", Rrr, 64, 3, 0, 0, Bitwise, Integer)
+OPCODE(Lshr64rri, 0x00B5, "lshr64rri", Rri, 64, 2, 0, 1, Bitwise, Integer)
+OPCODE(Ashr64rrr, 0x00B6, "ashr64rrr", Rrr, 64, 3, 0, 0, Bitwise, Integer)
+OPCODE(Ashr64rri, 0x00B7, "ashr64rri", Rri, 64, 2, 0, 1, Bitwise, Integer)
 
-#define INK_INTEGER_COMPARE_Rrr(Kind, Encoding, Spelling) OPCODE(Kind, Encoding, Spelling, Rrr, 64, 3, 0, 0, Compare)
-#define INK_INTEGER_COMPARE_Rri(Kind, Encoding, Spelling) OPCODE(Kind, Encoding, Spelling, Rri, 64, 2, 0, 1, Compare)
+#define INK_INTEGER_COMPARE_Rrr(Kind, Encoding, Spelling) OPCODE(Kind, Encoding, Spelling, Rrr, 64, 3, 0, 0, Compare, Integer)
+#define INK_INTEGER_COMPARE_Rri(Kind, Encoding, Spelling) OPCODE(Kind, Encoding, Spelling, Rri, 64, 2, 0, 1, Compare, Integer)
 #define INTEGER_COMPARE(Kind, Encoding, Spelling, Form, Operator, Signed) INK_INTEGER_COMPARE_##Form(Kind, Encoding, Spelling)
 #include "ink/backend/vm/instruction/integer_compare.def"
 #undef INTEGER_COMPARE
 #undef INK_INTEGER_COMPARE_Rri
 #undef INK_INTEGER_COMPARE_Rrr
 
-#define INK_REGISTER_COMPARE_BRANCH_Rrb(Kind, Encoding, Spelling) OPCODE(Kind, Encoding, Spelling, Rrb, 64, 2, 0, 0, ConditionalBranch)
-#define INK_REGISTER_COMPARE_BRANCH_Rib(Kind, Encoding, Spelling) OPCODE(Kind, Encoding, Spelling, Rib, 64, 1, 0, 1, ConditionalBranch)
+#define INK_REGISTER_COMPARE_BRANCH_Rrb(Kind, Encoding, Spelling) OPCODE(Kind, Encoding, Spelling, Rrb, 64, 2, 0, 0, ConditionalBranch, Integer)
+#define INK_REGISTER_COMPARE_BRANCH_Rib(Kind, Encoding, Spelling) OPCODE(Kind, Encoding, Spelling, Rib, 64, 1, 0, 1, ConditionalBranch, Integer)
 #define REGISTER_COMPARE_BRANCH(Kind, Encoding, Spelling, Form, Operator, Signed) INK_REGISTER_COMPARE_BRANCH_##Form(Kind, Encoding, Spelling)
 #include "ink/backend/vm/instruction/register_compare_branch.def"
 #undef REGISTER_COMPARE_BRANCH
@@ -176,19 +176,19 @@ OPCODE(Ashr64rri, 0x00B7, "ashr64rri", Rri, 64, 2, 0, 1, Bitwise)
 #undef INK_REGISTER_COMPARE_BRANCH_Rrb
 
 // Additional FP64 unary negation, IEEE 754 ordered/unordered comparisons (writing 0 or 1 to a GPR), and integer conversions.
-OPCODE(Fneg64rr, 0x00E0, "fneg64rr", Rr, 64, 2, 0, 0, FloatingPoint)
+OPCODE(Fneg64rr, 0x00E0, "fneg64rr", Rr, 64, 2, 0, 0, Arithmetic, FloatingPoint)
 
-#define FLOAT_COMPARE(Kind, Encoding, Spelling, Expression) OPCODE(Kind, Encoding, Spelling, Rrr, 64, 3, 0, 0, FloatingPoint)
+#define FLOAT_COMPARE(Kind, Encoding, Spelling, Expression) OPCODE(Kind, Encoding, Spelling, Rrr, 64, 3, 0, 0, Compare, FloatingPoint)
 #include "ink/backend/vm/instruction/float_compare.def"
 #undef FLOAT_COMPARE
 
-OPCODE(Sitof64rr, 0x00EF, "sitof64rr", Rr, 64, 2, 0, 0, FloatingPoint)
-OPCODE(Uitof64rr, 0x00F0, "uitof64rr", Rr, 64, 2, 0, 0, FloatingPoint)
-OPCODE(F64tosi64rr, 0x00F1, "f64tosi64rr", Rr, 64, 2, 0, 0, FloatingPoint)
-OPCODE(F64toui64rr, 0x00F2, "f64toui64rr", Rr, 64, 2, 0, 0, FloatingPoint)
+OPCODE(Sitof64rr, 0x00EF, "sitof64rr", Rr, 64, 2, 0, 0, Convert, FloatingPoint)
+OPCODE(Uitof64rr, 0x00F0, "uitof64rr", Rr, 64, 2, 0, 0, Convert, FloatingPoint)
+OPCODE(F64tosi64rr, 0x00F1, "f64tosi64rr", Rr, 64, 2, 0, 0, Convert, FloatingPoint)
+OPCODE(F64toui64rr, 0x00F2, "f64toui64rr", Rr, 64, 2, 0, 0, Convert, FloatingPoint)
 
 // Register indirect call shares the "call" mnemonic and dispatches to VM or native targets by resolved address.
-OPCODE(Callr, 0x00F3, "call", R, 64, 1, 0, 0, Call)
+OPCODE(Callr, 0x00F3, "call", R, 64, 1, 0, 0, Call, None)
 
 #ifdef INK_VM_OPCODE_DEF_UNDEF_FORM
 #undef INK_VM_OPCODE_DEF_UNDEF_FORM

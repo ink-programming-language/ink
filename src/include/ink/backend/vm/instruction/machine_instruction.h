@@ -3,6 +3,7 @@
 #include "ink/backend/vm/instruction/operand.h"
 #include "ink/backend/vm/instruction/instruction_form.h"
 #include "ink/backend/vm/instruction/instruction_category.h"
+#include "ink/backend/vm/instruction/instruction_domain.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -16,7 +17,7 @@ namespace ink::vm
 
     enum class Opcode : std::uint16_t
     {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) Kind = Encoding,
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) Kind = Encoding,
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
     };
@@ -36,8 +37,8 @@ namespace ink::vm
             {
                 switch (Operation)
                 {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
-    case Opcode::Kind:                                                                                       \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) \
+    case Opcode::Kind:                                                                                               \
         return Spelling;
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
@@ -49,8 +50,8 @@ namespace ink::vm
             {
                 switch (Operation)
                 {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
-    case Opcode::Kind:                                                                                       \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) \
+    case Opcode::Kind:                                                                                               \
         return Width;
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
@@ -62,8 +63,8 @@ namespace ink::vm
             {
                 switch (Operation)
                 {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
-    case Opcode::Kind:                                                                                       \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) \
+    case Opcode::Kind:                                                                                               \
         return FormTraits<InstructionForm::Form>::OperandCount;
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
@@ -75,8 +76,8 @@ namespace ink::vm
             {
                 switch (Operation)
                 {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) \
-    case Opcode::Kind:                                                                                       \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) \
+    case Opcode::Kind:                                                                                               \
         return InstructionCategory::Category;
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
@@ -84,15 +85,28 @@ namespace ink::vm
                 return InstructionCategory::Load;
             }
 
+            constexpr InstructionDomain domain() const noexcept
+            {
+                switch (Operation)
+                {
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) \
+    case Opcode::Kind:                                                                                               \
+        return InstructionDomain::Domain;
+#include "ink/backend/vm/instruction/opcode.def"
+#undef OPCODE
+                }
+                return InstructionDomain::None;
+            }
+
             constexpr bool hasDestination() const noexcept
             {
                 const auto Kind = category();
-                return Kind == InstructionCategory::Load || Kind == InstructionCategory::Store || Kind == InstructionCategory::Move || Kind == InstructionCategory::Add || Kind == InstructionCategory::Arithmetic || Kind == InstructionCategory::Bitwise || Kind == InstructionCategory::Compare || Kind == InstructionCategory::FloatingPoint;
+                return Kind == InstructionCategory::Load || Kind == InstructionCategory::Store || Kind == InstructionCategory::Move || Kind == InstructionCategory::Arithmetic || Kind == InstructionCategory::Bitwise || Kind == InstructionCategory::Compare || Kind == InstructionCategory::Convert;
             }
 
             constexpr bool isFloatingPoint() const noexcept
             {
-                return category() == InstructionCategory::FloatingPoint;
+                return domain() == InstructionDomain::FloatingPoint;
             }
 
             constexpr bool isBranch() const noexcept

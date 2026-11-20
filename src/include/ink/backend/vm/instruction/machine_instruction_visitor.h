@@ -18,7 +18,7 @@ namespace ink::vm
         static_assert(std::is_void_v<Result> || std::is_default_constructible_v<Result>, "instruction visitors must return void or a default-constructible value");
         switch (Instruction.getOpcode())
         {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category)                                                                                  \
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain)                                                                          \
     case Opcode::Kind:                                                                                                                                                                        \
         static_assert(std::is_same_v<Result, std::invoke_result_t<Visitor, const MachineInstructionImpl<Opcode::Kind>&>>, "instruction visitors must return the same type for every opcode"); \
         return std::invoke(std::forward<Visitor>(VisitorValue), static_cast<const MachineInstructionImpl<Opcode::Kind>&>(Instruction));

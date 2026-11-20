@@ -85,7 +85,7 @@ namespace ink::vm
         {
             using Traits = OpcodeTraits<Operation>;
             using Operands = typename Traits::OperandTuple;
-            static_assert(Traits::Category == InstructionCategory::Add);
+            static_assert(Traits::Category == InstructionCategory::Arithmetic && Traits::Domain == InstructionDomain::Integer);
             static_assert(std::is_same_v<std::tuple_element_t<0, Operands>, AddressOperand> && Traits::BitWidth == sizeof(ValueType) * 8);
             const auto DestinationAddress = readIntegerOperand<std::uint64_t, RegisterOperand>(FrameValue, DestinationRegister, Instruction[1]);
             auto Result = readIntegerOperand<ValueType, std::tuple_element_t<1, Operands>>(FrameValue, LeftRegister, Instruction[2]);

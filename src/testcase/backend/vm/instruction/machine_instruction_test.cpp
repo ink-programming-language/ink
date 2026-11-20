@@ -109,7 +109,7 @@ namespace ink::vm::test
         }
 
         template <Opcode Operation>
-        void expectRegisteredInstruction(std::uint16_t Encoding, std::string_view Name, InstructionForm Form, std::uint32_t Width, std::size_t RegisterCount, std::size_t AddressCount, std::size_t ImmediateCount, InstructionCategory Category)
+        void expectRegisteredInstruction(std::uint16_t Encoding, std::string_view Name, InstructionForm Form, std::uint32_t Width, std::size_t RegisterCount, std::size_t AddressCount, std::size_t ImmediateCount, InstructionCategory Category, InstructionDomain Domain)
         {
             using Traits = OpcodeTraits<Operation>;
             constexpr std::size_t OperandCount = std::tuple_size_v<typename Traits::OperandTuple>;
@@ -129,7 +129,10 @@ namespace ink::vm::test
             EXPECT_EQ(Base.operandCount(), RegisterCount + AddressCount + ImmediateCount + Traits::BlockCount);
             EXPECT_EQ(Base.category(), Category);
             EXPECT_EQ(Traits::Category, Category);
-            EXPECT_EQ(Base.isFloatingPoint(), Category == InstructionCategory::FloatingPoint);
+            EXPECT_EQ(Base.domain(), Domain);
+            EXPECT_EQ(Traits::Domain, Domain);
+            EXPECT_EQ(Base.isFloatingPoint(), Domain == InstructionDomain::FloatingPoint);
+            EXPECT_EQ(Traits::IsFloatingPoint, Domain == InstructionDomain::FloatingPoint);
             EXPECT_EQ(Base.isConditionalBranch(), Category == InstructionCategory::ConditionalBranch);
             EXPECT_EQ(Base.isBranch(), Category == InstructionCategory::Branch || Category == InstructionCategory::ConditionalBranch);
             EXPECT_EQ(Base.isTerminator(), Category == InstructionCategory::Branch || Category == InstructionCategory::ConditionalBranch || Category == InstructionCategory::Return);
@@ -218,7 +221,7 @@ namespace ink::vm::test
     // Every opcode owns a typed layout whose semantic order agrees with its declared Form and base traversal.
     TEST(VMMachineInstructionTest, ConnectsEveryOpcodeToItsTypedOperandLayout)
     {
-#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category) expectRegisteredInstruction<Opcode::Kind>(Encoding, Spelling, InstructionForm::Form, Width, RegisterCount, AddressCount, ImmediateCount, InstructionCategory::Category);
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) expectRegisteredInstruction<Opcode::Kind>(Encoding, Spelling, InstructionForm::Form, Width, RegisterCount, AddressCount, ImmediateCount, InstructionCategory::Category, InstructionDomain::Domain);
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
     }
@@ -642,15 +645,21 @@ namespace ink::vm::test
         {
             EXPECT_EQ(static_cast<std::uint16_t>(FloatCompares[Index]), 0x00E1U + Index);
         }
-        static_assert(OpcodeTraits<Opcode::Mov64rr>::Category == InstructionCategory::Move && OpcodeTraits<Opcode::Mov64rr>::HasDestination);
-        static_assert(OpcodeTraits<Opcode::Load8srm>::Category == InstructionCategory::Load && OpcodeTraits<Opcode::Load8srm>::BitWidth == 8);
-        static_assert(OpcodeTraits<Opcode::Store32mr>::Category == InstructionCategory::Store && OpcodeTraits<Opcode::Store32mr>::BitWidth == 32);
-        static_assert(OpcodeTraits<Opcode::Sdiv64rrr>::Category == InstructionCategory::Arithmetic && OpcodeTraits<Opcode::Sdiv64rrr>::HasDestination);
-        static_assert(OpcodeTraits<Opcode::Ashr64rri>::Category == InstructionCategory::Bitwise && OpcodeTraits<Opcode::Ashr64rri>::HasDestination);
-        static_assert(OpcodeTraits<Opcode::Cmplt64rrr>::Category == InstructionCategory::Compare && OpcodeTraits<Opcode::Cmplt64rrr>::HasDestination);
-        static_assert(OpcodeTraits<Opcode::Je64rrb>::Category == InstructionCategory::ConditionalBranch && !OpcodeTraits<Opcode::Je64rrb>::HasDestination);
-        static_assert(OpcodeTraits<Opcode::Fcmp64oeqrrr>::Category == InstructionCategory::FloatingPoint && OpcodeTraits<Opcode::Fcmp64oeqrrr>::HasDestination);
-        static_assert(OpcodeTraits<Opcode::F64tosi64rr>::Category == InstructionCategory::FloatingPoint && OpcodeTraits<Opcode::F64tosi64rr>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Add64rrr>::Category == InstructionCategory::Arithmetic && OpcodeTraits<Opcode::Add64rrr>::Domain == InstructionDomain::Integer && !OpcodeTraits<Opcode::Add64rrr>::IsFloatingPoint);
+        static_assert(OpcodeTraits<Opcode::Fadd64rrr>::Category == InstructionCategory::Arithmetic && OpcodeTraits<Opcode::Fadd64rrr>::Domain == InstructionDomain::FloatingPoint && OpcodeTraits<Opcode::Fadd64rrr>::IsFloatingPoint);
+        static_assert(OpcodeTraits<Opcode::Fneg64rr>::Category == InstructionCategory::Arithmetic && OpcodeTraits<Opcode::Fneg64rr>::Domain == InstructionDomain::FloatingPoint && OpcodeTraits<Opcode::Fneg64rr>::IsFloatingPoint);
+        static_assert(OpcodeTraits<Opcode::Mov64rr>::Category == InstructionCategory::Move && OpcodeTraits<Opcode::Mov64rr>::Domain == InstructionDomain::Integer && OpcodeTraits<Opcode::Mov64rr>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Load8srm>::Category == InstructionCategory::Load && OpcodeTraits<Opcode::Load8srm>::Domain == InstructionDomain::Integer && OpcodeTraits<Opcode::Load8srm>::BitWidth == 8);
+        static_assert(OpcodeTraits<Opcode::Store32mr>::Category == InstructionCategory::Store && OpcodeTraits<Opcode::Store32mr>::Domain == InstructionDomain::Integer && OpcodeTraits<Opcode::Store32mr>::BitWidth == 32);
+        static_assert(OpcodeTraits<Opcode::Sdiv64rrr>::Category == InstructionCategory::Arithmetic && OpcodeTraits<Opcode::Sdiv64rrr>::Domain == InstructionDomain::Integer && OpcodeTraits<Opcode::Sdiv64rrr>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Ashr64rri>::Category == InstructionCategory::Bitwise && OpcodeTraits<Opcode::Ashr64rri>::Domain == InstructionDomain::Integer && OpcodeTraits<Opcode::Ashr64rri>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Cmplt64rrr>::Category == InstructionCategory::Compare && OpcodeTraits<Opcode::Cmplt64rrr>::Domain == InstructionDomain::Integer && OpcodeTraits<Opcode::Cmplt64rrr>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Je64rrb>::Category == InstructionCategory::ConditionalBranch && OpcodeTraits<Opcode::Je64rrb>::Domain == InstructionDomain::Integer && !OpcodeTraits<Opcode::Je64rrb>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Fcmp64oeqrrr>::Category == InstructionCategory::Compare && OpcodeTraits<Opcode::Fcmp64oeqrrr>::Domain == InstructionDomain::FloatingPoint && OpcodeTraits<Opcode::Fcmp64oeqrrr>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::F64tosi64rr>::Category == InstructionCategory::Convert && OpcodeTraits<Opcode::F64tosi64rr>::Domain == InstructionDomain::FloatingPoint && OpcodeTraits<Opcode::F64tosi64rr>::HasDestination);
+        static_assert(OpcodeTraits<Opcode::Jmp>::Category == InstructionCategory::Branch && OpcodeTraits<Opcode::Jmp>::Domain == InstructionDomain::None);
+        static_assert(OpcodeTraits<Opcode::Callr>::Category == InstructionCategory::Call && OpcodeTraits<Opcode::Callr>::Domain == InstructionDomain::None);
+        static_assert(OpcodeTraits<Opcode::Ret>::Category == InstructionCategory::Return && OpcodeTraits<Opcode::Ret>::Domain == InstructionDomain::None);
     }
 
 } // namespace ink::vm::test
