@@ -318,7 +318,12 @@ namespace
                 case MachineOperand::MO_GlobalAddress:
                     {
                         MCSymbol* Sym = OutContext.getOrCreateSymbol(MO.getGlobal()->getName());
-                        return MCOperand::createExpr(MCSymbolRefExpr::create(Sym, OutContext));
+                        const MCExpr* Expr = MCSymbolRefExpr::create(Sym, OutContext);
+                        if (const std::int64_t Offset = MO.getOffset(); Offset != 0)
+                        {
+                            Expr = MCBinaryExpr::createAdd(Expr, MCConstantExpr::create(Offset, OutContext), OutContext);
+                        }
+                        return MCOperand::createExpr(Expr);
                     }
                 case MachineOperand::MO_ExternalSymbol:
                     {

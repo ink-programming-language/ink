@@ -18,7 +18,7 @@ namespace llvm
     }
 
     InkVMInstrInfo::InkVMInstrInfo(const InkVMSubtarget& Subtarget)
-        : InkVMGenInstrInfo(Subtarget, RegisterInfo, ~0u, ~0u, ~0u, InkVM::RET),
+        : InkVMGenInstrInfo(Subtarget, RegisterInfo, InkVM::ADJCALLSTACKDOWN, InkVM::ADJCALLSTACKUP, ~0u, InkVM::RET),
           RegisterInfo()
     {
     }

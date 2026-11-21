@@ -1,13 +1,31 @@
 // InkVM instruction descriptions and SelectionDAG patterns.
 
-// Target-specific SelectionDAG node emitted by InkVMTargetLowering::LowerReturn().
+// Target-specific SelectionDAG nodes.
 def InkVMRetGlue : SDNode<"InkVMISD::RET_GLUE", SDTNone,
                           [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
+
+def InkVMCall : SDNode<"InkVMISD::CALL", SDTypeProfile<0, -1, [SDTCisVT<0, i64>]>,
+                       [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue, SDNPVariadic]>;
+
+def InkVMWrapper : SDNode<"InkVMISD::WRAPPER", SDTIntUnaryOp>;
+
+def InkVMCallSeqStart : SDNode<"ISD::CALLSEQ_START",
+                               SDCallSeqStart<[SDTCisVT<0, i64>, SDTCisVT<1, i64>]>,
+                               [SDNPHasChain, SDNPOutGlue]>;
+
+def InkVMCallSeqEnd : SDNode<"ISD::CALLSEQ_END",
+                             SDCallSeqEnd<[SDTCisVT<0, i64>, SDTCisVT<1, i64>]>,
+                             [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
 
 // Register-plus-signed-64-bit-displacement memory operand: [base + disp].
 def MemOp : Operand<i64> {
   let PrintMethod = "printMemOperand";
   let MIOperandInfo = (ops GPR:$base, i64imm:$disp);
+}
+
+// Symbol address operand formatted as @name [+ offset].
+def SymOp : Operand<i64> {
+  let PrintMethod = "printSymbolOperand";
 }
 
 def AddrRI : ComplexPattern<i64, 2, "SelectAddrRI", [frameindex], []>;
@@ -21,12 +39,35 @@ class InkVMInst<dag Outs, dag Ins, string AsmStr, list<dag> Pat = []> : Instruct
   let Size = 8;
 }
 
+// Call-frame reservation/reclamation pseudo instructions, lowered in eliminateCallFramePseudoInstr().
+let Defs = [SP], Uses = [SP], isPseudo = 1, isCodeGenOnly = 1, hasSideEffects = 1 in {
+  def ADJCALLSTACKDOWN : InkVMInst<(outs), (ins i64imm:$amt1, i64imm:$amt2),
+                                   "; ADJCALLSTACKDOWN $amt1, $amt2",
+                                   [(InkVMCallSeqStart timm:$amt1, timm:$amt2)]>;
+  def ADJCALLSTACKUP   : InkVMInst<(outs), (ins i64imm:$amt1, i64imm:$amt2),
+                                   "; ADJCALLSTACKUP $amt1, $amt2",
+                                   [(InkVMCallSeqEnd timm:$amt1, timm:$amt2)]>;
+}
+
 // 0x003A: ret (8-byte header word, no explicit operands).
 let isReturn = 1, isTerminator = 1, isBarrier = 1 in {
   def RET : InkVMInst<(outs), (ins), "ret", [(InkVMRetGlue)]>;
 }
 
-// 0x0097-0x0098: 64-bit register move and full 64-bit immediate materialization.
+// 0x003B, 0x00F3: direct symbol call and indirect register call.
+let isCall = 1, Size = 16, Uses = [SP] in {
+  def CALLi : InkVMInst<(outs), (ins SymOp:$target),
+                        "call $target",
+                        [(InkVMCall (i64 tglobaladdr:$target))]>;
+
+  def CALLr : InkVMInst<(outs), (ins GPR:$target),
+                        "call $target",
+                        [(InkVMCall GPR:$target)]>;
+}
+
+def : Pat<(InkVMCall (i64 texternalsym:$target)), (CALLi texternalsym:$target)>;
+
+// 0x0097-0x0098: 64-bit register move, immediate load, and symbol address materialization.
 let Size = 24, hasSideEffects = 0, isAsCheapAsAMove = 1 in {
   let isMoveReg = 1 in {
     def MOV64rr : InkVMInst<(outs GPR:$dst), (ins GPR:$src),
@@ -37,8 +78,14 @@ let Size = 24, hasSideEffects = 0, isAsCheapAsAMove = 1 in {
     def MOV64ri : InkVMInst<(outs GPR:$dst), (ins i64imm:$imm),
                             "mov64ri $dst, $imm",
                             [(set GPR:$dst, (i64 imm:$imm))]>;
+
+    def MOV64r_sym : InkVMInst<(outs GPR:$dst), (ins SymOp:$sym),
+                               "mov64ri $dst, $sym",
+                               [(set GPR:$dst, (InkVMWrapper tglobaladdr:$sym))]>;
   }
 }
+
+def : Pat<(InkVMWrapper texternalsym:$sym), (MOV64r_sym texternalsym:$sym)>;
 
 // Multiclass generating paired 64-bit register-register (rrr) and register-immediate (rri) ALU ops.
 multiclass ALU64BinOp<string MnemonicBase, SDNode OpNode, bit IsComm = 0> {

@@ -3,6 +3,7 @@
 include "llvm/Target/Target.td"
 
 include "InkVMRegisterInfo.td"
+include "InkVMCallingConv.td"
 include "InkVMInstrInfo.td"
 
 defm : RemapAllTargetPseudoPointerOperands<GPR>;

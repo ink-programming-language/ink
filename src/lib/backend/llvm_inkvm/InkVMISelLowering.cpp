@@ -4,6 +4,7 @@
 #include "InkVMSubtarget.h"
 #include "MCTargetDesc/InkVMMCTargetDesc.h"
 
+#include <llvm/ADT/SmallVector.h>
 #include <llvm/CodeGen/MachineFrameInfo.h>
 #include <llvm/CodeGen/MachineFunction.h>
 #include <llvm/CodeGen/SelectionDAG.h>
@@ -13,6 +14,7 @@
 #include <llvm/Support/ErrorHandling.h>
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 
 namespace llvm
@@ -59,6 +61,17 @@ namespace llvm
             }
             return MFI.CreateFixedObject(Size, Offset, IsImmutable);
         }
+
+        SDValue emitSlotLoad(SelectionDAG& DAG, const SDValue& Chain, const SDLoc& DL, const SDValue& Addr, MVT RegVT, EVT MemVT, ISD::ArgFlagsTy Flags, MachinePointerInfo PtrInfo)
+        {
+            if (MemVT == MVT::i64)
+            {
+                return DAG.getLoad(RegVT, DL, Chain, Addr, PtrInfo);
+            }
+            EVT LoadVT = MemVT == MVT::i1 ? EVT(MVT::i8) : MemVT;
+            const ISD::LoadExtType ExtType = Flags.isSExt() ? ISD::SEXTLOAD : (Flags.isZExt() ? ISD::ZEXTLOAD : ISD::EXTLOAD);
+            return DAG.getExtLoad(ExtType, DL, RegVT, Chain, Addr, PtrInfo, LoadVT);
+        }
     } // namespace
 
     InkVMTargetLowering::InkVMTargetLowering(const TargetMachine& TM, const InkVMSubtarget& Subtarget)
@@ -68,6 +81,10 @@ namespace llvm
         computeRegisterProperties(Subtarget.getRegisterInfo());
 
         setStackPointerRegisterToSaveRestore(InkVM::SP);
+
+        // Symbol addresses lower through InkVMISD::WRAPPER into mov64ri dst, @sym [+ offset].
+        setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
+        setOperationAction(ISD::ExternalSymbol, MVT::i64, Custom);
 
         // Expand operations that do not map to a single InkVM 64-bit register instruction.
         setOperationAction(ISD::SDIVREM, MVT::i64, Expand);
@@ -108,6 +125,10 @@ namespace llvm
         {
         case InkVMISD::RET_GLUE:
             return "InkVMISD::RET_GLUE";
+        case InkVMISD::CALL:
+            return "InkVMISD::CALL";
+        case InkVMISD::WRAPPER:
+            return "InkVMISD::WRAPPER";
         default:
             return nullptr;
         }
@@ -118,6 +139,35 @@ namespace llvm
         static_cast<void>(DL);
         static_cast<void>(ValueType);
         return MVT::i64;
+    }
+
+    SDValue InkVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG& DAG) const
+    {
+        switch (Op.getOpcode())
+        {
+        case ISD::GlobalAddress:
+            return lowerGlobalAddress(Op, DAG);
+        case ISD::ExternalSymbol:
+            return lowerExternalSymbol(Op, DAG);
+        default:
+            llvm_unreachable("Unhandled InkVM custom lowering operation");
+        }
+    }
+
+    SDValue InkVMTargetLowering::lowerGlobalAddress(SDValue Op, SelectionDAG& DAG) const
+    {
+        const auto* GA = cast<GlobalAddressSDNode>(Op);
+        const SDLoc DL(Op);
+        const SDValue TargetGA = DAG.getTargetGlobalAddress(GA->getGlobal(), DL, MVT::i64, GA->getOffset());
+        return DAG.getNode(InkVMISD::WRAPPER, DL, MVT::i64, TargetGA);
+    }
+
+    SDValue InkVMTargetLowering::lowerExternalSymbol(SDValue Op, SelectionDAG& DAG) const
+    {
+        const auto* ES = cast<ExternalSymbolSDNode>(Op);
+        const SDLoc DL(Op);
+        const SDValue TargetES = DAG.getTargetExternalSymbol(ES->getSymbol(), MVT::i64);
+        return DAG.getNode(InkVMISD::WRAPPER, DL, MVT::i64, TargetES);
     }
 
     SDValue InkVMTargetLowering::LowerFormalArguments(SDValue Chain, CallingConv::ID CallConv, bool IsVarArg, const SmallVectorImpl<ISD::InputArg>& Ins, const SDLoc& DL, SelectionDAG& DAG, SmallVectorImpl<SDValue>& InVals) const
@@ -140,7 +190,7 @@ namespace llvm
         {
             if (Arg.VT != MVT::i64)
             {
-                report_fatal_error("InkVM Step 3 currently supports 64-bit integer/pointer arguments");
+                report_fatal_error("InkVM Step 4 currently supports 64-bit scalar/promoted integer and pointer arguments");
             }
             const std::int64_t SlotOffset = -static_cast<std::int64_t>(CallArea.CallBytes) + static_cast<std::int64_t>(CallArea.ReturnBytes) + static_cast<std::int64_t>(RunningArgOffset);
             RunningArgOffset += 8;
@@ -153,7 +203,7 @@ namespace llvm
 
             const int FI = getOrCreateFixedSlot(MFI, 8, SlotOffset, true);
             const SDValue FINode = DAG.getFrameIndex(FI, MVT::i64);
-            const SDValue Loaded = DAG.getLoad(Arg.VT, DL, Chain, FINode, MachinePointerInfo::getFixedStack(MF, FI));
+            const SDValue Loaded = emitSlotLoad(DAG, Chain, DL, FINode, Arg.VT, Arg.ArgVT, Arg.Flags, MachinePointerInfo::getFixedStack(MF, FI));
             InVals.push_back(Loaded);
         }
 
@@ -172,7 +222,7 @@ namespace llvm
 
         if (Outs.size() != 1 || Outs[0].VT != MVT::i64)
         {
-            report_fatal_error("InkVM Step 3 currently supports void or single 64-bit integer/pointer return values");
+            report_fatal_error("InkVM Step 4 currently supports void or single scalar/pointer return values");
         }
 
         MachineFunction& MF = DAG.getMachineFunction();
@@ -184,5 +234,90 @@ namespace llvm
         Chain = DAG.getStore(Chain, DL, OutVals[0], ReturnSlot, MachinePointerInfo::getFixedStack(MF, ReturnFI));
 
         return DAG.getNode(InkVMISD::RET_GLUE, DL, MVT::Other, Chain);
+    }
+
+    SDValue InkVMTargetLowering::LowerCall(CallLoweringInfo& CLI, SmallVectorImpl<SDValue>& InVals) const
+    {
+        SelectionDAG& DAG = CLI.DAG;
+        const SDLoc& DL = CLI.DL;
+        const SmallVectorImpl<ISD::OutputArg>& Outs = CLI.Outs;
+        const SmallVectorImpl<SDValue>& OutVals = CLI.OutVals;
+        const SmallVectorImpl<ISD::InputArg>& Ins = CLI.Ins;
+        SDValue Chain = CLI.Chain;
+        SDValue Callee = CLI.Callee;
+        CLI.IsTailCall = false;
+
+        if (CLI.IsVarArg)
+        {
+            report_fatal_error("InkVM variadic calls are not implemented yet");
+        }
+        if (Ins.size() > 1)
+        {
+            report_fatal_error("InkVM Step 4 currently supports void or single scalar/pointer call results");
+        }
+
+        const std::uint64_t ReturnBytes = Ins.empty() ? 0 : 8;
+        const std::uint64_t ArgsBytes = static_cast<std::uint64_t>(Outs.size()) * 8;
+        const std::uint64_t CallBytes = ReturnBytes + ArgsBytes;
+
+        // 1. Reserve [CallBegin, sp) on the upward-growing stack via ADJCALLSTACKDOWN -> add64rri sp, sp, +CallBytes.
+        Chain = DAG.getCALLSEQ_START(Chain, CallBytes, 0, DL);
+
+        // 2. Write each argument into [sp - CallBytes + ReturnBytes + 8 * Index].
+        const SDValue SPReg = DAG.getRegister(InkVM::SP, MVT::i64);
+        SmallVector<SDValue, 8> ArgStoreChains;
+        for (std::size_t Index = 0; Index < Outs.size(); ++Index)
+        {
+            if (Outs[Index].VT != MVT::i64)
+            {
+                report_fatal_error("InkVM Step 4 currently supports 64-bit scalar/promoted call arguments");
+            }
+            const std::int64_t OffsetFromSP = -static_cast<std::int64_t>(CallBytes) + static_cast<std::int64_t>(ReturnBytes) + static_cast<std::int64_t>(Index * 8);
+            const SDValue ArgAddr = DAG.getNode(ISD::ADD, DL, MVT::i64, SPReg, DAG.getConstant(OffsetFromSP, DL, MVT::i64));
+            ArgStoreChains.push_back(DAG.getStore(Chain, DL, OutVals[Index], ArgAddr, MachinePointerInfo()));
+        }
+        if (!ArgStoreChains.empty())
+        {
+            Chain = DAG.getNode(ISD::TokenFactor, DL, MVT::Other, ArgStoreChains);
+        }
+
+        // 3. Lower direct zero-offset symbol callees to target nodes so ISel picks CALLi; otherwise CALLr.
+        if (const auto* GA = dyn_cast<GlobalAddressSDNode>(Callee); GA != nullptr && GA->getOffset() == 0)
+        {
+            Callee = DAG.getTargetGlobalAddress(GA->getGlobal(), DL, MVT::i64, 0);
+        }
+        else if (const auto* ES = dyn_cast<ExternalSymbolSDNode>(Callee))
+        {
+            Callee = DAG.getTargetExternalSymbol(ES->getSymbol(), MVT::i64);
+        }
+
+        MachineFunction& MF = DAG.getMachineFunction();
+        const std::uint32_t* Mask = MF.getSubtarget<InkVMSubtarget>().getRegisterInfo()->getCallPreservedMask(MF, CLI.CallConv);
+        assert(Mask != nullptr && "Missing InkVM call preserved register mask");
+
+        SmallVector<SDValue, 4> CallOps;
+        CallOps.push_back(Chain);
+        CallOps.push_back(Callee);
+        CallOps.push_back(DAG.getRegisterMask(Mask));
+
+        const SDVTList CallResultTypes = DAG.getVTList(MVT::Other, MVT::Glue);
+        Chain = DAG.getNode(InkVMISD::CALL, DL, CallResultTypes, CallOps);
+
+        // 4. Load the return value from [sp - CallBytes] BEFORE ADJCALLSTACKUP reclaims the call area.
+        if (!Ins.empty())
+        {
+            if (Ins[0].VT != MVT::i64)
+            {
+                report_fatal_error("InkVM Step 4 currently supports 64-bit scalar/promoted call results");
+            }
+            const SDValue ReturnAddr = DAG.getNode(ISD::ADD, DL, MVT::i64, SPReg, DAG.getConstant(-static_cast<std::int64_t>(CallBytes), DL, MVT::i64));
+            const SDValue ReturnLoad = emitSlotLoad(DAG, Chain, DL, ReturnAddr, Ins[0].VT, Ins[0].ArgVT, Ins[0].Flags, MachinePointerInfo());
+            InVals.push_back(ReturnLoad);
+            Chain = ReturnLoad.getValue(1);
+        }
+
+        // 5. Reclaim the call area via ADJCALLSTACKUP -> add64rri sp, sp, -CallBytes.
+        Chain = DAG.getCALLSEQ_END(Chain, CallBytes, 0, SDValue(), DL);
+        return Chain;
     }
 } // namespace llvm

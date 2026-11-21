@@ -25,11 +25,21 @@ namespace llvm
     const MCPhysReg* InkVMRegisterInfo::getCalleeSavedRegs(const MachineFunction* MF) const
     {
         static_cast<void>(MF);
-        // Per docs/VM-Calling-Convention.md, all general-purpose registers R0-R9 are caller-saved.
-        static constexpr MCPhysReg CalleeSavedRegs[] = {
-            0,
-        };
-        return CalleeSavedRegs;
+        // Generated from CSR_InkVM in InkVMCallingConv.td (empty save list; R0-R9 are caller-saved).
+        return CSR_InkVM_SaveList;
+    }
+
+    const uint32_t* InkVMRegisterInfo::getCallPreservedMask(const MachineFunction& MF, CallingConv::ID CC) const
+    {
+        static_cast<void>(MF);
+        static_cast<void>(CC);
+        // Preserves only BP, SP, and ZERO across calls; marks all R0-R9 as clobbered.
+        return CSR_InkVM_RegMask;
+    }
+
+    const uint32_t* InkVMRegisterInfo::getNoPreservedMask() const
+    {
+        return CSR_InkVM_RegMask;
     }
 
     BitVector InkVMRegisterInfo::getReservedRegs(const MachineFunction& MF) const

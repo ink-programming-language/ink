@@ -1,4 +1,4 @@
-set(INKVM_TD_FILES "${CMAKE_CURRENT_SOURCE_DIR}/InkVM.td" "${CMAKE_CURRENT_SOURCE_DIR}/InkVMRegisterInfo.td" "${CMAKE_CURRENT_SOURCE_DIR}/InkVMInstrInfo.td")
+set(INKVM_TD_FILES "${CMAKE_CURRENT_SOURCE_DIR}/InkVM.td" "${CMAKE_CURRENT_SOURCE_DIR}/InkVMRegisterInfo.td" "${CMAKE_CURRENT_SOURCE_DIR}/InkVMCallingConv.td" "${CMAKE_CURRENT_SOURCE_DIR}/InkVMInstrInfo.td")
 
 function(inkvm_tablegen OutputFile Flag)
     set(OutputPath "${CMAKE_CURRENT_BINARY_DIR}/${OutputFile}")
