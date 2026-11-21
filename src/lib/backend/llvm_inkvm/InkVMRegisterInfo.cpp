@@ -4,9 +4,13 @@
 #include "MCTargetDesc/InkVMMCTargetDesc.h"
 
 #include <llvm/ADT/BitVector.h>
+#include <llvm/CodeGen/MachineFrameInfo.h>
 #include <llvm/CodeGen/MachineFunction.h>
+#include <llvm/CodeGen/MachineInstr.h>
 #include <llvm/CodeGen/TargetSubtargetInfo.h>
-#include <llvm/Support/ErrorHandling.h>
+
+#include <cassert>
+#include <cstdint>
 
 #define GET_REGINFO_TARGET_DESC
 #include "InkVMGenRegisterInfo.inc"
@@ -41,11 +45,20 @@ namespace llvm
 
     bool InkVMRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II, int SPAdj, unsigned FIOperandNum, RegScavenger* RS) const
     {
-        static_cast<void>(II);
         static_cast<void>(SPAdj);
-        static_cast<void>(FIOperandNum);
         static_cast<void>(RS);
-        llvm_unreachable("InkVM frame index elimination will be implemented in a later step");
+
+        MachineInstr& MI = *II;
+        MachineFunction& MF = *MI.getParent()->getParent();
+        const int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+        const std::int64_t ObjectOffset = MF.getFrameInfo().getObjectOffset(FrameIndex);
+
+        assert(FIOperandNum + 1 < MI.getNumOperands() && MI.getOperand(FIOperandNum + 1).isImm() && "Expected immediate displacement right after FrameIndex");
+        const std::int64_t TotalOffset = ObjectOffset + MI.getOperand(FIOperandNum + 1).getImm();
+
+        MI.getOperand(FIOperandNum).ChangeToRegister(InkVM::BP, false);
+        MI.getOperand(FIOperandNum + 1).ChangeToImmediate(TotalOffset);
+        return false;
     }
 
     Register InkVMRegisterInfo::getFrameRegister(const MachineFunction& MF) const

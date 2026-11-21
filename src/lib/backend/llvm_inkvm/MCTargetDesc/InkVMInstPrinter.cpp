@@ -8,6 +8,8 @@
 #include <llvm/Support/ErrorHandling.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include <cstdint>
+
 #define DEBUG_TYPE "inkvm-asm-printer"
 
 using namespace llvm;
@@ -45,4 +47,43 @@ void InkVMInstPrinter::printOperand(const MCInst* MI, unsigned OpNo, raw_ostream
         return;
     }
     llvm_unreachable("Unsupported InkVM MCOperand kind");
+}
+
+void InkVMInstPrinter::printMemOperand(const MCInst* MI, unsigned OpNo, raw_ostream& OS)
+{
+    const MCOperand& Base = MI->getOperand(OpNo);
+    const MCOperand& Disp = MI->getOperand(OpNo + 1);
+
+    OS << '[';
+    if (Base.isReg())
+    {
+        OS << getRegisterName(Base.getReg());
+    }
+    else if (Base.isExpr())
+    {
+        MAI.printExpr(OS, *Base.getExpr());
+    }
+    else
+    {
+        llvm_unreachable("Unsupported InkVM memory base operand");
+    }
+
+    if (Disp.isImm())
+    {
+        const std::int64_t Offset = Disp.getImm();
+        if (Offset > 0)
+        {
+            OS << " + " << Offset;
+        }
+        else if (Offset < 0)
+        {
+            const std::uint64_t Magnitude = std::uint64_t{0} - static_cast<std::uint64_t>(Offset);
+            OS << " - " << Magnitude;
+        }
+    }
+    else
+    {
+        llvm_unreachable("Unsupported InkVM memory displacement operand");
+    }
+    OS << ']';
 }

@@ -21,6 +21,12 @@ namespace llvm
                 return RegisterInfo;
             }
 
+            void copyPhysReg(MachineBasicBlock& MBB, MachineBasicBlock::iterator InsertPos, const DebugLoc& DL, Register DestReg, Register SrcReg, bool KillSrc, bool RenamableDest = false, bool RenamableSrc = false) const override;
+
+            void storeRegToStackSlot(MachineBasicBlock& MBB, MachineBasicBlock::iterator InsertPos, Register SrcReg, bool IsKill, int FrameIndex, const TargetRegisterClass* RC, Register VReg, MachineInstr::MIFlag Flags = MachineInstr::NoFlags) const override;
+
+            void loadRegFromStackSlot(MachineBasicBlock& MBB, MachineBasicBlock::iterator InsertPos, Register DestReg, int FrameIndex, const TargetRegisterClass* RC, Register VReg, unsigned SubReg = 0, MachineInstr::MIFlag Flags = MachineInstr::NoFlags) const override;
+
         private:
             virtual void anchor();
 
