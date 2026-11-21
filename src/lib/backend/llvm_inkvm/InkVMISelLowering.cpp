@@ -68,7 +68,7 @@ namespace llvm
 
         SDValue emitSlotLoad(SelectionDAG& DAG, const SDValue& Chain, const SDLoc& DL, const SDValue& Addr, MVT RegVT, EVT MemVT, ISD::ArgFlagsTy Flags, MachinePointerInfo PtrInfo)
         {
-            if (MemVT == MVT::i64)
+            if (MemVT == MVT::i64 || MemVT == MVT::f64)
             {
                 return DAG.getLoad(RegVT, DL, Chain, Addr, PtrInfo);
             }
@@ -111,6 +111,7 @@ namespace llvm
         : TargetLowering(TM, Subtarget)
     {
         addRegisterClass(MVT::i64, &InkVM::GPRRegClass);
+        addRegisterClass(MVT::f64, &InkVM::FPRRegClass);
         computeRegisterProperties(Subtarget.getRegisterInfo());
 
         setStackPointerRegisterToSaveRestore(InkVM::SP);
@@ -120,12 +121,26 @@ namespace llvm
         setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
         setOperationAction(ISD::ExternalSymbol, MVT::i64, Custom);
 
-        // Flagless compare-and-branch ISA: BR_CC is native, BRCOND/SELECT fold into BR_CC/SELECT_CC, BR_JT expands to branches.
+        // Materialize FP64 constants directly via mov64ri bit patterns (no constant pool needed).
+        setOperationAction(ISD::ConstantFP, MVT::f64, Custom);
+
+        // Native FP64 ops vs bitwise/libcall expansions.
+        setOperationAction(ISD::FNEG, MVT::f64, Legal);
+        setOperationAction(ISD::FSQRT, MVT::f64, Legal);
+        setOperationAction(ISD::FABS, MVT::f64, Expand);
+        setOperationAction(ISD::FCOPYSIGN, MVT::f64, Expand);
+        setOperationAction(ISD::FMA, MVT::f64, Expand);
+        setOperationAction(ISD::FREM, MVT::f64, Expand);
+
+        // Flagless compare-and-branch ISA: i64 BR_CC is native, f64 BR_CC lowers via fcmp64 + jne64rib.
         setOperationAction(ISD::BR_CC, MVT::i64, Legal);
+        setOperationAction(ISD::BR_CC, MVT::f64, Custom);
         setOperationAction(ISD::BRCOND, MVT::Other, Expand);
         setOperationAction(ISD::BR_JT, MVT::Other, Expand);
         setOperationAction(ISD::SELECT, MVT::i64, Expand);
+        setOperationAction(ISD::SELECT, MVT::f64, Expand);
         setOperationAction(ISD::SELECT_CC, MVT::i64, Custom);
+        setOperationAction(ISD::SELECT_CC, MVT::f64, Custom);
 
         // Expand operations that do not map to a single InkVM 64-bit register instruction.
         setOperationAction(ISD::SDIVREM, MVT::i64, Expand);
@@ -172,6 +187,10 @@ namespace llvm
             return "InkVMISD::WRAPPER";
         case InkVMISD::SELECT_CC:
             return "InkVMISD::SELECT_CC";
+        case InkVMISD::FP_CONST:
+            return "InkVMISD::FP_CONST";
+        case InkVMISD::BR_NZ:
+            return "InkVMISD::BR_NZ";
         default:
             return nullptr;
         }
@@ -191,6 +210,14 @@ namespace llvm
         return false;
     }
 
+    bool InkVMTargetLowering::isFPImmLegal(const APFloat& Imm, EVT VT, bool ForCodeSize) const
+    {
+        static_cast<void>(Imm);
+        static_cast<void>(ForCodeSize);
+        // InkVM materializes any 64-bit IEEE-754 double literal directly via mov64ri without a constant pool.
+        return VT == MVT::f64;
+    }
+
     SDValue InkVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG& DAG) const
     {
         switch (Op.getOpcode())
@@ -199,6 +226,10 @@ namespace llvm
             return lowerGlobalAddress(Op, DAG);
         case ISD::ExternalSymbol:
             return lowerExternalSymbol(Op, DAG);
+        case ISD::ConstantFP:
+            return lowerConstantFP(Op, DAG);
+        case ISD::BR_CC:
+            return lowerBrCC(Op, DAG);
         case ISD::SELECT_CC:
             return lowerSelectCC(Op, DAG);
         default:
@@ -222,21 +253,52 @@ namespace llvm
         return DAG.getNode(InkVMISD::WRAPPER, DL, MVT::i64, TargetES);
     }
 
+    SDValue InkVMTargetLowering::lowerConstantFP(SDValue Op, SelectionDAG& DAG) const
+    {
+        const auto* CFP = cast<ConstantFPSDNode>(Op);
+        const SDLoc DL(Op);
+        const std::uint64_t Bits = CFP->getValueAPF().bitcastToAPInt().getZExtValue();
+        return DAG.getNode(InkVMISD::FP_CONST, DL, MVT::f64, DAG.getTargetConstant(Bits, DL, MVT::i64));
+    }
+
+    SDValue InkVMTargetLowering::lowerBrCC(SDValue Op, SelectionDAG& DAG) const
+    {
+        const SDLoc DL(Op);
+        const SDValue Chain = Op.getOperand(0);
+        const ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(1))->get();
+        const SDValue LHS = Op.getOperand(2);
+        const SDValue RHS = Op.getOperand(3);
+        const SDValue Dest = Op.getOperand(4);
+        assert(LHS.getValueType() == MVT::f64 && "Only FP64 BR_CC uses custom lowering");
+
+        const SDValue Cmp = DAG.getSetCC(DL, MVT::i64, LHS, RHS, CC);
+        // Use InkVMISD::BR_NZ rather than generic ISD::BR_CC so DAGCombiner does not fold SETCC back into FP64 BR_CC.
+        return DAG.getNode(InkVMISD::BR_NZ, DL, MVT::Other, Chain, Cmp, Dest);
+    }
+
     SDValue InkVMTargetLowering::lowerSelectCC(SDValue Op, SelectionDAG& DAG) const
     {
         const SDLoc DL(Op);
-        const SDValue LHS = Op.getOperand(0);
-        const SDValue RHS = Op.getOperand(1);
+        SDValue LHS = Op.getOperand(0);
+        SDValue RHS = Op.getOperand(1);
         const SDValue TrueVal = Op.getOperand(2);
         const SDValue FalseVal = Op.getOperand(3);
-        const ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(4))->get();
+        ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(4))->get();
+
+        if (LHS.getValueType() == MVT::f64)
+        {
+            LHS = DAG.getSetCC(DL, MVT::i64, LHS, RHS, CC);
+            RHS = DAG.getConstant(0, DL, MVT::i64);
+            CC = ISD::SETNE;
+        }
+
         const SDValue TargetCC = DAG.getTargetConstant(static_cast<std::uint64_t>(CC), DL, MVT::i64);
         return DAG.getNode(InkVMISD::SELECT_CC, DL, Op.getValueType(), LHS, RHS, TargetCC, TrueVal, FalseVal);
     }
 
     MachineBasicBlock* InkVMTargetLowering::EmitInstrWithCustomInserter(MachineInstr& MI, MachineBasicBlock* BB) const
     {
-        assert(MI.getOpcode() == InkVM::SELECT_CC_I64 && "Unexpected pseudo instruction in custom inserter");
+        assert((MI.getOpcode() == InkVM::SELECT_CC_I64 || MI.getOpcode() == InkVM::SELECT_CC_F64) && "Unexpected pseudo instruction in custom inserter");
 
         const InkVMInstrInfo& TII = *BB->getParent()->getSubtarget<InkVMSubtarget>().getInstrInfo();
         const DebugLoc DL = MI.getDebugLoc();
@@ -291,9 +353,9 @@ namespace llvm
         std::uint64_t RunningArgOffset = 0;
         for (const ISD::InputArg& Arg : Ins)
         {
-            if (Arg.VT != MVT::i64)
+            if (Arg.VT != MVT::i64 && Arg.VT != MVT::f64)
             {
-                report_fatal_error("InkVM currently supports 64-bit scalar/promoted integer and pointer arguments");
+                report_fatal_error("InkVM currently supports 64-bit integer, pointer, and FP64 arguments");
             }
             const std::int64_t SlotOffset = -static_cast<std::int64_t>(CallArea.CallBytes) + static_cast<std::int64_t>(CallArea.ReturnBytes) + static_cast<std::int64_t>(RunningArgOffset);
             RunningArgOffset += 8;
@@ -323,9 +385,9 @@ namespace llvm
             return DAG.getNode(InkVMISD::RET_GLUE, DL, MVT::Other, Chain);
         }
 
-        if (Outs.size() != 1 || Outs[0].VT != MVT::i64)
+        if (Outs.size() != 1 || (Outs[0].VT != MVT::i64 && Outs[0].VT != MVT::f64))
         {
-            report_fatal_error("InkVM currently supports void or single scalar/pointer return values");
+            report_fatal_error("InkVM currently supports void or single 64-bit integer/pointer/FP64 return values");
         }
 
         MachineFunction& MF = DAG.getMachineFunction();
@@ -371,9 +433,9 @@ namespace llvm
         SmallVector<SDValue, 8> ArgStoreChains;
         for (std::size_t Index = 0; Index < Outs.size(); ++Index)
         {
-            if (Outs[Index].VT != MVT::i64)
+            if (Outs[Index].VT != MVT::i64 && Outs[Index].VT != MVT::f64)
             {
-                report_fatal_error("InkVM currently supports 64-bit scalar/promoted call arguments");
+                report_fatal_error("InkVM currently supports 64-bit integer, pointer, and FP64 call arguments");
             }
             const std::int64_t OffsetFromSP = -static_cast<std::int64_t>(CallBytes) + static_cast<std::int64_t>(ReturnBytes) + static_cast<std::int64_t>(Index * 8);
             const SDValue ArgAddr = DAG.getNode(ISD::ADD, DL, MVT::i64, SPReg, DAG.getConstant(OffsetFromSP, DL, MVT::i64));
@@ -409,9 +471,9 @@ namespace llvm
         // 4. Load the return value from [sp - CallBytes] BEFORE ADJCALLSTACKUP reclaims the call area.
         if (!Ins.empty())
         {
-            if (Ins[0].VT != MVT::i64)
+            if (Ins[0].VT != MVT::i64 && Ins[0].VT != MVT::f64)
             {
-                report_fatal_error("InkVM currently supports 64-bit scalar/promoted call results");
+                report_fatal_error("InkVM currently supports 64-bit integer, pointer, and FP64 call results");
             }
             const SDValue ReturnAddr = DAG.getNode(ISD::ADD, DL, MVT::i64, SPReg, DAG.getConstant(-static_cast<std::int64_t>(CallBytes), DL, MVT::i64));
             const SDValue ReturnLoad = emitSlotLoad(DAG, Chain, DL, ReturnAddr, Ins[0].VT, Ins[0].ArgVT, Ins[0].Flags, MachinePointerInfo());

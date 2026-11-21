@@ -14,6 +14,8 @@ namespace llvm
             CALL,
             WRAPPER,
             SELECT_CC,
+            FP_CONST,
+            BR_NZ,
         };
     } // namespace InkVMISD
 
@@ -30,6 +32,8 @@ namespace llvm
 
             bool areJTsAllowed(const Function* Fn) const override;
 
+            bool isFPImmLegal(const APFloat& Imm, EVT VT, bool ForCodeSize = false) const override;
+
             SDValue LowerOperation(SDValue Op, SelectionDAG& DAG) const override;
 
             MachineBasicBlock* EmitInstrWithCustomInserter(MachineInstr& MI, MachineBasicBlock* BB) const override;
@@ -43,6 +47,8 @@ namespace llvm
         private:
             SDValue lowerGlobalAddress(SDValue Op, SelectionDAG& DAG) const;
             SDValue lowerExternalSymbol(SDValue Op, SelectionDAG& DAG) const;
+            SDValue lowerConstantFP(SDValue Op, SelectionDAG& DAG) const;
+            SDValue lowerBrCC(SDValue Op, SelectionDAG& DAG) const;
             SDValue lowerSelectCC(SDValue Op, SelectionDAG& DAG) const;
     };
 } // namespace llvm

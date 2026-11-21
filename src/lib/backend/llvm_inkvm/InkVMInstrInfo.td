@@ -13,6 +13,13 @@ def InkVMSelectCC : SDNode<"InkVMISD::SELECT_CC",
                            SDTypeProfile<1, 5, [SDTCisSameAs<1, 2>, SDTCisVT<3, i64>,
                                                 SDTCisSameAs<0, 4>, SDTCisSameAs<0, 5>]>>;
 
+def InkVMFPConst : SDNode<"InkVMISD::FP_CONST",
+                          SDTypeProfile<1, 1, [SDTCisVT<0, f64>, SDTCisVT<1, i64>]>>;
+
+def InkVMBrNZ : SDNode<"InkVMISD::BR_NZ",
+                       SDTypeProfile<0, 2, [SDTCisVT<0, i64>, SDTCisVT<1, OtherVT>]>,
+                       [SDNPHasChain]>;
+
 def InkVMCallSeqStart : SDNode<"ISD::CALLSEQ_START",
                                SDCallSeqStart<[SDTCisVT<0, i64>, SDTCisVT<1, i64>]>,
                                [SDNPHasChain, SDNPOutGlue]>;
@@ -132,12 +139,20 @@ defm JLEU : JCC64Op<"jleu", SETULE>;
 defm JGTU : JCC64Op<"jgtu", SETUGT>;
 defm JGEU : JCC64Op<"jgeu", SETUGE>;
 
+// FP64 conditional branches lower via fcmp64*rrr + InkVMISD::BR_NZ -> jne64rib cond, 0, dst.
+def : Pat<(InkVMBrNZ GPR:$cond, bb:$dst), (JNE64rib GPR:$cond, 0, bb:$dst)>;
+
 // Lowered into a diamond CFG + PHI in InkVMTargetLowering::EmitInstrWithCustomInserter().
 let usesCustomInserter = 1, isPseudo = 1, isCodeGenOnly = 1, hasSideEffects = 0 in {
   def SELECT_CC_I64 : InkVMInst<(outs GPR:$dst),
                                 (ins GPR:$lhs, GPR:$rhs, i64imm:$cc, GPR:$tval, GPR:$fval),
                                 "; SELECT_CC_I64 $dst, $lhs, $rhs, $cc, $tval, $fval",
                                 [(set GPR:$dst, (InkVMSelectCC GPR:$lhs, GPR:$rhs, timm:$cc, GPR:$tval, GPR:$fval))]>;
+
+  def SELECT_CC_F64 : InkVMInst<(outs FPR:$dst),
+                                (ins GPR:$lhs, GPR:$rhs, i64imm:$cc, FPR:$tval, FPR:$fval),
+                                "; SELECT_CC_F64 $dst, $lhs, $rhs, $cc, $tval, $fval",
+                                [(set FPR:$dst, (InkVMSelectCC GPR:$lhs, GPR:$rhs, timm:$cc, FPR:$tval, FPR:$fval))]>;
 }
 
 // 0x003B, 0x00F3: direct symbol call and indirect register call.
@@ -316,4 +331,121 @@ let AddedComplexity = 5 in {
   def : Pat<(i64 (extloadi8  AddrSym:$addr)), (LOAD8urm_sym  AddrSym:$addr)>;
   def : Pat<(i64 (extloadi16 AddrSym:$addr)), (LOAD16urm_sym AddrSym:$addr)>;
   def : Pat<(i64 (extloadi32 AddrSym:$addr)), (LOAD32urm_sym AddrSym:$addr)>;
+}
+
+// 0x009F, 0x00A3: FP64 loads and stores (same wire opcodes as 64-bit integer loads/stores).
+let Size = 24, hasSideEffects = 0 in {
+  let mayLoad = 1 in {
+    def LOAD64rm_f64 : InkVMInst<(outs FPR:$dst), (ins MemOp:$addr),
+                                 "load64rm $dst, $addr",
+                                 [(set FPR:$dst, (load AddrRI:$addr))]>;
+  }
+
+  let mayStore = 1 in {
+    def STORE64mr_f64 : InkVMInst<(outs), (ins MemOp:$addr, FPR:$src),
+                                  "store64mr $addr, $src",
+                                  [(store FPR:$src, AddrRI:$addr)]>;
+  }
+}
+
+let Size = 24, hasSideEffects = 0, AddedComplexity = 5 in {
+  let mayLoad = 1 in {
+    def LOAD64rm_f64_sym : InkVMInst<(outs FPR:$dst), (ins SymMemOp:$addr),
+                                     "load64rm $dst, $addr",
+                                     [(set FPR:$dst, (load AddrSym:$addr))]>;
+  }
+
+  let mayStore = 1 in {
+    def STORE64mr_f64_sym : InkVMInst<(outs), (ins SymMemOp:$addr, FPR:$src),
+                                      "store64mr $addr, $src",
+                                      [(store FPR:$src, AddrSym:$addr)]>;
+  }
+}
+
+// Unified R0-R9 register file: i64<->f64 bitcasts coalesce to zero instructions when already in R0-R9.
+def : Pat<(f64 (bitconvert GPR:$src)), (COPY_TO_REGCLASS GPR:$src, FPR)>;
+def : Pat<(i64 (bitconvert FPR:$src)), (COPY_TO_REGCLASS FPR:$src, GPR)>;
+
+// 0x0098: Materialize any 64-bit IEEE-754 double literal directly via mov64ri bit pattern.
+let Size = 24, hasSideEffects = 0, isAsCheapAsAMove = 1, isMoveImm = 1, isReMaterializable = 1 in {
+  def MOV64ri_f64 : InkVMInst<(outs FPR:$dst), (ins i64imm:$imm),
+                              "mov64ri $dst, $imm",
+                              [(set FPR:$dst, (InkVMFPConst timm:$imm))]>;
+}
+
+// 0x0092-0x0096, 0x00E0: IEEE-754 FP64 arithmetic, square root, and unary negation.
+class FP64BinOp<string Mnemonic, SDNode OpNode, bit IsComm = 0>
+    : InkVMInst<(outs FPR:$dst), (ins FPR:$lhs, FPR:$rhs),
+                !strconcat(Mnemonic, " $dst, $lhs, $rhs"),
+                [(set FPR:$dst, (OpNode FPR:$lhs, FPR:$rhs))]> {
+  let Size = 32;
+  let hasSideEffects = 0;
+  let isCommutable = IsComm;
+}
+
+def FADD64rrr : FP64BinOp<"fadd64rrr", fadd, 1>;
+def FSUB64rrr : FP64BinOp<"fsub64rrr", fsub, 0>;
+def FMUL64rrr : FP64BinOp<"fmul64rrr", fmul, 1>;
+def FDIV64rrr : FP64BinOp<"fdiv64rrr", fdiv, 0>;
+
+let Size = 24, hasSideEffects = 0 in {
+  def FSQRT64rr : InkVMInst<(outs FPR:$dst), (ins FPR:$src),
+                            "fsqrt64rr $dst, $src",
+                            [(set FPR:$dst, (fsqrt FPR:$src))]>;
+
+  def FNEG64rr : InkVMInst<(outs FPR:$dst), (ins FPR:$src),
+                           "fneg64rr $dst, $src",
+                           [(set FPR:$dst, (fneg FPR:$src))]>;
+}
+
+// 0x00E1-0x00EE: 14 IEEE-754 ordered/unordered FP64 comparisons (write 0 or 1 to R0-R9).
+class FCMP64Op<string Mnemonic, PatFrag CondNode, bit IsComm = 0>
+    : InkVMInst<(outs GPRAlloc:$dst), (ins FPR:$lhs, FPR:$rhs),
+                !strconcat(Mnemonic, " $dst, $lhs, $rhs"),
+                [(set GPRAlloc:$dst, (CondNode FPR:$lhs, FPR:$rhs))]> {
+  let Size = 32;
+  let hasSideEffects = 0;
+  let isCommutable = IsComm;
+}
+
+def FCMP64OEQrrr : FCMP64Op<"fcmp64oeqrrr", setoeq, 1>;
+def FCMP64ONErrr : FCMP64Op<"fcmp64onerrr", setone, 1>;
+def FCMP64OLTrrr : FCMP64Op<"fcmp64oltrrr", setolt, 0>;
+def FCMP64OLErrr : FCMP64Op<"fcmp64olerrr", setole, 0>;
+def FCMP64OGTrrr : FCMP64Op<"fcmp64ogtrrr", setogt, 0>;
+def FCMP64OGErrr : FCMP64Op<"fcmp64ogerrr", setoge, 0>;
+def FCMP64ORDrrr : FCMP64Op<"fcmp64ordrrr", seto,   1>;
+def FCMP64UNOrrr : FCMP64Op<"fcmp64unorrr", setuo,  1>;
+def FCMP64UEQrrr : FCMP64Op<"fcmp64ueqrrr", setueq, 1>;
+def FCMP64UNErrr : FCMP64Op<"fcmp64unerrr", setune, 1>;
+def FCMP64ULTrrr : FCMP64Op<"fcmp64ultrrr", setult, 0>;
+def FCMP64ULErrr : FCMP64Op<"fcmp64ulerrr", setule, 0>;
+def FCMP64UGTrrr : FCMP64Op<"fcmp64ugtrrr", setugt, 0>;
+def FCMP64UGErrr : FCMP64Op<"fcmp64ugerrr", setuge, 0>;
+
+// Map unspecified-NaN FP condition codes (e.g. fast-math folds) to ordered FP64 comparisons.
+def : Pat<(i64 (seteq FPR:$lhs, FPR:$rhs)), (FCMP64OEQrrr FPR:$lhs, FPR:$rhs)>;
+def : Pat<(i64 (setne FPR:$lhs, FPR:$rhs)), (FCMP64ONErrr FPR:$lhs, FPR:$rhs)>;
+def : Pat<(i64 (setlt FPR:$lhs, FPR:$rhs)), (FCMP64OLTrrr FPR:$lhs, FPR:$rhs)>;
+def : Pat<(i64 (setle FPR:$lhs, FPR:$rhs)), (FCMP64OLErrr FPR:$lhs, FPR:$rhs)>;
+def : Pat<(i64 (setgt FPR:$lhs, FPR:$rhs)), (FCMP64OGTrrr FPR:$lhs, FPR:$rhs)>;
+def : Pat<(i64 (setge FPR:$lhs, FPR:$rhs)), (FCMP64OGErrr FPR:$lhs, FPR:$rhs)>;
+
+// 0x00EF-0x00F2: 64-bit signed/unsigned integer <-> FP64 conversions (operands constrained to R0-R9).
+let Size = 24, hasSideEffects = 0 in {
+  def SITOF64rr : InkVMInst<(outs FPR:$dst), (ins GPRAlloc:$src),
+                            "sitof64rr $dst, $src",
+                            [(set FPR:$dst, (sint_to_fp GPRAlloc:$src))]>;
+
+  def UITOF64rr : InkVMInst<(outs FPR:$dst), (ins GPRAlloc:$src),
+                            "uitof64rr $dst, $src",
+                            [(set FPR:$dst, (uint_to_fp GPRAlloc:$src))]>;
+
+  def F64TOSI64rr : InkVMInst<(outs GPRAlloc:$dst), (ins FPR:$src),
+                              "f64tosi64rr $dst, $src",
+                              [(set GPRAlloc:$dst, (fp_to_sint FPR:$src))]>;
+
+  def F64TOUI64rr : InkVMInst<(outs GPRAlloc:$dst), (ins FPR:$src),
+                              "f64toui64rr $dst, $src",
+                              [(set GPRAlloc:$dst, (fp_to_uint FPR:$src))]>;
 }

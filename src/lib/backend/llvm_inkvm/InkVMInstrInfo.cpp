@@ -112,7 +112,6 @@ namespace llvm
 
     void InkVMInstrInfo::storeRegToStackSlot(MachineBasicBlock& MBB, MachineBasicBlock::iterator InsertPos, Register SrcReg, bool IsKill, int FrameIndex, const TargetRegisterClass* RC, Register VReg, MachineInstr::MIFlag Flags) const
     {
-        static_cast<void>(RC);
         static_cast<void>(VReg);
         static_cast<void>(Flags);
 
@@ -125,12 +124,12 @@ namespace llvm
         const MachineFrameInfo& MFI = MF.getFrameInfo();
         MachineMemOperand* MMO = MF.getMachineMemOperand(MachinePointerInfo::getFixedStack(MF, FrameIndex), MachineMemOperand::MOStore, MFI.getObjectSize(FrameIndex), MFI.getObjectAlign(FrameIndex));
 
-        BuildMI(MBB, InsertPos, DL, get(InkVM::STORE64mr)).addFrameIndex(FrameIndex).addImm(0).addReg(SrcReg, getKillRegState(IsKill)).addMemOperand(MMO);
+        const unsigned StoreOpc = RC == &InkVM::FPRRegClass ? InkVM::STORE64mr_f64 : InkVM::STORE64mr;
+        BuildMI(MBB, InsertPos, DL, get(StoreOpc)).addFrameIndex(FrameIndex).addImm(0).addReg(SrcReg, getKillRegState(IsKill)).addMemOperand(MMO);
     }
 
     void InkVMInstrInfo::loadRegFromStackSlot(MachineBasicBlock& MBB, MachineBasicBlock::iterator InsertPos, Register DestReg, int FrameIndex, const TargetRegisterClass* RC, Register VReg, unsigned SubReg, MachineInstr::MIFlag Flags) const
     {
-        static_cast<void>(RC);
         static_cast<void>(VReg);
         static_cast<void>(SubReg);
         static_cast<void>(Flags);
@@ -144,7 +143,8 @@ namespace llvm
         const MachineFrameInfo& MFI = MF.getFrameInfo();
         MachineMemOperand* MMO = MF.getMachineMemOperand(MachinePointerInfo::getFixedStack(MF, FrameIndex), MachineMemOperand::MOLoad, MFI.getObjectSize(FrameIndex), MFI.getObjectAlign(FrameIndex));
 
-        BuildMI(MBB, InsertPos, DL, get(InkVM::LOAD64rm), DestReg).addFrameIndex(FrameIndex).addImm(0).addMemOperand(MMO);
+        const unsigned LoadOpc = RC == &InkVM::FPRRegClass ? InkVM::LOAD64rm_f64 : InkVM::LOAD64rm;
+        BuildMI(MBB, InsertPos, DL, get(LoadOpc), DestReg).addFrameIndex(FrameIndex).addImm(0).addMemOperand(MMO);
     }
 
     bool InkVMInstrInfo::analyzeBranch(MachineBasicBlock& MBB, MachineBasicBlock*& TBB, MachineBasicBlock*& FBB, SmallVectorImpl<MachineOperand>& Cond, bool AllowModify) const
