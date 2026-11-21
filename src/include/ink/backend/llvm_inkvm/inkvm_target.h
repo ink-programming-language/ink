@@ -8,6 +8,7 @@
 
 namespace llvm
 {
+    class Module;
     class TargetMachine;
 } // namespace llvm
 
@@ -20,4 +21,6 @@ namespace ink::backend::llvm_inkvm
     void initializeInkVMTarget() noexcept;
 
     std::unique_ptr<llvm::TargetMachine> createInkVMTargetMachine(llvm::CodeGenOptLevel OptLevel, std::string& ErrorMessage);
+
+    bool emitInkVMAssembly(llvm::Module& Module, std::string& AssemblyOutput, std::string& ErrorMessage, llvm::CodeGenOptLevel OptLevel = llvm::CodeGenOptLevel::Default);
 } // namespace ink::backend::llvm_inkvm

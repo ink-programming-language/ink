@@ -8,11 +8,13 @@ endfunction()
 inkvm_tablegen(InkVMGenRegisterInfo.inc -gen-register-info)
 inkvm_tablegen(InkVMGenInstrInfo.inc -gen-instr-info)
 inkvm_tablegen(InkVMGenSubtargetInfo.inc -gen-subtarget)
+inkvm_tablegen(InkVMGenDAGISel.inc -gen-dag-isel)
+inkvm_tablegen(InkVMGenAsmWriter.inc -gen-asm-writer)
 
-set(INKVM_TABLEGEN_OUTPUTS "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenRegisterInfo.inc" "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenInstrInfo.inc" "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenSubtargetInfo.inc")
+set(INKVM_TABLEGEN_OUTPUTS "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenRegisterInfo.inc" "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenInstrInfo.inc" "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenSubtargetInfo.inc" "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenDAGISel.inc" "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenAsmWriter.inc")
 add_custom_target(ink_llvm_inkvm_tablegen DEPENDS ${INKVM_TABLEGEN_OUTPUTS})
 
-set(INKVM_SOURCES TargetInfo/InkVMTargetInfo.cpp MCTargetDesc/InkVMMCAsmInfo.cpp MCTargetDesc/InkVMMCTargetDesc.cpp InkVMRegisterInfo.cpp InkVMInstrInfo.cpp InkVMFrameLowering.cpp InkVMISelLowering.cpp InkVMSubtarget.cpp InkVMTargetMachine.cpp InkVMTarget.cpp)
+set(INKVM_SOURCES TargetInfo/InkVMTargetInfo.cpp MCTargetDesc/InkVMMCAsmInfo.cpp MCTargetDesc/InkVMInstPrinter.cpp MCTargetDesc/InkVMMCTargetDesc.cpp InkVMRegisterInfo.cpp InkVMInstrInfo.cpp InkVMFrameLowering.cpp InkVMISelLowering.cpp InkVMISelDAGToDAG.cpp InkVMSubtarget.cpp InkVMAsmPrinter.cpp InkVMTargetMachine.cpp InkVMTarget.cpp)
 
 add_library(ink_llvm_inkvm STATIC ${INKVM_SOURCES} ${INKVM_TABLEGEN_OUTPUTS})
 add_library(ink::llvm_inkvm ALIAS ink_llvm_inkvm)

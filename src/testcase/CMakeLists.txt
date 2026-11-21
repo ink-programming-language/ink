@@ -24,7 +24,7 @@ ink_disable_exceptions(ink_tokenizer_test_objects)
 add_executable(ink_tests ${INK_CORE_TEST_SOURCES} ${INK_PARSER_TEST_SOURCES} ${INK_IR_TEST_SOURCES} ${INK_BACKEND_TEST_SOURCES})
 add_dependencies(ink_tests ink_tokenize ink_parse inkc ink_interpreter)
 target_compile_features(ink_tests PRIVATE cxx_std_23)
-target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::frontend ink::ir ink::vm ink::llvm_inkvm ink::llvm GTest::gtest_main GTest::gmock spdlog::spdlog)
+target_link_libraries(ink_tests PRIVATE ink_tokenizer_test_objects ink::frontend ink::ir ink::vm ink::llvm_inkvm ink::llvm LLVMAsmParser GTest::gtest_main GTest::gmock spdlog::spdlog)
 ink_disable_exceptions(ink_tests)
 
 if(MSVC)

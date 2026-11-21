@@ -1,5 +1,6 @@
 #include "MCTargetDesc/InkVMMCTargetDesc.h"
 
+#include "MCTargetDesc/InkVMInstPrinter.h"
 #include "MCTargetDesc/InkVMMCAsmInfo.h"
 #include "TargetInfo/InkVMTargetInfo.h"
 
@@ -49,6 +50,16 @@ namespace llvm
             const StringRef ResolvedCPU = CPU.empty() ? StringRef("generic") : CPU;
             return createInkVMMCSubtargetInfoImpl(TargetTriple, ResolvedCPU, ResolvedCPU, Features);
         }
+
+        MCInstPrinter* createInkVMMCInstPrinter(const Triple& TargetTriple, unsigned SyntaxVariant, const MCAsmInfo& MAI, const MCInstrInfo& MII, const MCRegisterInfo& MRI)
+        {
+            static_cast<void>(TargetTriple);
+            if (SyntaxVariant == 0)
+            {
+                return new InkVMInstPrinter(MAI, MII, MRI);
+            }
+            return nullptr;
+        }
     } // namespace
 
     extern "C" void LLVMInitializeInkVMTargetMC()
@@ -58,5 +69,6 @@ namespace llvm
         TargetRegistry::RegisterMCInstrInfo(TheTarget, createInkVMMCInstrInfo);
         TargetRegistry::RegisterMCRegInfo(TheTarget, createInkVMMCRegisterInfo);
         TargetRegistry::RegisterMCSubtargetInfo(TheTarget, createInkVMMCSubtargetInfo);
+        TargetRegistry::RegisterMCInstPrinter(TheTarget, createInkVMMCInstPrinter);
     }
 } // namespace llvm

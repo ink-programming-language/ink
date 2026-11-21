@@ -1,5 +1,8 @@
-// InkVM instruction descriptions.
-// Step 1 starts with the minimal 0-operand return instruction (opcode 0x003A).
+// InkVM instruction descriptions and SelectionDAG patterns.
+
+// Target-specific SelectionDAG node emitted by InkVMTargetLowering::LowerReturn().
+def InkVMRetGlue : SDNode<"InkVMISD::RET_GLUE", SDTNone,
+                          [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
 class InkVMInst<dag Outs, dag Ins, string AsmStr, list<dag> Pat = []> : Instruction {
   let Namespace = "InkVM";
@@ -12,5 +15,5 @@ class InkVMInst<dag Outs, dag Ins, string AsmStr, list<dag> Pat = []> : Instruct
 
 // 0x003A: ret (8-byte header word, no explicit operands).
 let isReturn = 1, isTerminator = 1, isBarrier = 1 in {
-  def RET : InkVMInst<(outs), (ins), "ret">;
+  def RET : InkVMInst<(outs), (ins), "ret", [(InkVMRetGlue)]>;
 }

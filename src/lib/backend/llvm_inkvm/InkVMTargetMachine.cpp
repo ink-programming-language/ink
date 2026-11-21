@@ -7,6 +7,7 @@
 #include <llvm/CodeGen/TargetLoweringObjectFileImpl.h>
 #include <llvm/CodeGen/TargetPassConfig.h>
 #include <llvm/MC/TargetRegistry.h>
+#include <llvm/PassRegistry.h>
 
 namespace llvm
 {
@@ -28,6 +29,12 @@ namespace llvm
                 InkVMTargetMachine& getInkVMTargetMachine() const
                 {
                     return getTM<InkVMTargetMachine>();
+                }
+
+                bool addInstSelector() override
+                {
+                    addPass(createInkVMISelDag(getInkVMTargetMachine(), getOptLevel()));
+                    return false;
                 }
         };
     } // namespace
@@ -51,5 +58,9 @@ namespace llvm
     extern "C" void LLVMInitializeInkVMTarget()
     {
         RegisterTargetMachine<InkVMTargetMachine> RegisteredTargetMachine(getTheInkVMTarget());
+
+        PassRegistry& Registry = *PassRegistry::getPassRegistry();
+        initializeInkVMDAGToDAGISelLegacyPass(Registry);
+        initializeInkVMAsmPrinterPass(Registry);
     }
 } // namespace llvm
