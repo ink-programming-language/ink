@@ -1,12 +1,15 @@
 #include "InkVMISelLowering.h"
 
+#include "InkVMInstrInfo.h"
 #include "InkVMRegisterInfo.h"
 #include "InkVMSubtarget.h"
 #include "MCTargetDesc/InkVMMCTargetDesc.h"
 
 #include <llvm/ADT/SmallVector.h>
+#include <llvm/CodeGen/MachineBasicBlock.h>
 #include <llvm/CodeGen/MachineFrameInfo.h>
 #include <llvm/CodeGen/MachineFunction.h>
+#include <llvm/CodeGen/MachineInstrBuilder.h>
 #include <llvm/CodeGen/SelectionDAG.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Function.h>
@@ -16,6 +19,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <iterator>
 
 namespace llvm
 {
@@ -72,6 +76,35 @@ namespace llvm
             const ISD::LoadExtType ExtType = Flags.isSExt() ? ISD::SEXTLOAD : (Flags.isZExt() ? ISD::ZEXTLOAD : ISD::EXTLOAD);
             return DAG.getExtLoad(ExtType, DL, RegVT, Chain, Addr, PtrInfo, LoadVT);
         }
+
+        unsigned getBranchOpcodeForCondCode(ISD::CondCode CC)
+        {
+            switch (CC)
+            {
+            case ISD::SETEQ:
+                return InkVM::JE64rrb;
+            case ISD::SETNE:
+                return InkVM::JNE64rrb;
+            case ISD::SETLT:
+                return InkVM::JLT64rrb;
+            case ISD::SETLE:
+                return InkVM::JLE64rrb;
+            case ISD::SETGT:
+                return InkVM::JGT64rrb;
+            case ISD::SETGE:
+                return InkVM::JGE64rrb;
+            case ISD::SETULT:
+                return InkVM::JLTU64rrb;
+            case ISD::SETULE:
+                return InkVM::JLEU64rrb;
+            case ISD::SETUGT:
+                return InkVM::JGTU64rrb;
+            case ISD::SETUGE:
+                return InkVM::JGEU64rrb;
+            default:
+                llvm_unreachable("Unsupported InkVM integer condition code");
+            }
+        }
     } // namespace
 
     InkVMTargetLowering::InkVMTargetLowering(const TargetMachine& TM, const InkVMSubtarget& Subtarget)
@@ -81,10 +114,18 @@ namespace llvm
         computeRegisterProperties(Subtarget.getRegisterInfo());
 
         setStackPointerRegisterToSaveRestore(InkVM::SP);
+        setBooleanContents(ZeroOrOneBooleanContent);
 
         // Symbol addresses lower through InkVMISD::WRAPPER into mov64ri dst, @sym [+ offset].
         setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
         setOperationAction(ISD::ExternalSymbol, MVT::i64, Custom);
+
+        // Flagless compare-and-branch ISA: BR_CC is native, BRCOND/SELECT fold into BR_CC/SELECT_CC, BR_JT expands to branches.
+        setOperationAction(ISD::BR_CC, MVT::i64, Legal);
+        setOperationAction(ISD::BRCOND, MVT::Other, Expand);
+        setOperationAction(ISD::BR_JT, MVT::Other, Expand);
+        setOperationAction(ISD::SELECT, MVT::i64, Expand);
+        setOperationAction(ISD::SELECT_CC, MVT::i64, Custom);
 
         // Expand operations that do not map to a single InkVM 64-bit register instruction.
         setOperationAction(ISD::SDIVREM, MVT::i64, Expand);
@@ -129,6 +170,8 @@ namespace llvm
             return "InkVMISD::CALL";
         case InkVMISD::WRAPPER:
             return "InkVMISD::WRAPPER";
+        case InkVMISD::SELECT_CC:
+            return "InkVMISD::SELECT_CC";
         default:
             return nullptr;
         }
@@ -141,6 +184,13 @@ namespace llvm
         return MVT::i64;
     }
 
+    bool InkVMTargetLowering::areJTsAllowed(const Function* Fn) const
+    {
+        static_cast<void>(Fn);
+        // InkVM .data has no basic-block label relocation directive, so lower switches as compare-branch trees.
+        return false;
+    }
+
     SDValue InkVMTargetLowering::LowerOperation(SDValue Op, SelectionDAG& DAG) const
     {
         switch (Op.getOpcode())
@@ -149,6 +199,8 @@ namespace llvm
             return lowerGlobalAddress(Op, DAG);
         case ISD::ExternalSymbol:
             return lowerExternalSymbol(Op, DAG);
+        case ISD::SELECT_CC:
+            return lowerSelectCC(Op, DAG);
         default:
             llvm_unreachable("Unhandled InkVM custom lowering operation");
         }
@@ -168,6 +220,57 @@ namespace llvm
         const SDLoc DL(Op);
         const SDValue TargetES = DAG.getTargetExternalSymbol(ES->getSymbol(), MVT::i64);
         return DAG.getNode(InkVMISD::WRAPPER, DL, MVT::i64, TargetES);
+    }
+
+    SDValue InkVMTargetLowering::lowerSelectCC(SDValue Op, SelectionDAG& DAG) const
+    {
+        const SDLoc DL(Op);
+        const SDValue LHS = Op.getOperand(0);
+        const SDValue RHS = Op.getOperand(1);
+        const SDValue TrueVal = Op.getOperand(2);
+        const SDValue FalseVal = Op.getOperand(3);
+        const ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(4))->get();
+        const SDValue TargetCC = DAG.getTargetConstant(static_cast<std::uint64_t>(CC), DL, MVT::i64);
+        return DAG.getNode(InkVMISD::SELECT_CC, DL, Op.getValueType(), LHS, RHS, TargetCC, TrueVal, FalseVal);
+    }
+
+    MachineBasicBlock* InkVMTargetLowering::EmitInstrWithCustomInserter(MachineInstr& MI, MachineBasicBlock* BB) const
+    {
+        assert(MI.getOpcode() == InkVM::SELECT_CC_I64 && "Unexpected pseudo instruction in custom inserter");
+
+        const InkVMInstrInfo& TII = *BB->getParent()->getSubtarget<InkVMSubtarget>().getInstrInfo();
+        const DebugLoc DL = MI.getDebugLoc();
+        const BasicBlock* IRBlock = BB->getBasicBlock();
+        MachineFunction* MF = BB->getParent();
+
+        // Split BB into HeadBB -> (True -> SinkBB, False -> FalseBB -> SinkBB) with a PHI in SinkBB.
+        MachineBasicBlock* HeadBB = BB;
+        MachineBasicBlock* FalseBB = MF->CreateMachineBasicBlock(IRBlock);
+        MachineBasicBlock* SinkBB = MF->CreateMachineBasicBlock(IRBlock);
+
+        const MachineFunction::iterator InsertIt = std::next(BB->getIterator());
+        MF->insert(InsertIt, FalseBB);
+        MF->insert(InsertIt, SinkBB);
+
+        SinkBB->splice(SinkBB->begin(), HeadBB, std::next(MachineBasicBlock::iterator(MI)), HeadBB->end());
+        SinkBB->transferSuccessorsAndUpdatePHIs(HeadBB);
+
+        HeadBB->addSuccessor(FalseBB);
+        HeadBB->addSuccessor(SinkBB);
+        FalseBB->addSuccessor(SinkBB);
+
+        const auto CC = static_cast<ISD::CondCode>(MI.getOperand(3).getImm());
+        const unsigned BranchOpc = getBranchOpcodeForCondCode(CC);
+        const MachineOperand& LHS = MI.getOperand(1);
+        const MachineOperand& RHS = MI.getOperand(2);
+        const MachineOperand& TrueVal = MI.getOperand(4);
+        const MachineOperand& FalseVal = MI.getOperand(5);
+        BuildMI(HeadBB, DL, TII.get(BranchOpc)).addReg(LHS.getReg(), getUndefRegState(LHS.isUndef())).addReg(RHS.getReg(), getUndefRegState(RHS.isUndef())).addMBB(SinkBB);
+
+        BuildMI(*SinkBB, SinkBB->begin(), DL, TII.get(TargetOpcode::PHI), MI.getOperand(0).getReg()).addReg(TrueVal.getReg(), getUndefRegState(TrueVal.isUndef())).addMBB(HeadBB).addReg(FalseVal.getReg(), getUndefRegState(FalseVal.isUndef())).addMBB(FalseBB);
+
+        MI.eraseFromParent();
+        return SinkBB;
     }
 
     SDValue InkVMTargetLowering::LowerFormalArguments(SDValue Chain, CallingConv::ID CallConv, bool IsVarArg, const SmallVectorImpl<ISD::InputArg>& Ins, const SDLoc& DL, SelectionDAG& DAG, SmallVectorImpl<SDValue>& InVals) const
@@ -190,7 +293,7 @@ namespace llvm
         {
             if (Arg.VT != MVT::i64)
             {
-                report_fatal_error("InkVM Step 4 currently supports 64-bit scalar/promoted integer and pointer arguments");
+                report_fatal_error("InkVM currently supports 64-bit scalar/promoted integer and pointer arguments");
             }
             const std::int64_t SlotOffset = -static_cast<std::int64_t>(CallArea.CallBytes) + static_cast<std::int64_t>(CallArea.ReturnBytes) + static_cast<std::int64_t>(RunningArgOffset);
             RunningArgOffset += 8;
@@ -222,7 +325,7 @@ namespace llvm
 
         if (Outs.size() != 1 || Outs[0].VT != MVT::i64)
         {
-            report_fatal_error("InkVM Step 4 currently supports void or single scalar/pointer return values");
+            report_fatal_error("InkVM currently supports void or single scalar/pointer return values");
         }
 
         MachineFunction& MF = DAG.getMachineFunction();
@@ -253,7 +356,7 @@ namespace llvm
         }
         if (Ins.size() > 1)
         {
-            report_fatal_error("InkVM Step 4 currently supports void or single scalar/pointer call results");
+            report_fatal_error("InkVM currently supports void or single scalar/pointer call results");
         }
 
         const std::uint64_t ReturnBytes = Ins.empty() ? 0 : 8;
@@ -270,7 +373,7 @@ namespace llvm
         {
             if (Outs[Index].VT != MVT::i64)
             {
-                report_fatal_error("InkVM Step 4 currently supports 64-bit scalar/promoted call arguments");
+                report_fatal_error("InkVM currently supports 64-bit scalar/promoted call arguments");
             }
             const std::int64_t OffsetFromSP = -static_cast<std::int64_t>(CallBytes) + static_cast<std::int64_t>(ReturnBytes) + static_cast<std::int64_t>(Index * 8);
             const SDValue ArgAddr = DAG.getNode(ISD::ADD, DL, MVT::i64, SPReg, DAG.getConstant(OffsetFromSP, DL, MVT::i64));
@@ -308,7 +411,7 @@ namespace llvm
         {
             if (Ins[0].VT != MVT::i64)
             {
-                report_fatal_error("InkVM Step 4 currently supports 64-bit scalar/promoted call results");
+                report_fatal_error("InkVM currently supports 64-bit scalar/promoted call results");
             }
             const SDValue ReturnAddr = DAG.getNode(ISD::ADD, DL, MVT::i64, SPReg, DAG.getConstant(-static_cast<std::int64_t>(CallBytes), DL, MVT::i64));
             const SDValue ReturnLoad = emitSlotLoad(DAG, Chain, DL, ReturnAddr, Ins[0].VT, Ins[0].ArgVT, Ins[0].Flags, MachinePointerInfo());

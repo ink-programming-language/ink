@@ -13,6 +13,7 @@ namespace llvm
             RET_GLUE,
             CALL,
             WRAPPER,
+            SELECT_CC,
         };
     } // namespace InkVMISD
 
@@ -27,7 +28,11 @@ namespace llvm
 
             MVT getScalarShiftAmountTy(const DataLayout& DL, EVT ValueType) const override;
 
+            bool areJTsAllowed(const Function* Fn) const override;
+
             SDValue LowerOperation(SDValue Op, SelectionDAG& DAG) const override;
+
+            MachineBasicBlock* EmitInstrWithCustomInserter(MachineInstr& MI, MachineBasicBlock* BB) const override;
 
             SDValue LowerFormalArguments(SDValue Chain, CallingConv::ID CallConv, bool IsVarArg, const SmallVectorImpl<ISD::InputArg>& Ins, const SDLoc& DL, SelectionDAG& DAG, SmallVectorImpl<SDValue>& InVals) const override;
 
@@ -38,5 +43,6 @@ namespace llvm
         private:
             SDValue lowerGlobalAddress(SDValue Op, SelectionDAG& DAG) const;
             SDValue lowerExternalSymbol(SDValue Op, SelectionDAG& DAG) const;
+            SDValue lowerSelectCC(SDValue Op, SelectionDAG& DAG) const;
     };
 } // namespace llvm

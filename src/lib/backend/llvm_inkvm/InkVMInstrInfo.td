@@ -9,6 +9,10 @@ def InkVMCall : SDNode<"InkVMISD::CALL", SDTypeProfile<0, -1, [SDTCisVT<0, i64>]
 
 def InkVMWrapper : SDNode<"InkVMISD::WRAPPER", SDTIntUnaryOp>;
 
+def InkVMSelectCC : SDNode<"InkVMISD::SELECT_CC",
+                           SDTypeProfile<1, 5, [SDTCisSameAs<1, 2>, SDTCisVT<3, i64>,
+                                                SDTCisSameAs<0, 4>, SDTCisSameAs<0, 5>]>>;
+
 def InkVMCallSeqStart : SDNode<"ISD::CALLSEQ_START",
                                SDCallSeqStart<[SDTCisVT<0, i64>, SDTCisVT<1, i64>]>,
                                [SDNPHasChain, SDNPOutGlue]>;
@@ -32,6 +36,9 @@ def SymOp : Operand<i64> {
 def SymMemOp : Operand<i64> {
   let PrintMethod = "printSymMemOperand";
 }
+
+// Basic-block branch target operand.
+def BrTarget : Operand<OtherVT>;
 
 def AddrRI  : ComplexPattern<i64, 2, "SelectAddrRI", [frameindex], []>;
 def AddrSym : ComplexPattern<i64, 1, "SelectAddrSym", [], []>;
@@ -58,6 +65,79 @@ let Defs = [SP], Uses = [SP], isPseudo = 1, isCodeGenOnly = 1, hasSideEffects = 
 // 0x003A: ret (8-byte header word, no explicit operands).
 let isReturn = 1, isTerminator = 1, isBarrier = 1 in {
   def RET : InkVMInst<(outs), (ins), "ret", [(InkVMRetGlue)]>;
+}
+
+// 0x002B, 0x0040: direct block jump and indirect register jump.
+let isBranch = 1, isTerminator = 1, isBarrier = 1, Size = 16, hasSideEffects = 0 in {
+  def JMP : InkVMInst<(outs), (ins BrTarget:$dst),
+                      "jmp $dst",
+                      [(br bb:$dst)]>;
+
+  let isIndirectBranch = 1 in {
+    def JMPR : InkVMInst<(outs), (ins GPR:$dst),
+                         "jmpr $dst",
+                         [(brind GPR:$dst)]>;
+  }
+}
+
+// Multiclass generating paired 64-bit register-register (rrr) and register-immediate (rri) comparisons.
+multiclass CMP64Op<string MnemonicBase, PatFrag CondNode, bit IsComm = 0> {
+  let Size = 32, hasSideEffects = 0 in {
+    let isCommutable = IsComm in {
+      def 64rrr : InkVMInst<(outs GPR:$dst), (ins GPR:$lhs, GPR:$rhs),
+                            !strconcat(MnemonicBase, "64rrr $dst, $lhs, $rhs"),
+                            [(set GPR:$dst, (CondNode GPR:$lhs, GPR:$rhs))]>;
+    }
+
+    def 64rri : InkVMInst<(outs GPR:$dst), (ins GPR:$lhs, i64imm:$imm),
+                          !strconcat(MnemonicBase, "64rri $dst, $lhs, $imm"),
+                          [(set GPR:$dst, (CondNode GPR:$lhs, (i64 imm:$imm)))]>;
+  }
+}
+
+// 0x00B8-0x00CB: 64-bit explicit register comparisons (write 1 when true, 0 otherwise).
+defm CMPEQ  : CMP64Op<"cmpeq",  seteq,  1>;
+defm CMPNE  : CMP64Op<"cmpne",  setne,  1>;
+defm CMPLT  : CMP64Op<"cmplt",  setlt,  0>;
+defm CMPLE  : CMP64Op<"cmple",  setle,  0>;
+defm CMPGT  : CMP64Op<"cmpgt",  setgt,  0>;
+defm CMPGE  : CMP64Op<"cmpge",  setge,  0>;
+defm CMPLTU : CMP64Op<"cmpltu", setult, 0>;
+defm CMPLEU : CMP64Op<"cmpleu", setule, 0>;
+defm CMPGTU : CMP64Op<"cmpgtu", setugt, 0>;
+defm CMPGEU : CMP64Op<"cmpgeu", setuge, 0>;
+
+// Multiclass generating paired 64-bit flagless compare-and-branch instructions (rrb and rib).
+multiclass JCC64Op<string MnemonicBase, CondCode CC> {
+  let isBranch = 1, isTerminator = 1, Size = 32, hasSideEffects = 0 in {
+    def 64rrb : InkVMInst<(outs), (ins GPR:$lhs, GPR:$rhs, BrTarget:$dst),
+                          !strconcat(MnemonicBase, "64rrb $lhs, $rhs, $dst"),
+                          [(brcc CC, GPR:$lhs, GPR:$rhs, bb:$dst)]>;
+
+    def 64rib : InkVMInst<(outs), (ins GPR:$lhs, i64imm:$imm, BrTarget:$dst),
+                          !strconcat(MnemonicBase, "64rib $lhs, $imm, $dst"),
+                          [(brcc CC, GPR:$lhs, (i64 imm:$imm), bb:$dst)]>;
+  }
+}
+
+// 0x00CC-0x00DF: 64-bit flagless compare-and-branch instructions.
+defm JE   : JCC64Op<"je",   SETEQ>;
+defm JNE  : JCC64Op<"jne",  SETNE>;
+defm JLT  : JCC64Op<"jlt",  SETLT>;
+defm JLE  : JCC64Op<"jle",  SETLE>;
+defm JGT  : JCC64Op<"jgt",  SETGT>;
+defm JGE  : JCC64Op<"jge",  SETGE>;
+defm JLTU : JCC64Op<"jltu", SETULT>;
+defm JLEU : JCC64Op<"jleu", SETULE>;
+defm JGTU : JCC64Op<"jgtu", SETUGT>;
+defm JGEU : JCC64Op<"jgeu", SETUGE>;
+
+// Lowered into a diamond CFG + PHI in InkVMTargetLowering::EmitInstrWithCustomInserter().
+let usesCustomInserter = 1, isPseudo = 1, isCodeGenOnly = 1, hasSideEffects = 0 in {
+  def SELECT_CC_I64 : InkVMInst<(outs GPR:$dst),
+                                (ins GPR:$lhs, GPR:$rhs, i64imm:$cc, GPR:$tval, GPR:$fval),
+                                "; SELECT_CC_I64 $dst, $lhs, $rhs, $cc, $tval, $fval",
+                                [(set GPR:$dst, (InkVMSelectCC GPR:$lhs, GPR:$rhs, timm:$cc, GPR:$tval, GPR:$fval))]>;
 }
 
 // 0x003B, 0x00F3: direct symbol call and indirect register call.
