@@ -28,7 +28,13 @@ def SymOp : Operand<i64> {
   let PrintMethod = "printSymbolOperand";
 }
 
-def AddrRI : ComplexPattern<i64, 2, "SelectAddrRI", [frameindex], []>;
+// Symbol-relative memory operand formatted as [@name [+ offset]].
+def SymMemOp : Operand<i64> {
+  let PrintMethod = "printSymMemOperand";
+}
+
+def AddrRI  : ComplexPattern<i64, 2, "SelectAddrRI", [frameindex], []>;
+def AddrSym : ComplexPattern<i64, 1, "SelectAddrSym", [], []>;
 
 class InkVMInst<dag Outs, dag Ins, string AsmStr, list<dag> Pat = []> : Instruction {
   let Namespace = "InkVM";
@@ -180,3 +186,54 @@ let Size = 24, hasSideEffects = 0 in {
 def : Pat<(i64 (extloadi8  AddrRI:$addr)), (LOAD8urm  AddrRI:$addr)>;
 def : Pat<(i64 (extloadi16 AddrRI:$addr)), (LOAD16urm AddrRI:$addr)>;
 def : Pat<(i64 (extloadi32 AddrRI:$addr)), (LOAD32urm AddrRI:$addr)>;
+
+// Symbol-relative direct memory loads and stores: load*rm dst, [@sym + off] / store*mr [@sym + off], src.
+// Higher complexity ensures ISel folds global symbol addresses directly instead of emitting mov64ri + [reg].
+let Size = 24, hasSideEffects = 0, AddedComplexity = 5 in {
+  let mayLoad = 1 in {
+    def LOAD8urm_sym  : InkVMInst<(outs GPR:$dst), (ins SymMemOp:$addr),
+                                  "load8urm $dst, $addr",
+                                  [(set GPR:$dst, (zextloadi8 AddrSym:$addr))]>;
+    def LOAD16urm_sym : InkVMInst<(outs GPR:$dst), (ins SymMemOp:$addr),
+                                  "load16urm $dst, $addr",
+                                  [(set GPR:$dst, (zextloadi16 AddrSym:$addr))]>;
+    def LOAD32urm_sym : InkVMInst<(outs GPR:$dst), (ins SymMemOp:$addr),
+                                  "load32urm $dst, $addr",
+                                  [(set GPR:$dst, (zextloadi32 AddrSym:$addr))]>;
+
+    def LOAD8srm_sym  : InkVMInst<(outs GPR:$dst), (ins SymMemOp:$addr),
+                                  "load8srm $dst, $addr",
+                                  [(set GPR:$dst, (sextloadi8 AddrSym:$addr))]>;
+    def LOAD16srm_sym : InkVMInst<(outs GPR:$dst), (ins SymMemOp:$addr),
+                                  "load16srm $dst, $addr",
+                                  [(set GPR:$dst, (sextloadi16 AddrSym:$addr))]>;
+    def LOAD32srm_sym : InkVMInst<(outs GPR:$dst), (ins SymMemOp:$addr),
+                                  "load32srm $dst, $addr",
+                                  [(set GPR:$dst, (sextloadi32 AddrSym:$addr))]>;
+
+    def LOAD64rm_sym  : InkVMInst<(outs GPR:$dst), (ins SymMemOp:$addr),
+                                  "load64rm $dst, $addr",
+                                  [(set GPR:$dst, (load AddrSym:$addr))]>;
+  }
+
+  let mayStore = 1 in {
+    def STORE8mr_sym  : InkVMInst<(outs), (ins SymMemOp:$addr, GPR:$src),
+                                  "store8mr $addr, $src",
+                                  [(truncstorei8 GPR:$src, AddrSym:$addr)]>;
+    def STORE16mr_sym : InkVMInst<(outs), (ins SymMemOp:$addr, GPR:$src),
+                                  "store16mr $addr, $src",
+                                  [(truncstorei16 GPR:$src, AddrSym:$addr)]>;
+    def STORE32mr_sym : InkVMInst<(outs), (ins SymMemOp:$addr, GPR:$src),
+                                  "store32mr $addr, $src",
+                                  [(truncstorei32 GPR:$src, AddrSym:$addr)]>;
+    def STORE64mr_sym : InkVMInst<(outs), (ins SymMemOp:$addr, GPR:$src),
+                                  "store64mr $addr, $src",
+                                  [(store GPR:$src, AddrSym:$addr)]>;
+  }
+}
+
+let AddedComplexity = 5 in {
+  def : Pat<(i64 (extloadi8  AddrSym:$addr)), (LOAD8urm_sym  AddrSym:$addr)>;
+  def : Pat<(i64 (extloadi16 AddrSym:$addr)), (LOAD16urm_sym AddrSym:$addr)>;
+  def : Pat<(i64 (extloadi32 AddrSym:$addr)), (LOAD32urm_sym AddrSym:$addr)>;
+}

@@ -7,6 +7,7 @@
 #include <llvm/CodeGen/SelectionDAGNodes.h>
 #include <llvm/Pass.h>
 
+#include <cstdint>
 #include <memory>
 
 #define DEBUG_TYPE "inkvm-isel"
@@ -63,6 +64,36 @@ namespace
                 return true;
             }
 
+            bool SelectAddrSym(SDValue Addr, SDValue& Sym)
+            {
+                const SDLoc DL(Addr);
+
+                if (Addr.getOpcode() == InkVMISD::WRAPPER)
+                {
+                    Sym = Addr.getOperand(0);
+                    return true;
+                }
+
+                if (Addr.getOpcode() == ISD::ADD || (Addr.getOpcode() == ISD::OR && CurDAG->haveNoCommonBitsSet(Addr.getOperand(0), Addr.getOperand(1))))
+                {
+                    if (Addr.getOperand(0).getOpcode() == InkVMISD::WRAPPER)
+                    {
+                        if (const auto* CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1)))
+                        {
+                            const SDValue Inner = Addr.getOperand(0).getOperand(0);
+                            if (const auto* GA = dyn_cast<GlobalAddressSDNode>(Inner))
+                            {
+                                const std::int64_t CombinedOffset = GA->getOffset() + CN->getSExtValue();
+                                Sym = CurDAG->getTargetGlobalAddress(GA->getGlobal(), DL, MVT::i64, CombinedOffset);
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                return false;
+            }
+
             void Select(SDNode* Node) override
             {
                 if (Node->isMachineOpcode())
@@ -71,14 +102,25 @@ namespace
                     return;
                 }
 
+                const SDLoc DL(Node);
                 if (Node->getOpcode() == ISD::FrameIndex)
                 {
-                    const SDLoc DL(Node);
                     const int FI = cast<FrameIndexSDNode>(Node)->getIndex();
                     const SDValue TFI = CurDAG->getTargetFrameIndex(FI, MVT::i64);
                     const SDValue ZeroDisp = CurDAG->getTargetConstant(0, DL, MVT::i64);
                     ReplaceNode(Node, CurDAG->getMachineNode(InkVM::ADD64rri, DL, MVT::i64, TFI, ZeroDisp));
                     return;
+                }
+
+                // Fold (add (InkVMWrapper @sym), C) directly into mov64ri dst, @sym + C.
+                if (Node->getOpcode() == ISD::ADD && Node->getValueType(0) == MVT::i64)
+                {
+                    SDValue CombinedSym;
+                    if (SelectAddrSym(SDValue(Node, 0), CombinedSym))
+                    {
+                        ReplaceNode(Node, CurDAG->getMachineNode(InkVM::MOV64r_sym, DL, MVT::i64, CombinedSym));
+                        return;
+                    }
                 }
 
                 SelectCode(Node);

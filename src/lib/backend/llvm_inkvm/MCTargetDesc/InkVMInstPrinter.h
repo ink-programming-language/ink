@@ -27,5 +27,6 @@ namespace llvm
             void printOperand(const MCInst* MI, unsigned OpNo, raw_ostream& OS);
             void printMemOperand(const MCInst* MI, unsigned OpNo, raw_ostream& OS);
             void printSymbolOperand(const MCInst* MI, unsigned OpNo, raw_ostream& OS);
+            void printSymMemOperand(const MCInst* MI, unsigned OpNo, raw_ostream& OS);
     };
 } // namespace llvm

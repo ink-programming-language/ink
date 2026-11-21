@@ -199,3 +199,10 @@ void InkVMInstPrinter::printSymbolOperand(const MCInst* MI, unsigned OpNo, raw_o
     }
     llvm_unreachable("Unsupported InkVM symbol expression");
 }
+
+void InkVMInstPrinter::printSymMemOperand(const MCInst* MI, unsigned OpNo, raw_ostream& OS)
+{
+    OS << '[';
+    printSymbolOperand(MI, OpNo, OS);
+    OS << ']';
+}
