@@ -627,6 +627,7 @@ entry:
     jge64rib r6, 1, done
     sitof64rr r7, r5
     fneg64rr r7, r7
+    fabs64rr r7, r7
     fcmp64oltrrr r8, r7, zero
     f64tosi64rr r9, r7
     call r0

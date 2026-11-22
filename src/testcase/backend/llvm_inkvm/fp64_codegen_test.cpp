@@ -152,7 +152,7 @@ namespace ink::backend::llvm_inkvm
         }
     } // namespace
 
-    // Verifies FP64 arithmetic (fadd/fsub/fmul/fdiv), fsqrt, fneg, expanded fabs, FP constants, and i64<->f64 bitcast.
+    // Verifies FP64 arithmetic (fadd/fsub/fmul/fdiv), fsqrt, fneg, native fabs64rr, FP constants, and i64<->f64 bitcast.
     TEST(InkVMFP64CodegenTest, CompilesAndExecutesFP64ArithmeticSqrtNegAndConstants)
     {
         constexpr std::string_view IRText = R"(declare double @llvm.sqrt.f64(double)
@@ -173,6 +173,12 @@ entry:
   ret double %out
 }
 
+define double @fp_abs(double %x) {
+entry:
+  %res = call double @llvm.fabs.f64(double %x)
+  ret double %res
+}
+
 define i64 @double_to_bits(double %x) {
 entry:
   %bits = bitcast double %x to i64
@@ -187,11 +193,27 @@ entry:
         EXPECT_NE(Assembly.find("fdiv64rrr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("fsqrt64rr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("fneg64rr"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find("fabs64rr"), std::string::npos) << Assembly;
 
         // a=5, b=2 -> diff=3, sum=7 -> rad=58 -> -(sqrt(58)/2 + 3.25)
         const std::array<double, 2> Args{5.0, 2.0};
         const double Expected = -(std::sqrt(58.0) / 2.0 + 3.25);
         EXPECT_DOUBLE_EQ(executeCompiledDouble(Assembly, "fp_compute", Args), Expected);
+
+        // Verify native fabs64rr clears only the sign bit across finite values, -0.0, -inf, and negative NaN payloads.
+        constexpr std::uint64_t NaNPayload = 0x7FF8000000005678ULL;
+        const std::array<std::uint64_t, 5> AbsInputs{
+            std::bit_cast<std::uint64_t>(-3.25),
+            std::bit_cast<std::uint64_t>(3.25),
+            std::uint64_t{1} << 63,
+            std::bit_cast<std::uint64_t>(-std::numeric_limits<double>::infinity()),
+            NaNPayload | (std::uint64_t{1} << 63),
+        };
+        for (const std::uint64_t InputBits : AbsInputs)
+        {
+            const std::array<std::uint64_t, 1> OneArg{InputBits};
+            EXPECT_EQ(executeCompiledBits(Assembly, "fp_abs", OneArg), InputBits & ~(std::uint64_t{1} << 63));
+        }
 
         // Verify -0.0 bitcast preserves sign bit 0x8000000000000000.
         const std::array<std::uint64_t, 1> NegZero{std::uint64_t{1} << 63};

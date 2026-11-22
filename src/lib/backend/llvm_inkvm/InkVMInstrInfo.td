@@ -413,6 +413,10 @@ let hasSideEffects = 0 in {
   def FNEG64rr : InkVMInst<InkVMOp_Fneg64rr, (outs FPR:$dst), (ins FPR:$src),
                            "$dst, $src",
                            [(set FPR:$dst, (fneg FPR:$src))]>;
+
+  def FABS64rr : InkVMInst<InkVMOp_Fabs64rr, (outs FPR:$dst), (ins FPR:$src),
+                           "$dst, $src",
+                           [(set FPR:$dst, (fabs FPR:$src))]>;
 }
 
 // 14 IEEE-754 ordered/unordered FP64 comparisons (write 0 or 1 to R0-R9).

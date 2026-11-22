@@ -311,7 +311,7 @@ namespace ink::backend::llvm_inkvm
         EXPECT_GE(PseudoCount, 4u);
         EXPECT_GT(RealInstructionCount, 0u);
 
-        const std::array<std::pair<std::string_view, vm::Opcode>, 14> SpotChecks = {{
+        const std::array<std::pair<std::string_view, vm::Opcode>, 15> SpotChecks = {{
             {"RET", vm::Opcode::Ret},
             {"JMP", vm::Opcode::Jmp},
             {"JMPR", vm::Opcode::Jmpr},
@@ -325,6 +325,7 @@ namespace ink::backend::llvm_inkvm
             {"LOAD64rm", vm::Opcode::Load64rm},
             {"LOAD64rm_sym", vm::Opcode::Load64rm},
             {"LOAD64rm_f64_sym", vm::Opcode::Load64rm},
+            {"FABS64rr", vm::Opcode::Fabs64rr},
             {"FCMP64OEQrrr", vm::Opcode::Fcmp64oeqrrr},
         }};
 

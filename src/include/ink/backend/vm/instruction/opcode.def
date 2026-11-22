@@ -190,6 +190,9 @@ OPCODE(F64toui64rr, 0x00F2, "f64toui64rr", Rr, 64, 2, 0, 0, Convert, FloatingPoi
 // Register indirect call shares the "call" mnemonic and dispatches to VM or native targets by resolved address.
 OPCODE(Callr, 0x00F3, "call", R, 64, 1, 0, 0, Call, None)
 
+// IEEE 754 binary64 absolute value clears only the sign bit, mapping -0.0 to +0.0 and preserving NaN payloads.
+OPCODE(Fabs64rr, 0x00F4, "fabs64rr", Rr, 64, 2, 0, 0, Arithmetic, FloatingPoint)
+
 #ifdef INK_VM_OPCODE_DEF_UNDEF_FORM
 #undef INK_VM_OPCODE_DEF_UNDEF_FORM
 #undef OPCODE_FORM

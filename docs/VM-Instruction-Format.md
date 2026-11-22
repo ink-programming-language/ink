@@ -175,6 +175,7 @@ add64mrr [bp + 24], r2, zero
 | `0095` | `fdiv64rrr dst, lhs, rhs` | `Rrr` | `dst = lhs / rhs` | 32 字节 |
 | `0096` | `fsqrt64rr dst, src` | `Rr` | `dst = sqrt(src)` | 24 字节 |
 | `00e0` | `fneg64rr dst, src` | `Rr` | `dst = src ^ (1ULL << 63)`（翻转符号位） | 24 字节 |
+| `00f4` | `fabs64rr dst, src` | `Rr` | `dst = src & ~(1ULL << 63)`（清除符号位） | 24 字节 |
 | `00e1`–`00ee` | `fcmp64<pred>rrr dst, lhs, rhs` | `Rrr` | IEEE 754 ordered/unordered 比较（写入 `0`/`1`） | 32 字节 |
 | `00ef` | `sitof64rr dst, src` | `Rr` | 有符号 `i64` 转 `f64` | 24 字节 |
 | `00f0` | `uitof64rr dst, src` | `Rr` | 无符号 `u64` 转 `f64` | 24 字节 |
@@ -282,7 +283,7 @@ call r0
 
 `machine_instructions.h` 根据 `opcode.def` 为每个操作码生成 `OpcodeTraits`，将操作码绑定到对应的 `Form`、`Category`、`Domain`、`HasDestination`、`IsFloatingPoint`、`BitWidth` 和操作数布局。`MachineInstructionImpl<Opcode>` 按值持有该布局的 `std::tuple`，并为每个现有操作码提供对应的指令别名，例如 `MachineAdd64rriInstruction`。构造函数要求操作数的数量和具体类型匹配布局，操作数存储随指令对象一起分配。
 
-`Load`、`Store`、`Move`、`Arithmetic`、`Bitwise`、`Compare` 和 `Convert` 提供 `getDestination()`；具有目标和单个来源的形式提供 `getSource()`（包含 `Load*`、`Store*`、`Mov64*`、`Fsqrt64rr`、`Fneg64rr` 与四条整数/浮点转换指令）。三操作数目标指令的 `getLHS()`、`getRHS()` 分别访问索引 1、2，条件跳转的同名访问器访问索引 0、1。`domain()` 返回 `InstructionDomain`，`isFloatingPoint()` 与 `InstructionEncoding::isFloatingPoint()` 均按 `InstructionDomain::FloatingPoint` 识别全部 24 条浮点域指令（6 条浮点算术、14 条浮点比较、4 条整数/浮点转换）。具有块目标的跳转由 `getTarget()` 返回最后一个操作数的基本块指针，`getTargetOperand()` 返回块操作数引用；其他跳转和调用的目标访问器返回对应立即数、寄存器或地址操作数的常量引用。`Ret` 没有这些访问器。
+`Load`、`Store`、`Move`、`Arithmetic`、`Bitwise`、`Compare` 和 `Convert` 提供 `getDestination()`；具有目标和单个来源的形式提供 `getSource()`（包含 `Load*`、`Store*`、`Mov64*`、`Fsqrt64rr`、`Fneg64rr`、`Fabs64rr` 与四条整数/浮点转换指令）。三操作数目标指令的 `getLHS()`、`getRHS()` 分别访问索引 1、2，条件跳转的同名访问器访问索引 0、1。`domain()` 返回 `InstructionDomain`，`isFloatingPoint()` 与 `InstructionEncoding::isFloatingPoint()` 均按 `InstructionDomain::FloatingPoint` 识别全部 25 条浮点域指令（7 条浮点算术、14 条浮点比较、4 条整数/浮点转换）。具有块目标的跳转由 `getTarget()` 返回最后一个操作数的基本块指针，`getTargetOperand()` 返回块操作数引用；其他跳转和调用的目标访问器返回对应立即数、寄存器或地址操作数的常量引用。`Ret` 没有这些访问器。
 
 ```cpp
 #include "ink/backend/vm/instruction/machine_instructions.h"

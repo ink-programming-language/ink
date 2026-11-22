@@ -22,6 +22,7 @@ namespace ink::vm::test
             Opcode::Fdiv64rrr,
             Opcode::Fsqrt64rr,
             Opcode::Fneg64rr,
+            Opcode::Fabs64rr,
 #define FLOAT_COMPARE(Kind, Encoding, Spelling, Expression) Opcode::Kind,
 #include "ink/backend/vm/instruction/float_compare.def"
 #undef FLOAT_COMPARE
@@ -77,6 +78,7 @@ namespace ink::vm::test
             Opcode::Fadd64rrr,
             Opcode::Fsqrt64rr,
             Opcode::Fneg64rr,
+            Opcode::Fabs64rr,
             Opcode::Fcmp64oeqrrr,
             Opcode::F64tosi64rr,
         };
@@ -185,6 +187,36 @@ namespace ink::vm::test
             ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
 
             EXPECT_EQ(READ_REGISTER(RegisterId::R0, VM.getFrame()), Input ^ (std::uint64_t{1} << 63));
+        }
+    }
+
+    // fabs64rr clears only the IEEE 754 sign bit across finite values, signed zeros, infinities, and NaN payloads, including aliased destinations.
+    TEST(VMFloatingPointTest, ClearsSignBitForFabs64PreservingSignedZeroAndNaNPayload)
+    {
+        constexpr std::uint64_t NaNPayload = 0x7FF8000000001234ULL;
+        constexpr std::uint64_t Inputs[] = {
+            std::bit_cast<std::uint64_t>(0.0),
+            std::bit_cast<std::uint64_t>(-0.0),
+            std::bit_cast<std::uint64_t>(3.5),
+            std::bit_cast<std::uint64_t>(-3.5),
+            std::bit_cast<std::uint64_t>(std::numeric_limits<double>::infinity()),
+            std::bit_cast<std::uint64_t>(-std::numeric_limits<double>::infinity()),
+            NaNPayload,
+            NaNPayload | (std::uint64_t{1} << 63),
+        };
+        for (const auto Input : Inputs)
+        {
+            for (const auto Destination : {RegisterId::R0, RegisterId::R9})
+            {
+                SCOPED_TRACE(Input);
+                SCOPED_TRACE(static_cast<unsigned>(Destination));
+                Interpreter VM;
+                ASSERT_NE(VM.loadLibrary(makeFloatingPointExecutable(Opcode::Fabs64rr, Input, 0, {Destination, RegisterId::R0, RegisterId::ZERO})), Interpreter::InvalidLibraryHandle);
+
+                ASSERT_TRUE(VM.execute(VM.getCodeSegment().data()));
+
+                EXPECT_EQ(READ_REGISTER(Destination, VM.getFrame()), Input & ~(std::uint64_t{1} << 63));
+            }
         }
     }
 
@@ -383,7 +415,7 @@ namespace ink::vm::test
                 }
             }
         }
-        for (const auto Operation : {Opcode::Fneg64rr, Opcode::Fcmp64oeqrrr, Opcode::Sitof64rr, Opcode::F64tosi64rr})
+        for (const auto Operation : {Opcode::Fneg64rr, Opcode::Fabs64rr, Opcode::Fcmp64oeqrrr, Opcode::Sitof64rr, Opcode::F64tosi64rr})
         {
             SCOPED_TRACE(static_cast<unsigned>(Operation));
             expectFloatingPointContractFailure(Operation, {RegisterId::ZERO, RegisterId::R0, RegisterId::R1}, {});

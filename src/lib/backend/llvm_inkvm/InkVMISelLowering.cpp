@@ -126,8 +126,8 @@ namespace llvm
 
         // Native FP64 ops vs bitwise/libcall expansions.
         setOperationAction(ISD::FNEG, MVT::f64, Legal);
+        setOperationAction(ISD::FABS, MVT::f64, Legal);
         setOperationAction(ISD::FSQRT, MVT::f64, Legal);
-        setOperationAction(ISD::FABS, MVT::f64, Expand);
         setOperationAction(ISD::FCOPYSIGN, MVT::f64, Expand);
         setOperationAction(ISD::FMA, MVT::f64, Expand);
         setOperationAction(ISD::FREM, MVT::f64, Expand);

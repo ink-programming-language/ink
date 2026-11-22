@@ -184,6 +184,14 @@ namespace ink::vm
                     LocalPC = InstructionAddress + InstructionBytes;
                     continue;
                 }
+            case Opcode::Fabs64rr:
+                {
+                    constexpr std::size_t InstructionBytes = (OpcodeTraits<Opcode::Fabs64rr>::OperandCount + 1) * InstructionEncoding::WordBytes;
+                    const auto Source = READ_REGISTER(LeftRegister, Frame);
+                    WRITE_REGISTER(DestinationRegister, Frame, Source & ~(std::uint64_t{1} << 63));
+                    LocalPC = InstructionAddress + InstructionBytes;
+                    continue;
+                }
 #define FLOAT_COMPARE(Kind, Encoding, Spelling, Expression)                                                                           \
     case Opcode::Kind:                                                                                                                \
         {                                                                                                                             \
