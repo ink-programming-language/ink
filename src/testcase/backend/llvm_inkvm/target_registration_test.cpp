@@ -1,4 +1,5 @@
 #include "ink/backend/llvm_inkvm/inkvm_target.h"
+#include "ink/backend/vm/instruction/machine_instruction.h"
 #include "ink/backend/vm/instruction/register.h"
 
 #include <gtest/gtest.h>
@@ -7,6 +8,7 @@
 #include <llvm/CodeGen/MachineModuleInfo.h>
 #include <llvm/CodeGen/TargetFrameLowering.h>
 #include <llvm/CodeGen/TargetInstrInfo.h>
+#include <llvm/CodeGen/TargetOpcodes.h>
 #include <llvm/CodeGen/TargetRegisterInfo.h>
 #include <llvm/CodeGen/TargetSubtargetInfo.h>
 #include <llvm/IR/DataLayout.h>
@@ -14,16 +16,27 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/MC/MCAsmInfo.h>
+#include <llvm/MC/MCInst.h>
+#include <llvm/MC/MCInstPrinter.h>
+#include <llvm/MC/MCInstrDesc.h>
 #include <llvm/MC/MCInstrInfo.h>
 #include <llvm/MC/MCRegisterInfo.h>
 #include <llvm/MC/TargetRegistry.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/TargetParser/Triple.h>
 
+// Include after LLVM headers because core_define.h defines a check() macro that collides with LLVM's PassManagerInternal.h.
+#include "ink/backend/vm/instruction/instruction_encoding.h"
+
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 namespace ink::backend::llvm_inkvm
 {
@@ -36,22 +49,36 @@ namespace ink::backend::llvm_inkvm
                 bool Reserved;
         };
 
-        constexpr std::array<ExpectedRegisterSpec, 14> ExpectedRegisters = {{
-            {vm::RegisterId::BP, "bp", true},
-            {vm::RegisterId::SP, "sp", true},
-            {vm::RegisterId::PC, "pc", true},
-            {vm::RegisterId::ZERO, "zero", true},
-            {vm::RegisterId::R0, "r0", false},
-            {vm::RegisterId::R1, "r1", false},
-            {vm::RegisterId::R2, "r2", false},
-            {vm::RegisterId::R3, "r3", false},
-            {vm::RegisterId::R4, "r4", false},
-            {vm::RegisterId::R5, "r5", false},
-            {vm::RegisterId::R6, "r6", false},
-            {vm::RegisterId::R7, "r7", false},
-            {vm::RegisterId::R8, "r8", false},
-            {vm::RegisterId::R9, "r9", false},
-        }};
+        constexpr ExpectedRegisterSpec ExpectedRegisters[] = {
+#define REGISTER(Kind, Encoding, Spelling) {vm::RegisterId::Kind, Spelling, !vm::isGeneralPurposeRegister(vm::RegisterId::Kind)},
+#include "ink/backend/vm/instruction/register.def"
+#undef REGISTER
+        };
+
+        struct VMOpcodeSpec
+        {
+                vm::Opcode OpcodeValue;
+                std::string_view Spelling;
+                std::size_t ByteSize;
+        };
+
+        constexpr VMOpcodeSpec VMOpcodeSpecs[] = {
+#define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) {vm::Opcode::Kind, Spelling, vm::InstructionEncoding::byteSize(vm::Opcode::Kind)},
+#include "ink/backend/vm/instruction/opcode.def"
+#undef OPCODE
+        };
+
+        std::optional<VMOpcodeSpec> findVMOpcodeSpec(std::uint16_t Encoding)
+        {
+            for (const VMOpcodeSpec& Spec : VMOpcodeSpecs)
+            {
+                if (static_cast<std::uint16_t>(Spec.OpcodeValue) == Encoding)
+                {
+                    return Spec;
+                }
+            }
+            return std::nullopt;
+        }
 
         llvm::MCRegister findRegisterByEncoding(const llvm::MCRegisterInfo& RegInfo, std::uint8_t Encoding)
         {
@@ -63,6 +90,18 @@ namespace ink::backend::llvm_inkvm
                 }
             }
             return llvm::MCRegister::NoRegister;
+        }
+
+        std::string_view extractMnemonic(std::string_view PrintedInstruction)
+        {
+            const std::size_t FirstNonSpace = PrintedInstruction.find_first_not_of(" \t\r\n");
+            if (FirstNonSpace == std::string_view::npos)
+            {
+                return {};
+            }
+            const std::string_view Trimmed = PrintedInstruction.substr(FirstNonSpace);
+            const std::size_t FirstDelimiter = Trimmed.find_first_of(" \t\r\n");
+            return FirstDelimiter == std::string_view::npos ? Trimmed : Trimmed.substr(0, FirstDelimiter);
         }
     } // namespace
 
@@ -102,17 +141,25 @@ namespace ink::backend::llvm_inkvm
         EXPECT_EQ(MAI->getExceptionHandlingType(), llvm::ExceptionHandling::None);
     }
 
-    // Verifies that TableGen register definitions match Ink VM register.def encodings and ABI reservation rules.
+    // Verifies that generated TableGen register definitions match Ink VM register.def encodings, spellings, and ABI reservation rules.
     TEST(InkVMTargetRegistrationTest, RegisterEncodingsAndReservationMatchInkVMABI)
     {
         std::string ErrorMessage;
         const auto TM = createInkVMTargetMachine(llvm::CodeGenOptLevel::Default, ErrorMessage);
         ASSERT_NE(TM, nullptr) << ErrorMessage;
 
+        const llvm::MCAsmInfo* MAI = TM->getMCAsmInfo();
+        const llvm::MCInstrInfo* MII = TM->getMCInstrInfo();
         const llvm::MCRegisterInfo* MRI = TM->getMCRegisterInfo();
+        ASSERT_NE(MAI, nullptr);
+        ASSERT_NE(MII, nullptr);
         ASSERT_NE(MRI, nullptr);
-        // 14 architectural registers plus LLVM's synthetic NoRegister (index 0).
-        EXPECT_EQ(MRI->getNumRegs(), 15u);
+
+        std::unique_ptr<llvm::MCInstPrinter> InstPrinter(TM->getTarget().createMCInstPrinter(TM->getTargetTriple(), 0, *MAI, *MII, *MRI));
+        ASSERT_NE(InstPrinter, nullptr);
+
+        // Every register in register.def plus LLVM's synthetic NoRegister (index 0).
+        EXPECT_EQ(MRI->getNumRegs(), std::size(ExpectedRegisters) + 1u);
 
         llvm::LLVMContext Context;
         llvm::Module Mod("inkvm_reg_test", Context);
@@ -138,6 +185,11 @@ namespace ink::backend::llvm_inkvm
             const llvm::MCRegister Reg = findRegisterByEncoding(*MRI, Encoding);
             ASSERT_TRUE(Reg.isValid()) << "Missing register with encoding " << static_cast<unsigned>(Encoding);
             EXPECT_EQ(Reserved.test(Reg.id()), Expected.Reserved) << "Unexpected reservation state for " << Expected.Spelling;
+
+            std::string PrintedRegName;
+            llvm::raw_string_ostream RegOS(PrintedRegName);
+            InstPrinter->printRegName(RegOS, Reg);
+            EXPECT_EQ(PrintedRegName, Expected.Spelling) << "Register spelling mismatch for encoding " << static_cast<unsigned>(Encoding);
         }
 
         const llvm::MCRegister BPReg = findRegisterByEncoding(*MRI, static_cast<std::uint8_t>(vm::RegisterId::BP));
@@ -176,9 +228,112 @@ namespace ink::backend::llvm_inkvm
                 EXPECT_TRUE(MII->get(Opcode).isReturn());
                 EXPECT_TRUE(MII->get(Opcode).isTerminator());
                 EXPECT_EQ(MII->get(Opcode).getSize(), 8u);
+                EXPECT_TRUE(hasEncodedVMOpcode(MII->get(Opcode).TSFlags));
+                EXPECT_EQ(decodeVMOpcodeFromTSFlags(MII->get(Opcode).TSFlags), static_cast<std::uint16_t>(vm::Opcode::Ret));
                 break;
             }
         }
         EXPECT_TRUE(FoundRet);
+    }
+
+    // Verifies that every target-specific InkVM instruction matches opcode.def in wire encoding, byte size, and printed mnemonic.
+    TEST(InkVMTargetRegistrationTest, InstructionMetadataMatchesInkVMOpcodeDef)
+    {
+        std::string ErrorMessage;
+        const auto TM = createInkVMTargetMachine(llvm::CodeGenOptLevel::Default, ErrorMessage);
+        ASSERT_NE(TM, nullptr) << ErrorMessage;
+
+        const llvm::MCAsmInfo* MAI = TM->getMCAsmInfo();
+        const llvm::MCInstrInfo* MII = TM->getMCInstrInfo();
+        const llvm::MCRegisterInfo* MRI = TM->getMCRegisterInfo();
+        const llvm::MCSubtargetInfo* STI = TM->getMCSubtargetInfo();
+        ASSERT_NE(MAI, nullptr);
+        ASSERT_NE(MII, nullptr);
+        ASSERT_NE(MRI, nullptr);
+        ASSERT_NE(STI, nullptr);
+
+        std::unique_ptr<llvm::MCInstPrinter> InstPrinter(TM->getTarget().createMCInstPrinter(TM->getTargetTriple(), 0, *MAI, *MII, *MRI));
+        ASSERT_NE(InstPrinter, nullptr);
+
+        const llvm::MCRegister R0Reg = findRegisterByEncoding(*MRI, static_cast<std::uint8_t>(vm::RegisterId::R0));
+        ASSERT_TRUE(R0Reg.isValid());
+
+        std::size_t PseudoCount = 0;
+        std::size_t RealInstructionCount = 0;
+        std::unordered_map<std::string, unsigned> OpcodeByName;
+
+        for (unsigned Opcode = 0; Opcode < MII->getNumOpcodes(); ++Opcode)
+        {
+            if (!llvm::isTargetSpecificOpcode(Opcode))
+            {
+                continue;
+            }
+            const llvm::StringRef Name = MII->getName(Opcode);
+            OpcodeByName.emplace(Name.str(), Opcode);
+            const llvm::MCInstrDesc& Desc = MII->get(Opcode);
+
+            if (Desc.isPseudo())
+            {
+                ++PseudoCount;
+                EXPECT_FALSE(hasEncodedVMOpcode(Desc.TSFlags)) << "Pseudo instruction " << Name.str() << " should not encode a VM opcode";
+                EXPECT_EQ(Desc.getSize(), 0u) << "Pseudo instruction " << Name.str() << " should have zero byte size";
+                continue;
+            }
+
+            ++RealInstructionCount;
+            ASSERT_TRUE(hasEncodedVMOpcode(Desc.TSFlags)) << "Instruction " << Name.str() << " is missing generated VM opcode metadata";
+
+            const std::uint16_t EncodedVMOpcode = decodeVMOpcodeFromTSFlags(Desc.TSFlags);
+            const std::optional<VMOpcodeSpec> Spec = findVMOpcodeSpec(EncodedVMOpcode);
+            ASSERT_TRUE(Spec.has_value()) << "Instruction " << Name.str() << " encodes unknown VM opcode 0x" << std::hex << EncodedVMOpcode;
+            EXPECT_EQ(Desc.getSize(), Spec->ByteSize) << "Byte size mismatch for " << Name.str();
+
+            llvm::MCInst DummyInst;
+            DummyInst.setOpcode(Opcode);
+            for (const llvm::MCOperandInfo& OpInfo : Desc.operands())
+            {
+                if (OpInfo.RegClass != -1 || OpInfo.OperandType == llvm::MCOI::OPERAND_REGISTER)
+                {
+                    DummyInst.addOperand(llvm::MCOperand::createReg(R0Reg));
+                }
+                else
+                {
+                    DummyInst.addOperand(llvm::MCOperand::createImm(0));
+                }
+            }
+
+            std::string Printed;
+            llvm::raw_string_ostream OS(Printed);
+            InstPrinter->printInst(&DummyInst, 0, "", *STI, OS);
+            EXPECT_EQ(extractMnemonic(Printed), Spec->Spelling) << "Mnemonic mismatch for " << Name.str() << " (printed: '" << Printed << "')";
+        }
+
+        EXPECT_GE(PseudoCount, 4u);
+        EXPECT_GT(RealInstructionCount, 0u);
+
+        const std::array<std::pair<std::string_view, vm::Opcode>, 14> SpotChecks = {{
+            {"RET", vm::Opcode::Ret},
+            {"JMP", vm::Opcode::Jmp},
+            {"JMPR", vm::Opcode::Jmpr},
+            {"CALLi", vm::Opcode::Calli},
+            {"CALLr", vm::Opcode::Callr},
+            {"ADD64rrr", vm::Opcode::Add64rrr},
+            {"ADD64rri", vm::Opcode::Add64rri},
+            {"MOV64ri", vm::Opcode::Mov64ri},
+            {"MOV64r_sym", vm::Opcode::Mov64ri},
+            {"MOV64ri_f64", vm::Opcode::Mov64ri},
+            {"LOAD64rm", vm::Opcode::Load64rm},
+            {"LOAD64rm_sym", vm::Opcode::Load64rm},
+            {"LOAD64rm_f64_sym", vm::Opcode::Load64rm},
+            {"FCMP64OEQrrr", vm::Opcode::Fcmp64oeqrrr},
+        }};
+
+        for (const auto& [LLVMName, ExpectedVMOpcode] : SpotChecks)
+        {
+            const auto It = OpcodeByName.find(std::string(LLVMName));
+            ASSERT_NE(It, OpcodeByName.end()) << "Missing InkVM instruction " << LLVMName;
+            const llvm::MCInstrDesc& Desc = MII->get(It->second);
+            EXPECT_EQ(decodeVMOpcodeFromTSFlags(Desc.TSFlags), static_cast<std::uint16_t>(ExpectedVMOpcode)) << "VM opcode mismatch for " << LLVMName;
+        }
     }
 } // namespace ink::backend::llvm_inkvm

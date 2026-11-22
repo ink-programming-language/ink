@@ -2,6 +2,7 @@
 
 #include <llvm/Support/CodeGen.h>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -17,6 +18,19 @@ namespace ink::backend::llvm_inkvm
     inline constexpr std::string_view InkVMTargetName = "inkvm";
     inline constexpr std::string_view InkVMDefaultTriple = "inkvm-unknown-unknown";
     inline constexpr std::string_view InkVMDataLayout = "e-m:e-p:64:64-i64:64-f64:64-n64-S64";
+
+    inline constexpr std::uint64_t InkVMTSFlagOpcodeMask = 0xFFFFULL;
+    inline constexpr std::uint64_t InkVMTSFlagHasVMOpcode = std::uint64_t{1} << 16;
+
+    constexpr bool hasEncodedVMOpcode(std::uint64_t TSFlags) noexcept
+    {
+        return (TSFlags & InkVMTSFlagHasVMOpcode) != 0;
+    }
+
+    constexpr std::uint16_t decodeVMOpcodeFromTSFlags(std::uint64_t TSFlags) noexcept
+    {
+        return static_cast<std::uint16_t>(TSFlags & InkVMTSFlagOpcodeMask);
+    }
 
     void initializeInkVMTarget() noexcept;
 

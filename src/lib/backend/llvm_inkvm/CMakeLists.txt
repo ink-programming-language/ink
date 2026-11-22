@@ -1,8 +1,19 @@
-set(INKVM_TD_FILES "${CMAKE_CURRENT_SOURCE_DIR}/InkVM.td" "${CMAKE_CURRENT_SOURCE_DIR}/InkVMRegisterInfo.td" "${CMAKE_CURRENT_SOURCE_DIR}/InkVMCallingConv.td" "${CMAKE_CURRENT_SOURCE_DIR}/InkVMInstrInfo.td")
+find_package(Python3 3.8 REQUIRED COMPONENTS Interpreter)
+
+set(INKVM_VM_INSTRUCTION_DIR "${PROJECT_SOURCE_DIR}/src/include/ink/backend/vm/instruction")
+set(INKVM_VM_DEF_FILES "${INKVM_VM_INSTRUCTION_DIR}/register.def" "${INKVM_VM_INSTRUCTION_DIR}/opcode.def" "${INKVM_VM_INSTRUCTION_DIR}/compare_branch.def" "${INKVM_VM_INSTRUCTION_DIR}/integer_compare.def" "${INKVM_VM_INSTRUCTION_DIR}/register_compare_branch.def" "${INKVM_VM_INSTRUCTION_DIR}/float_compare.def")
+set(INKVM_TD_GENERATOR "${PROJECT_SOURCE_DIR}/cmake/generate_inkvm_tablegen.py")
+set(INKVM_GEN_REGISTER_TD "${CMAKE_CURRENT_BINARY_DIR}/InkVMRegisterInfoGen.td")
+set(INKVM_GEN_OPCODE_TD "${CMAKE_CURRENT_BINARY_DIR}/InkVMOpcodeMetaGen.td")
+set(INKVM_GENERATED_TD_FILES "${INKVM_GEN_REGISTER_TD}" "${INKVM_GEN_OPCODE_TD}")
+
+add_custom_command(OUTPUT ${INKVM_GENERATED_TD_FILES} COMMAND "${Python3_EXECUTABLE}" "${INKVM_TD_GENERATOR}" --vm-instruction-dir "${INKVM_VM_INSTRUCTION_DIR}" --register-td "${INKVM_GEN_REGISTER_TD}" --opcode-td "${INKVM_GEN_OPCODE_TD}" DEPENDS "${INKVM_TD_GENERATOR}" ${INKVM_VM_DEF_FILES} COMMENT "Generating InkVM TableGen metadata from VM .def files" VERBATIM)
+
+set(INKVM_TD_FILES "${CMAKE_CURRENT_SOURCE_DIR}/InkVM.td" "${CMAKE_CURRENT_SOURCE_DIR}/InkVMRegisterInfo.td" "${CMAKE_CURRENT_SOURCE_DIR}/InkVMCallingConv.td" "${CMAKE_CURRENT_SOURCE_DIR}/InkVMInstrInfo.td" ${INKVM_GENERATED_TD_FILES})
 
 function(inkvm_tablegen OutputFile Flag)
     set(OutputPath "${CMAKE_CURRENT_BINARY_DIR}/${OutputFile}")
-    add_custom_command(OUTPUT "${OutputPath}" COMMAND "$<TARGET_FILE:llvm-tblgen>" -I "${CMAKE_CURRENT_SOURCE_DIR}" -I "${LLVM_MAIN_INCLUDE_DIR}" ${Flag} "${CMAKE_CURRENT_SOURCE_DIR}/InkVM.td" -o "${OutputPath}" DEPENDS llvm-tblgen ${INKVM_TD_FILES} COMMENT "Building InkVM TableGen file ${OutputFile}" VERBATIM)
+    add_custom_command(OUTPUT "${OutputPath}" COMMAND "$<TARGET_FILE:llvm-tblgen>" -I "${CMAKE_CURRENT_BINARY_DIR}" -I "${CMAKE_CURRENT_SOURCE_DIR}" -I "${LLVM_MAIN_INCLUDE_DIR}" ${Flag} "${CMAKE_CURRENT_SOURCE_DIR}/InkVM.td" -o "${OutputPath}" DEPENDS llvm-tblgen ${INKVM_TD_FILES} COMMENT "Building InkVM TableGen file ${OutputFile}" VERBATIM)
 endfunction()
 
 inkvm_tablegen(InkVMGenRegisterInfo.inc -gen-register-info)
