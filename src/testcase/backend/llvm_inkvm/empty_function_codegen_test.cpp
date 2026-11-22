@@ -51,7 +51,7 @@ namespace ink::backend::llvm_inkvm
         EXPECT_NE(Assembly.find(".section .text"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find(".function main external"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("entry:"), std::string::npos) << Assembly;
-        EXPECT_NE(Assembly.find("\tret"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find("    ret\n"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find(".endfunction"), std::string::npos) << Assembly;
 
         EXPECT_EQ(Assembly.find(".globl"), std::string::npos) << Assembly;
@@ -60,19 +60,15 @@ namespace ink::backend::llvm_inkvm
         EXPECT_EQ(Assembly.find(".file"), std::string::npos) << Assembly;
     }
 
-    // Verifies the full Step 2 end-to-end pipeline: LLVM IR -> InkVM backend -> VM text reader -> ExecutableEmitter -> Interpreter execution.
+    // Verifies the full direct pipeline: LLVM IR -> InkVM backend MachineModule -> ExecutableEmitter -> Interpreter execution.
     TEST(InkVMEmptyFunctionCodegenTest, ExecutesCompiledEmptyMainInInkVMInterpreter)
     {
         llvm::LLVMContext Context;
         auto IRModule = parseIR(Context, "define void @main() {\nentry:\n  ret void\n}\n", "empty_exec");
         ASSERT_NE(IRModule, nullptr);
 
-        std::string Assembly;
-        std::string ErrorMessage;
-        ASSERT_TRUE(emitInkVMAssembly(*IRModule, Assembly, ErrorMessage)) << ErrorMessage;
-
-        auto ParsedVMModule = vm::readMachineModuleText(Assembly);
-        ASSERT_TRUE(ParsedVMModule.has_value()) << Assembly;
+        auto CompiledModule = emitInkVMMachineModule(*IRModule);
+        ASSERT_TRUE(CompiledModule.has_value()) << CompiledModule.error();
 
         core::CollectingDiagnosticConsumer DiagnosticsConsumer;
         vm::Interpreter Interpreter;
@@ -81,7 +77,7 @@ namespace ink::backend::llvm_inkvm
         const core::Name MainName = core::NamePool::instance().intern("main");
         const std::array ExportNames{MainName};
         vm::ExecutableEmitter Emitter(Interpreter.getDiagnostics());
-        vm::ExecutableFile Executable = Emitter.emit(**ParsedVMModule, MainName, ExportNames);
+        vm::ExecutableFile Executable = Emitter.emit(**CompiledModule, MainName, ExportNames);
 
         const auto Handle = Interpreter.loadLibrary(std::move(Executable));
         ASSERT_NE(Handle, vm::Interpreter::InvalidLibraryHandle);

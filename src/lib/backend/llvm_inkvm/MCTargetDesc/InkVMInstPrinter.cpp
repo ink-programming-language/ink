@@ -46,7 +46,7 @@ namespace
 
     void writeSymbolName(raw_ostream& OS, StringRef Name)
     {
-        static constexpr char HexDigits[] = "0123456789abcdef";
+        static constexpr char HexDigits[] = "0123456789ABCDEF";
         OS << '@';
         if (isSymbolIdentifier(Name))
         {
@@ -56,33 +56,17 @@ namespace
         OS << '"';
         for (const unsigned char Byte : Name.bytes())
         {
-            switch (Byte)
+            if (Byte == '\\' || Byte == '"')
             {
-            case '\\':
-                OS << "\\\\";
-                break;
-            case '"':
-                OS << "\\\"";
-                break;
-            case '\n':
-                OS << "\\n";
-                break;
-            case '\r':
-                OS << "\\r";
-                break;
-            case '\t':
-                OS << "\\t";
-                break;
-            default:
-                if (Byte < 0x20 || Byte >= 0x7F)
-                {
-                    OS << "\\x" << HexDigits[Byte >> 4] << HexDigits[Byte & 0x0F];
-                }
-                else
-                {
-                    OS << static_cast<char>(Byte);
-                }
-                break;
+                OS << '\\' << static_cast<char>(Byte);
+            }
+            else if (Byte < 0x20 || Byte >= 0x7F)
+            {
+                OS << '\\' << HexDigits[Byte >> 4] << HexDigits[Byte & 0x0F];
+            }
+            else
+            {
+                OS << static_cast<char>(Byte);
             }
         }
         OS << '"';
@@ -191,7 +175,8 @@ void InkVMInstPrinter::printSymbolOperand(const MCInst* MI, unsigned OpNo, raw_o
             if (const auto* ConstOffset = dyn_cast<MCConstantExpr>(BinExpr->getRHS()))
             {
                 writeSymbolName(OS, SymRef->getSymbol().getName());
-                const std::int64_t Offset = BinExpr->getOpcode() == MCBinaryExpr::Sub ? -ConstOffset->getValue() : ConstOffset->getValue();
+                const std::uint64_t RawOffset = static_cast<std::uint64_t>(ConstOffset->getValue());
+                const std::int64_t Offset = BinExpr->getOpcode() == MCBinaryExpr::Sub ? static_cast<std::int64_t>(std::uint64_t{0} - RawOffset) : ConstOffset->getValue();
                 writeSignedDisplacement(OS, Offset);
                 return;
             }

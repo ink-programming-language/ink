@@ -1,8 +1,11 @@
 #pragma once
 
+#include "ink/backend/vm/module/machine_module.h"
+
 #include <llvm/Support/CodeGen.h>
 
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -35,6 +38,8 @@ namespace ink::backend::llvm_inkvm
     void initializeInkVMTarget() noexcept;
 
     std::unique_ptr<llvm::TargetMachine> createInkVMTargetMachine(llvm::CodeGenOptLevel OptLevel, std::string& ErrorMessage);
+
+    [[nodiscard]] std::expected<std::unique_ptr<vm::MachineModule>, std::string> emitInkVMMachineModule(llvm::Module& Module, llvm::CodeGenOptLevel OptLevel = llvm::CodeGenOptLevel::Default);
 
     bool emitInkVMAssembly(llvm::Module& Module, std::string& AssemblyOutput, std::string& ErrorMessage, llvm::CodeGenOptLevel OptLevel = llvm::CodeGenOptLevel::Default);
 } // namespace ink::backend::llvm_inkvm

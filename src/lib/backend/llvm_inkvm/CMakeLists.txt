@@ -25,7 +25,7 @@ inkvm_tablegen(InkVMGenAsmWriter.inc -gen-asm-writer)
 set(INKVM_TABLEGEN_OUTPUTS "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenRegisterInfo.inc" "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenInstrInfo.inc" "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenSubtargetInfo.inc" "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenDAGISel.inc" "${CMAKE_CURRENT_BINARY_DIR}/InkVMGenAsmWriter.inc")
 add_custom_target(ink_llvm_inkvm_tablegen DEPENDS ${INKVM_TABLEGEN_OUTPUTS})
 
-set(INKVM_SOURCES TargetInfo/InkVMTargetInfo.cpp MCTargetDesc/InkVMMCAsmInfo.cpp MCTargetDesc/InkVMInstPrinter.cpp MCTargetDesc/InkVMMCTargetDesc.cpp InkVMRegisterInfo.cpp InkVMInstrInfo.cpp InkVMFrameLowering.cpp InkVMISelLowering.cpp InkVMISelDAGToDAG.cpp InkVMSubtarget.cpp InkVMAsmPrinter.cpp InkVMTargetMachine.cpp InkVMTarget.cpp)
+set(INKVM_SOURCES TargetInfo/InkVMTargetInfo.cpp MCTargetDesc/InkVMMCAsmInfo.cpp MCTargetDesc/InkVMInstPrinter.cpp MCTargetDesc/InkVMMCTargetDesc.cpp InkVMRegisterInfo.cpp InkVMInstrInfo.cpp InkVMFrameLowering.cpp InkVMISelLowering.cpp InkVMISelDAGToDAG.cpp InkVMSubtarget.cpp InkVMMachineModuleEmitter.cpp InkVMAsmPrinter.cpp InkVMTargetMachine.cpp InkVMTarget.cpp)
 
 add_library(ink_llvm_inkvm STATIC ${INKVM_SOURCES} ${INKVM_TABLEGEN_OUTPUTS})
 add_library(ink::llvm_inkvm ALIAS ink_llvm_inkvm)
@@ -35,7 +35,7 @@ target_compile_features(ink_llvm_inkvm PUBLIC cxx_std_23)
 target_include_directories(ink_llvm_inkvm PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(ink_llvm_inkvm SYSTEM PUBLIC ${LLVM_INCLUDE_DIRS} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_compile_options(ink_llvm_inkvm PUBLIC ${LLVM_DEFINITIONS})
-target_link_libraries(ink_llvm_inkvm PUBLIC LLVMCodeGen LLVMCore LLVMMC LLVMSupport LLVMTarget LLVMTargetParser PRIVATE LLVMAnalysis LLVMAsmPrinter LLVMCodeGenTypes LLVMSelectionDAG)
+target_link_libraries(ink_llvm_inkvm PUBLIC ink::vm LLVMCodeGen LLVMCore LLVMMC LLVMSupport LLVMTarget LLVMTargetParser PRIVATE LLVMAnalysis LLVMAsmPrinter LLVMCodeGenTypes LLVMSelectionDAG)
 ink_disable_exceptions(ink_llvm_inkvm)
 
 if(MSVC)

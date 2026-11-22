@@ -17,6 +17,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <span>
 #include <sstream>
 #include <string>
@@ -27,7 +28,7 @@ namespace ink::backend::llvm_inkvm
 {
     namespace
     {
-        std::string compileIRToAssembly(std::string_view IRText, std::string_view ModuleName)
+        std::unique_ptr<vm::MachineModule> compileIRToMachineModule(std::string_view IRText, std::string_view ModuleName)
         {
             llvm::LLVMContext Context;
             llvm::SMDiagnostic ParseError;
@@ -35,14 +36,20 @@ namespace ink::backend::llvm_inkvm
             EXPECT_NE(IRModule, nullptr);
             if (IRModule == nullptr)
             {
-                return {};
+                return nullptr;
             }
             IRModule->setModuleIdentifier(llvm::StringRef(ModuleName.data(), ModuleName.size()));
 
-            std::string Assembly;
-            std::string ErrorMessage;
-            EXPECT_TRUE(emitInkVMAssembly(*IRModule, Assembly, ErrorMessage)) << ErrorMessage;
-            return Assembly;
+            auto Compiled = emitInkVMMachineModule(*IRModule);
+            EXPECT_TRUE(Compiled.has_value()) << (Compiled.has_value() ? std::string() : Compiled.error());
+            return Compiled.has_value() ? std::move(*Compiled) : nullptr;
+        }
+
+        std::string formatModuleText(const vm::MachineModule& ModuleValue)
+        {
+            const auto Text = vm::writeMachineModuleText(ModuleValue);
+            EXPECT_TRUE(Text.has_value());
+            return Text.has_value() ? *Text : std::string();
         }
 
         std::string buildHarness(std::string_view TargetFunction, std::span<const std::int64_t> Arguments)
@@ -74,15 +81,8 @@ namespace ink::backend::llvm_inkvm
             return Stream.str();
         }
 
-        std::int64_t executeCompiled(std::string_view Assembly, std::string_view TargetFunction, std::span<const std::int64_t> Arguments)
+        std::int64_t executeCompiled(const vm::MachineModule& CompiledModule, std::string_view TargetFunction, std::span<const std::int64_t> Arguments)
         {
-            auto CompiledModule = vm::readMachineModuleText(Assembly);
-            EXPECT_TRUE(CompiledModule.has_value()) << Assembly;
-            if (!CompiledModule.has_value())
-            {
-                return 0;
-            }
-
             const std::string HarnessText = buildHarness(TargetFunction, Arguments);
             auto HarnessModule = vm::readMachineModuleText(HarnessText);
             EXPECT_TRUE(HarnessModule.has_value()) << HarnessText;
@@ -95,7 +95,7 @@ namespace ink::backend::llvm_inkvm
             vm::Interpreter Interpreter;
             Interpreter.getDiagnostics().addConsumer(DiagnosticsConsumer);
 
-            const std::array<const vm::MachineModule*, 2> Modules{HarnessModule->get(), CompiledModule->get()};
+            const std::array<const vm::MachineModule*, 2> Modules{HarnessModule->get(), &CompiledModule};
             auto Linked = vm::ModuleLinker::link(Modules, Interpreter.getDiagnostics(), core::NamePool::instance().intern("linked_cf"));
             EXPECT_NE(Linked, nullptr);
             if (Linked == nullptr)
@@ -179,7 +179,9 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "cmp_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "cmp_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("cmpeq64rrr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("cmplt64rrr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("cmpltu64rrr"), std::string::npos) << Assembly;
@@ -187,15 +189,15 @@ entry:
 
         // (-5, 3): ne(1), slt(2), sle(3), ugt(8), uge(9), a<42(10) -> bits 1,2,3,8,9,10 = 0x70E = 1806.
         const std::array<std::int64_t, 2> NegPos{-5, 3};
-        EXPECT_EQ(executeCompiled(Assembly, "cmp_mask", NegPos), (1 << 1) | (1 << 2) | (1 << 3) | (1 << 8) | (1 << 9) | (1 << 10));
+        EXPECT_EQ(executeCompiled(*Compiled, "cmp_mask", NegPos), (1 << 1) | (1 << 2) | (1 << 3) | (1 << 8) | (1 << 9) | (1 << 10));
 
         // (7, 7): eq(0), sle(3), sge(5), ule(7), uge(9), a<42(10)
         const std::array<std::int64_t, 2> EqualPair{7, 7};
-        EXPECT_EQ(executeCompiled(Assembly, "cmp_mask", EqualPair), (1 << 0) | (1 << 3) | (1 << 5) | (1 << 7) | (1 << 9) | (1 << 10));
+        EXPECT_EQ(executeCompiled(*Compiled, "cmp_mask", EqualPair), (1 << 0) | (1 << 3) | (1 << 5) | (1 << 7) | (1 << 9) | (1 << 10));
 
         // (100, 2): ne(1), sgt(4), sge(5), ugt(8), uge(9), !(100<42)
         const std::array<std::int64_t, 2> GreaterPair{100, 2};
-        EXPECT_EQ(executeCompiled(Assembly, "cmp_mask", GreaterPair), (1 << 1) | (1 << 4) | (1 << 5) | (1 << 8) | (1 << 9));
+        EXPECT_EQ(executeCompiled(*Compiled, "cmp_mask", GreaterPair), (1 << 1) | (1 << 4) | (1 << 5) | (1 << 8) | (1 << 9));
     }
 
     // Verifies select and compound boolean select lower via SELECT_CC_I64 custom inserter into a diamond CFG and PHI.
@@ -216,17 +218,19 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "select_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "select_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_EQ(Assembly.find("SELECT_CC_I64"), std::string::npos) << Assembly;
 
         const std::array<std::int64_t, 3> BelowArgs{-50, -10, 20};
-        EXPECT_EQ(executeCompiled(Assembly, "clamp_and_choose", BelowArgs), 10);
+        EXPECT_EQ(executeCompiled(*Compiled, "clamp_and_choose", BelowArgs), 10);
 
         const std::array<std::int64_t, 3> MidArgs{-7, -10, 20};
-        EXPECT_EQ(executeCompiled(Assembly, "clamp_and_choose", MidArgs), 7);
+        EXPECT_EQ(executeCompiled(*Compiled, "clamp_and_choose", MidArgs), 7);
 
         const std::array<std::int64_t, 3> AboveArgs{99, -10, 20};
-        EXPECT_EQ(executeCompiled(Assembly, "clamp_and_choose", AboveArgs), 20);
+        EXPECT_EQ(executeCompiled(*Compiled, "clamp_and_choose", AboveArgs), 20);
     }
 
     // Verifies loops with PHI nodes emit direct compare-and-branch instructions and execute accurately in the VM.
@@ -269,21 +273,23 @@ exit:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "loops_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "loops_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("64rrb "), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("64rib "), std::string::npos) << Assembly;
 
         const std::array<std::int64_t, 1> Sum10{10};
-        EXPECT_EQ(executeCompiled(Assembly, "sum_to_n", Sum10), 55);
+        EXPECT_EQ(executeCompiled(*Compiled, "sum_to_n", Sum10), 55);
 
         const std::array<std::int64_t, 1> SumZero{0};
-        EXPECT_EQ(executeCompiled(Assembly, "sum_to_n", SumZero), 0);
+        EXPECT_EQ(executeCompiled(*Compiled, "sum_to_n", SumZero), 0);
 
         const std::array<std::int64_t, 2> GcdArgs{1071, 462};
-        EXPECT_EQ(executeCompiled(Assembly, "gcd", GcdArgs), 21);
+        EXPECT_EQ(executeCompiled(*Compiled, "gcd", GcdArgs), 21);
 
         const std::array<std::int64_t, 2> GcdCoprime{35, 64};
-        EXPECT_EQ(executeCompiled(Assembly, "gcd", GcdCoprime), 1);
+        EXPECT_EQ(executeCompiled(*Compiled, "gcd", GcdCoprime), 1);
     }
 
     // Verifies multi-case LLVM switch lowers via expanded BR_JT into InkVM compare-and-branch trees.
@@ -317,7 +323,9 @@ default:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "switch_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "switch_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_EQ(Assembly.find("jmpr"), std::string::npos) << Assembly;
 
         const std::array<std::pair<std::int64_t, std::int64_t>, 8> Cases{
@@ -333,7 +341,7 @@ default:
         for (const auto& [Key, Expected] : Cases)
         {
             const std::array<std::int64_t, 1> Args{Key};
-            EXPECT_EQ(executeCompiled(Assembly, "dispatch_case", Args), Expected) << "key=" << Key;
+            EXPECT_EQ(executeCompiled(*Compiled, "dispatch_case", Args), Expected) << "key=" << Key;
         }
     }
 
@@ -358,7 +366,9 @@ recurse:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "fib_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "fib_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("call @fib"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("ret"), std::string::npos) << Assembly;
 
@@ -373,7 +383,7 @@ recurse:
         for (const auto& [Input, Expected] : Cases)
         {
             const std::array<std::int64_t, 1> Args{Input};
-            EXPECT_EQ(executeCompiled(Assembly, "fib", Args), Expected) << "fib(" << Input << ")";
+            EXPECT_EQ(executeCompiled(*Compiled, "fib", Args), Expected) << "fib(" << Input << ")";
         }
     }
 } // namespace ink::backend::llvm_inkvm

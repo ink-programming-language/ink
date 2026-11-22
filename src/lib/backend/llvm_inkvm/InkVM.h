@@ -7,6 +7,7 @@ namespace llvm
     class FunctionPass;
     class InkVMTargetMachine;
     class PassRegistry;
+    struct InkVMMachineModuleEmitSink;
 
     extern "C" void LLVMInitializeInkVMTargetInfo();
     extern "C" void LLVMInitializeInkVMTarget();
@@ -15,6 +16,8 @@ namespace llvm
 
     void initializeInkVMDAGToDAGISelLegacyPass(PassRegistry& Registry);
     void initializeInkVMAsmPrinterPass(PassRegistry& Registry);
+    void initializeInkVMMachineModuleEmitterPass(PassRegistry& Registry);
 
     FunctionPass* createInkVMISelDag(InkVMTargetMachine& TM, CodeGenOptLevel OptLevel);
+    FunctionPass* createInkVMMachineModuleEmitter(InkVMTargetMachine& TM, InkVMMachineModuleEmitSink& Sink);
 } // namespace llvm

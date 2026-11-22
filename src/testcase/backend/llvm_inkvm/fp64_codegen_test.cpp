@@ -22,6 +22,7 @@
 #include <cstring>
 #include <iomanip>
 #include <limits>
+#include <memory>
 #include <span>
 #include <sstream>
 #include <string>
@@ -32,7 +33,7 @@ namespace ink::backend::llvm_inkvm
 {
     namespace
     {
-        std::string compileIRToAssembly(std::string_view IRText, std::string_view ModuleName)
+        std::unique_ptr<vm::MachineModule> compileIRToMachineModule(std::string_view IRText, std::string_view ModuleName)
         {
             llvm::LLVMContext Context;
             llvm::SMDiagnostic ParseError;
@@ -40,14 +41,20 @@ namespace ink::backend::llvm_inkvm
             EXPECT_NE(IRModule, nullptr);
             if (IRModule == nullptr)
             {
-                return {};
+                return nullptr;
             }
             IRModule->setModuleIdentifier(llvm::StringRef(ModuleName.data(), ModuleName.size()));
 
-            std::string Assembly;
-            std::string ErrorMessage;
-            EXPECT_TRUE(emitInkVMAssembly(*IRModule, Assembly, ErrorMessage)) << ErrorMessage;
-            return Assembly;
+            auto Compiled = emitInkVMMachineModule(*IRModule);
+            EXPECT_TRUE(Compiled.has_value()) << (Compiled.has_value() ? std::string() : Compiled.error());
+            return Compiled.has_value() ? std::move(*Compiled) : nullptr;
+        }
+
+        std::string formatModuleText(const vm::MachineModule& ModuleValue)
+        {
+            const auto Text = vm::writeMachineModuleText(ModuleValue);
+            EXPECT_TRUE(Text.has_value());
+            return Text.has_value() ? *Text : std::string();
         }
 
         std::string buildHarness(std::string_view TargetFunction, std::span<const std::uint64_t> RawWordArguments)
@@ -79,15 +86,8 @@ namespace ink::backend::llvm_inkvm
             return Stream.str();
         }
 
-        std::uint64_t executeCompiledBits(std::string_view Assembly, std::string_view TargetFunction, std::span<const std::uint64_t> RawWordArguments)
+        std::uint64_t executeCompiledBits(const vm::MachineModule& CompiledModule, std::string_view TargetFunction, std::span<const std::uint64_t> RawWordArguments)
         {
-            auto CompiledModule = vm::readMachineModuleText(Assembly);
-            EXPECT_TRUE(CompiledModule.has_value()) << Assembly;
-            if (!CompiledModule.has_value())
-            {
-                return 0;
-            }
-
             const std::string HarnessText = buildHarness(TargetFunction, RawWordArguments);
             auto HarnessModule = vm::readMachineModuleText(HarnessText);
             EXPECT_TRUE(HarnessModule.has_value()) << HarnessText;
@@ -100,7 +100,7 @@ namespace ink::backend::llvm_inkvm
             vm::Interpreter Interpreter;
             Interpreter.getDiagnostics().addConsumer(DiagnosticsConsumer);
 
-            const std::array<const vm::MachineModule*, 2> Modules{HarnessModule->get(), CompiledModule->get()};
+            const std::array<const vm::MachineModule*, 2> Modules{HarnessModule->get(), &CompiledModule};
             auto Linked = vm::ModuleLinker::link(Modules, Interpreter.getDiagnostics(), core::NamePool::instance().intern("linked_fp64"));
             EXPECT_NE(Linked, nullptr);
             if (Linked == nullptr)
@@ -132,7 +132,7 @@ namespace ink::backend::llvm_inkvm
             return ResultBits;
         }
 
-        double executeCompiledDouble(std::string_view Assembly, std::string_view TargetFunction, std::span<const double> DoubleArguments)
+        double executeCompiledDouble(const vm::MachineModule& CompiledModule, std::string_view TargetFunction, std::span<const double> DoubleArguments)
         {
             std::array<std::uint64_t, 8> WordArgs{};
             EXPECT_LE(DoubleArguments.size(), WordArgs.size());
@@ -140,7 +140,7 @@ namespace ink::backend::llvm_inkvm
             {
                 WordArgs[Index] = std::bit_cast<std::uint64_t>(DoubleArguments[Index]);
             }
-            const std::uint64_t Bits = executeCompiledBits(Assembly, TargetFunction, std::span<const std::uint64_t>(WordArgs.data(), DoubleArguments.size()));
+            const std::uint64_t Bits = executeCompiledBits(CompiledModule, TargetFunction, std::span<const std::uint64_t>(WordArgs.data(), DoubleArguments.size()));
             return std::bit_cast<double>(Bits);
         }
 
@@ -186,7 +186,9 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "fp_arith_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "fp_arith_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("fadd64rrr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("fsub64rrr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("fmul64rrr"), std::string::npos) << Assembly;
@@ -198,7 +200,7 @@ entry:
         // a=5, b=2 -> diff=3, sum=7 -> rad=58 -> -(sqrt(58)/2 + 3.25)
         const std::array<double, 2> Args{5.0, 2.0};
         const double Expected = -(std::sqrt(58.0) / 2.0 + 3.25);
-        EXPECT_DOUBLE_EQ(executeCompiledDouble(Assembly, "fp_compute", Args), Expected);
+        EXPECT_DOUBLE_EQ(executeCompiledDouble(*Compiled, "fp_compute", Args), Expected);
 
         // Verify native fabs64rr clears only the sign bit across finite values, -0.0, -inf, and negative NaN payloads.
         constexpr std::uint64_t NaNPayload = 0x7FF8000000005678ULL;
@@ -212,12 +214,12 @@ entry:
         for (const std::uint64_t InputBits : AbsInputs)
         {
             const std::array<std::uint64_t, 1> OneArg{InputBits};
-            EXPECT_EQ(executeCompiledBits(Assembly, "fp_abs", OneArg), InputBits & ~(std::uint64_t{1} << 63));
+            EXPECT_EQ(executeCompiledBits(*Compiled, "fp_abs", OneArg), InputBits & ~(std::uint64_t{1} << 63));
         }
 
         // Verify -0.0 bitcast preserves sign bit 0x8000000000000000.
         const std::array<std::uint64_t, 1> NegZero{std::uint64_t{1} << 63};
-        EXPECT_EQ(executeCompiledBits(Assembly, "double_to_bits", NegZero), std::uint64_t{1} << 63);
+        EXPECT_EQ(executeCompiledBits(*Compiled, "double_to_bits", NegZero), std::uint64_t{1} << 63);
     }
 
     // Verifies all 14 IEEE-754 ordered and unordered FP64 comparisons including NaN and signed-zero semantics.
@@ -283,7 +285,9 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "fcmp_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "fcmp_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("fcmp64oeqrrr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("fcmp64oltrrr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("fcmp64ordrrr"), std::string::npos) << Assembly;
@@ -294,7 +298,7 @@ entry:
         auto RunMask = [&](double A, double B) -> std::uint64_t
         {
             const std::array<std::uint64_t, 2> Args{std::bit_cast<std::uint64_t>(A), std::bit_cast<std::uint64_t>(B)};
-            return executeCompiledBits(Assembly, "fcmp_mask", Args);
+            return executeCompiledBits(*Compiled, "fcmp_mask", Args);
         };
 
         // (-2.5, 4.0): one(1), olt(2), ole(3), ord(6), une(9), ult(10), ule(11).
@@ -335,7 +339,9 @@ take_max:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "fp_conv_cf_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "fp_conv_cf_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("sitof64rr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("uitof64rr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("f64tosi64rr"), std::string::npos) << Assembly;
@@ -344,15 +350,15 @@ take_max:
 
         // (-4, 3): fs=-4.0 < fu=3.0 -> take_min -> -4.0 + 10.5 = 6.5.
         const std::array<std::uint64_t, 2> Case1{static_cast<std::uint64_t>(-4LL), 3ULL};
-        EXPECT_DOUBLE_EQ(std::bit_cast<double>(executeCompiledBits(Assembly, "classify_and_convert", Case1)), 6.5);
+        EXPECT_DOUBLE_EQ(std::bit_cast<double>(executeCompiledBits(*Compiled, "classify_and_convert", Case1)), 6.5);
 
         // (12, 3): fs=12.0 >= fu=3.0 -> take_max -> fs > 0 -> i_s = 12 -> 12.0.
         const std::array<std::uint64_t, 2> Case2{12ULL, 3ULL};
-        EXPECT_DOUBLE_EQ(std::bit_cast<double>(executeCompiledBits(Assembly, "classify_and_convert", Case2)), 12.0);
+        EXPECT_DOUBLE_EQ(std::bit_cast<double>(executeCompiledBits(*Compiled, "classify_and_convert", Case2)), 12.0);
 
         // (-10, 0x8000000000000000ULL): uitofp treats 2^63 as positive 9223372036854775808.0 > -10.0 -> -10.0 + 10.5 = 0.5.
         const std::array<std::uint64_t, 2> Case3{static_cast<std::uint64_t>(-10LL), std::uint64_t{1} << 63};
-        EXPECT_DOUBLE_EQ(std::bit_cast<double>(executeCompiledBits(Assembly, "classify_and_convert", Case3)), 0.5);
+        EXPECT_DOUBLE_EQ(std::bit_cast<double>(executeCompiledBits(*Compiled, "classify_and_convert", Case3)), 0.5);
     }
 
     // Verifies FP64 stack-slot ABI arguments/returns and live FPR spilling across caller-saved calls.
@@ -378,7 +384,9 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "fp_call_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "fp_call_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("call @dot2"), std::string::npos) << Assembly;
         // Caller must allocate local spill slots on the upward stack to keep x, y, z, d1 alive across calls.
         EXPECT_NE(Assembly.find("add64rri sp, sp, "), std::string::npos) << Assembly;
@@ -388,7 +396,7 @@ entry:
         // d2 = 1.5*4.0 + 4.0*1.5 = 12.0
         // total = 11.0 + 12.0 + 1.5 + 2.0 + 4.0 = 30.5
         const std::array<double, 3> Args{1.5, 2.0, 4.0};
-        EXPECT_DOUBLE_EQ(executeCompiledDouble(Assembly, "combine_dots", Args), 30.5);
+        EXPECT_DOUBLE_EQ(executeCompiledDouble(*Compiled, "combine_dots", Args), 30.5);
     }
 
     // Compiles and executes the 5-body gravitational N-body simulation from LLVM IR and verifies energies against C++ reference.
@@ -744,17 +752,19 @@ done:
         }
         const double ExpectedFinalEnergy = EnergyRef();
 
-        const std::string Assembly = compileIRToAssembly(IR.str(), "nbody_mod");
+        const auto Compiled = compileIRToMachineModule(IR.str(), "nbody_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("fsqrt64rr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("fneg64rr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("call @advance"), std::string::npos) << Assembly;
 
         const std::array<std::uint64_t, 1> ZeroSteps{0};
-        const double ActualInitialEnergy = std::bit_cast<double>(executeCompiledBits(Assembly, "run_nbody", ZeroSteps));
+        const double ActualInitialEnergy = std::bit_cast<double>(executeCompiledBits(*Compiled, "run_nbody", ZeroSteps));
         EXPECT_LE(std::abs(ActualInitialEnergy - ExpectedInitialEnergy), 1.0e-12 * std::max(1.0, std::abs(ExpectedInitialEnergy)));
 
         const std::array<std::uint64_t, 1> TenSteps{10};
-        const double ActualFinalEnergy = std::bit_cast<double>(executeCompiledBits(Assembly, "run_nbody", TenSteps));
+        const double ActualFinalEnergy = std::bit_cast<double>(executeCompiledBits(*Compiled, "run_nbody", TenSteps));
         EXPECT_LE(std::abs(ActualFinalEnergy - ExpectedFinalEnergy), 1.0e-12 * std::max(1.0, std::abs(ExpectedFinalEnergy)));
     }
 } // namespace ink::backend::llvm_inkvm

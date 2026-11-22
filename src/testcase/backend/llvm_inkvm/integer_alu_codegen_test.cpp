@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <memory>
 #include <span>
 #include <sstream>
 #include <string>
@@ -28,7 +29,7 @@ namespace ink::backend::llvm_inkvm
 {
     namespace
     {
-        std::string compileIRToAssembly(std::string_view IRText, std::string_view ModuleName)
+        std::unique_ptr<vm::MachineModule> compileIRToMachineModule(std::string_view IRText, std::string_view ModuleName)
         {
             llvm::LLVMContext Context;
             llvm::SMDiagnostic ParseError;
@@ -36,14 +37,20 @@ namespace ink::backend::llvm_inkvm
             EXPECT_NE(IRModule, nullptr);
             if (IRModule == nullptr)
             {
-                return {};
+                return nullptr;
             }
             IRModule->setModuleIdentifier(llvm::StringRef(ModuleName.data(), ModuleName.size()));
 
-            std::string Assembly;
-            std::string ErrorMessage;
-            EXPECT_TRUE(emitInkVMAssembly(*IRModule, Assembly, ErrorMessage)) << ErrorMessage;
-            return Assembly;
+            auto Compiled = emitInkVMMachineModule(*IRModule);
+            EXPECT_TRUE(Compiled.has_value()) << (Compiled.has_value() ? std::string() : Compiled.error());
+            return Compiled.has_value() ? std::move(*Compiled) : nullptr;
+        }
+
+        std::string formatModuleText(const vm::MachineModule& ModuleValue)
+        {
+            const auto Text = vm::writeMachineModuleText(ModuleValue);
+            EXPECT_TRUE(Text.has_value());
+            return Text.has_value() ? *Text : std::string();
         }
 
         // Builds a minimal Ink VM caller module that prepares the ABI call area, calls TargetFunction, and stores the i64 result into @test_result.
@@ -76,15 +83,8 @@ namespace ink::backend::llvm_inkvm
             return Stream.str();
         }
 
-        std::int64_t executeCompiledFunction(std::string_view Assembly, std::string_view TargetFunction, std::span<const std::int64_t> Arguments)
+        std::int64_t executeCompiledFunction(const vm::MachineModule& CompiledModule, std::string_view TargetFunction, std::span<const std::int64_t> Arguments)
         {
-            auto CompiledModule = vm::readMachineModuleText(Assembly);
-            EXPECT_TRUE(CompiledModule.has_value()) << Assembly;
-            if (!CompiledModule.has_value())
-            {
-                return 0;
-            }
-
             const std::string HarnessText = buildHarnessAssembly(TargetFunction, Arguments);
             auto HarnessModule = vm::readMachineModuleText(HarnessText);
             EXPECT_TRUE(HarnessModule.has_value()) << HarnessText;
@@ -97,7 +97,7 @@ namespace ink::backend::llvm_inkvm
             vm::Interpreter Interpreter;
             Interpreter.getDiagnostics().addConsumer(DiagnosticsConsumer);
 
-            const std::array<const vm::MachineModule*, 2> Modules{HarnessModule->get(), CompiledModule->get()};
+            const std::array<const vm::MachineModule*, 2> Modules{HarnessModule->get(), &CompiledModule};
             auto Linked = vm::ModuleLinker::link(Modules, Interpreter.getDiagnostics(), core::NamePool::instance().intern("linked"));
             EXPECT_NE(Linked, nullptr);
             if (Linked == nullptr)
@@ -154,7 +154,9 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "arith_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "arith_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("add64rrr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("add64rri"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("mul64rri"), std::string::npos) << Assembly;
@@ -164,13 +166,13 @@ entry:
 
         const std::array<std::int64_t, 2> ArithArgs{7, 5};
         // ((7 + 5) + 10) * 3 - 5 = 61
-        EXPECT_EQ(executeCompiledFunction(Assembly, "arith", ArithArgs), 61);
+        EXPECT_EQ(executeCompiledFunction(*Compiled, "arith", ArithArgs), 61);
 
         const std::array<std::int64_t, 1> NegArgs{42};
-        EXPECT_EQ(executeCompiledFunction(Assembly, "negate", NegArgs), -42);
+        EXPECT_EQ(executeCompiledFunction(*Compiled, "negate", NegArgs), -42);
 
         const std::span<const std::int64_t> EmptyArgs;
-        EXPECT_EQ(executeCompiledFunction(Assembly, "big_const", EmptyArgs), 0x123456789ABCDEF0LL);
+        EXPECT_EQ(executeCompiledFunction(*Compiled, "big_const", EmptyArgs), 0x123456789ABCDEF0LL);
     }
 
     // Verifies signed and unsigned 64-bit division and remainder, including simultaneous div+rem (SDIVREM/UDIVREM expansion).
@@ -193,7 +195,9 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "divrem_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "divrem_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("sdiv64rrr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("srem64rrr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("udiv64rrr"), std::string::npos) << Assembly;
@@ -201,12 +205,12 @@ entry:
 
         const std::array<std::int64_t, 2> SignedArgs{-100, 7};
         // -100 / 7 = -14, -100 % 7 = -2 -> -16
-        EXPECT_EQ(executeCompiledFunction(Assembly, "sdiv_srem_sum", SignedArgs), -16);
+        EXPECT_EQ(executeCompiledFunction(*Compiled, "sdiv_srem_sum", SignedArgs), -16);
 
         const std::array<std::int64_t, 2> UnsignedArgs{-16, 10};
         const std::uint64_t UDividend = static_cast<std::uint64_t>(UnsignedArgs[0]);
         const std::int64_t ExpectedUnsigned = static_cast<std::int64_t>((UDividend / 10ULL) + (UDividend % 10ULL));
-        EXPECT_EQ(executeCompiledFunction(Assembly, "udiv_urem_sum", UnsignedArgs), ExpectedUnsigned);
+        EXPECT_EQ(executeCompiledFunction(*Compiled, "udiv_urem_sum", UnsignedArgs), ExpectedUnsigned);
     }
 
     // Verifies 64-bit bitwise operations (and/or/xor) and logical vs arithmetic shifts in both register and immediate forms.
@@ -235,7 +239,9 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "bitwise_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "bitwise_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("and64rrr"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("or64rri"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("xor64rri"), std::string::npos) << Assembly;
@@ -245,11 +251,11 @@ entry:
 
         const std::array<std::int64_t, 3> BitArgs{0xFF0F, 0x0FFF, 3};
         const std::uint64_t ExpectedBits = ((((0xFF0FULL & 0x0FFFULL) | 240ULL) ^ 15ULL) << 3ULL) >> 2ULL;
-        EXPECT_EQ(executeCompiledFunction(Assembly, "bitwise_and_shifts", BitArgs), static_cast<std::int64_t>(ExpectedBits));
+        EXPECT_EQ(executeCompiledFunction(*Compiled, "bitwise_and_shifts", BitArgs), static_cast<std::int64_t>(ExpectedBits));
 
         const std::array<std::int64_t, 1> NegValue{-64};
-        EXPECT_EQ(executeCompiledFunction(Assembly, "ashr_negative", NegValue), -4);
-        EXPECT_EQ(executeCompiledFunction(Assembly, "lshr_negative", NegValue), static_cast<std::int64_t>(static_cast<std::uint64_t>(-64) >> 4ULL));
+        EXPECT_EQ(executeCompiledFunction(*Compiled, "ashr_negative", NegValue), -4);
+        EXPECT_EQ(executeCompiledFunction(*Compiled, "lshr_negative", NegValue), static_cast<std::int64_t>(static_cast<std::uint64_t>(-64) >> 4ULL));
     }
 
     // Verifies LLVM automatic type promotion of i32 arithmetic and sign extension into native 64-bit InkVM instructions.
@@ -265,10 +271,11 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "promote_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "promote_mod");
+        ASSERT_NE(Compiled, nullptr);
         const std::array<std::int64_t, 2> Args{0x7FFFFFFF, 1};
         // (int32_t)(0x7FFFFFFF + 1) == INT32_MIN == -2147483648
-        EXPECT_EQ(executeCompiledFunction(Assembly, "narrow_wrap", Args), -2147483648LL);
+        EXPECT_EQ(executeCompiledFunction(*Compiled, "narrow_wrap", Args), -2147483648LL);
     }
 
     // Verifies register spilling, upward stack prologue allocation, and BP-relative frame index elimination when live values exceed R0-R9.
@@ -341,7 +348,9 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "spill_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "spill_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         // Verify local alloca and spill slots were allocated on the upward stack above [bp + 16].
         EXPECT_NE(Assembly.find("add64rri sp, sp, "), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("[bp + 16]"), std::string::npos) << Assembly;
@@ -353,6 +362,6 @@ entry:
         const std::int64_t Expected = 6 * A + 6 * B + 78;
 
         const std::array<std::int64_t, 2> Args{A, B};
-        EXPECT_EQ(executeCompiledFunction(Assembly, "high_pressure", Args), Expected);
+        EXPECT_EQ(executeCompiledFunction(*Compiled, "high_pressure", Args), Expected);
     }
 } // namespace ink::backend::llvm_inkvm

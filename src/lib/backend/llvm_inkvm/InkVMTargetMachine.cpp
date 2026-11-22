@@ -1,13 +1,16 @@
 #include "InkVMTargetMachine.h"
 
 #include "InkVM.h"
+#include "InkVMMachineModuleEmitter.h"
 #include "TargetInfo/InkVMTargetInfo.h"
 #include "ink/backend/llvm_inkvm/inkvm_target.h"
 
 #include <llvm/CodeGen/TargetLoweringObjectFileImpl.h>
 #include <llvm/CodeGen/TargetPassConfig.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/PassRegistry.h>
+#include <llvm/Support/raw_ostream.h>
 
 namespace llvm
 {
@@ -55,12 +58,46 @@ namespace llvm
         return new InkVMPassConfig(*this, PM);
     }
 
+    bool InkVMTargetMachine::addAsmPrinter(PassManagerBase& PM, raw_pwrite_stream& Out, raw_pwrite_stream* DwoOut, CodeGenFileType FileType, MCContext& Context)
+    {
+        if (PendingMachineModuleSink != nullptr)
+        {
+            PM.add(createInkVMMachineModuleEmitter(*this, *PendingMachineModuleSink));
+            return false;
+        }
+        return CodeGenTargetMachineImpl::addAsmPrinter(PM, Out, DwoOut, FileType, Context);
+    }
+
+    bool InkVMTargetMachine::addPassesToEmitMachineModule(PassManagerBase& PM, InkVMMachineModuleEmitSink& Sink, bool DisableVerify)
+    {
+        struct SinkGuard
+        {
+                InkVMMachineModuleEmitSink*& Slot;
+
+                SinkGuard(InkVMMachineModuleEmitSink*& SlotRef, InkVMMachineModuleEmitSink* Value) noexcept
+                    : Slot(SlotRef)
+                {
+                    Slot = Value;
+                }
+
+                ~SinkGuard()
+                {
+                    Slot = nullptr;
+                }
+        };
+
+        const SinkGuard Guard(PendingMachineModuleSink, &Sink);
+        raw_null_ostream NullStream;
+        return addPassesToEmitFile(PM, NullStream, nullptr, CodeGenFileType::Null, DisableVerify);
+    }
+
     extern "C" void LLVMInitializeInkVMTarget()
     {
         RegisterTargetMachine<InkVMTargetMachine> RegisteredTargetMachine(getTheInkVMTarget());
 
         PassRegistry& Registry = *PassRegistry::getPassRegistry();
         initializeInkVMDAGToDAGISelLegacyPass(Registry);
+        initializeInkVMMachineModuleEmitterPass(Registry);
         initializeInkVMAsmPrinterPass(Registry);
     }
 } // namespace llvm

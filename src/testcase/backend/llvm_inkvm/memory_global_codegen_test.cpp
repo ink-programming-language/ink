@@ -1,6 +1,7 @@
 #include "ink/backend/llvm_inkvm/inkvm_target.h"
 #include "ink/backend/vm/executable/executable_file.h"
 #include "ink/backend/vm/executable_emitter/executable_emitter.h"
+#include "ink/backend/vm/instruction/machine_instructions.h"
 #include "ink/backend/vm/interpreter/interpreter.h"
 #include "ink/backend/vm/linker/module_linker.h"
 #include "ink/backend/vm/module/machine_module.h"
@@ -17,6 +18,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <span>
 #include <sstream>
 #include <string>
@@ -27,7 +29,7 @@ namespace ink::backend::llvm_inkvm
 {
     namespace
     {
-        std::string compileIRToAssembly(std::string_view IRText, std::string_view ModuleName)
+        std::unique_ptr<vm::MachineModule> compileIRToMachineModule(std::string_view IRText, std::string_view ModuleName)
         {
             llvm::LLVMContext Context;
             llvm::SMDiagnostic ParseError;
@@ -35,14 +37,44 @@ namespace ink::backend::llvm_inkvm
             EXPECT_NE(IRModule, nullptr);
             if (IRModule == nullptr)
             {
-                return {};
+                return nullptr;
             }
             IRModule->setModuleIdentifier(llvm::StringRef(ModuleName.data(), ModuleName.size()));
 
-            std::string Assembly;
-            std::string ErrorMessage;
-            EXPECT_TRUE(emitInkVMAssembly(*IRModule, Assembly, ErrorMessage)) << ErrorMessage;
-            return Assembly;
+            auto Compiled = emitInkVMMachineModule(*IRModule);
+            EXPECT_TRUE(Compiled.has_value()) << (Compiled.has_value() ? std::string() : Compiled.error());
+            return Compiled.has_value() ? std::move(*Compiled) : nullptr;
+        }
+
+        std::string formatModuleText(const vm::MachineModule& ModuleValue)
+        {
+            const auto Text = vm::writeMachineModuleText(ModuleValue);
+            EXPECT_TRUE(Text.has_value());
+            return Text.has_value() ? *Text : std::string();
+        }
+
+        bool hasFramePointerOffsetAdd(const vm::MachineModule& ModuleValue, std::int64_t Offset)
+        {
+            const std::uint64_t ExpectedBits = static_cast<std::uint64_t>(Offset);
+            for (const vm::MachineFunction& Function : ModuleValue.functions())
+            {
+                for (const vm::MachineBasicBlock& Block : Function.basicBlocks())
+                {
+                    for (const vm::MachineInstruction& Instruction : Block.instructions())
+                    {
+                        if (Instruction.getOpcode() != vm::Opcode::Add64rri)
+                        {
+                            continue;
+                        }
+                        const auto& Add = static_cast<const vm::MachineAdd64rriInstruction&>(Instruction);
+                        if (Add.getLHS().getRegister() == vm::RegisterId::BP && Add.getRHS().bits() == ExpectedBits)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
         }
 
         std::string buildHarness(std::string_view TargetFunction, std::span<const std::int64_t> Arguments)
@@ -74,15 +106,8 @@ namespace ink::backend::llvm_inkvm
             return Stream.str();
         }
 
-        std::int64_t executeCompiled(std::string_view Assembly, std::string_view TargetFunction, std::span<const std::int64_t> Arguments)
+        std::int64_t executeCompiled(const vm::MachineModule& CompiledModule, std::string_view TargetFunction, std::span<const std::int64_t> Arguments)
         {
-            auto CompiledModule = vm::readMachineModuleText(Assembly);
-            EXPECT_TRUE(CompiledModule.has_value()) << Assembly;
-            if (!CompiledModule.has_value())
-            {
-                return 0;
-            }
-
             const std::string HarnessText = buildHarness(TargetFunction, Arguments);
             auto HarnessModule = vm::readMachineModuleText(HarnessText);
             EXPECT_TRUE(HarnessModule.has_value()) << HarnessText;
@@ -95,7 +120,7 @@ namespace ink::backend::llvm_inkvm
             vm::Interpreter Interpreter;
             Interpreter.getDiagnostics().addConsumer(DiagnosticsConsumer);
 
-            const std::array<const vm::MachineModule*, 2> Modules{HarnessModule->get(), CompiledModule->get()};
+            const std::array<const vm::MachineModule*, 2> Modules{HarnessModule->get(), &CompiledModule};
             auto Linked = vm::ModuleLinker::link(Modules, Interpreter.getDiagnostics(), core::NamePool::instance().intern("linked_mem"));
             EXPECT_NE(Linked, nullptr);
             if (Linked == nullptr)
@@ -146,7 +171,9 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "global_scalar_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "global_scalar_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find(".section .data"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find(".global counter, 8, 8 external"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find(".global step, 8, 8 readonly external"), std::string::npos) << Assembly;
@@ -156,7 +183,7 @@ entry:
 
         const std::array<std::int64_t, 1> Args{5};
         // 40 + 2 + 5 = 47
-        EXPECT_EQ(executeCompiled(Assembly, "bump_and_read", Args), 47);
+        EXPECT_EQ(executeCompiled(*Compiled, "bump_and_read", Args), 47);
     }
 
     // Verifies global arrays and strings support both constant-offset folding ([@table + 16]) and dynamic indexing.
@@ -180,14 +207,16 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "global_array_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "global_array_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find("[@table + 16]"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("[@.str + 1]"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("mov64ri "), std::string::npos) << Assembly;
 
         const std::array<std::int64_t, 1> Args{3};
         // table[2] (30) + table[3] (40) + 'n' (110) = 180
-        EXPECT_EQ(executeCompiled(Assembly, "read_table_and_str", Args), 180);
+        EXPECT_EQ(executeCompiled(*Compiled, "read_table_and_str", Args), 180);
     }
 
     // Verifies global struct layout padding and mixed-width signed/unsigned narrow loads (i8, i16, i32, i64).
@@ -216,7 +245,9 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "global_struct_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "global_struct_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         // Struct layout: i8 at +0, pad +1, i16 at +2, i32 at +4, i64 at +8 -> total 16 bytes.
         EXPECT_NE(Assembly.find(".global rec, 16, 8 readonly external"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("load8srm "), std::string::npos) << Assembly;
@@ -225,7 +256,7 @@ entry:
 
         const std::span<const std::int64_t> EmptyArgs;
         // -5 + (-300) + 1000 + 100000 = 100695
-        EXPECT_EQ(executeCompiled(Assembly, "sum_record", EmptyArgs), 100695);
+        EXPECT_EQ(executeCompiled(*Compiled, "sum_record", EmptyArgs), 100695);
     }
 
     // Verifies local alloca arrays on the upward stack, dynamic GEP indexing, and passing a local pointer across a call.
@@ -258,15 +289,17 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "local_alloca_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "local_alloca_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
         // Local [4 x i64] (32 bytes at [bp + 16..48)) plus any cross-call spill slot allocated via prologue add64rri sp, sp, N.
         EXPECT_NE(Assembly.find("add64rri sp, sp, "), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("[bp + 16]"), std::string::npos) << Assembly;
-        EXPECT_NE(Assembly.find(", bp, 16"), std::string::npos) << Assembly;
+        EXPECT_TRUE(hasFramePointerOffsetAdd(*Compiled, 16)) << Assembly;
 
         const std::array<std::int64_t, 2> Args{2, 999};
         // arr[2] = 999, arr[0] = 11 -> 1010
-        EXPECT_EQ(executeCompiled(Assembly, "use_local_array", Args), 1010);
+        EXPECT_EQ(executeCompiled(*Compiled, "use_local_array", Args), 1010);
     }
 
     // Verifies zeroinitializer globals omit trailing .byte lines while still being zero-filled in the emitted VM image.
@@ -285,10 +318,14 @@ entry:
 }
 )";
 
-        const std::string Assembly = compileIRToAssembly(IRText, "zero_global_mod");
+        const auto Compiled = compileIRToMachineModule(IRText, "zero_global_mod");
+        ASSERT_NE(Compiled, nullptr);
+        ASSERT_EQ(Compiled->globalVariableCount(), 1u);
+        EXPECT_TRUE(Compiled->globalVariables().begin()->initialBytes().empty());
+        const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find(".global zero_buf, 128, 8 external\n.endglobal"), std::string::npos) << Assembly;
 
         const std::array<std::int64_t, 1> Args{77};
-        EXPECT_EQ(executeCompiled(Assembly, "check_zero_buf", Args), 77);
+        EXPECT_EQ(executeCompiled(*Compiled, "check_zero_buf", Args), 77);
     }
 } // namespace ink::backend::llvm_inkvm

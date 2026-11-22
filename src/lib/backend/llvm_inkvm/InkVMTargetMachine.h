@@ -10,6 +10,7 @@
 namespace llvm
 {
     class TargetLoweringObjectFile;
+    struct InkVMMachineModuleEmitSink;
 
     class InkVMTargetMachine : public CodeGenTargetMachineImpl
     {
@@ -30,6 +31,10 @@ namespace llvm
 
             TargetPassConfig* createPassConfig(PassManagerBase& PM) override;
 
+            bool addAsmPrinter(PassManagerBase& PM, raw_pwrite_stream& Out, raw_pwrite_stream* DwoOut, CodeGenFileType FileType, MCContext& Context) override;
+
+            bool addPassesToEmitMachineModule(PassManagerBase& PM, InkVMMachineModuleEmitSink& Sink, bool DisableVerify = true);
+
             TargetLoweringObjectFile* getObjFileLowering() const override
             {
                 return TLOF.get();
@@ -38,5 +43,6 @@ namespace llvm
         private:
             std::unique_ptr<TargetLoweringObjectFile> TLOF;
             InkVMSubtarget Subtarget;
+            InkVMMachineModuleEmitSink* PendingMachineModuleSink = nullptr;
     };
 } // namespace llvm
