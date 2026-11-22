@@ -7,6 +7,7 @@
 #include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/diagnostic/diagnostic_formatter.h"
 #include "ink/core/name/name_pool.h"
+#include "ink/core/source/source_manager.h"
 
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/InitLLVM.h>
@@ -78,7 +79,7 @@ namespace
         return std::nullopt;
     }
 
-    std::optional<ink::vm::ExecutableFile> prepareInputBitCode(const ink::core::DiagnosticEngine& Diagnostics)
+    std::optional<ink::vm::ExecutableFile> prepareInputBitCode(ink::core::SourceManager& Sources, const ink::core::DiagnosticEngine& Diagnostics)
     {
         const auto Input = llvm::MemoryBuffer::getFileOrSTDIN(InputFile.getValue(), false, false);
         if (!Input)
@@ -87,10 +88,14 @@ namespace
             return std::nullopt;
         }
         const auto Text = (*Input)->getBuffer();
+        const std::string SourceName = InputFile.getValue() == "-" ? "<stdin>" : InputFile.getValue();
+        const ink::core::SourceId SourceId = Sources.addSource(SourceName, std::string(Text.data(), Text.size()));
         auto Module = ink::vm::readMachineModuleText(std::string_view(Text.data(), Text.size()));
         if (!Module)
         {
-            Diagnostics.report(Module.error());
+            ink::core::Diagnostic Error = std::move(Module.error());
+            Error.Source = SourceId;
+            Diagnostics.report(Error);
             return std::nullopt;
         }
         const auto EntryName = ink::core::NamePool::instance().intern("main");
@@ -108,16 +113,23 @@ int main(int ArgumentCount, char** ArgumentValues)
         return *ExitCode;
     }
 
+    ink::core::SourceManager Sources;
     ink::core::CollectingDiagnosticConsumer Diagnostics;
     ink::vm::Interpreter Interpreter;
     Interpreter.getDiagnostics().addConsumer(Diagnostics);
-    const auto ReportDiagnostics = [&Diagnostics]()
+    const auto ReportDiagnostics = [&Diagnostics, &Sources]()
     {
         bool HasErrors = false;
+        const ink::core::DiagnosticFormatter Formatter;
         for (const ink::core::Diagnostic& Diagnostic : Diagnostics.takeDiagnostics())
         {
-            const auto Formatted = ink::core::DiagnosticFormatter{}.format(Diagnostic);
+            const auto Formatted = Formatter.format(Diagnostic);
             HasErrors = HasErrors || Formatted.Severity == ink::core::DiagnosticSeverity::Error;
+            if (Diagnostic.Source.valid() && Sources.findSource(Diagnostic.Source) != nullptr)
+            {
+                ErrorOutput.error("{}", Formatter.format(Diagnostic, Sources));
+                continue;
+            }
             ErrorOutput.error("ink-interpreter: {}[{}]: {}\n", ink::core::diagnosticSeverityName(Formatted.Severity), Diagnostic.code(), Formatted.Message);
             for (const auto& Note : Formatted.Notes)
             {
@@ -127,7 +139,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         return HasErrors;
     };
 
-    auto Executable = prepareInputBitCode(Interpreter.getDiagnostics());
+    auto Executable = prepareInputBitCode(Sources, Interpreter.getDiagnostics());
     const bool PreparationErrors = ReportDiagnostics();
     if (!Executable || PreparationErrors)
     {

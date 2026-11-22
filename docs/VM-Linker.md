@@ -59,13 +59,13 @@ MachineModule × N → ModuleLinker → MachineModule
 
 ## 文本格式
 
-[VM Module 文本序列化](VM-Module.md#符号操作数与文本序列化) 保留链接属性和全部声明，仍兼容省略 Local 属性的原有文本。例如一个输入声明并引用另一个输入定义的数据：
+[VM 汇编文本格式](VM-Text-Format.md) 保留链接属性和全部声明，默认省略 `local` 链接属性。例如一个输入声明并引用另一个输入定义的数据：
 
 ```text
 .module "consumer"
 .declare global @counter
 .section .text
-.function update external
+.function @update external
 entry:
     add64mmi [@counter], [@counter], 1
     ret
@@ -75,7 +75,7 @@ entry:
 ```text
 .module "provider"
 .section .data
-.global counter, 8, 8 external
+.global @counter size 8 align 8 external
 .endglobal
 ```
 

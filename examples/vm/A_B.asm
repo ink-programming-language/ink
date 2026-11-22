@@ -3,28 +3,28 @@
 .declare global @buffer_b
 
 .section .data
-.global .__ink_link_local_0, 8, 8
+.global @.__ink_link_local_0 size 8 align 8
     .byte 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 .endglobal
-.global counter, 8, 8 external
+.global @counter size 8 align 8 external
     .byte 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 .endglobal
-.global .__ink_link_local_1, 8, 8
+.global @.__ink_link_local_1 size 8 align 8
     .byte 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 .endglobal
 
 .section .text
-.function main external
+.function @main external
 entry:
     load64 [bp], [@.__ink_link_local_0]
-    add64mmi [@counter], [@counter], 0x1
+    add64mmi [@counter], [@counter], 1
     store64i [bp + 8], @helper
     load64 [bp + 16], [@buffer_a + 8]
     jmp done
 done:
     ret
 .endfunction
-.function helper external
+.function @helper external
 entry:
     load64 [bp], [@.__ink_link_local_1]
     load64 [bp + 16], [@buffer_b + 8]

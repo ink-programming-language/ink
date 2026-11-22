@@ -2,19 +2,19 @@
 .module "sum_example"
 
 .section .data
-.global message, 3, 1 readonly
-    .byte 0x48, 0x69, 0x00 ; "Hi\0"
+.global @message size 3 readonly
+    .bytes "Hi\00"
 .endglobal
 
-.global scratch, 16, 8
-    .byte 0x00, 0x00, 0x00, 0x00
+.global @scratch size 16 align 8
+    .zero 4
 .endglobal
 
 .section .text
-.function sum
-    .stackslot 4, 4 ; input: offset 16
-    .stackslot 4, 4 ; result: offset 20
-    .frame 16
+.function @sum
+    .stackslot size 4 align 4 ; input: offset 16
+    .stackslot size 4 align 4 ; result: offset 20
+    .frame base 16
 entry:
     ; Assume the call frame saved BP and PC, with SP initially equal to BP + 16.
     add64rri sp, sp, 8

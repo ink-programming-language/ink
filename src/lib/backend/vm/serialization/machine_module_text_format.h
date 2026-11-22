@@ -20,36 +20,47 @@
 #include <utility>
 #include <variant>
 
-// Formal VM Assembly Text Grammar:
+// Formal Ink VM Assembly Text Grammar (see docs/VM-Text-Format.md):
 //
-//   Module             := ModuleHeader SymbolDeclaration* Section*
-//   ModuleHeader       := '.module' QuotedString
-//   SymbolDeclaration  := '.declare' ('function' | 'global') Symbol ['readonly']
-//   Section            := '.section' ('.data' GlobalDefinition* | '.text' FunctionDefinition*)
-//   GlobalDefinition   := '.global' LabelName ',' Unsigned ',' Unsigned ['readonly'] [Linkage]
-//                         (ByteDirective | RelocDirective)*
-//                         '.endglobal'
-//   ByteDirective      := '.byte' Unsigned (',' Unsigned)*
-//   RelocDirective     := '.reloc' Unsigned ',' Symbol [Displacement]
-//   FunctionDefinition := '.function' LabelName [Linkage]
-//                         StackSlotDirective*
-//                         [FrameDirective]
-//                         BasicBlock*
-//                         '.endfunction'
-//   StackSlotDirective := '.stackslot' Unsigned ',' Unsigned
-//   FrameDirective     := '.frame' Unsigned
-//   BasicBlock         := Identifier ':' [QuotedString]
-//                         Instruction*
-//   Instruction        := Mnemonic [Operand (',' Operand)*]
-//   LabelName          := Identifier [QuotedString]
-//   Linkage            := 'local' | 'external'
-//   Symbol             := '@' (Identifier | QuotedString)
-//   Operand            := '[' (Register | Symbol) [Displacement] ']'
-//                       | Symbol [Displacement]
-//                       | Register [Displacement]
-//                       | SignedImmediate
-//                       | Identifier
-//   Displacement       := ('+' | '-') Unsigned
+//   Module              := ModuleHeader SymbolDeclaration* Section*
+//   ModuleHeader        := '.module' QuotedString
+//   SymbolDeclaration   := '.declare' ('function' | 'global') Symbol ['readonly']
+//   Section             := '.section' ('.data' GlobalDefinition* | '.text' FunctionDefinition*)
+//   GlobalDefinition    := '.global' [Symbol] GlobalAttr+
+//                          GlobalBodyDirective*
+//                          '.endglobal'
+//   GlobalAttr          := 'size' Unsigned | 'align' Unsigned | 'readonly' | 'local' | 'external'
+//   GlobalBodyDirective := ByteDirective
+//                        | BytesDirective
+//                        | ZeroDirective
+//                        | IntDataDirective
+//                        | FloatDataDirective
+//                        | RelocDirective
+//   ByteDirective       := '.byte' Unsigned (',' Unsigned)*
+//   BytesDirective      := '.bytes' QuotedString
+//   ZeroDirective       := '.zero' Unsigned
+//   IntDataDirective    := ('.i16' | '.i32' | '.i64') SignedOrUnsignedInt (',' SignedOrUnsignedInt)*
+//   FloatDataDirective  := '.f64' FloatLiteral (',' FloatLiteral)*
+//   RelocDirective      := '.reloc' Unsigned ',' Symbol [Displacement]
+//   FunctionDefinition  := '.function' [Symbol] [Linkage]
+//                          StackSlotDirective*
+//                          [FrameDirective]
+//                          BasicBlock*
+//                          '.endfunction'
+//   StackSlotDirective  := '.stackslot' StackSlotAttr+
+//   StackSlotAttr       := 'size' Unsigned | 'align' Unsigned
+//   FrameDirective      := '.frame' 'base' Unsigned
+//   BasicBlock          := Identifier ':' [QuotedString]
+//                          Instruction*
+//   Instruction         := Mnemonic [Operand (',' Operand)*]
+//   Linkage             := 'local' | 'external'
+//   Symbol              := '@' (Identifier | QuotedString)
+//   Operand             := '[' (Register | Symbol) [Displacement] ']'
+//                        | Symbol [Displacement]
+//                        | Register [Displacement]
+//                        | SignedOrUnsignedInt
+//                        | Identifier
+//   Displacement        := ('+' | '-') Unsigned
 
 namespace ink::vm::detail
 {
@@ -61,15 +72,30 @@ namespace ink::vm::detail
     inline constexpr std::string_view GlobalDirective = ".global";
     inline constexpr std::string_view EndGlobalDirective = ".endglobal";
     inline constexpr std::string_view ByteDirective = ".byte";
+    inline constexpr std::string_view BytesDirective = ".bytes";
+    inline constexpr std::string_view ZeroDirective = ".zero";
+    inline constexpr std::string_view I16Directive = ".i16";
+    inline constexpr std::string_view I32Directive = ".i32";
+    inline constexpr std::string_view I64Directive = ".i64";
+    inline constexpr std::string_view F64Directive = ".f64";
     inline constexpr std::string_view RelocDirective = ".reloc";
     inline constexpr std::string_view FunctionDirective = ".function";
     inline constexpr std::string_view EndFunctionDirective = ".endfunction";
     inline constexpr std::string_view StackSlotDirective = ".stackslot";
     inline constexpr std::string_view FrameDirective = ".frame";
+    inline constexpr std::string_view SizeKeyword = "size";
+    inline constexpr std::string_view AlignKeyword = "align";
+    inline constexpr std::string_view BaseKeyword = "base";
     inline constexpr std::string_view ReadOnlyKeyword = "readonly";
 
     inline constexpr char UpperHexDigits[] = "0123456789ABCDEF";
     inline constexpr char LowerHexDigits[] = "0123456789abcdef";
+
+    // Signed 64-bit immediates within [-DecimalImmediateLimit, DecimalImmediateLimit] format as decimal;
+    // wider bit patterns (such as IEEE-754 floats or bitmasks) format as lowercase 0x hexadecimal.
+    inline constexpr std::int64_t DecimalImmediateLimit = 1048576;
+    // Contiguous zero-byte runs of at least this length compress into a canonical .zero directive.
+    inline constexpr std::size_t CanonicalZeroRunMinBytes = 8;
 
     enum class SectionKind : std::uint8_t
     {
@@ -78,9 +104,19 @@ namespace ink::vm::detail
         Text,
     };
 
+    inline core::Diagnostic makeTextDiagnostic(std::size_t BeginOffset, std::size_t EndOffset, std::string_view Description)
+    {
+        return core::makeDiagnostic<core::DiagnosticKind::VMTextInvalid>(core::SourceRange::fromByteOffsets(BeginOffset, EndOffset), std::string(Description));
+    }
+
     inline core::Diagnostic makeTextDiagnostic(std::size_t Offset, std::string_view Description)
     {
-        return core::makeDiagnostic<core::DiagnosticKind::VMTextInvalid>(core::SourceRange::fromByteOffsets(Offset, Offset), std::string(Description));
+        return makeTextDiagnostic(Offset, Offset, Description);
+    }
+
+    inline core::Diagnostic makeWriteDiagnostic(std::string_view Description)
+    {
+        return core::makeDiagnostic<core::DiagnosticKind::VMTextInvalid>(core::SourceRange{}, std::string(Description));
     }
 
     constexpr bool isIdentifierStart(char Character) noexcept
@@ -155,47 +191,53 @@ namespace ink::vm::detail
         Output += '"';
     }
 
-    inline std::expected<std::string, core::Diagnostic> decodeQuotedText(std::string_view Line, std::size_t QuoteStart, std::size_t& Index, std::size_t LineOffset)
+    inline std::expected<std::string, core::Diagnostic> decodeQuotedText(std::string_view Text, std::size_t QuoteStart, std::size_t& Index)
     {
         std::string Decoded;
-        while (Index < Line.size())
+        while (Index < Text.size())
         {
-            const unsigned char Next = static_cast<unsigned char>(Line[Index++]);
+            const unsigned char Next = static_cast<unsigned char>(Text[Index++]);
             if (Next == '"')
             {
                 return Decoded;
             }
+            if (Next == '\n' || Next == '\r')
+            {
+                return std::unexpected(makeTextDiagnostic(QuoteStart, Index - 1, "unterminated quoted string"));
+            }
             if (Next == '\\')
             {
-                if (Index == Line.size())
+                const std::size_t EscapeStart = Index - 1;
+                if (Index == Text.size() || Text[Index] == '\n' || Text[Index] == '\r')
                 {
-                    return std::unexpected(makeTextDiagnostic(LineOffset + Index - 1, "incomplete string escape"));
+                    return std::unexpected(makeTextDiagnostic(EscapeStart, Index, "incomplete string escape"));
                 }
-                const char Escaped = Line[Index++];
+                const char Escaped = Text[Index++];
                 if (Escaped == '"' || Escaped == '\\')
                 {
                     Decoded.push_back(Escaped);
                 }
-                else if (Index < Line.size() && hexDigitValue(Escaped) >= 0 && hexDigitValue(Line[Index]) >= 0)
+                else if (Index < Text.size() && hexDigitValue(Escaped) >= 0 && hexDigitValue(Text[Index]) >= 0)
                 {
-                    const int ByteValue = hexDigitValue(Escaped) * 16 + hexDigitValue(Line[Index++]);
+                    const int ByteValue = hexDigitValue(Escaped) * 16 + hexDigitValue(Text[Index++]);
                     Decoded.push_back(static_cast<char>(ByteValue));
                 }
                 else
                 {
-                    return std::unexpected(makeTextDiagnostic(LineOffset + Index - 2, "expected a two-digit hexadecimal byte escape"));
+                    const std::size_t EscapeEnd = Index < Text.size() && Text[Index] != '"' && Text[Index] != '\n' && Text[Index] != '\r' ? Index + 1 : Index;
+                    return std::unexpected(makeTextDiagnostic(EscapeStart, EscapeEnd, "expected a two-digit hexadecimal byte escape"));
                 }
             }
             else if (Next < 0x20 || Next > 0x7E)
             {
-                return std::unexpected(makeTextDiagnostic(LineOffset + Index - 1, "name bytes outside printable ASCII must be escaped"));
+                return std::unexpected(makeTextDiagnostic(Index - 1, Index, "bytes outside printable ASCII must be escaped"));
             }
             else
             {
                 Decoded.push_back(static_cast<char>(Next));
             }
         }
-        return std::unexpected(makeTextDiagnostic(LineOffset + QuoteStart, "unterminated quoted name"));
+        return std::unexpected(makeTextDiagnostic(QuoteStart, Index, "unterminated quoted string"));
     }
 
     constexpr std::optional<SectionKind> parseSectionKind(std::string_view Text) noexcept
@@ -261,12 +303,12 @@ namespace ink::vm::detail
         return std::nullopt;
     }
 
-    inline std::expected<core::Name, core::Diagnostic> internTextName(std::string_view Text, std::size_t Offset)
+    inline std::expected<core::Name, core::Diagnostic> internTextName(std::string_view Text, std::size_t BeginOffset, std::size_t EndOffset)
     {
         const core::Name Name = core::NamePool::instance().intern(Text);
         if (!Text.empty() && !Name.valid())
         {
-            return std::unexpected(makeTextDiagnostic(Offset, "name pool capacity exhausted"));
+            return std::unexpected(makeTextDiagnostic(BeginOffset, EndOffset, "name pool capacity exhausted"));
         }
         return Name;
     }
@@ -352,6 +394,7 @@ namespace ink::vm::detail
             std::string_view Spelling;
             InstructionCategory Category;
             InstructionDomain Domain;
+            std::uint32_t BitWidth;
             bool HasDestination;
             bool HasBlockTarget;
             std::span<const OperandKind> OperandKinds;
@@ -360,28 +403,83 @@ namespace ink::vm::detail
 
     inline constexpr OpcodeDescriptor OpcodeDescriptors[] = {
 #define OPCODE(Kind, Encoding, Spelling, Form, Width, RegisterCount, AddressCount, ImmediateCount, Category, Domain) \
-    {Opcode::Kind, Spelling, InstructionCategory::Category, InstructionDomain::Domain, OpcodeTraits<Opcode::Kind>::HasDestination, OpcodeTraits<Opcode::Kind>::BlockCount == 1, OpcodeDescriptorAdapter<Opcode::Kind>::OperandKinds, &OpcodeDescriptorAdapter<Opcode::Kind>::create},
+    {Opcode::Kind, Spelling, InstructionCategory::Category, InstructionDomain::Domain, Width, OpcodeTraits<Opcode::Kind>::HasDestination, OpcodeTraits<Opcode::Kind>::BlockCount == 1, OpcodeDescriptorAdapter<Opcode::Kind>::OperandKinds, &OpcodeDescriptorAdapter<Opcode::Kind>::create},
 #include "ink/backend/vm/instruction/opcode.def"
 #undef OPCODE
     };
 
     struct MnemonicSignature
     {
-            std::size_t OperandCount;
-            bool HasBlockTarget;
+            bool HasBlockTarget = false;
+            std::size_t BlockTargetIndex = 0;
     };
 
     constexpr std::optional<MnemonicSignature> lookupMnemonic(std::string_view Spelling) noexcept
     {
+        bool Found = false;
+        MnemonicSignature Signature{};
         for (const OpcodeDescriptor& Entry : OpcodeDescriptors)
         {
-            if (Entry.Spelling == Spelling)
+            if (Entry.Spelling != Spelling)
             {
-                return MnemonicSignature{Entry.OperandKinds.size(), Entry.HasBlockTarget};
+                continue;
+            }
+            if (!Found)
+            {
+                Found = true;
+                Signature.HasBlockTarget = Entry.HasBlockTarget;
+                Signature.BlockTargetIndex = Entry.HasBlockTarget ? Entry.OperandKinds.size() - 1 : 0;
+            }
+            else if (Signature.HasBlockTarget != Entry.HasBlockTarget || (Entry.HasBlockTarget && Signature.BlockTargetIndex != Entry.OperandKinds.size() - 1))
+            {
+                return std::nullopt;
             }
         }
-        return std::nullopt;
+        return Found ? std::optional{Signature} : std::nullopt;
     }
+
+    consteval bool verifyOpcodeDescriptorTable() noexcept
+    {
+        for (std::size_t First = 0; First < std::size(OpcodeDescriptors); ++First)
+        {
+            const OpcodeDescriptor& LHS = OpcodeDescriptors[First];
+            for (std::size_t Second = First + 1; Second < std::size(OpcodeDescriptors); ++Second)
+            {
+                const OpcodeDescriptor& RHS = OpcodeDescriptors[Second];
+                if (LHS.Spelling != RHS.Spelling)
+                {
+                    continue;
+                }
+                if (LHS.HasBlockTarget != RHS.HasBlockTarget)
+                {
+                    return false;
+                }
+                if (LHS.HasBlockTarget && LHS.OperandKinds.size() != RHS.OperandKinds.size())
+                {
+                    return false;
+                }
+                if (LHS.OperandKinds.size() == RHS.OperandKinds.size())
+                {
+                    bool SameKinds = true;
+                    for (std::size_t Index = 0; Index < LHS.OperandKinds.size(); ++Index)
+                    {
+                        if (LHS.OperandKinds[Index] != RHS.OperandKinds[Index])
+                        {
+                            SameKinds = false;
+                            break;
+                        }
+                    }
+                    if (SameKinds)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    static_assert(verifyOpcodeDescriptorTable(), "Overloaded VM mnemonics must have distinct operand signatures and consistent block-target positions");
 
     constexpr const OpcodeDescriptor* findOpcodeDescriptor(std::string_view Spelling, std::span<const OperandKind> Kinds) noexcept
     {
@@ -437,6 +535,16 @@ namespace ink::vm::detail
                 if (!isValidDirectFunctionTarget(*Target))
                 {
                     return "a direct function symbol cannot have a nonzero displacement";
+                }
+            }
+        }
+        if (Descriptor.BitWidth != 64)
+        {
+            for (std::size_t Index = 0; Index < Descriptor.OperandKinds.size(); ++Index)
+            {
+                if (const auto* Immediate = std::get_if<ImmediateOperand>(&Operands[Index]); Immediate && Immediate->getSymbol())
+                {
+                    return "symbol address immediate requires a 64-bit instruction";
                 }
             }
         }

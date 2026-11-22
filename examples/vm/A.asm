@@ -4,15 +4,15 @@
 .declare global @buffer_a
 
 .section .data
-.global scratch, 8, 8
+.global @scratch size 8 align 8
     .byte 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 .endglobal
 
 .section .text
-.function main external
+.function @main external
 entry:
     load64 [bp], [@scratch]
-    add64mmi [@counter], [@counter], 0x1
+    add64mmi [@counter], [@counter], 1
     store64i [bp + 8], @helper
     load64 [bp + 16], [@buffer_a + 8]
     jmp done

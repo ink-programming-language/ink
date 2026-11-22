@@ -309,11 +309,11 @@ namespace ink::vm::test
 .declare function @helper
 .declare function @identity
 .section .data
-.global result, 8, 8 external
-    .byte 0, 0, 0, 0, 0, 0, 0, 0
+.global @result size 8 align 8 external
+    .zero 8
 .endglobal
 .section .text
-.function main external
+.function @main external
 entry:
     add64rri sp, sp, 16
     store64i [sp - 8], -987654321
@@ -322,7 +322,7 @@ entry:
     add64rri sp, sp, -16
     ret
 .endfunction
-.function helper
+.function @helper
 entry:
     add64rri sp, sp, 16
     load64 [sp - 8], [bp - 8]
@@ -757,11 +757,11 @@ entry:
         constexpr std::string_view Text = R"(.module "register-call"
 .declare function @identity
 .section .data
-.global result, 8, 8 external
-    .byte 0, 0, 0, 0, 0, 0, 0, 0
+.global @result size 8 align 8 external
+    .zero 8
 .endglobal
 .section .text
-.function main external
+.function @main external
 entry:
     mov64ri r0, @helper
     add64rri sp, sp, 16
@@ -778,7 +778,7 @@ entry:
     store64mr [@result], r3
     ret
 .endfunction
-.function helper
+.function @helper
 entry:
     load64rm r4, [bp - 8]
     add64rri r4, r4, 6

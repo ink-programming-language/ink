@@ -48,8 +48,9 @@ namespace ink::backend::llvm_inkvm
         EXPECT_TRUE(ErrorMessage.empty());
 
         EXPECT_NE(Assembly.find(".module \"empty_main\""), std::string::npos) << Assembly;
+        EXPECT_EQ(Assembly.find(".section .data"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find(".section .text"), std::string::npos) << Assembly;
-        EXPECT_NE(Assembly.find(".function main external"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find(".function @main external"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("entry:"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("    ret\n"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find(".endfunction"), std::string::npos) << Assembly;
@@ -110,8 +111,8 @@ entry:
         ASSERT_TRUE(emitInkVMAssembly(*IRModule, Assembly, ErrorMessage)) << ErrorMessage;
 
         EXPECT_NE(Assembly.find(".declare function @host_ping"), std::string::npos) << Assembly;
-        EXPECT_NE(Assembly.find(".function helper\n"), std::string::npos) << Assembly;
-        EXPECT_NE(Assembly.find(".function main external"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find(".function @helper\n"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find(".function @main external"), std::string::npos) << Assembly;
 
         auto ParsedVMModule = vm::readMachineModuleText(Assembly);
         ASSERT_TRUE(ParsedVMModule.has_value()) << Assembly;

@@ -117,15 +117,15 @@ Builder.create<Opcode::Callm>(AddressOperand(RegisterId::BP, 16));
 
 导入候选由 `ImportSymbols = SymbolDeclarations - (Functions + Globals)` 推导。声明先尝试绑定本模块或本次链接中可见的 VM 定义；未满足的声明留待加载时解析，可以由其他 Ink 库或 Native 提供，不能提前认定为 Native。函数和数据共用符号声明和动态导入表，每个名称同时用于逻辑引用和加载查找。
 
-`serialization` 目录提供 `writeMachineModuleText()` 和 `readMachineModuleText()`，将完整模块转换为采用 Intel 风格指令、标签和数据伪指令的文本，并从文本恢复独立拥有的模块。函数直接写为 `.function sum`，基本块使用函数内的 `entry:` 等标签；当节点为匿名、重名或包含非标识符字节时，写出器分配不冲突的文本标签并在其后紧跟引号包裹的原始名称覆盖（如 `.global .G0 "", 0, 1`、`.function sum.1 "sum"`、`entry.1: "entry"`）。基本块跳转使用 `jmp done`；其他跳转显式写为 `jmpi`、`jmpr`、`jmpm`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名节点使用的自动标签及原始名称覆盖不会改变跳转目标。目前为临时实现，后续需要迭代为正式版，见 [TODO](todo.md)。
+`serialization` 目录提供正式的 `writeMachineModuleText()` 和 `readMachineModuleText()`，完整文本语法、数据伪指令、词法转义与规范输出规则见 [VM 汇编文本格式](VM-Text-Format.md)。函数和全局变量头直接使用 `@symbol`（省略符号名表示匿名局部定义），基本块使用函数内的 `entry:` 等标签；当基本块为匿名、重名或包含非标识符字节时，写出器分配不冲突的文本别名并在冒号后紧跟引号包裹的原始名称覆盖（如 `.L0: ""`、`entry.1: "entry"`）。基本块跳转使用 `jmp done`；其他跳转显式写为 `jmpi`、`jmpr`、`jmpm`。读取器支持同一函数内的前向、后向和自引用，拒绝未定义或其他函数中的目标；写出器按目标块对象身份选择标签，匿名或重名块使用的自动别名及原始名称覆盖不会改变跳转目标。
 
 `RegisterOperand(RegisterId Register, std::int64_t ByteOffset = 0)` 保存寄存器编号和有符号字节偏移，通过 `getRegister()` 和 `getByteOffset()` 查询。来源文本 `pc + 2` 表示寄存器值加 2，`[pc + 2]` 则表示该地址处的内存；文本读写和指令克隆保留完整的 `i64` 偏移。寄存器来源和地址基址接受 BP、SP、PC、ZERO 及 R0–R9；ZERO 编码为 `03`、文本拼写为 `zero`，恒为零且不可写。R0–R9 编码为 `04`–`0d`，保存任意 64 位位模式。寄存器目标接受 BP、SP 和 R0–R9，且偏移必须为零，PC 与 ZERO 均不能作为普通写入目标。新增寄存器沿用现有八位编号字段，不改变 opcode、头部或操作数槽的编码格式。
 
-符号操作数使用 `@name` 或带转义名称的 `@"name"`，以区分寄存器、数值和函数内块标签。`[@counter + 8]` 表示读取或写入符号相对地址的内存，`@counter + 8` 表示地址值。例如 `add64mmi [bp + 16], [@counter], 1` 使用 counter 内存中的值，`add64mii [bp + 16], @counter, 1` 使用 counter 的地址值。符号偏移完整保留为 `i64`，文本读写不会根据指令位宽截断符号偏移；名称必须在 NamePool 中有效且非空。
+符号操作数使用 `@name` 或带转义名称的 `@"name"`，以区分寄存器、数值和函数内块标签。`[@counter + 8]` 表示读取或写入符号相对地址的内存，`@counter + 8` 表示地址值。例如 `add64mmi [bp + 16], [@counter], 1` 使用 counter 内存中的值，`add64mii [bp + 16], @counter, 1` 使用 counter 的地址值。符号偏移完整保留为 `i64`；符号立即数仅允许出现在 64 位指令中，窄位宽（8/16/32 位）指令在读、写、链接与发射阶段均拒绝符号立即数；名称必须在 NamePool 中有效且非空。
 
-调用文本统一使用 `call`，由操作数决定直接或间接形式，例如 `call @function_name`、`call [bp + 16]` 和 `call [@pointer_slot + 8]`。名称支持转义，直接符号调用拒绝非零 addend。`callNative` 不再是合法助记符；函数来源由实际目标地址在执行时确定。
+调用文本统一使用 `call`，由操作数决定直接或间接形式，例如 `call @function_name`、`call [bp + 16]`、`call [@pointer_slot + 8]` 和 `call r0`（另保留 `callvm` 用于 `Opcode::Callvmi` 的全操作码无损往返）。名称支持转义，直接符号调用拒绝非零 addend。`callNative` 不再是合法助记符；函数来源由实际目标地址在执行时确定。
 
-定义行末尾的 `external` 保留外部链接属性，例如 `.function sum external` 和 `.global counter, 8, 8 external`。全局变量的格式为 `.global name, size, alignment [readonly] [local|external]`，`readonly` 表示 IsConstant，例如 `.global message, 3, 1 readonly external`。全局变量体内部除 `.byte` 初始化字节外，还支持 `.reloc offset, @symbol [+/- displacement]` 表示 8 字节绝对地址符号重定位（例如 `.reloc 8, @table + 16`）。全部全局变量统一写在 `.section .data` 中，文本不再提供 `.rodata`、`.constant` 或 `.endconstant`。省略链接属性或使用 `local` 表示 Local；写出器省略 Local 属性。External 定义必须具有非空原始名称，自动显示标签不替代链接名。顶层声明语法如下，名称同样支持带转义的 `@"name"`：
+全局变量和函数定义采用关键字化属性头，例如 `.function @sum external`、`.global @counter size 8 align 8 external` 和 `.global @message size 3 readonly external`（`align` 默认 `1`，`local` 为默认链接属性，规范输出均省略）。全局变量体内部除 `.byte` 外，还支持 `.bytes`、`.zero`、`.i16`、`.i32`、`.i64`、`.f64` 初始化伪指令，以及 `.reloc offset, @symbol [+/- displacement]` 表示 8 字节绝对地址符号重定位（例如 `.reloc 8, @table + 16`）。全部全局变量统一写在 `.section .data` 中，文本不再提供 `.rodata`、`.constant` 或 `.endconstant`。External 定义必须具有非空 `@symbol`。顶层声明必须出现在全部 `.section` 之前，名称同样支持带转义的 `@"name"`：
 
 ```text
 .declare function @other_function

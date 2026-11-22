@@ -190,7 +190,7 @@ entry:
         ASSERT_TRUE(DirectModule.has_value()) << DirectModule.error();
         EXPECT_EQ(core::NamePool::instance().text((*DirectModule)->name()), SpecialModuleName);
 
-        // Canonical assembly must escape control/UTF-8 bytes with \HH and avoid .G0/.F0 collisions so readMachineModuleText accepts it.
+        // Canonical assembly must escape control/UTF-8 bytes with \HH and preserve direct @.G0/@.F0 symbol names so readMachineModuleText accepts it.
         std::string Assembly;
         std::string ErrorMessage;
         ASSERT_TRUE(emitInkVMAssembly(*IRModule, Assembly, ErrorMessage)) << ErrorMessage;

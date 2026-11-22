@@ -3,15 +3,14 @@
 .module "fib"
 
 .section .data
-.global fib_input, 8, 8 external
-    .byte 0x1E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+.global @fib_input size 8 align 8 external
+    .i64 30
 .endglobal
-.global fib_result, 8, 8 external
-    .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+.global @fib_result size 8 align 8 external
 .endglobal
 
 .section .text
-.function main external
+.function @main external
 entry:
     ; The call area contains an eight-byte return slot followed by n.
     add64rri sp, sp, 16
@@ -22,9 +21,9 @@ entry:
     ret
 .endfunction
 
-.function fib
-    .stackslot 8, 8 ; fib(n - 1): offset 16
-    .frame 16
+.function @fib
+    .stackslot size 8 align 8 ; fib(n - 1): offset 16
+    .frame base 16
 entry:
     jltu64mib [bp - 8], 2, base
 

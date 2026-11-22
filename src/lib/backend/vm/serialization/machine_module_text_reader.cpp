@@ -7,6 +7,7 @@
 #include "ink/backend/vm/module/machine_module.h"
 
 #include <array>
+#include <bit>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
@@ -17,7 +18,6 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -40,20 +40,33 @@ namespace ink::vm
             Plus,
             Minus,
             At,
+            EndOfLine,
+            EndOfFile,
         };
 
         struct Token
         {
-                TokenKind Kind;
+                TokenKind Kind = TokenKind::EndOfFile;
                 std::string_view Spelling;
                 std::string DecodedString;
-                std::size_t Offset;
+                std::size_t BeginOffset = 0;
+                std::size_t EndOffset = 0;
 
                 std::string_view text() const noexcept
                 {
                     return Kind == TokenKind::String ? std::string_view(DecodedString) : Spelling;
                 }
         };
+
+        constexpr bool isAsciiLetter(char Character) noexcept
+        {
+            return (Character >= 'a' && Character <= 'z') || (Character >= 'A' && Character <= 'Z');
+        }
+
+        constexpr bool isNumberBodyChar(char Character) noexcept
+        {
+            return detail::isDecimalDigit(Character) || isAsciiLetter(Character) || Character == '.' || Character == '_';
+        }
 
         constexpr std::optional<TokenKind> matchPunctuation(char Character) noexcept
         {
@@ -78,132 +91,299 @@ namespace ink::vm
             }
         }
 
-        ParseResult<std::vector<Token>> tokenizeLine(std::string_view Line, std::size_t LineOffset)
-        {
-            std::vector<Token> Tokens;
-            for (std::size_t Index = 0; Index < Line.size();)
-            {
-                const char Character = Line[Index];
-                if (Character == ' ' || Character == '\t' || Character == '\r')
-                {
-                    ++Index;
-                    continue;
-                }
-                if (Character == ';')
-                {
-                    break;
-                }
-                const std::size_t Start = Index++;
-                if (Character == '"')
-                {
-                    auto Decoded = detail::decodeQuotedText(Line, Start, Index, LineOffset);
-                    if (!Decoded)
-                    {
-                        return std::unexpected(Decoded.error());
-                    }
-                    Tokens.push_back({TokenKind::String, Line.substr(Start, Index - Start), std::move(*Decoded), LineOffset + Start});
-                    continue;
-                }
-                if (detail::isDecimalDigit(Character) || detail::isIdentifierStart(Character))
-                {
-                    while (Index < Line.size() && detail::isIdentifierContinue(Line[Index]))
-                    {
-                        ++Index;
-                    }
-                    const TokenKind Kind = detail::isDecimalDigit(Character) ? TokenKind::Number : TokenKind::Identifier;
-                    Tokens.push_back({Kind, Line.substr(Start, Index - Start), {}, LineOffset + Start});
-                    continue;
-                }
-                const auto Punctuation = matchPunctuation(Character);
-                if (!Punctuation)
-                {
-                    return std::unexpected(detail::makeTextDiagnostic(LineOffset + Start, "unexpected character"));
-                }
-                Tokens.push_back({*Punctuation, Line.substr(Start, 1), {}, LineOffset + Start});
-            }
-            return Tokens;
-        }
-
-        struct DeclaredLabel
-        {
-                std::string_view Label;
-                std::size_t Offset;
-                core::Name OriginalName;
-        };
-
-        class LineCursor
+        // Single-pass streaming lexer producing exact token byte ranges without per-line vector allocations.
+        class Lexer
         {
             public:
-                LineCursor(std::vector<Token> Tokens, std::size_t EndOffset) noexcept
-                    : Tokens(std::move(Tokens)),
-                      EndOffset(EndOffset)
+                explicit Lexer(std::string_view Text) noexcept
+                    : Text(Text)
                 {
                 }
 
-                const Token* peek() const noexcept
+                ParseResult<Token> nextToken()
                 {
-                    return Position < Tokens.size() ? &Tokens[Position] : nullptr;
-                }
-
-                std::size_t offset() const noexcept
-                {
-                    return peek() ? peek()->Offset : EndOffset;
-                }
-
-                bool at(TokenKind Kind) const noexcept
-                {
-                    return peek() && peek()->Kind == Kind;
-                }
-
-                bool atKeyword(std::string_view Keyword) const noexcept
-                {
-                    return at(TokenKind::Identifier) && peek()->text() == Keyword;
-                }
-
-                const Token* eat(TokenKind Kind) noexcept
-                {
-                    if (!at(Kind))
+                    for (;;)
                     {
-                        return nullptr;
+                        while (Offset < Text.size() && (Text[Offset] == ' ' || Text[Offset] == '\t'))
+                        {
+                            ++Offset;
+                        }
+                        if (Offset >= Text.size())
+                        {
+                            return Token{TokenKind::EndOfFile, {}, {}, Offset, Offset};
+                        }
+                        const char Character = Text[Offset];
+                        if (Character == ';')
+                        {
+                            while (Offset < Text.size() && Text[Offset] != '\n' && Text[Offset] != '\r')
+                            {
+                                ++Offset;
+                            }
+                            continue;
+                        }
+                        if (Character == '\r')
+                        {
+                            const std::size_t Start = Offset++;
+                            if (Offset < Text.size() && Text[Offset] == '\n')
+                            {
+                                ++Offset;
+                            }
+                            return Token{TokenKind::EndOfLine, Text.substr(Start, Offset - Start), {}, Start, Offset};
+                        }
+                        if (Character == '\n')
+                        {
+                            const std::size_t Start = Offset++;
+                            return Token{TokenKind::EndOfLine, Text.substr(Start, 1), {}, Start, Offset};
+                        }
+                        const std::size_t Start = Offset++;
+                        if (Character == '"')
+                        {
+                            auto Decoded = detail::decodeQuotedText(Text, Start, Offset);
+                            if (!Decoded)
+                            {
+                                return std::unexpected(Decoded.error());
+                            }
+                            return Token{TokenKind::String, Text.substr(Start, Offset - Start), std::move(*Decoded), Start, Offset};
+                        }
+                        if (detail::isDecimalDigit(Character))
+                        {
+                            const bool IsHex = Character == '0' && Offset < Text.size() && (Text[Offset] == 'x' || Text[Offset] == 'X');
+                            if (IsHex)
+                            {
+                                ++Offset;
+                            }
+                            while (Offset < Text.size() && isNumberBodyChar(Text[Offset]))
+                            {
+                                const char Body = Text[Offset++];
+                                const bool IsExponent = IsHex ? (Body == 'p' || Body == 'P') : (Body == 'e' || Body == 'E');
+                                if (IsExponent && Offset < Text.size() && (Text[Offset] == '+' || Text[Offset] == '-'))
+                                {
+                                    ++Offset;
+                                }
+                            }
+                            return Token{TokenKind::Number, Text.substr(Start, Offset - Start), {}, Start, Offset};
+                        }
+                        if (detail::isIdentifierStart(Character))
+                        {
+                            while (Offset < Text.size() && detail::isIdentifierContinue(Text[Offset]))
+                            {
+                                ++Offset;
+                            }
+                            return Token{TokenKind::Identifier, Text.substr(Start, Offset - Start), {}, Start, Offset};
+                        }
+                        if (const auto Punctuation = matchPunctuation(Character))
+                        {
+                            return Token{*Punctuation, Text.substr(Start, 1), {}, Start, Offset};
+                        }
+                        return std::unexpected(detail::makeTextDiagnostic(Start, Offset, "unexpected character"));
                     }
-                    return &Tokens[Position++];
                 }
 
-                const Token* eatKeyword(std::string_view Keyword) noexcept
+                std::size_t endOffset() const noexcept
                 {
-                    if (!atKeyword(Keyword))
-                    {
-                        return nullptr;
-                    }
-                    return &Tokens[Position++];
+                    return Text.size();
                 }
 
-                ParseResult<const Token*> expect(TokenKind Kind, std::string_view Message)
+            private:
+                std::string_view Text;
+                std::size_t Offset = 0;
+        };
+
+        struct PendingInstruction
+        {
+                MachineBasicBlock* Block = nullptr;
+                const detail::OpcodeDescriptor* Descriptor = nullptr;
+                std::array<detail::ParsedOperand, 3> Operands{};
+                std::string_view TargetLabel;
+                std::size_t BeginOffset = 0;
+                std::size_t EndOffset = 0;
+                std::size_t TargetBeginOffset = 0;
+                std::size_t TargetEndOffset = 0;
+                std::size_t TargetOperandIndex = 0;
+        };
+
+        struct FunctionParseState
+        {
+                MachineFunction& Function;
+                MachineBasicBlock* CurrentBlock = nullptr;
+                std::unordered_map<std::string_view, MachineBasicBlock*> BlockLabels;
+                std::vector<PendingInstruction> PendingInstructions;
+                bool HasFrame = false;
+                bool HasBlock = false;
+        };
+
+        class ModuleTextReader
+        {
+            public:
+                explicit ModuleTextReader(std::string_view Text) noexcept
+                    : LexerState(Text)
                 {
-                    const std::size_t CurrentOffset = offset();
-                    if (const Token* Result = eat(Kind))
+                }
+
+                ParseResult<std::unique_ptr<MachineModule>> parseModule()
+                {
+                    if (const auto Skipped = skipBlankLines(); !Skipped)
                     {
-                        return Result;
+                        return std::unexpected(Skipped.error());
                     }
-                    return std::unexpected(detail::makeTextDiagnostic(CurrentOffset, Message));
+                    const auto First = peek();
+                    if (!First)
+                    {
+                        return std::unexpected(First.error());
+                    }
+                    if ((*First)->Kind == TokenKind::EndOfFile)
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(LexerState.endOffset(), "missing .module directive"));
+                    }
+                    if (const auto HeaderResult = parseModuleHeader(); !HeaderResult)
+                    {
+                        return std::unexpected(HeaderResult.error());
+                    }
+                    for (;;)
+                    {
+                        if (const auto Skipped = skipBlankLines(); !Skipped)
+                        {
+                            return std::unexpected(Skipped.error());
+                        }
+                        const auto Next = peek();
+                        if (!Next)
+                        {
+                            return std::unexpected(Next.error());
+                        }
+                        if ((*Next)->Kind == TokenKind::EndOfFile)
+                        {
+                            break;
+                        }
+                        if (const auto LineResult = parseModuleTopLevelLine(); !LineResult)
+                        {
+                            return std::unexpected(LineResult.error());
+                        }
+                    }
+                    return std::move(Module);
+                }
+
+            private:
+                ParseResult<const Token*> peek()
+                {
+                    if (!HasCurrent)
+                    {
+                        auto Next = LexerState.nextToken();
+                        if (!Next)
+                        {
+                            return std::unexpected(Next.error());
+                        }
+                        Current = std::move(*Next);
+                        HasCurrent = true;
+                    }
+                    return &Current;
+                }
+
+                ParseResult<Token> take()
+                {
+                    const auto Next = peek();
+                    if (!Next)
+                    {
+                        return std::unexpected(Next.error());
+                    }
+                    LastTokenEnd = Current.EndOffset;
+                    HasCurrent = false;
+                    return std::move(Current);
+                }
+
+                ParseResult<bool> at(TokenKind Kind)
+                {
+                    const auto Next = peek();
+                    if (!Next)
+                    {
+                        return std::unexpected(Next.error());
+                    }
+                    return (*Next)->Kind == Kind;
+                }
+
+                ParseResult<bool> atLineEnd()
+                {
+                    const auto Next = peek();
+                    if (!Next)
+                    {
+                        return std::unexpected(Next.error());
+                    }
+                    return (*Next)->Kind == TokenKind::EndOfLine || (*Next)->Kind == TokenKind::EndOfFile;
+                }
+
+                ParseResult<std::optional<Token>> eat(TokenKind Kind)
+                {
+                    const auto Next = peek();
+                    if (!Next)
+                    {
+                        return std::unexpected(Next.error());
+                    }
+                    if ((*Next)->Kind != Kind)
+                    {
+                        return std::nullopt;
+                    }
+                    LastTokenEnd = Current.EndOffset;
+                    HasCurrent = false;
+                    return std::move(Current);
+                }
+
+                ParseResult<Token> expect(TokenKind Kind, std::string_view Message)
+                {
+                    const auto Next = peek();
+                    if (!Next)
+                    {
+                        return std::unexpected(Next.error());
+                    }
+                    if ((*Next)->Kind != Kind)
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic((*Next)->BeginOffset, (*Next)->EndOffset, Message));
+                    }
+                    LastTokenEnd = Current.EndOffset;
+                    HasCurrent = false;
+                    return std::move(Current);
+                }
+
+                ParseResult<void> skipBlankLines()
+                {
+                    for (;;)
+                    {
+                        const auto Next = peek();
+                        if (!Next)
+                        {
+                            return std::unexpected(Next.error());
+                        }
+                        if ((*Next)->Kind != TokenKind::EndOfLine)
+                        {
+                            return {};
+                        }
+                        HasCurrent = false;
+                    }
                 }
 
                 ParseResult<void> expectEndOfLine(std::string_view Message = "unexpected trailing token")
                 {
-                    if (peek())
+                    const auto Next = peek();
+                    if (!Next)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(offset(), Message));
+                        return std::unexpected(Next.error());
                     }
-                    return {};
+                    if ((*Next)->Kind == TokenKind::EndOfLine)
+                    {
+                        HasCurrent = false;
+                        return {};
+                    }
+                    if ((*Next)->Kind == TokenKind::EndOfFile)
+                    {
+                        return {};
+                    }
+                    return std::unexpected(detail::makeTextDiagnostic((*Next)->BeginOffset, (*Next)->EndOffset, Message));
                 }
 
                 ParseResult<std::uint64_t> parseUnsignedInteger(std::string_view Message = "expected an unsigned integer")
                 {
-                    const std::size_t CurrentOffset = offset();
-                    const Token* Number = eat(TokenKind::Number);
+                    const auto Number = expect(TokenKind::Number, Message);
                     if (!Number)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(CurrentOffset, Message));
+                        return std::unexpected(Number.error());
                     }
                     std::string_view Digits = Number->text();
                     int Base = 10;
@@ -216,19 +396,31 @@ namespace ink::vm
                     const auto Result = std::from_chars(Digits.data(), Digits.data() + Digits.size(), Value, Base);
                     if (Digits.empty() || Result.ec != std::errc{} || Result.ptr != Digits.data() + Digits.size())
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Number->Offset, Message));
+                        return std::unexpected(detail::makeTextDiagnostic(Number->BeginOffset, Number->EndOffset, Message));
                     }
                     return Value;
                 }
 
                 ParseResult<std::int64_t> parseSignedDisplacement()
                 {
-                    const std::size_t SignOffset = offset();
-                    const bool Negative = eat(TokenKind::Minus) != nullptr;
-                    if (!Negative && !eat(TokenKind::Plus))
+                    const auto Sign = peek();
+                    if (!Sign)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(SignOffset, "expected a signed displacement"));
+                        return std::unexpected(Sign.error());
                     }
+                    const std::size_t SignBegin = (*Sign)->BeginOffset;
+                    const bool Negative = (*Sign)->Kind == TokenKind::Minus;
+                    if (!Negative && (*Sign)->Kind != TokenKind::Plus)
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic((*Sign)->BeginOffset, (*Sign)->EndOffset, "expected a signed displacement"));
+                    }
+                    HasCurrent = false;
+                    const auto MagnitudeToken = peek();
+                    if (!MagnitudeToken)
+                    {
+                        return std::unexpected(MagnitudeToken.error());
+                    }
+                    const std::size_t MagnitudeEnd = (*MagnitudeToken)->EndOffset;
                     const auto Magnitude = parseUnsignedInteger("expected a displacement magnitude");
                     if (!Magnitude)
                     {
@@ -237,7 +429,7 @@ namespace ink::vm
                     constexpr std::uint64_t SignBit = std::uint64_t{1} << 63;
                     if (*Magnitude > SignBit || (!Negative && *Magnitude == SignBit))
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(SignOffset, "signed displacement overflows 64-bit two's complement range"));
+                        return std::unexpected(detail::makeTextDiagnostic(SignBegin, MagnitudeEnd, "signed displacement overflows 64-bit two's complement range"));
                     }
                     if (!Negative)
                     {
@@ -248,100 +440,200 @@ namespace ink::vm
 
                 ParseResult<std::int64_t> parseOptionalDisplacement()
                 {
-                    if (!at(TokenKind::Plus) && !at(TokenKind::Minus))
+                    const auto Next = peek();
+                    if (!Next)
+                    {
+                        return std::unexpected(Next.error());
+                    }
+                    if ((*Next)->Kind != TokenKind::Plus && (*Next)->Kind != TokenKind::Minus)
                     {
                         return 0;
                     }
                     return parseSignedDisplacement();
                 }
 
-                ParseResult<std::uint64_t> parseImmediateBits()
+                ParseResult<std::uint64_t> parseSignedOrUnsignedInteger(std::uint32_t BitWidth, std::string_view ExpectedMessage)
                 {
-                    const std::size_t StartOffset = offset();
-                    const bool Negative = eat(TokenKind::Minus) != nullptr;
-                    if (!Negative)
+                    const auto Start = peek();
+                    if (!Start)
                     {
-                        eat(TokenKind::Plus);
+                        return std::unexpected(Start.error());
                     }
-                    const auto Magnitude = parseUnsignedInteger("expected an immediate integer");
+                    const std::size_t StartBegin = (*Start)->BeginOffset;
+                    bool Negative = false;
+                    if ((*Start)->Kind == TokenKind::Minus)
+                    {
+                        Negative = true;
+                        HasCurrent = false;
+                    }
+                    else if ((*Start)->Kind == TokenKind::Plus)
+                    {
+                        HasCurrent = false;
+                    }
+                    const auto MagnitudeToken = peek();
+                    if (!MagnitudeToken)
+                    {
+                        return std::unexpected(MagnitudeToken.error());
+                    }
+                    const std::size_t EndOffset = (*MagnitudeToken)->EndOffset;
+                    const auto Magnitude = parseUnsignedInteger(ExpectedMessage);
                     if (!Magnitude)
                     {
                         return std::unexpected(Magnitude.error());
                     }
-                    constexpr std::uint64_t SignBit = std::uint64_t{1} << 63;
-                    if (Negative && *Magnitude > SignBit)
+                    const std::uint64_t MaxUnsigned = BitWidth == 64 ? std::numeric_limits<std::uint64_t>::max() : ((std::uint64_t{1} << BitWidth) - 1);
+                    const std::uint64_t MaxNegativeMagnitude = std::uint64_t{1} << (BitWidth - 1);
+                    if (Negative)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(StartOffset, "negative immediate overflows 64-bit two's complement range"));
+                        if (*Magnitude > MaxNegativeMagnitude)
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(StartBegin, EndOffset, "negative integer overflows target bit width"));
+                        }
+                        return (std::uint64_t{0} - *Magnitude) & MaxUnsigned;
                     }
-                    return Negative ? std::uint64_t{0} - *Magnitude : *Magnitude;
+                    if (*Magnitude > MaxUnsigned)
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(StartBegin, EndOffset, "integer literal overflows target bit width"));
+                    }
+                    return *Magnitude;
+                }
+
+                ParseResult<std::uint64_t> parseFloat64Bits()
+                {
+                    const auto Start = peek();
+                    if (!Start)
+                    {
+                        return std::unexpected(Start.error());
+                    }
+                    const std::size_t StartBegin = (*Start)->BeginOffset;
+                    bool Negative = false;
+                    if ((*Start)->Kind == TokenKind::Minus)
+                    {
+                        Negative = true;
+                        HasCurrent = false;
+                    }
+                    else if ((*Start)->Kind == TokenKind::Plus)
+                    {
+                        HasCurrent = false;
+                    }
+                    const auto ValueToken = peek();
+                    if (!ValueToken)
+                    {
+                        return std::unexpected(ValueToken.error());
+                    }
+                    if ((*ValueToken)->Kind == TokenKind::Identifier)
+                    {
+                        const Token Word = *take();
+                        if (Word.text() == "inf")
+                        {
+                            const double Value = Negative ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+                            return std::bit_cast<std::uint64_t>(Value);
+                        }
+                        if (Word.text() == "nan")
+                        {
+                            std::uint64_t Bits = std::bit_cast<std::uint64_t>(std::numeric_limits<double>::quiet_NaN());
+                            if (Negative)
+                            {
+                                Bits |= std::uint64_t{1} << 63;
+                            }
+                            return Bits;
+                        }
+                        return std::unexpected(detail::makeTextDiagnostic(StartBegin, Word.EndOffset, "expected an IEEE 754 binary64 floating-point value"));
+                    }
+                    if ((*ValueToken)->Kind != TokenKind::Number)
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(StartBegin, (*ValueToken)->EndOffset, "expected an IEEE 754 binary64 floating-point value"));
+                    }
+                    const Token Number = *take();
+                    std::string_view Digits = Number.text();
+                    double Value = 0.0;
+                    std::from_chars_result Result{};
+                    if (Digits.starts_with("0x") || Digits.starts_with("0X"))
+                    {
+                        if (Digits.find('p') == std::string_view::npos && Digits.find('P') == std::string_view::npos)
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(StartBegin, Number.EndOffset, "hexadecimal .f64 literals require a binary exponent 'p'; use .i64 for raw 64-bit bit patterns"));
+                        }
+                        Digits.remove_prefix(2);
+                        Result = std::from_chars(Digits.data(), Digits.data() + Digits.size(), Value, std::chars_format::hex);
+                    }
+                    else
+                    {
+                        Result = std::from_chars(Digits.data(), Digits.data() + Digits.size(), Value, std::chars_format::general);
+                    }
+                    if (Digits.empty() || Result.ptr != Digits.data() + Digits.size())
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(StartBegin, Number.EndOffset, "expected an IEEE 754 binary64 floating-point value"));
+                    }
+                    if (Result.ec == std::errc::result_out_of_range)
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(StartBegin, Number.EndOffset, "floating-point literal is out of IEEE 754 binary64 range"));
+                    }
+                    if (Result.ec != std::errc{})
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(StartBegin, Number.EndOffset, "expected an IEEE 754 binary64 floating-point value"));
+                    }
+                    if (Negative)
+                    {
+                        Value = -Value;
+                    }
+                    return std::bit_cast<std::uint64_t>(Value);
                 }
 
                 ParseResult<core::Name> parseSymbol()
                 {
-                    const std::size_t StartOffset = offset();
-                    if (!eat(TokenKind::At))
+                    const auto AtToken = expect(TokenKind::At, "expected '@' before symbol name");
+                    if (!AtToken)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(StartOffset, "expected '@' before symbol name"));
+                        return std::unexpected(AtToken.error());
                     }
-                    const Token* NameToken = eat(TokenKind::Identifier);
+                    auto NameToken = eat(TokenKind::Identifier);
                     if (!NameToken)
                     {
+                        return std::unexpected(NameToken.error());
+                    }
+                    if (!*NameToken)
+                    {
                         NameToken = eat(TokenKind::String);
-                    }
-                    if (!NameToken || NameToken->text().empty())
-                    {
-                        return std::unexpected(detail::makeTextDiagnostic(StartOffset, "expected a nonempty symbol name"));
-                    }
-                    return detail::internTextName(NameToken->text(), NameToken->Offset);
-                }
-
-                ParseResult<DeclaredLabel> parseDeclaredLabel()
-                {
-                    const auto LabelToken = expect(TokenKind::Identifier, "expected a declaration label identifier");
-                    if (!LabelToken)
-                    {
-                        return std::unexpected(LabelToken.error());
-                    }
-                    const Token* NameSource = *LabelToken;
-                    if (const Token* AliasToken = eat(TokenKind::String))
-                    {
-                        NameSource = AliasToken;
-                    }
-                    const auto OriginalName = detail::internTextName(NameSource->text(), NameSource->Offset);
-                    if (!OriginalName)
-                    {
-                        return std::unexpected(OriginalName.error());
-                    }
-                    return DeclaredLabel{(*LabelToken)->text(), (*LabelToken)->Offset, *OriginalName};
-                }
-
-                ParseResult<MachineSymbolLinkage> parseOptionalLinkage(core::Name SymbolName)
-                {
-                    MachineSymbolLinkage Linkage = MachineSymbolLinkage::Local;
-                    if (const Token* Keyword = eat(TokenKind::Identifier))
-                    {
-                        const auto Parsed = detail::parseLinkage(Keyword->text());
-                        if (!Parsed)
+                        if (!NameToken)
                         {
-                            return std::unexpected(detail::makeTextDiagnostic(Keyword->Offset, "expected local or external linkage"));
+                            return std::unexpected(NameToken.error());
                         }
-                        Linkage = *Parsed;
                     }
-                    if (peek() || (Linkage == MachineSymbolLinkage::External && !SymbolName.valid()))
+                    if (!*NameToken)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(offset(), "external definitions require a nonempty name and linkage must end the declaration"));
+                        const auto Next = peek();
+                        if (!Next)
+                        {
+                            return std::unexpected(Next.error());
+                        }
+                        return std::unexpected(detail::makeTextDiagnostic(AtToken->BeginOffset, (*Next)->EndOffset, "expected a nonempty symbol name after '@'"));
                     }
-                    return Linkage;
+                    if ((*NameToken)->text().empty())
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic((*NameToken)->BeginOffset, (*NameToken)->EndOffset, "symbol name must be nonempty"));
+                    }
+                    return detail::internTextName((*NameToken)->text(), (*NameToken)->BeginOffset, (*NameToken)->EndOffset);
                 }
 
                 ParseResult<detail::ParsedOperand> parseOperand()
                 {
-                    const std::size_t StartOffset = offset();
-                    if (eat(TokenKind::LeftBracket))
+                    const auto Next = peek();
+                    if (!Next)
                     {
+                        return std::unexpected(Next.error());
+                    }
+                    if ((*Next)->Kind == TokenKind::LeftBracket)
+                    {
+                        HasCurrent = false;
                         std::optional<RegisterId> BaseRegister;
                         core::Name BaseSymbol;
-                        if (at(TokenKind::At))
+                        const auto BaseIsAt = at(TokenKind::At);
+                        if (!BaseIsAt)
+                        {
+                            return std::unexpected(BaseIsAt.error());
+                        }
+                        if (*BaseIsAt)
                         {
                             const auto Symbol = parseSymbol();
                             if (!Symbol)
@@ -357,10 +649,10 @@ namespace ink::vm
                             {
                                 return std::unexpected(BaseToken.error());
                             }
-                            BaseRegister = parseRegister((*BaseToken)->text());
+                            BaseRegister = parseRegister(BaseToken->text());
                             if (!BaseRegister || !isAddressRegister(*BaseRegister))
                             {
-                                return std::unexpected(detail::makeTextDiagnostic((*BaseToken)->Offset, "unknown or invalid address base register"));
+                                return std::unexpected(detail::makeTextDiagnostic(BaseToken->BeginOffset, BaseToken->EndOffset, "unknown or invalid address base register"));
                             }
                         }
                         const auto Offset = parseOptionalDisplacement();
@@ -383,7 +675,7 @@ namespace ink::vm
                         }
                         return Result;
                     }
-                    if (at(TokenKind::At))
+                    if ((*Next)->Kind == TokenKind::At)
                     {
                         const auto Symbol = parseSymbol();
                         if (!Symbol)
@@ -399,13 +691,13 @@ namespace ink::vm
                         Result.emplace<ImmediateOperand>(*Symbol, *Offset);
                         return Result;
                     }
-                    if (at(TokenKind::Identifier))
+                    if ((*Next)->Kind == TokenKind::Identifier)
                     {
-                        const Token* RegisterToken = eat(TokenKind::Identifier);
-                        const auto Register = parseRegister(RegisterToken->text());
+                        const Token RegisterToken = *take();
+                        const auto Register = parseRegister(RegisterToken.text());
                         if (!Register || !isArithmeticRegister(*Register))
                         {
-                            return std::unexpected(detail::makeTextDiagnostic(RegisterToken->Offset, "unknown register operand"));
+                            return std::unexpected(detail::makeTextDiagnostic(RegisterToken.BeginOffset, RegisterToken.EndOffset, "unknown register operand"));
                         }
                         const auto Offset = parseOptionalDisplacement();
                         if (!Offset)
@@ -416,138 +708,41 @@ namespace ink::vm
                         Result.emplace<RegisterOperand>(*Register, *Offset);
                         return Result;
                     }
-                    const auto Bits = parseImmediateBits();
-                    if (!Bits)
+                    if ((*Next)->Kind == TokenKind::Number || (*Next)->Kind == TokenKind::Plus || (*Next)->Kind == TokenKind::Minus)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(StartOffset, "invalid instruction operand"));
-                    }
-                    detail::ParsedOperand Result;
-                    Result.emplace<ImmediateOperand>(*Bits);
-                    return Result;
-                }
-
-            private:
-                std::vector<Token> Tokens;
-                std::size_t EndOffset;
-                std::size_t Position = 0;
-        };
-
-        class LineStream
-        {
-            public:
-                explicit LineStream(std::string_view Text) noexcept
-                    : Text(Text)
-                {
-                }
-
-                ParseResult<std::optional<LineCursor>> nextLine()
-                {
-                    while (Offset < Text.size())
-                    {
-                        const std::size_t LineStart = Offset;
-                        const std::size_t Newline = Text.find('\n', LineStart);
-                        const std::size_t LineEnd = Newline == std::string_view::npos ? Text.size() : Newline;
-                        Offset = Newline == std::string_view::npos ? LineEnd : LineEnd + 1;
-                        auto Tokens = tokenizeLine(Text.substr(LineStart, LineEnd - LineStart), LineStart);
-                        if (!Tokens)
+                        const auto Bits = parseSignedOrUnsignedInteger(64, "expected an immediate integer");
+                        if (!Bits)
                         {
-                            return std::unexpected(Tokens.error());
+                            return std::unexpected(Bits.error());
                         }
-                        if (!Tokens->empty())
-                        {
-                            return LineCursor(std::move(*Tokens), LineEnd);
-                        }
+                        detail::ParsedOperand Result;
+                        Result.emplace<ImmediateOperand>(*Bits);
+                        return Result;
                     }
-                    return std::nullopt;
+                    return std::unexpected(detail::makeTextDiagnostic((*Next)->BeginOffset, (*Next)->EndOffset, "expected an instruction operand"));
                 }
 
-                std::size_t endOffset() const noexcept
+                ParseResult<void> parseModuleHeader()
                 {
-                    return Text.size();
-                }
-
-            private:
-                std::string_view Text;
-                std::size_t Offset = 0;
-        };
-
-        struct PendingInstruction
-        {
-                MachineBasicBlock* Block = nullptr;
-                const detail::OpcodeDescriptor* Descriptor = nullptr;
-                std::array<detail::ParsedOperand, 3> Operands{};
-                std::string_view TargetLabel;
-                std::size_t Offset = 0;
-                std::size_t TargetOffset = 0;
-                std::size_t TargetOperandIndex = 0;
-        };
-
-        struct FunctionParseState
-        {
-                MachineFunction& Function;
-                MachineBasicBlock* CurrentBlock = nullptr;
-                std::unordered_map<std::string_view, MachineBasicBlock*> BlockLabels;
-                std::vector<PendingInstruction> PendingInstructions;
-                bool HasFrame = false;
-                bool HasBlock = false;
-        };
-
-        class ModuleTextReader
-        {
-            public:
-                explicit ModuleTextReader(std::string_view Text) noexcept
-                    : Stream(Text)
-                {
-                }
-
-                ParseResult<std::unique_ptr<MachineModule>> parseModule()
-                {
-                    const auto HeaderLine = Stream.nextLine();
-                    if (!HeaderLine)
-                    {
-                        return std::unexpected(HeaderLine.error());
-                    }
-                    if (!*HeaderLine)
-                    {
-                        return std::unexpected(detail::makeTextDiagnostic(Stream.endOffset(), "missing .module directive"));
-                    }
-                    if (const auto HeaderResult = parseModuleHeader(**HeaderLine); !HeaderResult)
-                    {
-                        return std::unexpected(HeaderResult.error());
-                    }
-                    for (;;)
-                    {
-                        auto NextLine = Stream.nextLine();
-                        if (!NextLine)
-                        {
-                            return std::unexpected(NextLine.error());
-                        }
-                        if (!*NextLine)
-                        {
-                            break;
-                        }
-                        if (const auto LineResult = parseModuleTopLevelLine(**NextLine); !LineResult)
-                        {
-                            return std::unexpected(LineResult.error());
-                        }
-                    }
-                    return std::move(Module);
-                }
-
-            private:
-                ParseResult<void> parseModuleHeader(LineCursor Line)
-                {
-                    const auto First = Line.expect(TokenKind::Identifier, "expected .module followed by a quoted name");
+                    const auto First = expect(TokenKind::Identifier, "expected .module followed by a quoted name");
                     if (!First)
                     {
                         return std::unexpected(First.error());
                     }
-                    const Token* NameToken = Line.eat(TokenKind::String);
-                    if ((*First)->text() != detail::ModuleDirective || !NameToken || Line.peek())
+                    if (First->text() != detail::ModuleDirective)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic((*First)->Offset, "expected .module followed by a quoted name"));
+                        return std::unexpected(detail::makeTextDiagnostic(First->BeginOffset, First->EndOffset, "expected .module followed by a quoted name"));
                     }
-                    const auto Interned = detail::internTextName(NameToken->text(), NameToken->Offset);
+                    const auto NameToken = expect(TokenKind::String, "expected a quoted module name");
+                    if (!NameToken)
+                    {
+                        return std::unexpected(NameToken.error());
+                    }
+                    if (const auto EndResult = expectEndOfLine("unexpected token after .module header"); !EndResult)
+                    {
+                        return EndResult;
+                    }
+                    const auto Interned = detail::internTextName(NameToken->text(), NameToken->BeginOffset, NameToken->EndOffset);
                     if (!Interned)
                     {
                         return std::unexpected(Interned.error());
@@ -556,60 +751,69 @@ namespace ink::vm
                     return {};
                 }
 
-                ParseResult<void> parseModuleTopLevelLine(LineCursor& Line)
+                ParseResult<void> parseModuleTopLevelLine()
                 {
-                    const auto First = Line.expect(TokenKind::Identifier, "expected a top-level directive");
+                    const auto First = expect(TokenKind::Identifier, "expected a top-level directive");
                     if (!First)
                     {
                         return std::unexpected(First.error());
                     }
-                    const std::string_view Directive = (*First)->text();
+                    const std::string_view Directive = First->text();
                     if (Directive == detail::DeclareDirective)
                     {
-                        return parseSymbolDeclaration(**First, Line);
+                        return parseSymbolDeclaration(*First);
                     }
                     if (Directive == detail::SectionDirective)
                     {
-                        return parseSectionDirective(**First, Line);
+                        return parseSectionDirective(*First);
                     }
                     if (Directive == detail::GlobalDirective)
                     {
-                        return parseGlobalDefinition(**First, Line);
+                        return parseGlobalDefinition(*First);
                     }
                     if (Directive == detail::FunctionDirective)
                     {
-                        return parseFunctionDefinition(**First, Line);
+                        return parseFunctionDefinition(*First);
                     }
-                    return std::unexpected(detail::makeTextDiagnostic((*First)->Offset, "unexpected or misplaced top-level directive"));
+                    return std::unexpected(detail::makeTextDiagnostic(First->BeginOffset, First->EndOffset, "unexpected or misplaced top-level directive"));
                 }
 
-                ParseResult<void> parseSymbolDeclaration(const Token& Directive, LineCursor& Line)
+                ParseResult<void> parseSymbolDeclaration(const Token& Directive)
                 {
-                    const Token* KindToken = Line.eat(TokenKind::Identifier);
+                    if (HasSeenSection)
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(Directive.BeginOffset, Directive.EndOffset, ".declare directives must precede all .section directives"));
+                    }
+                    const auto KindToken = expect(TokenKind::Identifier, "expected 'function' or 'global' after .declare");
                     if (!KindToken)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "expected a symbol kind and nonempty symbol name"));
-                    }
-                    const auto Symbol = Line.parseSymbol();
-                    if (!Symbol)
-                    {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "expected a symbol kind and nonempty symbol name"));
+                        return std::unexpected(KindToken.error());
                     }
                     const auto Kind = detail::parseSymbolKind(KindToken->text());
                     if (!Kind)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(KindToken->Offset, "unknown symbol declaration kind"));
+                        return std::unexpected(detail::makeTextDiagnostic(KindToken->BeginOffset, KindToken->EndOffset, "unknown symbol declaration kind"));
+                    }
+                    const auto Symbol = parseSymbol();
+                    if (!Symbol)
+                    {
+                        return std::unexpected(Symbol.error());
                     }
                     bool IsConstant = false;
-                    if (const Token* Attribute = Line.eat(TokenKind::Identifier))
+                    const auto Attribute = eat(TokenKind::Identifier);
+                    if (!Attribute)
                     {
-                        if (*Kind != MachineSymbolKind::GlobalVariable || Attribute->text() != detail::ReadOnlyKeyword)
+                        return std::unexpected(Attribute.error());
+                    }
+                    if (*Attribute)
+                    {
+                        if (*Kind != MachineSymbolKind::GlobalVariable || (*Attribute)->text() != detail::ReadOnlyKeyword)
                         {
-                            return std::unexpected(detail::makeTextDiagnostic(Attribute->Offset, "only global declarations accept the readonly attribute"));
+                            return std::unexpected(detail::makeTextDiagnostic((*Attribute)->BeginOffset, (*Attribute)->EndOffset, "only global declarations accept the readonly attribute"));
                         }
                         IsConstant = true;
                     }
-                    if (const auto EndResult = Line.expectEndOfLine("unexpected token after the symbol declaration"); !EndResult)
+                    if (const auto EndResult = expectEndOfLine("unexpected token after the symbol declaration"); !EndResult)
                     {
                         return EndResult;
                     }
@@ -617,235 +821,550 @@ namespace ink::vm
                     return {};
                 }
 
-                ParseResult<void> parseSectionDirective(const Token& Directive, LineCursor& Line)
+                ParseResult<void> parseSectionDirective(const Token& Directive)
                 {
-                    const Token* SectionToken = Line.eat(TokenKind::Identifier);
-                    if (!SectionToken || Line.peek())
+                    const auto SectionToken = expect(TokenKind::Identifier, "section directive requires .data or .text");
+                    if (!SectionToken)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "section directive requires one section name outside a function"));
+                        return std::unexpected(SectionToken.error());
                     }
                     const auto Kind = detail::parseSectionKind(SectionToken->text());
                     if (!Kind)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(SectionToken->Offset, "unknown section"));
+                        return std::unexpected(detail::makeTextDiagnostic(SectionToken->BeginOffset, SectionToken->EndOffset, "unknown section"));
                     }
-                    CurrentSection = *Kind;
-                    return {};
-                }
-
-                ParseResult<void> registerModuleLabel(const DeclaredLabel& Declared)
-                {
-                    if (!ModuleLabels.insert(Declared.Label).second)
+                    if (const auto EndResult = expectEndOfLine("unexpected token after .section directive"); !EndResult)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Declared.Offset, "duplicate declaration label in the module"));
+                        return EndResult;
                     }
+                    static_cast<void>(Directive);
+                    CurrentSection = *Kind;
+                    HasSeenSection = true;
                     return {};
                 }
 
-                ParseResult<void> parseGlobalDefinition(const Token& Directive, LineCursor& HeaderLine)
+                ParseResult<void> parseGlobalDefinition(const Token& Directive)
                 {
                     if (CurrentSection != detail::SectionKind::Data)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "global definition must appear in the .data section"));
+                        return std::unexpected(detail::makeTextDiagnostic(Directive.BeginOffset, Directive.EndOffset, "global definition must appear in the .data section"));
                     }
-                    const auto Declared = HeaderLine.parseDeclaredLabel();
-                    if (!Declared)
+                    core::Name GlobalName = core::NAME_None;
+                    const auto HasSymbol = at(TokenKind::At);
+                    if (!HasSymbol)
                     {
-                        return std::unexpected(Declared.error());
+                        return std::unexpected(HasSymbol.error());
                     }
-                    if (!HeaderLine.eat(TokenKind::Comma))
+                    if (*HasSymbol)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(HeaderLine.offset(), "expected a comma before global size"));
+                        const auto ParsedSymbol = parseSymbol();
+                        if (!ParsedSymbol)
+                        {
+                            return std::unexpected(ParsedSymbol.error());
+                        }
+                        GlobalName = *ParsedSymbol;
                     }
-                    const auto ByteSize = HeaderLine.parseUnsignedInteger("expected global byte size");
-                    if (!ByteSize || !HeaderLine.eat(TokenKind::Comma))
+                    std::optional<std::uint64_t> ByteSize;
+                    std::optional<std::uint64_t> Alignment;
+                    std::optional<MachineSymbolLinkage> Linkage;
+                    bool IsConstant = false;
+                    for (;;)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "expected global size and alignment"));
+                        const auto LineDone = atLineEnd();
+                        if (!LineDone)
+                        {
+                            return std::unexpected(LineDone.error());
+                        }
+                        if (*LineDone)
+                        {
+                            break;
+                        }
+                        const auto Attr = expect(TokenKind::Identifier, "expected global attribute 'size', 'align', 'readonly', 'local', or 'external'");
+                        if (!Attr)
+                        {
+                            return std::unexpected(Attr.error());
+                        }
+                        const std::string_view Keyword = Attr->text();
+                        if (Keyword == detail::SizeKeyword)
+                        {
+                            if (ByteSize)
+                            {
+                                return std::unexpected(detail::makeTextDiagnostic(Attr->BeginOffset, Attr->EndOffset, "duplicate 'size' attribute on global definition"));
+                            }
+                            const auto ParsedSize = parseUnsignedInteger("expected global byte size after 'size'");
+                            if (!ParsedSize)
+                            {
+                                return std::unexpected(ParsedSize.error());
+                            }
+                            ByteSize = *ParsedSize;
+                        }
+                        else if (Keyword == detail::AlignKeyword)
+                        {
+                            if (Alignment)
+                            {
+                                return std::unexpected(detail::makeTextDiagnostic(Attr->BeginOffset, Attr->EndOffset, "duplicate 'align' attribute on global definition"));
+                            }
+                            const auto AlignToken = peek();
+                            if (!AlignToken)
+                            {
+                                return std::unexpected(AlignToken.error());
+                            }
+                            const std::size_t AlignBegin = (*AlignToken)->BeginOffset;
+                            const std::size_t AlignEnd = (*AlignToken)->EndOffset;
+                            const auto ParsedAlign = parseUnsignedInteger("expected global alignment after 'align'");
+                            if (!ParsedAlign)
+                            {
+                                return std::unexpected(ParsedAlign.error());
+                            }
+                            if (*ParsedAlign == 0 || (*ParsedAlign & (*ParsedAlign - 1)) != 0)
+                            {
+                                return std::unexpected(detail::makeTextDiagnostic(AlignBegin, AlignEnd, "data alignment must be a nonzero power of two"));
+                            }
+                            Alignment = *ParsedAlign;
+                        }
+                        else if (Keyword == detail::ReadOnlyKeyword)
+                        {
+                            if (IsConstant)
+                            {
+                                return std::unexpected(detail::makeTextDiagnostic(Attr->BeginOffset, Attr->EndOffset, "duplicate 'readonly' attribute on global definition"));
+                            }
+                            IsConstant = true;
+                        }
+                        else if (const auto ParsedLinkage = detail::parseLinkage(Keyword))
+                        {
+                            if (Linkage)
+                            {
+                                return std::unexpected(detail::makeTextDiagnostic(Attr->BeginOffset, Attr->EndOffset, "duplicate linkage attribute on global definition"));
+                            }
+                            if (*ParsedLinkage == MachineSymbolLinkage::External && !GlobalName.valid())
+                            {
+                                return std::unexpected(detail::makeTextDiagnostic(Attr->BeginOffset, Attr->EndOffset, "external definitions require a nonempty symbol name"));
+                            }
+                            Linkage = *ParsedLinkage;
+                        }
+                        else
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(Attr->BeginOffset, Attr->EndOffset, "unknown global attribute; expected 'size', 'align', 'readonly', 'local', or 'external'"));
+                        }
                     }
-                    const auto Alignment = HeaderLine.parseUnsignedInteger("expected global alignment");
-                    if (!Alignment)
+                    if (const auto EndResult = expectEndOfLine(); !EndResult)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "expected global size and alignment"));
+                        return EndResult;
                     }
-                    if (*Alignment == 0 || (*Alignment & (*Alignment - 1)) != 0)
+                    if (!ByteSize)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "data alignment must be a nonzero power of two"));
+                        return std::unexpected(detail::makeTextDiagnostic(Directive.BeginOffset, Directive.EndOffset, "global definition requires a 'size' attribute"));
                     }
-                    const bool IsConstant = HeaderLine.eatKeyword(detail::ReadOnlyKeyword) != nullptr;
-                    const auto Linkage = HeaderLine.parseOptionalLinkage(Declared->OriginalName);
-                    if (!Linkage)
-                    {
-                        return std::unexpected(Linkage.error());
-                    }
-                    if (const auto LabelResult = registerModuleLabel(*Declared); !LabelResult)
-                    {
-                        return LabelResult;
-                    }
+                    const std::uint64_t ResolvedAlignment = Alignment.value_or(1);
+                    const MachineSymbolLinkage ResolvedLinkage = Linkage.value_or(MachineSymbolLinkage::Local);
+
                     std::vector<std::uint8_t> InitialBytes;
                     std::vector<MachineGlobalRelocation> Relocations;
                     for (;;)
                     {
-                        auto BodyLine = Stream.nextLine();
-                        if (!BodyLine)
+                        if (const auto Skipped = skipBlankLines(); !Skipped)
                         {
-                            return std::unexpected(BodyLine.error());
+                            return Skipped;
                         }
-                        if (!*BodyLine)
+                        const auto Next = peek();
+                        if (!Next)
                         {
-                            return std::unexpected(detail::makeTextDiagnostic(Stream.endOffset(), "unterminated global variable definition"));
+                            return std::unexpected(Next.error());
                         }
-                        const auto BodyDirective = (*BodyLine)->expect(TokenKind::Identifier, "expected .byte, .reloc, or .endglobal");
+                        if ((*Next)->Kind == TokenKind::EndOfFile)
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(LexerState.endOffset(), "unterminated global variable definition"));
+                        }
+                        const auto BodyDirective = expect(TokenKind::Identifier, "expected a global data directive or .endglobal");
                         if (!BodyDirective)
                         {
                             return std::unexpected(BodyDirective.error());
                         }
-                        if ((*BodyDirective)->text() == detail::ByteDirective)
+                        const std::string_view Keyword = BodyDirective->text();
+                        if (Keyword == detail::ByteDirective)
                         {
-                            if (const auto ByteResult = parseByteDirective(**BodyLine, *ByteSize, InitialBytes); !ByteResult)
+                            if (const auto Result = parseByteDirective(*ByteSize, InitialBytes); !Result)
                             {
-                                return ByteResult;
+                                return Result;
                             }
                             continue;
                         }
-                        if ((*BodyDirective)->text() == detail::RelocDirective)
+                        if (Keyword == detail::BytesDirective)
                         {
-                            if (const auto RelocResult = parseRelocDirective(**BodyLine, *ByteSize, *Alignment, Relocations); !RelocResult)
+                            if (const auto Result = parseBytesDirective(*ByteSize, InitialBytes); !Result)
                             {
-                                return RelocResult;
+                                return Result;
                             }
                             continue;
                         }
-                        if ((*BodyDirective)->text() != detail::EndGlobalDirective || (*BodyLine)->peek())
+                        if (Keyword == detail::ZeroDirective)
                         {
-                            return std::unexpected(detail::makeTextDiagnostic((*BodyDirective)->Offset, "expected .byte, .reloc, or .endglobal"));
+                            if (const auto Result = parseZeroDirective(*ByteSize, InitialBytes); !Result)
+                            {
+                                return Result;
+                            }
+                            continue;
                         }
-                        const auto Created = Module->createGlobalVariable(*ByteSize, *Alignment, InitialBytes, Declared->OriginalName, *Linkage, IsConstant, Relocations);
+                        if (Keyword == detail::I16Directive)
+                        {
+                            if (const auto Result = parseIntDataDirective(16, *ByteSize, InitialBytes); !Result)
+                            {
+                                return Result;
+                            }
+                            continue;
+                        }
+                        if (Keyword == detail::I32Directive)
+                        {
+                            if (const auto Result = parseIntDataDirective(32, *ByteSize, InitialBytes); !Result)
+                            {
+                                return Result;
+                            }
+                            continue;
+                        }
+                        if (Keyword == detail::I64Directive)
+                        {
+                            if (const auto Result = parseIntDataDirective(64, *ByteSize, InitialBytes); !Result)
+                            {
+                                return Result;
+                            }
+                            continue;
+                        }
+                        if (Keyword == detail::F64Directive)
+                        {
+                            if (const auto Result = parseFloatDataDirective(*ByteSize, InitialBytes); !Result)
+                            {
+                                return Result;
+                            }
+                            continue;
+                        }
+                        if (Keyword == detail::RelocDirective)
+                        {
+                            if (const auto Result = parseRelocDirective(*ByteSize, ResolvedAlignment, Relocations); !Result)
+                            {
+                                return Result;
+                            }
+                            continue;
+                        }
+                        if (Keyword != detail::EndGlobalDirective)
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(BodyDirective->BeginOffset, BodyDirective->EndOffset, "expected a global data directive or .endglobal"));
+                        }
+                        if (const auto EndResult = expectEndOfLine("unexpected token after .endglobal"); !EndResult)
+                        {
+                            return EndResult;
+                        }
+                        const auto Created = Module->createGlobalVariable(*ByteSize, ResolvedAlignment, InitialBytes, GlobalName, ResolvedLinkage, IsConstant, Relocations);
                         if (!Created)
                         {
                             if (Created.error() == MachineModuleDataError::RelocationNonZeroInitialBytes)
                             {
-                                return std::unexpected(detail::makeTextDiagnostic((*BodyDirective)->Offset, "global relocation overlaps nonzero initializer bytes"));
+                                return std::unexpected(detail::makeTextDiagnostic(BodyDirective->BeginOffset, BodyDirective->EndOffset, "global relocation overlaps nonzero initializer bytes"));
                             }
-                            return std::unexpected(detail::makeTextDiagnostic((*BodyDirective)->Offset, "invalid global data layout"));
+                            return std::unexpected(detail::makeTextDiagnostic(BodyDirective->BeginOffset, BodyDirective->EndOffset, "invalid global data layout"));
                         }
                         return {};
                     }
                 }
 
-                ParseResult<void> parseRelocDirective(LineCursor& Line, std::uint64_t DeclaredSize, std::uint64_t Alignment, std::vector<MachineGlobalRelocation>& Relocations)
+                ParseResult<void> parseByteDirective(std::uint64_t DeclaredSize, std::vector<std::uint8_t>& InitialBytes)
                 {
-                    const std::size_t OffsetPos = Line.offset();
-                    const auto ByteOffset = Line.parseUnsignedInteger("expected a relocation byte offset");
+                    for (;;)
+                    {
+                        const auto ValueToken = peek();
+                        if (!ValueToken)
+                        {
+                            return std::unexpected(ValueToken.error());
+                        }
+                        const std::size_t BeginOffset = (*ValueToken)->BeginOffset;
+                        const std::size_t EndOffset = (*ValueToken)->EndOffset;
+                        const auto ByteValue = parseUnsignedInteger("expected a byte value in the range 0 through 255");
+                        if (!ByteValue)
+                        {
+                            return std::unexpected(ByteValue.error());
+                        }
+                        if (*ByteValue > 255)
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(BeginOffset, EndOffset, "expected a byte value in the range 0 through 255"));
+                        }
+                        if (InitialBytes.size() >= DeclaredSize)
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(BeginOffset, EndOffset, "global initializer exceeds its declared byte size"));
+                        }
+                        InitialBytes.push_back(static_cast<std::uint8_t>(*ByteValue));
+                        const auto Comma = eat(TokenKind::Comma);
+                        if (!Comma)
+                        {
+                            return std::unexpected(Comma.error());
+                        }
+                        if (!*Comma)
+                        {
+                            break;
+                        }
+                    }
+                    return expectEndOfLine("unexpected token after byte value");
+                }
+
+                ParseResult<void> parseBytesDirective(std::uint64_t DeclaredSize, std::vector<std::uint8_t>& InitialBytes)
+                {
+                    const auto StringToken = expect(TokenKind::String, "expected a quoted byte string after .bytes");
+                    if (!StringToken)
+                    {
+                        return std::unexpected(StringToken.error());
+                    }
+                    if (const auto EndResult = expectEndOfLine("unexpected token after .bytes literal"); !EndResult)
+                    {
+                        return EndResult;
+                    }
+                    const std::string_view Bytes = StringToken->text();
+                    if (Bytes.size() > DeclaredSize - InitialBytes.size())
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(StringToken->BeginOffset, StringToken->EndOffset, "global initializer exceeds its declared byte size"));
+                    }
+                    for (const char Byte : Bytes)
+                    {
+                        InitialBytes.push_back(static_cast<std::uint8_t>(Byte));
+                    }
+                    return {};
+                }
+
+                ParseResult<void> parseZeroDirective(std::uint64_t DeclaredSize, std::vector<std::uint8_t>& InitialBytes)
+                {
+                    const auto CountToken = peek();
+                    if (!CountToken)
+                    {
+                        return std::unexpected(CountToken.error());
+                    }
+                    const std::size_t BeginOffset = (*CountToken)->BeginOffset;
+                    const std::size_t EndOffset = (*CountToken)->EndOffset;
+                    const auto Count = parseUnsignedInteger("expected an unsigned zero-byte count after .zero");
+                    if (!Count)
+                    {
+                        return std::unexpected(Count.error());
+                    }
+                    if (const auto EndResult = expectEndOfLine("unexpected token after .zero count"); !EndResult)
+                    {
+                        return EndResult;
+                    }
+                    if (*Count > DeclaredSize - InitialBytes.size())
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(BeginOffset, EndOffset, "global initializer exceeds its declared byte size"));
+                    }
+                    if (*Count > InitialBytes.max_size() - InitialBytes.size())
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(BeginOffset, EndOffset, "global initializer exceeds host storage limits"));
+                    }
+                    InitialBytes.insert(InitialBytes.end(), static_cast<std::size_t>(*Count), std::uint8_t{0});
+                    return {};
+                }
+
+                ParseResult<void> parseIntDataDirective(std::uint32_t BitWidth, std::uint64_t DeclaredSize, std::vector<std::uint8_t>& InitialBytes)
+                {
+                    const std::size_t ByteWidth = BitWidth / 8;
+                    for (;;)
+                    {
+                        const auto StartToken = peek();
+                        if (!StartToken)
+                        {
+                            return std::unexpected(StartToken.error());
+                        }
+                        const std::size_t BeginOffset = (*StartToken)->BeginOffset;
+                        const auto Bits = parseSignedOrUnsignedInteger(BitWidth, "expected an integer value");
+                        if (!Bits)
+                        {
+                            return std::unexpected(Bits.error());
+                        }
+                        if (ByteWidth > DeclaredSize - InitialBytes.size())
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(BeginOffset, LastTokenEnd, "global initializer exceeds its declared byte size"));
+                        }
+                        for (std::size_t ByteIndex = 0; ByteIndex < ByteWidth; ++ByteIndex)
+                        {
+                            InitialBytes.push_back(static_cast<std::uint8_t>((*Bits >> (ByteIndex * 8)) & 0xFFU));
+                        }
+                        const auto Comma = eat(TokenKind::Comma);
+                        if (!Comma)
+                        {
+                            return std::unexpected(Comma.error());
+                        }
+                        if (!*Comma)
+                        {
+                            break;
+                        }
+                    }
+                    return expectEndOfLine("unexpected token after integer value");
+                }
+
+                ParseResult<void> parseFloatDataDirective(std::uint64_t DeclaredSize, std::vector<std::uint8_t>& InitialBytes)
+                {
+                    for (;;)
+                    {
+                        const auto StartToken = peek();
+                        if (!StartToken)
+                        {
+                            return std::unexpected(StartToken.error());
+                        }
+                        const std::size_t BeginOffset = (*StartToken)->BeginOffset;
+                        const auto Bits = parseFloat64Bits();
+                        if (!Bits)
+                        {
+                            return std::unexpected(Bits.error());
+                        }
+                        if (8 > DeclaredSize - InitialBytes.size())
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(BeginOffset, LastTokenEnd, "global initializer exceeds its declared byte size"));
+                        }
+                        for (std::size_t ByteIndex = 0; ByteIndex < 8; ++ByteIndex)
+                        {
+                            InitialBytes.push_back(static_cast<std::uint8_t>((*Bits >> (ByteIndex * 8)) & 0xFFU));
+                        }
+                        const auto Comma = eat(TokenKind::Comma);
+                        if (!Comma)
+                        {
+                            return std::unexpected(Comma.error());
+                        }
+                        if (!*Comma)
+                        {
+                            break;
+                        }
+                    }
+                    return expectEndOfLine("unexpected token after floating-point value");
+                }
+
+                ParseResult<void> parseRelocDirective(std::uint64_t DeclaredSize, std::uint64_t Alignment, std::vector<MachineGlobalRelocation>& Relocations)
+                {
+                    const auto OffsetToken = peek();
+                    if (!OffsetToken)
+                    {
+                        return std::unexpected(OffsetToken.error());
+                    }
+                    const std::size_t OffsetBegin = (*OffsetToken)->BeginOffset;
+                    const std::size_t OffsetEnd = (*OffsetToken)->EndOffset;
+                    const auto ByteOffset = parseUnsignedInteger("expected a relocation byte offset");
                     if (!ByteOffset)
                     {
                         return std::unexpected(ByteOffset.error());
                     }
-                    if (!Line.eat(TokenKind::Comma))
+                    if (const auto Comma = expect(TokenKind::Comma, "expected ',' after relocation byte offset"); !Comma)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Line.offset(), "expected ',' after relocation byte offset"));
+                        return std::unexpected(Comma.error());
                     }
-                    const auto Symbol = Line.parseSymbol();
+                    const auto Symbol = parseSymbol();
                     if (!Symbol)
                     {
                         return std::unexpected(Symbol.error());
                     }
-                    const auto Addend = Line.parseOptionalDisplacement();
+                    const auto Addend = parseOptionalDisplacement();
                     if (!Addend)
                     {
                         return std::unexpected(Addend.error());
                     }
-                    if (const auto EndResult = Line.expectEndOfLine("unexpected token after global relocation"); !EndResult)
+                    if (const auto EndResult = expectEndOfLine("unexpected token after global relocation"); !EndResult)
                     {
                         return EndResult;
                     }
                     if (Alignment < MachineGlobalRelocation::ByteSize || *ByteOffset % MachineGlobalRelocation::ByteSize != 0)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(OffsetPos, "global relocations require alignment >= 8 and an eight-byte aligned byte offset"));
+                        return std::unexpected(detail::makeTextDiagnostic(OffsetBegin, OffsetEnd, "global relocations require alignment >= 8 and an eight-byte aligned byte offset"));
                     }
                     if (*ByteOffset > DeclaredSize || MachineGlobalRelocation::ByteSize > DeclaredSize - *ByteOffset)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(OffsetPos, "global relocation exceeds its declared byte size"));
+                        return std::unexpected(detail::makeTextDiagnostic(OffsetBegin, OffsetEnd, "global relocation exceeds its declared byte size"));
                     }
                     for (const MachineGlobalRelocation& Existing : Relocations)
                     {
                         if (Existing.ByteOffset == *ByteOffset)
                         {
-                            return std::unexpected(detail::makeTextDiagnostic(OffsetPos, "global relocation overlaps an earlier relocation"));
+                            return std::unexpected(detail::makeTextDiagnostic(OffsetBegin, OffsetEnd, "global relocation overlaps an earlier relocation"));
                         }
                     }
                     Relocations.push_back({*ByteOffset, *Symbol, *Addend});
                     return {};
                 }
 
-                ParseResult<void> parseByteDirective(LineCursor& Line, std::uint64_t DeclaredSize, std::vector<std::uint8_t>& InitialBytes)
-                {
-                    do
-                    {
-                        const std::size_t ValueOffset = Line.offset();
-                        const auto ByteValue = Line.parseUnsignedInteger("expected a byte value in the range 0 through 255");
-                        if (!ByteValue || *ByteValue > 255)
-                        {
-                            return std::unexpected(detail::makeTextDiagnostic(ValueOffset, "expected a byte value in the range 0 through 255"));
-                        }
-                        if (InitialBytes.size() >= DeclaredSize)
-                        {
-                            return std::unexpected(detail::makeTextDiagnostic(ValueOffset, "global initializer exceeds its declared byte size"));
-                        }
-                        InitialBytes.push_back(static_cast<std::uint8_t>(*ByteValue));
-                    } while (Line.eat(TokenKind::Comma));
-                    return Line.expectEndOfLine("unexpected token after byte value");
-                }
-
-                ParseResult<void> parseFunctionDefinition(const Token& Directive, LineCursor& HeaderLine)
+                ParseResult<void> parseFunctionDefinition(const Token& Directive)
                 {
                     if (CurrentSection != detail::SectionKind::Text)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "function definition must appear in the .text section"));
+                        return std::unexpected(detail::makeTextDiagnostic(Directive.BeginOffset, Directive.EndOffset, "function definition must appear in the .text section"));
                     }
-                    const auto Declared = HeaderLine.parseDeclaredLabel();
-                    if (!Declared)
+                    core::Name FunctionName = core::NAME_None;
+                    const auto HasSymbol = at(TokenKind::At);
+                    if (!HasSymbol)
                     {
-                        return std::unexpected(Declared.error());
+                        return std::unexpected(HasSymbol.error());
                     }
-                    const auto Linkage = HeaderLine.parseOptionalLinkage(Declared->OriginalName);
-                    if (!Linkage)
+                    if (*HasSymbol)
                     {
-                        return std::unexpected(Linkage.error());
+                        const auto ParsedSymbol = parseSymbol();
+                        if (!ParsedSymbol)
+                        {
+                            return std::unexpected(ParsedSymbol.error());
+                        }
+                        FunctionName = *ParsedSymbol;
                     }
-                    if (const auto LabelResult = registerModuleLabel(*Declared); !LabelResult)
+                    MachineSymbolLinkage Linkage = MachineSymbolLinkage::Local;
+                    const auto LinkageToken = eat(TokenKind::Identifier);
+                    if (!LinkageToken)
                     {
-                        return LabelResult;
+                        return std::unexpected(LinkageToken.error());
                     }
-                    MachineFunction& Function = Module->createFunction(Declared->OriginalName, *Linkage);
+                    if (*LinkageToken)
+                    {
+                        const auto Parsed = detail::parseLinkage((*LinkageToken)->text());
+                        if (!Parsed)
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic((*LinkageToken)->BeginOffset, (*LinkageToken)->EndOffset, "expected 'local' or 'external' linkage"));
+                        }
+                        if (*Parsed == MachineSymbolLinkage::External && !FunctionName.valid())
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic((*LinkageToken)->BeginOffset, (*LinkageToken)->EndOffset, "external definitions require a nonempty symbol name"));
+                        }
+                        Linkage = *Parsed;
+                    }
+                    if (const auto EndResult = expectEndOfLine("unexpected token after .function header"); !EndResult)
+                    {
+                        return EndResult;
+                    }
+
+                    MachineFunction& Function = Module->createFunction(FunctionName, Linkage);
                     FunctionParseState State{Function};
                     for (;;)
                     {
-                        auto BodyLine = Stream.nextLine();
-                        if (!BodyLine)
+                        if (const auto Skipped = skipBlankLines(); !Skipped)
                         {
-                            return std::unexpected(BodyLine.error());
+                            return Skipped;
                         }
-                        if (!*BodyLine)
+                        const auto Next = peek();
+                        if (!Next)
                         {
-                            return std::unexpected(detail::makeTextDiagnostic(Stream.endOffset(), "unterminated function definition"));
+                            return std::unexpected(Next.error());
                         }
-                        const auto First = (*BodyLine)->expect(TokenKind::Identifier, "expected a directive, label, or instruction");
+                        if ((*Next)->Kind == TokenKind::EndOfFile)
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(LexerState.endOffset(), "unterminated function definition"));
+                        }
+                        const auto First = expect(TokenKind::Identifier, "expected a directive, label, or instruction");
                         if (!First)
                         {
                             return std::unexpected(First.error());
                         }
-                        if ((*BodyLine)->eat(TokenKind::Colon))
+                        const auto Colon = eat(TokenKind::Colon);
+                        if (!Colon)
                         {
-                            if (const auto BlockResult = parseBasicBlock(State, **First, **BodyLine); !BlockResult)
+                            return std::unexpected(Colon.error());
+                        }
+                        if (*Colon)
+                        {
+                            if (const auto BlockResult = parseBasicBlock(State, *First); !BlockResult)
                             {
                                 return BlockResult;
                             }
                             continue;
                         }
-                        const std::string_view Keyword = (*First)->text();
+                        const std::string_view Keyword = First->text();
                         if (Keyword == detail::StackSlotDirective)
                         {
-                            if (const auto SlotResult = parseStackSlot(State, **First, **BodyLine); !SlotResult)
+                            if (const auto SlotResult = parseStackSlot(State, *First); !SlotResult)
                             {
                                 return SlotResult;
                             }
@@ -853,7 +1372,7 @@ namespace ink::vm
                         }
                         if (Keyword == detail::FrameDirective)
                         {
-                            if (const auto FrameResult = parseFrameLayout(State, **First, **BodyLine); !FrameResult)
+                            if (const auto FrameResult = parseFrameLayout(State, *First); !FrameResult)
                             {
                                 return FrameResult;
                             }
@@ -861,73 +1380,160 @@ namespace ink::vm
                         }
                         if (Keyword == detail::EndFunctionDirective)
                         {
-                            if ((*BodyLine)->peek())
+                            if (const auto EndResult = expectEndOfLine("unexpected token after .endfunction"); !EndResult)
                             {
-                                return std::unexpected(detail::makeTextDiagnostic((*First)->Offset, "unexpected token after .endfunction"));
+                                return EndResult;
                             }
                             return emitFunctionInstructions(State);
                         }
                         if (Keyword.starts_with('.'))
                         {
-                            return std::unexpected(detail::makeTextDiagnostic((*First)->Offset, "unknown or misplaced directive inside function"));
+                            return std::unexpected(detail::makeTextDiagnostic(First->BeginOffset, First->EndOffset, "unknown or misplaced directive inside function"));
                         }
-                        if (const auto InstructionResult = parseInstruction(State, **First, **BodyLine); !InstructionResult)
+                        if (const auto InstructionResult = parseInstruction(State, *First); !InstructionResult)
                         {
                             return InstructionResult;
                         }
                     }
                 }
 
-                ParseResult<void> parseStackSlot(FunctionParseState& State, const Token& Directive, LineCursor& Line)
+                ParseResult<void> parseStackSlot(FunctionParseState& State, const Token& Directive)
                 {
                     if (State.HasBlock || State.HasFrame)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "stack slots and one final frame layout must precede all basic blocks"));
+                        return std::unexpected(detail::makeTextDiagnostic(Directive.BeginOffset, Directive.EndOffset, "stack slots and one final frame layout must precede all basic blocks"));
                     }
-                    const auto SlotSize = Line.parseUnsignedInteger("expected stack slot byte size");
-                    if (!SlotSize || !Line.eat(TokenKind::Comma))
+                    std::optional<std::uint64_t> SlotSize;
+                    std::optional<std::uint64_t> Alignment;
+                    for (;;)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "invalid stack slot size or alignment"));
+                        const auto LineDone = atLineEnd();
+                        if (!LineDone)
+                        {
+                            return std::unexpected(LineDone.error());
+                        }
+                        if (*LineDone)
+                        {
+                            break;
+                        }
+                        const auto Attr = expect(TokenKind::Identifier, "expected stack slot attribute 'size' or 'align'");
+                        if (!Attr)
+                        {
+                            return std::unexpected(Attr.error());
+                        }
+                        if (Attr->text() == detail::SizeKeyword)
+                        {
+                            if (SlotSize)
+                            {
+                                return std::unexpected(detail::makeTextDiagnostic(Attr->BeginOffset, Attr->EndOffset, "duplicate 'size' attribute on .stackslot"));
+                            }
+                            const auto ParsedSize = parseUnsignedInteger("expected stack slot byte size after 'size'");
+                            if (!ParsedSize)
+                            {
+                                return std::unexpected(ParsedSize.error());
+                            }
+                            SlotSize = *ParsedSize;
+                        }
+                        else if (Attr->text() == detail::AlignKeyword)
+                        {
+                            if (Alignment)
+                            {
+                                return std::unexpected(detail::makeTextDiagnostic(Attr->BeginOffset, Attr->EndOffset, "duplicate 'align' attribute on .stackslot"));
+                            }
+                            const auto AlignToken = peek();
+                            if (!AlignToken)
+                            {
+                                return std::unexpected(AlignToken.error());
+                            }
+                            const std::size_t AlignBegin = (*AlignToken)->BeginOffset;
+                            const std::size_t AlignEnd = (*AlignToken)->EndOffset;
+                            const auto ParsedAlign = parseUnsignedInteger("expected stack slot alignment after 'align'");
+                            if (!ParsedAlign)
+                            {
+                                return std::unexpected(ParsedAlign.error());
+                            }
+                            if (*ParsedAlign == 0 || (*ParsedAlign & (*ParsedAlign - 1)) != 0)
+                            {
+                                return std::unexpected(detail::makeTextDiagnostic(AlignBegin, AlignEnd, "stack slot alignment must be a nonzero power of two"));
+                            }
+                            Alignment = *ParsedAlign;
+                        }
+                        else
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(Attr->BeginOffset, Attr->EndOffset, "unknown .stackslot attribute; expected 'size' or 'align'"));
+                        }
                     }
-                    const auto Alignment = Line.parseUnsignedInteger("expected stack slot alignment");
-                    if (!Alignment || Line.peek() || !State.Function.frameInfo().createStackSlot(*SlotSize, *Alignment))
+                    if (const auto EndResult = expectEndOfLine(); !EndResult)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "invalid stack slot size or alignment"));
+                        return EndResult;
+                    }
+                    if (!SlotSize)
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(Directive.BeginOffset, Directive.EndOffset, ".stackslot requires a 'size' attribute"));
+                    }
+                    if (!State.Function.frameInfo().createStackSlot(*SlotSize, Alignment.value_or(1)))
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(Directive.BeginOffset, Directive.EndOffset, "invalid stack slot size or alignment"));
                     }
                     return {};
                 }
 
-                ParseResult<void> parseFrameLayout(FunctionParseState& State, const Token& Directive, LineCursor& Line)
+                ParseResult<void> parseFrameLayout(FunctionParseState& State, const Token& Directive)
                 {
                     if (State.HasBlock || State.HasFrame)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "stack slots and one final frame layout must precede all basic blocks"));
+                        return std::unexpected(detail::makeTextDiagnostic(Directive.BeginOffset, Directive.EndOffset, "stack slots and one final frame layout must precede all basic blocks"));
                     }
-                    const auto BaseOffset = Line.parseUnsignedInteger("expected frame layout base offset");
-                    if (!BaseOffset || Line.peek() || !State.Function.frameInfo().layout(*BaseOffset))
+                    const auto BaseKeywordToken = expect(TokenKind::Identifier, "expected 'base' after .frame");
+                    if (!BaseKeywordToken)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Directive.Offset, "invalid or overflowing frame layout"));
+                        return std::unexpected(BaseKeywordToken.error());
+                    }
+                    if (BaseKeywordToken->text() != detail::BaseKeyword)
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(BaseKeywordToken->BeginOffset, BaseKeywordToken->EndOffset, "expected 'base' after .frame"));
+                    }
+                    const auto BaseToken = peek();
+                    if (!BaseToken)
+                    {
+                        return std::unexpected(BaseToken.error());
+                    }
+                    const std::size_t BaseBegin = (*BaseToken)->BeginOffset;
+                    const std::size_t BaseEnd = (*BaseToken)->EndOffset;
+                    const auto BaseOffset = parseUnsignedInteger("expected frame layout base offset after 'base'");
+                    if (!BaseOffset)
+                    {
+                        return std::unexpected(BaseOffset.error());
+                    }
+                    if (const auto EndResult = expectEndOfLine("unexpected token after .frame directive"); !EndResult)
+                    {
+                        return EndResult;
+                    }
+                    if (!State.Function.frameInfo().layout(*BaseOffset))
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(BaseBegin, BaseEnd, "frame layout overflows unsigned 64-bit byte range"));
                     }
                     State.HasFrame = true;
                     return {};
                 }
 
-                ParseResult<void> parseBasicBlock(FunctionParseState& State, const Token& LabelToken, LineCursor& Line)
+                ParseResult<void> parseBasicBlock(FunctionParseState& State, const Token& LabelToken)
                 {
-                    const Token* NameSource = &LabelToken;
-                    if (const Token* AliasToken = Line.eat(TokenKind::String))
+                    const auto AliasToken = eat(TokenKind::String);
+                    if (!AliasToken)
                     {
-                        NameSource = AliasToken;
+                        return std::unexpected(AliasToken.error());
                     }
-                    if (Line.peek())
+                    if (const auto EndResult = expectEndOfLine("a block label accepts at most one quoted original name"); !EndResult)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(LabelToken.Offset, "a block label accepts at most one quoted original name"));
+                        return EndResult;
                     }
                     if (State.BlockLabels.contains(LabelToken.text()))
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(LabelToken.Offset, "duplicate block label in the function"));
+                        return std::unexpected(detail::makeTextDiagnostic(LabelToken.BeginOffset, LabelToken.EndOffset, "duplicate block label in the function"));
                     }
-                    const auto BlockName = detail::internTextName(NameSource->text(), NameSource->Offset);
+                    const Token& NameSource = *AliasToken ? **AliasToken : LabelToken;
+                    const auto BlockName = detail::internTextName(NameSource.text(), NameSource.BeginOffset, NameSource.EndOffset);
                     if (!BlockName)
                     {
                         return std::unexpected(BlockName.error());
@@ -939,78 +1545,104 @@ namespace ink::vm
                     return {};
                 }
 
-                ParseResult<void> parseInstruction(FunctionParseState& State, const Token& Mnemonic, LineCursor& Line)
+                ParseResult<void> parseInstruction(FunctionParseState& State, const Token& Mnemonic)
                 {
                     if (!State.CurrentBlock)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Mnemonic.Offset, "an instruction requires a basic block"));
+                        return std::unexpected(detail::makeTextDiagnostic(Mnemonic.BeginOffset, Mnemonic.EndOffset, "an instruction requires a basic block"));
                     }
                     const auto Signature = detail::lookupMnemonic(Mnemonic.text());
                     if (!Signature)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Mnemonic.Offset, "unknown instruction mnemonic"));
+                        return std::unexpected(detail::makeTextDiagnostic(Mnemonic.BeginOffset, Mnemonic.EndOffset, "unknown instruction mnemonic"));
                     }
-                    PendingInstruction Pending{State.CurrentBlock, nullptr, {}, {}, Mnemonic.Offset, 0, 0};
+                    PendingInstruction Pending{State.CurrentBlock, nullptr, {}, {}, Mnemonic.BeginOffset, Mnemonic.EndOffset, 0, 0, 0};
                     std::array<OperandKind, 3> Kinds{};
                     std::size_t OperandCount = 0;
                     if (Signature->HasBlockTarget)
                     {
-                        const std::size_t TargetIndex = Signature->OperandCount - 1;
+                        const std::size_t TargetIndex = Signature->BlockTargetIndex;
                         for (std::size_t Index = 0; Index < TargetIndex; ++Index)
                         {
-                            const std::size_t OperandOffset = Line.offset();
-                            auto OperandValue = Line.parseOperand();
-                            if (!OperandValue || !Line.eat(TokenKind::Comma))
+                            auto OperandValue = parseOperand();
+                            if (!OperandValue)
                             {
-                                return std::unexpected(detail::makeTextDiagnostic(OperandOffset, "expected a branch comparison operand followed by a comma"));
+                                return std::unexpected(OperandValue.error());
+                            }
+                            if (const auto Comma = expect(TokenKind::Comma, "expected ',' after branch comparison operand"); !Comma)
+                            {
+                                return std::unexpected(Comma.error());
                             }
                             Kinds[Index] = *detail::parsedOperandKind(*OperandValue);
                             Pending.Operands[Index] = std::move(*OperandValue);
                         }
-                        const auto TargetToken = Line.expect(TokenKind::Identifier, "a branch requires a final basic block label");
-                        if (!TargetToken || Line.peek())
+                        const auto TargetToken = expect(TokenKind::Identifier, "a branch requires a final basic block label");
+                        if (!TargetToken)
                         {
-                            return std::unexpected(detail::makeTextDiagnostic(Line.offset(), "a branch requires a final basic block label"));
+                            return std::unexpected(TargetToken.error());
                         }
-                        Pending.TargetLabel = (*TargetToken)->text();
-                        Pending.TargetOffset = (*TargetToken)->Offset;
+                        if (const auto EndResult = expectEndOfLine("unexpected token after basic block target"); !EndResult)
+                        {
+                            return EndResult;
+                        }
+                        Pending.TargetLabel = TargetToken->text();
+                        Pending.TargetBeginOffset = TargetToken->BeginOffset;
+                        Pending.TargetEndOffset = TargetToken->EndOffset;
                         Pending.TargetOperandIndex = TargetIndex;
                         Kinds[TargetIndex] = OperandKind::BasicBlock;
-                        OperandCount = Signature->OperandCount;
+                        OperandCount = TargetIndex + 1;
                     }
                     else
                     {
-                        if (Line.peek())
+                        const auto LineDone = atLineEnd();
+                        if (!LineDone)
                         {
-                            do
+                            return std::unexpected(LineDone.error());
+                        }
+                        if (!*LineDone)
+                        {
+                            for (;;)
                             {
-                                const std::size_t OperandOffset = Line.offset();
+                                const auto Start = peek();
+                                if (!Start)
+                                {
+                                    return std::unexpected(Start.error());
+                                }
                                 if (OperandCount == Pending.Operands.size())
                                 {
-                                    return std::unexpected(detail::makeTextDiagnostic(OperandOffset, "too many instruction operands"));
+                                    return std::unexpected(detail::makeTextDiagnostic((*Start)->BeginOffset, (*Start)->EndOffset, "too many instruction operands"));
                                 }
-                                auto OperandValue = Line.parseOperand();
+                                auto OperandValue = parseOperand();
                                 if (!OperandValue)
                                 {
                                     return std::unexpected(OperandValue.error());
                                 }
                                 Kinds[OperandCount] = *detail::parsedOperandKind(*OperandValue);
                                 Pending.Operands[OperandCount++] = std::move(*OperandValue);
-                            } while (Line.eat(TokenKind::Comma));
+                                const auto Comma = eat(TokenKind::Comma);
+                                if (!Comma)
+                                {
+                                    return std::unexpected(Comma.error());
+                                }
+                                if (!*Comma)
+                                {
+                                    break;
+                                }
+                            }
                         }
-                        if (const auto EndResult = Line.expectEndOfLine("expected a comma between instruction operands"); !EndResult)
+                        if (const auto EndResult = expectEndOfLine("expected ',' between instruction operands"); !EndResult)
                         {
                             return EndResult;
                         }
                     }
-                    const detail::OpcodeDescriptor* Descriptor = detail::findOpcodeDescriptor(Mnemonic.text(), std::span<const OperandKind>(Kinds.data(), OperandCount));
+                    const detail::OpcodeDescriptor* Descriptor = detail::findOpcodeDescriptor(Mnemonic.text(), {Kinds.data(), OperandCount});
                     if (!Descriptor)
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Mnemonic.Offset, "instruction operands do not match the opcode form"));
+                        return std::unexpected(detail::makeTextDiagnostic(Mnemonic.BeginOffset, Mnemonic.EndOffset, "operand types or count do not match instruction mnemonic"));
                     }
                     if (const auto ValidationError = detail::validateParsedInstruction(*Descriptor, Pending.Operands))
                     {
-                        return std::unexpected(detail::makeTextDiagnostic(Mnemonic.Offset, *ValidationError));
+                        return std::unexpected(detail::makeTextDiagnostic(Mnemonic.BeginOffset, Mnemonic.EndOffset, *ValidationError));
                     }
                     Pending.Descriptor = Descriptor;
                     State.PendingInstructions.push_back(std::move(Pending));
@@ -1021,12 +1653,12 @@ namespace ink::vm
                 {
                     for (PendingInstruction& Pending : State.PendingInstructions)
                     {
-                        if (!Pending.TargetLabel.empty())
+                        if (Pending.Descriptor->HasBlockTarget)
                         {
                             const auto Target = State.BlockLabels.find(Pending.TargetLabel);
                             if (Target == State.BlockLabels.end())
                             {
-                                return std::unexpected(detail::makeTextDiagnostic(Pending.TargetOffset, "unknown basic block label in this function"));
+                                return std::unexpected(detail::makeTextDiagnostic(Pending.TargetBeginOffset, Pending.TargetEndOffset, "unknown basic block label in this function"));
                             }
                             Pending.Operands[Pending.TargetOperandIndex].emplace<BasicBlockOperand>(Target->second);
                         }
@@ -1037,16 +1669,19 @@ namespace ink::vm
                         Builder.setInsertPoint(*Pending.Block);
                         if (!Pending.Descriptor->Create(Builder, Pending.Operands))
                         {
-                            return std::unexpected(detail::makeTextDiagnostic(Pending.Offset, "instruction operands cannot be inserted into their function"));
+                            return std::unexpected(detail::makeTextDiagnostic(Pending.BeginOffset, Pending.EndOffset, "instruction operands cannot be inserted into their function"));
                         }
                     }
                     return {};
                 }
 
-                LineStream Stream;
+                Lexer LexerState;
+                Token Current;
+                bool HasCurrent = false;
+                std::size_t LastTokenEnd = 0;
                 std::unique_ptr<MachineModule> Module;
-                std::unordered_set<std::string_view> ModuleLabels;
                 detail::SectionKind CurrentSection = detail::SectionKind::None;
+                bool HasSeenSection = false;
         };
     } // namespace
 

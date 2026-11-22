@@ -10,12 +10,12 @@
 
 namespace ink::vm
 {
-    // Writes deterministic assembly text, preserving names, data, instructions and frame layout state.
-    // Uses names directly when possible; generated labels carry an original name only when an alias is needed.
-    // Symbol addresses use @name or @"quoted name" with an optional signed byte offset and remain unresolved.
+    // Writes deterministic canonical VM assembly text (see docs/VM-Text-Format.md), preserving
+    // module metadata, declarations, global data/relocations, frame layout, and instructions.
+    // Malformed modules return a diagnostic with an empty SourceRange.
     [[nodiscard]] std::expected<std::string, core::Diagnostic> writeMachineModuleText(const MachineModule& ModuleValue);
 
-    // Returns an independent owning module. No input text or temporary parser storage is borrowed.
-    // Malformed input returns a diagnostic with byte offsets into Text; callers may attach a SourceId.
+    // Parses VM assembly text into an independent owning MachineModule without borrowing Text.
+    // Malformed input returns a VMTextInvalid diagnostic with byte offsets into Text; callers may attach a SourceId.
     [[nodiscard]] std::expected<std::unique_ptr<MachineModule>, core::Diagnostic> readMachineModuleText(std::string_view Text);
 } // namespace ink::vm

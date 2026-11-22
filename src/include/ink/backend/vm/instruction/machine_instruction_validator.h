@@ -71,6 +71,23 @@ namespace ink::vm
         return std::nullopt;
     }
 
+    inline std::optional<std::string_view> validateSymbolicImmediateWidth(const MachineInstruction& Instruction) noexcept
+    {
+        if (Instruction.bitWidth() == 64)
+        {
+            return std::nullopt;
+        }
+        for (std::size_t Index = 0; Index < Instruction.operandCount(); ++Index)
+        {
+            const Operand* Value = Instruction.getOperand(Index);
+            if (Value->getKind() == OperandKind::Immediate && static_cast<const ImmediateOperand&>(*Value).getSymbol())
+            {
+                return "symbol address immediate requires a 64-bit instruction";
+            }
+        }
+        return std::nullopt;
+    }
+
     inline std::optional<std::string_view> validateInstructionConstraints(const MachineInstruction& Instruction) noexcept
     {
         if (const auto Error = validateFloatingPointOperands(Instruction))
@@ -81,6 +98,10 @@ namespace ink::vm
         {
             return Error;
         }
-        return validateDirectControlTarget(Instruction);
+        if (const auto Error = validateDirectControlTarget(Instruction))
+        {
+            return Error;
+        }
+        return validateSymbolicImmediateWidth(Instruction);
     }
 } // namespace ink::vm

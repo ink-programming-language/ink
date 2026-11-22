@@ -59,11 +59,10 @@ namespace ink::backend::llvm_inkvm
             Stream << ".module \"cf_harness\"\n";
             Stream << ".declare function @" << TargetFunction << "\n";
             Stream << ".section .data\n";
-            Stream << ".global test_result, 8, 8 external\n";
-            Stream << "    .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00\n";
+            Stream << ".global @test_result size 8 align 8 external\n";
             Stream << ".endglobal\n";
             Stream << ".section .text\n";
-            Stream << ".function main external\n";
+            Stream << ".function @main external\n";
             Stream << "entry:\n";
             Stream << "    add64rri sp, sp, " << CallBytes << "\n";
             for (std::size_t Index = 0; Index < Arguments.size(); ++Index)

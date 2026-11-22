@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
@@ -18,6 +20,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 
 namespace ink::vm::test
 {
@@ -60,7 +63,11 @@ namespace ink::vm::test
                 {
                     return ImmediateOperand(127);
                 }
-                return Index == 1 ? ImmediateOperand(core::NamePool::instance().intern("external.address"), std::numeric_limits<std::int64_t>::min()) : ImmediateOperand(std::numeric_limits<std::uint64_t>::max() - Index);
+                if constexpr (OpcodeTraits<Operation>::BitWidth == 64)
+                {
+                    return Index == 1 ? ImmediateOperand(core::NamePool::instance().intern("external.address"), std::numeric_limits<std::int64_t>::min()) : ImmediateOperand(std::numeric_limits<std::uint64_t>::max() - Index);
+                }
+                return ImmediateOperand(std::numeric_limits<std::uint64_t>::max() - Index);
             }
         }
 
@@ -234,20 +241,20 @@ namespace ink::vm::test
         EXPECT_LT(Text->size(), 20000U);
     }
 
-    // Empty anonymous modules serialize deterministically and do not acquire declarations or a frame during parsing.
+    // Empty anonymous modules serialize to a single .module header without empty section clutter and parse back empty.
     TEST(VMMachineModuleTextTest, RoundTripsEmptyAnonymousModule)
     {
         MachineModule Module;
         const auto Text = writeMachineModuleText(Module);
         ASSERT_TRUE(Text.has_value());
-        EXPECT_NE(Text->find(".module \"\""), std::string::npos);
+        EXPECT_EQ(*Text, ".module \"\"\n");
         const auto Parsed = readMachineModuleText(*Text);
         ASSERT_TRUE(Parsed.has_value());
         expectEqualModules(Module, **Parsed);
     }
 
-    // Unique node names appear once, and each function can reuse entry or a module-level name as a block label.
-    TEST(VMMachineModuleTextTest, UsesNodeNamesAndFunctionLocalBlockLabels)
+    // Globals and functions use direct @symbol names with keywordized attributes, and each function has an independent block label scope.
+    TEST(VMMachineModuleTextTest, UsesDirectSymbolHeadersAndFunctionLocalBlockLabels)
     {
         auto& Names = core::NamePool::instance();
         MachineModule Module;
@@ -259,10 +266,10 @@ namespace ink::vm::test
         Module.createFunction(Names.intern("another")).createBasicBlock(Names.intern("entry"));
         const auto Text = writeMachineModuleText(Module);
         ASSERT_TRUE(Text.has_value());
-        EXPECT_NE(Text->find(".global message, 0, 1 readonly\n"), std::string::npos);
-        EXPECT_NE(Text->find(".global scratch, 16, 8\n"), std::string::npos);
-        EXPECT_NE(Text->find(".function sum\nentry:\nsum:\n.endfunction\n"), std::string::npos);
-        EXPECT_NE(Text->find(".function another\nentry:\n.endfunction\n"), std::string::npos);
+        EXPECT_NE(Text->find(".global @message size 0 readonly\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find(".global @scratch size 16 align 8\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find(".function @sum\nentry:\nsum:\n.endfunction\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find(".function @another\nentry:\n.endfunction\n"), std::string::npos) << *Text;
         EXPECT_EQ(Text->find("\"sum\""), std::string::npos);
         EXPECT_EQ(Text->find(".block"), std::string::npos);
         const auto Parsed = readMachineModuleText(*Text);
@@ -270,8 +277,8 @@ namespace ink::vm::test
         expectEqualModules(Module, **Parsed);
     }
 
-    // Generated labels avoid later real names, while aliases retain duplicate, anonymous, and arbitrary-byte node names.
-    TEST(VMMachineModuleTextTest, PreservesNamesWhenGeneratedLabelsWouldCollide)
+    // Anonymous, duplicate, and arbitrary-byte module definitions round-trip directly without dummy labels, while basic block labels still disambiguate collisions.
+    TEST(VMMachineModuleTextTest, PreservesDuplicateAnonymousAndEscapedNamesAcrossDeclarationsAndBlocks)
     {
         auto& Names = core::NamePool::instance();
         MachineModule Module;
@@ -296,18 +303,18 @@ namespace ink::vm::test
         Module.createFunction(Unusual).createBasicBlock(Unusual);
         const auto Text = writeMachineModuleText(Module);
         ASSERT_TRUE(Text.has_value());
-        EXPECT_NE(Text->find(".global .G1 \"\", 0, 1 readonly\n"), std::string::npos);
-        EXPECT_NE(Text->find(".global .G0, 0, 1 readonly\n"), std::string::npos);
-        EXPECT_NE(Text->find(".global .G3 \"\", 0, 1\n"), std::string::npos);
-        EXPECT_NE(Text->find(".global .G2, 0, 1\n"), std::string::npos);
-        EXPECT_NE(Text->find(".function .F1 \"\"\n"), std::string::npos);
-        EXPECT_NE(Text->find(".function .F0\n"), std::string::npos);
-        EXPECT_NE(Text->find(".function sum.2 \"sum\"\n"), std::string::npos);
-        EXPECT_NE(Text->find("entry.2: \"entry\"\n"), std::string::npos);
-        EXPECT_NE(Text->find("entry.1:\n"), std::string::npos);
-        EXPECT_NE(Text->find(".L1: \"\"\n"), std::string::npos);
-        EXPECT_NE(Text->find(".L0:\n"), std::string::npos);
-        EXPECT_NE(Text->find("\"space name\\00\\FF\""), std::string::npos);
+        EXPECT_NE(Text->find(".global size 0 readonly\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find(".global @.G0 size 0 readonly\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find(".global size 0\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find(".global @.G2 size 0\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find(".function\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find(".function @.F0\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find(".function @sum\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find("entry.2: \"entry\"\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find("entry.1:\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find(".L1: \"\"\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find(".L0:\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find("@\"space name\\00\\FF\""), std::string::npos) << *Text;
         const auto Parsed = readMachineModuleText(*Text);
         ASSERT_TRUE(Parsed.has_value());
         expectEqualModules(Module, **Parsed);
@@ -316,22 +323,22 @@ namespace ink::vm::test
         EXPECT_EQ(*Rewritten, *Text);
     }
 
-    // Explicit original-name overrides preserve repeated and anonymous names independently of their textual aliases.
-    TEST(VMMachineModuleTextTest, ReadsOriginalNameOverridesInEachDeclarationKind)
+    // Duplicate module-level symbol definitions and block-label original-name overrides preserve every node identity accurately.
+    TEST(VMMachineModuleTextTest, ReadsDuplicateSymbolDefinitionsAndBlockOriginalNameOverrides)
     {
         constexpr std::string_view Text = R"(.module "aliases"
 .section .data
-.global C "shared", 0, 1 readonly
+.global @shared size 0 readonly
 .endglobal
-.global G "shared", 8, 8
+.global @shared size 8 align 8
 .endglobal
 .section .text
-.function F "shared"
+.function @shared
 entry:
 entry.1: "entry"
 .L0: ""
 .endfunction
-.function second
+.function @second
 entry:
 .endfunction
 )";
@@ -358,17 +365,17 @@ entry:
     {
         std::string Text = R"(.module "demo;name" ; a semicolon within the string remains part of its name
 .section .data
-.global message "A\00\FF\"\\", 2, 4 readonly
+.global @"A\00\FF\"\\" readonly align 4 size 2
     .byte 0x48, 105
 .endglobal
-.global buffer "", 64, 8
+.global size 64 align 8
     .byte 1
 .endglobal
 .section .text
-.function sum
-    .stackslot 4, 4
-    .stackslot 8, 8
-    .frame 16
+.function @sum
+    .stackslot size 4 align 4
+    .stackslot align 8 size 8
+    .frame base 16
 entry: ""
     store32i [bp + 16], 20
     add64rri sp, sp, -16
@@ -407,7 +414,7 @@ entry: ""
     {
         constexpr std::string_view Text = R"(.module ""
 .section .text
-.function F ""
+.function
 B: ""
 store64i [bp], 0
 store64i [bp], 18446744073709551615
@@ -461,7 +468,7 @@ store64i [bp], 0XFF
     {
         constexpr std::string_view Text = R"(.module ""
 .section .text
-.function F
+.function @F
 entry:
     add64rrr bp + 0, sp - 0, pc + 0
     add64rrr bp, pc + 0x2, sp - 0x8
@@ -489,7 +496,7 @@ entry:
     {
         constexpr std::string_view Text = R"(.module ""
 .section .text
-.function F
+.function @F
 entry:
     add64rrr bp, zero + 0, zero + 0x10
     store64m [zero + 0], [zero - 0x8]
@@ -524,7 +531,7 @@ entry:
     {
         constexpr std::string_view Text = R"(.module ""
 .section .text
-.function F
+.function @F
 entry:
     add64rri r0, zero, 0
     add64rri r1, zero, 1
@@ -568,10 +575,10 @@ done:
         EXPECT_NE(Written->find("add64rrr r0, r8 - 8, r9 + 16\n"), std::string::npos);
         EXPECT_NE(Written->find("add64rrm r9, r0, [r1 + 8]\n"), std::string::npos);
         EXPECT_NE(Written->find("add64mrr [r2 + 16], r3, r4\n"), std::string::npos);
-        EXPECT_NE(Written->find("store64i [r5], 0x2a\n"), std::string::npos);
+        EXPECT_NE(Written->find("store64i [r5], 42\n"), std::string::npos);
         EXPECT_NE(Written->find("jmpr r6 + 8\n"), std::string::npos);
         EXPECT_NE(Written->find("call [r7]\n"), std::string::npos);
-        EXPECT_NE(Written->find("je64mib [r8], 0x0, done\n"), std::string::npos);
+        EXPECT_NE(Written->find("je64mib [r8], 0, done\n"), std::string::npos);
         const auto Reparsed = readMachineModuleText(*Written);
         ASSERT_TRUE(Reparsed.has_value());
         expectEqualModules(**Parsed, **Reparsed);
@@ -582,7 +589,7 @@ done:
     {
         constexpr std::string_view Text = R"(.module ""
 .section .text
-.function F
+.function @F
 entry:
     fadd64rrr r0, r1, r9
     fsub64rrr r1, r0, zero
@@ -613,7 +620,7 @@ entry:
         constexpr std::string_view Text = R"(.module "p0"
 .declare function @target
 .section .text
-.function main
+.function @main
 entry:
     mov64ri r0, @target
     mov64rr r1, bp + 16
@@ -643,13 +650,13 @@ done:
         ASSERT_TRUE(Written.has_value());
         EXPECT_NE(Written->find("call r0\n"), std::string::npos);
         EXPECT_NE(Written->find("call bp + 8\n"), std::string::npos);
-        EXPECT_NE(Written->find("jge64rib r6, 0x1, done\n"), std::string::npos);
+        EXPECT_NE(Written->find("jge64rib r6, 1, done\n"), std::string::npos);
         const auto Reparsed = readMachineModuleText(*Written);
         ASSERT_TRUE(Reparsed.has_value());
         expectEqualModules(**Parsed, **Reparsed);
     }
 
-    // Floating-point sources and destinations reject every nonzero displacement, address register, and memory operand.
+    // Floating-point sources and destinations reject every nonzero displacement, address register, and memory operand at the offending instruction.
     TEST(VMMachineModuleTextTest, RejectsFloatingPointDisplacementsAndNonValueRegisters)
     {
         constexpr std::string_view BinaryMnemonics[] = {
@@ -678,9 +685,13 @@ done:
         {
             for (const auto Operands : BinaryOperands)
             {
-                const std::string Text = ".section .text\n.function F\nentry:\n    " + std::string(Mnemonic) + " " + std::string(Operands) + "\n.endfunction\n";
+                const std::string Text = ".module \"\"\n.section .text\n.function @F\nentry:\n    " + std::string(Mnemonic) + " " + std::string(Operands) + "\n.endfunction\n";
                 SCOPED_TRACE(Text);
-                EXPECT_FALSE(readMachineModuleText(Text).has_value());
+                const auto Parsed = readMachineModuleText(Text);
+                ASSERT_FALSE(Parsed.has_value());
+                EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+                EXPECT_EQ(Parsed.error().Span.getBegin().getByteOffset(), Text.find(Mnemonic));
+                EXPECT_EQ(Parsed.error().Span.getEnd().getByteOffset(), Text.find(Mnemonic) + Mnemonic.size());
             }
         }
         constexpr std::string_view UnaryOperands[] = {
@@ -697,9 +708,13 @@ done:
         };
         for (const auto Operands : UnaryOperands)
         {
-            const std::string Text = ".section .text\n.function F\nentry:\n    fsqrt64rr " + std::string(Operands) + "\n.endfunction\n";
+            const std::string Text = ".module \"\"\n.section .text\n.function @F\nentry:\n    fsqrt64rr " + std::string(Operands) + "\n.endfunction\n";
             SCOPED_TRACE(Text);
-            EXPECT_FALSE(readMachineModuleText(Text).has_value());
+            const auto Parsed = readMachineModuleText(Text);
+            ASSERT_FALSE(Parsed.has_value());
+            EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            EXPECT_EQ(Parsed.error().Span.getBegin().getByteOffset(), Text.find("fsqrt64rr"));
+            EXPECT_EQ(Parsed.error().Span.getEnd().getByteOffset(), Text.find("fsqrt64rr") + std::string_view("fsqrt64rr").size());
         }
     }
 
@@ -756,7 +771,7 @@ done:
         for (const auto OperandText : InvalidOperands)
         {
             SCOPED_TRACE(OperandText);
-            const std::string Text = ".module \"\"\n.section .text\n.function F\nentry:\n    add64rrr bp, sp, " + std::string(OperandText) + "\n.endfunction\n";
+            const std::string Text = ".module \"\"\n.section .text\n.function @F\nentry:\n    add64rrr bp, sp, " + std::string(OperandText) + "\n.endfunction\n";
             const auto Parsed = readMachineModuleText(Text);
             ASSERT_FALSE(Parsed.has_value());
             EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
@@ -780,7 +795,7 @@ done:
         for (const auto DestinationText : InvalidDestinations)
         {
             SCOPED_TRACE(DestinationText);
-            const std::string Text = ".module \"\"\n.section .text\n.function F\nentry:\n    add64rri " + std::string(DestinationText) + ", sp, 1\n.endfunction\n";
+            const std::string Text = ".module \"\"\n.section .text\n.function @F\nentry:\n    add64rri " + std::string(DestinationText) + ", sp, 1\n.endfunction\n";
             const auto Parsed = readMachineModuleText(Text);
             ASSERT_FALSE(Parsed.has_value());
             EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
@@ -837,8 +852,8 @@ done:
         }
         const auto Text = writeMachineModuleText(Module);
         ASSERT_TRUE(Text.has_value());
-        EXPECT_NE(Text->find("add64mii [bp], @bp, 0x1"), std::string::npos);
-        EXPECT_NE(Text->find("add64mmi [bp], [@bp], 0x1"), std::string::npos);
+        EXPECT_NE(Text->find("add64mii [bp], @bp, 1"), std::string::npos);
+        EXPECT_NE(Text->find("add64mmi [bp], [@bp], 1"), std::string::npos);
         EXPECT_NE(Text->find("@\"1000\" - 9223372036854775808"), std::string::npos);
         EXPECT_NE(Text->find("@external.data + 9223372036854775807"), std::string::npos);
         const auto Parsed = readMachineModuleText(*Text);
@@ -854,7 +869,7 @@ done:
     {
         constexpr std::string_view Text = R"(.module ""
 .section .text
-.function F
+.function @F
 entry:
     store64i [@external + 0x10], @reserved - 0x8
     add64mii [bp], @"123" + 0, @"quoted\00symbol" - 9223372036854775808
@@ -897,7 +912,7 @@ entry:
         for (const auto OperandText : InvalidOperands)
         {
             SCOPED_TRACE(OperandText);
-            const std::string Text = ".module \"\"\n.section .text\n.function F\nentry:\n    store64i [bp], " + std::string(OperandText) + "\n.endfunction\n";
+            const std::string Text = ".module \"\"\n.section .text\n.function @F\nentry:\n    store64i [bp], " + std::string(OperandText) + "\n.endfunction\n";
             const auto Parsed = readMachineModuleText(Text);
             ASSERT_FALSE(Parsed.has_value());
             EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
@@ -916,12 +931,12 @@ entry:
         for (const auto AddressText : InvalidAddresses)
         {
             SCOPED_TRACE(AddressText);
-            const std::string Text = ".module \"\"\n.section .text\n.function F\nentry:\n    store64i " + std::string(AddressText) + ", 0\n.endfunction\n";
+            const std::string Text = ".module \"\"\n.section .text\n.function @F\nentry:\n    store64i " + std::string(AddressText) + ", 0\n.endfunction\n";
             EXPECT_FALSE(readMachineModuleText(Text).has_value());
         }
     }
 
-    // Empty symbol identities are rejected in both immediate values and memory addresses before writing assembly.
+    // Empty symbol identities are rejected in both immediate values and memory addresses before writing assembly, with an empty SourceRange.
     TEST(VMMachineModuleTextTest, RejectsEmptySymbolNamesWhenWriting)
     {
         MachineModule ImmediateModule;
@@ -931,22 +946,25 @@ entry:
         const auto ImmediateText = writeMachineModuleText(ImmediateModule);
         ASSERT_FALSE(ImmediateText.has_value());
         EXPECT_EQ(ImmediateText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        EXPECT_FALSE(ImmediateText.error().Span.isValid());
         MachineModule AddressModule;
         Builder.setInsertPoint(AddressModule.createFunction().createBasicBlock());
         Builder.create<Opcode::Store64i>(AddressOperand(core::NAME_None), ImmediateOperand(0));
         const auto AddressText = writeMachineModuleText(AddressModule);
         ASSERT_FALSE(AddressText.has_value());
         EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        EXPECT_FALSE(AddressText.error().Span.isValid());
     }
 
-    // An instruction error reports its position in the original source including preceding lines and indentation.
+    // An instruction error reports the full token byte range in the original source including preceding lines and indentation.
     TEST(VMMachineModuleTextTest, ReportsAbsoluteInstructionErrorOffset)
     {
-        constexpr std::string_view Text = ".module \"\"\r\n.section .text\r\n.function F\r\nB:\r\n    unknown [bp], 1\r\n.endfunction";
+        constexpr std::string_view Text = ".module \"\"\r\n.section .text\r\n.function @F\r\nB:\r\n    unknown [bp], 1\r\n.endfunction";
         const auto Parsed = readMachineModuleText(Text);
         ASSERT_FALSE(Parsed.has_value());
         ASSERT_TRUE(Parsed.error().Span.isValid());
         EXPECT_EQ(Parsed.error().Span.getBegin().getByteOffset(), Text.find("unknown"));
+        EXPECT_EQ(Parsed.error().Span.getEnd().getByteOffset(), Text.find("unknown") + std::string_view("unknown").size());
     }
 
     // Malformed modules, declarations, stack layouts, and instruction operands return diagnostics instead of partial modules.
@@ -960,57 +978,64 @@ entry:
             ".module \"bad\\G0\"\n",
             ".module \"\" trailing\n",
             ".module \"\"\n.section .unknown\n",
-            ".module \"\"\n.section .data\n.global G, 0, 3 readonly\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 1, 1 readonly\n.byte 256\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 1, 1 readonly\n.byte\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 1, 1 readonly\n.byte 1,\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 0, 1 readonly\n.section .data\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 0, 1 readonly\n.endconstant\n",
-            ".module \"\"\n.section .data\n.global G, 0, 1 readonly\n",
+            ".module \"\"\n.section .data\n.declare global @late\n",
+            ".module \"\"\n.section .text\n.declare function @late\n",
+            ".module \"\"\n.section .data\n.global @G size 0 align 3 readonly\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 1 size 2\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 1 align 2 align 4\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 1 readonly\n.byte 256\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 1 readonly\n.byte\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 1 readonly\n.byte 1,\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 0 readonly\n.section .data\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 0 readonly\n.endconstant\n",
+            ".module \"\"\n.section .data\n.global @G size 0 readonly\n",
             ".module \"\"\n.section .data\n.constant G, 1\n.endconstant\n",
-            ".module \"\"\n.section .data\n.global G, 0, 1\n.byte 1\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 18446744073709551616, 1\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 0\n.byte 1\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 18446744073709551616\n.endglobal\n",
             ".module \"\"\n.section .text\n.endfunction\n",
             ".module \"\"\n.section .text\nB:\n",
-            ".module \"\"\n.section .text\n.function F\n",
-            ".module \"\"\n.section .text\n.function F\n.function G\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\n.section .data\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\n.stackslot 1, 0\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\n.stackslot 18446744073709551615, 1\n.frame 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\n.frame 0\n.frame 0\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\n.frame 0\n.stackslot 1, 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nstore8i [bp], 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nB:\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\n.stackslot 1, 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nunknown [bp], 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp]\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp], 1, 2\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i bp, 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [rax], 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [ref4294967296], 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp + 9223372036854775808], 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp - 9223372036854775809], 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp], 18446744073709551616\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp], -9223372036854775809\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp], 0x\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp], 0x1g\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp], 1abc\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [ref1x], 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp + -1], 1\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nB:\nstore8i [bp], 1,\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\n.endfunction\n.function F\n.endfunction\n",
-            ".module \"\"\n.section .data\n.global shared, 0, 1 readonly\n.endglobal\n.global shared, 0, 1\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global shared, 0, 1 readonly\n.endglobal\n.section .text\n.function shared\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nentry:\nentry:\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nentry: \"first\"\nentry: \"second\"\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nentry: extra\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F\nentry: \"name\",\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F,\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function F, 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\n",
+            ".module \"\"\n.section .text\n.function @F\n.function @G\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\n.section .data\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\n.stackslot size 1 align 0\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\n.stackslot align 4\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\n.stackslot size 1 size 2\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\n.stackslot size 18446744073709551615\n.frame base 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\n.frame 0\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\n.frame base 0\n.frame base 0\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\n.frame base 0\n.stackslot size 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nstore8i [bp], 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nB:\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\n.stackslot size 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nunknown [bp], 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [bp]\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [bp], 1, 2\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i bp, 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [rax], 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [ref4294967296], 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [bp + 9223372036854775808], 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [bp - 9223372036854775809], 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [bp], 18446744073709551616\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [bp], -9223372036854775809\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [bp], 0x\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [bp], 0x1g\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [bp], 1abc\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [ref1x], 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [bp + -1], 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nB:\nstore8i [bp], 1,\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nentry:\nentry:\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nentry: \"first\"\nentry: \"second\"\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nentry: extra\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nentry: \"name\",\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function F\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F,\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F, 1\n.endfunction\n",
             ".module \"\"\n.section .text\n.function \"sum\"\n.endfunction\n",
             ".module \"\"\n.section .text\nF: .function \"sum\"\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function sum\nentry: .block \"entry\"\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @sum\nentry: .block \"entry\"\n.endfunction\n",
             ".module \"\"\n.section .rodata\nC: .constant \"message\", 1\n.endconstant\n",
+            ".module \"\"\n.section .data\n.global buffer, 16, 8\n.endglobal\n",
             ".module \"\"\n.section .data\nG: .global \"buffer\", 16, 8\n.endglobal\n",
         };
         for (const auto Text : InvalidTexts)
@@ -1029,7 +1054,7 @@ entry:
     {
         constexpr std::string_view Text = R"(.module "control-flow"
 .section .text
-.function sum
+.function @sum
 entry:
     store32i [bp], 20
     add32mmi [bp + 4], [bp], 20
@@ -1047,7 +1072,7 @@ repeated:
 done:
     ret
 .endfunction
-.function another
+.function @another
 entry:
     ret
 .endfunction
@@ -1121,7 +1146,7 @@ entry:
     {
         constexpr std::string_view Text = R"(.module "call-forms"
 .section .text
-.function caller
+.function @caller
 entry:
     call @vm.target
     call 16
@@ -1216,7 +1241,7 @@ entry:
         {
             for (const auto Target : InvalidTargets)
             {
-                const std::string Text = ".module \"\"\n.section .text\n.function caller\nentry:\n    " + std::string(Mnemonic) + " " + std::string(Target) + "\n.endfunction\n";
+                const std::string Text = ".module \"\"\n.section .text\n.function @caller\nentry:\n    " + std::string(Mnemonic) + " " + std::string(Target) + "\n.endfunction\n";
                 SCOPED_TRACE(Text);
                 const auto Parsed = readMachineModuleText(Text);
                 ASSERT_FALSE(Parsed.has_value());
@@ -1250,7 +1275,7 @@ entry:
         };
         for (const auto Target : Targets)
         {
-            const std::string Text = ".module \"\"\n.section .text\n.function caller\nentry:\n    callNative " + std::string(Target) + "\n.endfunction\n";
+            const std::string Text = ".module \"\"\n.section .text\n.function @caller\nentry:\n    callNative " + std::string(Target) + "\n.endfunction\n";
             SCOPED_TRACE(Text);
             const auto Parsed = readMachineModuleText(Text);
             ASSERT_FALSE(Parsed.has_value());
@@ -1261,7 +1286,7 @@ entry:
     // Direct symbol targets allow only a zero addend and normalize explicit zero displacements without changing the call form.
     TEST(VMMachineModuleTextTest, NormalizesZeroDirectSymbolDisplacementsAndRejectsNonzeroWrites)
     {
-        const auto Parsed = readMachineModuleText(".module \"\"\n.section .text\n.function caller\nentry:\n    call @vm.target + 0\n    call @native.target - 0\n.endfunction\n");
+        const auto Parsed = readMachineModuleText(".module \"\"\n.section .text\n.function @caller\nentry:\n    call @vm.target + 0\n    call @native.target - 0\n.endfunction\n");
         ASSERT_TRUE(Parsed.has_value());
         const auto Text = writeMachineModuleText(**Parsed);
         ASSERT_TRUE(Text.has_value());
@@ -1320,7 +1345,7 @@ entry:
     {
         constexpr std::string_view Text = R"(.module "jumps"
 .section .text
-.function caller
+.function @caller
 entry:
     jmpi 0
     jmpi -16
@@ -1348,6 +1373,8 @@ entry:
         EXPECT_EQ(MemoryJump.getTarget().getByteOffset(), 8);
         const auto Written = writeMachineModuleText(**Parsed);
         ASSERT_TRUE(Written.has_value());
+        EXPECT_NE(Written->find("jmpi -16\n"), std::string::npos);
+        EXPECT_NE(Written->find("jmpi 0x8000000000000000\n"), std::string::npos);
         EXPECT_NE(Written->find("jmpi @function.target\n"), std::string::npos);
         EXPECT_NE(Written->find("jmpr pc + 2\n"), std::string::npos);
         EXPECT_NE(Written->find("jmpm [@pointer.slot + 8]\n"), std::string::npos);
@@ -1364,14 +1391,14 @@ entry:
     {
         constexpr std::string_view Text = R"(.module "comparison-targets"
 .section .text
-.function first
+.function @first
 entry:
     je8mmb [bp + 1], [sp + 2], later
     jltu16mib [bp + 3], -1, entry
 later:
     jge64mib [zero + 24], 0x8000000000000000, later
 .endfunction
-.function second
+.function @second
 entry:
     ret
 .endfunction
@@ -1420,14 +1447,14 @@ entry:
         for (const auto Body : InvalidBodies)
         {
             SCOPED_TRACE(Body);
-            const auto Text = std::string(".module \"\"\n.section .text\n.function F\nentry:\n    ") + std::string(Body) + "\n.endfunction\n";
+            const auto Text = std::string(".module \"\"\n.section .text\n.function @F\nentry:\n    ") + std::string(Body) + "\n.endfunction\n";
             const auto Parsed = readMachineModuleText(Text);
             ASSERT_FALSE(Parsed.has_value());
             EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
         }
         constexpr std::string_view CrossFunctionTexts[] = {
-            ".module \"\"\n.section .text\n.function F\nentry:\n    je8mib [bp], 1, target\n.endfunction\n.function G\ntarget:\n    ret\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function G\ntarget:\n    ret\n.endfunction\n.function F\nentry:\n    je8mib [bp], 1, target\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nentry:\n    je8mib [bp], 1, target\n.endfunction\n.function @G\ntarget:\n    ret\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @G\ntarget:\n    ret\n.endfunction\n.function @F\nentry:\n    je8mib [bp], 1, target\n.endfunction\n",
         };
         for (const auto Text : CrossFunctionTexts)
         {
@@ -1435,7 +1462,9 @@ entry:
             ASSERT_FALSE(Parsed.has_value());
             EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
             ASSERT_TRUE(Parsed.error().Span.isValid());
-            EXPECT_EQ(Parsed.error().Span.getBegin().getByteOffset(), Text.find("je8mib [bp], 1, target") + std::string_view("je8mib [bp], 1, ").size());
+            const std::size_t TargetOffset = Text.find("je8mib [bp], 1, target") + std::string_view("je8mib [bp], 1, ").size();
+            EXPECT_EQ(Parsed.error().Span.getBegin().getByteOffset(), TargetOffset);
+            EXPECT_EQ(Parsed.error().Span.getEnd().getByteOffset(), TargetOffset + std::string_view("target").size());
         }
     }
 
@@ -1451,6 +1480,7 @@ entry:
             const auto Written = writeMachineModuleText(Module);
             ASSERT_FALSE(Written.has_value());
             EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            EXPECT_FALSE(Written.error().Span.isValid());
         }
     }
 
@@ -1490,21 +1520,23 @@ entry:
         for (const auto Body : InvalidBodies)
         {
             SCOPED_TRACE(Body);
-            const std::string Text = ".module \"\"\n.section .text\n.function F\nentry:\n    " + std::string(Body) + "\n.endfunction\n";
+            const std::string Text = ".module \"\"\n.section .text\n.function @F\nentry:\n    " + std::string(Body) + "\n.endfunction\n";
             const auto Parsed = readMachineModuleText(Text);
             ASSERT_FALSE(Parsed.has_value());
             EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
         }
         constexpr std::string_view CrossFunctionTexts[] = {
-            ".module \"\"\n.section .text\n.function F\nentry:\n    jmp target\n.endfunction\n.function G\ntarget:\n    ret\n.endfunction\n",
-            ".module \"\"\n.section .text\n.function G\ntarget:\n    ret\n.endfunction\n.function F\nentry:\n    jmp target\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @F\nentry:\n    jmp target\n.endfunction\n.function @G\ntarget:\n    ret\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @G\ntarget:\n    ret\n.endfunction\n.function @F\nentry:\n    jmp target\n.endfunction\n",
         };
         for (const auto Text : CrossFunctionTexts)
         {
             const auto Parsed = readMachineModuleText(Text);
             ASSERT_FALSE(Parsed.has_value());
             ASSERT_TRUE(Parsed.error().Span.isValid());
-            EXPECT_EQ(Parsed.error().Span.getBegin().getByteOffset(), Text.find("jmp target") + 4);
+            const std::size_t TargetOffset = Text.find("jmp target") + 4;
+            EXPECT_EQ(Parsed.error().Span.getBegin().getByteOffset(), TargetOffset);
+            EXPECT_EQ(Parsed.error().Span.getEnd().getByteOffset(), TargetOffset + std::string_view("target").size());
         }
     }
 
@@ -1519,6 +1551,7 @@ entry:
         const auto RegisterText = writeMachineModuleText(Module);
         ASSERT_FALSE(RegisterText.has_value());
         EXPECT_EQ(RegisterText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        EXPECT_FALSE(RegisterText.error().Span.isValid());
         MachineModule AddressModule;
         auto& AddressBlock = AddressModule.createFunction().createBasicBlock();
         Builder.setInsertPoint(AddressBlock);
@@ -1526,6 +1559,7 @@ entry:
         const auto AddressText = writeMachineModuleText(AddressModule);
         ASSERT_FALSE(AddressText.has_value());
         EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        EXPECT_FALSE(AddressText.error().Span.isValid());
     }
 
     // Unresolved and defined symbol declarations retain their names, kinds, and mutability without text parsing deciding which are native.
@@ -1549,8 +1583,11 @@ entry:
         Module.createFunction(Names.intern("entry point"));
         const auto Text = writeMachineModuleText(Module);
         ASSERT_TRUE(Text.has_value());
-        EXPECT_NE(Text->find(".global readonly, 2, 2 readonly external\n"), std::string::npos);
-        EXPECT_NE(Text->find(".global global, 8, 4 external\n"), std::string::npos);
+        EXPECT_NE(Text->find(".global @readonly size 2 align 2 readonly external\n"), std::string::npos);
+        EXPECT_NE(Text->find(".global size 0 readonly\n"), std::string::npos);
+        EXPECT_NE(Text->find(".global @global size 8 align 4 external\n"), std::string::npos);
+        EXPECT_NE(Text->find(".function @\"entry point\" external\n"), std::string::npos);
+        EXPECT_NE(Text->find(".function @\"entry point\"\n"), std::string::npos);
         EXPECT_NE(Text->find(".declare global @\"other global\"\n"), std::string::npos);
         EXPECT_NE(Text->find(".declare global @other.readonly readonly\n"), std::string::npos);
         EXPECT_NE(Text->find(".declare function @\"host function\"\n"), std::string::npos);
@@ -1578,9 +1615,9 @@ entry:
         ASSERT_TRUE(Module.createGlobalVariable(16, 16, {}, Names.intern("last")));
         const auto Text = writeMachineModuleText(Module);
         ASSERT_TRUE(Text.has_value());
-        const auto First = Text->find(".global first, 8, 8\n");
-        const auto Middle = Text->find(".global middle, 4, 4 readonly\n");
-        const auto Last = Text->find(".global last, 16, 16\n");
+        const auto First = Text->find(".global @first size 8 align 8\n");
+        const auto Middle = Text->find(".global @middle size 4 align 4 readonly\n");
+        const auto Last = Text->find(".global @last size 16 align 16\n");
         ASSERT_NE(First, std::string::npos);
         ASSERT_NE(Middle, std::string::npos);
         ASSERT_NE(Last, std::string::npos);
@@ -1593,10 +1630,10 @@ entry:
         expectEqualModules(Module, **Parsed);
     }
 
-    // Explicit local linkage remains compatible with the default, while malformed symbol declarations cannot produce a module.
+    // Explicit local linkage remains compatible with the default, while malformed symbol declarations and duplicate or legacy header forms fail cleanly.
     TEST(VMMachineModuleTextTest, RejectsMalformedLinkageAndSymbolDeclarations)
     {
-        const auto Local = readMachineModuleText(".module \"\"\n.section .text\n.function F local\n.endfunction\n");
+        const auto Local = readMachineModuleText(".module \"\"\n.section .text\n.function @F local\n.endfunction\n");
         ASSERT_TRUE(Local.has_value());
         EXPECT_EQ((*Local)->functions().begin()->linkage(), MachineSymbolLinkage::Local);
         constexpr std::string_view InvalidBodies[] = {
@@ -1607,17 +1644,23 @@ entry:
             ".declare function @name readonly",
             ".declare global @name readonly readonly",
             ".declare global @name trailing",
-            ".section .text\n.function F invalid\n.endfunction",
-            ".section .text\n.function F readonly\n.endfunction",
-            ".section .text\n.function F external local\n.endfunction",
-            ".section .text\n.function F \"\" external\n.endfunction",
-            ".section .text\n.function F, \"\" external\n.endfunction",
-            ".section .text\n.function F\n.declare function @name\n.endfunction",
+            ".section .text\n.function @F invalid\n.endfunction",
+            ".section .text\n.function @F readonly\n.endfunction",
+            ".section .text\n.function @F external local\n.endfunction",
+            ".section .text\n.function F external\n.endfunction",
+            ".section .text\n.function @\"\" external\n.endfunction",
+            ".section .text\n.function external\n.endfunction",
+            ".section .text\n.function @F\n.declare function @name\n.endfunction",
             ".section .rodata\n.constant C \"\", 1 external\n.endconstant",
-            ".section .data\n.global G \"\", 0, 1 external\n.endglobal",
-            ".section .data\n.global G, 0, 1 weak\n.endglobal",
-            ".section .data\n.global G, 0, 1 external readonly\n.endglobal",
-            ".section .data\n.global G, 0, 1 readonly readonly\n.endglobal",
+            ".section .data\n.global G size 0 align 1 external\n.endglobal",
+            ".section .data\n.global size 0 external\n.endglobal",
+            ".section .data\n.global @G size 0 align 1 weak\n.endglobal",
+            ".section .data\n.global @G size 0 size 4\n.endglobal",
+            ".section .data\n.global @G size 0 align 1 align 2\n.endglobal",
+            ".section .data\n.global @G size 0 readonly readonly\n.endglobal",
+            ".section .data\n.global @G size 0 external local\n.endglobal",
+            ".section .data\n.global @G align 4\n.endglobal",
+            ".section .data\n.global @G, 0, 1\n.endglobal",
         };
         for (const std::string_view Body : InvalidBodies)
         {
@@ -1713,6 +1756,7 @@ entry:
 
         const auto Text = writeMachineModuleText(Module);
         ASSERT_TRUE(Text.has_value());
+        EXPECT_NE(Text->find("    .byte 0x2a\n    .zero 15\n    .byte 0x63\n"), std::string::npos) << *Text;
         EXPECT_NE(Text->find("    .reloc 8, @target.sym + 16\n"), std::string::npos) << *Text;
         EXPECT_NE(Text->find("    .reloc 24, @\"space \\\"reloc\\\"\\\\\\00\\FF\" - 9223372036854775808\n"), std::string::npos) << *Text;
         EXPECT_NE(Text->find("    .reloc 18446744073709551600, @target.sym + 9223372036854775807\n"), std::string::npos) << *Text;
@@ -1727,7 +1771,7 @@ entry:
         // Handwritten hex offsets, zero addends, and interleaved .reloc/.byte lines normalize cleanly.
         constexpr std::string_view Handwritten = R"(.module "handwritten-reloc"
 .section .data
-.global table, 24, 8 external
+.global @table size 24 align 8 external
     .reloc 0x8, @target.sym + 0x10
     .byte 0x11, 0, 0, 0, 0, 0, 0, 0
     .reloc 0x10, @other + 0
@@ -1741,6 +1785,7 @@ entry:
         EXPECT_EQ(Global.relocations()[1], (MachineGlobalRelocation{16, Names.intern("other"), 0}));
         const auto Normalized = writeMachineModuleText(**ParsedHand);
         ASSERT_TRUE(Normalized.has_value());
+        EXPECT_NE(Normalized->find("    .byte 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00\n"), std::string::npos);
         EXPECT_NE(Normalized->find("    .reloc 8, @target.sym + 16\n"), std::string::npos);
         EXPECT_NE(Normalized->find("    .reloc 16, @other\n"), std::string::npos);
     }
@@ -1750,21 +1795,21 @@ entry:
     {
         constexpr std::string_view InvalidTexts[] = {
             ".module \"\"\n.section .data\n.reloc 0, @sym\n",
-            ".module \"\"\n.section .text\n.function F\nentry:\n    .reloc 0, @sym\n.endfunction\n",
-            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0 @sym\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0, sym\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0, @\"\"\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0, @sym, extra\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0, @sym + 9223372036854775808\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 8, 4\n    .reloc 0, @sym\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 16, 8\n    .reloc 4, @sym\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 4, 8\n    .reloc 0, @sym\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 8, @sym\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 18446744073709551615, 8\n    .reloc 18446744073709551608, @sym\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 16, 8\n    .reloc 0, @a\n    .reloc 0, @b\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 8, 8\n    .byte 0, 0, 0, 1\n    .reloc 0, @sym\n.endglobal\n",
-            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0, @sym\n    .byte 1\n.endglobal\n",
+            ".module \"\"\n.section .text\n.function @F\nentry:\n    .reloc 0, @sym\n.endfunction\n",
+            ".module \"\"\n.section .data\n.global @G size 8 align 8\n    .reloc\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8 align 8\n    .reloc 0 @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8 align 8\n    .reloc 0, sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8 align 8\n    .reloc 0, @\"\"\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8 align 8\n    .reloc 0, @sym, extra\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8 align 8\n    .reloc 0, @sym + 9223372036854775808\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8 align 4\n    .reloc 0, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 16 align 8\n    .reloc 4, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 4 align 8\n    .reloc 0, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8 align 8\n    .reloc 8, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 18446744073709551615 align 8\n    .reloc 18446744073709551608, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 16 align 8\n    .reloc 0, @a\n    .reloc 0, @b\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8 align 8\n    .byte 0, 0, 0, 1\n    .reloc 0, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8 align 8\n    .reloc 0, @sym\n    .byte 1\n.endglobal\n",
         };
         for (const auto Text : InvalidTexts)
         {
@@ -1775,5 +1820,302 @@ entry:
             ASSERT_TRUE(Parsed.error().Span.isValid());
             EXPECT_LE(Parsed.error().Span.getBegin().getByteOffset(), Text.size());
         }
+    }
+
+    // Rich data directives (.bytes, .zero, .i16, .i32, .i64, .f64) encode little-endian bytes, compress zero runs >= 8 in canonical output, and reject invalid literals.
+    TEST(VMMachineModuleTextTest, ParsesRichDataDirectivesAndCompressesCanonicalZeroRuns)
+    {
+        constexpr std::string_view Text = R"(.module "rich-data"
+.section .data
+.global @payload size 100 align 8 readonly
+    .bytes "Hi\00\FF"
+    .zero 3
+    .i16 -2, 0x1234
+    .i32 -1, 0x01020304
+    .i64 -1, 0x0102030405060708
+    .f64 1.5, -0.0, 0x1.8p+1, inf, -inf, nan, -nan
+    .zero 0
+.endglobal
+.global @runs size 32
+    .byte 0xAA
+    .zero 7
+    .byte 0xBB
+    .zero 8
+    .byte 0xCC
+.endglobal
+)";
+        const auto Parsed = readMachineModuleText(Text);
+        ASSERT_TRUE(Parsed.has_value());
+        ASSERT_EQ((*Parsed)->globalVariableCount(), 2U);
+
+        const auto& Payload = *(*Parsed)->globalVariables().begin();
+        const auto Bytes = Payload.initialBytes();
+        ASSERT_EQ(Bytes.size(), 4 + 3 + 4 + 8 + 16 + 56);
+        EXPECT_EQ(Bytes[0], static_cast<std::uint8_t>('H'));
+        EXPECT_EQ(Bytes[1], static_cast<std::uint8_t>('i'));
+        EXPECT_EQ(Bytes[2], 0x00U);
+        EXPECT_EQ(Bytes[3], 0xFFU);
+        EXPECT_EQ(Bytes[4], 0x00U);
+        EXPECT_EQ(Bytes[5], 0x00U);
+        EXPECT_EQ(Bytes[6], 0x00U);
+        // .i16 -2 (0xFFFE), 0x1234 in little-endian
+        EXPECT_EQ(Bytes[7], 0xFEU);
+        EXPECT_EQ(Bytes[8], 0xFFU);
+        EXPECT_EQ(Bytes[9], 0x34U);
+        EXPECT_EQ(Bytes[10], 0x12U);
+        // .i32 -1 (0xFFFFFFFF), 0x01020304 in little-endian
+        EXPECT_EQ(Bytes[11], 0xFFU);
+        EXPECT_EQ(Bytes[12], 0xFFU);
+        EXPECT_EQ(Bytes[13], 0xFFU);
+        EXPECT_EQ(Bytes[14], 0xFFU);
+        EXPECT_EQ(Bytes[15], 0x04U);
+        EXPECT_EQ(Bytes[16], 0x03U);
+        EXPECT_EQ(Bytes[17], 0x02U);
+        EXPECT_EQ(Bytes[18], 0x01U);
+        // .i64 -1, 0x0102030405060708 in little-endian
+        auto ReadU64 = [&](std::size_t Offset) -> std::uint64_t
+        {
+            std::uint64_t Value = 0;
+            for (std::size_t Index = 0; Index < 8; ++Index)
+            {
+                Value |= static_cast<std::uint64_t>(Bytes[Offset + Index]) << (Index * 8);
+            }
+            return Value;
+        };
+        EXPECT_EQ(ReadU64(19), std::numeric_limits<std::uint64_t>::max());
+        EXPECT_EQ(ReadU64(27), 0x0102030405060708ULL);
+        // .f64 1.5, -0.0, 0x1.8p+1 (3.0), inf, -inf, nan, -nan
+        EXPECT_EQ(ReadU64(35), std::bit_cast<std::uint64_t>(1.5));
+        EXPECT_EQ(ReadU64(43), std::uint64_t{1} << 63);
+        EXPECT_EQ(ReadU64(51), std::bit_cast<std::uint64_t>(3.0));
+        EXPECT_EQ(ReadU64(59), std::bit_cast<std::uint64_t>(std::numeric_limits<double>::infinity()));
+        EXPECT_EQ(ReadU64(67), std::bit_cast<std::uint64_t>(-std::numeric_limits<double>::infinity()));
+        const std::uint64_t PosNan = ReadU64(75);
+        const std::uint64_t NegNan = ReadU64(83);
+        EXPECT_TRUE(std::isnan(std::bit_cast<double>(PosNan)));
+        EXPECT_EQ(PosNan >> 63, 0ULL);
+        EXPECT_TRUE(std::isnan(std::bit_cast<double>(NegNan)));
+        EXPECT_EQ(NegNan >> 63, 1ULL);
+
+        const auto Written = writeMachineModuleText(**Parsed);
+        ASSERT_TRUE(Written.has_value());
+        EXPECT_NE(Written->find("    .byte 0xaa, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xbb\n    .zero 8\n    .byte 0xcc\n"), std::string::npos) << *Written;
+        const auto Reparsed = readMachineModuleText(*Written);
+        ASSERT_TRUE(Reparsed.has_value());
+        expectEqualModules(**Parsed, **Reparsed);
+
+        constexpr std::string_view InvalidTexts[] = {
+            ".module \"\"\n.section .data\n.global @G size 8\n    .bytes 123\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 2\n    .bytes \"abc\"\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 4\n    .zero 5\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 4\n    .zero -1\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8\n    .i16 65536\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8\n    .i16 -32769\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8\n    .i32 4294967296\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8\n    .i32 -2147483649\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8\n    .i64 -9223372036854775809\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8\n    .f64 0x3ff0000000000000\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8\n    .f64 1e500\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 8\n    .f64 bogus\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @G size 4\n    .f64 1.0\n.endglobal\n",
+        };
+        for (const auto Invalid : InvalidTexts)
+        {
+            SCOPED_TRACE(Invalid);
+            const auto Failed = readMachineModuleText(Invalid);
+            ASSERT_FALSE(Failed.has_value());
+            EXPECT_EQ(Failed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            ASSERT_TRUE(Failed.error().Span.isValid());
+            EXPECT_LT(Failed.error().Span.getBegin().getByteOffset(), Failed.error().Span.getEnd().getByteOffset());
+        }
+    }
+
+    // Canonical writing prints small signed immediates in decimal, wider bit patterns in hex, and omits empty sections.
+    TEST(VMMachineModuleTextTest, FormatsReadableCanonicalImmediatesAndOmitsEmptySections)
+    {
+        auto& Names = core::NamePool::instance();
+        {
+            MachineModule Empty(Names.intern("empty"));
+            const auto Written = writeMachineModuleText(Empty);
+            ASSERT_TRUE(Written.has_value());
+            EXPECT_EQ(*Written, ".module \"empty\"\n");
+            const auto Parsed = readMachineModuleText(*Written);
+            ASSERT_TRUE(Parsed.has_value());
+            expectEqualModules(Empty, **Parsed);
+        }
+        {
+            MachineModule DataOnly(Names.intern("data-only"));
+            ASSERT_TRUE(DataOnly.createGlobalVariable(4, 1, {}, Names.intern("buf")).has_value());
+            const auto Written = writeMachineModuleText(DataOnly);
+            ASSERT_TRUE(Written.has_value());
+            EXPECT_NE(Written->find(".section .data\n"), std::string::npos);
+            EXPECT_EQ(Written->find(".section .text\n"), std::string::npos);
+            const auto Parsed = readMachineModuleText(*Written);
+            ASSERT_TRUE(Parsed.has_value());
+            expectEqualModules(DataOnly, **Parsed);
+        }
+        {
+            MachineModule TextOnly(Names.intern("text-only"));
+            auto& Block = TextOnly.createFunction(Names.intern("imms")).createBasicBlock(Names.intern("entry"));
+            MachineInstructionBuilder Builder;
+            Builder.setInsertPoint(Block);
+            Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP, 0), ImmediateOperand(0));
+            Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP, 8), ImmediateOperand(1048576));
+            Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP, 16), ImmediateOperand(static_cast<std::uint64_t>(-1048576)));
+            Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP, 24), ImmediateOperand(1048577));
+            Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP, 32), ImmediateOperand(static_cast<std::uint64_t>(-1048577)));
+            Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP, 40), ImmediateOperand(0x3ff0000000000000ULL));
+            Builder.create<Opcode::Ret>();
+            const auto Written = writeMachineModuleText(TextOnly);
+            ASSERT_TRUE(Written.has_value());
+            EXPECT_EQ(Written->find(".section .data\n"), std::string::npos);
+            EXPECT_NE(Written->find(".section .text\n"), std::string::npos);
+            EXPECT_NE(Written->find("    store64i [bp], 0\n"), std::string::npos) << *Written;
+            EXPECT_NE(Written->find("    store64i [bp + 8], 1048576\n"), std::string::npos) << *Written;
+            EXPECT_NE(Written->find("    store64i [bp + 16], -1048576\n"), std::string::npos) << *Written;
+            EXPECT_NE(Written->find("    store64i [bp + 24], 0x100001\n"), std::string::npos) << *Written;
+            EXPECT_NE(Written->find("    store64i [bp + 32], 0xffffffffffefffff\n"), std::string::npos) << *Written;
+            EXPECT_NE(Written->find("    store64i [bp + 40], 0x3ff0000000000000\n"), std::string::npos) << *Written;
+            const auto Parsed = readMachineModuleText(*Written);
+            ASSERT_TRUE(Parsed.has_value());
+            expectEqualModules(TextOnly, **Parsed);
+        }
+    }
+
+    // Standalone CR line endings parse cleanly, diagnostics report exact non-empty token spans, and sub-parser errors are preserved.
+    TEST(VMMachineModuleTextTest, SupportsStandaloneCarriageReturnAndReportsExactTokenSpans)
+    {
+        constexpr std::string_view CrText = ".module \"cr-lines\"\r; comment\r.section .text\r.function @f\rentry:\r    ret\r.endfunction\r";
+        const auto Parsed = readMachineModuleText(CrText);
+        ASSERT_TRUE(Parsed.has_value());
+        EXPECT_EQ(core::NamePool::instance().text((*Parsed)->name()), "cr-lines");
+        ASSERT_EQ((*Parsed)->functionCount(), 1U);
+
+        // Overflowing signed displacement preserves the specific overflow diagnostic and covers the full signed displacement span.
+        constexpr std::string_view OverflowText = ".module \"\"\n.section .text\n.function @f\nentry:\n    load64 [bp + 9223372036854775808], [sp]\n.endfunction\n";
+        const auto Overflow = readMachineModuleText(OverflowText);
+        ASSERT_FALSE(Overflow.has_value());
+        EXPECT_EQ(Overflow.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        ASSERT_TRUE(Overflow.error().Span.isValid());
+        const std::size_t SpanBegin = OverflowText.find("+ 9223372036854775808");
+        const std::size_t SpanEnd = SpanBegin + std::string_view("+ 9223372036854775808").size();
+        EXPECT_EQ(Overflow.error().Span.getBegin().getByteOffset(), SpanBegin);
+        EXPECT_EQ(Overflow.error().Span.getEnd().getByteOffset(), SpanEnd);
+        const auto Description = std::ranges::find(Overflow.error().Arguments, core::DiagnosticArgumentName::Description, &core::DiagnosticArgument::Name);
+        ASSERT_NE(Description, Overflow.error().Arguments.end());
+        EXPECT_NE(std::get<std::string>(Description->Value).find("overflow"), std::string::npos);
+
+        // Unterminated string before standalone CR points to the string span rather than reporting a non-ASCII byte error.
+        constexpr std::string_view BadStringText = ".module \"unterminated\r.section .text\r";
+        const auto BadString = readMachineModuleText(BadStringText);
+        ASSERT_FALSE(BadString.has_value());
+        ASSERT_TRUE(BadString.error().Span.isValid());
+        EXPECT_EQ(BadString.error().Span.getBegin().getByteOffset(), BadStringText.find('"'));
+        EXPECT_EQ(BadString.error().Span.getEnd().getByteOffset(), BadStringText.find('\r'));
+    }
+
+    // Symbolic immediates are rejected on narrow (< 64-bit) instructions in both text parsing and text serialization.
+    TEST(VMMachineModuleTextTest, RejectsNarrowSymbolicImmediatesWhenReadingAndWriting)
+    {
+        constexpr std::string_view InvalidTexts[] = {
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    store8i [bp], @sym\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    store16i [bp], @sym\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    store32i [bp], @sym\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    add16mii [bp], @sym, 1\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    je32mib [bp], @sym, entry\n.endfunction\n",
+        };
+        for (const auto Text : InvalidTexts)
+        {
+            SCOPED_TRACE(Text);
+            const auto Parsed = readMachineModuleText(Text);
+            ASSERT_FALSE(Parsed.has_value());
+            EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            ASSERT_TRUE(Parsed.error().Span.isValid());
+            EXPECT_LT(Parsed.error().Span.getBegin().getByteOffset(), Parsed.error().Span.getEnd().getByteOffset());
+        }
+
+        const auto Sym = core::NamePool::instance().intern("sym");
+        {
+            MachineModule Module;
+            auto& Block = Module.createFunction().createBasicBlock();
+            MachineInstructionBuilder Builder;
+            Builder.setInsertPoint(Block);
+            Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(Sym));
+            const auto Written = writeMachineModuleText(Module);
+            ASSERT_FALSE(Written.has_value());
+            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            EXPECT_FALSE(Written.error().Span.isValid());
+        }
+        {
+            MachineModule Module;
+            auto& Block = Module.createFunction().createBasicBlock();
+            MachineInstructionBuilder Builder;
+            Builder.setInsertPoint(Block);
+            Builder.create<Opcode::Je16mib>(AddressOperand(RegisterId::BP), ImmediateOperand(Sym), BasicBlockOperand(&Block));
+            const auto Written = writeMachineModuleText(Module);
+            ASSERT_FALSE(Written.has_value());
+            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            EXPECT_FALSE(Written.error().Span.isValid());
+        }
+    }
+
+    // Header attributes accept arbitrary non-duplicate order with align defaulting to 1, and callvm round-trips losslessly.
+    TEST(VMMachineModuleTextTest, AcceptsUnorderedHeaderAttributesAndRoundTripsCallvm)
+    {
+        constexpr std::string_view Text = R"(.module "attrs-and-callvm"
+.section .data
+.global @g external readonly align 8 size 16
+    .i64 42
+.endglobal
+.global size 4
+.endglobal
+.section .text
+.function @f external
+    .stackslot align 8 size 16
+    .stackslot size 4
+    .frame base 24
+entry:
+    callvm @callee
+    ret
+.endfunction
+)";
+        const auto Parsed = readMachineModuleText(Text);
+        ASSERT_TRUE(Parsed.has_value());
+        ASSERT_EQ((*Parsed)->globalVariableCount(), 2U);
+        const auto& FirstGlobal = *(*Parsed)->globalVariables().begin();
+        const auto& SecondGlobal = *std::next((*Parsed)->globalVariables().begin());
+        EXPECT_EQ(FirstGlobal.byteSize(), 16U);
+        EXPECT_EQ(FirstGlobal.alignment(), 8U);
+        EXPECT_TRUE(FirstGlobal.isConstant());
+        EXPECT_EQ(FirstGlobal.linkage(), MachineSymbolLinkage::External);
+        EXPECT_FALSE(SecondGlobal.name().valid());
+        EXPECT_EQ(SecondGlobal.byteSize(), 4U);
+        EXPECT_EQ(SecondGlobal.alignment(), 1U);
+        EXPECT_EQ(SecondGlobal.linkage(), MachineSymbolLinkage::Local);
+
+        const auto& Function = *(*Parsed)->functions().begin();
+        const auto Slots = Function.frameInfo().stackSlots();
+        ASSERT_EQ(std::ranges::distance(Slots), 2);
+        const auto& FirstSlot = *Slots.begin();
+        const auto& SecondSlot = *std::next(Slots.begin());
+        EXPECT_EQ(FirstSlot.byteSize(), 16U);
+        EXPECT_EQ(FirstSlot.alignment(), 8U);
+        EXPECT_EQ(SecondSlot.byteSize(), 4U);
+        EXPECT_EQ(SecondSlot.alignment(), 1U);
+        EXPECT_EQ(Function.frameInfo().baseOffset(), 24U);
+        const auto& CallInst = *Function.basicBlocks().begin()->instructions().begin();
+        EXPECT_EQ(CallInst.getOpcode(), Opcode::Callvmi);
+
+        const auto Written = writeMachineModuleText(**Parsed);
+        ASSERT_TRUE(Written.has_value());
+        EXPECT_NE(Written->find(".global @g size 16 align 8 readonly external\n"), std::string::npos) << *Written;
+        EXPECT_NE(Written->find(".global size 4\n"), std::string::npos) << *Written;
+        EXPECT_NE(Written->find("    .stackslot size 16 align 8\n"), std::string::npos) << *Written;
+        EXPECT_NE(Written->find("    .stackslot size 4\n"), std::string::npos) << *Written;
+        EXPECT_NE(Written->find("    .frame base 24\n"), std::string::npos) << *Written;
+        EXPECT_NE(Written->find("    callvm @callee\n"), std::string::npos) << *Written;
+        const auto Reparsed = readMachineModuleText(*Written);
+        ASSERT_TRUE(Reparsed.has_value());
+        expectEqualModules(**Parsed, **Reparsed);
     }
 } // namespace ink::vm::test

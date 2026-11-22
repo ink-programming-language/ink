@@ -376,4 +376,27 @@ namespace ink::vm::test
         EXPECT_EQ(Collector.diagnostics()[0].Kind, core::DiagnosticKind::VMModuleLinkFailed);
         EXPECT_EQ(Collector.diagnostics()[0].classification(), core::DiagnosticClass::User);
     }
+
+    // Narrow-width (< 64-bit) instructions cannot carry symbolic immediates during module linking.
+    TEST(VMModuleLinkerSymbolTest, RejectsNarrowSymbolicImmediateInstructions)
+    {
+        const auto Target = symbolName("symbol.narrow.imm.target");
+        MachineModule Input;
+        ASSERT_TRUE(Input.createGlobalVariable(8, 8, {}, Target, MachineSymbolLinkage::External).has_value());
+        auto& Block = Input.createFunction(symbolName("symbol.narrow.imm.fn"), MachineSymbolLinkage::External).createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Block);
+        Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(Target));
+        const std::array<const MachineModule*, 1> Inputs{&Input};
+        core::CollectingDiagnosticConsumer Collector;
+        core::DiagnosticEngine Diagnostics;
+        Diagnostics.addConsumer(Collector);
+        EXPECT_EQ(ModuleLinker::link(Inputs, Diagnostics), nullptr);
+        ASSERT_EQ(Collector.diagnostics().size(), 1U);
+        EXPECT_EQ(Collector.diagnostics()[0].Kind, core::DiagnosticKind::VMModuleLinkFailed);
+        EXPECT_EQ(Collector.diagnostics()[0].classification(), core::DiagnosticClass::User);
+        const auto Description = std::ranges::find(Collector.diagnostics()[0].Arguments, core::DiagnosticArgumentName::Description, &core::DiagnosticArgument::Name);
+        ASSERT_NE(Description, Collector.diagnostics()[0].Arguments.end());
+        EXPECT_NE(std::get<std::string>(Description->Value).find("64-bit"), std::string::npos);
+    }
 } // namespace ink::vm::test

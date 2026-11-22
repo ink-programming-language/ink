@@ -1,6 +1,6 @@
 # VM 指令编码格式讨论稿
 
-本文记录 Ink VM 指令及操作数编码。逻辑指令、模块链接、镜像布局、发射与加载已实现，解释器支持当前指令集的全部操作码，公共解码器仍待实现。操作码来自 `src/include/ink/backend/vm/instruction/opcode.def`，寄存器编号来自 `register.def`。调用族统一为 `Calli`、`Callm`，文本都写 `call`；Native stub 与 Ink 函数的差别由执行时的目标地址分派处理。
+本文记录 Ink VM 指令及操作数编码。逻辑指令、模块链接、镜像布局、发射与加载已实现，解释器支持当前指令集的全部操作码，公共解码器仍待实现。操作码来自 `src/include/ink/backend/vm/instruction/opcode.def`，寄存器编号来自 `register.def`。调用族包含 `Calli`、`Callvmi`、`Callm`、`Callr`，其中 `Calli`/`Callm`/`Callr` 文本统一写 `call`，`Callvmi` 写 `callvm`（加载期特化的内部操作码）；Native stub 与 Ink 函数的差别由执行时的目标地址分派处理。
 
 当前实现提供 `Operand` 基类以及 `RegisterOperand`、`AddressOperand`、`ImmediateOperand`、`BasicBlockOperand` 四种逻辑操作数，并通过强类型指令布局将操作数接入 `MachineInstruction`。基本块操作数在内存中持有目标块指针；调用复用立即数和地址操作数，分别表达直接目标和存放间接目标的内存位置。[VM 内存模型与指令构建](VM-Module.md) 提供模块、函数、基本块的所有权结构和 `MachineInstructionBuilder`，供 lowering 构建逻辑指令。[模块链接器](VM-Linker.md) 已实现逻辑模块合并、符号解析和深克隆，`executable` 目录提供镜像模型与结构校验。加载与执行分派已实现，预解码缓存仍待实现。
 
@@ -165,7 +165,7 @@ add64mrr [bp + 24], r2, zero
 
 ## 双精度浮点寄存器运算
 
-以下五条指令使用 GPR 保存的 IEEE 754 binary64 原始位模式。解释器要求宿主 `double` 为八字节且满足 `std::numeric_limits<double>::is_iec559`，使用 `std::bit_cast<double>` 读取来源，运算后以 `std::bit_cast<std::uint64_t>` 写回。整数 ADD 的位模式加法与浮点数值加法是两种不同语义。
+以下 25 条浮点域指令使用 GPR 保存的 IEEE 754 binary64 原始位模式（7 条浮点算术、14 条浮点比较、4 条整数/浮点转换）。解释器要求宿主 `double` 为八字节且满足 `std::numeric_limits<double>::is_iec559`，使用 `std::bit_cast<double>` 读取来源，运算后以 `std::bit_cast<std::uint64_t>` 写回。整数 ADD 的位模式加法与浮点数值加法是两种不同语义。
 
 | opcode | 文本 | 形式 | 运算 | 总长度 |
 | --- | --- | --- | --- | --- |
@@ -199,7 +199,7 @@ add64mrr [bp + 24], r2, zero
 | `00ac`–`00b7` | `and64*`、`or64*`、`xor64*`、`shl64*`、`lshr64*`、`ashr64*`（各含 `rrr`/`rri`） | `Rrr`、`Rri` | 64 位按位运算与移位；移位量按 `rhs & 63` 取模 |
 | `00b8`–`00cb` | `integer_compare.def`：`cmpeq64*` 至 `cmpgeu64*`（10 关系 × `rrr`/`rri`） | `Rrr`、`Rri` | 64 位有/无符号比较，成立写 `1`，否则写 `0` |
 
-浮点来源的偏移限制只针对这些五条指令；整数寄存器来源的非零位移和 `[r0 + 8]` 等内存地址偏移保持原有语义。浮点常量先以 binary64 位模式放入 GPR，不能用整数数值转换替代位模式解释。例如：
+浮点来源的偏移与寄存器集合限制适用于全部 25 条浮点域指令；整数寄存器来源的非零位移和 `[r0 + 8]` 等内存地址偏移保持原有语义。浮点常量先以 binary64 位模式放入 GPR，不能用整数数值转换替代位模式解释。例如：
 
 ```text
 add64rri r0, zero, 0x3ff0000000000000
@@ -225,7 +225,7 @@ fsqrt64rr r3, r2
 
 `Jmp` 在逻辑模块中只接受同一函数的目标基本块，发射后使用当前指令起始 PC 加相对位移，不读取目标内存。`Jmpi` 的数值立即数也是相对当前 PC 的有符号位移；函数符号目标使用静态 PC 相对解析，addend 必须为零。`Jmpr` 直接将寄存器值加偏移作为目标；`Jmpm` 先计算有效地址，再从该地址读取八字节目标宿主地址。目标取自运行时寄存器或内存时，镜像只保存相应操作数字段。
 
-已删除操作码的编号 `001f` 至 `002a`、`002c` 至 `0039`、`003c` 和 `003e` 保留未分配。`ret` 为 `003a`，只有八字节头；普通返回恢复旧 BP 和返回 PC，最外层返回结束执行，布局见 [VM 调用约定](VM-Calling-Convention.md)。
+已删除操作码的编号 `001f` 至 `002a`、`002c` 至 `0039` 和 `003e` 保留未分配。`ret` 为 `003a`，只有八字节头；普通返回恢复旧 BP 和返回 PC，最外层返回结束执行，布局见 [VM 调用约定](VM-Calling-Convention.md)。
 
 ## 显式比较条件跳转编码
 
@@ -277,7 +277,7 @@ call r0
 
 ## C++ 指令模型
 
-`MachineModule` 的临时文本读写由 `backend/vm/serialization` 提供。文本保留寄存器来源的完整 `i64` 偏移、数值立即数的完整 `u64` 位模式，或符号立即数的名称和完整 `i64` 偏移；本节的数值字节格式则由操作码位宽决定立即数槽中有效低位的宽度。
+`MachineModule` 的正式文本读写由 `backend/vm/serialization` 提供，完整文本文法、数据伪指令与规范输出规则见 [VM 汇编文本格式](VM-Text-Format.md)。文本保留寄存器来源的完整 `i64` 偏移、数值立即数的完整 `u64` 位模式，或符号立即数的名称和完整 `i64` 偏移；本节的数值字节格式则由操作码位宽决定立即数槽中有效低位的宽度。
 
 `opcode.def` 通过 `OPCODE_FORM(Kind, ...)` 集中定义操作数签名，`OPCODE` 记录引用其中的签名，并用正交的两个属性描述指令语义：`InstructionCategory`（操作语义：`Load`、`Store`、`Move`、`Arithmetic`、`Bitwise`、`Compare`、`Convert`、`Branch`、`ConditionalBranch`、`Return`、`Call`）与 `InstructionDomain`（操作数/执行域：`None`、`Integer`、`FloatingPoint`）。例如 `Add64rrr` 为 `(Arithmetic, Integer)`，`Fadd64rrr` 与 `Fneg64rr` 为 `(Arithmetic, FloatingPoint)`，`Fcmp64*rrr` 为 `(Compare, FloatingPoint)`，`Sitof64rr`–`F64toui64rr` 为 `(Convert, FloatingPoint)`，控制流指令为 `None`（条件比较跳转则按比较域标记为 `Integer`）。形式名称仅描述操作数类型及顺序，不包含指令语义或位宽，例如 `Add64rri` 引用 `Rri`，`Load64` 和 `Store64m` 共同引用 `Mm`。`instruction_form.h` 直接从同一份 `opcode.def` 生成 `InstructionForm` 枚举和 `FormTraits` 特化，每种签名只展开一次。每种形式提供 `OperandTuple` 和寄存器、地址、立即数、基本块的计数，包括 `BlockCount`；`None` 对应空元组，`B` 对应单个 `BasicBlockOperand`，`I`、`R` 和 `M` 分别对应单个 `ImmediateOperand`、`RegisterOperand` 和 `AddressOperand`。顺序来自签名定义；操作数计数用于一致性校验，不能单独推导顺序，例如 `Rrm` 和 `Mrr` 的计数相同而顺序不同。
 

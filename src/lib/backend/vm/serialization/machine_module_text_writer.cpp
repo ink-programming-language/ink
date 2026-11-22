@@ -10,6 +10,7 @@
 #include "ink/backend/vm/module/machine_module.h"
 #include "ink/core/name/name_pool.h"
 
+#include <bit>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
@@ -30,11 +31,11 @@ namespace ink::vm
 
         WriteResult writeFailure(std::string_view Description)
         {
-            return std::unexpected(detail::makeTextDiagnostic(0, Description));
+            return std::unexpected(detail::makeWriteDiagnostic(Description));
         }
 
-        // Reserves real identifier names upfront so generated aliases never collide with later explicit names.
-        class LabelScope
+        // Reserves explicit basic-block identifiers upfront so generated aliases never collide with later blocks.
+        class BlockLabelScope
         {
             public:
                 void reserve(core::Name Name)
@@ -46,7 +47,7 @@ namespace ink::vm
                     }
                 }
 
-                std::string allocate(core::Name Name, std::string_view AnonymousPrefix)
+                std::string allocate(core::Name Name)
                 {
                     const std::string_view Preferred = core::NamePool::instance().text(Name);
                     if (detail::isLabelIdentifier(Preferred))
@@ -66,10 +67,9 @@ namespace ink::vm
                             }
                         }
                     }
-                    std::size_t& NextIndex = NextAnonymousIndex[AnonymousPrefix];
                     for (;;)
                     {
-                        std::string Candidate = std::string(AnonymousPrefix) + std::to_string(NextIndex++);
+                        std::string Candidate = ".L" + std::to_string(NextAnonymousIndex++);
                         if (!Reserved.contains(Candidate) && Used.insert(Candidate).second)
                         {
                             return Candidate;
@@ -81,7 +81,7 @@ namespace ink::vm
                 std::unordered_set<std::string> Reserved;
                 std::unordered_set<std::string> Used;
                 std::unordered_map<std::string, std::size_t> NextCollisionSuffix;
-                std::unordered_map<std::string_view, std::size_t> NextAnonymousIndex;
+                std::size_t NextAnonymousIndex = 0;
         };
 
         class ModuleTextWriter
@@ -94,26 +94,24 @@ namespace ink::vm
                     {
                         return std::unexpected(Result.error());
                     }
+                    Text += '\n';
                     if (const auto Result = writeSymbolDeclarations(Module); !Result)
                     {
                         return std::unexpected(Result.error());
                     }
-                    LabelScope ModuleLabels;
-                    for (const MachineGlobalVariable& Global : Module.globalVariables())
+                    if (Module.globalVariableCount() != 0)
                     {
-                        ModuleLabels.reserve(Global.name());
+                        if (const auto Result = writeDataSection(Module); !Result)
+                        {
+                            return std::unexpected(Result.error());
+                        }
                     }
-                    for (const MachineFunction& Function : Module.functions())
+                    if (Module.functionCount() != 0)
                     {
-                        ModuleLabels.reserve(Function.name());
-                    }
-                    if (const auto Result = writeDataSection(Module, ModuleLabels); !Result)
-                    {
-                        return std::unexpected(Result.error());
-                    }
-                    if (const auto Result = writeTextSection(Module, ModuleLabels); !Result)
-                    {
-                        return std::unexpected(Result.error());
+                        if (const auto Result = writeTextSection(Module); !Result)
+                        {
+                            return std::unexpected(Result.error());
+                        }
                     }
                     return std::move(Text);
                 }
@@ -128,7 +126,6 @@ namespace ink::vm
                         {
                             return writeFailure("unknown symbol declaration kind");
                         }
-                        Text += "\n";
                         Text += detail::DeclareDirective;
                         Text += ' ';
                         Text += *KindSpelling;
@@ -146,20 +143,21 @@ namespace ink::vm
                             Text += ' ';
                             Text += detail::ReadOnlyKeyword;
                         }
+                        Text += '\n';
                     }
                     return {};
                 }
 
-                WriteResult writeDataSection(const MachineModule& Module, LabelScope& ModuleLabels)
+                WriteResult writeDataSection(const MachineModule& Module)
                 {
-                    Text += "\n\n";
+                    Text += '\n';
                     Text += detail::SectionDirective;
                     Text += ' ';
                     Text += detail::DataSectionName;
                     Text += '\n';
                     for (const MachineGlobalVariable& Global : Module.globalVariables())
                     {
-                        if (const auto Result = writeGlobalVariable(Global, ModuleLabels); !Result)
+                        if (const auto Result = writeGlobalVariable(Global); !Result)
                         {
                             return Result;
                         }
@@ -167,19 +165,28 @@ namespace ink::vm
                     return {};
                 }
 
-                WriteResult writeGlobalVariable(const MachineGlobalVariable& Global, LabelScope& ModuleLabels)
+                WriteResult writeGlobalVariable(const MachineGlobalVariable& Global)
                 {
                     Text += detail::GlobalDirective;
-                    Text += ' ';
-                    const std::string Label = ModuleLabels.allocate(Global.name(), ".G");
-                    if (const auto Result = writeLabelAndOriginalName(Label, Global.name()); !Result)
+                    if (Global.name().valid())
                     {
-                        return Result;
+                        Text += ' ';
+                        if (const auto Result = writeSymbol(Global.name()); !Result)
+                        {
+                            return Result;
+                        }
                     }
-                    Text += ", ";
+                    Text += ' ';
+                    Text += detail::SizeKeyword;
+                    Text += ' ';
                     writeUnsigned(Global.byteSize());
-                    Text += ", ";
-                    writeUnsigned(Global.alignment());
+                    if (Global.alignment() != 1)
+                    {
+                        Text += ' ';
+                        Text += detail::AlignKeyword;
+                        Text += ' ';
+                        writeUnsigned(Global.alignment());
+                    }
                     if (Global.isConstant())
                     {
                         Text += ' ';
@@ -219,7 +226,7 @@ namespace ink::vm
                     return {};
                 }
 
-                WriteResult writeTextSection(const MachineModule& Module, LabelScope& ModuleLabels)
+                WriteResult writeTextSection(const MachineModule& Module)
                 {
                     Text += '\n';
                     Text += detail::SectionDirective;
@@ -228,7 +235,7 @@ namespace ink::vm
                     Text += '\n';
                     for (const MachineFunction& Function : Module.functions())
                     {
-                        if (const auto Result = writeFunction(Function, ModuleLabels); !Result)
+                        if (const auto Result = writeFunction(Function); !Result)
                         {
                             return Result;
                         }
@@ -236,14 +243,16 @@ namespace ink::vm
                     return {};
                 }
 
-                WriteResult writeFunction(const MachineFunction& Function, LabelScope& ModuleLabels)
+                WriteResult writeFunction(const MachineFunction& Function)
                 {
                     Text += detail::FunctionDirective;
-                    Text += ' ';
-                    const std::string Label = ModuleLabels.allocate(Function.name(), ".F");
-                    if (const auto Result = writeLabelAndOriginalName(Label, Function.name()); !Result)
+                    if (Function.name().valid())
                     {
-                        return Result;
+                        Text += ' ';
+                        if (const auto Result = writeSymbol(Function.name()); !Result)
+                        {
+                            return Result;
+                        }
                     }
                     if (const auto Result = writeLinkage(Function.linkage(), Function.name()); !Result)
                     {
@@ -251,7 +260,7 @@ namespace ink::vm
                     }
                     Text += '\n';
                     writeFrameInfo(Function.frameInfo());
-                    LabelScope BlockScope;
+                    BlockLabelScope BlockScope;
                     for (const MachineBasicBlock& Block : Function.basicBlocks())
                     {
                         BlockScope.reserve(Block.name());
@@ -259,7 +268,7 @@ namespace ink::vm
                     BlockLabelMap BlockLabels;
                     for (const MachineBasicBlock& Block : Function.basicBlocks())
                     {
-                        BlockLabels.emplace(&Block, BlockScope.allocate(Block.name(), ".L"));
+                        BlockLabels.emplace(&Block, BlockScope.allocate(Block.name()));
                     }
                     for (const MachineBasicBlock& Block : Function.basicBlocks())
                     {
@@ -281,15 +290,24 @@ namespace ink::vm
                         Text += "    ";
                         Text += detail::StackSlotDirective;
                         Text += ' ';
+                        Text += detail::SizeKeyword;
+                        Text += ' ';
                         writeUnsigned(Slot.byteSize());
-                        Text += ", ";
-                        writeUnsigned(Slot.alignment());
+                        if (Slot.alignment() != 1)
+                        {
+                            Text += ' ';
+                            Text += detail::AlignKeyword;
+                            Text += ' ';
+                            writeUnsigned(Slot.alignment());
+                        }
                         Text += '\n';
                     }
                     if (const auto BaseOffset = Frame.baseOffset())
                     {
                         Text += "    ";
                         Text += detail::FrameDirective;
+                        Text += ' ';
+                        Text += detail::BaseKeyword;
                         Text += ' ';
                         writeUnsigned(*BaseOffset);
                         Text += '\n';
@@ -354,8 +372,7 @@ namespace ink::vm
                             const auto& Immediate = static_cast<const ImmediateOperand&>(Value);
                             if (const auto Bits = Immediate.bits())
                             {
-                                Text += "0x";
-                                writeUnsigned(*Bits, 16);
+                                writeImmediateBits(*Bits);
                                 return {};
                             }
                             if (const auto Result = writeSymbol(*Immediate.getSymbol()); !Result)
@@ -400,12 +417,6 @@ namespace ink::vm
                         }
                     }
                     return writeFailure("instruction contains an unknown operand kind");
-                }
-
-                WriteResult writeLabelAndOriginalName(std::string_view AllocatedLabel, core::Name Name)
-                {
-                    Text += AllocatedLabel;
-                    return writeOriginalNameIfDifferent(AllocatedLabel, Name);
                 }
 
                 WriteResult writeOriginalNameIfDifferent(std::string_view AllocatedLabel, core::Name Name)
@@ -479,6 +490,26 @@ namespace ink::vm
                     Text.append(Buffer, Result.ptr);
                 }
 
+                void writeImmediateBits(std::uint64_t Bits)
+                {
+                    const auto Signed = std::bit_cast<std::int64_t>(Bits);
+                    if (Signed >= -detail::DecimalImmediateLimit && Signed <= detail::DecimalImmediateLimit)
+                    {
+                        if (Signed < 0)
+                        {
+                            Text += '-';
+                            writeUnsigned(std::uint64_t{0} - Bits);
+                        }
+                        else
+                        {
+                            writeUnsigned(Bits);
+                        }
+                        return;
+                    }
+                    Text += "0x";
+                    writeUnsigned(Bits, 16);
+                }
+
                 void writeDisplacement(std::int64_t Offset)
                 {
                     if (Offset > 0)
@@ -493,27 +524,50 @@ namespace ink::vm
                     }
                 }
 
+                static std::size_t countLeadingZeros(std::span<const std::uint8_t> Bytes, std::size_t Start) noexcept
+                {
+                    std::size_t Count = 0;
+                    while (Start + Count < Bytes.size() && Bytes[Start + Count] == 0)
+                    {
+                        ++Count;
+                    }
+                    return Count;
+                }
+
                 void writeInitializerBytes(std::span<const std::uint8_t> Bytes)
                 {
-                    for (std::size_t Index = 0; Index < Bytes.size(); ++Index)
+                    std::size_t Index = 0;
+                    while (Index < Bytes.size())
                     {
-                        if (Index % 16 == 0)
+                        const std::size_t ZeroRun = countLeadingZeros(Bytes, Index);
+                        if (ZeroRun >= detail::CanonicalZeroRunMinBytes)
                         {
                             Text += "    ";
-                            Text += detail::ByteDirective;
+                            Text += detail::ZeroDirective;
                             Text += ' ';
-                        }
-                        else
-                        {
-                            Text += ", ";
-                        }
-                        Text += "0x";
-                        Text += detail::LowerHexDigits[Bytes[Index] >> 4];
-                        Text += detail::LowerHexDigits[Bytes[Index] & 0x0F];
-                        if (Index % 16 == 15 || Index + 1 == Bytes.size())
-                        {
+                            writeUnsigned(ZeroRun);
                             Text += '\n';
+                            Index += ZeroRun;
+                            continue;
                         }
+                        Text += "    ";
+                        Text += detail::ByteDirective;
+                        Text += ' ';
+                        for (std::size_t Column = 0; Column < 16 && Index < Bytes.size(); ++Column, ++Index)
+                        {
+                            if (Column != 0 && countLeadingZeros(Bytes, Index) >= detail::CanonicalZeroRunMinBytes)
+                            {
+                                break;
+                            }
+                            if (Column != 0)
+                            {
+                                Text += ", ";
+                            }
+                            Text += "0x";
+                            Text += detail::LowerHexDigits[Bytes[Index] >> 4];
+                            Text += detail::LowerHexDigits[Bytes[Index] & 0x0F];
+                        }
+                        Text += '\n';
                     }
                 }
 

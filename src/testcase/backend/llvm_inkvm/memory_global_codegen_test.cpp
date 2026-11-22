@@ -84,11 +84,10 @@ namespace ink::backend::llvm_inkvm
             Stream << ".module \"mem_harness\"\n";
             Stream << ".declare function @" << TargetFunction << "\n";
             Stream << ".section .data\n";
-            Stream << ".global test_result, 8, 8 external\n";
-            Stream << "    .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00\n";
+            Stream << ".global @test_result size 8 align 8 external\n";
             Stream << ".endglobal\n";
             Stream << ".section .text\n";
-            Stream << ".function main external\n";
+            Stream << ".function @main external\n";
             Stream << "entry:\n";
             Stream << "    add64rri sp, sp, " << CallBytes << "\n";
             for (std::size_t Index = 0; Index < Arguments.size(); ++Index)
@@ -175,8 +174,8 @@ entry:
         ASSERT_NE(Compiled, nullptr);
         const std::string Assembly = formatModuleText(*Compiled);
         EXPECT_NE(Assembly.find(".section .data"), std::string::npos) << Assembly;
-        EXPECT_NE(Assembly.find(".global counter, 8, 8 external"), std::string::npos) << Assembly;
-        EXPECT_NE(Assembly.find(".global step, 8, 8 readonly external"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find(".global @counter size 8 align 8 external"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find(".global @step size 8 align 8 readonly external"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("load64rm "), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("[@counter]"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("store64mr [@counter], "), std::string::npos) << Assembly;
@@ -249,7 +248,7 @@ entry:
         ASSERT_NE(Compiled, nullptr);
         const std::string Assembly = formatModuleText(*Compiled);
         // Struct layout: i8 at +0, pad +1, i16 at +2, i32 at +4, i64 at +8 -> total 16 bytes.
-        EXPECT_NE(Assembly.find(".global rec, 16, 8 readonly external"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find(".global @rec size 16 align 8 readonly external"), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("load8srm "), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("load16srm "), std::string::npos) << Assembly;
         EXPECT_NE(Assembly.find("load32urm "), std::string::npos) << Assembly;
@@ -323,7 +322,7 @@ entry:
         ASSERT_EQ(Compiled->globalVariableCount(), 1u);
         EXPECT_TRUE(Compiled->globalVariables().begin()->initialBytes().empty());
         const std::string Assembly = formatModuleText(*Compiled);
-        EXPECT_NE(Assembly.find(".global zero_buf, 128, 8 external\n.endglobal"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find(".global @zero_buf size 128 align 8 external\n.endglobal"), std::string::npos) << Assembly;
 
         const std::array<std::int64_t, 1> Args{77};
         EXPECT_EQ(executeCompiled(*Compiled, "check_zero_buf", Args), 77);

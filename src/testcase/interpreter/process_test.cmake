@@ -3,7 +3,7 @@ if(NOT DEFINED INK_INTERPRETER OR NOT DEFINED INK_TEST_DIRECTORY)
 endif()
 file(MAKE_DIRECTORY "${INK_TEST_DIRECTORY}")
 set(Input "${INK_TEST_DIRECTORY}/module input.vm")
-file(WRITE "${Input}" ".module \"demo\"\n.section .text\n.function main\nentry:\n    ret\n.endfunction\n")
+file(WRITE "${Input}" ".module \"demo\"\n.section .text\n.function @main\nentry:\n    ret\n.endfunction\n")
 
 function(expect_success Name)
     if(NOT Status STREQUAL "0" OR NOT Output STREQUAL "" OR NOT Error STREQUAL "")
@@ -20,6 +20,16 @@ function(expect_diagnostic Name ExpectedStatus Code Description)
     endif()
 endfunction()
 
+function(expect_source_diagnostic Name ExpectedStatus ExpectedPrefix Code Description ExpectedHighlight)
+    string(FIND "${Error}" "${ExpectedPrefix}: error[${Code}]: " DiagnosticStart)
+    string(FIND "${Error}" "${ExpectedHighlight}" HighlightPos)
+    string(REGEX MATCHALL "INK-V[0-9][0-9][0-9][0-9]" DiagnosticCodes "${Error}")
+    list(LENGTH DiagnosticCodes DiagnosticCount)
+    if(NOT Status STREQUAL ExpectedStatus OR NOT Output STREQUAL "" OR NOT DiagnosticStart EQUAL 0 OR HighlightPos EQUAL -1 OR NOT DiagnosticCount EQUAL 1 OR NOT Error MATCHES "${Description}")
+        message(FATAL_ERROR "${Name}: expected exit ${ExpectedStatus} and source-located ${Code} diagnostic on stderr: ${Status}: stdout=${Output}: stderr=${Error}")
+    endif()
+endfunction()
+
 # MachineModule assembly is decoded, emitted and executed from a path containing spaces.
 execute_process(COMMAND "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_success("File input with spaces")
@@ -33,15 +43,15 @@ expect_success("Default standard input")
 # Global storage and an earlier helper move main away from image offset zero and exercise local call relocation.
 file(WRITE "${Input}" [=[.module "relocated-entry"
 .section .data
-.global bytes, 3, 1
+.global @bytes size 3
     .byte 1, 2, 3
 .endglobal
 .section .text
-.function helper
+.function @helper
 entry:
     ret
 .endfunction
-.function main
+.function @main
 entry:
     call @helper
     ret
@@ -54,14 +64,13 @@ expect_success("Entry after globals and helper")
 file(WRITE "${Input}" [=[.module "indirect-calls"
 .declare function @identity
 .section .data
-.global pointers, 16, 8
-    .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+.global @pointers size 16 align 8
+    .reloc 0, @helper
+    .reloc 8, @identity
 .endglobal
 .section .text
-.function main
+.function @main
 entry:
-    store64i [@pointers], @helper
-    store64i [@pointers + 8], @identity
     call [@pointers]
     add64rri sp, sp, 16
     store64i [sp - 8], 41
@@ -69,7 +78,7 @@ entry:
     add64rri sp, sp, -16
     ret
 .endfunction
-.function helper
+.function @helper
 entry:
     ret
 .endfunction
@@ -77,16 +86,19 @@ entry:
 execute_process(COMMAND "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_success("Indirect Ink and native calls")
 
-# Malformed and empty inputs must report the parser diagnostic before emission or execution.
+# Malformed and empty inputs must report source-located parser diagnostics with line/column and source highlights before emission or execution.
 file(WRITE "${Input}" "not MachineModule assembly\n")
 execute_process(COMMAND "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
-expect_diagnostic("Malformed module text" "2" "INK-V0001" "invalid VM text")
+expect_source_diagnostic("Malformed module text" "2" "${Input}:1:1" "INK-V0001" "invalid VM text" "^~~")
 file(WRITE "${Input}" "")
 execute_process(COMMAND "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
-expect_diagnostic("Empty module text" "2" "INK-V0001" "invalid VM text")
+expect_source_diagnostic("Empty module text" "2" "${Input}:1:1" "INK-V0001" "invalid VM text" " | ^")
+file(WRITE "${Input}" ".module \"bad-target\"\n.section .text\n.function @main\nentry:\n    jmp missing\n.endfunction\n")
+execute_process(COMMAND "${INK_INTERPRETER}" "-" INPUT_FILE "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
+expect_source_diagnostic("Stdin source-located parse error" "2" "<stdin>:5:9" "INK-V0001" "invalid VM text" "^~~~~~~")
 
 # A declared unresolved call reaches loading and reports the link diagnostic without a generic duplicate.
-file(WRITE "${Input}" ".module \"missing-import\"\n.declare function @missing.interpreter.process.import\n.section .text\n.function main\nentry:\n    call @missing.interpreter.process.import\n    ret\n.endfunction\n")
+file(WRITE "${Input}" ".module \"missing-import\"\n.declare function @missing.interpreter.process.import\n.section .text\n.function @main\nentry:\n    call @missing.interpreter.process.import\n    ret\n.endfunction\n")
 execute_process(COMMAND "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_diagnostic("Unresolved import" "2" "INK-V0004" "missing.interpreter.process.import")
 if(Error MATCHES "cannot load")
@@ -94,7 +106,7 @@ if(Error MATCHES "cannot load")
 endif()
 
 # Valid recursion reports stack exhaustion when a call frame cannot fit.
-file(WRITE "${Input}" ".module \"recursive-call\"\n.section .text\n.function main\nentry:\n    call @main\n    ret\n.endfunction\n")
+file(WRITE "${Input}" ".module \"recursive-call\"\n.section .text\n.function @main\nentry:\n    call @main\n    ret\n.endfunction\n")
 execute_process(COMMAND "${CMAKE_COMMAND}" -E env "INK_VM_STACK_BYTES=16" "${INK_INTERPRETER}" "${Input}" RESULT_VARIABLE Status OUTPUT_VARIABLE Output ERROR_VARIABLE Error TIMEOUT 10)
 expect_diagnostic("Call stack overflow" "1" "INK-V0005" "stack overflow")
 

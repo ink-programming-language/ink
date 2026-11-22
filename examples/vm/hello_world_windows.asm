@@ -4,20 +4,20 @@
 .declare function @WriteFile
 
 .section .data
-.global message, 14, 1 readonly
-    .byte 0x68, 0x65, 0x6C, 0x6C, 0x6F, 0x2C, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x0D, 0x0A
+.global @message size 14 readonly
+    .bytes "hello, world\0D\0A"
 .endglobal
 
 .section .text
-.function main external
+.function @main external
 entry:
     call @hello
     ret
 .endfunction
 
-.function hello
-    .stackslot 4, 4 ; written: offset 16
-    .frame 16
+.function @hello
+    .stackslot size 4 align 4 ; written: offset 16
+    .frame base 16
 entry:
     ; Reserve written and four padding bytes to keep native calls eight-byte aligned.
     add64rri sp, sp, 8
