@@ -8,6 +8,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <variant>
+#include <vector>
 
 namespace ink::vm::detail
 {
@@ -81,7 +82,13 @@ namespace ink::vm::detail
                         const MachineModule& Source = *Inputs[Index];
                         for (const auto& Global : Source.globalVariables())
                         {
-                            if (!Output->createGlobalVariable(Global.byteSize(), Global.alignment(), Global.initialBytes(), Bindings.outputName(Index, Global.name()), Global.linkage(), Global.isConstant()))
+                            std::vector<MachineGlobalRelocation> RemappedRelocations;
+                            RemappedRelocations.reserve(Global.relocationCount());
+                            for (const auto& Relocation : Global.relocations())
+                            {
+                                RemappedRelocations.push_back({Relocation.ByteOffset, Bindings.outputName(Index, Relocation.Symbol), Relocation.Addend});
+                            }
+                            if (!Output->createGlobalVariable(Global.byteSize(), Global.alignment(), Global.initialBytes(), Bindings.outputName(Index, Global.name()), Global.linkage(), Global.isConstant(), RemappedRelocations))
                             {
                                 fail(Index, "global variable data could not be cloned");
                                 return nullptr;

@@ -19,9 +19,12 @@
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/GlobalAlias.h>
 #include <llvm/IR/GlobalValue.h>
 #include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Operator.h>
 #include <llvm/MC/MCInstrDesc.h>
 #include <llvm/Pass.h>
 #include <llvm/Support/Casting.h>
@@ -37,9 +40,11 @@
 #include "ink/core/name/name_pool.h"
 
 #include <algorithm>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -83,7 +88,214 @@ namespace
         }
     }
 
-    std::expected<void, std::string> serializeConstantBytes(const Constant* ConstVal, const DataLayout& DL, std::vector<std::uint8_t>& OutBytes)
+    struct EvaluatedConstant64
+    {
+            const GlobalValue* Base = nullptr;
+            std::int64_t Offset = 0;
+            std::uint64_t RawBits = 0;
+    };
+
+    constexpr std::optional<std::int64_t> checkedSignedAdd(std::int64_t LHS, std::int64_t RHS) noexcept
+    {
+        if (RHS > 0 && LHS > std::numeric_limits<std::int64_t>::max() - RHS)
+        {
+            return std::nullopt;
+        }
+        if (RHS < 0 && LHS < std::numeric_limits<std::int64_t>::min() - RHS)
+        {
+            return std::nullopt;
+        }
+        return LHS + RHS;
+    }
+
+    constexpr std::optional<std::int64_t> checkedSignedSub(std::int64_t LHS, std::int64_t RHS) noexcept
+    {
+        if (RHS < 0 && LHS > std::numeric_limits<std::int64_t>::max() + RHS)
+        {
+            return std::nullopt;
+        }
+        if (RHS > 0 && LHS < std::numeric_limits<std::int64_t>::min() + RHS)
+        {
+            return std::nullopt;
+        }
+        return LHS - RHS;
+    }
+
+    std::expected<EvaluatedConstant64, std::string> evaluateScalarConstant64(const Constant* ConstVal, const DataLayout& DL, unsigned Depth = 0)
+    {
+        if (Depth > 32)
+        {
+            return std::unexpected("InkVM global constant expression exceeds maximum nesting depth");
+        }
+        if (ConstVal == nullptr || !ConstVal->getType()->isSized())
+        {
+            return std::unexpected("InkVM global initializer must have a sized type");
+        }
+        const TypeSize RawStoreSize = DL.getTypeStoreSize(ConstVal->getType());
+        if (RawStoreSize.isScalable() || RawStoreSize.getFixedValue() != ink::vm::MachineGlobalRelocation::ByteSize)
+        {
+            return std::unexpected("InkVM global symbol relocations require an 8-byte pointer or 64-bit integer slot");
+        }
+
+        if (isa<ConstantPointerNull>(ConstVal) || isa<UndefValue>(ConstVal) || isa<ConstantAggregateZero>(ConstVal))
+        {
+            return EvaluatedConstant64{nullptr, 0, 0};
+        }
+        if (const auto* IntConst = dyn_cast<ConstantInt>(ConstVal))
+        {
+            if (IntConst->getBitWidth() > 64)
+            {
+                return std::unexpected("InkVM global constant expression exceeds 64-bit integer width");
+            }
+            return EvaluatedConstant64{nullptr, 0, IntConst->getZExtValue()};
+        }
+        if (const auto* Alias = dyn_cast<GlobalAlias>(ConstVal))
+        {
+            const Constant* Aliasee = Alias->getAliasee();
+            if (Aliasee == nullptr)
+            {
+                return std::unexpected("InkVM global alias initializer has no target");
+            }
+            return evaluateScalarConstant64(Aliasee, DL, Depth + 1);
+        }
+        if (const auto* GV = dyn_cast<GlobalValue>(ConstVal))
+        {
+            if (const auto* Func = dyn_cast<Function>(GV))
+            {
+                if (Func->isIntrinsic())
+                {
+                    return std::unexpected("InkVM global relocation cannot reference an LLVM intrinsic");
+                }
+            }
+            else if (const auto* GlobalVar = dyn_cast<GlobalVariable>(GV))
+            {
+                if (isMetadataGlobal(*GlobalVar))
+                {
+                    return std::unexpected("InkVM global relocation cannot reference an LLVM metadata global");
+                }
+            }
+            else
+            {
+                return std::unexpected("InkVM global relocation only supports global variables and functions");
+            }
+            return EvaluatedConstant64{GV, 0, 0};
+        }
+
+        const auto* CE = dyn_cast<ConstantExpr>(ConstVal);
+        if (CE == nullptr)
+        {
+            return std::unexpected("InkVM global initializer kind is not supported");
+        }
+
+        switch (CE->getOpcode())
+        {
+        case Instruction::BitCast:
+        case Instruction::AddrSpaceCast:
+        case Instruction::PtrToInt:
+            return evaluateScalarConstant64(CE->getOperand(0), DL, Depth + 1);
+        case Instruction::IntToPtr:
+            if (const auto* IntOp = dyn_cast<ConstantInt>(CE->getOperand(0)); IntOp != nullptr && IntOp->getBitWidth() <= 64)
+            {
+                return EvaluatedConstant64{nullptr, 0, IntOp->getZExtValue()};
+            }
+            return evaluateScalarConstant64(CE->getOperand(0), DL, Depth + 1);
+        case Instruction::GetElementPtr:
+            {
+                const auto* GEP = cast<GEPOperator>(CE);
+                const unsigned IndexBits = DL.getIndexTypeSizeInBits(GEP->getType());
+                if (IndexBits == 0 || IndexBits > 64)
+                {
+                    return std::unexpected("InkVM global GEP index width exceeds 64 bits");
+                }
+                APInt Delta(IndexBits, 0);
+                if (!GEP->accumulateConstantOffset(DL, Delta))
+                {
+                    return std::unexpected("InkVM global GEP initializer must have a constant byte offset");
+                }
+                auto Base = evaluateScalarConstant64(cast<Constant>(GEP->getPointerOperand()), DL, Depth + 1);
+                if (!Base)
+                {
+                    return Base;
+                }
+                const std::int64_t DeltaSigned = Delta.getSExtValue();
+                if (Base->Base == nullptr)
+                {
+                    Base->RawBits += static_cast<std::uint64_t>(DeltaSigned);
+                    return Base;
+                }
+                const auto Combined = checkedSignedAdd(Base->Offset, DeltaSigned);
+                if (!Combined)
+                {
+                    return std::unexpected("InkVM global relocation addend overflows signed 64-bit range");
+                }
+                Base->Offset = *Combined;
+                return Base;
+            }
+        case Instruction::Add:
+            {
+                auto LHS = evaluateScalarConstant64(CE->getOperand(0), DL, Depth + 1);
+                if (!LHS)
+                {
+                    return LHS;
+                }
+                auto RHS = evaluateScalarConstant64(CE->getOperand(1), DL, Depth + 1);
+                if (!RHS)
+                {
+                    return RHS;
+                }
+                if (LHS->Base == nullptr && RHS->Base == nullptr)
+                {
+                    return EvaluatedConstant64{nullptr, 0, LHS->RawBits + RHS->RawBits};
+                }
+                if (LHS->Base != nullptr && RHS->Base != nullptr)
+                {
+                    return std::unexpected("InkVM global initializer cannot add two symbol addresses");
+                }
+                EvaluatedConstant64 Symbolic = LHS->Base != nullptr ? *LHS : *RHS;
+                const std::int64_t Delta = std::bit_cast<std::int64_t>(LHS->Base != nullptr ? RHS->RawBits : LHS->RawBits);
+                const auto Combined = checkedSignedAdd(Symbolic.Offset, Delta);
+                if (!Combined)
+                {
+                    return std::unexpected("InkVM global relocation addend overflows signed 64-bit range");
+                }
+                Symbolic.Offset = *Combined;
+                return Symbolic;
+            }
+        case Instruction::Sub:
+            {
+                auto LHS = evaluateScalarConstant64(CE->getOperand(0), DL, Depth + 1);
+                if (!LHS)
+                {
+                    return LHS;
+                }
+                auto RHS = evaluateScalarConstant64(CE->getOperand(1), DL, Depth + 1);
+                if (!RHS)
+                {
+                    return RHS;
+                }
+                if (LHS->Base == nullptr && RHS->Base == nullptr)
+                {
+                    return EvaluatedConstant64{nullptr, 0, LHS->RawBits - RHS->RawBits};
+                }
+                if (LHS->Base != nullptr && RHS->Base == nullptr)
+                {
+                    const std::int64_t Delta = std::bit_cast<std::int64_t>(RHS->RawBits);
+                    const auto Combined = checkedSignedSub(LHS->Offset, Delta);
+                    if (!Combined)
+                    {
+                        return std::unexpected("InkVM global relocation addend overflows signed 64-bit range");
+                    }
+                    LHS->Offset = *Combined;
+                    return LHS;
+                }
+                return std::unexpected("InkVM global initializer does not support subtracting a symbol address");
+            }
+        default:
+            return std::unexpected("InkVM global constant expression kind is not supported");
+        }
+    }
+
+    std::expected<void, std::string> serializeConstantBytes(const Constant* ConstVal, const DataLayout& DL, InkVMMachineModuleBuilder& ModuleBuilder, std::vector<std::uint8_t>& OutBytes, std::vector<ink::vm::MachineGlobalRelocation>& OutRelocations)
     {
         if (ConstVal == nullptr || !ConstVal->getType()->isSized())
         {
@@ -124,7 +336,7 @@ namespace
             }
             for (unsigned Index = 0; Index < DataSeq->getNumElements(); ++Index)
             {
-                if (auto Result = serializeConstantBytes(DataSeq->getElementAsConstant(Index), DL, OutBytes); !Result)
+                if (auto Result = serializeConstantBytes(DataSeq->getElementAsConstant(Index), DL, ModuleBuilder, OutBytes, OutRelocations); !Result)
                 {
                     return Result;
                 }
@@ -134,11 +346,23 @@ namespace
 
         if (const auto* ArrayConst = dyn_cast<ConstantArray>(ConstVal))
         {
+            const TypeSize RawElemAllocSize = DL.getTypeAllocSize(ArrayConst->getType()->getElementType());
+            if (RawElemAllocSize.isScalable())
+            {
+                return std::unexpected("InkVM global initializer does not support scalable types");
+            }
+            const std::size_t ElemAllocSize = static_cast<std::size_t>(RawElemAllocSize.getFixedValue());
             for (unsigned Index = 0; Index < ArrayConst->getNumOperands(); ++Index)
             {
-                if (auto Result = serializeConstantBytes(ArrayConst->getOperand(Index), DL, OutBytes); !Result)
+                const std::size_t ElemStart = OutBytes.size();
+                if (auto Result = serializeConstantBytes(ArrayConst->getOperand(Index), DL, ModuleBuilder, OutBytes, OutRelocations); !Result)
                 {
                     return Result;
+                }
+                const std::size_t ElemEnd = ElemStart + ElemAllocSize;
+                if (OutBytes.size() < ElemEnd)
+                {
+                    OutBytes.resize(ElemEnd, 0);
                 }
             }
             return {};
@@ -148,7 +372,7 @@ namespace
         {
             for (unsigned Index = 0; Index < VectorConst->getNumOperands(); ++Index)
             {
-                if (auto Result = serializeConstantBytes(VectorConst->getOperand(Index), DL, OutBytes); !Result)
+                if (auto Result = serializeConstantBytes(VectorConst->getOperand(Index), DL, ModuleBuilder, OutBytes, OutRelocations); !Result)
                 {
                     return Result;
                 }
@@ -167,7 +391,7 @@ namespace
                 {
                     OutBytes.resize(FieldOffset, 0);
                 }
-                if (auto Result = serializeConstantBytes(StructConst->getOperand(FieldIndex), DL, OutBytes); !Result)
+                if (auto Result = serializeConstantBytes(StructConst->getOperand(FieldIndex), DL, ModuleBuilder, OutBytes, OutRelocations); !Result)
                 {
                     return Result;
                 }
@@ -180,7 +404,34 @@ namespace
             return {};
         }
 
-        return std::unexpected("InkVM global initializer kind is not supported yet (symbol relocations in .data are not supported yet)");
+        if (isa<GlobalValue>(ConstVal) || isa<ConstantExpr>(ConstVal))
+        {
+            const auto Evaluated = evaluateScalarConstant64(ConstVal, DL);
+            if (!Evaluated)
+            {
+                return std::unexpected(Evaluated.error());
+            }
+            if (Evaluated->Base == nullptr)
+            {
+                appendAPIntLittleEndian(APInt(64, Evaluated->RawBits), ink::vm::MachineGlobalRelocation::ByteSize, OutBytes);
+                return {};
+            }
+            if (Evaluated->Base->getName().empty())
+            {
+                return std::unexpected("InkVM global relocation target must have a nonempty symbol name");
+            }
+            const auto SymbolName = ModuleBuilder.internName(toStringView(Evaluated->Base->getName()));
+            if (!SymbolName)
+            {
+                return std::unexpected(SymbolName.error());
+            }
+            const auto FieldOffset = static_cast<std::uint64_t>(OutBytes.size());
+            OutBytes.insert(OutBytes.end(), ink::vm::MachineGlobalRelocation::ByteSize, 0);
+            OutRelocations.push_back({FieldOffset, *SymbolName, Evaluated->Offset});
+            return {};
+        }
+
+        return std::unexpected("InkVM global initializer kind is not supported");
     }
 
     std::string_view formatGlobalDataError(ink::vm::MachineModuleDataError Error) noexcept
@@ -193,6 +444,16 @@ namespace
             return "InkVM global variable initializer exceeds its allocated byte size";
         case ink::vm::MachineModuleDataError::SizeOverflow:
             return "InkVM global variable initializer exceeds host storage limits";
+        case ink::vm::MachineModuleDataError::InvalidRelocationSymbol:
+            return "InkVM global relocation target must be a valid registered symbol name";
+        case ink::vm::MachineModuleDataError::InvalidRelocationAlignment:
+            return "InkVM global variable relocations require alignment >= 8 and an eight-byte aligned byte offset";
+        case ink::vm::MachineModuleDataError::RelocationOutOfBounds:
+            return "InkVM global relocation exceeds its allocated byte size";
+        case ink::vm::MachineModuleDataError::RelocationOverlap:
+            return "InkVM global relocations must not overlap";
+        case ink::vm::MachineModuleDataError::RelocationNonZeroInitialBytes:
+            return "InkVM global relocation field must have zero initial bytes";
         }
         return "InkVM global variable layout is invalid";
     }
@@ -669,10 +930,11 @@ namespace llvm
             }
 
             std::vector<std::uint8_t> InitialBytes;
+            std::vector<ink::vm::MachineGlobalRelocation> Relocations;
             if (Global.hasInitializer())
             {
                 InitialBytes.reserve(static_cast<std::size_t>(ByteSize));
-                if (auto Serialized = serializeConstantBytes(Global.getInitializer(), DL, InitialBytes); !Serialized)
+                if (auto Serialized = serializeConstantBytes(Global.getInitializer(), DL, *this, InitialBytes, Relocations); !Serialized)
                 {
                     fail(std::move(Serialized.error()));
                     return false;
@@ -683,7 +945,7 @@ namespace llvm
                 }
             }
 
-            if (const auto Created = Output->createGlobalVariable(ByteSize, Alignment, InitialBytes, *GlobalName, Linkage, Global.isConstant()); !Created)
+            if (const auto Created = Output->createGlobalVariable(ByteSize, Alignment, InitialBytes, *GlobalName, Linkage, Global.isConstant(), Relocations); !Created)
             {
                 fail(std::string(formatGlobalDataError(Created.error())));
                 return false;

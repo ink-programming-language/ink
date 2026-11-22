@@ -279,4 +279,101 @@ namespace ink::vm::test
         EXPECT_EQ(AdditionalGlobalReference.getSource().getSymbol(), AdditionalGlobalName);
         EXPECT_EQ(AdditionalGlobalReference.getSource().getByteOffset(), 13);
     }
+
+    // Global data relocations bind per-module Local definitions, cross-module External symbols, and declared imports while preserving addends.
+    TEST(VMModuleLinkerSymbolTest, LinksAndRemapsGlobalDataRelocationsAcrossLocalExternalAndImportSymbols)
+    {
+        const auto SharedLocalData = symbolName("reloc.link.local.data");
+        const auto SharedLocalFn = symbolName("reloc.link.local.fn");
+        const auto FirstTable = symbolName("reloc.link.first.table");
+        const auto SecondExternalData = symbolName("reloc.link.second.external");
+        const auto SecondPointer = symbolName("reloc.link.second.ptr");
+        const auto ExternalImport = symbolName("reloc.link.external.import");
+
+        MachineModule First;
+        First.declareSymbol(ExternalImport, MachineSymbolKind::GlobalVariable, true);
+        ASSERT_TRUE(First.createGlobalVariable(16, 8, {}, SharedLocalData).has_value());
+        const std::array<MachineGlobalRelocation, 5> FirstRelocs{{
+            {0, SharedLocalData, 8},
+            {8, SharedLocalFn, 0},
+            {16, FirstTable, 0},
+            {24, SecondExternalData, -8},
+            {32, ExternalImport, 16},
+        }};
+        ASSERT_TRUE(First.createGlobalVariable(40, 8, {}, FirstTable, MachineSymbolLinkage::Local, true, FirstRelocs).has_value());
+        First.createFunction(SharedLocalFn, MachineSymbolLinkage::Local);
+
+        MachineModule Second;
+        ASSERT_TRUE(Second.createGlobalVariable(8, 8, {}, SharedLocalData).has_value());
+        ASSERT_TRUE(Second.createGlobalVariable(8, 8, {}, SecondExternalData, MachineSymbolLinkage::External).has_value());
+        const std::array<MachineGlobalRelocation, 2> SecondRelocs{{
+            {0, SharedLocalData, 0},
+            {8, SecondExternalData, 4},
+        }};
+        ASSERT_TRUE(Second.createGlobalVariable(16, 8, {}, SecondPointer, MachineSymbolLinkage::External, false, SecondRelocs).has_value());
+        Second.createFunction(SharedLocalFn, MachineSymbolLinkage::Local);
+
+        const std::array<const MachineModule*, 2> Inputs{&First, &Second};
+        core::CollectingDiagnosticConsumer Collector;
+        core::DiagnosticEngine Diagnostics;
+        Diagnostics.addConsumer(Collector);
+        const auto Linked = ModuleLinker::link(Inputs, Diagnostics);
+        EXPECT_TRUE(Collector.diagnostics().empty());
+        ASSERT_NE(Linked, nullptr);
+        ASSERT_EQ(Linked->globalVariableCount(), 5U);
+        ASSERT_EQ(Linked->functionCount(), 2U);
+        ASSERT_EQ(Linked->symbolDeclarations().size(), 1U);
+        EXPECT_EQ(Linked->symbolDeclarations()[0].Name, ExternalImport);
+        EXPECT_TRUE(Linked->symbolDeclarations()[0].IsConstant);
+
+        auto GlobalIt = Linked->globalVariables().begin();
+        const auto& OutFirstLocalData = *GlobalIt++;
+        const auto& OutFirstTable = *GlobalIt++;
+        const auto& OutSecondLocalData = *GlobalIt++;
+        const auto& OutSecondExternalData = *GlobalIt++;
+        const auto& OutSecondPointer = *GlobalIt;
+
+        const auto& OutFirstLocalFn = *Linked->functions().begin();
+        const auto& OutSecondLocalFn = *std::next(Linked->functions().begin());
+
+        EXPECT_NE(OutFirstLocalData.name(), OutSecondLocalData.name());
+        EXPECT_NE(OutFirstLocalFn.name(), OutSecondLocalFn.name());
+        EXPECT_EQ(OutSecondExternalData.name(), SecondExternalData);
+        EXPECT_EQ(OutSecondPointer.name(), SecondPointer);
+
+        ASSERT_EQ(OutFirstTable.relocationCount(), 5U);
+        EXPECT_EQ(OutFirstTable.relocations()[0], (MachineGlobalRelocation{0, OutFirstLocalData.name(), 8}));
+        EXPECT_EQ(OutFirstTable.relocations()[1], (MachineGlobalRelocation{8, OutFirstLocalFn.name(), 0}));
+        EXPECT_EQ(OutFirstTable.relocations()[2], (MachineGlobalRelocation{16, OutFirstTable.name(), 0}));
+        EXPECT_EQ(OutFirstTable.relocations()[3], (MachineGlobalRelocation{24, SecondExternalData, -8}));
+        EXPECT_EQ(OutFirstTable.relocations()[4], (MachineGlobalRelocation{32, ExternalImport, 16}));
+
+        ASSERT_EQ(OutSecondPointer.relocationCount(), 2U);
+        EXPECT_EQ(OutSecondPointer.relocations()[0], (MachineGlobalRelocation{0, OutSecondLocalData.name(), 0}));
+        EXPECT_EQ(OutSecondPointer.relocations()[1], (MachineGlobalRelocation{8, SecondExternalData, 4}));
+
+        // Source inputs remain unchanged after deep cloning.
+        const auto& SourceFirstTable = *std::next(First.globalVariables().begin());
+        EXPECT_EQ(SourceFirstTable.relocations()[0].Symbol, SharedLocalData);
+        EXPECT_EQ(SourceFirstTable.relocations()[2].Symbol, FirstTable);
+    }
+
+    // Global data relocations reject undeclared symbols and cannot be captured by generated Local names from another input.
+    TEST(VMModuleLinkerSymbolTest, RejectsUndefinedSymbolReferencesInGlobalRelocations)
+    {
+        MachineModule Provider;
+        ASSERT_TRUE(Provider.createGlobalVariable(8, 8, {}, symbolName("reloc.link.provider.private"), MachineSymbolLinkage::Local).has_value());
+        MachineModule Consumer;
+        const std::array<MachineGlobalRelocation, 1> MissingReloc{{{0, symbolName(".__ink_link_local_0"), 0}}};
+        ASSERT_TRUE(Consumer.createGlobalVariable(8, 8, {}, symbolName("reloc.link.consumer.bad"), MachineSymbolLinkage::External, false, MissingReloc).has_value());
+
+        const std::array<const MachineModule*, 2> Inputs{&Provider, &Consumer};
+        core::CollectingDiagnosticConsumer Collector;
+        core::DiagnosticEngine Diagnostics;
+        Diagnostics.addConsumer(Collector);
+        EXPECT_EQ(ModuleLinker::link(Inputs, Diagnostics), nullptr);
+        ASSERT_EQ(Collector.diagnostics().size(), 1U);
+        EXPECT_EQ(Collector.diagnostics()[0].Kind, core::DiagnosticKind::VMModuleLinkFailed);
+        EXPECT_EQ(Collector.diagnostics()[0].classification(), core::DiagnosticClass::User);
+    }
 } // namespace ink::vm::test

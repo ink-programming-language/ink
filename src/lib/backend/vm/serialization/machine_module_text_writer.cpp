@@ -191,7 +191,30 @@ namespace ink::vm
                     }
                     Text += '\n';
                     writeInitializerBytes(Global.initialBytes());
+                    for (const MachineGlobalRelocation& Relocation : Global.relocations())
+                    {
+                        if (const auto Result = writeGlobalRelocation(Relocation); !Result)
+                        {
+                            return Result;
+                        }
+                    }
                     Text += detail::EndGlobalDirective;
+                    Text += '\n';
+                    return {};
+                }
+
+                WriteResult writeGlobalRelocation(const MachineGlobalRelocation& Relocation)
+                {
+                    Text += "    ";
+                    Text += detail::RelocDirective;
+                    Text += ' ';
+                    writeUnsigned(Relocation.ByteOffset);
+                    Text += ", ";
+                    if (const auto Result = writeSymbol(Relocation.Symbol); !Result)
+                    {
+                        return Result;
+                    }
+                    writeDisplacement(Relocation.Addend);
                     Text += '\n';
                     return {};
                 }

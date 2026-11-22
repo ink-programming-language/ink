@@ -130,6 +130,7 @@ namespace ink::vm::test
                 EXPECT_EQ(ActualGlobal->byteSize(), ExpectedGlobal.byteSize());
                 EXPECT_EQ(ActualGlobal->alignment(), ExpectedGlobal.alignment());
                 EXPECT_TRUE(std::ranges::equal(ActualGlobal->initialBytes(), ExpectedGlobal.initialBytes()));
+                EXPECT_TRUE(std::ranges::equal(ActualGlobal->relocations(), ExpectedGlobal.relocations()));
                 EXPECT_EQ(ActualGlobal->parent(), &Actual);
                 ++ActualGlobal;
             }
@@ -1686,5 +1687,93 @@ entry:
         const auto AddressText = writeMachineModuleText(AddressModule);
         ASSERT_FALSE(AddressText.has_value());
         EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+    }
+
+    // Global data relocation directives round-trip losslessly with mixed initial bytes, signed boundary addends, escaped symbol names, and hex spellings.
+    TEST(VMMachineModuleTextTest, RoundTripsGlobalDataRelocationsAndSignedAddends)
+    {
+        auto& Names = core::NamePool::instance();
+        const std::string EscapedSymbol("space \"reloc\"\\\0\xff", 16);
+        const auto NormalSym = Names.intern("target.sym");
+        const auto WeirdSym = Names.intern(EscapedSymbol);
+
+        MachineModule Module(Names.intern("reloc-text"));
+        const std::array<std::uint8_t, 17> MixedBytes{0x2A, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x63};
+        const std::array<MachineGlobalRelocation, 2> MixedRelocs{{
+            {8, NormalSym, 16},
+            {24, WeirdSym, std::numeric_limits<std::int64_t>::min()},
+        }};
+        ASSERT_TRUE(Module.createGlobalVariable(32, 8, MixedBytes, Names.intern("mixed"), MachineSymbolLinkage::External, true, MixedRelocs).has_value());
+
+        const std::uint64_t MaxAlignedOffset = std::numeric_limits<std::uint64_t>::max() - 15;
+        const std::array<MachineGlobalRelocation, 1> HugeReloc{{
+            {MaxAlignedOffset, NormalSym, std::numeric_limits<std::int64_t>::max()},
+        }};
+        ASSERT_TRUE(Module.createGlobalVariable(std::numeric_limits<std::uint64_t>::max(), 16, {}, Names.intern("huge"), MachineSymbolLinkage::Local, false, HugeReloc).has_value());
+
+        const auto Text = writeMachineModuleText(Module);
+        ASSERT_TRUE(Text.has_value());
+        EXPECT_NE(Text->find("    .reloc 8, @target.sym + 16\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find("    .reloc 24, @\"space \\\"reloc\\\"\\\\\\00\\FF\" - 9223372036854775808\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find("    .reloc 18446744073709551600, @target.sym + 9223372036854775807\n"), std::string::npos) << *Text;
+
+        const auto Parsed = readMachineModuleText(*Text);
+        ASSERT_TRUE(Parsed.has_value());
+        expectEqualModules(Module, **Parsed);
+        const auto Rewritten = writeMachineModuleText(**Parsed);
+        ASSERT_TRUE(Rewritten.has_value());
+        EXPECT_EQ(*Rewritten, *Text);
+
+        // Handwritten hex offsets, zero addends, and interleaved .reloc/.byte lines normalize cleanly.
+        constexpr std::string_view Handwritten = R"(.module "handwritten-reloc"
+.section .data
+.global table, 24, 8 external
+    .reloc 0x8, @target.sym + 0x10
+    .byte 0x11, 0, 0, 0, 0, 0, 0, 0
+    .reloc 0x10, @other + 0
+.endglobal
+)";
+        const auto ParsedHand = readMachineModuleText(Handwritten);
+        ASSERT_TRUE(ParsedHand.has_value());
+        const auto& Global = *(*ParsedHand)->globalVariables().begin();
+        ASSERT_EQ(Global.relocationCount(), 2U);
+        EXPECT_EQ(Global.relocations()[0], (MachineGlobalRelocation{8, NormalSym, 16}));
+        EXPECT_EQ(Global.relocations()[1], (MachineGlobalRelocation{16, Names.intern("other"), 0}));
+        const auto Normalized = writeMachineModuleText(**ParsedHand);
+        ASSERT_TRUE(Normalized.has_value());
+        EXPECT_NE(Normalized->find("    .reloc 8, @target.sym + 16\n"), std::string::npos);
+        EXPECT_NE(Normalized->find("    .reloc 16, @other\n"), std::string::npos);
+    }
+
+    // Malformed, misaligned, out-of-bounds, overlapping, non-zero-byte, and misplaced .reloc directives return VMTextInvalid.
+    TEST(VMMachineModuleTextTest, RejectsMalformedInvalidAndOverlappingGlobalRelocations)
+    {
+        constexpr std::string_view InvalidTexts[] = {
+            ".module \"\"\n.section .data\n.reloc 0, @sym\n",
+            ".module \"\"\n.section .text\n.function F\nentry:\n    .reloc 0, @sym\n.endfunction\n",
+            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0 @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0, sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0, @\"\"\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0, @sym, extra\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0, @sym + 9223372036854775808\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 8, 4\n    .reloc 0, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 16, 8\n    .reloc 4, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 4, 8\n    .reloc 0, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 8, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 18446744073709551615, 8\n    .reloc 18446744073709551608, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 16, 8\n    .reloc 0, @a\n    .reloc 0, @b\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 8, 8\n    .byte 0, 0, 0, 1\n    .reloc 0, @sym\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global G, 8, 8\n    .reloc 0, @sym\n    .byte 1\n.endglobal\n",
+        };
+        for (const auto Text : InvalidTexts)
+        {
+            SCOPED_TRACE(Text);
+            const auto Parsed = readMachineModuleText(Text);
+            ASSERT_FALSE(Parsed.has_value());
+            EXPECT_EQ(Parsed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            ASSERT_TRUE(Parsed.error().Span.isValid());
+            EXPECT_LE(Parsed.error().Span.getBegin().getByteOffset(), Text.size());
+        }
     }
 } // namespace ink::vm::test

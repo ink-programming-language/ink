@@ -16,13 +16,6 @@
 
 namespace ink::vm
 {
-    enum class MachineModuleDataError : std::uint8_t
-    {
-        InvalidAlignment,
-        InitializerTooLarge,
-        SizeOverflow,
-    };
-
     // Owns editable VM code and data independently of IR nodes or an encoded executable image.
     class MachineModule final
     {
@@ -40,7 +33,7 @@ namespace ink::vm
             }
 
             MachineFunction& createFunction(core::Name FunctionName = core::NAME_None, MachineSymbolLinkage Linkage = MachineSymbolLinkage::Local);
-            [[nodiscard]] std::expected<std::reference_wrapper<MachineGlobalVariable>, MachineModuleDataError> createGlobalVariable(std::uint64_t ByteSize, std::uint64_t Alignment = 1, std::span<const std::uint8_t> InitialBytes = {}, core::Name GlobalName = core::NAME_None, MachineSymbolLinkage Linkage = MachineSymbolLinkage::Local, bool IsConstant = false);
+            [[nodiscard]] std::expected<std::reference_wrapper<MachineGlobalVariable>, MachineModuleDataError> createGlobalVariable(std::uint64_t ByteSize, std::uint64_t Alignment = 1, std::span<const std::uint8_t> InitialBytes = {}, core::Name GlobalName = core::NAME_None, MachineSymbolLinkage Linkage = MachineSymbolLinkage::Local, bool IsConstant = false, std::span<const MachineGlobalRelocation> Relocations = {});
             void declareSymbol(core::Name SymbolName, MachineSymbolKind Kind, bool IsConstant = false);
 
             std::span<const MachineSymbolDeclaration> symbolDeclarations() const noexcept

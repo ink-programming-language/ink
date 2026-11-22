@@ -884,6 +884,100 @@ namespace ink::vm::test
         ExecutableFileValidator::validate(Second, Diagnostics);
     }
 
+    // Global data relocations emit aligned image-base and dynamic import records for forward, self, backward, function, and imported targets.
+    TEST(VMExecutableEmitterTest, EmitsImageBaseAndImportRelocationsForGlobalVariables)
+    {
+        const core::DiagnosticEngine Diagnostics;
+        auto& Names = core::NamePool::instance();
+        const auto PrefixName = Names.intern("emitter-global-reloc-prefix");
+        const auto FirstName = Names.intern("emitter-global-reloc-first");
+        const auto SecondName = Names.intern("emitter-global-reloc-second");
+        const auto EntryName = Names.intern("emitter-global-reloc-entry");
+        const auto ImportDataName = Names.intern("emitter-global-reloc-import-data");
+        const auto ImportFnName = Names.intern("emitter-global-reloc-import-fn");
+
+        MachineModule Module;
+        Module.declareSymbol(ImportDataName, MachineSymbolKind::GlobalVariable, true);
+        Module.declareSymbol(ImportFnName, MachineSymbolKind::Function);
+        const std::array<std::uint8_t, 1> PrefixByte{0x7F};
+        ASSERT_TRUE(Module.createGlobalVariable(1, 1, PrefixByte, PrefixName).has_value());
+
+        const std::array<MachineGlobalRelocation, 3> FirstRelocs{{
+            {0, SecondName, 8},
+            {8, FirstName, 0},
+            {16, EntryName, 0},
+        }};
+        ASSERT_TRUE(Module.createGlobalVariable(24, 8, {}, FirstName, MachineSymbolLinkage::External, false, FirstRelocs).has_value());
+
+        const std::array<MachineGlobalRelocation, 3> SecondRelocs{{
+            {0, FirstName, -8},
+            {8, ImportDataName, 16},
+            {16, ImportFnName, 0},
+        }};
+        ASSERT_TRUE(Module.createGlobalVariable(24, 8, {}, SecondName, MachineSymbolLinkage::External, true, SecondRelocs).has_value());
+
+        MachineBasicBlock& Entry = Module.createFunction(EntryName, MachineSymbolLinkage::External).createBasicBlock();
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Entry);
+        Builder.create<Opcode::Calli>(ImmediateOperand(ImportFnName));
+        Builder.create<Opcode::Ret>();
+
+        ExecutableEmitter Emitter(Diagnostics);
+        const ExecutableFile Executable = Emitter.emit(Module, EntryName, {});
+
+        // Layout: prefix [0..1), pad [1..8), first [8..32), second [32..56), entry [56..80).
+        ASSERT_EQ(Executable.byteSize(), 80U);
+        EXPECT_EQ(Executable.getEntryOffset(), 56U);
+        EXPECT_EQ(Executable.getImage()[0], 0x7FU);
+        for (const std::uint64_t SlotOffset : {8ULL, 16ULL, 24ULL, 32ULL, 40ULL, 48ULL})
+        {
+            EXPECT_EQ(readLittleEndian(Executable, static_cast<std::size_t>(SlotOffset)), 0U);
+        }
+
+        const auto& BaseRelocs = Executable.getImageBaseAddressRelocations();
+        ASSERT_EQ(BaseRelocs.size(), 4U);
+        constexpr std::array<ImageBaseAddressRelocation, 4> ExpectedBaseRelocs{{
+            {8, 32, 8, RelocationKind::AbsoluteAddress},
+            {16, 8, 0, RelocationKind::AbsoluteAddress},
+            {24, 56, 0, RelocationKind::AbsoluteAddress},
+            {32, 8, -8, RelocationKind::AbsoluteAddress},
+        }};
+        for (const auto& Expected : ExpectedBaseRelocs)
+        {
+            const auto Found = std::ranges::find(BaseRelocs, Expected.ImageOffset, &ImageBaseAddressRelocation::ImageOffset);
+            ASSERT_NE(Found, BaseRelocs.end());
+            EXPECT_EQ(Found->TargetOffset, Expected.TargetOffset);
+            EXPECT_EQ(Found->Addend, Expected.Addend);
+            EXPECT_EQ(Found->Kind, Expected.Kind);
+        }
+
+        const auto& Imports = Executable.getDynamicImportSymbols();
+        ASSERT_EQ(Imports.size(), 2U);
+        EXPECT_EQ(Imports[0].Name, ImportDataName);
+        EXPECT_EQ(Imports[0].Kind, ExecutableSymbolKind::Data);
+        EXPECT_TRUE(Imports[0].Data.IsConstant);
+        EXPECT_EQ(Imports[1].Name, ImportFnName);
+        EXPECT_EQ(Imports[1].Kind, ExecutableSymbolKind::Function);
+
+        // Both the .data function pointer and the .text direct call share ImportFnName at symbol index 1.
+        const auto& ImportRelocs = Executable.getDynamicImportSymbolRelocations();
+        ASSERT_EQ(ImportRelocs.size(), 3U);
+        EXPECT_EQ(ImportRelocs[0].ImageOffset, 40U);
+        EXPECT_EQ(ImportRelocs[0].SymbolIndex, 0U);
+        EXPECT_EQ(ImportRelocs[0].Addend, 16);
+        EXPECT_EQ(ImportRelocs[0].Kind, RelocationKind::AbsoluteAddress);
+        EXPECT_EQ(ImportRelocs[1].ImageOffset, 48U);
+        EXPECT_EQ(ImportRelocs[1].SymbolIndex, 1U);
+        EXPECT_EQ(ImportRelocs[1].Addend, 0);
+        EXPECT_EQ(ImportRelocs[1].Kind, RelocationKind::AbsoluteAddress);
+        EXPECT_EQ(ImportRelocs[2].ImageOffset, 64U);
+        EXPECT_EQ(ImportRelocs[2].SymbolIndex, 1U);
+        EXPECT_EQ(ImportRelocs[2].Addend, 0);
+        EXPECT_EQ(ImportRelocs[2].Kind, RelocationKind::DirectCall);
+
+        ExecutableFileValidator::validate(Executable, Diagnostics);
+    }
+
     // An entry must be a registered VM function with instructions, even when an empty function shares its offset with later code.
     TEST(VMExecutableEmitterDeathTest, RejectsInvalidEntrySelections)
     {

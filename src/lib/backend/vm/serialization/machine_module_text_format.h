@@ -27,9 +27,10 @@
 //   SymbolDeclaration  := '.declare' ('function' | 'global') Symbol ['readonly']
 //   Section            := '.section' ('.data' GlobalDefinition* | '.text' FunctionDefinition*)
 //   GlobalDefinition   := '.global' LabelName ',' Unsigned ',' Unsigned ['readonly'] [Linkage]
-//                         ByteDirective*
+//                         (ByteDirective | RelocDirective)*
 //                         '.endglobal'
 //   ByteDirective      := '.byte' Unsigned (',' Unsigned)*
+//   RelocDirective     := '.reloc' Unsigned ',' Symbol [Displacement]
 //   FunctionDefinition := '.function' LabelName [Linkage]
 //                         StackSlotDirective*
 //                         [FrameDirective]
@@ -60,6 +61,7 @@ namespace ink::vm::detail
     inline constexpr std::string_view GlobalDirective = ".global";
     inline constexpr std::string_view EndGlobalDirective = ".endglobal";
     inline constexpr std::string_view ByteDirective = ".byte";
+    inline constexpr std::string_view RelocDirective = ".reloc";
     inline constexpr std::string_view FunctionDirective = ".function";
     inline constexpr std::string_view EndFunctionDirective = ".endfunction";
     inline constexpr std::string_view StackSlotDirective = ".stackslot";

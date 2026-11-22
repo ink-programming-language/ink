@@ -944,4 +944,94 @@ namespace ink::vm::test
         EXPECT_EQ(VM.findExecutable(FirstHandle), StoredFirst);
         EXPECT_EQ(StoredFirst->getImage(), (std::vector<std::uint8_t>{0x42}));
     }
+
+    // Global data relocations bind host addresses on load and stay valid when later loads grow and move the code segment.
+    TEST(VMInterpreterTest, BindsAndRepatchesGlobalDataRelocationsAcrossCodeSegmentGrowth)
+    {
+        auto& Names = core::NamePool::instance();
+        const auto TargetDataName = Names.intern("interpreter-data-reloc-target");
+        const auto ProviderFnName = Names.intern("interpreter-data-reloc-provider-fn");
+        const auto TableName = Names.intern("interpreter-data-reloc-table");
+        const auto ResultName = Names.intern("interpreter-data-reloc-result");
+        const auto EntryName = Names.intern("interpreter-data-reloc-entry");
+        const auto IdentityName = Names.intern("identity");
+
+        // Library 1 exports a data scalar and a VM function.
+        MachineModule ProviderModule;
+        const std::array<std::uint8_t, 8> InitialValue{0x2A, 0, 0, 0, 0, 0, 0, 0};
+        ASSERT_TRUE(ProviderModule.createGlobalVariable(8, 8, InitialValue, TargetDataName, MachineSymbolLinkage::External).has_value());
+        {
+            MachineInstructionBuilder Builder;
+            auto& Block = ProviderModule.createFunction(ProviderFnName, MachineSymbolLinkage::External).createBasicBlock();
+            Builder.setInsertPoint(Block);
+            Builder.create<Opcode::Load64rm>(RegisterOperand(RegisterId::R0), AddressOperand(RegisterId::BP, -8));
+            Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::R0), ImmediateOperand(100));
+            Builder.create<Opcode::Store64mr>(AddressOperand(RegisterId::BP, -16), RegisterOperand(RegisterId::R0));
+            Builder.create<Opcode::Ret>();
+        }
+
+        // Library 2 stores local, imported VM data, imported VM function, and native stub pointers in .data.
+        MachineModule ConsumerModule;
+        ConsumerModule.declareSymbol(TargetDataName, MachineSymbolKind::GlobalVariable);
+        ConsumerModule.declareSymbol(ProviderFnName, MachineSymbolKind::Function);
+        ConsumerModule.declareSymbol(IdentityName, MachineSymbolKind::Function);
+        ASSERT_TRUE(ConsumerModule.createGlobalVariable(8, 8, {}, ResultName, MachineSymbolLinkage::External).has_value());
+        const std::array<MachineGlobalRelocation, 4> TableRelocs{{
+            {0, ResultName, 0},
+            {8, TargetDataName, 0},
+            {16, ProviderFnName, 0},
+            {24, IdentityName, 0},
+        }};
+        ASSERT_TRUE(ConsumerModule.createGlobalVariable(32, 8, {}, TableName, MachineSymbolLinkage::External, true, TableRelocs).has_value());
+        {
+            MachineInstructionBuilder Builder;
+            auto& Block = ConsumerModule.createFunction(EntryName, MachineSymbolLinkage::External).createBasicBlock();
+            Builder.setInsertPoint(Block);
+            // Load TargetData through pointer slot 1: r1 = *(@table[1]) -> 42.
+            Builder.create<Opcode::Load64rm>(RegisterOperand(RegisterId::R0), AddressOperand(TableName, 8));
+            Builder.create<Opcode::Load64rm>(RegisterOperand(RegisterId::R1), AddressOperand(RegisterId::R0, 0));
+            // Call ProviderFn indirectly through pointer slot 2 with arg 42 -> 142.
+            Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::SP), ImmediateOperand(16));
+            Builder.create<Opcode::Store64mr>(AddressOperand(RegisterId::SP, -8), RegisterOperand(RegisterId::R1));
+            Builder.create<Opcode::Callm>(AddressOperand(TableName, 16));
+            Builder.create<Opcode::Load64rm>(RegisterOperand(RegisterId::R2), AddressOperand(RegisterId::SP, -16));
+            // Call native @identity indirectly through pointer slot 3 with arg 142 -> 142.
+            Builder.create<Opcode::Store64mr>(AddressOperand(RegisterId::SP, -8), RegisterOperand(RegisterId::R2));
+            Builder.create<Opcode::Callm>(AddressOperand(TableName, 24));
+            Builder.create<Opcode::Load64rm>(RegisterOperand(RegisterId::R3), AddressOperand(RegisterId::SP, -16));
+            Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::SP), RegisterOperand(RegisterId::SP), ImmediateOperand(static_cast<std::uint64_t>(-16)));
+            // Store final result through self-image pointer slot 0 (*(@table[0]) = 142).
+            Builder.create<Opcode::Load64rm>(RegisterOperand(RegisterId::R4), AddressOperand(TableName, 0));
+            Builder.create<Opcode::Store64mr>(AddressOperand(RegisterId::R4, 0), RegisterOperand(RegisterId::R3));
+            Builder.create<Opcode::Ret>();
+        }
+
+        core::CollectingDiagnosticConsumer Collector;
+        Interpreter VM;
+        VM.getDiagnostics().addConsumer(Collector);
+        ExecutableEmitter Emitter(VM.getDiagnostics());
+
+        const std::array ProviderExports{TargetDataName, ProviderFnName};
+        const std::array ConsumerExports{TableName, ResultName, EntryName};
+        ASSERT_NE(VM.loadLibrary(Emitter.emit(ProviderModule, ProviderFnName, ProviderExports)), Interpreter::InvalidLibraryHandle);
+        ASSERT_NE(VM.loadLibrary(Emitter.emit(ConsumerModule, EntryName, ConsumerExports)), Interpreter::InvalidLibraryHandle);
+
+        // Force CodeSegment reallocation by loading a dummy image larger than the current capacity.
+        const std::size_t InitialCapacity = VM.getCodeSegmentCapacity();
+        ExecutableFile GrowthTrigger;
+        GrowthTrigger.getImage().assign(InitialCapacity + 64, 0);
+        ASSERT_NE(VM.loadLibrary(std::move(GrowthTrigger)), Interpreter::InvalidLibraryHandle);
+        ASSERT_GT(VM.getCodeSegmentCapacity(), InitialCapacity);
+
+        const void* EntryAddress = VM.resolveSymbolAddress(EntryName);
+        ASSERT_NE(EntryAddress, nullptr);
+        ASSERT_TRUE(VM.execute(EntryAddress));
+        EXPECT_TRUE(Collector.diagnostics().empty());
+
+        const void* ResultAddress = VM.resolveSymbolAddress(ResultName);
+        ASSERT_NE(ResultAddress, nullptr);
+        std::int64_t ResultValue = 0;
+        std::memcpy(&ResultValue, ResultAddress, sizeof(ResultValue));
+        EXPECT_EQ(ResultValue, 142);
+    }
 } // namespace ink::vm::test

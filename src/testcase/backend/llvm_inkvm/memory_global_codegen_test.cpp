@@ -328,4 +328,48 @@ entry:
         const std::array<std::int64_t, 1> Args{77};
         EXPECT_EQ(executeCompiled(*Compiled, "check_zero_buf", Args), 77);
     }
+
+    // Verifies a global function-pointer vtable mixing local VM functions, external VM functions, and a native stub compiles, links, and dispatches indirectly.
+    TEST(InkVMMemoryGlobalCodegenTest, CompilesAndExecutesVTableAndNativeFunctionPointersInDataSection)
+    {
+        constexpr std::string_view IRText = R"(declare i64 @identity(i64)
+
+define internal i64 @add_ten(i64 %x) {
+entry:
+  %r = add i64 %x, 10
+  ret i64 %r
+}
+
+define i64 @mul_three(i64 %x) {
+entry:
+  %r = mul i64 %x, 3
+  ret i64 %r
+}
+
+@vtable = constant [3 x ptr] [ptr @add_ten, ptr @mul_three, ptr @identity], align 8
+
+define i64 @dispatch(i64 %idx, i64 %x) {
+entry:
+  %slot = getelementptr [3 x ptr], ptr @vtable, i64 0, i64 %idx
+  %fn = load ptr, ptr %slot, align 8
+  %res = call i64 %fn(i64 %x)
+  ret i64 %res
+}
+)";
+
+        const auto Compiled = compileIRToMachineModule(IRText, "vtable_reloc_mod");
+        ASSERT_NE(Compiled, nullptr);
+        const std::string Assembly = formatModuleText(*Compiled);
+        EXPECT_NE(Assembly.find(".declare function @identity"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find(".reloc 0, @add_ten"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find(".reloc 8, @mul_three"), std::string::npos) << Assembly;
+        EXPECT_NE(Assembly.find(".reloc 16, @identity"), std::string::npos) << Assembly;
+
+        const std::array<std::int64_t, 2> CallAddTen{0, 15};
+        const std::array<std::int64_t, 2> CallMulThree{1, 15};
+        const std::array<std::int64_t, 2> CallNativeIdentity{2, 15};
+        EXPECT_EQ(executeCompiled(*Compiled, "dispatch", CallAddTen), 25);
+        EXPECT_EQ(executeCompiled(*Compiled, "dispatch", CallMulThree), 45);
+        EXPECT_EQ(executeCompiled(*Compiled, "dispatch", CallNativeIdentity), 15);
+    }
 } // namespace ink::backend::llvm_inkvm

@@ -269,6 +269,16 @@ namespace ink::vm::detail
             {
                 for (std::size_t Index = 0; Index < Inputs.size(); ++Index)
                 {
+                    for (const auto& Global : Inputs[Index]->globalVariables())
+                    {
+                        for (const auto& Relocation : Global.relocations())
+                        {
+                            if (const auto Result = bindReference(Index, Relocation.Symbol, SymbolReferenceTarget::Any); !Result)
+                            {
+                                return fail(Index, Result.error());
+                            }
+                        }
+                    }
                     const auto BindReference = [&](core::Name Name, SymbolReferenceTarget ExpectedTarget)
                     {
                         return bindReference(Index, Name, ExpectedTarget);

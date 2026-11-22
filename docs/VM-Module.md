@@ -88,9 +88,9 @@ Builder.create<Opcode::Callm>(AddressOperand(RegisterId::BP, 16));
 
 ## 全局数据与栈帧
 
-模块通过 `createGlobalVariable(ByteSize, Alignment, InitialBytes, Name, Linkage, IsConstant)` 创建 `MachineGlobalVariable`，类型定义在 `machine_global_variable.h`。最后两个参数默认分别为 `MachineSymbolLinkage::Local` 和 `false`，`IsConstant = true` 表示只读全局变量，通过 `isConstant()` 查询。创建接口返回 `std::expected<std::reference_wrapper<MachineGlobalVariable>, MachineModuleDataError>`，成功后的引用由模块持有。`globalVariables()` 按创建顺序统一遍历可写与只读全局变量，不按常量属性重新排列；数据节点提供初始化字节、大小、对齐、名称和父模块查询。
+模块通过 `createGlobalVariable(ByteSize, Alignment, InitialBytes, Name, Linkage, IsConstant, Relocations)` 创建 `MachineGlobalVariable`，类型定义在 `machine_global_variable.h`。最后三个参数默认分别为 `MachineSymbolLinkage::Local`、`false` 和空重定位列表，`IsConstant = true` 表示只读全局变量，通过 `isConstant()` 查询。创建接口返回 `std::expected<std::reference_wrapper<MachineGlobalVariable>, MachineModuleDataError>`，成功后的引用由模块持有。`globalVariables()` 按创建顺序统一遍历可写与只读全局变量，不按常量属性重新排列；数据节点提供初始化字节、重定位列表、大小、对齐、名称和父模块查询，并支持通过 `addRelocation()` 增量追加符号重定位。
 
-创建时复制调用方提供的数据，不保留输入 span 的借用。对齐必须是非零的二次幂，全局数据的初始化长度不能超过声明大小；无效对齐、初始化过长和不能表示的大小通过 `MachineModuleDataError` 报告。全局对象声明大小可以大于初始化字节数，模块不会为了表示未初始化尾部而分配相同大小的宿主内存。
+创建时复制调用方提供的数据与重定位记录，不保留输入 span 的借用。对齐必须是非零的二次幂，全局数据的初始化长度不能超过声明大小；无效对齐、初始化过长和不能表示的大小通过 `MachineModuleDataError` 报告。全局对象声明大小可以大于初始化字节数，模块不会为了表示未初始化尾部而分配相同大小的宿主内存。每条 `MachineGlobalRelocation` 描述全局对象中 `ByteOffset` 处的一个 8 字节绝对符号地址字段（`{ByteOffset, Symbol, Addend}`），要求符号在 `NamePool` 中有效且非空、全局变量 `Alignment >= 8`、`ByteOffset % 8 == 0`、`[ByteOffset, ByteOffset + 8)` 位于 `ByteSize` 范围内且互不重叠，并且与该槽位重叠的 `InitialBytes` 必须全为零。
 
 `MachineFunction::frameInfo()` 返回函数拥有的 `MachineFrameInfo`。`createStackSlot(ByteSize, Alignment)` 创建抽象栈槽，返回 `std::expected<std::reference_wrapper<const MachineStackSlot>, MachineFrameLayoutError>`。栈槽记录大小和对齐，`stackSlots()` 提供只读遍历；尚未布局时，槽位的 `byteOffset()` 及帧的 `baseOffset()`、`byteSize()` 均为空。
 
@@ -125,7 +125,7 @@ Builder.create<Opcode::Callm>(AddressOperand(RegisterId::BP, 16));
 
 调用文本统一使用 `call`，由操作数决定直接或间接形式，例如 `call @function_name`、`call [bp + 16]` 和 `call [@pointer_slot + 8]`。名称支持转义，直接符号调用拒绝非零 addend。`callNative` 不再是合法助记符；函数来源由实际目标地址在执行时确定。
 
-定义行末尾的 `external` 保留外部链接属性，例如 `.function sum external` 和 `.global counter, 8, 8 external`。全局变量的格式为 `.global name, size, alignment [readonly] [local|external]`，`readonly` 表示 IsConstant，例如 `.global message, 3, 1 readonly external`。全部全局变量统一写在 `.section .data` 中，文本不再提供 `.rodata`、`.constant` 或 `.endconstant`。省略链接属性或使用 `local` 表示 Local；写出器省略 Local 属性。External 定义必须具有非空原始名称，自动显示标签不替代链接名。顶层声明语法如下，名称同样支持带转义的 `@"name"`：
+定义行末尾的 `external` 保留外部链接属性，例如 `.function sum external` 和 `.global counter, 8, 8 external`。全局变量的格式为 `.global name, size, alignment [readonly] [local|external]`，`readonly` 表示 IsConstant，例如 `.global message, 3, 1 readonly external`。全局变量体内部除 `.byte` 初始化字节外，还支持 `.reloc offset, @symbol [+/- displacement]` 表示 8 字节绝对地址符号重定位（例如 `.reloc 8, @table + 16`）。全部全局变量统一写在 `.section .data` 中，文本不再提供 `.rodata`、`.constant` 或 `.endconstant`。省略链接属性或使用 `local` 表示 Local；写出器省略 Local 属性。External 定义必须具有非空原始名称，自动显示标签不替代链接名。顶层声明语法如下，名称同样支持带转义的 `@"name"`：
 
 ```text
 .declare function @other_function

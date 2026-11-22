@@ -682,6 +682,7 @@ namespace ink::vm
                         return LabelResult;
                     }
                     std::vector<std::uint8_t> InitialBytes;
+                    std::vector<MachineGlobalRelocation> Relocations;
                     for (;;)
                     {
                         auto BodyLine = Stream.nextLine();
@@ -693,7 +694,7 @@ namespace ink::vm
                         {
                             return std::unexpected(detail::makeTextDiagnostic(Stream.endOffset(), "unterminated global variable definition"));
                         }
-                        const auto BodyDirective = (*BodyLine)->expect(TokenKind::Identifier, "expected .byte or .endglobal");
+                        const auto BodyDirective = (*BodyLine)->expect(TokenKind::Identifier, "expected .byte, .reloc, or .endglobal");
                         if (!BodyDirective)
                         {
                             return std::unexpected(BodyDirective.error());
@@ -706,16 +707,74 @@ namespace ink::vm
                             }
                             continue;
                         }
+                        if ((*BodyDirective)->text() == detail::RelocDirective)
+                        {
+                            if (const auto RelocResult = parseRelocDirective(**BodyLine, *ByteSize, *Alignment, Relocations); !RelocResult)
+                            {
+                                return RelocResult;
+                            }
+                            continue;
+                        }
                         if ((*BodyDirective)->text() != detail::EndGlobalDirective || (*BodyLine)->peek())
                         {
-                            return std::unexpected(detail::makeTextDiagnostic((*BodyDirective)->Offset, "expected .byte or .endglobal"));
+                            return std::unexpected(detail::makeTextDiagnostic((*BodyDirective)->Offset, "expected .byte, .reloc, or .endglobal"));
                         }
-                        if (!Module->createGlobalVariable(*ByteSize, *Alignment, InitialBytes, Declared->OriginalName, *Linkage, IsConstant))
+                        const auto Created = Module->createGlobalVariable(*ByteSize, *Alignment, InitialBytes, Declared->OriginalName, *Linkage, IsConstant, Relocations);
+                        if (!Created)
                         {
+                            if (Created.error() == MachineModuleDataError::RelocationNonZeroInitialBytes)
+                            {
+                                return std::unexpected(detail::makeTextDiagnostic((*BodyDirective)->Offset, "global relocation overlaps nonzero initializer bytes"));
+                            }
                             return std::unexpected(detail::makeTextDiagnostic((*BodyDirective)->Offset, "invalid global data layout"));
                         }
                         return {};
                     }
+                }
+
+                ParseResult<void> parseRelocDirective(LineCursor& Line, std::uint64_t DeclaredSize, std::uint64_t Alignment, std::vector<MachineGlobalRelocation>& Relocations)
+                {
+                    const std::size_t OffsetPos = Line.offset();
+                    const auto ByteOffset = Line.parseUnsignedInteger("expected a relocation byte offset");
+                    if (!ByteOffset)
+                    {
+                        return std::unexpected(ByteOffset.error());
+                    }
+                    if (!Line.eat(TokenKind::Comma))
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(Line.offset(), "expected ',' after relocation byte offset"));
+                    }
+                    const auto Symbol = Line.parseSymbol();
+                    if (!Symbol)
+                    {
+                        return std::unexpected(Symbol.error());
+                    }
+                    const auto Addend = Line.parseOptionalDisplacement();
+                    if (!Addend)
+                    {
+                        return std::unexpected(Addend.error());
+                    }
+                    if (const auto EndResult = Line.expectEndOfLine("unexpected token after global relocation"); !EndResult)
+                    {
+                        return EndResult;
+                    }
+                    if (Alignment < MachineGlobalRelocation::ByteSize || *ByteOffset % MachineGlobalRelocation::ByteSize != 0)
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(OffsetPos, "global relocations require alignment >= 8 and an eight-byte aligned byte offset"));
+                    }
+                    if (*ByteOffset > DeclaredSize || MachineGlobalRelocation::ByteSize > DeclaredSize - *ByteOffset)
+                    {
+                        return std::unexpected(detail::makeTextDiagnostic(OffsetPos, "global relocation exceeds its declared byte size"));
+                    }
+                    for (const MachineGlobalRelocation& Existing : Relocations)
+                    {
+                        if (Existing.ByteOffset == *ByteOffset)
+                        {
+                            return std::unexpected(detail::makeTextDiagnostic(OffsetPos, "global relocation overlaps an earlier relocation"));
+                        }
+                    }
+                    Relocations.push_back({*ByteOffset, *Symbol, *Addend});
+                    return {};
                 }
 
                 ParseResult<void> parseByteDirective(LineCursor& Line, std::uint64_t DeclaredSize, std::vector<std::uint8_t>& InitialBytes)

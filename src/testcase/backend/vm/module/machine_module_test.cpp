@@ -190,4 +190,94 @@ namespace ink::vm::test
         EXPECT_EQ(Declarations[2].Kind, MachineSymbolKind::GlobalVariable);
         EXPECT_FALSE(Declarations[2].IsConstant);
     }
+
+    // Global variables accept relocation records both at creation and via incremental append while preserving order and boundary offsets.
+    TEST(VMMachineModuleTest, RecordsAndAppendsGlobalRelocationsWithSignedAddends)
+    {
+        auto& Names = core::NamePool::instance();
+        const auto TargetA = Names.intern("reloc.target.a");
+        const auto TargetB = Names.intern("reloc.target.b");
+        const auto TargetC = Names.intern("reloc.target.c");
+        MachineModule Value;
+        const std::array<std::uint8_t, 9> InitialBytes{0, 0, 0, 0, 0, 0, 0, 0, 0x5A};
+        const std::array<MachineGlobalRelocation, 2> InitialRelocs{{
+            {0, TargetA, std::numeric_limits<std::int64_t>::min()},
+            {16, TargetB, std::numeric_limits<std::int64_t>::max()},
+        }};
+        auto Global = Value.createGlobalVariable(32, 8, InitialBytes, Names.intern("reloc.holder"), MachineSymbolLinkage::External, true, InitialRelocs);
+        ASSERT_TRUE(Global.has_value());
+        ASSERT_EQ(Global->get().relocationCount(), 2U);
+        ASSERT_TRUE(Global->get().addRelocation(24, TargetC, -16).has_value());
+        ASSERT_EQ(Global->get().relocationCount(), 3U);
+        const auto Relocations = Global->get().relocations();
+        EXPECT_EQ(Relocations[0], (MachineGlobalRelocation{0, TargetA, std::numeric_limits<std::int64_t>::min()}));
+        EXPECT_EQ(Relocations[1], (MachineGlobalRelocation{16, TargetB, std::numeric_limits<std::int64_t>::max()}));
+        EXPECT_EQ(Relocations[2], (MachineGlobalRelocation{24, TargetC, -16}));
+
+        // An unmaterialized UINT64_MAX global accepts an aligned relocation up to 0xFFFFFFFFFFFFFFF0 without overflowing.
+        const std::uint64_t MaxAlignedOffset = std::numeric_limits<std::uint64_t>::max() - 15;
+        const std::array<MachineGlobalRelocation, 1> HugeReloc{{
+            {MaxAlignedOffset, TargetA, 42},
+        }};
+        auto Huge = Value.createGlobalVariable(std::numeric_limits<std::uint64_t>::max(), 16, {}, Names.intern("reloc.huge"), MachineSymbolLinkage::Local, false, HugeReloc);
+        ASSERT_TRUE(Huge.has_value());
+        ASSERT_EQ(Huge->get().relocationCount(), 1U);
+        EXPECT_EQ(Huge->get().relocations()[0].ByteOffset, MaxAlignedOffset);
+        EXPECT_EQ(Huge->get().relocations()[0].Symbol, TargetA);
+        EXPECT_EQ(Huge->get().relocations()[0].Addend, 42);
+    }
+
+    // Invalid global relocations fail with specific data errors without mutating either the module or existing relocation lists.
+    TEST(VMMachineModuleTest, RejectsInvalidGlobalRelocationsWithoutMutatingCollections)
+    {
+        auto& Names = core::NamePool::instance();
+        const auto Target = Names.intern("reloc.valid.target");
+        MachineModule Value;
+
+        const std::array<MachineGlobalRelocation, 1> EmptySymbol{{{0, core::NAME_None, 0}}};
+        const auto BadSymbol = Value.createGlobalVariable(8, 8, {}, core::NAME_None, MachineSymbolLinkage::Local, false, EmptySymbol);
+        ASSERT_FALSE(BadSymbol.has_value());
+        EXPECT_EQ(BadSymbol.error(), MachineModuleDataError::InvalidRelocationSymbol);
+
+        const std::array<MachineGlobalRelocation, 1> OffsetZero{{{0, Target, 0}}};
+        const auto UnderAlignedGlobal = Value.createGlobalVariable(8, 4, {}, core::NAME_None, MachineSymbolLinkage::Local, false, OffsetZero);
+        ASSERT_FALSE(UnderAlignedGlobal.has_value());
+        EXPECT_EQ(UnderAlignedGlobal.error(), MachineModuleDataError::InvalidRelocationAlignment);
+
+        const std::array<MachineGlobalRelocation, 1> UnalignedOffset{{{4, Target, 0}}};
+        const auto BadOffsetAlign = Value.createGlobalVariable(16, 8, {}, core::NAME_None, MachineSymbolLinkage::Local, false, UnalignedOffset);
+        ASSERT_FALSE(BadOffsetAlign.has_value());
+        EXPECT_EQ(BadOffsetAlign.error(), MachineModuleDataError::InvalidRelocationAlignment);
+
+        const auto TooSmall = Value.createGlobalVariable(4, 8, {}, core::NAME_None, MachineSymbolLinkage::Local, false, OffsetZero);
+        ASSERT_FALSE(TooSmall.has_value());
+        EXPECT_EQ(TooSmall.error(), MachineModuleDataError::RelocationOutOfBounds);
+
+        const std::array<MachineGlobalRelocation, 1> OverflowBoundary{{{std::numeric_limits<std::uint64_t>::max() - 7, Target, 0}}};
+        const auto OverflowOOB = Value.createGlobalVariable(std::numeric_limits<std::uint64_t>::max(), 8, {}, core::NAME_None, MachineSymbolLinkage::Local, false, OverflowBoundary);
+        ASSERT_FALSE(OverflowOOB.has_value());
+        EXPECT_EQ(OverflowOOB.error(), MachineModuleDataError::RelocationOutOfBounds);
+
+        const std::array<MachineGlobalRelocation, 2> DuplicateOffsets{{{0, Target, 0}, {0, Target, 8}}};
+        const auto OverlapCreate = Value.createGlobalVariable(16, 8, {}, core::NAME_None, MachineSymbolLinkage::Local, false, DuplicateOffsets);
+        ASSERT_FALSE(OverlapCreate.has_value());
+        EXPECT_EQ(OverlapCreate.error(), MachineModuleDataError::RelocationOverlap);
+
+        const std::array<std::uint8_t, 5> PartialNonZero{0, 0, 0, 0, 1};
+        const auto NonZeroInitial = Value.createGlobalVariable(16, 8, PartialNonZero, core::NAME_None, MachineSymbolLinkage::Local, false, OffsetZero);
+        ASSERT_FALSE(NonZeroInitial.has_value());
+        EXPECT_EQ(NonZeroInitial.error(), MachineModuleDataError::RelocationNonZeroInitialBytes);
+
+        EXPECT_EQ(Value.globalVariableCount(), 0U);
+
+        // Incremental addRelocation enforces the same invariants without mutating existing relocations on failure.
+        auto Valid = Value.createGlobalVariable(16, 8, {}, Names.intern("reloc.incremental"));
+        ASSERT_TRUE(Valid.has_value());
+        ASSERT_TRUE(Valid->get().addRelocation(0, Target, 0).has_value());
+        EXPECT_EQ(Valid->get().addRelocation(0, Target, 4).error(), MachineModuleDataError::RelocationOverlap);
+        EXPECT_EQ(Valid->get().addRelocation(8, core::NAME_None, 0).error(), MachineModuleDataError::InvalidRelocationSymbol);
+        EXPECT_EQ(Valid->get().addRelocation(12, Target, 0).error(), MachineModuleDataError::InvalidRelocationAlignment);
+        EXPECT_EQ(Valid->get().addRelocation(16, Target, 0).error(), MachineModuleDataError::RelocationOutOfBounds);
+        EXPECT_EQ(Valid->get().relocationCount(), 1U);
+    }
 } // namespace ink::vm::test

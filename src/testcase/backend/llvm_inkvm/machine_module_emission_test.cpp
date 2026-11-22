@@ -273,33 +273,166 @@ entry:
         EXPECT_EQ(std::string_view(AsmBuffer.data(), AsmBuffer.size()), *DirectText);
     }
 
-    // Verifies unsupported .data symbol relocation initializers fail cleanly via explicit errors instead of aborting the process.
-    TEST(InkVMMachineModuleEmissionTest, ReportsExplicitErrorForUnsupportedGlobalRelocationInitializersWithoutAborting)
+    // Verifies unsupported .data constant initializers (blockaddress, symbol differences, and unaligned packed pointers) fail cleanly via explicit errors without aborting.
+    TEST(InkVMMachineModuleEmissionTest, ReportsExplicitErrorForUnsupportedGlobalInitializersWithoutAborting)
     {
-        constexpr std::string_view IRText = R"(@target = global i64 1, align 8
-@ptr_slot = global ptr @target, align 8
+        constexpr std::array<std::string_view, 3> UnsupportedIRCases{
+            R"(@ba = global ptr blockaddress(@main, %target), align 8
+
+define void @main() {
+entry:
+  br label %target
+target:
+  ret void
+}
+)",
+            R"(@a = global i64 1, align 8
+@b = global i64 2, align 8
+@diff = global i64 sub (i64 ptrtoint (ptr @a to i64), i64 ptrtoint (ptr @b to i64)), align 8
 
 define void @main() {
 entry:
   ret void
 }
+)",
+            R"(@target = global i64 1, align 8
+@packed_ptr = global <{ i8, ptr }> <{ i8 1, ptr @target }>, align 8
+
+define void @main() {
+entry:
+  ret void
+}
+)",
+        };
+
+        for (const std::string_view IRText : UnsupportedIRCases)
+        {
+            SCOPED_TRACE(IRText);
+            llvm::LLVMContext ContextA;
+            auto ModA = parseIR(ContextA, IRText, "reloc_data_err");
+            ASSERT_NE(ModA, nullptr);
+            const auto DirectResult = emitInkVMMachineModule(*ModA);
+            ASSERT_FALSE(DirectResult.has_value());
+            EXPECT_FALSE(DirectResult.error().empty());
+
+            llvm::LLVMContext ContextB;
+            auto ModB = parseIR(ContextB, IRText, "reloc_data_err");
+            ASSERT_NE(ModB, nullptr);
+            std::string Assembly = "stale";
+            std::string ErrorMessage;
+            EXPECT_FALSE(emitInkVMAssembly(*ModB, Assembly, ErrorMessage));
+            EXPECT_TRUE(Assembly.empty());
+            EXPECT_FALSE(ErrorMessage.empty());
+        }
+    }
+
+    // Verifies LLVM IR .data symbol relocations (direct pointers, constant GEPs, ptrtoint+add, and cyclic structs) emit, round-trip in text, and execute cleanly.
+    TEST(InkVMMachineModuleEmissionTest, EmitsRoundTripsAndExecutesGlobalDataSymbolRelocations)
+    {
+        constexpr std::string_view IRText = R"(%Node = type { i64, ptr }
+
+@table = constant [4 x i64] [i64 10, i64 20, i64 30, i64 40], align 8
+@elem_ptr = constant ptr getelementptr ([4 x i64], ptr @table, i64 0, i64 2), align 8
+@addr_plus = constant i64 add (i64 ptrtoint (ptr @table to i64), i64 24), align 8
+@n1 = global %Node { i64 100, ptr @n2 }, align 8
+@n2 = global %Node { i64 200, ptr @n1 }, align 8
+@out = global i64 0, align 8
+
+define void @main() {
+entry:
+  %p2 = load ptr, ptr @elem_ptr, align 8
+  %v2 = load i64, ptr %p2, align 8
+  %a3 = load i64, ptr @addr_plus, align 8
+  %p3 = inttoptr i64 %a3 to ptr
+  %v3 = load i64, ptr %p3, align 8
+  %n1_next_slot = getelementptr %Node, ptr @n1, i64 0, i32 1
+  %n2_ptr = load ptr, ptr %n1_next_slot, align 8
+  %n2_val = load i64, ptr %n2_ptr, align 8
+  %n2_next_slot = getelementptr %Node, ptr %n2_ptr, i64 0, i32 1
+  %back_to_n1 = load ptr, ptr %n2_next_slot, align 8
+  %n1_val = load i64, ptr %back_to_n1, align 8
+  %s0 = add i64 %v2, %v3
+  %s1 = add i64 %s0, %n2_val
+  %s2 = add i64 %s1, %n1_val
+  store i64 %s2, ptr @out, align 8
+  ret void
+}
 )";
 
-        llvm::LLVMContext ContextA;
-        auto ModA = parseIR(ContextA, IRText, "reloc_data_err");
-        ASSERT_NE(ModA, nullptr);
-        const auto DirectResult = emitInkVMMachineModule(*ModA);
-        ASSERT_FALSE(DirectResult.has_value());
-        EXPECT_FALSE(DirectResult.error().empty());
+        llvm::LLVMContext Context;
+        auto IRModule = parseIR(Context, IRText, "data_reloc_mod");
+        ASSERT_NE(IRModule, nullptr);
 
-        llvm::LLVMContext ContextB;
-        auto ModB = parseIR(ContextB, IRText, "reloc_data_err");
-        ASSERT_NE(ModB, nullptr);
-        std::string Assembly = "stale";
-        std::string ErrorMessage;
-        EXPECT_FALSE(emitInkVMAssembly(*ModB, Assembly, ErrorMessage));
-        EXPECT_TRUE(Assembly.empty());
-        EXPECT_FALSE(ErrorMessage.empty());
+        auto DirectModule = emitInkVMMachineModule(*IRModule);
+        ASSERT_TRUE(DirectModule.has_value()) << DirectModule.error();
+
+        auto& Names = core::NamePool::instance();
+        const auto FindGlobal = [&](std::string_view Name) -> const vm::MachineGlobalVariable*
+        {
+            const core::Name Target = Names.intern(Name);
+            for (const auto& Global : (*DirectModule)->globalVariables())
+            {
+                if (Global.name() == Target)
+                {
+                    return &Global;
+                }
+            }
+            return nullptr;
+        };
+
+        const auto* ElemPtr = FindGlobal("elem_ptr");
+        ASSERT_NE(ElemPtr, nullptr);
+        ASSERT_EQ(ElemPtr->relocationCount(), 1u);
+        EXPECT_EQ(ElemPtr->relocations()[0], (vm::MachineGlobalRelocation{0, Names.intern("table"), 16}));
+
+        const auto* AddrPlus = FindGlobal("addr_plus");
+        ASSERT_NE(AddrPlus, nullptr);
+        ASSERT_EQ(AddrPlus->relocationCount(), 1u);
+        EXPECT_EQ(AddrPlus->relocations()[0], (vm::MachineGlobalRelocation{0, Names.intern("table"), 24}));
+
+        const auto* Node1 = FindGlobal("n1");
+        const auto* Node2 = FindGlobal("n2");
+        ASSERT_NE(Node1, nullptr);
+        ASSERT_NE(Node2, nullptr);
+        ASSERT_EQ(Node1->relocationCount(), 1u);
+        EXPECT_EQ(Node1->relocations()[0], (vm::MachineGlobalRelocation{8, Names.intern("n2"), 0}));
+        ASSERT_EQ(Node2->relocationCount(), 1u);
+        EXPECT_EQ(Node2->relocations()[0], (vm::MachineGlobalRelocation{8, Names.intern("n1"), 0}));
+
+        // Verify canonical assembly emits .reloc lines and round-trips losslessly.
+        const auto Text = vm::writeMachineModuleText(**DirectModule);
+        ASSERT_TRUE(Text.has_value());
+        EXPECT_NE(Text->find("    .reloc 0, @table + 16\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find("    .reloc 0, @table + 24\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find("    .reloc 8, @n2\n"), std::string::npos) << *Text;
+        EXPECT_NE(Text->find("    .reloc 8, @n1\n"), std::string::npos) << *Text;
+        const auto Reparsed = vm::readMachineModuleText(*Text);
+        ASSERT_TRUE(Reparsed.has_value()) << *Text;
+        const auto Rewritten = vm::writeMachineModuleText(**Reparsed);
+        ASSERT_TRUE(Rewritten.has_value());
+        EXPECT_EQ(*Rewritten, *Text);
+
+        // Execute the emitted MachineModule in Interpreter: 30 + 40 + 200 + 100 = 370.
+        core::CollectingDiagnosticConsumer DiagnosticsConsumer;
+        vm::Interpreter Interpreter;
+        Interpreter.getDiagnostics().addConsumer(DiagnosticsConsumer);
+        const core::Name MainName = Names.intern("main");
+        const core::Name OutName = Names.intern("out");
+        const std::array ExportNames{MainName, OutName};
+        vm::ExecutableEmitter Emitter(Interpreter.getDiagnostics());
+        vm::ExecutableFile Executable = Emitter.emit(**DirectModule, MainName, ExportNames);
+        ASSERT_NE(Interpreter.loadLibrary(std::move(Executable)), vm::Interpreter::InvalidLibraryHandle);
+
+        const void* EntryAddress = Interpreter.resolveSymbolAddress(MainName);
+        ASSERT_NE(EntryAddress, nullptr);
+        ASSERT_TRUE(Interpreter.execute(EntryAddress));
+        EXPECT_TRUE(DiagnosticsConsumer.takeDiagnostics().empty());
+
+        const void* OutAddress = Interpreter.resolveSymbolAddress(OutName);
+        ASSERT_NE(OutAddress, nullptr);
+        std::int64_t OutValue = 0;
+        std::memcpy(&OutValue, OutAddress, sizeof(OutValue));
+        EXPECT_EQ(OutValue, 370);
     }
 
     // Verifies empty and globals-only LLVM modules emit valid MachineModules with default "inkvm" naming when unnamed.

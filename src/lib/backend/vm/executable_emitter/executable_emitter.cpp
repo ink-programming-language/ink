@@ -35,6 +35,7 @@ namespace ink::vm
 
     void ExecutableEmitter::padGlobals(const MachineModule& Module)
     {
+        const auto& Diagnostics = Context.getDiagnostics();
         for (const MachineGlobalVariable& Global : Module.globalVariables())
         {
             const std::uint64_t Remainder = Context.byteSize() % Global.alignment();
@@ -45,6 +46,32 @@ namespace ink::vm
             Context.pad(InitialBytes.data(), InitialBytes.size());
             Context.padZero(static_cast<std::size_t>(Global.byteSize() - InitialBytes.size()));
             Context.resolveSymbol(Global.name(), Offset, {ExecutableSymbolKind::Data, DataSymbolInfo{Global.isConstant()}, {}});
+            for (const MachineGlobalRelocation& Relocation : Global.relocations())
+            {
+                REPORT_ICE_IF(!core::NamePool::instance().contains(Relocation.Symbol), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "global relocation", "symbol name must be registered and nonempty");
+                REPORT_ICE_IF(Global.alignment() < MachineGlobalRelocation::ByteSize || Relocation.ByteOffset % MachineGlobalRelocation::ByteSize != 0, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "global relocation", "global relocation field must be eight-byte aligned");
+                REPORT_ICE_IF(Relocation.ByteOffset > Global.byteSize() || MachineGlobalRelocation::ByteSize > Global.byteSize() - Relocation.ByteOffset, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "global relocation", "global relocation field is outside its global variable");
+                const std::uint64_t FieldOffset = Offset + Relocation.ByteOffset;
+                REPORT_ICE_IF(FieldOffset % MachineGlobalRelocation::ByteSize != 0, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "global relocation", "global relocation image offset must be eight-byte aligned");
+                const auto Position = Context.resolvedSymbolOffset(Relocation.Symbol);
+                const bool Import = Context.isImportSymbol(Relocation.Symbol);
+                REPORT_ICE_IF(Import && (Position || Context.hasUnResolvedSymbol(Relocation.Symbol)), Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "global relocation", "symbol has both image and import definitions");
+                if (Position)
+                {
+                    Context.addImageBaseAddressRelocation({FieldOffset, *Position, Relocation.Addend, RelocationKind::AbsoluteAddress});
+                }
+                else if (Context.hasUnResolvedSymbol(Relocation.Symbol))
+                {
+                    Context.addStaticRelocation({FieldOffset, Relocation.Symbol, 0, Relocation.Addend, RegisterId::ZERO, RelocationKind::AbsoluteAddress});
+                }
+                else
+                {
+                    const auto ImportSymbol = Context.findImportSymbol(Relocation.Symbol);
+                    REPORT_ICE_IF(!ImportSymbol, Diagnostics, core::DiagnosticKind::VMExecutableValidationFailed, {}, "global relocation", "symbol has no resolved VM offset or unresolved symbol declaration");
+                    const auto Index = Context.getOrAddImportSymbol(*ImportSymbol);
+                    Context.addDynamicImportSymbolRelocation({FieldOffset, Index, Relocation.Addend, RelocationKind::AbsoluteAddress});
+                }
+            }
         }
     }
 
