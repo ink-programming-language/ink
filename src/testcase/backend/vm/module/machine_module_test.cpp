@@ -1,6 +1,11 @@
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
+#include "ink/core/diagnostic/diagnostic_formatter.h"
 #include "ink/core/name/name_pool.h"
 #include "ink/backend/vm/module/machine_global_variable.h"
+#include "ink/backend/vm/module/machine_instruction_builder.h"
 #include "ink/backend/vm/module/machine_module.h"
+#include "ink/backend/vm/module/machine_module_verifier.h"
 
 #include <gtest/gtest.h>
 
@@ -279,5 +284,47 @@ namespace ink::vm::test
         EXPECT_EQ(Valid->get().addRelocation(12, Target, 0).error(), MachineModuleDataError::InvalidRelocationAlignment);
         EXPECT_EQ(Valid->get().addRelocation(16, Target, 0).error(), MachineModuleDataError::RelocationOutOfBounds);
         EXPECT_EQ(Valid->get().relocationCount(), 1U);
+    }
+
+    // Standalone verifyMachineModule reports structured VMModuleInvalid diagnostics via DiagnosticEngine and collects multiple violations in one pass.
+    TEST(VMMachineModuleTest, VerifiesCompleteModulesAndDiagnosesStructuralErrors)
+    {
+        auto& Pool = core::NamePool::instance();
+        const auto Sym = Pool.intern("verifier.sym");
+
+        core::DiagnosticEngine Diagnostics;
+        core::CollectingDiagnosticConsumer Collector;
+        Diagnostics.addConsumer(Collector);
+
+        MachineModule Valid(Pool.intern("verifier.ok"));
+        Valid.declareSymbol(Sym, MachineSymbolKind::Function);
+        ASSERT_TRUE(Valid.createGlobalVariable(8, 8, {}, Pool.intern("verifier.global"), MachineSymbolLinkage::External, true).has_value());
+        auto& Func = Valid.createFunction(Pool.intern("verifier.fn"), MachineSymbolLinkage::External);
+        auto& Entry = Func.createBasicBlock(Pool.intern("entry"));
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Entry);
+        Builder.create<Opcode::Calli>(ImmediateOperand(Sym));
+        Builder.create<Opcode::Ret>();
+        EXPECT_TRUE(verifyMachineModule(Valid, Diagnostics));
+        EXPECT_TRUE(Collector.diagnostics().empty());
+
+        MachineModule MultiError;
+        MultiError.declareSymbol(Sym, MachineSymbolKind::Function, true);
+        ASSERT_TRUE(MultiError.createGlobalVariable(4, 1, {}, core::NAME_None, MachineSymbolLinkage::External).has_value());
+        auto& BadBlock = MultiError.createFunction().createBasicBlock();
+        Builder.setInsertPoint(BadBlock);
+        Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::R0), RegisterOperand(static_cast<RegisterId>(0x0E)), ImmediateOperand(1));
+        Builder.create<Opcode::Store16i>(AddressOperand(RegisterId::BP), ImmediateOperand(Sym));
+        EXPECT_FALSE(verifyMachineModule(MultiError, Diagnostics));
+
+        const auto Reported = Collector.takeDiagnostics();
+        ASSERT_EQ(Reported.size(), 4U);
+        const core::DiagnosticFormatter Formatter;
+        for (const core::Diagnostic& EntryDiag : Reported)
+        {
+            EXPECT_EQ(EntryDiag.Kind, core::DiagnosticKind::VMModuleInvalid);
+            EXPECT_FALSE(EntryDiag.Span.isValid());
+            EXPECT_NE(Formatter.format(EntryDiag).Message.find("invalid VM module in "), std::string::npos);
+        }
     }
 } // namespace ink::vm::test

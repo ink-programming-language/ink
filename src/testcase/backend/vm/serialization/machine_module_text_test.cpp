@@ -819,7 +819,7 @@ done:
             Builder.create<Opcode::Add64rri>(Destination, RegisterOperand(RegisterId::SP), ImmediateOperand(1));
             const auto Written = writeMachineModuleText(Module);
             ASSERT_FALSE(Written.has_value());
-            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMModuleInvalid);
         }
     }
 
@@ -945,14 +945,14 @@ entry:
         Builder.create<Opcode::Store64i>(AddressOperand(RegisterId::BP), ImmediateOperand(core::NAME_None));
         const auto ImmediateText = writeMachineModuleText(ImmediateModule);
         ASSERT_FALSE(ImmediateText.has_value());
-        EXPECT_EQ(ImmediateText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        EXPECT_EQ(ImmediateText.error().Kind, core::DiagnosticKind::VMModuleInvalid);
         EXPECT_FALSE(ImmediateText.error().Span.isValid());
         MachineModule AddressModule;
         Builder.setInsertPoint(AddressModule.createFunction().createBasicBlock());
         Builder.create<Opcode::Store64i>(AddressOperand(core::NAME_None), ImmediateOperand(0));
         const auto AddressText = writeMachineModuleText(AddressModule);
         ASSERT_FALSE(AddressText.has_value());
-        EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMModuleInvalid);
         EXPECT_FALSE(AddressText.error().Span.isValid());
     }
 
@@ -1260,7 +1260,7 @@ entry:
         Builder.create<Opcode::Calli>(ImmediateOperand(core::NAME_None));
         const auto Text = writeMachineModuleText(Module);
         ASSERT_FALSE(Text.has_value());
-        EXPECT_EQ(Text.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        EXPECT_EQ(Text.error().Kind, core::DiagnosticKind::VMModuleInvalid);
     }
 
     // The removed native-only mnemonic is rejected for otherwise valid immediate and memory targets.
@@ -1301,7 +1301,7 @@ entry:
             Builder.create<Opcode::Calli>(ImmediateOperand(Target, Offset));
             const auto Written = writeMachineModuleText(Module);
             ASSERT_FALSE(Written.has_value());
-            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMModuleInvalid);
         }
     }
 
@@ -1479,7 +1479,7 @@ entry:
             Builder.create<Opcode::Jmpi>(ImmediateOperand(core::NamePool::instance().intern("jump.target"), Offset));
             const auto Written = writeMachineModuleText(Module);
             ASSERT_FALSE(Written.has_value());
-            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMModuleInvalid);
             EXPECT_FALSE(Written.error().Span.isValid());
         }
     }
@@ -1550,7 +1550,7 @@ entry:
         Builder.create<Opcode::Add64rri>(RegisterOperand(RegisterId::BP), RegisterOperand(static_cast<RegisterId>(0x0E)), ImmediateOperand(0));
         const auto RegisterText = writeMachineModuleText(Module);
         ASSERT_FALSE(RegisterText.has_value());
-        EXPECT_EQ(RegisterText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        EXPECT_EQ(RegisterText.error().Kind, core::DiagnosticKind::VMModuleInvalid);
         EXPECT_FALSE(RegisterText.error().Span.isValid());
         MachineModule AddressModule;
         auto& AddressBlock = AddressModule.createFunction().createBasicBlock();
@@ -1558,7 +1558,7 @@ entry:
         Builder.create<Opcode::Store32i>(AddressOperand(static_cast<RegisterId>(0x0E)), ImmediateOperand(1));
         const auto AddressText = writeMachineModuleText(AddressModule);
         ASSERT_FALSE(AddressText.has_value());
-        EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMModuleInvalid);
         EXPECT_FALSE(AddressText.error().Span.isValid());
     }
 
@@ -1722,14 +1722,14 @@ entry:
         Builder.create<Opcode::Add64rri>(RegisterOperand(static_cast<RegisterId>(255)), RegisterOperand(RegisterId::SP), ImmediateOperand(1));
         const auto RegisterText = writeMachineModuleText(RegisterModule);
         ASSERT_FALSE(RegisterText.has_value());
-        EXPECT_EQ(RegisterText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        EXPECT_EQ(RegisterText.error().Kind, core::DiagnosticKind::VMModuleInvalid);
         MachineModule AddressModule;
         auto& AddressBlock = AddressModule.createFunction().createBasicBlock();
         Builder.setInsertPoint(AddressBlock);
         Builder.create<Opcode::Store8i>(AddressOperand(static_cast<RegisterId>(255)), ImmediateOperand(1));
         const auto AddressText = writeMachineModuleText(AddressModule);
         ASSERT_FALSE(AddressText.has_value());
-        EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMTextInvalid);
+        EXPECT_EQ(AddressText.error().Kind, core::DiagnosticKind::VMModuleInvalid);
     }
 
     // Global data relocation directives round-trip losslessly with mixed initial bytes, signed boundary addends, escaped symbol names, and hex spellings.
@@ -2043,7 +2043,7 @@ entry:
             Builder.create<Opcode::Store32i>(AddressOperand(RegisterId::BP), ImmediateOperand(Sym));
             const auto Written = writeMachineModuleText(Module);
             ASSERT_FALSE(Written.has_value());
-            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMModuleInvalid);
             EXPECT_FALSE(Written.error().Span.isValid());
         }
         {
@@ -2054,7 +2054,7 @@ entry:
             Builder.create<Opcode::Je16mib>(AddressOperand(RegisterId::BP), ImmediateOperand(Sym), BasicBlockOperand(&Block));
             const auto Written = writeMachineModuleText(Module);
             ASSERT_FALSE(Written.has_value());
-            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            EXPECT_EQ(Written.error().Kind, core::DiagnosticKind::VMModuleInvalid);
             EXPECT_FALSE(Written.error().Span.isValid());
         }
     }
@@ -2117,5 +2117,165 @@ entry:
         const auto Reparsed = readMachineModuleText(*Written);
         ASSERT_TRUE(Reparsed.has_value());
         expectEqualModules(**Parsed, **Reparsed);
+    }
+
+    // The buffer-appending writer overload appends canonical text on success and leaves caller output untouched when module verification fails.
+    TEST(VMMachineModuleTextTest, AppendsToOutputBufferWithoutMutatingOnVerificationFailure)
+    {
+        auto& Names = core::NamePool::instance();
+        MachineModule Valid(Names.intern("sink-ok"));
+        std::string Output = "; prefix\n";
+        ASSERT_TRUE(writeMachineModuleText(Valid, Output).has_value());
+        EXPECT_EQ(Output, "; prefix\n.module \"sink-ok\"\n");
+
+        MachineModule Malformed(Names.intern("sink-bad"));
+        Malformed.createFunction(core::NAME_None, MachineSymbolLinkage::External);
+        const std::string Snapshot = Output;
+        const auto Failed = writeMachineModuleText(Malformed, Output);
+        ASSERT_FALSE(Failed.has_value());
+        EXPECT_EQ(Failed.error().Kind, core::DiagnosticKind::VMModuleInvalid);
+        EXPECT_FALSE(Failed.error().Span.isValid());
+        EXPECT_EQ(Output, Snapshot);
+    }
+
+    // Canonical output sorts global relocations by ascending byte offset even when created or written out of order.
+    TEST(VMMachineModuleTextTest, NormalizesUnsortedGlobalRelocationsToAscendingOffsetOrder)
+    {
+        auto& Names = core::NamePool::instance();
+        const auto SymA = Names.intern("target.a");
+        const auto SymB = Names.intern("target.b");
+        const auto SymC = Names.intern("target.c");
+
+        MachineModule Module(Names.intern("unsorted-relocs"));
+        const std::array<MachineGlobalRelocation, 3> Unsorted{{
+            {16, SymC, 8},
+            {0, SymA, 0},
+            {8, SymB, -4},
+        }};
+        ASSERT_TRUE(Module.createGlobalVariable(24, 8, {}, Names.intern("table"), MachineSymbolLinkage::External, true, Unsorted).has_value());
+
+        const auto Written = writeMachineModuleText(Module);
+        ASSERT_TRUE(Written.has_value());
+        const auto Pos0 = Written->find("    .reloc 0, @target.a\n");
+        const auto Pos8 = Written->find("    .reloc 8, @target.b - 4\n");
+        const auto Pos16 = Written->find("    .reloc 16, @target.c + 8\n");
+        ASSERT_NE(Pos0, std::string::npos) << *Written;
+        ASSERT_NE(Pos8, std::string::npos) << *Written;
+        ASSERT_NE(Pos16, std::string::npos) << *Written;
+        EXPECT_LT(Pos0, Pos8);
+        EXPECT_LT(Pos8, Pos16);
+
+        const auto Reparsed = readMachineModuleText(*Written);
+        ASSERT_TRUE(Reparsed.has_value());
+        const auto Rewritten = writeMachineModuleText(**Reparsed);
+        ASSERT_TRUE(Rewritten.has_value());
+        EXPECT_EQ(*Rewritten, *Written);
+    }
+
+    // Interleaved forward block references resolve in one pass while preserving exact source block order and deterministic first-missing diagnostics.
+    TEST(VMMachineModuleTextTest, PreservesSourceBlockOrderAcrossInterleavedForwardReferences)
+    {
+        constexpr std::string_view Text = R"(.module "forward-order"
+.section .text
+.function @f
+entry:
+    jmp b
+a:
+    jmp c
+b:
+    jmp a
+c: "final block"
+    ret
+.endfunction
+)";
+        const auto Parsed = readMachineModuleText(Text);
+        ASSERT_TRUE(Parsed.has_value());
+        const auto& Function = *(*Parsed)->functions().begin();
+        ASSERT_EQ(Function.basicBlockCount(), 4U);
+        const auto Blocks = Function.basicBlocks();
+        auto& Pool = core::NamePool::instance();
+        const auto& Entry = *Blocks.begin();
+        const auto& BlockA = *std::next(Blocks.begin(), 1);
+        const auto& BlockB = *std::next(Blocks.begin(), 2);
+        const auto& BlockC = *std::next(Blocks.begin(), 3);
+        EXPECT_EQ(Entry.name(), Pool.intern("entry"));
+        EXPECT_EQ(BlockA.name(), Pool.intern("a"));
+        EXPECT_EQ(BlockB.name(), Pool.intern("b"));
+        EXPECT_EQ(BlockC.name(), Pool.intern("final block"));
+        EXPECT_EQ(static_cast<const MachineJmpInstruction&>(*Entry.instructions().begin()).getTarget(), &BlockB);
+        EXPECT_EQ(static_cast<const MachineJmpInstruction&>(*BlockA.instructions().begin()).getTarget(), &BlockC);
+        EXPECT_EQ(static_cast<const MachineJmpInstruction&>(*BlockB.instructions().begin()).getTarget(), &BlockA);
+
+        constexpr std::string_view MissingTwo = ".module \"\"\n.section .text\n.function @f\nentry:\n    jmp first_missing\n    jmp second_missing\n.endfunction\n";
+        const auto Failed = readMachineModuleText(MissingTwo);
+        ASSERT_FALSE(Failed.has_value());
+        EXPECT_EQ(Failed.error().Span.getBegin().getByteOffset(), MissingTwo.find("first_missing"));
+        EXPECT_EQ(Failed.error().Span.getEnd().getByteOffset(), MissingTwo.find("first_missing") + std::string_view("first_missing").size());
+    }
+
+    // Strict symbol lexing, escape diagnostics, nonzero relocation overlaps, .zero limits, and canonical NaN bits report precise spans and values.
+    TEST(VMMachineModuleTextTest, EnforcesStrictSymbolLexingPreciseErrorSpansZeroLimitsAndCanonicalNaN)
+    {
+        // Whitespace after '@' is rejected by symbol lexing.
+        EXPECT_FALSE(readMachineModuleText(".module \"\"\n.declare function @ foo\n").has_value());
+        EXPECT_FALSE(readMachineModuleText(".module \"\"\n.declare function @ \"foo\"\n").has_value());
+
+        // Trailing comments after incomplete '@' or '-' must not be included in diagnostic spans.
+        constexpr std::string_view IncompleteSymbol = ".module \"\"\n.declare function @ ; trailing comment\n";
+        const auto BadSym = readMachineModuleText(IncompleteSymbol);
+        ASSERT_FALSE(BadSym.has_value());
+        EXPECT_EQ(BadSym.error().Span.getBegin().getByteOffset(), IncompleteSymbol.find('@'));
+        EXPECT_EQ(BadSym.error().Span.getEnd().getByteOffset(), IncompleteSymbol.find('@') + 1);
+
+        constexpr std::string_view IncompleteFloat = ".module \"\"\n.section .data\n.global @g size 8\n    .f64 - ; comment\n.endglobal\n";
+        const auto BadFloat = readMachineModuleText(IncompleteFloat);
+        ASSERT_FALSE(BadFloat.has_value());
+        EXPECT_EQ(BadFloat.error().Span.getBegin().getByteOffset(), IncompleteFloat.find('-'));
+        EXPECT_EQ(BadFloat.error().Span.getEnd().getByteOffset(), IncompleteFloat.find('-') + 1);
+
+        // Non-hex first escape char spans only the two-character escape, while a valid first hex digit with bad second digit spans three characters.
+        constexpr std::string_view BadNonHexEscape = ".module \"hello\\nworld\"\n";
+        const auto NonHex = readMachineModuleText(BadNonHexEscape);
+        ASSERT_FALSE(NonHex.has_value());
+        EXPECT_EQ(NonHex.error().Span.getBegin().getByteOffset(), BadNonHexEscape.find("\\n"));
+        EXPECT_EQ(NonHex.error().Span.getEnd().getByteOffset(), BadNonHexEscape.find("\\n") + 2);
+
+        constexpr std::string_view BadSecondHexEscape = ".module \"hello\\0Gworld\"\n";
+        const auto BadSecondHex = readMachineModuleText(BadSecondHexEscape);
+        ASSERT_FALSE(BadSecondHex.has_value());
+        EXPECT_EQ(BadSecondHex.error().Span.getBegin().getByteOffset(), BadSecondHexEscape.find("\\0G"));
+        EXPECT_EQ(BadSecondHex.error().Span.getEnd().getByteOffset(), BadSecondHexEscape.find("\\0G") + 3);
+
+        // Relocation overlapping nonzero initial bytes points directly at the offending .reloc offset token rather than .endglobal.
+        constexpr std::string_view OverlapText = ".module \"\"\n.section .data\n.global @g size 16 align 8\n    .reloc 8, @sym\n    .zero 8\n    .byte 1\n.endglobal\n";
+        const auto Overlap = readMachineModuleText(OverlapText);
+        ASSERT_FALSE(Overlap.has_value());
+        const std::size_t RelocOffsetPos = OverlapText.find(".reloc 8") + std::string_view(".reloc ").size();
+        EXPECT_EQ(Overlap.error().Span.getBegin().getByteOffset(), RelocOffsetPos);
+        EXPECT_EQ(Overlap.error().Span.getEnd().getByteOffset(), RelocOffsetPos + 1);
+
+        // Oversized .zero materialization fails with VMTextInvalid instead of exhausting host memory.
+        constexpr std::string_view HugeZero = ".module \"\"\n.section .data\n.global @huge size 100000000000\n    .zero 100000000000\n.endglobal\n";
+        const auto ZeroLimit = readMachineModuleText(HugeZero);
+        ASSERT_FALSE(ZeroLimit.has_value());
+        EXPECT_EQ(ZeroLimit.error().Kind, core::DiagnosticKind::VMTextInvalid);
+
+        // .f64 nan and -nan produce deterministic IEEE 754 binary64 canonical quiet NaN bit patterns.
+        constexpr std::string_view NanText = ".module \"nan\"\n.section .data\n.global @n size 16 align 8\n    .f64 nan, -nan\n.endglobal\n";
+        const auto ParsedNan = readMachineModuleText(NanText);
+        ASSERT_TRUE(ParsedNan.has_value());
+        const auto Bytes = (*ParsedNan)->globalVariables().begin()->initialBytes();
+        ASSERT_EQ(Bytes.size(), 16U);
+        auto ReadU64 = [&](std::size_t Offset) -> std::uint64_t
+        {
+            std::uint64_t Value = 0;
+            for (std::size_t Index = 0; Index < 8; ++Index)
+            {
+                Value |= static_cast<std::uint64_t>(Bytes[Offset + Index]) << (Index * 8);
+            }
+            return Value;
+        };
+        EXPECT_EQ(ReadU64(0), 0x7ff8000000000000ULL);
+        EXPECT_EQ(ReadU64(8), 0xfff8000000000000ULL);
     }
 } // namespace ink::vm::test

@@ -3,11 +3,14 @@
 #include "ink/backend/vm/instruction/address_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
 #include "ink/backend/vm/instruction/machine_instruction.h"
+#include "ink/backend/vm/instruction/machine_operand.h"
+#include "ink/backend/vm/instruction/opcode_info.h"
 #include "ink/backend/vm/instruction/register.h"
 #include "ink/backend/vm/instruction/register_operand.h"
 
 #include <cstddef>
 #include <optional>
+#include <span>
 #include <string_view>
 
 namespace ink::vm
@@ -28,80 +31,172 @@ namespace ink::vm
         return !Target.getSymbol() || *Target.getByteOffset() == 0;
     }
 
-    inline std::optional<std::string_view> validateFloatingPointOperands(const MachineInstruction& Instruction) noexcept
+    namespace detail
     {
-        if (!Instruction.isFloatingPoint())
+        template <typename OperandGetter>
+        constexpr std::optional<std::string_view> validateFloatingPointOperandsImpl(const OpcodeInfo& Info, OperandGetter&& GetOperand) noexcept
         {
+            if (Info.Domain != InstructionDomain::FloatingPoint)
+            {
+                return std::nullopt;
+            }
+            for (std::size_t Index = 0; Index < Info.OperandCount; ++Index)
+            {
+                const Operand* Value = GetOperand(Index);
+                if (!Value || Value->getKind() != OperandKind::Register || !isValidFloatingPointOperand(Index, static_cast<const RegisterOperand&>(*Value)))
+                {
+                    return "floating-point operands require a GPR destination and GPR or ZERO sources, all with zero byte offset";
+                }
+            }
             return std::nullopt;
         }
-        for (std::size_t Index = 0; Index < Instruction.operandCount(); ++Index)
+
+        template <typename OperandGetter>
+        constexpr std::optional<std::string_view> validateRegisterDestinationImpl(const OpcodeInfo& Info, OperandGetter&& GetOperand) noexcept
         {
-            const auto& Operand = static_cast<const RegisterOperand&>(*Instruction.getOperand(Index));
-            if (!isValidFloatingPointOperand(Index, Operand))
+            if (Info.HasDestination && Info.OperandCount != 0)
             {
-                return "floating-point operands require a GPR destination and GPR or ZERO sources, all with zero byte offset";
+                const Operand* Value = GetOperand(0);
+                if (Value && Value->getKind() == OperandKind::Register && !isValidRegisterDestination(static_cast<const RegisterOperand&>(*Value)))
+                {
+                    return "register destination must be BP, SP, or R0-R9 with zero byte offset";
+                }
             }
+            return std::nullopt;
         }
-        return std::nullopt;
+
+        template <typename OperandGetter>
+        constexpr std::optional<std::string_view> validateDirectControlTargetImpl(const OpcodeInfo& Info, OperandGetter&& GetOperand) noexcept
+        {
+            if ((Info.Category == InstructionCategory::Call || Info.Operation == Opcode::Jmpi) && Info.OperandCount != 0)
+            {
+                const Operand* Value = GetOperand(0);
+                if (Value && Value->getKind() == OperandKind::Immediate && !isValidDirectFunctionTarget(static_cast<const ImmediateOperand&>(*Value)))
+                {
+                    return "direct function symbol target must have a zero byte offset";
+                }
+            }
+            return std::nullopt;
+        }
+
+        template <typename OperandGetter>
+        constexpr std::optional<std::string_view> validateSymbolicImmediateWidthImpl(const OpcodeInfo& Info, OperandGetter&& GetOperand) noexcept
+        {
+            if (Info.BitWidth == 64)
+            {
+                return std::nullopt;
+            }
+            for (std::size_t Index = 0; Index < Info.OperandCount; ++Index)
+            {
+                const Operand* Value = GetOperand(Index);
+                if (Value && Value->getKind() == OperandKind::Immediate && static_cast<const ImmediateOperand&>(*Value).getSymbol())
+                {
+                    return "symbol address immediate requires a 64-bit instruction";
+                }
+            }
+            return std::nullopt;
+        }
+
+        template <typename OperandGetter>
+        constexpr std::optional<std::string_view> validateInstructionConstraintsImpl(const OpcodeInfo& Info, OperandGetter&& GetOperand) noexcept
+        {
+            if (const auto Error = validateFloatingPointOperandsImpl(Info, GetOperand))
+            {
+                return Error;
+            }
+            if (const auto Error = validateRegisterDestinationImpl(Info, GetOperand))
+            {
+                return Error;
+            }
+            if (const auto Error = validateDirectControlTargetImpl(Info, GetOperand))
+            {
+                return Error;
+            }
+            return validateSymbolicImmediateWidthImpl(Info, GetOperand);
+        }
+    } // namespace detail
+
+    inline std::optional<std::string_view> validateFloatingPointOperands(const MachineInstruction& Instruction) noexcept
+    {
+        const OpcodeInfo* Info = findOpcodeInfo(Instruction.getOpcode());
+        if (!Info)
+        {
+            return "instruction has an unknown opcode";
+        }
+        return detail::validateFloatingPointOperandsImpl(*Info, [&](std::size_t Index) noexcept
+                                                         {
+                                                             return Instruction.getOperand(Index);
+                                                         });
     }
 
     inline std::optional<std::string_view> validateRegisterDestination(const MachineInstruction& Instruction) noexcept
     {
-        if (Instruction.hasDestination() && Instruction.getOperand(0)->getKind() == OperandKind::Register)
+        const OpcodeInfo* Info = findOpcodeInfo(Instruction.getOpcode());
+        if (!Info)
         {
-            const auto& Destination = static_cast<const RegisterOperand&>(*Instruction.getOperand(0));
-            if (!isValidRegisterDestination(Destination))
-            {
-                return "register destination must be BP, SP, or R0-R9 with zero byte offset";
-            }
+            return "instruction has an unknown opcode";
         }
-        return std::nullopt;
+        return detail::validateRegisterDestinationImpl(*Info, [&](std::size_t Index) noexcept
+                                                       {
+                                                           return Instruction.getOperand(Index);
+                                                       });
     }
 
     inline std::optional<std::string_view> validateDirectControlTarget(const MachineInstruction& Instruction) noexcept
     {
-        if ((Instruction.isCall() || Instruction.getOpcode() == Opcode::Jmpi) && Instruction.getOperand(0)->getKind() == OperandKind::Immediate)
+        const OpcodeInfo* Info = findOpcodeInfo(Instruction.getOpcode());
+        if (!Info)
         {
-            const auto& Target = static_cast<const ImmediateOperand&>(*Instruction.getOperand(0));
-            if (!isValidDirectFunctionTarget(Target))
-            {
-                return "direct function symbol target must have a zero byte offset";
-            }
+            return "instruction has an unknown opcode";
         }
-        return std::nullopt;
+        return detail::validateDirectControlTargetImpl(*Info, [&](std::size_t Index) noexcept
+                                                       {
+                                                           return Instruction.getOperand(Index);
+                                                       });
     }
 
     inline std::optional<std::string_view> validateSymbolicImmediateWidth(const MachineInstruction& Instruction) noexcept
     {
-        if (Instruction.bitWidth() == 64)
+        const OpcodeInfo* Info = findOpcodeInfo(Instruction.getOpcode());
+        if (!Info)
         {
-            return std::nullopt;
+            return "instruction has an unknown opcode";
         }
-        for (std::size_t Index = 0; Index < Instruction.operandCount(); ++Index)
+        return detail::validateSymbolicImmediateWidthImpl(*Info, [&](std::size_t Index) noexcept
+                                                          {
+                                                              return Instruction.getOperand(Index);
+                                                          });
+    }
+
+    inline std::optional<std::string_view> validateInstructionConstraints(const OpcodeInfo& Info, std::span<const MachineOperand> Operands) noexcept
+    {
+        if (Operands.size() != Info.OperandCount)
         {
-            const Operand* Value = Instruction.getOperand(Index);
-            if (Value->getKind() == OperandKind::Immediate && static_cast<const ImmediateOperand&>(*Value).getSymbol())
+            return "operand count does not match instruction opcode";
+        }
+        for (std::size_t Index = 0; Index < Info.OperandCount; ++Index)
+        {
+            if (Operands[Index].getKind() != Info.OperandKinds[Index])
             {
-                return "symbol address immediate requires a 64-bit instruction";
+                return "operand kinds do not match instruction opcode";
             }
         }
-        return std::nullopt;
+        return detail::validateInstructionConstraintsImpl(Info, [&](std::size_t Index) noexcept
+                                                          {
+                                                              return &Operands[Index].getOperand();
+                                                          });
     }
 
     inline std::optional<std::string_view> validateInstructionConstraints(const MachineInstruction& Instruction) noexcept
     {
-        if (const auto Error = validateFloatingPointOperands(Instruction))
+        const OpcodeInfo* Info = findOpcodeInfo(Instruction.getOpcode());
+        if (!Info)
         {
-            return Error;
+            return "instruction has an unknown opcode";
         }
-        if (const auto Error = validateRegisterDestination(Instruction))
-        {
-            return Error;
-        }
-        if (const auto Error = validateDirectControlTarget(Instruction))
-        {
-            return Error;
-        }
-        return validateSymbolicImmediateWidth(Instruction);
+        return detail::validateInstructionConstraintsImpl(*Info, [&](std::size_t Index) noexcept
+                                                          {
+                                                              return Instruction.getOperand(Index);
+                                                          });
     }
 } // namespace ink::vm

@@ -37,6 +37,11 @@ namespace ink::vm
                 return Name;
             }
 
+            void setName(core::Name BlockName) noexcept
+            {
+                Name = BlockName;
+            }
+
             auto* parent(this auto&& Self) noexcept
             {
                 return Self.Parent ? &std::forward_like<decltype(Self)&>(*Self.Parent) : nullptr;
@@ -62,6 +67,7 @@ namespace ink::vm
 
             core::Name Name;
             MachineFunction* Parent = nullptr;
+            std::list<MachineBasicBlock>::iterator Position{};
             InstructionStorage Instructions;
     };
 } // namespace ink::vm

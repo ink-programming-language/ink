@@ -559,4 +559,39 @@ namespace ink::vm::test
         EXPECT_EQ(Created->parent(), &Block);
         EXPECT_EQ(Created->getRHS().bits(), 16U);
     }
+
+    // The runtime-dispatched tryCreate(Opcode, span) factory builds matching opcodes and rejects unknown opcodes, operand mismatches, and foreign branch targets.
+    TEST(VMMachineInstructionBuilderTest, RuntimeTryCreateDispatchesByOpcodeAndValidatesOperands)
+    {
+        MachineFunction Function;
+        MachineBasicBlock& Entry = Function.createBasicBlock();
+        MachineBasicBlock& Target = Function.createBasicBlock();
+        MachineFunction Other;
+        MachineBasicBlock& Foreign = Other.createBasicBlock();
+
+        MachineInstructionBuilder Builder;
+        Builder.setInsertPoint(Entry);
+
+        const std::array<MachineOperand, 3> AddOperands{RegisterOperand(RegisterId::R1), RegisterOperand(RegisterId::BP, 8), ImmediateOperand(42)};
+        MachineInstruction* AddInst = Builder.tryCreate(Opcode::Add64rri, AddOperands);
+        ASSERT_NE(AddInst, nullptr);
+        EXPECT_EQ(AddInst->getOpcode(), Opcode::Add64rri);
+        EXPECT_EQ(static_cast<const MachineAdd64rriInstruction*>(AddInst)->getRHS().bits(), 42U);
+
+        const std::array<MachineOperand, 1> JmpOperands{BasicBlockOperand(&Target)};
+        MachineInstruction* JmpInst = Builder.tryCreate(Opcode::Jmp, JmpOperands);
+        ASSERT_NE(JmpInst, nullptr);
+        EXPECT_EQ(static_cast<const MachineJmpInstruction*>(JmpInst)->getTarget(), &Target);
+
+        MachineInstruction* RetInst = Builder.tryCreate(Opcode::Ret, {});
+        ASSERT_NE(RetInst, nullptr);
+        EXPECT_EQ(RetInst->getOpcode(), Opcode::Ret);
+
+        EXPECT_EQ(Builder.tryCreate(static_cast<Opcode>(0xFFFF), {}), nullptr);
+        EXPECT_EQ(Builder.tryCreate(Opcode::Ret, JmpOperands), nullptr);
+        EXPECT_EQ(Builder.tryCreate(Opcode::Add64rrr, AddOperands), nullptr);
+        const std::array<MachineOperand, 1> ForeignJmp{BasicBlockOperand(&Foreign)};
+        EXPECT_EQ(Builder.tryCreate(Opcode::Jmp, ForeignJmp), nullptr);
+        EXPECT_EQ(Entry.instructionCount(), 3U);
+    }
 } // namespace ink::vm::test

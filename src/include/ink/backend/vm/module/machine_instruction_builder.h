@@ -1,8 +1,10 @@
 #pragma once
 
 #include "ink/backend/vm/instruction/machine_instructions.h"
+#include "ink/backend/vm/instruction/machine_operand.h"
 #include "ink/backend/vm/module/machine_basic_block.h"
 
+#include <span>
 #include <type_traits>
 #include <utility>
 
@@ -40,6 +42,10 @@ namespace ink::vm
                 }
                 return *Created;
             }
+
+            // Runtime-dispatched factory for deserialization and generic builders; returns nullptr if the opcode,
+            // operand count/kinds, insertion point, or branch target ownership are invalid.
+            [[nodiscard]] MachineInstruction* tryCreate(Opcode Operation, std::span<const MachineOperand> Operands);
 
             // Returns nullptr without allocation or mutation if the insertion point or branch target ownership is invalid.
             template <Opcode Operation, typename... ValueTypes>

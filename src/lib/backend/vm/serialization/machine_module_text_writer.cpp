@@ -5,11 +5,14 @@
 #include "ink/backend/vm/instruction/address_operand.h"
 #include "ink/backend/vm/instruction/basic_block_operand.h"
 #include "ink/backend/vm/instruction/immediate_operand.h"
-#include "ink/backend/vm/instruction/machine_instruction_validator.h"
 #include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/backend/vm/module/machine_module.h"
+#include "ink/backend/vm/module/machine_module_verifier.h"
+#include "ink/core/diagnostic/diagnostic_consumer.h"
+#include "ink/core/diagnostic/diagnostic_engine.h"
 #include "ink/core/name/name_pool.h"
 
+#include <algorithm>
 #include <bit>
 #include <charconv>
 #include <cstddef>
@@ -21,35 +24,54 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace ink::vm
 {
     namespace
     {
-        using WriteResult = std::expected<void, core::Diagnostic>;
-        using BlockLabelMap = std::unordered_map<const MachineBasicBlock*, std::string>;
-
-        WriteResult writeFailure(std::string_view Description)
-        {
-            return std::unexpected(detail::makeWriteDiagnostic(Description));
-        }
-
-        // Reserves explicit basic-block identifiers upfront so generated aliases never collide with later blocks.
-        class BlockLabelScope
+        // Assigns unique, collision-free textual labels to all basic blocks in a verified function.
+        // Reserves explicit identifier names upfront using stable NamePool views so generated aliases never collide.
+        class BlockLabelTable final
         {
             public:
-                void reserve(core::Name Name)
+                explicit BlockLabelTable(const MachineFunction& Function)
                 {
-                    const std::string_view Preferred = core::NamePool::instance().text(Name);
-                    if (detail::isLabelIdentifier(Preferred))
+                    const core::NamePool& Pool = core::NamePool::instance();
+                    const std::size_t BlockCount = Function.basicBlockCount();
+                    std::unordered_set<std::string_view> Reserved;
+                    std::unordered_set<std::string> Used;
+                    std::unordered_map<std::string_view, std::size_t> NextCollisionSuffix;
+                    Reserved.reserve(BlockCount);
+                    Used.reserve(BlockCount);
+                    Labels.reserve(BlockCount);
+
+                    for (const MachineBasicBlock& Block : Function.basicBlocks())
                     {
-                        Reserved.emplace(Preferred);
+                        const std::string_view Preferred = Pool.text(Block.name());
+                        if (detail::isLabelIdentifier(Preferred))
+                        {
+                            Reserved.insert(Preferred);
+                        }
+                    }
+
+                    std::size_t NextAnonymousIndex = 0;
+                    for (const MachineBasicBlock& Block : Function.basicBlocks())
+                    {
+                        const std::string_view Preferred = Pool.text(Block.name());
+                        Labels.emplace(&Block, allocateLabel(Preferred, Reserved, Used, NextCollisionSuffix, NextAnonymousIndex));
                     }
                 }
 
-                std::string allocate(core::Name Name)
+                std::string_view labelFor(const MachineBasicBlock* Block) const noexcept
                 {
-                    const std::string_view Preferred = core::NamePool::instance().text(Name);
+                    const auto Found = Labels.find(Block);
+                    return Found == Labels.end() ? std::string_view{} : std::string_view(Found->second);
+                }
+
+            private:
+                static std::string allocateLabel(std::string_view Preferred, const std::unordered_set<std::string_view>& Reserved, std::unordered_set<std::string>& Used, std::unordered_map<std::string_view, std::size_t>& NextCollisionSuffix, std::size_t& NextAnonymousIndex)
+                {
                     if (detail::isLabelIdentifier(Preferred))
                     {
                         std::string Label(Preferred);
@@ -57,10 +79,10 @@ namespace ink::vm
                         {
                             return Label;
                         }
-                        const auto SuffixPosition = NextCollisionSuffix.try_emplace(Label, 1).first;
+                        std::size_t& NextSuffix = NextCollisionSuffix.try_emplace(Preferred, 1).first->second;
                         for (;;)
                         {
-                            std::string Candidate = Label + "." + std::to_string(SuffixPosition->second++);
+                            std::string Candidate = Label + "." + std::to_string(NextSuffix++);
                             if (!Reserved.contains(Candidate) && Used.insert(Candidate).second)
                             {
                                 return Candidate;
@@ -77,450 +99,352 @@ namespace ink::vm
                     }
                 }
 
-            private:
-                std::unordered_set<std::string> Reserved;
-                std::unordered_set<std::string> Used;
-                std::unordered_map<std::string, std::size_t> NextCollisionSuffix;
-                std::size_t NextAnonymousIndex = 0;
+                std::unordered_map<const MachineBasicBlock*, std::string> Labels;
         };
 
-        class ModuleTextWriter
+        std::size_t estimateModuleTextSize(const MachineModule& Module) noexcept
+        {
+            std::size_t Estimate = 32 + Module.symbolDeclarations().size() * 32;
+            for (const MachineGlobalVariable& Global : Module.globalVariables())
+            {
+                Estimate += 64 + Global.relocationCount() * 32 + std::min<std::size_t>(Global.initialBytes().size() * 5, 65536);
+            }
+            for (const MachineFunction& Function : Module.functions())
+            {
+                Estimate += 48 + Function.frameInfo().stackSlotCount() * 28;
+                for (const MachineBasicBlock& Block : Function.basicBlocks())
+                {
+                    Estimate += 16 + Block.instructionCount() * 32;
+                }
+            }
+            return Estimate;
+        }
+
+        // Pure infallible canonical formatter; callers must validate the MachineModule via checkMachineModule first.
+        class ModuleTextPrinter final
         {
             public:
-                std::expected<std::string, core::Diagnostic> writeModule(const MachineModule& Module)
+                explicit ModuleTextPrinter(std::string& Output) noexcept
+                    : Text(Output),
+                      Pool(core::NamePool::instance())
                 {
-                    Text = std::string(detail::ModuleDirective) + " ";
-                    if (const auto Result = writeQuotedName(Module.name()); !Result)
-                    {
-                        return std::unexpected(Result.error());
-                    }
-                    Text += '\n';
-                    if (const auto Result = writeSymbolDeclarations(Module); !Result)
-                    {
-                        return std::unexpected(Result.error());
-                    }
+                }
+
+                void printModule(const MachineModule& Module)
+                {
+                    Text.reserve(Text.size() + estimateModuleTextSize(Module));
+                    Text.append(detail::ModuleDirective);
+                    Text.push_back(' ');
+                    printQuotedName(Module.name());
+                    Text.push_back('\n');
+                    printSymbolDeclarations(Module);
                     if (Module.globalVariableCount() != 0)
                     {
-                        if (const auto Result = writeDataSection(Module); !Result)
-                        {
-                            return std::unexpected(Result.error());
-                        }
+                        printDataSection(Module);
                     }
                     if (Module.functionCount() != 0)
                     {
-                        if (const auto Result = writeTextSection(Module); !Result)
-                        {
-                            return std::unexpected(Result.error());
-                        }
+                        printTextSection(Module);
                     }
-                    return std::move(Text);
                 }
 
             private:
-                WriteResult writeSymbolDeclarations(const MachineModule& Module)
+                void printSymbolDeclarations(const MachineModule& Module)
                 {
                     for (const MachineSymbolDeclaration& Declaration : Module.symbolDeclarations())
                     {
-                        const auto KindSpelling = detail::symbolKindName(Declaration.Kind);
-                        if (!KindSpelling)
-                        {
-                            return writeFailure("unknown symbol declaration kind");
-                        }
-                        Text += detail::DeclareDirective;
-                        Text += ' ';
-                        Text += *KindSpelling;
-                        Text += ' ';
-                        if (const auto Result = writeSymbol(Declaration.Name); !Result)
-                        {
-                            return Result;
-                        }
+                        Text.append(detail::DeclareDirective);
+                        Text.push_back(' ');
+                        Text.append(detail::symbolKindName(Declaration.Kind));
+                        Text.push_back(' ');
+                        printSymbol(Declaration.Name);
                         if (Declaration.IsConstant)
                         {
-                            if (Declaration.Kind != MachineSymbolKind::GlobalVariable)
-                            {
-                                return writeFailure("only global declarations accept the readonly attribute");
-                            }
-                            Text += ' ';
-                            Text += detail::ReadOnlyKeyword;
+                            Text.push_back(' ');
+                            Text.append(detail::ReadOnlyKeyword);
                         }
-                        Text += '\n';
+                        Text.push_back('\n');
                     }
-                    return {};
                 }
 
-                WriteResult writeDataSection(const MachineModule& Module)
+                void printDataSection(const MachineModule& Module)
                 {
-                    Text += '\n';
-                    Text += detail::SectionDirective;
-                    Text += ' ';
-                    Text += detail::DataSectionName;
-                    Text += '\n';
+                    Text.push_back('\n');
+                    Text.append(detail::SectionDirective);
+                    Text.push_back(' ');
+                    Text.append(detail::DataSectionName);
+                    Text.push_back('\n');
                     for (const MachineGlobalVariable& Global : Module.globalVariables())
                     {
-                        if (const auto Result = writeGlobalVariable(Global); !Result)
-                        {
-                            return Result;
-                        }
+                        printGlobalVariable(Global);
                     }
-                    return {};
                 }
 
-                WriteResult writeGlobalVariable(const MachineGlobalVariable& Global)
+                void printGlobalVariable(const MachineGlobalVariable& Global)
                 {
-                    Text += detail::GlobalDirective;
+                    Text.append(detail::GlobalDirective);
                     if (Global.name().valid())
                     {
-                        Text += ' ';
-                        if (const auto Result = writeSymbol(Global.name()); !Result)
-                        {
-                            return Result;
-                        }
+                        Text.push_back(' ');
+                        printSymbol(Global.name());
                     }
-                    Text += ' ';
-                    Text += detail::SizeKeyword;
-                    Text += ' ';
-                    writeUnsigned(Global.byteSize());
+                    Text.push_back(' ');
+                    Text.append(detail::SizeKeyword);
+                    Text.push_back(' ');
+                    printUnsigned(Global.byteSize());
                     if (Global.alignment() != 1)
                     {
-                        Text += ' ';
-                        Text += detail::AlignKeyword;
-                        Text += ' ';
-                        writeUnsigned(Global.alignment());
+                        Text.push_back(' ');
+                        Text.append(detail::AlignKeyword);
+                        Text.push_back(' ');
+                        printUnsigned(Global.alignment());
                     }
                     if (Global.isConstant())
                     {
-                        Text += ' ';
-                        Text += detail::ReadOnlyKeyword;
+                        Text.push_back(' ');
+                        Text.append(detail::ReadOnlyKeyword);
                     }
-                    if (const auto Result = writeLinkage(Global.linkage(), Global.name()); !Result)
+                    printLinkage(Global.linkage());
+                    Text.push_back('\n');
+                    printInitializerBytes(Global.initialBytes());
+                    printGlobalRelocations(Global.relocations());
+                    Text.append(detail::EndGlobalDirective);
+                    Text.push_back('\n');
+                }
+
+                void printGlobalRelocations(std::span<const MachineGlobalRelocation> Relocations)
+                {
+                    if (Relocations.size() <= 1 || std::ranges::is_sorted(Relocations, {}, &MachineGlobalRelocation::ByteOffset))
                     {
-                        return Result;
-                    }
-                    Text += '\n';
-                    writeInitializerBytes(Global.initialBytes());
-                    for (const MachineGlobalRelocation& Relocation : Global.relocations())
-                    {
-                        if (const auto Result = writeGlobalRelocation(Relocation); !Result)
+                        for (const MachineGlobalRelocation& Relocation : Relocations)
                         {
-                            return Result;
+                            printGlobalRelocation(Relocation);
                         }
+                        return;
                     }
-                    Text += detail::EndGlobalDirective;
-                    Text += '\n';
-                    return {};
-                }
-
-                WriteResult writeGlobalRelocation(const MachineGlobalRelocation& Relocation)
-                {
-                    Text += "    ";
-                    Text += detail::RelocDirective;
-                    Text += ' ';
-                    writeUnsigned(Relocation.ByteOffset);
-                    Text += ", ";
-                    if (const auto Result = writeSymbol(Relocation.Symbol); !Result)
+                    std::vector<MachineGlobalRelocation> Ordered(Relocations.begin(), Relocations.end());
+                    std::ranges::sort(Ordered, {}, &MachineGlobalRelocation::ByteOffset);
+                    for (const MachineGlobalRelocation& Relocation : Ordered)
                     {
-                        return Result;
+                        printGlobalRelocation(Relocation);
                     }
-                    writeDisplacement(Relocation.Addend);
-                    Text += '\n';
-                    return {};
                 }
 
-                WriteResult writeTextSection(const MachineModule& Module)
+                void printGlobalRelocation(const MachineGlobalRelocation& Relocation)
                 {
-                    Text += '\n';
-                    Text += detail::SectionDirective;
-                    Text += ' ';
-                    Text += detail::TextSectionName;
-                    Text += '\n';
+                    Text.append("    ");
+                    Text.append(detail::RelocDirective);
+                    Text.push_back(' ');
+                    printUnsigned(Relocation.ByteOffset);
+                    Text.append(", ");
+                    printSymbol(Relocation.Symbol);
+                    printDisplacement(Relocation.Addend);
+                    Text.push_back('\n');
+                }
+
+                void printTextSection(const MachineModule& Module)
+                {
+                    Text.push_back('\n');
+                    Text.append(detail::SectionDirective);
+                    Text.push_back(' ');
+                    Text.append(detail::TextSectionName);
+                    Text.push_back('\n');
                     for (const MachineFunction& Function : Module.functions())
                     {
-                        if (const auto Result = writeFunction(Function); !Result)
-                        {
-                            return Result;
-                        }
+                        printFunction(Function);
                     }
-                    return {};
                 }
 
-                WriteResult writeFunction(const MachineFunction& Function)
+                void printFunction(const MachineFunction& Function)
                 {
-                    Text += detail::FunctionDirective;
+                    Text.append(detail::FunctionDirective);
                     if (Function.name().valid())
                     {
-                        Text += ' ';
-                        if (const auto Result = writeSymbol(Function.name()); !Result)
-                        {
-                            return Result;
-                        }
+                        Text.push_back(' ');
+                        printSymbol(Function.name());
                     }
-                    if (const auto Result = writeLinkage(Function.linkage(), Function.name()); !Result)
-                    {
-                        return Result;
-                    }
-                    Text += '\n';
-                    writeFrameInfo(Function.frameInfo());
-                    BlockLabelScope BlockScope;
+                    printLinkage(Function.linkage());
+                    Text.push_back('\n');
+                    printFrameInfo(Function.frameInfo());
+                    const BlockLabelTable BlockLabels(Function);
                     for (const MachineBasicBlock& Block : Function.basicBlocks())
                     {
-                        BlockScope.reserve(Block.name());
+                        printBasicBlock(Block, BlockLabels.labelFor(&Block), BlockLabels);
                     }
-                    BlockLabelMap BlockLabels;
-                    for (const MachineBasicBlock& Block : Function.basicBlocks())
-                    {
-                        BlockLabels.emplace(&Block, BlockScope.allocate(Block.name()));
-                    }
-                    for (const MachineBasicBlock& Block : Function.basicBlocks())
-                    {
-                        const std::string& BlockLabel = BlockLabels.find(&Block)->second;
-                        if (const auto Result = writeBasicBlock(Block, BlockLabel, BlockLabels); !Result)
-                        {
-                            return Result;
-                        }
-                    }
-                    Text += detail::EndFunctionDirective;
-                    Text += '\n';
-                    return {};
+                    Text.append(detail::EndFunctionDirective);
+                    Text.push_back('\n');
                 }
 
-                void writeFrameInfo(const MachineFrameInfo& Frame)
+                void printFrameInfo(const MachineFrameInfo& Frame)
                 {
                     for (const MachineStackSlot& Slot : Frame.stackSlots())
                     {
-                        Text += "    ";
-                        Text += detail::StackSlotDirective;
-                        Text += ' ';
-                        Text += detail::SizeKeyword;
-                        Text += ' ';
-                        writeUnsigned(Slot.byteSize());
+                        Text.append("    ");
+                        Text.append(detail::StackSlotDirective);
+                        Text.push_back(' ');
+                        Text.append(detail::SizeKeyword);
+                        Text.push_back(' ');
+                        printUnsigned(Slot.byteSize());
                         if (Slot.alignment() != 1)
                         {
-                            Text += ' ';
-                            Text += detail::AlignKeyword;
-                            Text += ' ';
-                            writeUnsigned(Slot.alignment());
+                            Text.push_back(' ');
+                            Text.append(detail::AlignKeyword);
+                            Text.push_back(' ');
+                            printUnsigned(Slot.alignment());
                         }
-                        Text += '\n';
+                        Text.push_back('\n');
                     }
                     if (const auto BaseOffset = Frame.baseOffset())
                     {
-                        Text += "    ";
-                        Text += detail::FrameDirective;
-                        Text += ' ';
-                        Text += detail::BaseKeyword;
-                        Text += ' ';
-                        writeUnsigned(*BaseOffset);
-                        Text += '\n';
+                        Text.append("    ");
+                        Text.append(detail::FrameDirective);
+                        Text.push_back(' ');
+                        Text.append(detail::BaseKeyword);
+                        Text.push_back(' ');
+                        printUnsigned(*BaseOffset);
+                        Text.push_back('\n');
                     }
                 }
 
-                WriteResult writeBasicBlock(const MachineBasicBlock& Block, std::string_view BlockLabel, const BlockLabelMap& BlockLabels)
+                void printBasicBlock(const MachineBasicBlock& Block, std::string_view BlockLabel, const BlockLabelTable& BlockLabels)
                 {
-                    Text += BlockLabel;
-                    Text += ':';
-                    if (const auto Result = writeOriginalNameIfDifferent(BlockLabel, Block.name()); !Result)
+                    Text.append(BlockLabel);
+                    Text.push_back(':');
+                    if (BlockLabel != Pool.text(Block.name()))
                     {
-                        return Result;
+                        Text.push_back(' ');
+                        printQuotedName(Block.name());
                     }
-                    Text += '\n';
+                    Text.push_back('\n');
                     for (const MachineInstruction& Instruction : Block.instructions())
                     {
-                        if (const auto Result = writeInstruction(Instruction, BlockLabels); !Result)
-                        {
-                            return Result;
-                        }
+                        printInstruction(Instruction, BlockLabels);
                     }
-                    return {};
                 }
 
-                WriteResult writeInstruction(const MachineInstruction& Instruction, const BlockLabelMap& BlockLabels)
+                void printInstruction(const MachineInstruction& Instruction, const BlockLabelTable& BlockLabels)
                 {
-                    if (const auto ValidationError = validateInstructionConstraints(Instruction))
-                    {
-                        return writeFailure(*ValidationError);
-                    }
-                    Text += "    ";
-                    Text += Instruction.getName();
+                    Text.append("    ");
+                    Text.append(Instruction.getName());
                     for (std::size_t Index = 0; Index < Instruction.operandCount(); ++Index)
                     {
-                        Text += Index == 0 ? " " : ", ";
-                        if (const auto Result = writeOperand(*Instruction.getOperand(Index), BlockLabels); !Result)
-                        {
-                            return Result;
-                        }
+                        Text.append(Index == 0 ? " " : ", ");
+                        printOperand(*Instruction.getOperand(Index), BlockLabels);
                     }
-                    Text += '\n';
-                    return {};
+                    Text.push_back('\n');
                 }
 
-                WriteResult writeOperand(const Operand& Value, const BlockLabelMap& BlockLabels)
+                void printOperand(const Operand& Value, const BlockLabelTable& BlockLabels)
                 {
                     switch (Value.getKind())
                     {
                     case OperandKind::Register:
                         {
                             const auto& Register = static_cast<const RegisterOperand&>(Value);
-                            if (const auto Result = writeRegister(Register.getRegister()); !Result)
-                            {
-                                return Result;
-                            }
-                            writeDisplacement(Register.getByteOffset());
-                            return {};
+                            Text.append(getRegisterName(Register.getRegister()));
+                            printDisplacement(Register.getByteOffset());
+                            return;
                         }
                     case OperandKind::Immediate:
                         {
                             const auto& Immediate = static_cast<const ImmediateOperand&>(Value);
                             if (const auto Bits = Immediate.bits())
                             {
-                                writeImmediateBits(*Bits);
-                                return {};
+                                printImmediateBits(*Bits);
+                                return;
                             }
-                            if (const auto Result = writeSymbol(*Immediate.getSymbol()); !Result)
-                            {
-                                return Result;
-                            }
-                            writeDisplacement(*Immediate.getByteOffset());
-                            return {};
+                            printSymbol(*Immediate.getSymbol());
+                            printDisplacement(*Immediate.getByteOffset());
+                            return;
                         }
                     case OperandKind::BasicBlock:
                         {
                             const MachineBasicBlock* Target = static_cast<const BasicBlockOperand&>(Value).getBlock();
-                            const auto Found = BlockLabels.find(Target);
-                            if (Found == BlockLabels.end())
-                            {
-                                return writeFailure("a branch target must belong to its function");
-                            }
-                            Text += Found->second;
-                            return {};
+                            Text.append(BlockLabels.labelFor(Target));
+                            return;
                         }
                     case OperandKind::Address:
                         {
                             const auto& Address = static_cast<const AddressOperand&>(Value);
-                            Text += '[';
+                            Text.push_back('[');
                             if (const auto Register = Address.getRegister())
                             {
-                                if (const auto Result = writeRegister(*Register); !Result)
-                                {
-                                    return Result;
-                                }
+                                Text.append(getRegisterName(*Register));
                             }
                             else
                             {
-                                if (const auto Result = writeSymbol(*Address.getSymbol()); !Result)
-                                {
-                                    return Result;
-                                }
+                                printSymbol(*Address.getSymbol());
                             }
-                            writeDisplacement(Address.getByteOffset());
-                            Text += ']';
-                            return {};
+                            printDisplacement(Address.getByteOffset());
+                            Text.push_back(']');
+                            return;
                         }
                     }
-                    return writeFailure("instruction contains an unknown operand kind");
                 }
 
-                WriteResult writeOriginalNameIfDifferent(std::string_view AllocatedLabel, core::Name Name)
+                void printLinkage(MachineSymbolLinkage Linkage)
                 {
-                    if (AllocatedLabel == core::NamePool::instance().text(Name))
+                    if (Linkage == MachineSymbolLinkage::External)
                     {
-                        return {};
+                        Text.append(" external");
                     }
-                    Text += ' ';
-                    return writeQuotedName(Name);
                 }
 
-                WriteResult writeLinkage(MachineSymbolLinkage Linkage, core::Name Name)
+                void printQuotedName(core::Name Name)
                 {
-                    if (Linkage == MachineSymbolLinkage::Local)
-                    {
-                        return {};
-                    }
-                    const core::NamePool& Pool = core::NamePool::instance();
-                    if (Linkage != MachineSymbolLinkage::External || !Name.valid() || !Pool.contains(Name) || Pool.text(Name).empty())
-                    {
-                        return writeFailure("definition linkage must be local or external, and external definitions require a nonempty name");
-                    }
-                    Text += " external";
-                    return {};
-                }
-
-                WriteResult writeQuotedName(core::Name Name)
-                {
-                    const core::NamePool& Pool = core::NamePool::instance();
-                    if (Name.valid() && !Pool.contains(Name))
-                    {
-                        return writeFailure("name is not present in the process name pool");
-                    }
                     detail::appendQuotedText(Text, Pool.text(Name));
-                    return {};
                 }
 
-                WriteResult writeSymbol(core::Name Symbol)
+                void printSymbol(core::Name Symbol)
                 {
-                    const core::NamePool& Pool = core::NamePool::instance();
-                    if (!Symbol.valid() || !Pool.contains(Symbol) || Pool.text(Symbol).empty())
-                    {
-                        return writeFailure("symbol name must be nonempty and present in the process name pool");
-                    }
-                    Text += '@';
+                    Text.push_back('@');
                     const std::string_view Spelling = Pool.text(Symbol);
                     if (detail::isLabelIdentifier(Spelling))
                     {
-                        Text += Spelling;
-                        return {};
+                        Text.append(Spelling);
+                        return;
                     }
                     detail::appendQuotedText(Text, Spelling);
-                    return {};
                 }
 
-                WriteResult writeRegister(RegisterId Register)
-                {
-                    if (!isArithmeticRegister(Register))
-                    {
-                        return writeFailure("instruction contains an unknown register ID");
-                    }
-                    Text += getRegisterName(Register);
-                    return {};
-                }
-
-                void writeUnsigned(std::uint64_t Value, int Base = 10)
+                void printUnsigned(std::uint64_t Value, int Base = 10)
                 {
                     char Buffer[32];
                     const auto Result = std::to_chars(Buffer, Buffer + sizeof(Buffer), Value, Base);
                     Text.append(Buffer, Result.ptr);
                 }
 
-                void writeImmediateBits(std::uint64_t Bits)
+                void printImmediateBits(std::uint64_t Bits)
                 {
                     const auto Signed = std::bit_cast<std::int64_t>(Bits);
                     if (Signed >= -detail::DecimalImmediateLimit && Signed <= detail::DecimalImmediateLimit)
                     {
                         if (Signed < 0)
                         {
-                            Text += '-';
-                            writeUnsigned(std::uint64_t{0} - Bits);
+                            Text.push_back('-');
+                            printUnsigned(std::uint64_t{0} - Bits);
                         }
                         else
                         {
-                            writeUnsigned(Bits);
+                            printUnsigned(Bits);
                         }
                         return;
                     }
-                    Text += "0x";
-                    writeUnsigned(Bits, 16);
+                    Text.append("0x");
+                    printUnsigned(Bits, 16);
                 }
 
-                void writeDisplacement(std::int64_t Offset)
+                void printDisplacement(std::int64_t Offset)
                 {
                     if (Offset > 0)
                     {
-                        Text += " + ";
-                        writeUnsigned(static_cast<std::uint64_t>(Offset));
+                        Text.append(" + ");
+                        printUnsigned(static_cast<std::uint64_t>(Offset));
                     }
                     else if (Offset < 0)
                     {
-                        Text += " - ";
-                        writeUnsigned(std::uint64_t{0} - static_cast<std::uint64_t>(Offset));
+                        Text.append(" - ");
+                        printUnsigned(std::uint64_t{0} - static_cast<std::uint64_t>(Offset));
                     }
                 }
 
@@ -534,49 +458,89 @@ namespace ink::vm
                     return Count;
                 }
 
-                void writeInitializerBytes(std::span<const std::uint8_t> Bytes)
+                static bool hasZeroRunAtLeast(std::span<const std::uint8_t> Bytes, std::size_t Start, std::size_t MinimumLength) noexcept
+                {
+                    if (Bytes.size() - Start < MinimumLength)
+                    {
+                        return false;
+                    }
+                    for (std::size_t Offset = 0; Offset < MinimumLength; ++Offset)
+                    {
+                        if (Bytes[Start + Offset] != 0)
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+
+                void printInitializerBytes(std::span<const std::uint8_t> Bytes)
                 {
                     std::size_t Index = 0;
                     while (Index < Bytes.size())
                     {
-                        const std::size_t ZeroRun = countLeadingZeros(Bytes, Index);
-                        if (ZeroRun >= detail::CanonicalZeroRunMinBytes)
+                        if (hasZeroRunAtLeast(Bytes, Index, detail::CanonicalZeroRunMinBytes))
                         {
-                            Text += "    ";
-                            Text += detail::ZeroDirective;
-                            Text += ' ';
-                            writeUnsigned(ZeroRun);
-                            Text += '\n';
+                            const std::size_t ZeroRun = countLeadingZeros(Bytes, Index);
+                            Text.append("    ");
+                            Text.append(detail::ZeroDirective);
+                            Text.push_back(' ');
+                            printUnsigned(ZeroRun);
+                            Text.push_back('\n');
                             Index += ZeroRun;
                             continue;
                         }
-                        Text += "    ";
-                        Text += detail::ByteDirective;
-                        Text += ' ';
+                        Text.append("    ");
+                        Text.append(detail::ByteDirective);
+                        Text.push_back(' ');
                         for (std::size_t Column = 0; Column < 16 && Index < Bytes.size(); ++Column, ++Index)
                         {
-                            if (Column != 0 && countLeadingZeros(Bytes, Index) >= detail::CanonicalZeroRunMinBytes)
+                            if (Column != 0 && hasZeroRunAtLeast(Bytes, Index, detail::CanonicalZeroRunMinBytes))
                             {
                                 break;
                             }
                             if (Column != 0)
                             {
-                                Text += ", ";
+                                Text.append(", ");
                             }
-                            Text += "0x";
-                            Text += detail::LowerHexDigits[Bytes[Index] >> 4];
-                            Text += detail::LowerHexDigits[Bytes[Index] & 0x0F];
+                            Text.append("0x");
+                            Text.push_back(detail::LowerHexDigits[Bytes[Index] >> 4]);
+                            Text.push_back(detail::LowerHexDigits[Bytes[Index] & 0x0F]);
                         }
-                        Text += '\n';
+                        Text.push_back('\n');
                     }
                 }
 
-                std::string Text;
+                std::string& Text;
+                const core::NamePool& Pool;
         };
     } // namespace
 
+    std::expected<void, core::Diagnostic> writeMachineModuleText(const MachineModule& ModuleValue, std::string& Output)
+    {
+        core::DiagnosticEngine Diagnostics;
+        core::CollectingDiagnosticConsumer Collector;
+        Diagnostics.addConsumer(Collector);
+        if (!verifyMachineModule(ModuleValue, Diagnostics))
+        {
+            auto Reported = Collector.takeDiagnostics();
+            if (!Reported.empty())
+            {
+                return std::unexpected(std::move(Reported.front()));
+            }
+            return std::unexpected(core::makeDiagnostic<core::DiagnosticKind::VMModuleInvalid>(core::SourceRange{}, "module", "module verification failed"));
+        }
+        ModuleTextPrinter(Output).printModule(ModuleValue);
+        return {};
+    }
+
     std::expected<std::string, core::Diagnostic> writeMachineModuleText(const MachineModule& ModuleValue)
     {
-        return ModuleTextWriter{}.writeModule(ModuleValue);
+        std::string Output;
+        if (const auto Result = writeMachineModuleText(ModuleValue, Output); !Result)
+        {
+            return std::unexpected(Result.error());
+        }
+        return Output;
     }
 } // namespace ink::vm

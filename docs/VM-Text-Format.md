@@ -1,17 +1,18 @@
 # VM 汇编文本格式
 
-`src/include/ink/backend/vm/serialization/machine_module_text.h` 提供两个无异常接口：
+`src/include/ink/backend/vm/serialization/machine_module_text.h` 提供无异常读写接口：
 
 ```cpp
+std::expected<void, core::Diagnostic> writeMachineModuleText(const MachineModule& ModuleValue, std::string& Output);
 std::expected<std::string, core::Diagnostic> writeMachineModuleText(const MachineModule& ModuleValue);
 std::expected<std::unique_ptr<MachineModule>, core::Diagnostic> readMachineModuleText(std::string_view Text);
 ```
 
 - `readMachineModuleText()` 从 Ink VM 汇编文本构建独立拥有的 `MachineModule`，不借用输入字符串，也不执行模块链接或镜像发射。
 - `writeMachineModuleText()` 将逻辑 `MachineModule` 序列化为规范（canonical）Ink VM 汇编文本。
-- 读写失败均返回 `core::DiagnosticKind::VMTextInvalid` 诊断：
-  - **读取失败**携带输入文本中出错词法单元或结构对应的字节范围 `SourceRange`（半开区间 `[Begin, End)`，调用方可补充 `SourceId` 后交给 `DiagnosticEngine`）。
-  - **写出失败**（输入 `MachineModule` 内存模型违反结构或指令契约，无源文本可指）返回空 `SourceRange{}`（`Span.isValid() == false`）。
+- 读写失败均返回 `core::Diagnostic` 诊断：
+  - **读取失败**返回 `core::DiagnosticKind::VMTextInvalid`（`INK-V0001`），并携带输入文本中出错词法单元或结构对应的字节范围 `SourceRange`（半开区间 `[Begin, End)`，调用方可补充 `SourceId` 后交给 `DiagnosticEngine`）。
+  - **写出失败**（输入 `MachineModule` 内存模型违反结构或指令契约，无源文本可指）通过 `verifyMachineModule()` 返回 `core::DiagnosticKind::VMModuleInvalid`（`INK-V0006`）和无效 `SourceRange{}`（`Span.isValid() == false`）。
 - LLVM InkVM 后端（`InkVMTarget` / `InkVMAsmPrinter`）与 `ink-interpreter` 共用这一套正式读写实现，保证直接内存模型发射与汇编文本输出完全一致。
 
 ## 文本示例
@@ -181,7 +182,8 @@ entry:
 
 ## 共享校验与往返契约
 
-- 读取器（`machine_module_text_reader.cpp`）采用单遍流式 `Lexer` 与递归下降解析器，写出器（`machine_module_text_writer.cpp`）直接遍历 `MachineModule`。
-- 读写器与链接器、发射器共享 `src/include/ink/backend/vm/instruction/machine_instruction_validator.h` 中的指令约束校验（寄存器合法性、目标写权限与零位移、浮点域契约、直接调用/跳转符号零位移、窄位宽禁止符号立即数）。
+- 读取器采用独立的单遍流式 `AsmLexer`（`machine_module_text_lexer.cpp`）与单遍递归下降 `ModuleTextParser`（`machine_module_text_reader.cpp`），基于 `vm/instruction` 中的 `OpcodeInfo` 二分查找表和 `MachineInstructionBuilder::tryCreate(Opcode, std::span<const MachineOperand>)` 直接构建指令，并通过基本块前向占位与 `MachineFunction::moveBasicBlockToEnd()` 单遍解析前向跳转。
+- 写出器（`machine_module_text_writer.cpp`）在写出前先调用 `verifyMachineModule()`（`src/include/ink/backend/vm/module/machine_module_verifier.h`，通过 `core::DiagnosticEngine` 报告结构化 `VMModuleInvalid` 诊断）做一次性结构与指令校验，校验通过后由无错纯格式化器 `ModuleTextPrinter` 追加输出至目标缓冲区；写出失败时不修改调用方传入的 `Output`。
+- 读写器与链接器、发射器共享 `src/include/ink/backend/vm/instruction/machine_instruction_validator.h` 中的单一真源指令约束校验（寄存器合法性、目标写权限与零位移、浮点域契约、直接调用/跳转符号零位移、窄位宽禁止符号立即数）。
 - 往返保证：对任意合法 `MachineModule M`，`readMachineModuleText(writeMachineModuleText(M))` 保留完整模块语义与结构，且二次规范输出满足 `write(read(write(M))) == write(M)`。注释、空行、属性先后顺序、手写字面量进制及 `.bytes`/`.i*`/`.f64` 写法在规范输出时会归一化为标准形式。
 - 文本读写只负责语法解析与单模块内局部约束，不检查跨模块符号冲突、未声明引用或外部符号绑定；这些属于 [VM 模块链接器](VM-Linker.md) 与 [VM 可执行镜像模型](VM-Executable.md) 的职责。

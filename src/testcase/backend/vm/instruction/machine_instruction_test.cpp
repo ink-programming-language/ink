@@ -1,4 +1,7 @@
+#include "ink/backend/vm/instruction/machine_instruction_validator.h"
 #include "ink/backend/vm/instruction/machine_instructions.h"
+#include "ink/backend/vm/instruction/machine_operand.h"
+#include "ink/backend/vm/instruction/opcode_info.h"
 #include "ink/backend/vm/module/machine_basic_block.h"
 #include "ink/core/name/name_pool.h"
 
@@ -661,6 +664,85 @@ namespace ink::vm::test
         static_assert(OpcodeTraits<Opcode::Jmp>::Category == InstructionCategory::Branch && OpcodeTraits<Opcode::Jmp>::Domain == InstructionDomain::None);
         static_assert(OpcodeTraits<Opcode::Callr>::Category == InstructionCategory::Call && OpcodeTraits<Opcode::Callr>::Domain == InstructionDomain::None);
         static_assert(OpcodeTraits<Opcode::Ret>::Category == InstructionCategory::Return && OpcodeTraits<Opcode::Ret>::Domain == InstructionDomain::None);
+    }
+
+    // MachineOperand wraps every concrete operand kind losslessly without throwing accessors, and OpcodeInfo exposes O(1) opcode lookup and sorted O(log N) overload search.
+    TEST(VMMachineInstructionTest, ProvidesMachineOperandMetadataTableAndUnifiedValidation)
+    {
+        const auto Symbol = core::NamePool::instance().intern("opcode.info.sym");
+        MachineBasicBlock Block;
+        const MachineOperand RegisterValue{RegisterOperand(RegisterId::R3, -8)};
+        const MachineOperand AddressValue{AddressOperand(Symbol, 16)};
+        const MachineOperand ImmediateValue{ImmediateOperand(Symbol, 4)};
+        const MachineOperand BlockValue{BasicBlockOperand(&Block)};
+
+        EXPECT_EQ(RegisterValue.getKind(), OperandKind::Register);
+        ASSERT_NE(RegisterValue.asRegister(), nullptr);
+        EXPECT_EQ(RegisterValue.asRegister()->getRegister(), RegisterId::R3);
+        EXPECT_EQ(RegisterValue.asRegister()->getByteOffset(), -8);
+        EXPECT_EQ(RegisterValue.asAddress(), nullptr);
+
+        EXPECT_EQ(AddressValue.getKind(), OperandKind::Address);
+        ASSERT_NE(AddressValue.asAddress(), nullptr);
+        EXPECT_EQ(AddressValue.asAddress()->getSymbol(), Symbol);
+        EXPECT_EQ(AddressValue.asAddress()->getByteOffset(), 16);
+
+        EXPECT_EQ(ImmediateValue.getKind(), OperandKind::Immediate);
+        ASSERT_NE(ImmediateValue.asImmediate(), nullptr);
+        EXPECT_EQ(ImmediateValue.asImmediate()->getSymbol(), Symbol);
+        EXPECT_EQ(ImmediateValue.asImmediate()->getByteOffset(), 4);
+
+        EXPECT_EQ(BlockValue.getKind(), OperandKind::BasicBlock);
+        ASSERT_NE(BlockValue.asBasicBlock(), nullptr);
+        EXPECT_EQ(BlockValue.asBasicBlock()->getBlock(), &Block);
+
+        const MachineOperand RoundTripped = MachineOperand::fromOperand(RegisterValue.getOperand());
+        ASSERT_NE(RoundTripped.asRegister(), nullptr);
+        EXPECT_EQ(RoundTripped.asRegister()->getRegister(), RegisterId::R3);
+        EXPECT_EQ(RoundTripped.asRegister()->getByteOffset(), -8);
+
+        const auto Sorted = sortedOpcodeInfos();
+        ASSERT_FALSE(Sorted.empty());
+        for (std::size_t Index = 1; Index < Sorted.size(); ++Index)
+        {
+            EXPECT_LE(Sorted[Index - 1].Spelling, Sorted[Index].Spelling);
+        }
+        for (const OpcodeInfo& Info : Sorted)
+        {
+            EXPECT_EQ(findOpcodeInfo(Info.Operation), &Info);
+            EXPECT_EQ(findOpcodeInfo(Info.Spelling, Info.operandKinds()), &Info);
+        }
+        EXPECT_EQ(findOpcodeInfo(static_cast<Opcode>(0xFFFF)), nullptr);
+        EXPECT_TRUE(findOpcodeOverloads("no_such_mnemonic").empty());
+
+        const auto CallOverloads = findOpcodeOverloads("call");
+        ASSERT_EQ(CallOverloads.size(), 3U);
+        constexpr std::array<OperandKind, 1> ImmKind{OperandKind::Immediate};
+        constexpr std::array<OperandKind, 1> AddrKind{OperandKind::Address};
+        constexpr std::array<OperandKind, 1> RegKind{OperandKind::Register};
+        ASSERT_NE(findOpcodeInfo("call", ImmKind), nullptr);
+        EXPECT_EQ(findOpcodeInfo("call", ImmKind)->Operation, Opcode::Calli);
+        ASSERT_NE(findOpcodeInfo("call", AddrKind), nullptr);
+        EXPECT_EQ(findOpcodeInfo("call", AddrKind)->Operation, Opcode::Callm);
+        ASSERT_NE(findOpcodeInfo("call", RegKind), nullptr);
+        EXPECT_EQ(findOpcodeInfo("call", RegKind)->Operation, Opcode::Callr);
+
+        const OpcodeInfo* AddInfo = findOpcodeInfo(Opcode::Add64rri);
+        ASSERT_NE(AddInfo, nullptr);
+        const std::array<MachineOperand, 3> ValidAdd{RegisterOperand(RegisterId::R0), RegisterOperand(RegisterId::SP, -8), ImmediateOperand(16)};
+        EXPECT_FALSE(validateInstructionConstraints(*AddInfo, ValidAdd).has_value());
+        const std::array<MachineOperand, 3> BadDest{RegisterOperand(RegisterId::ZERO), RegisterOperand(RegisterId::SP), ImmediateOperand(16)};
+        EXPECT_TRUE(validateInstructionConstraints(*AddInfo, BadDest).has_value());
+
+        const OpcodeInfo* NarrowStoreInfo = findOpcodeInfo(Opcode::Store32i);
+        ASSERT_NE(NarrowStoreInfo, nullptr);
+        const std::array<MachineOperand, 2> BadNarrowSym{AddressOperand(RegisterId::BP), ImmediateOperand(Symbol)};
+        EXPECT_TRUE(validateInstructionConstraints(*NarrowStoreInfo, BadNarrowSym).has_value());
+
+        const OpcodeInfo* CalliInfo = findOpcodeInfo(Opcode::Calli);
+        ASSERT_NE(CalliInfo, nullptr);
+        const std::array<MachineOperand, 1> DisplacedCall{ImmediateOperand(Symbol, 4)};
+        EXPECT_TRUE(validateInstructionConstraints(*CalliInfo, DisplacedCall).has_value());
     }
 
 } // namespace ink::vm::test

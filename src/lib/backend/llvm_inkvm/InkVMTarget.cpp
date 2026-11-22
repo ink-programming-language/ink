@@ -90,14 +90,12 @@ namespace ink::backend::llvm_inkvm
             return false;
         }
 
-        auto TextResult = vm::writeMachineModuleText(**MachineModuleResult);
-        if (!TextResult)
+        if (const auto TextResult = vm::writeMachineModuleText(**MachineModuleResult, AssemblyOutput); !TextResult)
         {
             ErrorMessage = core::DiagnosticFormatter{}.format(TextResult.error()).Message;
             return false;
         }
 
-        AssemblyOutput = std::move(*TextResult);
         return true;
     }
 } // namespace ink::backend::llvm_inkvm

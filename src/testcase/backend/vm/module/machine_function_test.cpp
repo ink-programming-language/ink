@@ -186,4 +186,33 @@ namespace ink::vm::test
         EXPECT_EQ(Second.frameInfo().byteSize(), 8U);
         EXPECT_EQ(Second.frameInfo().baseOffset(), 32U);
     }
+
+    // Moving a function-owned basic block to the end updates block order in O(1) while preserving its address, name update, and foreign-block safety.
+    TEST(VMMachineFunctionTest, MovesOwnedBasicBlockToEndAndUpdatesName)
+    {
+        auto& Pool = core::NamePool::instance();
+        MachineFunction Function;
+        MachineBasicBlock& First = Function.createBasicBlock(Pool.intern("first"));
+        MachineBasicBlock& Second = Function.createBasicBlock(Pool.intern("second"));
+        MachineBasicBlock& Third = Function.createBasicBlock(Pool.intern("third"));
+
+        const auto Renamed = Pool.intern("moved_first");
+        First.setName(Renamed);
+        EXPECT_EQ(First.name(), Renamed);
+        ASSERT_TRUE(Function.moveBasicBlockToEnd(First));
+
+        const auto Blocks = Function.basicBlocks();
+        ASSERT_EQ(Function.basicBlockCount(), 3U);
+        auto Pos = Blocks.begin();
+        EXPECT_EQ(&*Pos++, &Second);
+        EXPECT_EQ(&*Pos++, &Third);
+        EXPECT_EQ(&*Pos++, &First);
+        EXPECT_EQ(First.parent(), &Function);
+
+        MachineBasicBlock Detached;
+        EXPECT_FALSE(Function.moveBasicBlockToEnd(Detached));
+        MachineFunction Other;
+        MachineBasicBlock& Foreign = Other.createBasicBlock();
+        EXPECT_FALSE(Function.moveBasicBlockToEnd(Foreign));
+    }
 } // namespace ink::vm::test

@@ -206,6 +206,20 @@ namespace ink::core::test
         EXPECT_EQ(DiagnosticFormatter{}.format(Entry).Message, "invalid VM text: unknown opcode");
     }
 
+    // VM module verification diagnostics use a stable user-recoverable VM code and format both context and description.
+    TEST(DiagnosticTest, RegistersVMModuleInvalidMetadataAndFormatsContext)
+    {
+        constexpr DiagnosticKind Kind = DiagnosticKind::VMModuleInvalid;
+        const auto Entry = makeDiagnostic<Kind>({}, "instruction", "register destination must be BP, SP, or R0-R9 with zero byte offset");
+        EXPECT_EQ(Entry.number(), 0x04000006U);
+        EXPECT_STREQ(Entry.code(), "INK-V0006");
+        EXPECT_EQ(diagnosticDomain(Entry.Kind), DiagnosticDomain::VM);
+        EXPECT_EQ(Entry.classification(), DiagnosticClass::User);
+        EXPECT_EQ(diagnosticDefaultSeverity(Entry.Kind), DiagnosticSeverity::Error);
+        EXPECT_FALSE(Entry.Span.isValid());
+        EXPECT_EQ(DiagnosticFormatter{}.format(Entry).Message, "invalid VM module in instruction: register destination must be BP, SP, or R0-R9 with zero byte offset");
+    }
+
     // VM executable validation has a stable VM ICE identity and owns both string arguments in the registered schema order.
     TEST(DiagnosticTest, RegistersVMExecutableValidationMetadataAndCopiesTypedArguments)
     {

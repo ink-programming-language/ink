@@ -47,6 +47,9 @@ namespace ink::vm
 
             MachineBasicBlock& createBasicBlock(core::Name BlockName = core::NAME_None);
 
+            // Moves an existing block owned by this function to the end in O(1), preserving its address and references.
+            [[nodiscard]] bool moveBasicBlockToEnd(MachineBasicBlock& Block) noexcept;
+
             auto basicBlocks(this auto&& Self) noexcept
             {
                 return std::ranges::subrange(Self.Blocks.begin(), Self.Blocks.end());
