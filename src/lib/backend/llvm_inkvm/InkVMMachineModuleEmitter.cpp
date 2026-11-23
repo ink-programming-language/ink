@@ -38,6 +38,7 @@
 #include "ink/backend/vm/instruction/register_operand.h"
 #include "ink/backend/vm/module/machine_instruction_builder.h"
 #include "ink/core/name/name_pool.h"
+#include "ink/core/support/core_define.h"
 
 #include <algorithm>
 #include <bit>
@@ -420,14 +421,10 @@ namespace
             {
                 return std::unexpected("InkVM global relocation target must have a nonempty symbol name");
             }
-            const auto SymbolName = ModuleBuilder.internName(toStringView(Evaluated->Base->getName()));
-            if (!SymbolName)
-            {
-                return std::unexpected(SymbolName.error());
-            }
+            const ink::core::Name SymbolName = ModuleBuilder.internName(toStringView(Evaluated->Base->getName()));
             const auto FieldOffset = static_cast<std::uint64_t>(OutBytes.size());
             OutBytes.insert(OutBytes.end(), ink::vm::MachineGlobalRelocation::ByteSize, 0);
-            OutRelocations.push_back({FieldOffset, *SymbolName, Evaluated->Offset});
+            OutRelocations.push_back({FieldOffset, SymbolName, Evaluated->Offset});
             return {};
         }
 
@@ -499,13 +496,7 @@ namespace
                 ModuleBuilder.fail("InkVM symbol operand references an anonymous global or function");
                 return false;
             }
-            const auto Interned = ModuleBuilder.internName(toStringView(Global->getName()));
-            if (!Interned)
-            {
-                ModuleBuilder.fail(Interned.error());
-                return false;
-            }
-            OutName = *Interned;
+            OutName = ModuleBuilder.internName(toStringView(Global->getName()));
             OutOffset = MO.getOffset();
             return true;
         }
@@ -517,17 +508,12 @@ namespace
                 ModuleBuilder.fail("InkVM external symbol operand has an empty name");
                 return false;
             }
-            const auto Interned = ModuleBuilder.internName(std::string_view(SymbolText));
-            if (!Interned)
-            {
-                ModuleBuilder.fail(Interned.error());
-                return false;
-            }
-            if (!ModuleBuilder.recordExternalSymbolDeclaration(*Interned))
+            const ink::core::Name Interned = ModuleBuilder.internName(std::string_view(SymbolText));
+            if (!ModuleBuilder.recordExternalSymbolDeclaration(Interned))
             {
                 return false;
             }
-            OutName = *Interned;
+            OutName = Interned;
             OutOffset = MO.getOffset();
             return true;
         }
@@ -783,13 +769,10 @@ namespace llvm
         }
     }
 
-    std::expected<ink::core::Name, std::string> InkVMMachineModuleBuilder::internName(std::string_view Text)
+    ink::core::Name InkVMMachineModuleBuilder::internName(std::string_view Text)
     {
         const ink::core::Name Interned = ink::core::NamePool::instance().intern(Text);
-        if (!Text.empty() && !Interned.valid())
-        {
-            return std::unexpected("InkVM name pool capacity exhausted");
-        }
+        checkMsgf(Text.empty() || Interned.valid(), "InkVM name pool capacity exhausted");
         return Interned;
     }
 
@@ -815,14 +798,9 @@ namespace llvm
         Failed = false;
 
         const StringRef RawModuleName = IRModule.getName().empty() ? StringRef("inkvm") : StringRef(IRModule.getName());
-        const auto ModuleName = internName(toStringView(RawModuleName));
-        if (!ModuleName)
-        {
-            fail(ModuleName.error());
-            return false;
-        }
+        const ink::core::Name ModuleName = internName(toStringView(RawModuleName));
 
-        Output = std::make_unique<ink::vm::MachineModule>(*ModuleName);
+        Output = std::make_unique<ink::vm::MachineModule>(ModuleName);
         if (!emitExternalDeclarations(IRModule) || !emitDataGlobals(IRModule))
         {
             return false;
@@ -834,13 +812,7 @@ namespace llvm
             {
                 continue;
             }
-            const auto FuncName = internName(toStringView(Func.getName()));
-            if (!FuncName)
-            {
-                fail(FuncName.error());
-                return false;
-            }
-            KnownSymbols.insert(*FuncName);
+            KnownSymbols.insert(internName(toStringView(Func.getName())));
         }
         return true;
     }
@@ -858,14 +830,9 @@ namespace llvm
                 fail("InkVM external global declaration requires a nonempty name");
                 return false;
             }
-            const auto GlobalName = internName(toStringView(Global.getName()));
-            if (!GlobalName)
-            {
-                fail(GlobalName.error());
-                return false;
-            }
-            Output->declareSymbol(*GlobalName, ink::vm::MachineSymbolKind::GlobalVariable, Global.isConstant());
-            KnownSymbols.insert(*GlobalName);
+            const ink::core::Name GlobalName = internName(toStringView(Global.getName()));
+            Output->declareSymbol(GlobalName, ink::vm::MachineSymbolKind::GlobalVariable, Global.isConstant());
+            KnownSymbols.insert(GlobalName);
         }
 
         for (const Function& Func : IRModule.functions())
@@ -879,14 +846,9 @@ namespace llvm
                 fail("InkVM external function declaration requires a nonempty name");
                 return false;
             }
-            const auto FuncName = internName(toStringView(Func.getName()));
-            if (!FuncName)
-            {
-                fail(FuncName.error());
-                return false;
-            }
-            Output->declareSymbol(*FuncName, ink::vm::MachineSymbolKind::Function, false);
-            KnownSymbols.insert(*FuncName);
+            const ink::core::Name FuncName = internName(toStringView(Func.getName()));
+            Output->declareSymbol(FuncName, ink::vm::MachineSymbolKind::Function, false);
+            KnownSymbols.insert(FuncName);
         }
         return true;
     }
@@ -922,12 +884,7 @@ namespace llvm
                 return false;
             }
 
-            const auto GlobalName = internName(toStringView(Global.getName()));
-            if (!GlobalName)
-            {
-                fail(GlobalName.error());
-                return false;
-            }
+            const ink::core::Name GlobalName = internName(toStringView(Global.getName()));
 
             std::vector<std::uint8_t> InitialBytes;
             std::vector<ink::vm::MachineGlobalRelocation> Relocations;
@@ -945,14 +902,14 @@ namespace llvm
                 }
             }
 
-            if (const auto Created = Output->createGlobalVariable(ByteSize, Alignment, InitialBytes, *GlobalName, Linkage, Global.isConstant(), Relocations); !Created)
+            if (const auto Created = Output->createGlobalVariable(ByteSize, Alignment, InitialBytes, GlobalName, Linkage, Global.isConstant(), Relocations); !Created)
             {
                 fail(std::string(formatGlobalDataError(Created.error())));
                 return false;
             }
-            if (GlobalName->valid())
+            if (GlobalName.valid())
             {
-                KnownSymbols.insert(*GlobalName);
+                KnownSymbols.insert(GlobalName);
             }
         }
         return true;
@@ -978,17 +935,12 @@ namespace llvm
             return false;
         }
 
-        const auto FuncName = internName(toStringView(IRFunc.getName()));
-        if (!FuncName)
-        {
-            fail(FuncName.error());
-            return false;
-        }
+        const ink::core::Name FuncName = internName(toStringView(IRFunc.getName()));
 
-        ink::vm::MachineFunction& VMFunc = Output->createFunction(*FuncName, Linkage);
-        if (FuncName->valid())
+        ink::vm::MachineFunction& VMFunc = Output->createFunction(FuncName, Linkage);
+        if (FuncName.valid())
         {
-            KnownSymbols.insert(*FuncName);
+            KnownSymbols.insert(FuncName);
         }
 
         DenseMap<const MachineBasicBlock*, ink::vm::MachineBasicBlock*> BlockMap;
@@ -998,13 +950,7 @@ namespace llvm
             ink::core::Name BlockName = ink::core::NAME_None;
             if (const BasicBlock* IRBlock = MBB.getBasicBlock(); IRBlock != nullptr && !IRBlock->getName().empty())
             {
-                const auto InternedBlockName = internName(toStringView(IRBlock->getName()));
-                if (!InternedBlockName)
-                {
-                    fail(InternedBlockName.error());
-                    return false;
-                }
-                BlockName = *InternedBlockName;
+                BlockName = internName(toStringView(IRBlock->getName()));
             }
             ink::vm::MachineBasicBlock& VMBlock = VMFunc.createBasicBlock(BlockName);
             BlockMap.try_emplace(&MBB, &VMBlock);

@@ -43,7 +43,7 @@ namespace llvm
 
             void fail(std::string Message);
 
-            std::expected<ink::core::Name, std::string> internName(std::string_view Text);
+            ink::core::Name internName(std::string_view Text);
             bool recordExternalSymbolDeclaration(ink::core::Name SymbolName);
 
         private:
