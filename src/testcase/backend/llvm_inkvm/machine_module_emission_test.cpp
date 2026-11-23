@@ -457,4 +457,123 @@ entry:
         const std::array<std::uint8_t, 4> ExpectedBytes{0x78, 0x56, 0x34, 0x12};
         EXPECT_TRUE(std::ranges::equal((*DataEmitted)->globalVariables().begin()->initialBytes(), ExpectedBytes));
     }
+
+    // Verifies constant lowering handles global aliases, negative relocation offsets, inttoptr constants, FP64 and multi-byte arrays, while skipping llvm metadata globals.
+    TEST(InkVMMachineModuleEmissionTest, LowersConstantAliasesNegativeAddendsIntToPtrFPAndSkipsMetadataGlobals)
+    {
+        constexpr std::string_view IRText = R"(@llvm.metadata_ignored = global i64 99, section "llvm.metadata", align 8
+@arr = constant [4 x i64] [i64 1, i64 2, i64 3, i64 4], align 8
+@arr_elem1 = alias i64, getelementptr ([4 x i64], ptr @arr, i64 0, i64 1)
+@via_alias = constant ptr @arr_elem1, align 8
+@neg_reloc = constant i64 sub (i64 ptrtoint (ptr @arr to i64), i64 8), align 8
+@raw_ptr64 = constant ptr inttoptr (i64 4660 to ptr), align 8
+@raw_ptr32 = constant ptr inttoptr (i32 305419896 to ptr), align 8
+@fp_val = constant double 1.5, align 8
+@u16_seq = constant [2 x i16] [i16 258, i16 772], align 2
+)";
+
+        llvm::LLVMContext Context;
+        auto IRModule = parseIR(Context, IRText, "const_lowering_edges");
+        ASSERT_NE(IRModule, nullptr);
+
+        auto DirectModule = emitInkVMMachineModule(*IRModule);
+        ASSERT_TRUE(DirectModule.has_value()) << DirectModule.error();
+
+        auto& Names = core::NamePool::instance();
+        const auto FindGlobal = [&](std::string_view Name) -> const vm::MachineGlobalVariable*
+        {
+            const core::Name Target = Names.intern(Name);
+            for (const auto& Global : (*DirectModule)->globalVariables())
+            {
+                if (Global.name() == Target)
+                {
+                    return &Global;
+                }
+            }
+            return nullptr;
+        };
+
+        EXPECT_EQ(FindGlobal("llvm.metadata_ignored"), nullptr);
+
+        const auto* ViaAlias = FindGlobal("via_alias");
+        ASSERT_NE(ViaAlias, nullptr);
+        ASSERT_EQ(ViaAlias->relocationCount(), 1u);
+        EXPECT_EQ(ViaAlias->relocations()[0], (vm::MachineGlobalRelocation{0, Names.intern("arr"), 8}));
+
+        const auto* NegReloc = FindGlobal("neg_reloc");
+        ASSERT_NE(NegReloc, nullptr);
+        ASSERT_EQ(NegReloc->relocationCount(), 1u);
+        EXPECT_EQ(NegReloc->relocations()[0], (vm::MachineGlobalRelocation{0, Names.intern("arr"), -8}));
+
+        const auto* RawPtr64 = FindGlobal("raw_ptr64");
+        ASSERT_NE(RawPtr64, nullptr);
+        EXPECT_EQ(RawPtr64->relocationCount(), 0u);
+        const std::array<std::uint8_t, 2> ExpectedPtr64Bytes{0x34, 0x12};
+        EXPECT_TRUE(std::ranges::equal(RawPtr64->initialBytes(), ExpectedPtr64Bytes));
+
+        const auto* RawPtr32 = FindGlobal("raw_ptr32");
+        ASSERT_NE(RawPtr32, nullptr);
+        EXPECT_EQ(RawPtr32->relocationCount(), 0u);
+        const std::array<std::uint8_t, 4> ExpectedPtr32Bytes{0x78, 0x56, 0x34, 0x12};
+        EXPECT_TRUE(std::ranges::equal(RawPtr32->initialBytes(), ExpectedPtr32Bytes));
+
+        const auto* FPVal = FindGlobal("fp_val");
+        ASSERT_NE(FPVal, nullptr);
+        const std::array<std::uint8_t, 8> ExpectedFPBytes{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF8, 0x3F};
+        EXPECT_TRUE(std::ranges::equal(FPVal->initialBytes(), ExpectedFPBytes));
+
+        const auto* U16Seq = FindGlobal("u16_seq");
+        ASSERT_NE(U16Seq, nullptr);
+        const std::array<std::uint8_t, 4> ExpectedU16Bytes{0x02, 0x01, 0x04, 0x03};
+        EXPECT_TRUE(std::ranges::equal(U16Seq->initialBytes(), ExpectedU16Bytes));
+    }
+
+    // Verifies invalid constant expression relocations (adding two symbols, subtracting a symbol, signed addend overflow, and metadata refs) fail with explicit errors.
+    TEST(InkVMMachineModuleEmissionTest, ReportsExplicitErrorForInvalidConstantExprRelocations)
+    {
+        struct InvalidCase
+        {
+                std::string_view IRText;
+                std::string_view ExpectedErrorSubstring;
+        };
+
+        constexpr std::array<InvalidCase, 4> InvalidIRCases{
+            InvalidCase{
+                R"(@a = global i64 1, align 8
+@b = global i64 2, align 8
+@sum_syms = global i64 add (i64 ptrtoint (ptr @a to i64), i64 ptrtoint (ptr @b to i64)), align 8
+)",
+                "cannot add two symbol addresses",
+            },
+            InvalidCase{
+                R"(@a = global i64 1, align 8
+@neg_sym = global i64 sub (i64 16, i64 ptrtoint (ptr @a to i64)), align 8
+)",
+                "does not support subtracting a symbol address",
+            },
+            InvalidCase{
+                R"(@a = global i64 1, align 8
+@overflow_reloc = global i64 add (i64 ptrtoint (ptr getelementptr (i8, ptr @a, i64 9223372036854775807) to i64), i64 1), align 8
+)",
+                "overflows signed 64-bit range",
+            },
+            InvalidCase{
+                R"(@meta = global i64 1, section "llvm.metadata", align 8
+@ref_meta = global ptr @meta, align 8
+)",
+                "LLVM metadata global",
+            },
+        };
+
+        for (const InvalidCase& Case : InvalidIRCases)
+        {
+            SCOPED_TRACE(Case.IRText);
+            llvm::LLVMContext Context;
+            auto Mod = parseIR(Context, Case.IRText, "const_reloc_err");
+            ASSERT_NE(Mod, nullptr);
+            const auto Result = emitInkVMMachineModule(*Mod);
+            ASSERT_FALSE(Result.has_value());
+            EXPECT_NE(Result.error().find(Case.ExpectedErrorSubstring), std::string::npos) << Result.error();
+        }
+    }
 } // namespace ink::backend::llvm_inkvm

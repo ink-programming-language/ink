@@ -11,6 +11,8 @@
 
 namespace llvm
 {
+    class DataLayout;
+    class GlobalVariable;
     class MachineFunction;
     class Module;
 
@@ -47,8 +49,11 @@ namespace llvm
             bool recordExternalSymbolDeclaration(ink::core::Name SymbolName);
 
         private:
+            bool error(std::string Message);
             bool emitExternalDeclarations(const Module& IRModule);
             bool emitDataGlobals(const Module& IRModule);
+            bool emitDataGlobal(const GlobalVariable& Global, const DataLayout& DL);
+            void recordDefinedFunctionSymbols(const Module& IRModule);
 
             std::unique_ptr<ink::vm::MachineModule> Output;
             std::unordered_set<ink::core::Name> KnownSymbols;
