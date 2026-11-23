@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ink/core/diagnostic/diagnostic.h"
+#include "machine_module_text_format.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,61 +30,81 @@ namespace ink::vm::detail
     struct Token
     {
             TokenKind Kind = TokenKind::EndOfFile;
+            // Always borrows a slice of the original input buffer passed to AsmLexer.
             std::string_view View;
             std::string Decoded;
             bool UsesDecoded = false;
-            std::size_t BeginOffset = 0;
-            std::size_t EndOffset = 0;
+            TextSpan Span{};
 
             std::string_view text() const noexcept
             {
                 return UsesDecoded ? std::string_view(Decoded) : View;
             }
+
+            // Returns the borrowed slice in the original input text, valid for the lifetime of the input buffer.
+            std::string_view rawView() const noexcept
+            {
+                return View;
+            }
     };
 
-    // Single-pass streaming lexer using TokenKind::Error plus a sticky diagnostic slot,
-    // keeping lookahead operations (peek/at/eat/consume) infallible under -fno-exceptions.
+    // Single-pass streaming lexer modeled after LLVM's LLLexer: lookahead and consumption are
+    // direct non-expected operations, while ErrorPriority (Lexer > Parser > None) ensures
+    // lexer diagnostics are never overwritten by downstream parser errors.
     class AsmLexer final
     {
         public:
-            AsmLexer(std::string_view Text, std::optional<core::Diagnostic>& ErrorSlot) noexcept;
+            explicit AsmLexer(std::string_view Text) noexcept;
 
-            const Token& peek() noexcept;
-            Token take() noexcept;
-            void consume() noexcept;
+            const Token& current();
+            const Token& peekNext();
+            TokenKind kind();
+            Token take();
+            void consume();
 
-            bool at(TokenKind Kind) noexcept;
-            bool atLineEnd() noexcept;
-            bool eat(TokenKind Kind) noexcept;
-            std::optional<Token> eatToken(TokenKind Kind) noexcept;
-            void skipBlankLines() noexcept;
+            bool atLineEnd();
+            bool atWord(std::string_view Word);
+            bool atLabel();
+            bool atDirective(std::string_view Directive);
+            bool eat(TokenKind Kind);
+            bool eatToken(TokenKind Kind, Token& Out);
+            void skipBlankLines();
 
-            bool hasError() const noexcept
+            // LLParser-style expectations returning true on error and false on success.
+            bool expect(TokenKind Kind, std::string_view Message);
+            bool expect(TokenKind Kind, std::string_view Message, Token& Out);
+            bool expectEndOfLine(std::string_view Message = "unexpected trailing token");
+
+            // Records a parser diagnostic (returning true) unless an equal- or higher-priority error already exists.
+            bool parseError(TextSpan Span, std::string_view Description);
+            bool recordParserDiagnostic(core::Diagnostic Diagnostic) noexcept;
+            core::Diagnostic takeDiagnostic();
+
+            TextSpan endSpan() const noexcept
             {
-                return ErrorSlot.has_value();
-            }
-
-            std::size_t lastTokenEnd() const noexcept
-            {
-                return LastTokenEnd;
-            }
-
-            std::size_t endOffset() const noexcept
-            {
-                return Text.size();
+                return TextSpan{Text.size(), Text.size()};
             }
 
         private:
-            Token lexNext() noexcept;
-            Token lexSymbol(std::size_t AtStart) noexcept;
-            bool decodeQuotedString(std::size_t QuoteStart, std::string& Decoded) noexcept;
-            Token makeErrorToken(std::size_t BeginOffset, std::size_t EndOffset, std::string_view Description) noexcept;
+            enum class ErrorPriority : std::uint8_t
+            {
+                None,
+                Parser,
+                Lexer,
+            };
+
+            void popCurrent() noexcept;
+            bool recordDiagnostic(core::Diagnostic Diagnostic, ErrorPriority Origin) noexcept;
+            Token makeLexError(TextSpan Span, std::string_view Description);
+            Token lexNext();
+            Token lexSymbol(std::size_t AtStart);
+            bool decodeQuotedString(std::size_t QuoteStart, std::string& Decoded);
 
             std::string_view Text;
-            std::optional<core::Diagnostic>& ErrorSlot;
             std::size_t Offset = 0;
-            std::size_t LastTokenEnd = 0;
-            Token Current;
-            bool HasCurrent = false;
+            std::optional<Token> Current;
+            std::optional<Token> Lookahead;
+            std::optional<core::Diagnostic> Diagnostic;
+            ErrorPriority Priority = ErrorPriority::None;
     };
 } // namespace ink::vm::detail

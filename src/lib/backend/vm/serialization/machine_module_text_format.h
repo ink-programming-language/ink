@@ -1,10 +1,12 @@
 #pragma once
 
 #include "ink/backend/vm/module/machine_symbol.h"
+#include "ink/core/diagnostic/diagnostic.h"
 #include "ink/core/diagnostic/diagnostic_builder.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -92,19 +94,51 @@ namespace ink::vm::detail
 
     enum class SectionKind : std::uint8_t
     {
-        None,
         Data,
         Text,
     };
 
+    struct TextSpan
+    {
+            std::size_t Begin = 0;
+            std::size_t End = 0;
+
+            constexpr TextSpan mergedWith(TextSpan Other) const noexcept
+            {
+                return TextSpan{Begin, Other.End};
+            }
+    };
+
+    template <typename ValueType>
+    struct Spanned
+    {
+            ValueType Value{};
+            TextSpan Span{};
+    };
+
+    template <typename ValueType>
+    using ParseResult = std::expected<ValueType, core::Diagnostic>;
+
+    using ParseStatus = std::expected<void, core::Diagnostic>;
+
+    inline core::Diagnostic makeTextDiagnostic(TextSpan Span, std::string_view Description)
+    {
+        return core::makeDiagnostic<core::DiagnosticKind::VMTextInvalid>(core::SourceRange::fromByteOffsets(Span.Begin, Span.End), std::string(Description));
+    }
+
     inline core::Diagnostic makeTextDiagnostic(std::size_t BeginOffset, std::size_t EndOffset, std::string_view Description)
     {
-        return core::makeDiagnostic<core::DiagnosticKind::VMTextInvalid>(core::SourceRange::fromByteOffsets(BeginOffset, EndOffset), std::string(Description));
+        return makeTextDiagnostic(TextSpan{BeginOffset, EndOffset}, Description);
     }
 
     inline core::Diagnostic makeTextDiagnostic(std::size_t Offset, std::string_view Description)
     {
-        return makeTextDiagnostic(Offset, Offset, Description);
+        return makeTextDiagnostic(TextSpan{Offset, Offset}, Description);
+    }
+
+    inline std::unexpected<core::Diagnostic> failAt(TextSpan Span, std::string_view Description)
+    {
+        return std::unexpected(makeTextDiagnostic(Span, Description));
     }
 
     constexpr bool isAsciiLetter(char Character) noexcept

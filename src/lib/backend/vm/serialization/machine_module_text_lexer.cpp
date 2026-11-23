@@ -1,7 +1,5 @@
 #include "machine_module_text_lexer.h"
 
-#include "machine_module_text_format.h"
-
 #include <utility>
 
 namespace ink::vm::detail
@@ -35,85 +33,190 @@ namespace ink::vm::detail
         }
     } // namespace
 
-    AsmLexer::AsmLexer(std::string_view Text, std::optional<core::Diagnostic>& ErrorSlot) noexcept
-        : Text(Text),
-          ErrorSlot(ErrorSlot)
+    AsmLexer::AsmLexer(std::string_view Text) noexcept
+        : Text(Text)
     {
     }
 
-    const Token& AsmLexer::peek() noexcept
+    void AsmLexer::popCurrent() noexcept
     {
-        if (!HasCurrent)
+        if (Lookahead)
         {
-            Current = lexNext();
-            HasCurrent = true;
+            Current = std::move(Lookahead);
+            Lookahead.reset();
         }
-        return Current;
+        else
+        {
+            Current.reset();
+        }
     }
 
-    Token AsmLexer::take() noexcept
+    const Token& AsmLexer::current()
     {
-        static_cast<void>(peek());
-        LastTokenEnd = Current.EndOffset;
-        HasCurrent = false;
-        return std::move(Current);
+        if (!Current)
+        {
+            Current.emplace(lexNext());
+        }
+        return *Current;
     }
 
-    void AsmLexer::consume() noexcept
+    const Token& AsmLexer::peekNext()
     {
-        static_cast<void>(peek());
-        LastTokenEnd = Current.EndOffset;
-        HasCurrent = false;
+        static_cast<void>(current());
+        if (!Lookahead)
+        {
+            Lookahead.emplace(lexNext());
+        }
+        return *Lookahead;
     }
 
-    bool AsmLexer::at(TokenKind Kind) noexcept
+    TokenKind AsmLexer::kind()
     {
-        return peek().Kind == Kind;
+        return current().Kind;
     }
 
-    bool AsmLexer::atLineEnd() noexcept
+    Token AsmLexer::take()
     {
-        const TokenKind Kind = peek().Kind;
-        return Kind == TokenKind::EndOfLine || Kind == TokenKind::EndOfFile;
+        if (!Current)
+        {
+            return lexNext();
+        }
+        Token Result = std::move(*Current);
+        popCurrent();
+        return Result;
     }
 
-    bool AsmLexer::eat(TokenKind Kind) noexcept
+    void AsmLexer::consume()
     {
-        if (peek().Kind != Kind)
+        static_cast<void>(current());
+        popCurrent();
+    }
+
+    bool AsmLexer::atLineEnd()
+    {
+        const TokenKind CurrentKind = kind();
+        return CurrentKind == TokenKind::EndOfLine || CurrentKind == TokenKind::EndOfFile;
+    }
+
+    bool AsmLexer::atWord(std::string_view Word)
+    {
+        const Token& Next = current();
+        return Next.Kind == TokenKind::Identifier && Next.text() == Word;
+    }
+
+    bool AsmLexer::atLabel()
+    {
+        return kind() == TokenKind::Identifier && peekNext().Kind == TokenKind::Colon;
+    }
+
+    bool AsmLexer::atDirective(std::string_view Directive)
+    {
+        return atWord(Directive) && peekNext().Kind != TokenKind::Colon;
+    }
+
+    bool AsmLexer::eat(TokenKind Kind)
+    {
+        if (kind() != Kind)
         {
             return false;
         }
-        consume();
+        popCurrent();
         return true;
     }
 
-    std::optional<Token> AsmLexer::eatToken(TokenKind Kind) noexcept
+    bool AsmLexer::eatToken(TokenKind Kind, Token& Out)
     {
-        if (peek().Kind != Kind)
+        if (kind() != Kind)
         {
-            return std::nullopt;
+            return false;
         }
-        return take();
+        Out = std::move(*Current);
+        popCurrent();
+        return true;
     }
 
-    void AsmLexer::skipBlankLines() noexcept
+    void AsmLexer::skipBlankLines()
     {
-        while (peek().Kind == TokenKind::EndOfLine)
+        while (kind() == TokenKind::EndOfLine)
         {
-            consume();
+            popCurrent();
         }
     }
 
-    Token AsmLexer::makeErrorToken(std::size_t BeginOffset, std::size_t EndOffset, std::string_view Description) noexcept
+    bool AsmLexer::expect(TokenKind Kind, std::string_view Message)
     {
-        if (!ErrorSlot)
+        const Token& Next = current();
+        if (Next.Kind != Kind)
         {
-            ErrorSlot = makeTextDiagnostic(BeginOffset, EndOffset, Description);
+            return parseError(Next.Span, Message);
         }
-        return Token{TokenKind::Error, {}, {}, false, BeginOffset, EndOffset};
+        popCurrent();
+        return false;
     }
 
-    bool AsmLexer::decodeQuotedString(std::size_t QuoteStart, std::string& Decoded) noexcept
+    bool AsmLexer::expect(TokenKind Kind, std::string_view Message, Token& Out)
+    {
+        const Token& Next = current();
+        if (Next.Kind != Kind)
+        {
+            return parseError(Next.Span, Message);
+        }
+        Out = std::move(*Current);
+        popCurrent();
+        return false;
+    }
+
+    bool AsmLexer::expectEndOfLine(std::string_view Message)
+    {
+        const Token& Next = current();
+        if (Next.Kind == TokenKind::EndOfLine)
+        {
+            popCurrent();
+            return false;
+        }
+        if (Next.Kind == TokenKind::EndOfFile)
+        {
+            return false;
+        }
+        return parseError(Next.Span, Message);
+    }
+
+    bool AsmLexer::recordDiagnostic(core::Diagnostic Value, ErrorPriority Origin) noexcept
+    {
+        if (Origin > Priority)
+        {
+            Diagnostic = std::move(Value);
+            Priority = Origin;
+        }
+        return true;
+    }
+
+    bool AsmLexer::parseError(TextSpan Span, std::string_view Description)
+    {
+        return recordDiagnostic(makeTextDiagnostic(Span, Description), ErrorPriority::Parser);
+    }
+
+    bool AsmLexer::recordParserDiagnostic(core::Diagnostic Value) noexcept
+    {
+        return recordDiagnostic(std::move(Value), ErrorPriority::Parser);
+    }
+
+    core::Diagnostic AsmLexer::takeDiagnostic()
+    {
+        if (Diagnostic)
+        {
+            return std::move(*Diagnostic);
+        }
+        return makeTextDiagnostic(endSpan(), "invalid VM assembly text");
+    }
+
+    Token AsmLexer::makeLexError(TextSpan Span, std::string_view Description)
+    {
+        static_cast<void>(recordDiagnostic(makeTextDiagnostic(Span, Description), ErrorPriority::Lexer));
+        return Token{TokenKind::Error, {}, {}, false, Span};
+    }
+
+    bool AsmLexer::decodeQuotedString(std::size_t QuoteStart, std::string& Decoded)
     {
         Decoded.clear();
         while (Offset < Text.size())
@@ -125,7 +228,7 @@ namespace ink::vm::detail
             }
             if (Next == '\n' || Next == '\r')
             {
-                static_cast<void>(makeErrorToken(QuoteStart, Offset - 1, "unterminated quoted string"));
+                static_cast<void>(makeLexError(TextSpan{QuoteStart, Offset - 1}, "unterminated quoted string"));
                 return false;
             }
             if (Next == '\\')
@@ -133,7 +236,7 @@ namespace ink::vm::detail
                 const std::size_t EscapeStart = Offset - 1;
                 if (Offset == Text.size() || Text[Offset] == '\n' || Text[Offset] == '\r')
                 {
-                    static_cast<void>(makeErrorToken(EscapeStart, Offset, "incomplete string escape"));
+                    static_cast<void>(makeLexError(TextSpan{EscapeStart, Offset}, "incomplete string escape"));
                     return false;
                 }
                 const char Escaped = Text[Offset++];
@@ -150,13 +253,13 @@ namespace ink::vm::detail
                 {
                     const bool ExtendSecondDigit = HighNibble >= 0 && Offset < Text.size() && Text[Offset] != '"' && Text[Offset] != '\n' && Text[Offset] != '\r';
                     const std::size_t EscapeEnd = ExtendSecondDigit ? Offset + 1 : Offset;
-                    static_cast<void>(makeErrorToken(EscapeStart, EscapeEnd, "expected a two-digit hexadecimal byte escape"));
+                    static_cast<void>(makeLexError(TextSpan{EscapeStart, EscapeEnd}, "expected a two-digit hexadecimal byte escape"));
                     return false;
                 }
             }
             else if (Next < 0x20 || Next > 0x7E)
             {
-                static_cast<void>(makeErrorToken(Offset - 1, Offset, "bytes outside printable ASCII must be escaped"));
+                static_cast<void>(makeLexError(TextSpan{Offset - 1, Offset}, "bytes outside printable ASCII must be escaped"));
                 return false;
             }
             else
@@ -164,11 +267,11 @@ namespace ink::vm::detail
                 Decoded.push_back(static_cast<char>(Next));
             }
         }
-        static_cast<void>(makeErrorToken(QuoteStart, Offset, "unterminated quoted string"));
+        static_cast<void>(makeLexError(TextSpan{QuoteStart, Offset}, "unterminated quoted string"));
         return false;
     }
 
-    Token AsmLexer::lexSymbol(std::size_t AtStart) noexcept
+    Token AsmLexer::lexSymbol(std::size_t AtStart)
     {
         if (Offset < Text.size() && isIdentifierStart(Text[Offset]))
         {
@@ -177,7 +280,7 @@ namespace ink::vm::detail
             {
                 ++Offset;
             }
-            return Token{TokenKind::Symbol, Text.substr(NameStart, Offset - NameStart), {}, false, AtStart, Offset};
+            return Token{TokenKind::Symbol, Text.substr(NameStart, Offset - NameStart), {}, false, TextSpan{AtStart, Offset}};
         }
         if (Offset < Text.size() && Text[Offset] == '"')
         {
@@ -185,22 +288,22 @@ namespace ink::vm::detail
             std::string Decoded;
             if (!decodeQuotedString(QuoteStart, Decoded))
             {
-                return Token{TokenKind::Error, {}, {}, false, QuoteStart, Offset};
+                return Token{TokenKind::Error, {}, {}, false, TextSpan{QuoteStart, Offset}};
             }
             if (Decoded.empty())
             {
-                return makeErrorToken(QuoteStart, Offset, "symbol name must be nonempty");
+                return makeLexError(TextSpan{QuoteStart, Offset}, "symbol name must be nonempty");
             }
-            return Token{TokenKind::Symbol, Text.substr(AtStart, Offset - AtStart), std::move(Decoded), true, AtStart, Offset};
+            return Token{TokenKind::Symbol, Text.substr(AtStart, Offset - AtStart), std::move(Decoded), true, TextSpan{AtStart, Offset}};
         }
-        return makeErrorToken(AtStart, Offset, "expected a nonempty symbol name after '@'");
+        return makeLexError(TextSpan{AtStart, Offset}, "expected a nonempty symbol name after '@'");
     }
 
-    Token AsmLexer::lexNext() noexcept
+    Token AsmLexer::lexNext()
     {
-        if (ErrorSlot)
+        if (Priority == ErrorPriority::Lexer)
         {
-            return Token{TokenKind::Error, {}, {}, false, Offset, Offset};
+            return Token{TokenKind::Error, {}, {}, false, TextSpan{Offset, Offset}};
         }
         for (;;)
         {
@@ -210,7 +313,7 @@ namespace ink::vm::detail
             }
             if (Offset >= Text.size())
             {
-                return Token{TokenKind::EndOfFile, {}, {}, false, Offset, Offset};
+                return Token{TokenKind::EndOfFile, {}, {}, false, TextSpan{Offset, Offset}};
             }
             const char Character = Text[Offset];
             if (Character == ';')
@@ -228,12 +331,12 @@ namespace ink::vm::detail
                 {
                     ++Offset;
                 }
-                return Token{TokenKind::EndOfLine, Text.substr(Start, Offset - Start), {}, false, Start, Offset};
+                return Token{TokenKind::EndOfLine, Text.substr(Start, Offset - Start), {}, false, TextSpan{Start, Offset}};
             }
             if (Character == '\n')
             {
                 const std::size_t Start = Offset++;
-                return Token{TokenKind::EndOfLine, Text.substr(Start, 1), {}, false, Start, Offset};
+                return Token{TokenKind::EndOfLine, Text.substr(Start, 1), {}, false, TextSpan{Start, Offset}};
             }
             const std::size_t Start = Offset++;
             if (Character == '"')
@@ -241,9 +344,9 @@ namespace ink::vm::detail
                 std::string Decoded;
                 if (!decodeQuotedString(Start, Decoded))
                 {
-                    return Token{TokenKind::Error, {}, {}, false, Start, Offset};
+                    return Token{TokenKind::Error, {}, {}, false, TextSpan{Start, Offset}};
                 }
-                return Token{TokenKind::String, Text.substr(Start, Offset - Start), std::move(Decoded), true, Start, Offset};
+                return Token{TokenKind::String, Text.substr(Start, Offset - Start), std::move(Decoded), true, TextSpan{Start, Offset}};
             }
             if (Character == '@')
             {
@@ -265,7 +368,7 @@ namespace ink::vm::detail
                         ++Offset;
                     }
                 }
-                return Token{TokenKind::Number, Text.substr(Start, Offset - Start), {}, false, Start, Offset};
+                return Token{TokenKind::Number, Text.substr(Start, Offset - Start), {}, false, TextSpan{Start, Offset}};
             }
             if (isIdentifierStart(Character))
             {
@@ -273,13 +376,13 @@ namespace ink::vm::detail
                 {
                     ++Offset;
                 }
-                return Token{TokenKind::Identifier, Text.substr(Start, Offset - Start), {}, false, Start, Offset};
+                return Token{TokenKind::Identifier, Text.substr(Start, Offset - Start), {}, false, TextSpan{Start, Offset}};
             }
             if (const auto Punctuation = matchPunctuation(Character))
             {
-                return Token{*Punctuation, Text.substr(Start, 1), {}, false, Start, Offset};
+                return Token{*Punctuation, Text.substr(Start, 1), {}, false, TextSpan{Start, Offset}};
             }
-            return makeErrorToken(Start, Offset, "unexpected character");
+            return makeLexError(TextSpan{Start, Offset}, "unexpected character");
         }
     }
 } // namespace ink::vm::detail

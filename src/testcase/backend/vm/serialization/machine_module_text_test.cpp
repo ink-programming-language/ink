@@ -14,6 +14,7 @@
 #include <iterator>
 #include <limits>
 #include <ranges>
+#include <span>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -2277,5 +2278,414 @@ c: "final block"
         };
         EXPECT_EQ(ReadU64(0), 0x7ff8000000000000ULL);
         EXPECT_EQ(ReadU64(8), 0xfff8000000000000ULL);
+    }
+
+    // Interleaved and empty sections preserve definition order, while misplaced section or top-level directives report exact directive spans.
+    TEST(VMMachineModuleTextTest, ParsesInterleavedAndEmptySectionsAndReportsMisplacedSectionDirectives)
+    {
+        constexpr std::string_view Text = R"(.module "interleaved-sections"
+.declare function @imported
+.section .data
+.global @g1 size 4
+    .i32 1
+.endglobal
+.section .text
+.section .data
+.global @g2 size 4
+    .i32 2
+.endglobal
+.section .text
+.function @f1
+entry:
+    ret
+.endfunction
+.section .data
+.section .text
+.function @f2
+entry:
+    call @imported
+    ret
+.endfunction
+.section .data
+)";
+        const auto Parsed = readMachineModuleText(Text);
+        ASSERT_TRUE(Parsed.has_value());
+        const auto& Module = **Parsed;
+        auto& Pool = core::NamePool::instance();
+        ASSERT_EQ(Module.globalVariableCount(), 2U);
+        EXPECT_EQ(Module.globalVariables().begin()->name(), Pool.intern("g1"));
+        EXPECT_EQ(std::next(Module.globalVariables().begin())->name(), Pool.intern("g2"));
+        ASSERT_EQ(Module.functionCount(), 2U);
+        EXPECT_EQ(Module.functions().begin()->name(), Pool.intern("f1"));
+        EXPECT_EQ(std::next(Module.functions().begin())->name(), Pool.intern("f2"));
+
+        const auto Written = writeMachineModuleText(Module);
+        ASSERT_TRUE(Written.has_value());
+        const auto Reparsed = readMachineModuleText(*Written);
+        ASSERT_TRUE(Reparsed.has_value());
+        expectEqualModules(Module, **Reparsed);
+
+        struct MisplacedCase
+        {
+                std::string_view Input;
+                std::string_view OffendingToken;
+        };
+        constexpr MisplacedCase Cases[] = {
+            {".module \"\"\n.global @g size 0\n.endglobal\n", ".global"},
+            {".module \"\"\n.function @f\n.endfunction\n", ".function"},
+            {".module \"\"\n.section .data\n.function @f\n.endfunction\n", ".function"},
+            {".module \"\"\n.section .text\n.global @g size 0\n.endglobal\n", ".global"},
+            {".module \"\"\n.section .data\n.declare function @late\n", ".declare"},
+            {".module \"\"\n.section .data extra\n", "extra"},
+        };
+        for (const auto& Case : Cases)
+        {
+            SCOPED_TRACE(Case.Input);
+            const auto Failed = readMachineModuleText(Case.Input);
+            ASSERT_FALSE(Failed.has_value());
+            EXPECT_EQ(Failed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            ASSERT_TRUE(Failed.error().Span.isValid());
+            const std::size_t Begin = Case.Input.find(Case.OffendingToken);
+            EXPECT_EQ(Failed.error().Span.getBegin().getByteOffset(), Begin);
+            EXPECT_EQ(Failed.error().Span.getEnd().getByteOffset(), Begin + Case.OffendingToken.size());
+        }
+    }
+
+    // Directive-named block labels, empty blocks, shared forward targets, and function prologue ordering preserve exact order and spans.
+    TEST(VMMachineModuleTextTest, ResolvesDirectiveNamedBlockLabelsEmptyBlocksAndSharedForwardTargets)
+    {
+        constexpr std::string_view Text = R"(.module "directive-labels"
+.section .text
+.function @f
+    .stackslot size 8 align 8
+    .frame base 16
+entry:
+    jmp .endfunction
+    je64rib r0, 0, empty_mid
+    jmp .stackslot
+empty_mid:
+.stackslot: "slot-block"
+    jmp empty_end
+.frame:
+    jmp .endfunction
+.endfunction:
+    ret
+empty_end:
+.endfunction
+)";
+        const auto Parsed = readMachineModuleText(Text);
+        ASSERT_TRUE(Parsed.has_value());
+        const auto& Function = *(*Parsed)->functions().begin();
+        ASSERT_EQ(Function.basicBlockCount(), 6U);
+        const auto Blocks = Function.basicBlocks();
+        auto& Pool = core::NamePool::instance();
+        const auto& Entry = *std::next(Blocks.begin(), 0);
+        const auto& EmptyMid = *std::next(Blocks.begin(), 1);
+        const auto& SlotBlock = *std::next(Blocks.begin(), 2);
+        const auto& FrameBlock = *std::next(Blocks.begin(), 3);
+        const auto& EndFuncBlock = *std::next(Blocks.begin(), 4);
+        const auto& EmptyEnd = *std::next(Blocks.begin(), 5);
+
+        EXPECT_EQ(Entry.name(), Pool.intern("entry"));
+        EXPECT_EQ(EmptyMid.name(), Pool.intern("empty_mid"));
+        EXPECT_EQ(EmptyMid.instructionCount(), 0U);
+        EXPECT_EQ(SlotBlock.name(), Pool.intern("slot-block"));
+        EXPECT_EQ(FrameBlock.name(), Pool.intern(".frame"));
+        EXPECT_EQ(EndFuncBlock.name(), Pool.intern(".endfunction"));
+        EXPECT_EQ(EmptyEnd.name(), Pool.intern("empty_end"));
+        EXPECT_EQ(EmptyEnd.instructionCount(), 0U);
+
+        const auto EntryInsts = Entry.instructions();
+        EXPECT_EQ(static_cast<const MachineJmpInstruction&>(*std::next(EntryInsts.begin(), 0)).getTarget(), &EndFuncBlock);
+        EXPECT_EQ(static_cast<const MachineJe64ribInstruction&>(*std::next(EntryInsts.begin(), 1)).getTarget(), &EmptyMid);
+        EXPECT_EQ(static_cast<const MachineJmpInstruction&>(*std::next(EntryInsts.begin(), 2)).getTarget(), &SlotBlock);
+        EXPECT_EQ(static_cast<const MachineJmpInstruction&>(*SlotBlock.instructions().begin()).getTarget(), &EmptyEnd);
+        EXPECT_EQ(static_cast<const MachineJmpInstruction&>(*FrameBlock.instructions().begin()).getTarget(), &EndFuncBlock);
+
+        const auto Written = writeMachineModuleText(**Parsed);
+        ASSERT_TRUE(Written.has_value());
+        const auto Reparsed = readMachineModuleText(*Written);
+        ASSERT_TRUE(Reparsed.has_value());
+        expectEqualModules(**Parsed, **Reparsed);
+
+        // Prologue placement errors fire directly on the misplaced directive token before parsing its attributes.
+        constexpr std::string_view LateSlot = ".module \"\"\n.section .text\n.function @f\nentry:\n    .stackslot invalid_attr\n.endfunction\n";
+        const auto LateSlotResult = readMachineModuleText(LateSlot);
+        ASSERT_FALSE(LateSlotResult.has_value());
+        EXPECT_EQ(LateSlotResult.error().Span.getBegin().getByteOffset(), LateSlot.find(".stackslot"));
+        EXPECT_EQ(LateSlotResult.error().Span.getEnd().getByteOffset(), LateSlot.find(".stackslot") + std::string_view(".stackslot").size());
+
+        constexpr std::string_view DuplicateFrame = ".module \"\"\n.section .text\n.function @f\n    .frame base 0\n    .frame invalid_attr\n.endfunction\n";
+        const auto DuplicateFrameResult = readMachineModuleText(DuplicateFrame);
+        ASSERT_FALSE(DuplicateFrameResult.has_value());
+        const std::size_t SecondFrame = DuplicateFrame.rfind(".frame");
+        EXPECT_EQ(DuplicateFrameResult.error().Span.getBegin().getByteOffset(), SecondFrame);
+        EXPECT_EQ(DuplicateFrameResult.error().Span.getEnd().getByteOffset(), SecondFrame + std::string_view(".frame").size());
+
+        // Frame layout overflow points specifically at the overflowing base offset literal.
+        constexpr std::string_view OverflowFrame = ".module \"\"\n.section .text\n.function @f\n    .stackslot size 8\n    .frame base 18446744073709551615\n.endfunction\n";
+        const auto OverflowFrameResult = readMachineModuleText(OverflowFrame);
+        ASSERT_FALSE(OverflowFrameResult.has_value());
+        const std::size_t BasePos = OverflowFrame.find("18446744073709551615");
+        EXPECT_EQ(OverflowFrameResult.error().Span.getBegin().getByteOffset(), BasePos);
+        EXPECT_EQ(OverflowFrameResult.error().Span.getEnd().getByteOffset(), BasePos + std::string_view("18446744073709551615").size());
+    }
+
+    // Signed integer and floating-point data directives decode exact boundary bit patterns and report full signed literal spans on failure.
+    TEST(VMMachineModuleTextTest, DecodesSignedIntegerAndFloat64BoundariesAndReportsFullLiteralSpans)
+    {
+        constexpr std::string_view Text = R"(.module "literal-boundaries"
+.section .data
+.global @ints size 76 align 8
+    .i16 -32768, 32767, 65535, +0, -0, 0x8000
+    .i32 -2147483648, 2147483647, 4294967295, +0, -0, 0x80000000
+    .i64 -9223372036854775808, 9223372036854775807, 18446744073709551615, +0, -0
+.endglobal
+.global @floats size 80 align 8
+    .f64 +0.0, -0.0, +inf, -inf, +nan, -nan, -0x1.8p+1, +0X1.8P-1, 1.5e-3, -2.25E+2
+.endglobal
+)";
+        const auto Parsed = readMachineModuleText(Text);
+        ASSERT_TRUE(Parsed.has_value());
+        ASSERT_EQ((*Parsed)->globalVariableCount(), 2U);
+
+        auto ReadLittleEndian = [](std::span<const std::uint8_t> Bytes, std::size_t Offset, std::size_t Width) -> std::uint64_t
+        {
+            std::uint64_t Value = 0;
+            for (std::size_t Index = 0; Index < Width; ++Index)
+            {
+                Value |= static_cast<std::uint64_t>(Bytes[Offset + Index]) << (Index * 8);
+            }
+            return Value;
+        };
+
+        const auto IntBytes = (*Parsed)->globalVariables().begin()->initialBytes();
+        ASSERT_EQ(IntBytes.size(), 12U + 24U + 40U);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 0, 2), 0x8000ULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 2, 2), 0x7FFFULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 4, 2), 0xFFFFULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 6, 2), 0x0000ULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 8, 2), 0x0000ULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 10, 2), 0x8000ULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 12, 4), 0x80000000ULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 16, 4), 0x7FFFFFFFULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 20, 4), 0xFFFFFFFFULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 24, 4), 0x00000000ULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 28, 4), 0x00000000ULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 32, 4), 0x80000000ULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 36, 8), 0x8000000000000000ULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 44, 8), 0x7FFFFFFFFFFFFFFFULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 52, 8), 0xFFFFFFFFFFFFFFFFULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 60, 8), 0x0000000000000000ULL);
+        EXPECT_EQ(ReadLittleEndian(IntBytes, 68, 8), 0x0000000000000000ULL);
+
+        const auto FloatBytes = std::next((*Parsed)->globalVariables().begin())->initialBytes();
+        ASSERT_EQ(FloatBytes.size(), 80U);
+        const std::uint64_t ExpectedFloats[] = {
+            std::bit_cast<std::uint64_t>(0.0),
+            std::bit_cast<std::uint64_t>(-0.0),
+            std::bit_cast<std::uint64_t>(std::numeric_limits<double>::infinity()),
+            std::bit_cast<std::uint64_t>(-std::numeric_limits<double>::infinity()),
+            0x7ff8000000000000ULL,
+            0xfff8000000000000ULL,
+            std::bit_cast<std::uint64_t>(-3.0),
+            std::bit_cast<std::uint64_t>(0.75),
+            std::bit_cast<std::uint64_t>(1.5e-3),
+            std::bit_cast<std::uint64_t>(-225.0),
+        };
+        for (std::size_t Index = 0; Index < std::size(ExpectedFloats); ++Index)
+        {
+            EXPECT_EQ(ReadLittleEndian(FloatBytes, Index * 8, 8), ExpectedFloats[Index]);
+        }
+
+        struct SpanCase
+        {
+                std::string_view Input;
+                std::string_view ExpectedSpanText;
+        };
+        constexpr SpanCase ErrorCases[] = {
+            {".module \"\"\n.section .data\n.global @g size 8\n    .i16 -32769\n.endglobal\n", "-32769"},
+            {".module \"\"\n.section .data\n.global @g size 8\n    .i32 -2147483649\n.endglobal\n", "-2147483649"},
+            {".module \"\"\n.section .data\n.global @g size 8\n    .i64 -9223372036854775809\n.endglobal\n", "-9223372036854775809"},
+            {".module \"\"\n.section .data\n.global @g size 8\n    .f64 -bogus\n.endglobal\n", "-bogus"},
+            {".module \"\"\n.section .data\n.global @g size 8\n    .f64 +0x3ff0000000000000\n.endglobal\n", "+0x3ff0000000000000"},
+            {".module \"\"\n.section .data\n.global @g size 8\n    .i64 - ; comment\n.endglobal\n", "-"},
+            {".module \"\"\n.section .data\n.global @g size 2\n    .i16 1, 2\n.endglobal\n", "2"},
+            {".module \"\"\n.section .data\n.global @g size 8\n    .f64 1.0, -2.5\n.endglobal\n", "-2.5"},
+        };
+        for (const auto& Case : ErrorCases)
+        {
+            SCOPED_TRACE(Case.Input);
+            const auto Failed = readMachineModuleText(Case.Input);
+            ASSERT_FALSE(Failed.has_value());
+            EXPECT_EQ(Failed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            ASSERT_TRUE(Failed.error().Span.isValid());
+            const std::size_t Begin = Case.Input.rfind(Case.ExpectedSpanText);
+            EXPECT_EQ(Failed.error().Span.getBegin().getByteOffset(), Begin);
+            EXPECT_EQ(Failed.error().Span.getEnd().getByteOffset(), Begin + Case.ExpectedSpanText.size());
+        }
+    }
+
+    // Global builders accept zero-length directives at exact capacity and partial zero-tail relocations, while reporting exact spans on overlap or bad alignment.
+    TEST(VMMachineModuleTextTest, ValidatesGlobalBuilderExactSizeZeroLengthPayloadsAndPartialRelocationOverlap)
+    {
+        constexpr std::string_view ValidText = R"(.module "global-builder"
+.section .data
+.global @exact size 10
+    .bytes "abcd"
+    .zero 4
+    .byte 0x11, 0x22
+    .zero 0
+    .bytes ""
+.endglobal
+.global @partial size 24 align 8
+    .i64 0x0102030405060708
+    .zero 4
+    .reloc 8, @mid_target
+    .reloc 16, @tail_target + 4
+.endglobal
+)";
+        const auto Parsed = readMachineModuleText(ValidText);
+        ASSERT_TRUE(Parsed.has_value());
+        ASSERT_EQ((*Parsed)->globalVariableCount(), 2U);
+        const auto& Exact = *(*Parsed)->globalVariables().begin();
+        EXPECT_EQ(Exact.initialBytes().size(), 10U);
+        const auto& Partial = *std::next((*Parsed)->globalVariables().begin());
+        EXPECT_EQ(Partial.initialBytes().size(), 12U);
+        ASSERT_EQ(Partial.relocationCount(), 2U);
+        EXPECT_EQ(Partial.relocations()[0].ByteOffset, 8U);
+        EXPECT_EQ(Partial.relocations()[1].ByteOffset, 16U);
+        EXPECT_EQ(Partial.relocations()[1].Addend, 4);
+
+        const auto Written = writeMachineModuleText(**Parsed);
+        ASSERT_TRUE(Written.has_value());
+        const auto Reparsed = readMachineModuleText(*Written);
+        ASSERT_TRUE(Reparsed.has_value());
+        expectEqualModules(**Parsed, **Reparsed);
+
+        // Nonzero byte at the last byte of a partially materialized relocation window fails at the .reloc offset token.
+        constexpr std::string_view PartialOverlap = ".module \"\"\n.section .data\n.global @g size 16 align 8\n    .zero 8\n    .byte 0, 0, 0, 1\n    .reloc 8, @sym\n.endglobal\n";
+        const auto OverlapResult = readMachineModuleText(PartialOverlap);
+        ASSERT_FALSE(OverlapResult.has_value());
+        const std::size_t OffsetPos = PartialOverlap.find(".reloc 8") + std::string_view(".reloc ").size();
+        EXPECT_EQ(OverlapResult.error().Span.getBegin().getByteOffset(), OffsetPos);
+        EXPECT_EQ(OverlapResult.error().Span.getEnd().getByteOffset(), OffsetPos + 1);
+
+        // Non-power-of-two alignments on both .global and .stackslot report the offending alignment value token span.
+        constexpr std::string_view BadGlobalAlign = ".module \"\"\n.section .data\n.global @g size 8 align 3\n.endglobal\n";
+        const auto BadGlobalResult = readMachineModuleText(BadGlobalAlign);
+        ASSERT_FALSE(BadGlobalResult.has_value());
+        const std::size_t GlobalAlignPos = BadGlobalAlign.find("align 3") + std::string_view("align ").size();
+        EXPECT_EQ(BadGlobalResult.error().Span.getBegin().getByteOffset(), GlobalAlignPos);
+        EXPECT_EQ(BadGlobalResult.error().Span.getEnd().getByteOffset(), GlobalAlignPos + 1);
+
+        constexpr std::string_view BadSlotAlign = ".module \"\"\n.section .text\n.function @f\n    .stackslot size 8 align 6\n.endfunction\n";
+        const auto BadSlotResult = readMachineModuleText(BadSlotAlign);
+        ASSERT_FALSE(BadSlotResult.has_value());
+        const std::size_t SlotAlignPos = BadSlotAlign.find("align 6") + std::string_view("align ").size();
+        EXPECT_EQ(BadSlotResult.error().Span.getBegin().getByteOffset(), SlotAlignPos);
+        EXPECT_EQ(BadSlotResult.error().Span.getEnd().getByteOffset(), SlotAlignPos + 1);
+    }
+
+    // Lexical errors take precedence over downstream parser errors and report their exact 1-byte spans across every lookahead and optional syntax position.
+    TEST(VMMachineModuleTextTest, PropagatesLexerErrorsAcrossLookaheadAndOptionalSyntaxPositions)
+    {
+        constexpr std::string_view InvalidCases[] = {
+            "\n#\n.module \"\"\n",
+            ".module \"\"\n#\n",
+            ".module \"\"\n.declare global @g #\n",
+            ".module \"\"\n.section .data\n.global # size 4\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @g size 4\n    #\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @g size 4\n    .byte 1, #\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @g size 4\n    .byte 1 #\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @g size 8\n    .f64 #\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @g size 8\n    .f64 - #\n.endglobal\n",
+            ".module \"\"\n.section .data\n.global @g size 8\n    .i64 - #\n.endglobal\n",
+            ".module \"\"\n.section .text\n.function #\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f #\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\n    #\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry: #\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    ret #\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    store64i [#], 0\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    store64i [bp + #], 0\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    add64rrr r0, r1, r2 #\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    add64rrr r0, r1, r2, #\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    call @fn #\n.endfunction\n",
+            ".module \"\"\n.section .text\n.function @f\nentry:\n    add64rri r0, r1, #\n.endfunction\n",
+        };
+        for (const auto Input : InvalidCases)
+        {
+            SCOPED_TRACE(Input);
+            const auto Failed = readMachineModuleText(Input);
+            ASSERT_FALSE(Failed.has_value());
+            EXPECT_EQ(Failed.error().Kind, core::DiagnosticKind::VMTextInvalid);
+            ASSERT_TRUE(Failed.error().Span.isValid());
+            const std::size_t HashPos = Input.find('#');
+            ASSERT_NE(HashPos, std::string_view::npos);
+            EXPECT_EQ(Failed.error().Span.getBegin().getByteOffset(), HashPos);
+            EXPECT_EQ(Failed.error().Span.getEnd().getByteOffset(), HashPos + 1);
+            const auto Description = std::ranges::find(Failed.error().Arguments, core::DiagnosticArgumentName::Description, &core::DiagnosticArgument::Name);
+            ASSERT_NE(Description, Failed.error().Arguments.end());
+            EXPECT_EQ(std::get<std::string>(Description->Value), "unexpected character");
+        }
+
+        // Lazy lookahead reports semantic errors on already-consumed tokens before lexing trailing invalid characters on the same line.
+        constexpr std::string_view SemanticBeforeTrailingLex = ".module \"\"\n.section .data\n.global @g size 4\n    .byte 256 #\n.endglobal\n";
+        const auto ByteOverflow = readMachineModuleText(SemanticBeforeTrailingLex);
+        ASSERT_FALSE(ByteOverflow.has_value());
+        const std::size_t BytePos = SemanticBeforeTrailingLex.find("256");
+        EXPECT_EQ(ByteOverflow.error().Span.getBegin().getByteOffset(), BytePos);
+        EXPECT_EQ(ByteOverflow.error().Span.getEnd().getByteOffset(), BytePos + 3);
+
+        constexpr std::string_view BadAlignBeforeTrailingLex = ".module \"\"\n.section .data\n.global @g size 4 align 3 #\n.endglobal\n";
+        const auto AlignError = readMachineModuleText(BadAlignBeforeTrailingLex);
+        ASSERT_FALSE(AlignError.has_value());
+        const std::size_t AlignPos = BadAlignBeforeTrailingLex.find("align 3") + std::string_view("align ").size();
+        EXPECT_EQ(AlignError.error().Span.getBegin().getByteOffset(), AlignPos);
+        EXPECT_EQ(AlignError.error().Span.getEnd().getByteOffset(), AlignPos + 1);
+    }
+
+    // Raw non-printable string bytes, incomplete trailing escapes, and excess instruction operands report precise diagnostic spans.
+    TEST(VMMachineModuleTextTest, ReportsExactSpansForStringEscapesNonPrintableBytesAndExcessOperands)
+    {
+        const std::string ControlInModule = std::string(".module \"a") + std::string(1, '\x01') + "b\"\n";
+        const auto ControlResult = readMachineModuleText(ControlInModule);
+        ASSERT_FALSE(ControlResult.has_value());
+        EXPECT_EQ(ControlResult.error().Span.getBegin().getByteOffset(), ControlInModule.find('\x01'));
+        EXPECT_EQ(ControlResult.error().Span.getEnd().getByteOffset(), ControlInModule.find('\x01') + 1);
+
+        const std::string NonAsciiInBytes = std::string(".module \"\"\n.section .data\n.global @g size 4\n    .bytes \"") + std::string(1, static_cast<char>(0x80)) + "\"\n.endglobal\n";
+        const auto NonAsciiResult = readMachineModuleText(NonAsciiInBytes);
+        ASSERT_FALSE(NonAsciiResult.has_value());
+        const std::size_t NonAsciiPos = NonAsciiInBytes.find(static_cast<char>(0x80));
+        EXPECT_EQ(NonAsciiResult.error().Span.getBegin().getByteOffset(), NonAsciiPos);
+        EXPECT_EQ(NonAsciiResult.error().Span.getEnd().getByteOffset(), NonAsciiPos + 1);
+
+        constexpr std::string_view IncompleteEscapes[] = {
+            ".module \"abc\\",
+            ".module \"abc\\\n",
+            ".module \"abc\\\r",
+        };
+        for (const auto Input : IncompleteEscapes)
+        {
+            SCOPED_TRACE(Input);
+            const auto Failed = readMachineModuleText(Input);
+            ASSERT_FALSE(Failed.has_value());
+            const std::size_t SlashPos = Input.find('\\');
+            EXPECT_EQ(Failed.error().Span.getBegin().getByteOffset(), SlashPos);
+            EXPECT_EQ(Failed.error().Span.getEnd().getByteOffset(), SlashPos + 1);
+        }
+
+        constexpr std::string_view ExcessOperands = ".module \"\"\n.section .text\n.function @f\nentry:\n    add64rrr r0, r1, r2, r3\n.endfunction\n";
+        const auto ExcessResult = readMachineModuleText(ExcessOperands);
+        ASSERT_FALSE(ExcessResult.has_value());
+        const std::size_t ExtraPos = ExcessOperands.find("r3");
+        EXPECT_EQ(ExcessResult.error().Span.getBegin().getByteOffset(), ExtraPos);
+        EXPECT_EQ(ExcessResult.error().Span.getEnd().getByteOffset(), ExtraPos + 2);
+
+        constexpr std::string_view TrailingCommaAfterMax = ".module \"\"\n.section .text\n.function @f\nentry:\n    add64rrr r0, r1, r2,\n.endfunction\n";
+        const auto TrailingCommaResult = readMachineModuleText(TrailingCommaAfterMax);
+        ASSERT_FALSE(TrailingCommaResult.has_value());
+        EXPECT_EQ(TrailingCommaResult.error().Kind, core::DiagnosticKind::VMTextInvalid);
     }
 } // namespace ink::vm::test

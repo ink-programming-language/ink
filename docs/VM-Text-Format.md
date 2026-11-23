@@ -182,7 +182,7 @@ entry:
 
 ## 共享校验与往返契约
 
-- 读取器采用独立的单遍流式 `AsmLexer`（`machine_module_text_lexer.cpp`）与单遍递归下降 `ModuleTextParser`（`machine_module_text_reader.cpp`），基于 `vm/instruction` 中的 `OpcodeInfo` 二分查找表和 `MachineInstructionBuilder::tryCreate(Opcode, std::span<const MachineOperand>)` 直接构建指令，并通过基本块前向占位与 `MachineFunction::moveBasicBlockToEnd()` 单遍解析前向跳转。
+- 读取器由独立组件分层协作实现：流式词法器 `AsmLexer`（`machine_module_text_lexer.cpp`）、无状态字面量解码器（`machine_module_text_literals.cpp`）、全局/函数构建器 `GlobalVariableBuilder` 与 `FunctionBuilder`（`machine_module_text_builders.cpp`），以及按文法层级递归下降的 `ModuleTextParser`（`machine_module_text_reader.cpp`）。解析阶段按源码顺序直接创建基本块并即时校验指令约束，在 `.endfunction` 时基于 `vm/instruction` 中的 `OpcodeInfo` 二分查找表和 `MachineInstructionBuilder::tryCreate(Opcode, std::span<const MachineOperand>)` 统一解析前向/后向分支目标并发射指令。
 - 写出器（`machine_module_text_writer.cpp`）在写出前先调用 `verifyMachineModule()`（`src/include/ink/backend/vm/module/machine_module_verifier.h`，通过 `core::DiagnosticEngine` 报告结构化 `VMModuleInvalid` 诊断）做一次性结构与指令校验，校验通过后由无错纯格式化器 `ModuleTextPrinter` 追加输出至目标缓冲区；写出失败时不修改调用方传入的 `Output`。
 - 读写器与链接器、发射器共享 `src/include/ink/backend/vm/instruction/machine_instruction_validator.h` 中的单一真源指令约束校验（寄存器合法性、目标写权限与零位移、浮点域契约、直接调用/跳转符号零位移、窄位宽禁止符号立即数）。
 - 往返保证：对任意合法 `MachineModule M`，`readMachineModuleText(writeMachineModuleText(M))` 保留完整模块语义与结构，且二次规范输出满足 `write(read(write(M))) == write(M)`。注释、空行、属性先后顺序、手写字面量进制及 `.bytes`/`.i*`/`.f64` 写法在规范输出时会归一化为标准形式。
